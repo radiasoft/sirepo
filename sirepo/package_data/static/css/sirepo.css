@@ -1,0 +1,235 @@
+
+    /* bootstrap overrides */
+    .modal-header {
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+    .popover {
+      max-width: none;
+      width: 100%;
+    }
+
+
+    body {
+      min-height: 1000px;
+    }
+
+    /* app styles */
+    .srw-toolbar-button {
+        background-color: #fff;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 12px;
+        margin: 2px;
+    }
+    .srw-toolbar-button.dragging {
+      opacity: 0.7;
+    }
+    .srw-beamline {
+      border-radius: 6px;
+      padding: 10px;
+      background-color: #eee;
+      min-height: 220px;
+      margin-bottom: 20px;
+    }
+    .srw-beamline-container {
+      padding-top: 25px;
+      overflow: auto;
+      white-space: nowrap;
+    }
+    .srw-beamline-element {
+      display: inline-block;
+      background-color: #fff;
+      position: relative;
+      padding: 5px;
+      padding-top: 10px;
+      border: 1px solid #fff;
+      margin-bottom: 5px;
+      vertical-align: top;
+    }
+    .srw-beamline-element.dragging {
+      opacity: 0.7;
+    }
+    .srw-beamline-image {
+      min-width: 80px;
+      cursor: move;
+    }
+    .srw-beamline-element-label {
+      padding-top: 5px;
+      cursor: pointer;
+    }
+    .srw-beamline-badge {
+      position: absolute;
+      top: -24px;
+      left: 0;
+      right: 0;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .srw-beamline-close-icon {
+      font-size: 20px;
+      position: absolute;
+      top: 1px;
+      right: 1px;
+      cursor: default;
+      color: #aaa;
+    }
+    .srw-beamline-close-icon {
+      visibility: hidden;
+    }
+    .srw-beamline-element:hover {
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .srw-beamline-element:hover .srw-beamline-close-icon {
+      visibility: visible;
+    }
+    .srw-beamline-close-icon:hover {
+      color: black;
+    }
+    .srw-drop-between-zone {
+      display: inline-block;
+      padding: 5px;
+      width: 20px;
+      height: 107px;
+      margin:0;
+      background-color: #fff;
+      vertical-align: top;
+    }
+    .srw-drop-between-zone.drag-enter {
+      opacity: 1;
+      background: blue;
+      width: 40px;
+      transition: all 0.5s ease 0s;
+    }
+
+    .srw-panel-options a {
+      margin-left: 1em;
+    }
+    .cssFade {
+        transition: 0.5s linear all;
+        opacity: 1;
+    }
+    .cssFade.ng-hide {
+        opacity: 0;
+    }
+
+    .srw-panel-loading {
+      background-color: #777;
+    }
+    .srw-panel-wait {
+      display: none;
+    }
+    .srw-panel-loading .srw-panel-wait {
+      position: absolute;
+      color: white;
+      font-weight: bold;
+      display: block;
+    }
+
+    .slider-horizontal {
+      margin: 0 1em;
+    }
+
+    /* plot2d styles */
+.srw-plot-2d svg {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  min-width: 400px;
+}
+.srw-plot-2d .axis text {
+  font-size: 10px;
+}
+.srw-plot-2d .axis path,
+.srw-plot-2d .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+.srw-plot-2d .axis.grid {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .1;
+}
+.srw-plot-2d .axis.grid text {
+  display: none;
+}
+.srw-plot-2d .y-axis-label,
+.srw-plot-2d .x-axis-label {
+  font-size: 14px;
+  font-weight: bold;
+}
+.srw-plot-2d .main-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+.srw-plot-2d .line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+.srw-plot-2d .overlay {
+  fill: none;
+  pointer-events: all;
+}
+.srw-plot-2d .focus circle {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+.srw-plot-2d .focus-text {
+  font-size: 14px;
+}
+
+/* plot3d styles */
+.srw-plot-3d {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  min-width: 400px;
+}
+.srw-plot-3d .axis text {
+  font-size: 10px;
+}
+.srw-plot-3d rect.mouse-zoom {
+  cursor: -webkit-zoom-in;
+  cursor: zoom-in;
+}
+.srw-plot-3d rect.mouse-move {
+  cursor: -webkit-move;
+  cursor: move;
+}
+.srw-plot-3d .axis path,
+.srw-plot-3d .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+.srw-plot-3d .axis.grid {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .1;
+}
+.srw-plot-3d .axis.grid text {
+  display: none;
+}
+.srw-plot-3d .z-axis-label,
+.srw-plot-3d .y-axis-label,
+.srw-plot-3d .x-axis-label {
+  font-size: 14px;
+  font-weight: bold;
+}
+.srw-plot-3d .z-axis-label {
+  line-height: 160%;
+}
+.srw-plot-3d .main-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+.srw-plot-3d .line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
