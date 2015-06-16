@@ -1,56 +1,232 @@
 "use strict";
 
 
+// Application meta-data
+var _ENUM = {
+    Flux: ['Flux', 'Flux per Unit Surface'],
+    IntegrationMethod: ['Manual', 'Auto-Undulator', 'Auto-Wiggler'],
+    Polarization: ['Linear Horizontal', 'Linear Vertical', 'Linear 45 degrees', 'Linear 135 degrees', 'Circular Right', 'Circular Left', 'Total'],
+    PowerDensityMethod: ['Near Field', 'Far Field'],
+    Characteristic: [
+        'Single-Electron Intensity',
+        'Multi-Electron Intensity',
+        'Single-Electron Flux',
+        'Multi-Electron Flux',
+        'Single-Electron Radiation Phase',
+        'Re(E): Real part of Single-Electron Electric Field',
+        'Im(E): Imaginary part of Single-Electron Electric Field',
+        'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)',
+    ],
+    Symmetry: [
+        'Symmetrical',
+        'Anti-symmetrical',
+    ],
+};
+var _MODEL = {
+    electronBeam: {
+        title: 'Electron Beam',
+        basic: [
+            ['beamName', 'Beam Name', 'BeamList'],
+            ['current',  'Current [A]', 'Float'],
+        ],
+        advanced: [
+            ['beamName', 'Beam Name', 'BeamList'],
+            ['current',  'Current [A]', 'Float'],
+            ['horizontalPosition', 'Average Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Average Vertical Position [m]', 'Float'],
+            ['energyDeviation', 'Average Energy Deviation [GeV]', 'Float'],
+        ],
+    },
+    undulator: {
+        title: 'Undulator',
+        basic: [
+            ['period', 'Undulator Period [m]', 'Float'],
+            ['length', 'Undulator Length [m]', 'Float'],
+            ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
+        ],
+        advanced: [
+            ['period', 'Undulator Period [m]', 'Float'],
+            ['length', 'Undulator Length [m]', 'Float'],
+            ['longitudinalPosition', 'Undulator Center Longitudinal Position [m]', 'Float'],
+            ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
+            ['horizontalSymmetry', 'Horizontal Symmetry', 'Symmetry'],
+            ['horizontalInitialPhase', 'Initial Horizontal Phase [rad]', 'Float'],
+            ['verticalAmplitude', 'Vertical Amplitude [T]', 'Float'],
+            ['verticalSymmetry', 'Vertical Symmetry', 'Symmetry'],
+            ['verticalInitialPhase', 'Initial Vertical Phase [rad]', 'Float'],
+        ],
+    },
+    intensityReport: {
+        title: 'Intensity Report',
+        dataFile: '/static/json/intensity.json',
+        basic: [],
+        advanced: [
+            ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
+            ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Position [m]', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+        ],
+    },
+    fluxReport: {
+        title: 'Flux Report',
+        dataFile: '/static/json/flux.json',
+        basic: [],
+        advanced: [
+            ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
+            ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalApertureSize', 'Horizontal Aperture Size [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalApertureSize', 'Vertical Aperture Size [m]', 'Float'],
+            ['longitudinalPrecision', 'Longitudinal Integration Precision', 'Float'],
+            ['azimuthalPrecision', 'Azimuthal Integration Precision', 'Float'],
+            ['fluxType', 'Flux Calculation', 'Flux'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+        ],
+    },
+    powerDensityReport: {
+        title: 'Power Density Report',
+        dataFile: '/static/json/power3d.json',
+        basic: [],
+        advanced: [
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['method', 'Power Density Computation Method', 'PowerDensityMethod'],
+        ],
+    },
+    initialIntensityReport: {
+        title: 'Initial Intensity Report',
+        dataFile: '/static/json/initial-intensity.json',
+        basic: [],
+        advanced: [
+            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['sampleFactor', 'Sampling Factor', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+        ],
+    },
+    intensityAtSampleReport: {
+        title: 'Initial At Sample Report',
+        dataFile: '/static/json/intensity-at-sample.json',
+        basic: [],
+        advanced: [
+            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['sampleFactor', 'Sampling Factor', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+        ],
+    },
+    intensityAtBPMReport: {
+        title: 'Initial At BPM Report',
+        dataFile: '/static/json/intensity-at-bpm.json',
+        basic: [],
+        advanced: [
+            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['sampleFactor', 'Sampling Factor', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+        ],
+    },
+};
 
-      // 50x60 canvas
-      var graphics = {};
-      graphics['draw_aperture'] = function (ctx) {
-            ctx.clearRect(0, 0, 50, 60);
+
+var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute']);
+
+app.config(function($routeProvider) {
+    $routeProvider
+        .when('/simulations', {
+            controller: 'SimulationsController as simulations',
+            templateUrl: '/static/html/simulations.html',
+        })
+        .when('/source', {
+            controller: 'SourceController as source',
+            templateUrl: '/static/html/source.html',
+        })
+        .when('/beamline', {
+            controller: 'BeamlineController as beamline',
+            templateUrl: '/static/html/beamline.html',
+        })
+        .otherwise({
+            redirectTo: '/simulations'
+        });
+});
+
+app.factory('beamlineGraphics', function() {
+    var canvasWidth = 50;
+    var canvasHeight = 60;
+    var draw_lens = function(ctx, x, y, width, height) {
+        if (x === undefined) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            x = 20;
+            y = 0;
+            width = 10;
+            height = canvasHeight;
+        }
+        ctx.fillStyle="#ddee00";
+        ctx.strokeStyle = "#000000";
+        ctx.beginPath();
+        ctx.moveTo(x + width / 2, y);
+        ctx.bezierCurveTo(x + width, y + 10, x + width, height - 10, x + width / 2, height);
+        ctx.bezierCurveTo(x, height - 10, x, y + 10, x + width / 2, y);
+        ctx.fill();
+        ctx.stroke();
+    };
+    var draw = {
+        lens: draw_lens,
+        aperture: function(ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle="#000000";
             ctx.fillRect(23, 0, 5, 24);
             ctx.fillRect(23, 36, 5, 24);
-        };
-      graphics['draw_mirror'] = function(ctx) {
-            ctx.clearRect(0, 0, 50, 60);
+        },
+        mirror: function(ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle="#bdd7ee";
-            ctx.fillRect(23, 0, 5, 60);
+            ctx.fillRect(23, 0, 5, canvasHeight);
             ctx.strokeStyle = "#000000";
-            ctx.strokeRect(23, 0, 5, 60);
-        };
-      graphics['draw_lens'] = function(ctx, x, y, width, height) {
-            if (x === undefined) {
-                ctx.clearRect(0, 0, 50, 60);
-                x = 20;
-                y = 0;
-                width = 10;
-                height = 60;
-            }
-            ctx.fillStyle="#ddee00";
-            ctx.strokeStyle = "#000000";
-            ctx.beginPath();
-            ctx.moveTo(x + width / 2, y);
-            ctx.bezierCurveTo(x + width, y + 10, x + width, height - 10, x + width / 2, height);
-            ctx.bezierCurveTo(x, height - 10, x, y + 10, x + width / 2, y);
-            ctx.fill();
-            ctx.stroke();
-        };
-      graphics['draw_crl'] = function(ctx) {
-            ctx.clearRect(0, 0, 50, 60);
+            ctx.strokeRect(23, 0, 5, canvasHeight);
+        },
+        crl: function(ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle="#333333";
-            ctx.fillRect(15, 0, 20, 60);
-            graphics.draw_lens(ctx, 10, 0, 10, 60);
-            graphics.draw_lens(ctx, 20, 0, 10, 60);
-            graphics.draw_lens(ctx, 30, 0, 10, 60);
-        };
-      graphics['draw_obstacle'] = function(ctx) {
-            ctx.clearRect(0, 0, 50, 60);
+            ctx.fillRect(15, 0, 20, canvasHeight);
+            draw_lens(ctx, 10, 0, 10, canvasHeight);
+            draw_lens(ctx, 20, 0, 10, canvasHeight);
+            draw_lens(ctx, 30, 0, 10, canvasHeight);
+        },
+        obstacle: function(ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle="#669999";
             ctx.fillRect(15, 20, 20, 20);
             ctx.strokeStyle = "#000000";
             ctx.strokeRect(15, 20, 20, 20);
-        };
-      graphics['draw_watch'] = function(ctx) {
-            ctx.clearRect(0, 0, 50, 60);
+        },
+        watch: function(ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             var radius = 15;
             ctx.strokeStyle = "#000000";
             ctx.beginPath();
@@ -67,394 +243,300 @@
             ctx.arc(25, 30, 4, 0, 2 * Math.PI);
             ctx.fillStyle="#000000";
             ctx.fill();
-        };
-
-      graphics.redraw_all_icons = function() {
-        window.setTimeout(function() {
-            // aperture
-            $(".srw-aperture-canvas").each(function(index, element) {
-              graphics.draw_aperture(element.getContext("2d"));
-            });
-            // mirror
-            $(".srw-mirror-canvas").each(function(index, element) {
-              graphics.draw_mirror(element.getContext("2d"));
-            });
-            // lens
-            $(".srw-lens-canvas").each(function(index, element) {
-              graphics.draw_lens(element.getContext("2d"));
-            });
-            // CRL
-            $(".srw-crl-canvas").each(function(index, element) {
-              graphics.draw_crl(element.getContext("2d"));
-            });
-            // obstacle
-            $(".srw-obstacle-canvas").each(function(index, element) {
-              graphics.draw_obstacle(element.getContext("2d"));
-            });
-            // watch
-            $(".srw-watch-canvas").each(function(index, element) {
-              graphics.draw_watch(element.getContext("2d"));
-            });
-          }, 1);
-      }
-
-      $(function() {
-        graphics.redraw_all_icons();
-    });
-
-    $(function() {
-        if (Modernizr.touch)
-            ;
-        else
-            $('[data-toggle="tooltip"]').tooltip();
-    });
-
-    // meta data
-    var _ENUM = {
-        Flux: ['Flux', 'Flux per Unit Surface'],
-        IntegrationMethod: ['Manual', 'Auto-Undulator', 'Auto-Wiggler'],
-        Polarization: ['Linear Horizontal', 'Linear Vertical', 'Linear 45 degrees', 'Linear 135 degrees', 'Circular Right', 'Circular Left', 'Total'],
-        PowerDensityMethod: ['Near Field', 'Far Field'],
-        Characteristic: [
-            'Single-Electron Intensity',
-            'Multi-Electron Intensity',
-            'Single-Electron Flux',
-            'Multi-Electron Flux',
-            'Single-Electron Radiation Phase',
-            'Re(E): Real part of Single-Electron Electric Field',
-            'Im(E): Imaginary part of Single-Electron Electric Field',
-            'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)',
-        ],
+        },
     };
-    var _MODEL = {
+
+    return {
+        draw_icon: function(item, canvas) {
+            window.setTimeout(function() {
+                draw[item](canvas.getContext("2d"));
+            }, 1);
+        },
+        redraw_all_icons: function() {
+            window.setTimeout(function() {
+                Object.keys(draw).forEach(function(item) {
+                    $(".srw-" + item + "-canvas").each(function(index, element) {
+                        draw[item](element.getContext("2d"));
+                    });
+                });
+          }, 1);
+        },
+    };
+});
+
+app.run(function() {
+    if (Modernizr.touch)
+        ;
+    else
+        $('[data-toggle="tooltip"]').tooltip();
+});
+
+app.factory('appState', function($timeout) {
+    var models = {
         electronBeam: {
-            basic: [
-                ['beamName', 'Beam Name', 'BeamList'],
-                ['current',  'Current [A]', 'Float'],
-            ],
-            advanced: [
-                ['beamName', 'Beam Name', 'BeamList'],
-                ['current',  'Current [A]', 'Float'],
-                ['horizontalPosition', 'Average Horizontal Position [m]', 'Float'],
-                ['verticalPosition', 'Average Vertical Position [m]', 'Float'],
-                ['energyDeviation', 'Average Energy Deviation [GeV]', 'Float'],
-            ],
+            _visible: true,
+            beamName: null,
+            current: 0.5,
+            horizontalPosition: 0,
+            verticalPosition: 0,
+            energyDeviation: 0,
         },
         undulator: {
-            basic: [
-                ['period', 'Undulator Period [m]', 'Float'],
-                ['length', 'Undulator Length [m]', 'Float'],
-                ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
-            ],
-            advanced: [
-                ['period', 'Undulator Period [m]', 'Float'],
-                ['length', 'Undulator Length [m]', 'Float'],
-                ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
-            ],
+            _visible: true,
+            period: 0.02,
+            length: 3,
+            longitudinalPosition: 0,
+            horizontalAmplitude: 0.88770981,
+            horizontalSymmetry: 'Symmetrical',
+            horizontalInitialPhase: 0,
+            verticalAmplitude: 0,
+            verticalSymmetry: 'Anti-symmetrical',
+            verticalInitialPhase: 0,
         },
         intensityReport: {
-            basic: [],
-            advanced: [
-                ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
-                ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-                ['horizontalPosition', 'Horizontal Position [m]', 'Float'],
-                ['verticalPosition', 'Vertical Position [m]', 'Float'],
-                ['method', 'Method for Integration', 'IntegrationMethod'],
-                ['precision', 'Relative Precision', 'Float'],
-                ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ],
+            _visible: true,
+            _loading: false,
+            initialEnergy: 100,
+            finalEnergy: 20000,
+            horizontalPosition: 0,
+            verticalPosition: 0,
+            method: 'Auto-Undulator',
+            precision: 0.01,
+            polarization: 'Total',
         },
         fluxReport: {
-            basic: [],
-            advanced: [
-                ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
-                ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-                ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-                ['horizontalApertureSize', 'Horizontal Aperture Size [m]', 'Float'],
-                ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-                ['verticalApertureSize', 'Vertical Aperture Size [m]', 'Float'],
-                ['longitudinalPrecision', 'Longitudinal Integration Precision', 'Float'],
-                ['azimuthalPrecision', 'Azimuthal Integration Precision', 'Float'],
-                ['fluxType', 'Flux Calculation', 'Flux'],
-                ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ],
+            _visible: true,
+            _loading: false,
+            initialEnergy: 100,
+            finalEnergy: 20000,
+            horizontalPosition: 0,
+            horizontalApertureSize: 0.001,
+            verticalPosition: 0,
+            verticalApertureSize: 0.001,
+            longitudinalPrecision: 1,
+            azimuthalPrecision: 1,
+            fluxType: 'Flux',
+            polarization: 'Total',
         },
         powerDensityReport: {
-            basic: [],
-            advanced: [
-                ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-                ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-                ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-                ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
-                ['precision', 'Relative Precision', 'Float'],
-                ['method', 'Power Density Computation Method', 'PowerDensityMethod'],
-            ],
+            _visible: true,
+            _loading: false,
+            horizontalPosition: 0,
+            horizontalRange: 0.015,
+            verticalPosition: 0,
+            verticalRange: 0.015,
+            precision: 1,
+            method: 'Near Field',
         },
         initialIntensityReport: {
-            basic: [],
-            advanced: [
-                ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-                ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-                ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-                ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-                ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
-                ['sampleFactor', 'Sampling Factor', 'Float'],
-                ['method', 'Method for Integration', 'IntegrationMethod'],
-                ['precision', 'Relative Precision', 'Float'],
-                ['polarization', 'Polarization Component to Extract', 'Polarization'],
-                ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
-            ],
+            _visible: true,
+            _loading: false,
+            photonEnergy: 9000,
+            horizontalPosition: 0,
+            horizontalRange: 0.4e-03,
+            verticalPosition: 0,
+            verticalRange: 0.6e-03,
+            sampleFactor: 1,
+            method: 'Auto-Undulator',
+            precision: 0.01,
+            polarization: 'Total',
+            characteristic: 'Single-Electron Intensity',
         },
         intensityAtSampleReport: {
-            basic: [],
-            advanced: [],
+            _visible: true,
+            _loading: false,
         },
         intensityAtBPMReport: {
-            basic: [],
-            advanced: [],
+            _visible: true,
+            _loading: false,
         },
     };
-
-    var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable']);
-
-    app.controller('SourceController', function ($timeout) {
-        var self = this;
-        self.models = {
-            electronBeam: {
-                _visible: true,
-                beamName: null,
-                current: 0.5,
-                horizontalPosition: 0,
-                verticalPosition: 0,
-                energyDeviation: 0,
-            },
-            undulator: {
-                _visible: true,
-                period: 0.02,
-                length: 3,
-                horizontalAmplitude: 0.88770981,
-            },
-            intensityReport: {
-                _visible: true,
-                _loading: false,
-                initialEnergy: 100,
-                finalEnergy: 20000,
-                horizontalPosition: 0,
-                verticalPosition: 0,
-                method: 'Auto-Undulator',
-                precision: 0.01,
-                polarization: 'Total',
-            },
-            fluxReport: {
-                _visible: true,
-                _loading: false,
-                initialEnergy: 100,
-                finalEnergy: 20000,
-                horizontalPosition: 0,
-                horizontalApertureSize: 0.001,
-                verticalPosition: 0,
-                verticalApertureSize: 0.001,
-                longitudinalPrecision: 1,
-                azimuthalPrecision: 1,
-                fluxType: 'Flux',
-                polarization: 'Total',
-            },
-            powerDensityReport: {
-                _visible: true,
-                _loading: false,
-                horizontalPosition: 0,
-                horizontalRange: 0.015,
-                verticalPosition: 0,
-                verticalRange: 0.015,
-                precision: 1,
-                method: 'Near Field',
-            },
-            initialIntensityReport: {
-                _visible: true,
-                _loading: false,
-                photonEnergy: 9000,
-                horizontalPosition: 0,
-                horizontalRange: 0.4e-03,
-                verticalPosition: 0,
-                verticalRange: 0.6e-03,
-                sampleFactor: 1,
-                method: 'Auto-Undulator',
-                precision: 0.01,
-                polarization: 'Total',
-                characteristic: 'Single-Electron Intensity',
-            },
-            intensityAtSampleReport: {
-                _visible: true,
-                _loading: false,
-            },
-            intensityAtBPMReport: {
-                _visible: true,
-                _loading: false,
-            },
-        };
-        self.model_info = function(name) {
+    var beamline = [
+        {id: 1, name:'aperture', title:'S0', position: 20.5, horizontalSize:0.2, verticalSize:1},
+        {id: 2, name:'mirror', title:'HDM', position: 27.4},
+        {id: 3, name:'aperture', title:'S1', position: 29.9, horizontalSize:0.2, verticalSize:1},
+        {id: 4, name:'aperture', title:'S2', position: 34.3, horizontalSize:0.05, verticalSize:1},
+        {id: 5, name:'watch', title:'BPM', position: 34.6},
+        {id: 6, name:'crl', title:'CRL1', position: 35.4},
+        {id: 7, name:'crl', title:'CRL2', position: 35.4},
+        {id: 8, name:'lens', title:'KL', position: 44.5},
+        {id: 9, name:'aperture', title:'S3', position: 48, horizontalSize:0.01, verticalSize:0.01},
+        {id: 10, name:'watch', title:'Sample', position: 48.7},
+    ];
+    var clone_model = function(name) {
+        var val = name ? models[name] : models;
+        return JSON.parse(JSON.stringify(val));
+    };
+    var saved_model_values = clone_model();
+    var simulate_report_reload = function(name) {
+        console.log("reload report: ", name);
+        models[name]._loading = true;
+        $timeout(function() {
+            models[name]._loading = false;
+        }, 2000 + 6000 * Math.random());
+    };
+    var update_reports = function(name) {
+        if (name.indexOf('Report') > 0) {
+            simulate_report_reload(name);
+        }
+        else {
+            for (var key in models) {
+                if (key.indexOf('Report') > 0) {
+                    simulate_report_reload(key);
+                }
+            }
+        }
+    };
+    return {
+        beamline: beamline,
+        models: models,
+        model_info: function(name) {
             return _MODEL[name];
-        };
-        self.clone_model = function(name) {
-            var val = name ? self.models[name] : self.models;
-            return JSON.parse(JSON.stringify(val));
-        }
-        self.saved_model_values = self.clone_model();
-        self.simulate_report_reload = function(name) {
-            console.log("reload report: ", name);
-            self.models[name]._loading = true;
-            $timeout(function() {
-                self.models[name]._loading = false;
-            }, 2000 + 6000 * Math.random());
-        }
-        self.update_reports = function(name) {
-            if (name.indexOf('Report') > 0) {
-                self.simulate_report_reload(name);
-            }
-            else {
-                for (var key in self.models) {
-                    if (key.indexOf('Report') > 0) {
-                        self.simulate_report_reload(key);
-                    }
-                }
-            }
-        };
-        self.save_changes = function(name, update_reports) {
+        },
+        save_changes: function(name, refresh_reports) {
             console.log("save changes: ", name);
-            self.saved_model_values[name] = self.clone_model(name);
-            if (update_reports)
-                self.update_reports(name);
-        };
-        self.cancel_changes = function(name) {
+            saved_model_values[name] = clone_model(name);
+            if (refresh_reports)
+                update_reports(name);
+        },
+        cancel_changes: function(name) {
             console.log("cancel changes: ", name);
-            self.models[name] = JSON.parse(JSON.stringify(self.saved_model_values[name]));
-        };
-    });
+            models[name] = JSON.parse(JSON.stringify(saved_model_values[name]));
+        },
+    };
+});
 
-    app.directive('fieldEditor', function($http) {
-        return {
-            restirct: 'A',
-            scope: {
-                fieldEditor: '=',
-                model: '=',
-            },
-            template: [
-                // field def: [name, label, type]
-                '<label class="col-sm-5 control-label">{{ fieldEditor[1] }}</label>',
-                '<div data-ng-switch="fieldEditor[2]">',
-                  '<div data-ng-switch-when="BeamList" class="col-sm-5">',
-                    '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in beams track by item.name"></select>',
-                  '</div>',
-                  '<div data-ng-switch-when="Float" class="col-sm-3">',
-                    '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
-                  '</div>',
-                  // assume it is an enum
-                  '<div data-ng-switch-default class="col-sm-5">',
-                    '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item for item in enum[fieldEditor[2]] track by item"></select>',
-                  '</div>',
-                '</div>',
-            ].join(''),
-            link: function link(scope, element, attrs) {
-                scope.enum = _ENUM;
-                if (scope.fieldEditor[2] == 'BeamList') {
-                    $http["get"]('beams.json')
-                        .success(function(data, status) {
-                            scope.beams = data;
-                            scope.model[scope.fieldEditor[0]] = data[0];
-                            scope.$parent.source.save_changes('electronBeam', false);
-                        })
-                        .error(function() {
-                            console.log('get beams.json failed!');
-                        });
-                }
-            },
-        };
-    });
+app.controller('SourceController', function ($rootScope, appState) {
+    $rootScope.pageTitle = "NSLS-II CHX beamline Day 1 - SRW - Radiasoft";
+    $rootScope.sectionTitle = "NSLS-II CHX beamline Day 1";
+    $rootScope.activeSection = "source";
+    var self = this;
+    self.models = appState.models;
+});
 
-    app.directive('buttons', function() {
-        return {
-            scope: {
-                formName: '=',
-                modelName: '@',
-                modalId: "@",
-            },
-            template: [
-                '<div class="col-sm-6 pull-right cssFade" data-ng-show="formName.$dirty">',
-                    '<button data-ng-click="save_changes()" class="btn btn-primary">Save Changes</button> ',
-                    '<button data-ng-click="cancel_changes()" class="btn btn-default">Cancel</button>',
-                '</div>',
-            ].join(''),
-            controller: function($scope) {
-                function change_done() {
-                    $scope.formName.$setPristine();
-                    if ($scope.modalId)
-                        $('#' + $scope.modalId).modal('hide');
-                }
-                $scope.save_changes = function() {
-                    $scope.$parent.source.save_changes($scope.modelName, true);
-                    change_done();
-                };
-                $scope.cancel_changes = function() {
-                    $scope.$parent.source.cancel_changes($scope.modelName);
-                    change_done();
-                };
+app.directive('fieldEditor', function(appState, $http) {
+    return {
+        restirct: 'A',
+        scope: {
+            fieldEditor: '=',
+            model: '=',
+        },
+        template: [
+            // field def: [name, label, type]
+            '<label class="col-sm-5 control-label">{{ fieldEditor[1] }}</label>',
+            '<div data-ng-switch="fieldEditor[2]">',
+              '<div data-ng-switch-when="BeamList" class="col-sm-5">',
+                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in beams track by item.name"></select>',
+              '</div>',
+              '<div data-ng-switch-when="Float" class="col-sm-3">',
+                '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+              '</div>',
+              // assume it is an enum
+              '<div data-ng-switch-default class="col-sm-5">',
+                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item for item in enum[fieldEditor[2]] track by item"></select>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        link: function link(scope, element, attrs) {
+            scope.enum = _ENUM;
+            if (scope.fieldEditor[2] == 'BeamList') {
+                $http["get"]('/static/json/beams.json')
+                    .success(function(data, status) {
+                        scope.beams = data;
+                        scope.model[scope.fieldEditor[0]] = data[0];
+                        appState.save_changes('electronBeam', false);
+                    })
+                    .error(function() {
+                        console.log('get beams.json failed!');
+                    });
             }
-        };
-    });
+        },
+    };
+});
 
-    app.directive('panelHeading', function() {
-        return {
-            restrict: 'A',
-            scope: {
-                panelHeading: '@',
-                model: '=',
-                editorId: '@',
-                allowFullScreen: '@',
-            },
-            controller: function($scope) {
-                $scope.toggleVisible = function() {
-                  $scope.model['_visible'] = ! $scope.model['_visible'];
-                };
-                $scope.isVisible = function() {
-                  return $scope.model['_visible'];
-                };
-                $scope.showEditor = function() {
-                    $('#' + $scope.editorId).modal('show');
-                };
-            },
-            template: [
-                '<span class="lead">{{ panelHeading }}</span>',
-                '<div class="srw-panel-options pull-right">',
-                    '<a href data-ng-click="showEditor()" data-toggle="tooltip" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
-                    '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
-                    '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
-                    '<a href data-ng-click="toggleVisible()" data-ng-show="isVisible()" data-toggle="tooltip" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
-                    '<a href data-ng-click="toggleVisible()" data-ng-hide="isVisible()" data-toggle="tooltip" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
-                '</div>',
-            ].join(''),
-        };
-    });
+app.directive('buttons', function(appState) {
+    return {
+        scope: {
+            formName: '=',
+            modelName: '=',
+            modalId: "@",
+        },
+        template: [
+            '<div class="col-sm-6 pull-right cssFade" data-ng-show="formName.$dirty">',
+              '<button data-ng-click="save_changes()" class="btn btn-primary">Save Changes</button> ',
+              '<button data-ng-click="cancel_changes()" class="btn btn-default">Cancel</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function change_done() {
+                $scope.formName.$setPristine();
+                if ($scope.modalId)
+                    $('#' + $scope.modalId).modal('hide');
+            }
+            $scope.save_changes = function() {
+                appState.save_changes($scope.modelName, true);
+                change_done();
+            };
+            $scope.cancel_changes = function() {
+                appState.cancel_changes($scope.modelName);
+                change_done();
+            };
+        }
+    };
+});
 
-    app.directive('panelBody', function() {
-        return {
-            restrict: 'E',
-            transclude: true,
-            scope: {
-                model: '=',
-            },
-            controller: function($scope) {
-            },
-            template: [
-                '<div data-ng-class="{\'srw-panel-loading\': model._loading}" class="panel-body cssFade" data-ng-show="model._visible">',
-                '<div class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Refreshing...</div>',
-                '<ng-transclude></ng-transclude>',
-                '</div>',
-            ].join(''),
-        };
-    });
+app.directive('panelHeading', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            panelHeading: '@',
+            model: '=',
+            editorId: '@',
+            allowFullScreen: '@',
+        },
+        controller: function($scope) {
+            $scope.toggleVisible = function() {
+                $scope.model['_visible'] = ! $scope.model['_visible'];
+            };
+            $scope.isVisible = function() {
+                return $scope.model['_visible'];
+            };
+            $scope.showEditor = function() {
+                $('#' + $scope.editorId).modal('show');
+            };
+        },
+        template: [
+            '<span class="lead">{{ panelHeading }}</span>',
+            '<div class="srw-panel-options pull-right">',
+            '<a href data-ng-click="showEditor()" data-toggle="tooltip" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+            '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
+            '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
+            '<a href data-ng-click="toggleVisible()" data-ng-show="isVisible()" data-toggle="tooltip" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
+            '<a href data-ng-click="toggleVisible()" data-ng-hide="isVisible()" data-toggle="tooltip" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
+            '</div>',
+        ].join(''),
+    };
+});
 
+app.directive('panelBody', function() {
+    return {
+        restrict: 'E',
+        transclude: true,
+        scope: {
+            model: '=',
+        },
+        controller: function($scope) {
+        },
+        template: [
+            '<div data-ng-class="{\'srw-panel-loading\': model._loading}" class="panel-body cssFade" data-ng-show="model._visible">',
+            '<div class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Refreshing...</div>',
+            '<ng-transclude></ng-transclude>',
+            '</div>',
+        ].join(''),
+    };
+});
 
-app.directive('plot2d', function($http) {
+app.directive('plot2d', function($http, appState) {
 
     function linspace(start, stop, nsteps) {
         var delta = (stop - start) / (nsteps - 1);
@@ -463,7 +545,9 @@ app.directive('plot2d', function($http) {
 
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            modelName: '@',
+        },
         template: [
             '<svg></svg>',
             '<div style="margin-left: 30px" class="text-center"><strong>{{ x_range[0] | number }}</strong><input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide"><strong>{{ x_range[1] | number }}</strong></div>',
@@ -693,8 +777,17 @@ app.directive('plot2d', function($http) {
 
         },
         link: function link(scope, element, attrs) {
-            $http["get"](attrs.plot2d)
+            var model = appState.models[scope.modelName];
+
+            if (model['_data']) {
+                window.setTimeout(function() {
+                    scope.main(model._data, attrs.id);
+                }, 1);
+                return;
+            }
+            $http["get"](appState.model_info(scope.modelName).dataFile)
                 .success(function(data, status) {
+                    appState.models[scope.modelName]._data = data;
                     scope.main(data, attrs.id);
                 })
                 .error(function() {
@@ -704,11 +797,13 @@ app.directive('plot2d', function($http) {
     };
 });
 
-app.directive('plot3d', function($http) {
+app.directive('plot3d', function($http, appState) {
 
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            modelName: '@',
+        },
         controller: function($scope) {
 
             var margin = 50;
@@ -1119,8 +1214,18 @@ app.directive('plot3d', function($http) {
             }
         },
         link: function link(scope, element, attrs) {
-            $http["get"](attrs.plot3d)
+            //TODO(pjm): share with plot2d link()
+            var model = appState.models[scope.modelName];
+
+            if (model['_data']) {
+                window.setTimeout(function() {
+                    scope.main(model._data, attrs.id);
+                }, 1);
+                return;
+            }
+            $http["get"](appState.model_info(scope.modelName).dataFile)
                 .success(function(data, status) {
+                    appState.models[scope.modelName]._data = data;
                     scope.main(data, attrs.id);
                 })
                 .error(function() {
@@ -1130,12 +1235,19 @@ app.directive('plot3d', function($http) {
     };
 });
 
-app.controller('SimulationsController', function () {
+app.controller('SimulationsController', function ($rootScope) {
+    $rootScope.pageTitle = "Simulations - SRW - Radiasoft";
+    $rootScope.sectionTitle = "";
+    $rootScope.activeSection = "simulations";
     var self = this;
 });
 
-app.controller('BeamlineController', function () {
+app.controller('BeamlineController', function ($rootScope, appState, beamlineGraphics) {
+    $rootScope.pageTitle = "NSLS-II CHX beamline Day 1 - SRW - Radiasoft";
+    $rootScope.sectionTitle = "NSLS-II CHX beamline Day 1";
+    $rootScope.activeSection = "beamline";
     var self = this;
+    self.models = appState.models;
     self.toolbar_items = [
         {name:'aperture', title:'Aperture'},
         {name:'crl', title:'CRL'},
@@ -1144,19 +1256,9 @@ app.controller('BeamlineController', function () {
         {name:'obstacle', title:'Obstacle'},
         {name:'watch', title:'Watchpoint'},
     ];
-    self.beamline = [
-        {id: 1, name:'aperture', title:'S0', position: 20.5, horizontalSize:0.2, verticalSize:1},
-        {id: 2, name:'mirror', title:'HDM', position: 27.4},
-        {id: 3, name:'aperture', title:'S1', position: 29.9, horizontalSize:0.2, verticalSize:1},
-        {id: 4, name:'aperture', title:'S2', position: 34.3, horizontalSize:0.05, verticalSize:1},
-        {id: 5, name:'watch', title:'BPM', position: 34.6},
-        {id: 6, name:'crl', title:'CRL1', position: 35.4},
-        {id: 7, name:'crl', title:'CRL2', position: 35.4},
-        {id: 8, name:'lens', title:'KL', position: 44.5},
-        {id: 9, name:'aperture', title:'S3', position: 48, horizontalSize:0.01, verticalSize:0.01},
-        {id: 10, name:'watch', title:'Sample', position: 48.7},
-    ];
+    self.beamline = appState.beamline;
     var current_id = self.beamline.length + 100;
+    beamlineGraphics.redraw_all_icons();
 
     function add_item(item) {
         //TODO(pjm): conslidate clone()
@@ -1215,7 +1317,7 @@ app.controller('BeamlineController', function () {
     }
 });
 
-app.directive('beamlineItem', function($compile, $timeout) {
+app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
     return {
         scope: {
             item: '=',
@@ -1226,7 +1328,7 @@ app.directive('beamlineItem', function($compile, $timeout) {
             }
         },
         link: function(scope, element, attrs) {
-            graphics.redraw_all_icons();
+            beamlineGraphics.draw_icon(scope.item.name, $(element).find('canvas')[0]);
             $(element).find('.srw-beamline-element-label').each(function (index, el) {
                 $(el).popover({
                     html: true,
@@ -1258,5 +1360,96 @@ app.directive('beamlineItem', function($compile, $timeout) {
             });
         },
     };
+});
 
+app.directive('panel', function(appState) {
+    return {
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div class="panel panel-info">',
+              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model="appState.models[modelName]" data-editor-id="{{ editorId }}"></div>',
+              '<div class="panel-body cssFade" data-ng-show="appState.models[modelName]._visible">',
+                '<form name="f0" class="form-horizontal">',
+                  '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
+                    '<div data-field-editor="f" data-model="appState.models[modelName]"></div>',
+                  '</div>',
+                  '<div data-buttons="" data-model-name="modelName" data-form-name="f0"></div>',
+                '</form>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.basicFields = appState.model_info($scope.modelName).basic;
+            $scope.panelTitle = appState.model_info($scope.modelName).title;
+            $scope.editorId = "srw-" + $scope.modelName + "-editor";
+        },
+    };
+});
+
+app.directive('reportPanel', function(appState) {
+    return {
+        scope: {
+            reportPanel: '@',
+            modelName: '@',
+        },
+        template: [
+            '<div class="panel panel-info">',
+              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model="appState.models[modelName]" data-editor-id="{{ editorId }}" data-allow-full-screen="1"></div>',
+              '<panel-body data-model="appState.models[modelName]">',
+
+                '<div data-ng-switch="reportPanel">',
+                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ modelName }}" id="{{ plotId }}"></div>',
+                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ modelName }}" id="{{ plotId }}"></div>',
+                '</div>',
+              '</panel-body>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.panelTitle = appState.model_info($scope.modelName).title;
+            $scope.editorId = "srw-" + $scope.modelName + "-editor";
+            $scope.plotId = "srw-" + $scope.modelName + "-" + $scope.reportPanel + "-plot";
+        },
+    };
+});
+
+app.directive('modalEditor', function(appState) {
+    return {
+        scope: {
+            modalEditor: '@',
+        },
+        template: [
+            '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+  	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
+	          '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<form name="f1" class="form-horizontal">',
+                          '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
+                            '<div data-field-editor="f" data-model="appState.models[modalEditor]"></div>',
+                          '</div>',
+                          '<div data-buttons="" data-model-name="modalEditor" data-form-name="f1" data-modal-id="{{ editorId }}"></div>',
+                        '</form>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.advancedFields = appState.model_info($scope.modalEditor).advanced;
+            $scope.modalTitle = appState.model_info($scope.modalEditor).title;
+            $scope.editorId = "srw-" + $scope.modalEditor + "-editor";
+        },
+    };
 });
