@@ -1,0 +1,291 @@
+    <div class="container-fluid">
+
+      <!-- Toolbar -->
+      <div class="row">
+        <div class="col-sm-12">
+          <p class="text-center bg-info">
+            <span data-ng-repeat="item in beamline.toolbar_items" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
+              <canvas style="width:30px; height 35px;" class="srw-{{ item.name }}-canvas" width="50" height="60"></canvas><br>{{ item.title }}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Beamline -->
+      <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.drop_complete($data, $event)">
+        <p class="lead text-center">beamline definition area<br>
+          <small><em>drag and drop optical elements here to define the beamline</em></small></p>
+        <div class="srw-beamline-container">
+
+          <div style="display: inline-block" data-ng-repeat="item in beamline.beamline track by item.id">
+            <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element">
+              <span class="srw-beamline-badge badge">{{ item.position }}m</span>
+              <span data-ng-click="beamline.remove_element(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>
+              <div class="srw-beamline-image"><canvas class="srw-{{ item.name }}-canvas" width="50" height="60"></canvas></div>
+              <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>
+            </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between($index + 1, $data)">&nbsp;</div>
+          </div>
+        </div>
+        <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
+      </div>
+
+      <!-- Aperture Editor -->
+      <div class="srw-aperture-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Horizontal Size [mm]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.horizontalSize">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Vertical Size [mm]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.verticalSize">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- CRL Editor -->
+      <div class="srw-crl-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Refractive Index Descrements of Material [?]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="4.20756805e-06">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Attenuation Length of Material [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="7.31294e-03">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Geometrical Aperture of 1D CRL in non-focusing plain [?]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1.e-03">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Geomentrical Aperture of 1D CRL in focusing plain [?]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="2.4e-03">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Radius of Curvature at Tip of Parabola [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1.5e-03">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Number of Individual Lenses</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lens Editor -->
+      <div class="srw-lens-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Horizontal Focal Length [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="3.24479">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Vertical Focal Length [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1.e+23">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Mirror editor -->
+      <div class="srw-mirror-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Horizontal Size [mm]</label>
+            <div class="col-sm-5">
+              <p class="form-control-static">94</p>
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Vertical Size [mm]</label>
+            <div class="col-sm-5">
+              <p class="form-control-static">1</p>
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Grazing Angle [mrad]</label>
+            <div class="col-sm-5">
+              <p class="form-control-static">3.1415926</p>
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Height Profile Data File</label>
+            <div class="col-sm-5">
+              <p class="form-control-static"><a href="#"><span class="glyphicon glyphicon-file"></span> CHX_HDM_height_prof_1d.dat</a></p>
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-7 control-label">Height Amplification Coefficient</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Obstacle Editor -->
+      <div class="srw-obstacle-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Horizontal Size [mm]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="94">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Vertical Size [mm]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" value="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Watch Editor -->
+      <div class="srw-watch-editor" style="display:none">
+        <form class="form-horizontal">
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Element Name</label>
+            <div class="col-sm-4">
+              <input type="text" class="form-control" ng-model="item.title">
+            </div>
+          </div>
+          <div class="form-group form-group-sm">
+            <label class="col-sm-6 control-label">Nominal Position [m]</label>
+            <div class="col-sm-3">
+              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+
+    </div> <!-- /container -->
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-6 col-xl-4">
+          <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+          <div data-report-panel="3d" data-model-name="intensityAtBPMReport"></div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+          <div data-report-panel="3d" data-model-name="intensityAtSampleReport"></div>
+      </div>
+    </div>
+
+    <!-- modal dialogs -->
+    <div data-modal-editor="initialIntensityReport"></div>
+    <div data-modal-editor="intensityAtBPMReport"></div>
+    <div data-modal-editor="intensityAtSampleReport"></div>
