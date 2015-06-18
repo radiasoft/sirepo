@@ -28,7 +28,7 @@
           <li data-ng-class="{active: activeSection == 'simulations'}"><a href="#/simulations"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
         </ul>
         <div class="navbar-text"><strong data-ng-bind="sectionTitle"></strong></div>
-        <ul class="nav navbar-nav navbar-right">
+        <ul class="nav navbar-nav navbar-right" data-ng-hide="activeSection == 'simulations'">
           <li data-ng-class="{active: activeSection == 'source'}"><a href="#/source"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
           <li data-ng-class="{active: activeSection == 'beamline'}"><a href="#/beamline"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
           <li data-ng-class="{active: activeSection == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>
@@ -46,7 +46,7 @@
     <script src="/static/js/ngDraggable.js"></script>
     <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
-    <script src="/static/js/d3-3.5.5.min.js"></script>
+    <script src="/static/js/angular-d3.js"></script>
     <script src="/static/js/sirepo.js"></script>
   </body>
 </html>
