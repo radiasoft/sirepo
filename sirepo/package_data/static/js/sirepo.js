@@ -1,6 +1,5 @@
 "use strict";
 
-
 // Application meta-data
 var _ENUM = {
     Flux: ['Flux', 'Flux per Unit Surface'],
@@ -154,7 +153,7 @@ var _MODEL = {
 };
 
 
-var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute']);
+var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
 
 app.config(function($routeProvider) {
     $routeProvider
@@ -264,14 +263,7 @@ app.factory('beamlineGraphics', function() {
     };
 });
 
-app.run(function() {
-    if (Modernizr.touch)
-        ;
-    else
-        $('[data-toggle="tooltip"]').tooltip();
-});
-
-app.factory('appState', function($timeout) {
+app.factory('appState', function($timeout, $http, $rootScope) {
     var models = {
         electronBeam: {
             _visible: true,
@@ -363,19 +355,22 @@ app.factory('appState', function($timeout) {
         {id: 9, name:'aperture', title:'S3', position: 48, horizontalSize:0.01, verticalSize:0.01},
         {id: 10, name:'watch', title:'Sample', position: 48.7},
     ];
+    var reportCache = {}
     var clone_model = function(name) {
         var val = name ? models[name] : models;
         return JSON.parse(JSON.stringify(val));
     };
     var saved_model_values = clone_model();
-    var simulate_report_reload = function(name) {
-        console.log("reload report: ", name);
+    function simulate_report_reload(name) {
+        //console.log("reload report: ", name);
         models[name]._loading = true;
         $timeout(function() {
             models[name]._loading = false;
+            console.log('broadcasting: ', name + 'draw');
+            $rootScope.$broadcast(name + 'draw');
         }, 2000 + 6000 * Math.random());
     };
-    var update_reports = function(name) {
+    function update_reports(name) {
         if (name.indexOf('Report') > 0) {
             simulate_report_reload(name);
         }
@@ -387,22 +382,50 @@ app.factory('appState', function($timeout) {
             }
         }
     };
+    function run_simulation() {
+        $http.post('/srw/run', {
+            models: models,
+            beamline: beamline,
+        }).success(function(data, status) {
+            console.log("run success: ", status, ' ', data);
+        }).error(function(data, status) {
+            console.log("run failed: ", status, ' ', data);
+        });
+    }
+    var model_info = function(name) {
+        return _MODEL[name];
+    };
     return {
         beamline: beamline,
         models: models,
-        model_info: function(name) {
-            return _MODEL[name];
-        },
+        reportCache: reportCache,
+        model_info: model_info,
         save_changes: function(name, refresh_reports) {
-            console.log("save changes: ", name);
+            //console.log("save changes: ", name);
             saved_model_values[name] = clone_model(name);
-            if (refresh_reports)
+            if (refresh_reports) {
+                run_simulation();
                 update_reports(name);
+            }
         },
         cancel_changes: function(name) {
             console.log("cancel changes: ", name);
             models[name] = JSON.parse(JSON.stringify(saved_model_values[name]));
         },
+        load_report_data: function(name) {
+            if (reportCache[name]) {
+                $rootScope.$broadcast(name + 'draw');
+                return;
+            }
+            $http["get"](model_info(name).dataFile)
+                .success(function(data, status) {
+                    reportCache[name] = data;
+                    $rootScope.$broadcast(name + 'draw');
+                })
+                .error(function() {
+                    console.log('load_report_data failed: ', name);
+                });
+        }
     };
 });
 
@@ -536,7 +559,10 @@ app.directive('panelBody', function() {
     };
 });
 
-app.directive('plot2d', function($http, appState) {
+app.directive('plot2d', function($http, appState, d3Service) {
+
+    var formatter;
+    var margin = {top: 50, right: 50, bottom: 80, left: 70};
 
     function linspace(start, stop, nsteps) {
         var delta = (stop - start) / (nsteps - 1);
@@ -547,6 +573,7 @@ app.directive('plot2d', function($http, appState) {
         restrict: 'A',
         scope: {
             modelName: '@',
+            id: '@',
         },
         template: [
             '<svg></svg>',
@@ -580,21 +607,15 @@ app.directive('plot2d', function($http, appState) {
                 return x_peak_values;
             };
 
-            $scope.init_vars = function(json, x_points) {
-                $scope.points = d3.zip(x_points, json.points);
-                $scope.margin = {top: 50, right: 50, bottom: 80, left: 70};
-                $scope.x_range = json.x_range;
-                $scope.x_units = json.x_units;
-
-                $scope.x_axis_scale = d3.scale.linear()
-                    .domain([json.x_range[0], json.x_range[1]]);
-                $scope.y_axis_scale = d3.scale.linear()
-                    .domain([d3.min(json.points), d3.max(json.points)]);
-
-                var context = $scope.select('svg')
-                    .append("g")
-                    .attr("transform", "translate(" + $scope.margin.left + "," + $scope.margin.top + ")");
-
+            $scope.init = function(id) {
+                $scope.plot_id = '#' + id;
+                formatter = d3.format(",.0f")
+//TODO(pjm): need to debug a big memory leak with this
+                $scope.slider = $($scope.plot_id + ' .srw-plot2d-slider').slider();
+                $scope.slider.on('slide', $scope.slider_changed);
+                $(window).resize($scope.resize);
+                $scope.x_axis_scale = d3.scale.linear();
+                $scope.y_axis_scale = d3.scale.linear();
                 $scope.x_axis = d3.svg.axis()
                     .scale($scope.x_axis_scale)
                     .orient("bottom");
@@ -613,7 +634,13 @@ app.directive('plot2d', function($http, appState) {
                 $scope.y_axis_grid = d3.svg.axis()
                     .scale($scope.y_axis_scale)
                     .orient("left");
+                $scope.graph_line = d3.svg.line()
+                    .x(function(d) {return $scope.x_axis_scale(d[0])})
+                    .y(function(d) {return $scope.y_axis_scale(d[1])});
 
+                var context = $scope.select('svg')
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 context.append("g")
                     .attr("class", "x axis")
                 context.append("g")
@@ -622,81 +649,125 @@ app.directive('plot2d', function($http, appState) {
                     .attr("class", "y axis")
                 context.append("g")
                     .attr("class", "y axis grid")
-
                 context.append("text")
                     .attr("transform", "rotate(-90)")
                     .attr("class", "y-axis-label")
-                    .attr("y", - $scope.margin.left)
+                    .attr("y", - margin.left)
                     .attr("dy", "1em")
-                    .style("text-anchor", "middle")
-                    .text(json.y_label);
-
+                    .style("text-anchor", "middle");
                 context.append("text")
                     .attr("class", "x-axis-label")
                     .attr("dy", "1em")
-                    .style("text-anchor", "middle")
-                    .text(json.x_label);
-
+                    .style("text-anchor", "middle");
                 context.append("text")
                     .attr("class", "main-title")
-                    .attr("y", - $scope.margin.top / 2)
-                    .style("text-anchor", "middle")
-                    .text(json.title);
-
-                $scope.graph_line = d3.svg.line()
-                    .x(function(d) {return $scope.x_axis_scale(d[0])})
-                    .y(function(d) {return $scope.y_axis_scale(d[1])});
+                    .attr("y", - margin.top / 2)
+                    .style("text-anchor", "middle");
 
                 var focus = context.append("g")
                     .attr("class", "focus")
                     .style("display", "none");
-
                 focus.append("circle")
                     .attr("r", 6);
-
                 focus.append("text")
                     .attr("class", "focus-text")
                     .attr("x", 9)
                     .attr("dy", ".35em");
-
                 context.append("rect")
                     .attr("class", "overlay")
                     .on("mouseover", function() { focus.style("display", null); })
                     .on("mouseout", function() { focus.style("display", "none"); })
-                    .on("mousemove", mousemove);
+                    .on("mousemove", $scope.mousemove);
 
                 var viewport = context.append("svg")
                     .attr("class", "plot-viewport");
-
                 viewport.append("path")
-                    .attr("class", "line")
-                    .datum($scope.points);
+                    .attr("class", "line");
+            };
 
-                var formatter = d3.format(",.0f")
-                function mousemove() {
-                    var x0 = $scope.x_axis_scale.invert(d3.mouse(this)[0]);
-                    var local_max = null;
-                    for (var i = 0; i < $scope.x_peak_values.length; i++) {
-                        var v = $scope.x_peak_values[i];
-                        if (local_max === null || Math.abs(v[0] - x0) < Math.abs(local_max[0] - x0)) {
-                            local_max = v;
-                        }
-                    }
-                    if (local_max) {
-                        var x_pixel = $scope.x_axis_scale(local_max[0]);
-                        if (x_pixel < 0 || x_pixel >= $scope.select(".plot-viewport").attr("width"))
-                            return;
-                        focus.attr("transform", "translate(" + x_pixel + "," + $scope.y_axis_scale(local_max[1]) + ")");
-                        focus.select("text").text(formatter(local_max[0]) + " " + $scope.x_units);
+            $scope.load = function(json) {
+                var x_points = linspace(json.x_range[0], json.x_range[1], json.points.length);
+                $scope.points = d3.zip(x_points, json.points);
+                $scope.x_range = json.x_range;
+                $scope.x_units = json.x_units;
+                $scope.x_axis_scale.domain([json.x_range[0], json.x_range[1]]);
+                $scope.y_axis_scale.domain([d3.min(json.points), d3.max(json.points)]);
+                $scope.select(".y-axis-label").text(json.y_label);
+                $scope.select(".x-axis-label").text(json.x_label);
+                $scope.select(".main-title").text(json.title);
+                $scope.select(".line").datum($scope.points);
+                var dimensions = $scope.resize();
+                $scope.x_peak_values = $scope.compute_peaks(json, dimensions, x_points);
+            };
+
+            $scope.mousemove = function() {
+                if (! $scope.points)
+                    return;
+                var x0 = $scope.x_axis_scale.invert(d3.mouse(this)[0]);
+                var local_max = null;
+                for (var i = 0; i < $scope.x_peak_values.length; i++) {
+                    var v = $scope.x_peak_values[i];
+                    if (local_max === null || Math.abs(v[0] - x0) < Math.abs(local_max[0] - x0)) {
+                        local_max = v;
                     }
                 }
+                if (local_max) {
+                    var x_pixel = $scope.x_axis_scale(local_max[0]);
+                    if (x_pixel < 0 || x_pixel >= $scope.select(".plot-viewport").attr("width"))
+                        return;
+                    var focus = $scope.select(".focus");
+                    focus.attr("transform", "translate(" + x_pixel + "," + $scope.y_axis_scale(local_max[1]) + ")");
+                    focus.select("text").text(formatter(local_max[0]) + " " + $scope.x_units);
+                }
             };
+
+            $scope.resize = function() {
+                if (! $scope.points)
+                    return;
+                var width = parseInt($scope.select().style("width")) - margin.left - margin.right;
+                var height = parseInt($scope.select().style("height")) - margin.top - margin.bottom;
+                if (height > width)
+                    height = width;
+                $scope.x_axis_scale.range([-0.5, width - 0.5]);
+                $scope.y_axis_scale.range([height - 0.5, 0 - 0.5]).nice();
+                $scope.x_axis_grid.tickSize(-height);
+                $scope.y_axis_grid.tickSize(-width);
+                $scope.select(".x.axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call($scope.x_axis);
+                $scope.select(".x.axis.grid")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call($scope.x_axis_grid); // tickLine == gridline
+                $scope.select(".y.axis")
+                    .call($scope.y_axis);
+                $scope.select(".y.axis.grid")
+                    .call($scope.y_axis_grid);
+                $scope.select(".main-title")
+                    .attr("x", width / 2);
+                $scope.select(".y-axis-label")
+                    .attr("x", - height / 2);
+                $scope.select(".x-axis-label")
+                    .attr("x", width / 2)
+                // font height + 12 padding...
+                    .attr("y", height + 26);
+                $scope.select(".plot-viewport")
+                    .attr("width", width)
+                    .attr("height", height);
+                $scope.select(".overlay")
+                    .attr("width", width)
+                    .attr("height", height)
+                $scope.select(".line")
+                    .attr("d", $scope.graph_line);
+                return [width, height];
+            }
 
             $scope.select = function(selector) {
                 return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
             };
 
             $scope.slider_changed = function(ev) {
+                if (! $scope.points)
+                    return;
                 function compute_point(value) {
                     return Math.round($scope.x_range[0] + (value / 100) * ($scope.x_range[1] - $scope.x_range[0]));
                 }
@@ -719,231 +790,81 @@ app.directive('plot2d', function($http, appState) {
                 $scope.y_axis_scale.domain([min_y, max_y]);
                 $scope.resize();
             };
-
-            $scope.main = function(json, id) {
-                $scope.plot_id = '#' + id;
-                $($scope.plot_id + ' .srw-plot2d-slider').slider()
-                    .on('slide', $scope.slider_changed);
-                var x_points = linspace(json.x_range[0], json.x_range[1], json.points.length);
-                $scope.init_vars(json, x_points);
-                var dimensions = $scope.resize();
-                $scope.x_peak_values = $scope.compute_peaks(json, dimensions, x_points);
-                $(window).resize($scope.resize);
-            };
-
-            $scope.resize = function() {
-                var width = parseInt($scope.select().style("width")) - $scope.margin.left - $scope.margin.right;
-                var height = parseInt($scope.select().style("height")) - $scope.margin.top - $scope.margin.bottom;
-                if (height > width)
-                    height = width;
-                //console.log('resize: ', width, ' ', height);
-                $scope.x_axis_scale.range([-0.5, width - 0.5]);
-                $scope.y_axis_scale.range([height - 0.5, 0 - 0.5]).nice();
-
-                $scope.x_axis_grid.tickSize(-height);
-                $scope.y_axis_grid.tickSize(-width);
-                $scope.select(".x.axis")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call($scope.x_axis);
-                $scope.select(".x.axis.grid")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call($scope.x_axis_grid); // tickLine == gridline
-                $scope.select(".y.axis")
-                    .call($scope.y_axis);
-                $scope.select(".y.axis.grid")
-                    .call($scope.y_axis_grid);
-
-                $scope.select(".main-title")
-                    .attr("x", width / 2);
-                $scope.select(".y-axis-label")
-                    .attr("x", - height / 2);
-                $scope.select(".x-axis-label")
-                    .attr("x", width / 2)
-                // font height + 12 padding...
-                    .attr("y", height + 26);
-
-                $scope.select(".plot-viewport")
-                    .attr("width", width)
-                    .attr("height", height);
-
-                $scope.select(".overlay")
-                    .attr("width", width)
-                    .attr("height", height)
-
-                $scope.select(".line")
-                    .attr("d", $scope.graph_line);
-                return [width, height];
-            }
-
         },
         link: function link(scope, element, attrs) {
-            var model = appState.models[scope.modelName];
-
-            if (model['_data']) {
-                window.setTimeout(function() {
-                    scope.main(model._data, attrs.id);
-                }, 1);
-                return;
-            }
-            $http["get"](appState.model_info(scope.modelName).dataFile)
-                .success(function(data, status) {
-                    appState.models[scope.modelName]._data = data;
-                    scope.main(data, attrs.id);
-                })
-                .error(function() {
-                    console.log('plot2d get failed!');
+            d3Service.d3().then(function(d3) {
+                scope.$on(scope.modelName + 'draw', function() {
+                    console.log('draw: ', scope.modelName);
+                    scope.load(appState.reportCache[scope.modelName]);
                 });
+                scope.init(scope.id);
+                appState.load_report_data(scope.modelName);
+            });
+            scope.$on('$destroy', function() {
+                $(window).off('resize', scope.resize);
+                scope.select('svg').remove();
+                scope.slider.off();
+                scope.slider.data('slider').picker.off();
+                scope.slider.remove();
+            });
         },
     };
 });
 
-app.directive('plot3d', function($http, appState) {
+app.directive('plot3d', function($http, appState, d3Service) {
+
+    var margin = 50;
 
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
+            id: '@',
         },
         controller: function($scope) {
 
-            var margin = 50;
+            $scope.draw_bottompanel_cut = function() {
+                var y_bottom = $scope.y_index_scale($scope.y_axis_scale.domain()[0]);
+                var y_top = $scope.y_index_scale($scope.y_axis_scale.domain()[1]);
+                var yv = Math.floor(y_bottom + (y_top - y_bottom + 1)/2);
+                var row = $scope.heatmap[yv];
+                var xv_min = $scope.x_index_scale.domain()[0];
+                var xv_max = $scope.x_index_scale.domain()[1];
+                var xi_min = Math.ceil($scope.x_index_scale(xv_min));
+                var xi_max = Math.floor($scope.x_index_scale(xv_max));
+                var xv_range = $scope.x_value_range.slice(xi_min, xi_max + 1);
+                var zv_range = row.slice(xi_min, xi_max + 1);
+                $scope.bottompanel_context.select($scope.plot_id + " path")
+                    .datum(d3.zip(xv_range, zv_range))
+                    .attr("class", "line")
+                    .attr("d", $scope.bottompanel_cut_line);
+            }
 
-            $scope.select = function(selector) {
-                return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
-            };
+            $scope.draw_rightpanel_cut = function() {
+                var yv_min = $scope.y_index_scale.domain()[0];
+                var yv_max = $scope.y_index_scale.domain()[1];
+                var yi_min = Math.ceil($scope.y_index_scale(yv_min));
+                var yi_max = Math.floor($scope.y_index_scale(yv_max));
+                var x_left = $scope.x_index_scale($scope.x_axis_scale.domain()[0]);
+                var x_right = $scope.x_index_scale($scope.x_axis_scale.domain()[1]);
+                var xv = Math.floor(x_left + (x_right - x_left + 1)/2);
+                var data = $scope.heatmap.slice(yi_min, yi_max + 1).map(function (v, i) {
+                    return [$scope.y_value_range[i], v[xv]];
+                });
+                $scope.rightpanel_context.select($scope.plot_id + " path")
+                    .datum(data)
+                    .attr("class", "line")
+                    .attr("d", $scope.rightpanel_cut_line);
+            }
 
-            $scope.main = function(json, id) {
+            $scope.init = function(id) {
                 $scope.plot_id = '#' + id;
-                $scope.heatmap = [];
-                var xmax = json.x_range.length - 1;
-                var ymax = json.y_range.length - 1;
-                $scope.x_value_min = json.x_range[0];
-                $scope.x_value_max = json.x_range[xmax];
-                $scope.x_value_range = json.x_range.slice(0);
-                $scope.y_value_min = json.y_range[0];
-                $scope.y_value_max = json.y_range[ymax];
-                $scope.y_value_range = json.y_range.slice(0);
-
-                var zmin = json.z_matrix[0][0]
-                var zmax = json.z_matrix[0][0]
-                for (var yi = 0; yi <= ymax; ++yi) {
-                    // flip to match the canvas coordinate system (origin: top left)
-                    // matplotlib is bottom left
-                    $scope.heatmap[ymax - yi] = [];
-                    for (var xi = 0; xi <= xmax; ++xi) {
-	                var zi = json.z_matrix[yi][xi];
-	                $scope.heatmap[ymax - yi][xi] = zi;
-	                if (zmax < zi)
-	                    zmax = zi;
-	                else if (zmin > zi)
-	                    zmin = zi;
-                    }
-                }
-                $scope.init_vars(json, zmin, zmax);
-                $scope.init_draw(json, zmin, zmax);
-                $scope.resize();
-                $(window).resize($scope.resize);
-            }
-
-            $scope.resize = function() {
-                var width = parseInt($scope.select().style("width")) - 2 * margin;
-                var rightpanel_margin = {left: 10, right: 40};
-                var bottompanel_margin = {top: 10, bottom: 30};
-                $scope.canvas_size = 2 * (width - rightpanel_margin.left - rightpanel_margin.right) / 3;
-                var bottompanel_height = 2 * $scope.canvas_size / 5 + bottompanel_margin.top + bottompanel_margin.bottom;
-                var rightpanel_width = $scope.canvas_size / 2 + rightpanel_margin.left + rightpanel_margin.right;
-                $scope.rightpanel_xAxis.ticks(
-                    width >= 700 ? 5
-                        : width >= 566 ? 4
-                        : width >= 433 ? 3
-                        : 2);
-                $scope.x_axis_scale.range([0, $scope.canvas_size - 1]);
-                $scope.y_axis_scale.range([$scope.canvas_size - 1, 0]);
-                $scope.bottompanel_y_scale.range([bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom - 1, 0]);
-                $scope.rightpanel_x_scale.range([0, rightpanel_width - rightpanel_margin.left - rightpanel_margin.right]);
-                $scope.main_xAxis.tickSize(- $scope.canvas_size - bottompanel_height + bottompanel_margin.bottom); // tickLine == gridline
-                $scope.main_yAxis.tickSize(- $scope.canvas_size - rightpanel_width + rightpanel_margin.right); // tickLine == gridline
-                $scope.zoom.center([$scope.canvas_size / 2, $scope.canvas_size / 2])
-                    .x($scope.x_axis_scale.domain([$scope.x_value_min, $scope.x_value_max]))
-                    .y($scope.y_axis_scale.domain([$scope.y_value_min, $scope.y_value_max]));
-                $scope.select("canvas")
-                    .style("width", $scope.canvas_size + "px")
-                    .style("height", $scope.canvas_size + "px");
-                $scope.select("svg")
-                    .attr("width", margin * 2 + $scope.canvas_size + rightpanel_width)
-                    .attr("height", margin * 2 + $scope.canvas_size + bottompanel_height)
-                $scope.select(".main-title")
-                    .attr("x", $scope.canvas_size / 2)
-                    .attr("y", - margin / 2);
-                $scope.select(".mouse-rect")
-                    .attr("width", $scope.canvas_size)
-                    .attr("height", $scope.canvas_size)
-                    .call($scope.zoom);
-                $scope.select(".y-cross-hair")
-                    .attr("x1", Math.floor($scope.canvas_size/2) - 0)
-                    .attr("x2", Math.floor($scope.canvas_size/2) - 0)
-                    .attr("y2", $scope.canvas_size);
-                $scope.select(".x-cross-hair")
-                    .attr("y1", Math.floor($scope.canvas_size/2) + 0)
-                    .attr("x2", $scope.canvas_size)
-                    .attr("y2", Math.floor($scope.canvas_size/2) + 0);
-                $scope.select(".bottompanel-rect")
-                    .attr("width", $scope.canvas_size)
-                    .attr("height", bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom);
-                $scope.select(".bottompanel")
-                    .attr("transform", "translate(0," + ($scope.canvas_size + bottompanel_margin.top) + ")");
-                $scope.select(".x-axis-label")
-                    .attr("x", $scope.canvas_size / 2)
-                    .attr("y", bottompanel_height);
-                $scope.select(".rightpanel-rect")
-                    .attr("width", rightpanel_width - rightpanel_margin.left - rightpanel_margin.right)
-                    .attr("height", $scope.canvas_size);
-                $scope.select(".rightpanel")
-                    .attr("transform", "translate(" + ($scope.canvas_size + rightpanel_margin.left) + ",0)");
-                $scope.select(".x.axis.bottom")
-                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
-                    .call($scope.bottompanel_xAxis);
-                $scope.select(".x.axis.right")
-                    .attr("transform", "translate(0," + $scope.canvas_size + ")")
-                    .call($scope.rightpanel_xAxis);
-                $scope.select(".y-axis-label")
-                    .attr("x", - $scope.canvas_size / 2)
-                    .attr("y", rightpanel_width + 15);
-                $scope.select(".z-axis-label")
-                    .attr("x", $scope.canvas_size + rightpanel_width / 2)
-                    .attr("y", $scope.canvas_size + margin);
-                $scope.select(".x.axis.grid")
-                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
-                    .call($scope.zoom)
-                    .call($scope.main_xAxis);
-                $scope.select(".y.axis.grid")
-                    .call($scope.zoom)
-                    .call($scope.main_yAxis);
-                $scope.select(".y.axis.right")
-                    .attr("transform", "translate(" + (rightpanel_width - rightpanel_margin.left - rightpanel_margin.right) + ",0)")
-                    .call($scope.rightpanel_yAxis);
-                $scope.select(".y.axis.bottom")
-                    .call($scope.bottompanel_yAxis);
-                $scope.refresh();
-            }
-
-            $scope.init_vars = function(json, zmin, zmax) {
-                var xmax = json.x_range.length - 1;
-                var ymax = json.y_range.length - 1;
-                $scope.x_axis_scale = d3.scale.linear()
-                    .domain([$scope.x_value_min, $scope.x_value_max]);
-                $scope.x_index_scale = d3.scale.linear()
-                    .domain([$scope.x_value_min, $scope.x_value_max])
-                    .range([0, xmax]);
-                $scope.y_axis_scale = d3.scale.linear()
-                    .domain([$scope.y_value_min, $scope.y_value_max]);
-                $scope.y_index_scale = d3.scale.linear()
-                    .domain([$scope.y_value_min, $scope.y_value_max])
-                    .range([0, ymax]);
-                $scope.bottompanel_y_scale = d3.scale.linear()
-                    .domain([zmin, zmax]);
-                $scope.rightpanel_x_scale = d3.scale.linear()
-                    .domain([zmax, zmin]);
+                $scope.x_axis_scale = d3.scale.linear();
+                $scope.x_index_scale = d3.scale.linear();
+                $scope.y_axis_scale = d3.scale.linear();
+                $scope.y_index_scale = d3.scale.linear();
+                $scope.bottompanel_y_scale = d3.scale.linear();
+                $scope.rightpanel_x_scale = d3.scale.linear();
                 $scope.main_xAxis = d3.svg.axis()
                     .scale($scope.x_axis_scale)
                     .orient("bottom");
@@ -981,8 +902,6 @@ app.directive('plot3d', function($http, appState) {
                     .style("position", "relative");
                 $scope.canvas = root_div.append("canvas")
                     .style("position", "absolute")
-                    .attr("width", json.x_range.length)
-                    .attr("height", json.y_range.length)
                     .attr("transform", "translate(" + margin + "," + margin + ")")
                     .style("left", margin + "px")
                     .style("top", margin + "px");
@@ -992,8 +911,7 @@ app.directive('plot3d', function($http, appState) {
                     .attr("transform", "translate(" + margin + "," + margin + ")");
                 $scope.svg.append("text")
                     .attr("class", "main-title")
-                    .style("text-anchor", "middle")
-                    .text(json.title);
+                    .style("text-anchor", "middle");
                 // We make an invisible rectangle to intercept mouse events for zooming.
                 $scope.mouse_rect = $scope.svg.append("rect")
                     .attr("class", "mouse-rect")
@@ -1030,8 +948,7 @@ app.directive('plot3d', function($http, appState) {
                     .attr("class", "x axis grid");
                 $scope.bottompanel_context.append("text")
                     .attr("class", "x-axis-label")
-                    .style("text-anchor", "middle")
-                    .text(json.x_label);
+                    .style("text-anchor", "middle");
                 $scope.bottompanel_context.append("g")
                     .attr("class", "y axis bottom");
                 $scope.rightpanel_context = $scope.svg.append("g")
@@ -1049,18 +966,90 @@ app.directive('plot3d', function($http, appState) {
                 $scope.rightpanel_context.append("text")
                     .attr("class", "y-axis-label")
                     .style("text-anchor", "middle")
-                    .text(json.y_label)
                     .attr("transform", "rotate(270)");
                 $scope.svg.append("text")
                     .attr("class", "z-axis-label")
-                    .style("text-anchor", "middle")
-                    .text(json.z_label);
+                    .style("text-anchor", "middle");
                 $scope.bottompanel_cut_line = d3.svg.line()
                     .x(function(d) {return $scope.x_axis_scale(d[0])})
                     .y(function(d) {return $scope.bottompanel_y_scale(d[1])});
                 $scope.rightpanel_cut_line = d3.svg.line()
                     .y(function(d) { return $scope.y_axis_scale(d[0]); })
                     .x(function(d) { return $scope.rightpanel_x_scale(d[1]); });
+
+                $(window).resize($scope.resize);
+            }
+
+            $scope.init_draw = function(json, zmin, zmax) {
+                var color = d3.scale.linear()
+                    .domain([zmin, zmax])
+                    .range(["#333", "#fff"]);
+                var xmax = json.x_range.length - 1;
+                var ymax = json.y_range.length - 1;
+                // Compute the pixel colors; scaled by CSS.
+                var img = $scope.ctx.createImageData(json.x_range.length, json.y_range.length);
+                for (var yi = 0, p = -1; yi <= ymax; ++yi) {
+	            for (var xi = 0; xi <= xmax; ++xi) {
+	                var c = d3.rgb(color($scope.heatmap[yi][xi]));
+	                img.data[++p] = c.r;
+	                img.data[++p] = c.g;
+	                img.data[++p] = c.b;
+	                img.data[++p] = 255;
+	            }
+                }
+                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
+                // without doing more programming) allows us to see how the marginals
+                // line up when zooming in a lot.
+                $scope.ctx.mozImageSmoothingEnabled = false;
+                $scope.ctx.webkitImageSmoothingEnabled = false;
+                $scope.ctx.msImageSmoothingEnabled = false;
+                $scope.ctx.imageSmoothingEnabled = false;
+                $scope.ctx.putImageData(img, 0, 0);
+                $scope.imageObj.src = $scope.canvas.node().toDataURL();
+            }
+
+            $scope.load = function(json) {
+                $scope.heatmap = [];
+                var xmax = json.x_range.length - 1;
+                var ymax = json.y_range.length - 1;
+                $scope.x_value_min = json.x_range[0];
+                $scope.x_value_max = json.x_range[xmax];
+                $scope.x_value_range = json.x_range.slice(0);
+                $scope.y_value_min = json.y_range[0];
+                $scope.y_value_max = json.y_range[ymax];
+                $scope.y_value_range = json.y_range.slice(0);
+                $scope.x_index_scale.range([0, xmax]);
+                $scope.y_index_scale.range([0, ymax]);
+                $scope.canvas.attr("width", json.x_range.length)
+                    .attr("height", json.y_range.length);
+                $scope.select(".main-title").text(json.title);
+                $scope.select(".x-axis-label").text(json.x_label);
+                $scope.select(".y-axis-label").text(json.y_label);
+                $scope.select(".z-axis-label").text(json.z_label);
+                $scope.x_axis_scale.domain([$scope.x_value_min, $scope.x_value_max]);
+                $scope.x_index_scale.domain([$scope.x_value_min, $scope.x_value_max]);
+                $scope.y_axis_scale.domain([$scope.y_value_min, $scope.y_value_max]);
+                $scope.y_index_scale.domain([$scope.y_value_min, $scope.y_value_max]);
+
+                var zmin = json.z_matrix[0][0]
+                var zmax = json.z_matrix[0][0]
+                for (var yi = 0; yi <= ymax; ++yi) {
+                    // flip to match the canvas coordinate system (origin: top left)
+                    // matplotlib is bottom left
+                    $scope.heatmap[ymax - yi] = [];
+                    for (var xi = 0; xi <= xmax; ++xi) {
+	                var zi = json.z_matrix[yi][xi];
+	                $scope.heatmap[ymax - yi][xi] = zi;
+	                if (zmax < zi)
+	                    zmax = zi;
+	                else if (zmin > zi)
+	                    zmin = zi;
+                    }
+                }
+                $scope.bottompanel_y_scale.domain([zmin, zmax]);
+                $scope.rightpanel_x_scale.domain([zmax, zmin]);
+                $scope.init_draw(json, zmin, zmax);
+                $scope.resize();
             }
 
             $scope.refresh = function() {
@@ -1151,86 +1140,105 @@ app.directive('plot3d', function($http, appState) {
                 $scope.svg.selectAll($scope.plot_id + " .y.axis.grid").call($scope.main_yAxis);
             }
 
-            $scope.init_draw = function(json, zmin, zmax) {
-                var color = d3.scale.linear()
-                    .domain([zmin, zmax])
-                    .range(["#333", "#fff"]);
-                var xmax = json.x_range.length - 1;
-                var ymax = json.y_range.length - 1;
-                // Compute the pixel colors; scaled by CSS.
-                var img = $scope.ctx.createImageData(json.x_range.length, json.y_range.length);
-                for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-	            for (var xi = 0; xi <= xmax; ++xi) {
-	                var c = d3.rgb(color($scope.heatmap[yi][xi]));
-	                img.data[++p] = c.r;
-	                img.data[++p] = c.g;
-	                img.data[++p] = c.b;
-	                img.data[++p] = 255;
-	            }
-                }
-                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
-                // without doing more programming) allows us to see how the marginals
-                // line up when zooming in a lot.
-                $scope.ctx.mozImageSmoothingEnabled = false;
-                $scope.ctx.webkitImageSmoothingEnabled = false;
-                $scope.ctx.msImageSmoothingEnabled = false;
-                $scope.ctx.imageSmoothingEnabled = false;
-                $scope.ctx.putImageData(img, 0, 0);
-                $scope.imageObj.src = $scope.canvas.node().toDataURL();
+            $scope.resize = function() {
+                var width = parseInt($scope.select().style("width")) - 2 * margin;
+                var rightpanel_margin = {left: 10, right: 40};
+                var bottompanel_margin = {top: 10, bottom: 30};
+                $scope.canvas_size = 2 * (width - rightpanel_margin.left - rightpanel_margin.right) / 3;
+                var bottompanel_height = 2 * $scope.canvas_size / 5 + bottompanel_margin.top + bottompanel_margin.bottom;
+                var rightpanel_width = $scope.canvas_size / 2 + rightpanel_margin.left + rightpanel_margin.right;
+                $scope.rightpanel_xAxis.ticks(
+                    width >= 700 ? 5
+                        : width >= 566 ? 4
+                        : width >= 433 ? 3
+                        : 2);
+                $scope.x_axis_scale.range([0, $scope.canvas_size - 1]);
+                $scope.y_axis_scale.range([$scope.canvas_size - 1, 0]);
+                $scope.bottompanel_y_scale.range([bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom - 1, 0]);
+                $scope.rightpanel_x_scale.range([0, rightpanel_width - rightpanel_margin.left - rightpanel_margin.right]);
+                $scope.main_xAxis.tickSize(- $scope.canvas_size - bottompanel_height + bottompanel_margin.bottom); // tickLine == gridline
+                $scope.main_yAxis.tickSize(- $scope.canvas_size - rightpanel_width + rightpanel_margin.right); // tickLine == gridline
+                $scope.zoom.center([$scope.canvas_size / 2, $scope.canvas_size / 2])
+                    .x($scope.x_axis_scale.domain([$scope.x_value_min, $scope.x_value_max]))
+                    .y($scope.y_axis_scale.domain([$scope.y_value_min, $scope.y_value_max]));
+                $scope.select("canvas")
+                    .style("width", $scope.canvas_size + "px")
+                    .style("height", $scope.canvas_size + "px");
+                $scope.select("svg")
+                    .attr("width", margin * 2 + $scope.canvas_size + rightpanel_width)
+                    .attr("height", margin * 2 + $scope.canvas_size + bottompanel_height)
+                $scope.select(".main-title")
+                    .attr("x", $scope.canvas_size / 2)
+                    .attr("y", - margin / 2);
+                $scope.select(".mouse-rect")
+                    .attr("width", $scope.canvas_size)
+                    .attr("height", $scope.canvas_size)
+                    .call($scope.zoom);
+                $scope.select(".y-cross-hair")
+                    .attr("x1", Math.floor($scope.canvas_size/2) - 0)
+                    .attr("x2", Math.floor($scope.canvas_size/2) - 0)
+                    .attr("y2", $scope.canvas_size);
+                $scope.select(".x-cross-hair")
+                    .attr("y1", Math.floor($scope.canvas_size/2) + 0)
+                    .attr("x2", $scope.canvas_size)
+                    .attr("y2", Math.floor($scope.canvas_size/2) + 0);
+                $scope.select(".bottompanel-rect")
+                    .attr("width", $scope.canvas_size)
+                    .attr("height", bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom);
+                $scope.select(".bottompanel")
+                    .attr("transform", "translate(0," + ($scope.canvas_size + bottompanel_margin.top) + ")");
+                $scope.select(".x-axis-label")
+                    .attr("x", $scope.canvas_size / 2)
+                    .attr("y", bottompanel_height);
+                $scope.select(".rightpanel-rect")
+                    .attr("width", rightpanel_width - rightpanel_margin.left - rightpanel_margin.right)
+                    .attr("height", $scope.canvas_size);
+                $scope.select(".rightpanel")
+                    .attr("transform", "translate(" + ($scope.canvas_size + rightpanel_margin.left) + ",0)");
+                $scope.select(".x.axis.bottom")
+                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
+                    .call($scope.bottompanel_xAxis);
+                $scope.select(".x.axis.right")
+                    .attr("transform", "translate(0," + $scope.canvas_size + ")")
+                    .call($scope.rightpanel_xAxis);
+                $scope.select(".y-axis-label")
+                    .attr("x", - $scope.canvas_size / 2)
+                    .attr("y", rightpanel_width + 15);
+                $scope.select(".z-axis-label")
+                    .attr("x", $scope.canvas_size + rightpanel_width / 2)
+                    .attr("y", $scope.canvas_size + margin);
+                $scope.select(".x.axis.grid")
+                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
+                    .call($scope.zoom)
+                    .call($scope.main_xAxis);
+                $scope.select(".y.axis.grid")
+                    .call($scope.zoom)
+                    .call($scope.main_yAxis);
+                $scope.select(".y.axis.right")
+                    .attr("transform", "translate(" + (rightpanel_width - rightpanel_margin.left - rightpanel_margin.right) + ",0)")
+                    .call($scope.rightpanel_yAxis);
+                $scope.select(".y.axis.bottom")
+                    .call($scope.bottompanel_yAxis);
+                $scope.refresh();
             }
 
-            $scope.draw_bottompanel_cut = function() {
-                var y_bottom = $scope.y_index_scale($scope.y_axis_scale.domain()[0]);
-                var y_top = $scope.y_index_scale($scope.y_axis_scale.domain()[1]);
-                var yv = Math.floor(y_bottom + (y_top - y_bottom + 1)/2);
-                var row = $scope.heatmap[yv];
-                var xv_min = $scope.x_index_scale.domain()[0];
-                var xv_max = $scope.x_index_scale.domain()[1];
-                var xi_min = Math.ceil($scope.x_index_scale(xv_min));
-                var xi_max = Math.floor($scope.x_index_scale(xv_max));
-                var xv_range = $scope.x_value_range.slice(xi_min, xi_max + 1);
-                var zv_range = row.slice(xi_min, xi_max + 1);
-                $scope.bottompanel_context.select($scope.plot_id + " path")
-                    .datum(d3.zip(xv_range, zv_range))
-                    .attr("class", "line")
-                    .attr("d", $scope.bottompanel_cut_line);
-            }
-
-            $scope.draw_rightpanel_cut = function() {
-                var yv_min = $scope.y_index_scale.domain()[0];
-                var yv_max = $scope.y_index_scale.domain()[1];
-                var yi_min = Math.ceil($scope.y_index_scale(yv_min));
-                var yi_max = Math.floor($scope.y_index_scale(yv_max));
-                var x_left = $scope.x_index_scale($scope.x_axis_scale.domain()[0]);
-                var x_right = $scope.x_index_scale($scope.x_axis_scale.domain()[1]);
-                var xv = Math.floor(x_left + (x_right - x_left + 1)/2);
-                var data = $scope.heatmap.slice(yi_min, yi_max + 1).map(function (v, i) {
-                    return [$scope.y_value_range[i], v[xv]];
-                });
-                $scope.rightpanel_context.select($scope.plot_id + " path")
-                    .datum(data)
-                    .attr("class", "line")
-                    .attr("d", $scope.rightpanel_cut_line);
-            }
+            $scope.select = function(selector) {
+                return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
+            };
         },
         link: function link(scope, element, attrs) {
-            //TODO(pjm): share with plot2d link()
-            var model = appState.models[scope.modelName];
-
-            if (model['_data']) {
-                window.setTimeout(function() {
-                    scope.main(model._data, attrs.id);
-                }, 1);
-                return;
-            }
-            $http["get"](appState.model_info(scope.modelName).dataFile)
-                .success(function(data, status) {
-                    appState.models[scope.modelName]._data = data;
-                    scope.main(data, attrs.id);
-                })
-                .error(function() {
-                    console.log('plot3d get failed!');
+            d3Service.d3().then(function(d3) {
+                scope.$on(scope.modelName + 'draw', function() {
+                    console.log('draw: ', scope.modelName);
+                    scope.load(appState.reportCache[scope.modelName]);
                 });
+                scope.init(scope.id);
+                appState.load_report_data(scope.modelName);
+            });
+            scope.$on('$destroy', function() {
+                $(window).off('resize', scope.resize);
+                scope.svg.remove();
+            });
         },
     };
 });
