@@ -1237,7 +1237,7 @@ app.directive('plot3d', function($http, appState, d3Service) {
         },
         link: function link(scope) {
             d3Service.d3().then(function(d3) {
-
+                //TODO(pjm): consolidate this code with plot2d
                 function request_data() {
                     console.log('requesting data: ', scope.modelName);
                     appState.request_data(scope.modelName, function(data) {
@@ -1245,7 +1245,7 @@ app.directive('plot3d', function($http, appState, d3Service) {
                         scope.load(data);
                     });
                 }
-                scope.$on(scope.modelName + '', request_data);
+                scope.$on(scope.modelName + '.changed', request_data);
                 scope.init(scope.id);
                 request_data();
             });
