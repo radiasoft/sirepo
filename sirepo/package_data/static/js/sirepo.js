@@ -246,28 +246,19 @@ app.factory('beamlineGraphics', function() {
     };
 
     return {
+        width: canvasWidth,
+        height: canvasHeight,
         draw_icon: function(item, canvas) {
-            window.setTimeout(function() {
-                draw[item](canvas.getContext("2d"));
-            }, 1);
-        },
-        redraw_all_icons: function() {
-            window.setTimeout(function() {
-                Object.keys(draw).forEach(function(item) {
-                    $(".srw-" + item + "-canvas").each(function(index, element) {
-                        draw[item](element.getContext("2d"));
-                    });
-                });
-          }, 1);
+            draw[item](canvas.getContext("2d"));
         },
     };
 });
 
-app.factory('appState', function($timeout, $http, $rootScope) {
+app.factory('appState', function($http, $rootScope) {
     var models = {
         electronBeam: {
             _visible: true,
-            beamName: null,
+            beamName: {name: 'NSLS-II Low Beta Day 1'},
             current: 0.5,
             horizontalPosition: 0,
             verticalPosition: 0,
@@ -361,50 +352,74 @@ app.factory('appState', function($timeout, $http, $rootScope) {
         return JSON.parse(JSON.stringify(val));
     };
     var saved_model_values = clone_model();
-    function simulate_report_reload(name) {
-        //console.log("reload report: ", name);
-        models[name]._loading = true;
-        $timeout(function() {
-            models[name]._loading = false;
-            console.log('broadcasting: ', name + 'draw');
-            $rootScope.$broadcast(name + 'draw');
-        }, 2000 + 6000 * Math.random());
-    };
+
     function update_reports(name) {
         if (name.indexOf('Report') > 0) {
-            simulate_report_reload(name);
+            $rootScope.$broadcast(name + '.changed');
         }
         else {
             for (var key in models) {
                 if (key.indexOf('Report') > 0) {
-                    simulate_report_reload(key);
+                    $rootScope.$broadcast(key + '.changed');
                 }
             }
         }
     };
-    function run_simulation() {
-        $http.post('/srw/run', {
-            models: models,
-            beamline: beamline,
-        }).success(function(data, status) {
-            console.log("run success: ", status, ' ', data);
-        }).error(function(data, status) {
-            console.log("run failed: ", status, ' ', data);
-        });
-    }
+
     var model_info = function(name) {
         return _MODEL[name];
     };
+
+    var run_queue = [];
+
+    function execute_queue() {
+        if (run_queue.length === 0)
+            return;
+        $http.post('/srw/run', {
+            report: run_queue[0][0],
+            models: saved_model_values,
+            beamline: beamline,
+        }).success(function(data, status) {
+            var item = run_queue.shift();
+
+            if (data['error']) {
+                models[item[0]]._error = data['error'];
+            }
+            else {
+                reportCache[item[0]] = data;
+                item[1](data);
+            }
+            //TODO(pjm): don't set loading to false unless there are no other queue items for this report
+            models[item[0]]._loading = false;
+            execute_queue();
+        }).error(function(data, status) {
+            console.log("run failed: ", status, ' ', data);
+            run_queue.shift();
+            execute_queue();
+        });
+    }
+
     return {
         beamline: beamline,
         models: models,
         reportCache: reportCache,
         model_info: model_info,
+        request_data: function(name, callback) {
+            if (reportCache[name])
+                callback(reportCache[name]);
+            else {
+                models[name]._loading = true;
+                models[name]._error = null;
+                run_queue.push([name, callback]);
+                if (run_queue.length == 1)
+                    execute_queue();
+            }
+        },
         save_changes: function(name, refresh_reports) {
             //console.log("save changes: ", name);
             saved_model_values[name] = clone_model(name);
             if (refresh_reports) {
-                run_simulation();
+                reportCache = {};
                 update_reports(name);
             }
         },
@@ -412,20 +427,6 @@ app.factory('appState', function($timeout, $http, $rootScope) {
             console.log("cancel changes: ", name);
             models[name] = JSON.parse(JSON.stringify(saved_model_values[name]));
         },
-        load_report_data: function(name) {
-            if (reportCache[name]) {
-                $rootScope.$broadcast(name + 'draw');
-                return;
-            }
-            $http["get"](model_info(name).dataFile)
-                .success(function(data, status) {
-                    reportCache[name] = data;
-                    $rootScope.$broadcast(name + 'draw');
-                })
-                .error(function() {
-                    console.log('load_report_data failed: ', name);
-                });
-        }
     };
 });
 
@@ -449,7 +450,7 @@ app.directive('fieldEditor', function(appState, $http) {
             '<label class="col-sm-5 control-label">{{ fieldEditor[1] }}</label>',
             '<div data-ng-switch="fieldEditor[2]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
-                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in beams track by item.name"></select>',
+                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in appState.beams track by item.name"></select>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-3">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
@@ -460,14 +461,18 @@ app.directive('fieldEditor', function(appState, $http) {
               '</div>',
             '</div>',
         ].join(''),
-        link: function link(scope, element, attrs) {
+        controller: function($scope) {
+            $scope.appState = appState;
+        },
+        link: function link(scope) {
             scope.enum = _ENUM;
             if (scope.fieldEditor[2] == 'BeamList') {
+                if (appState.beams)
+                    return;
+                appState.beams = [scope.model[scope.fieldEditor[0]]];
                 $http["get"]('/static/json/beams.json')
                     .success(function(data, status) {
-                        scope.beams = data;
-                        scope.model[scope.fieldEditor[0]] = data[0];
-                        appState.save_changes('electronBeam', false);
+                        appState.beams = data;
                     })
                     .error(function() {
                         console.log('get beams.json failed!');
@@ -551,8 +556,9 @@ app.directive('panelBody', function() {
         controller: function($scope) {
         },
         template: [
-            '<div data-ng-class="{\'srw-panel-loading\': model._loading}" class="panel-body cssFade" data-ng-show="model._visible">',
-            '<div class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Refreshing...</div>',
+            '<div data-ng-class="{\'srw-panel-loading\': model._loading, \'srw-panel-error\': model._error}" class="panel-body cssFade" data-ng-show="model._visible">',
+            '<div data-ng-show="model._loading" class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Refreshing...</div>',
+            '<div data-ng-show="model._error" class="lead srw-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ model._error }}</div>',
             '<ng-transclude></ng-transclude>',
             '</div>',
         ].join(''),
@@ -610,7 +616,6 @@ app.directive('plot2d', function($http, appState, d3Service) {
             $scope.init = function(id) {
                 $scope.plot_id = '#' + id;
                 formatter = d3.format(",.0f")
-//TODO(pjm): need to debug a big memory leak with this
                 $scope.slider = $($scope.plot_id + ' .srw-plot2d-slider').slider();
                 $scope.slider.on('slide', $scope.slider_changed);
                 $(window).resize($scope.resize);
@@ -791,14 +796,19 @@ app.directive('plot2d', function($http, appState, d3Service) {
                 $scope.resize();
             };
         },
-        link: function link(scope, element, attrs) {
+        link: function link(scope) {
             d3Service.d3().then(function(d3) {
-                scope.$on(scope.modelName + 'draw', function() {
-                    console.log('draw: ', scope.modelName);
-                    scope.load(appState.reportCache[scope.modelName]);
-                });
+
+                function request_data() {
+                    console.log('requesting data: ', scope.modelName);
+                    appState.request_data(scope.modelName, function(data) {
+                        console.log('loading data: ', scope.modelName);
+                        scope.load(data);
+                    });
+                }
+                scope.$on(scope.modelName + '.changed', request_data);
                 scope.init(scope.id);
-                appState.load_report_data(scope.modelName);
+                request_data();
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
@@ -919,6 +929,10 @@ app.directive('plot3d', function($http, appState, d3Service) {
                     .style("fill", "none");
                 $scope.ctx = $scope.canvas.node().getContext("2d");
                 $scope.imageObj = new Image();
+                $scope.imageObj.onload = function() {
+                    // important - the image may not be ready initially
+                    $scope.refresh();
+                };
                 $scope.svg.append("line")
                     .attr("class", "y-cross-hair cross-hair")
                     .attr("y1", 0)
@@ -1053,11 +1067,6 @@ app.directive('plot3d', function($http, appState, d3Service) {
             }
 
             $scope.refresh = function() {
-                if ($scope.imageObj.height == 0) {
-                    setTimeout($scope.refresh, 300);
-                    return;
-                }
-
                 var tx = 0, ty = 0, s = 1;
                 if (d3.event && d3.event.translate) {
                     var t = d3.event.translate;
@@ -1226,18 +1235,24 @@ app.directive('plot3d', function($http, appState, d3Service) {
                 return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
             };
         },
-        link: function link(scope, element, attrs) {
+        link: function link(scope) {
             d3Service.d3().then(function(d3) {
-                scope.$on(scope.modelName + 'draw', function() {
-                    console.log('draw: ', scope.modelName);
-                    scope.load(appState.reportCache[scope.modelName]);
-                });
+
+                function request_data() {
+                    console.log('requesting data: ', scope.modelName);
+                    appState.request_data(scope.modelName, function(data) {
+                        console.log('loading data: ', scope.modelName);
+                        scope.load(data);
+                    });
+                }
+                scope.$on(scope.modelName + '', request_data);
                 scope.init(scope.id);
-                appState.load_report_data(scope.modelName);
+                request_data();
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
                 scope.svg.remove();
+                scope.imageObj.onload = null;
             });
         },
     };
@@ -1265,8 +1280,7 @@ app.controller('BeamlineController', function ($rootScope, appState, beamlineGra
         {name:'watch', title:'Watchpoint'},
     ];
     self.beamline = appState.beamline;
-    var current_id = self.beamline.length + 100;
-    beamlineGraphics.redraw_all_icons();
+    var current_id = 100;
 
     function add_item(item) {
         //TODO(pjm): conslidate clone()
@@ -1325,6 +1339,22 @@ app.controller('BeamlineController', function ($rootScope, appState, beamlineGra
     }
 });
 
+app.directive('toolbarItem', function(beamlineGraphics) {
+    return {
+        scope: {
+            item: '=',
+        },
+        link: function(scope, element) {
+            var canvas = element[0];
+            canvas.style.width = '30px';
+            canvas.style.height = '35px';
+            canvas.width = beamlineGraphics.width;
+            canvas.height = beamlineGraphics.height;
+            beamlineGraphics.draw_icon(scope.item.name, canvas);
+        }
+    };
+});
+
 app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
     return {
         scope: {
@@ -1335,8 +1365,11 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 $('.srw-beamline-element-label').popover('hide');
             }
         },
-        link: function(scope, element, attrs) {
-            beamlineGraphics.draw_icon(scope.item.name, $(element).find('canvas')[0]);
+        link: function(scope, element) {
+            var canvas = $(element).find('canvas')[0];
+            canvas.width = beamlineGraphics.width;
+            canvas.height = beamlineGraphics.height;
+            beamlineGraphics.draw_icon(scope.item.name, canvas);
             $(element).find('.srw-beamline-element-label').each(function (index, el) {
                 $(el).popover({
                     html: true,
