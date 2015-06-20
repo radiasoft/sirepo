@@ -115,6 +115,15 @@
         opacity: 0;
     }
 
+    .srw-panel-error {
+      background-color: #777;
+    }
+    .srw-panel-error .srw-panel-wait {
+      position: absolute;
+      color: red;
+      font-weight: bold;
+      display: block;
+    }
     .srw-panel-loading {
       background-color: #777;
     }
