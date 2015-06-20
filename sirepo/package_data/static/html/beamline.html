@@ -1,11 +1,10 @@
     <div class="container-fluid">
-
       <!-- Toolbar -->
       <div class="row">
         <div class="col-sm-12">
           <p class="text-center bg-info">
             <span data-ng-repeat="item in beamline.toolbar_items" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-              <canvas style="width:30px; height 35px;" class="srw-{{ item.name }}-canvas" width="50" height="60"></canvas><br>{{ item.title }}
+              <canvas data-toolbar-item="" data-item="item"></canvas><br>{{ item.title }}
             </span>
           </p>
         </div>
@@ -21,7 +20,7 @@
             <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element">
               <span class="srw-beamline-badge badge">{{ item.position }}m</span>
               <span data-ng-click="beamline.remove_element(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>
-              <div class="srw-beamline-image"><canvas class="srw-{{ item.name }}-canvas" width="50" height="60"></canvas></div>
+              <div class="srw-beamline-image"><canvas></canvas></div>
               <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>
             </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between($index + 1, $data)">&nbsp;</div>
           </div>
@@ -277,12 +276,14 @@
         <div class="col-md-6 col-xl-4">
           <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
         </div>
+<!--
         <div class="col-md-6 col-xl-4">
           <div data-report-panel="3d" data-model-name="intensityAtBPMReport"></div>
         </div>
         <div class="col-md-6 col-xl-4">
           <div data-report-panel="3d" data-model-name="intensityAtSampleReport"></div>
         </div>
+-->
       </div>
     </div>
 
