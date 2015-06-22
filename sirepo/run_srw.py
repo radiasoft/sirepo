@@ -5,18 +5,12 @@
 from pykern import pkio
 from uti_plot import *
 from uti_plot_com import *
-import default_parameters
 import json
 import numpy as np
 import os
 import re
 import srwl_bl
 import sys
-
-if not sys.argv[1]:
-    raise Exception("missing argv[1]")
-
-dir = sys.argv[1]
 
 def superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
@@ -80,44 +74,12 @@ def process_output(filename):
         json.dump(info, outfile)
 
 
-with pkio.save_chdir(dir):
+with open('in.json') as f:
+    data = json.load(f)
 
-    with open('in.json') as f:
-        data = json.load(f)
-
-    print('{}'.format(data))
-
-    v = srwl_bl.srwl_uti_parse_options(default_parameters.varParam)
-    v.fdir = os.getcwd()
-    v.name = 'NSLS-II CHX beamline Day 1'
-    v.ss_pl = ''
-    v.sm_pl = ''
-    v.pw_pl = ''
-    v.ws_pl = ''
-
-    # electron beam
-    #"beamName":{name":"NSLS-II Low Beta Day 1"}
-    #"current":0.5,
-    #"horizontalPosition":0,
-    #"verticalPosition":0,
-    #"energyDeviation":0}
-    electronBeam = data['models']['electronBeam']
-    v.ebm_nm = electronBeam['beamName']['name']
-    v.ebm_nms = ''
-    v.ebm_i = float(electronBeam['current'])
-    v.ebm_de = float(electronBeam['energyDeviation'])
-    v.ebm_x = float(electronBeam['horizontalPosition'])
-    v.ebm_y = float(electronBeam['verticalPosition'])
-
-    # undulator
-    #"undulator":{"_visible":true,"period":0.02,"length":3,"longitudinalPosition":0,"horizontalAmplitude":0.88770981,"horizontalSymmetry":"Symmetrical","horizontalInitialPhase":0,"verticalAmplitude":0,"verticalSymmetry":"Anti-symmetrical","verticalInitialPhase":0},
-    undulator = data['models']['undulator']
-    v.und_b = float(undulator['horizontalAmplitude'])
-    v.und_per = float(undulator['period'])
-    v.und_len = float(undulator['length'])
-    v.und_zc = float(undulator['longitudinalPosition'])
-    #v.und_sy = undulator['horizontalSymmetry']
-    #v.und_sx = undulator['verticalSymmetry']
+    #TODO(pjm): need to properly escape data values, untrusted from client
+    execfile('srw_parameters.py')
+    v = srwl_bl.srwl_uti_parse_options(get_srw_params())
 
     op = None
     if data['report'] == 'intensityReport':
