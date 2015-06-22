@@ -138,6 +138,7 @@ with pkio.save_chdir(dir):
     else:
         raise Exception('unknown report: {}'.format(data['report']))
 
+    #TODO(pjm): need a signal/alarm to stop long processes
     srwl_bl.SRWLBeamline(v.name).calc_all(v, op)
     process_output(outfile)
 
