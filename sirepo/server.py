@@ -60,7 +60,7 @@ def srw_run():
         p = Popen(['python', '../run_srw.py'], stdout=PIPE, stderr=PIPE)
         output, err = p.communicate()
         if p.returncode != 0:
-            print('run_srw.py failed with status code: {}, dir: {}, error: {}'.format(p.returncode, d, err))
+            print('run_srw.py failed with status code: {}, dir: {}, error: {}'.format(p.returncode, dir, err))
             m = re.search('Error: ([^\n]+)', err)
             if m:
                 error_text = m.group(1)
@@ -94,6 +94,10 @@ def srw_simulation_list():
         )
     )
 
+def _escape_value(v):
+    #TODO(pjm): escape string values
+    return str(v).replace("'", '')
+
 def _find_simulation_data(res, path, data, params):
     if str(data['models']['simulation']['simulationId']) == params['simulationId']:
         res.append(data)
@@ -106,7 +110,7 @@ def _flatten_data(d, res, prefix=''):
         elif isinstance(v, list):
             pass
         else:
-            res[prefix + k] = v
+            res[prefix + k] = _escape_value(v)
     return res
 
 def _generate_parameters_file(data):
