@@ -9,6 +9,7 @@ import py
 import random
 import re
 import uuid
+import sirepo.srw_template
 
 _SIMULATION_DIR = 'simulations/'
 _STATIC_FOLDER = 'package_data/static'
@@ -45,31 +46,33 @@ def srw_root():
 @app.route('/srw/run', methods=('GET', 'POST'))
 def srw_run():
     print("srw_run()")
-    d = _work_dir_name()
-    os.makedirs(d)
+    dir = _work_dir_name()
+    os.makedirs(dir)
     http_text = _read_http_input()
-    _save_simulation_json(json.loads(http_text))
+    data = json.loads(http_text)
+    _save_simulation_json(data)
 
-    with pkio.save_chdir(d):
+    with pkio.save_chdir(dir):
         pkio.write_text('in.json', http_text)
+        pkio.write_text('srw_parameters.py', _generate_parameters_file(data))
 
-    #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report with ebeam horizontal position of 0.05
-    p = Popen(['python', 'run_srw.py', d], stdout=PIPE, stderr=PIPE)
-    output, err = p.communicate()
-    if p.returncode != 0:
-        print('run_srw.py failed with status code: {}, dir: {}, error: {}'.format(p.returncode, d, err))
-        m = re.search('Error: ([^\n]+)', err)
-        if m:
-            error_text = m.group(1)
-        else:
-            error_text = 'an error occurred'
-        return json.dumps({
-            'error': error_text,
-        })
+        #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report with ebeam horizontal position of 0.05
+        p = Popen(['python', '../run_srw.py'], stdout=PIPE, stderr=PIPE)
+        output, err = p.communicate()
+        if p.returncode != 0:
+            print('run_srw.py failed with status code: {}, dir: {}, error: {}'.format(p.returncode, d, err))
+            m = re.search('Error: ([^\n]+)', err)
+            if m:
+                error_text = m.group(1)
+            else:
+                error_text = 'an error occurred'
+            return json.dumps({
+                'error': error_text,
+            })
 
-    with open(os.path.join(d, 'out.json')) as f:
+    with open(os.path.join(dir, 'out.json')) as f:
         data = f.read()
-    py.path.local(d).remove(ignore_errors=True)
+    py.path.local(dir).remove(ignore_errors=True)
     return data
 
 @app.route('/srw/simulation/<simulation_id>')
@@ -94,6 +97,21 @@ def srw_simulation_list():
 def _find_simulation_data(res, path, data, params):
     if str(data['models']['simulation']['simulationId']) == params['simulationId']:
         res.append(data)
+
+def _flatten_data(d, res, prefix=''):
+    for k in d:
+        v = d[k]
+        if isinstance(v, dict):
+            _flatten_data(v, res, prefix + k + '_')
+        elif isinstance(v, list):
+            pass
+        else:
+            res[prefix + k] = v
+    return res
+
+def _generate_parameters_file(data):
+    vars = _flatten_data(data['models'], {})
+    return sirepo.srw_template.TEMPLATE.format(**vars).decode('unicode-escape')
 
 def _iterate_simulation_datafiles(op, params=None):
     res = []
