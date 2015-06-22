@@ -4,23 +4,41 @@
 
 // Application meta-data
 var _ENUM = {
-    Flux: ['Flux', 'Flux per Unit Surface'],
-    IntegrationMethod: ['Manual', 'Auto-Undulator', 'Auto-Wiggler'],
-    Polarization: ['Linear Horizontal', 'Linear Vertical', 'Linear 45 degrees', 'Linear 135 degrees', 'Circular Right', 'Circular Left', 'Total'],
-    PowerDensityMethod: ['Near Field', 'Far Field'],
+    Flux: [
+        [1, 'Flux'],
+        [2, 'Flux per Unit Surface'],
+    ],
+    IntegrationMethod: [
+        [0, 'Manual'],
+        [1, 'Auto-Undulator'],
+        [2, 'Auto-Wiggler'],
+    ],
+    Polarization: [
+        [0, 'Linear Horizontal'],
+        [1, 'Linear Vertical'],
+        [2, 'Linear 45 degrees'],
+        [3, 'Linear 135 degrees'],
+        [4, 'Circular Right'],
+        [5, 'Circular Left'],
+        [6, 'Total'],
+    ],
+    PowerDensityMethod: [
+        [1, 'Near Field'],
+        [2, 'Far Field'],
+    ],
     Characteristic: [
-        'Single-Electron Intensity',
-        'Multi-Electron Intensity',
-        'Single-Electron Flux',
-        'Multi-Electron Flux',
-        'Single-Electron Radiation Phase',
-        'Re(E): Real part of Single-Electron Electric Field',
-        'Im(E): Imaginary part of Single-Electron Electric Field',
-        'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)',
+        [0, 'Single-Electron Intensity'],
+        [1, 'Multi-Electron Intensity'],
+        [3, 'Single-Electron Flux'],
+        [4, 'Multi-Electron Flux'],
+        [5, 'Single-Electron Radiation Phase'],
+        [6, 'Re(E): Real part of Single-Electron Electric Field'],
+        [7, 'Im(E): Imaginary part of Single-Electron Electric Field'],
+        [8, 'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)'],
     ],
     Symmetry: [
-        'Symmetrical',
-        'Anti-symmetrical',
+        [1, 'Symmetrical'],
+        [-1, 'Anti-symmetrical'],
     ],
 };
 var _MODEL = {
@@ -55,7 +73,7 @@ var _MODEL = {
         basic: [
             ['period', 'Undulator Period [m]', 'Float'],
             ['length', 'Undulator Length [m]', 'Float'],
-            ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
+            ['verticalAmplitude', 'Vertical Amplitude [T]', 'Float'],
         ],
         advanced: [
             ['period', 'Undulator Period [m]', 'Float'],
@@ -352,6 +370,7 @@ app.factory('appState', function($http, $rootScope) {
     };
     self.save_changes = function(name) {
         //console.log("save changes: ", name);
+        delete(self.models[name]['_error']);
         self.saved_model_values[name] = clone_model(name);
         if (name.indexOf('Report') > 0) {
             self.reportCache[name] = null;
@@ -472,7 +491,7 @@ app.directive('fieldEditor', function(appState, $http) {
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
-                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item for item in enum[fieldEditor[2]] track by item"></select>',
+                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item[0] as item[1] for item in enum[fieldEditor[2]]"></select>',
               '</div>',
             '</div>',
         ].join(''),
