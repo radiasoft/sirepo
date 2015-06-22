@@ -1,5 +1,7 @@
 "use strict";
 
+//TODO(pjm): needs consistent property/function naming convension
+
 // Application meta-data
 var _ENUM = {
     Flux: ['Flux', 'Flux per Unit Surface'],
@@ -22,6 +24,18 @@ var _ENUM = {
     ],
 };
 var _MODEL = {
+    newSimulation: {
+        title: 'New Simulation',
+        advanced: [
+            ['name', 'Name', 'String'],
+        ],
+    },
+    simulation: {
+        title: 'Simulation',
+        advanced: [
+            ['name', 'Name', 'String'],
+        ],
+    },
     electronBeam: {
         title: 'Electron Beam',
         basic: [
@@ -57,7 +71,6 @@ var _MODEL = {
     },
     intensityReport: {
         title: 'Intensity Report',
-        dataFile: '/static/json/intensity.json',
         basic: [],
         advanced: [
             ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
@@ -71,7 +84,6 @@ var _MODEL = {
     },
     fluxReport: {
         title: 'Flux Report',
-        dataFile: '/static/json/flux.json',
         basic: [],
         advanced: [
             ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
@@ -88,7 +100,6 @@ var _MODEL = {
     },
     powerDensityReport: {
         title: 'Power Density Report',
-        dataFile: '/static/json/power3d.json',
         basic: [],
         advanced: [
             ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
@@ -101,7 +112,6 @@ var _MODEL = {
     },
     initialIntensityReport: {
         title: 'Initial Intensity Report',
-        dataFile: '/static/json/initial-intensity.json',
         basic: [],
         advanced: [
             ['photonEnergy', 'Photon Energy [eV]', 'Float'],
@@ -118,7 +128,6 @@ var _MODEL = {
     },
     intensityAtSampleReport: {
         title: 'Initial At Sample Report',
-        dataFile: '/static/json/intensity-at-sample.json',
         basic: [],
         advanced: [
             ['photonEnergy', 'Photon Energy [eV]', 'Float'],
@@ -135,7 +144,6 @@ var _MODEL = {
     },
     intensityAtBPMReport: {
         title: 'Initial At BPM Report',
-        dataFile: '/static/json/intensity-at-bpm.json',
         basic: [],
         advanced: [
             ['photonEnergy', 'Photon Energy [eV]', 'Float'],
@@ -161,11 +169,11 @@ app.config(function($routeProvider) {
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html',
         })
-        .when('/source', {
+        .when('/source/:simulationId', {
             controller: 'SourceController as source',
             templateUrl: '/static/html/source.html',
         })
-        .when('/beamline', {
+        .when('/beamline/:simulationId', {
             controller: 'BeamlineController as beamline',
             templateUrl: '/static/html/beamline.html',
         })
@@ -177,6 +185,7 @@ app.config(function($routeProvider) {
 app.factory('beamlineGraphics', function() {
     var canvasWidth = 50;
     var canvasHeight = 60;
+    //TODO(pjm): base all positions on width/height
     var draw_lens = function(ctx, x, y, width, height) {
         if (x === undefined) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -246,122 +255,30 @@ app.factory('beamlineGraphics', function() {
     };
 
     return {
-        width: canvasWidth,
-        height: canvasHeight,
         draw_icon: function(item, canvas) {
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
             draw[item](canvas.getContext("2d"));
         },
     };
 });
 
 app.factory('appState', function($http, $rootScope) {
-    var models = {
-        electronBeam: {
-            _visible: true,
-            beamName: {name: 'NSLS-II Low Beta Day 1'},
-            current: 0.5,
-            horizontalPosition: 0,
-            verticalPosition: 0,
-            energyDeviation: 0,
-        },
-        undulator: {
-            _visible: true,
-            period: 0.02,
-            length: 3,
-            longitudinalPosition: 0,
-            horizontalAmplitude: 0.88770981,
-            horizontalSymmetry: 'Symmetrical',
-            horizontalInitialPhase: 0,
-            verticalAmplitude: 0,
-            verticalSymmetry: 'Anti-symmetrical',
-            verticalInitialPhase: 0,
-        },
-        intensityReport: {
-            _visible: true,
-            _loading: false,
-            initialEnergy: 100,
-            finalEnergy: 20000,
-            horizontalPosition: 0,
-            verticalPosition: 0,
-            method: 'Auto-Undulator',
-            precision: 0.01,
-            polarization: 'Total',
-        },
-        fluxReport: {
-            _visible: true,
-            _loading: false,
-            initialEnergy: 100,
-            finalEnergy: 20000,
-            horizontalPosition: 0,
-            horizontalApertureSize: 0.001,
-            verticalPosition: 0,
-            verticalApertureSize: 0.001,
-            longitudinalPrecision: 1,
-            azimuthalPrecision: 1,
-            fluxType: 'Flux',
-            polarization: 'Total',
-        },
-        powerDensityReport: {
-            _visible: true,
-            _loading: false,
-            horizontalPosition: 0,
-            horizontalRange: 0.015,
-            verticalPosition: 0,
-            verticalRange: 0.015,
-            precision: 1,
-            method: 'Near Field',
-        },
-        initialIntensityReport: {
-            _visible: true,
-            _loading: false,
-            photonEnergy: 9000,
-            horizontalPosition: 0,
-            horizontalRange: 0.4e-03,
-            verticalPosition: 0,
-            verticalRange: 0.6e-03,
-            sampleFactor: 1,
-            method: 'Auto-Undulator',
-            precision: 0.01,
-            polarization: 'Total',
-            characteristic: 'Single-Electron Intensity',
-        },
-        intensityAtSampleReport: {
-            _visible: true,
-            _loading: false,
-        },
-        intensityAtBPMReport: {
-            _visible: true,
-            _loading: false,
-        },
-    };
-    var beamline = [
-        {id: 1, name:'aperture', title:'S0', position: 20.5, horizontalSize:0.2, verticalSize:1},
-        {id: 2, name:'mirror', title:'HDM', position: 27.4},
-        {id: 3, name:'aperture', title:'S1', position: 29.9, horizontalSize:0.2, verticalSize:1},
-        {id: 4, name:'aperture', title:'S2', position: 34.3, horizontalSize:0.05, verticalSize:1},
-        {id: 5, name:'watch', title:'BPM', position: 34.6},
-        {id: 6, name:'crl', title:'CRL1', position: 35.4},
-        {id: 7, name:'crl', title:'CRL2', position: 35.4},
-        {id: 8, name:'lens', title:'KL', position: 44.5},
-        {id: 9, name:'aperture', title:'S3', position: 48, horizontalSize:0.01, verticalSize:0.01},
-        {id: 10, name:'watch', title:'Sample', position: 48.7},
-    ];
-    var reportCache = {}
+    var self = {};
+    self.models = {};
+    self.reportCache = {};
+    self.saved_model_values = {};
+
     var clone_model = function(name) {
-        var val = name ? models[name] : models;
+        var val = name ? self.models[name] : self.models;
         return JSON.parse(JSON.stringify(val));
     };
-    var saved_model_values = clone_model();
 
-    function update_reports(name) {
-        if (name.indexOf('Report') > 0) {
-            $rootScope.$broadcast(name + '.changed');
-        }
-        else {
-            for (var key in models) {
-                if (key.indexOf('Report') > 0) {
-                    $rootScope.$broadcast(key + '.changed');
-                }
+    function update_reports() {
+        self.reportCache = {};
+        for (var key in self.models) {
+            if (key.indexOf('Report') > 0) {
+                $rootScope.$broadcast(key + '.changed');
             }
         }
     };
@@ -377,66 +294,161 @@ app.factory('appState', function($http, $rootScope) {
             return;
         $http.post('/srw/run', {
             report: run_queue[0][0],
-            models: saved_model_values,
-            beamline: beamline,
+            models: self.saved_model_values,
         }).success(function(data, status) {
             var item = run_queue.shift();
 
             if (data['error']) {
-                models[item[0]]._error = data['error'];
+                self.models[item[0]]._error = data['error'];
             }
             else {
-                reportCache[item[0]] = data;
+                self.reportCache[item[0]] = data;
                 item[1](data);
             }
             //TODO(pjm): don't set loading to false unless there are no other queue items for this report
-            models[item[0]]._loading = false;
+            self.models[item[0]]._loading = false;
             execute_queue();
         }).error(function(data, status) {
+            //TODO(pjm): combine error code with above
             console.log("run failed: ", status, ' ', data);
             run_queue.shift();
             execute_queue();
         });
     }
 
-    return {
-        beamline: beamline,
-        models: models,
-        reportCache: reportCache,
-        model_info: model_info,
-        request_data: function(name, callback) {
-            if (reportCache[name])
-                callback(reportCache[name]);
-            else {
-                models[name]._loading = true;
-                models[name]._error = null;
-                run_queue.push([name, callback]);
-                if (run_queue.length == 1)
-                    execute_queue();
-            }
-        },
-        save_changes: function(name, refresh_reports) {
-            //console.log("save changes: ", name);
-            saved_model_values[name] = clone_model(name);
-            if (refresh_reports) {
-                reportCache = {};
-                update_reports(name);
-            }
-        },
-        cancel_changes: function(name) {
-            console.log("cancel changes: ", name);
-            models[name] = JSON.parse(JSON.stringify(saved_model_values[name]));
-        },
+    self.model_info = model_info,
+    self.is_loaded = function() {
+        return self.models['simulation'] && self.models['simulation']['simulationId'];
     };
+    self.clear_models = function(emptyValues) {
+        self.reportCache = {};
+        self.models = emptyValues || {};
+        self.saved_model_values = {};
+    };
+    self.load_models = function(simulationId) {
+        if (self.is_loaded() && self.models['simulation']['simulationId'] == simulationId)
+            return;
+        self.clear_models();
+        $http.get('/srw/simulation/' + simulationId)
+            .success(function(data, status) {
+                self.models = data['models'];
+                self.saved_model_values = clone_model();
+                update_reports();
+            })
+            .error(function(data, status) {
+                console.log('load_models failed: ', simulationId);
+            });
+    };
+    self.request_data = function(name, callback) {
+        if (self.reportCache[name])
+            callback(self.reportCache[name]);
+        else {
+            self.models[name]._loading = true;
+            self.models[name]._error = null;
+            run_queue.push([name, callback]);
+            if (run_queue.length == 1)
+                execute_queue();
+        }
+    };
+    self.save_changes = function(name) {
+        //console.log("save changes: ", name);
+        self.saved_model_values[name] = clone_model(name);
+        if (name.indexOf('Report') > 0) {
+            self.reportCache[name] = null;
+        }
+        else {
+            update_reports();
+        }
+        console.log('broadcast: ', name + '.changed');
+        $rootScope.$broadcast(name + '.changed');
+    };
+    self.cancel_changes = function(name) {
+        if (self.saved_model_values[name])
+            self.models[name] = JSON.parse(JSON.stringify(self.saved_model_values[name]));
+    };
+    return self;
 });
 
-app.controller('SourceController', function ($rootScope, appState) {
-    $rootScope.pageTitle = "NSLS-II CHX beamline Day 1 - SRW - Radiasoft";
-    $rootScope.sectionTitle = "NSLS-II CHX beamline Day 1";
+app.controller('SourceController', function ($rootScope, $route, appState) {
     $rootScope.activeSection = "source";
     var self = this;
-    self.models = appState.models;
+    appState.load_models($route.current.params['simulationId']);
 });
+
+app.controller('BeamlineController', function ($rootScope, $route, appState) {
+    $rootScope.activeSection = "beamline";
+    appState.load_models($route.current.params['simulationId']);
+    var self = this;
+    self.toolbar_items = [
+        {name:'aperture', title:'Aperture'},
+        {name:'crl', title:'CRL'},
+        {name:'lens', title:'Lens'},
+        {name:'mirror', title:'Mirror'},
+        {name:'obstacle', title:'Obstacle'},
+        {name:'watch', title:'Watchpoint'},
+    ];
+    var current_id = 100;
+
+    function add_item(item) {
+        //TODO(pjm): conslidate clone() -- move this code into appState
+        var new_item = $.extend(true, {}, item);
+        new_item['id'] = ++current_id;
+        new_item['_show_popover'] = true;
+        if (appState.models.beamline.length) {
+            new_item.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
+        }
+        else {
+            new_item.position = 20;
+        }
+        appState.models.beamline.push(new_item);
+        $('.srw-beamline-element-label').popover('hide');
+    }
+
+    self.get_beamline = function() {
+        return appState.models.beamline;
+    }
+    self.remove_element = function(item) {
+        $('.srw-beamline-element-label').popover('hide');
+        appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+    }
+
+    self.drop_complete = function(data) {
+        if (data && ! data['id']) {
+            add_item(data);
+        }
+    }
+    self.drop_between = function(index, data) {
+        if (! data)
+            return;
+        //console.log("drop_between: ", index, ' ', data, ' ', data['id'] ? 'old' : 'new');
+        var item;
+        if (data['id']) {
+            $('.srw-beamline-element-label').popover('hide');
+            var curr = appState.models.beamline.indexOf(data);
+            if (curr < index)
+                index--;
+            appState.models.beamline.splice(curr, 1);
+            item = data;
+        }
+        else {
+            // move last item to this index
+            item = appState.models.beamline.pop()
+        }
+        appState.models.beamline.splice(index, 0, item);
+        if (appState.models.beamline.length > 1) {
+            if (index === 0) {
+                item.position = parseFloat(appState.models.beamline[1].position) - 0.5;
+            }
+            else if (index === appState.models.beamline.length - 1) {
+                item.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 0.5;
+            }
+            else {
+                item.position = Math.round(100 * (parseFloat(appState.models.beamline[index - 1].position) + parseFloat(appState.models.beamline[index + 1].position)) / 2) / 100;
+            }
+        }
+    }
+});
+
 
 app.directive('fieldEditor', function(appState, $http) {
     return {
@@ -455,6 +467,9 @@ app.directive('fieldEditor', function(appState, $http) {
               '<div data-ng-switch-when="Float" class="col-sm-3">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
               '</div>',
+              '<div data-ng-switch-when="String" class="col-sm-5">',
+                '<input data-ng-model="model[fieldEditor[0]]" class="form-control">',
+              '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
                 '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item for item in enum[fieldEditor[2]] track by item"></select>',
@@ -466,10 +481,10 @@ app.directive('fieldEditor', function(appState, $http) {
         },
         link: function link(scope) {
             scope.enum = _ENUM;
+            //TODO(pjm): move list loading logic into appState
             if (scope.fieldEditor[2] == 'BeamList') {
                 if (appState.beams)
                     return;
-                appState.beams = [scope.model[scope.fieldEditor[0]]];
                 $http["get"]('/static/json/beams.json')
                     .success(function(data, status) {
                         appState.beams = data;
@@ -501,9 +516,11 @@ app.directive('buttons', function(appState) {
                 if ($scope.modalId)
                     $('#' + $scope.modalId).modal('hide');
             }
-            $scope.save_changes = function() {
-                appState.save_changes($scope.modelName, true);
+            $scope.$on($scope.modelName + '.changed', function() {
                 change_done();
+            });
+            $scope.save_changes = function() {
+                appState.save_changes($scope.modelName);
             };
             $scope.cancel_changes = function() {
                 appState.cancel_changes($scope.modelName);
@@ -524,10 +541,13 @@ app.directive('panelHeading', function() {
         },
         controller: function($scope) {
             $scope.toggleVisible = function() {
-                $scope.model['_visible'] = ! $scope.model['_visible'];
+                if ($scope.model)
+                    $scope.model['_visible'] = ! $scope.model['_visible'];
             };
             $scope.isVisible = function() {
-                return $scope.model['_visible'];
+                if ($scope.model)
+                    return $scope.model['_visible'];
+                return false;
             };
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
@@ -536,11 +556,11 @@ app.directive('panelHeading', function() {
         template: [
             '<span class="lead">{{ panelHeading }}</span>',
             '<div class="srw-panel-options pull-right">',
-            '<a href data-ng-click="showEditor()" data-toggle="tooltip" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
-            '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
-            '<a href data-ng-show="allowFullScreen" data-toggle="tooltip" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
-            '<a href data-ng-click="toggleVisible()" data-ng-show="isVisible()" data-toggle="tooltip" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
-            '<a href data-ng-click="toggleVisible()" data-ng-hide="isVisible()" data-toggle="tooltip" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
+            '<a href data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+            '<a href data-ng-show="allowFullScreen" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
+            '<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
+            '<a href data-ng-click="toggleVisible()" data-ng-show="isVisible()" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
+            '<a href data-ng-click="toggleVisible()" data-ng-hide="isVisible()" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
         ].join(''),
     };
@@ -565,7 +585,7 @@ app.directive('panelBody', function() {
     };
 });
 
-app.directive('plot2d', function($http, appState, d3Service) {
+app.directive('plot2d', function(appState, d3Service) {
 
     var formatter;
     var margin = {top: 50, right: 50, bottom: 80, left: 70};
@@ -643,7 +663,8 @@ app.directive('plot2d', function($http, appState, d3Service) {
                     .x(function(d) {return $scope.x_axis_scale(d[0])})
                     .y(function(d) {return $scope.y_axis_scale(d[1])});
 
-                var context = $scope.select('svg')
+                $scope.svg = $scope.select('svg')
+                var context = $scope.svg
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 context.append("g")
@@ -800,10 +821,13 @@ app.directive('plot2d', function($http, appState, d3Service) {
             d3Service.d3().then(function(d3) {
 
                 function request_data() {
+                    if (! appState.is_loaded())
+                        return;
                     console.log('requesting data: ', scope.modelName);
                     appState.request_data(scope.modelName, function(data) {
                         console.log('loading data: ', scope.modelName);
-                        scope.load(data);
+                        if (scope.svg)
+                            scope.load(data);
                     });
                 }
                 scope.$on(scope.modelName + '.changed', request_data);
@@ -812,7 +836,8 @@ app.directive('plot2d', function($http, appState, d3Service) {
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
-                scope.select('svg').remove();
+                scope.svg.remove();
+                scope.svg = null;
                 scope.slider.off();
                 scope.slider.data('slider').picker.off();
                 scope.slider.remove();
@@ -821,7 +846,7 @@ app.directive('plot2d', function($http, appState, d3Service) {
     };
 });
 
-app.directive('plot3d', function($http, appState, d3Service) {
+app.directive('plot3d', function(appState, d3Service) {
 
     var margin = 50;
 
@@ -1163,8 +1188,8 @@ app.directive('plot3d', function($http, appState, d3Service) {
                         : 2);
                 $scope.x_axis_scale.range([0, $scope.canvas_size - 1]);
                 $scope.y_axis_scale.range([$scope.canvas_size - 1, 0]);
-                $scope.bottompanel_y_scale.range([bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom - 1, 0]);
-                $scope.rightpanel_x_scale.range([0, rightpanel_width - rightpanel_margin.left - rightpanel_margin.right]);
+                $scope.bottompanel_y_scale.range([bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom - 1, 0]).nice();
+                $scope.rightpanel_x_scale.range([0, rightpanel_width - rightpanel_margin.left - rightpanel_margin.right]).nice();
                 $scope.main_xAxis.tickSize(- $scope.canvas_size - bottompanel_height + bottompanel_margin.bottom); // tickLine == gridline
                 $scope.main_yAxis.tickSize(- $scope.canvas_size - rightpanel_width + rightpanel_margin.right); // tickLine == gridline
                 $scope.zoom.center([$scope.canvas_size / 2, $scope.canvas_size / 2])
@@ -1239,10 +1264,13 @@ app.directive('plot3d', function($http, appState, d3Service) {
             d3Service.d3().then(function(d3) {
                 //TODO(pjm): consolidate this code with plot2d
                 function request_data() {
+                    if (! appState.is_loaded())
+                        return;
                     console.log('requesting data: ', scope.modelName);
                     appState.request_data(scope.modelName, function(data) {
                         console.log('loading data: ', scope.modelName);
-                        scope.load(data);
+                        if (scope.svg)
+                            scope.load(data);
                     });
                 }
                 scope.$on(scope.modelName + '.changed', request_data);
@@ -1252,91 +1280,112 @@ app.directive('plot3d', function($http, appState, d3Service) {
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
                 scope.svg.remove();
+                scope.svg = null;
                 scope.imageObj.onload = null;
             });
         },
     };
 });
 
-app.controller('SimulationsController', function ($rootScope) {
-    $rootScope.pageTitle = "Simulations - SRW - Radiasoft";
-    $rootScope.sectionTitle = "";
-    $rootScope.activeSection = "simulations";
+app.controller('NavController', function ($rootScope, $location, appState) {
     var self = this;
+    self.page_title = function() {
+        return $.grep(
+            [
+                self.section_title(),
+                'SRW',
+                'Radiasoft',
+            ],
+            function(n){ return n })
+            .join(' - ');
+    }
+    self.section_title = function() {
+        if ($rootScope.activeSection == "simulations")
+            return null;
+        if (appState.is_loaded())
+            return appState.models.simulation.name;
+        return null;
+    }
+    self.open_section = function(name) {
+        //TODO(pjm): centralize route management
+        $location.path(
+            ('/' + name) + (
+                name == 'simulations'
+                    ? ''
+                    : ('/' + appState.models['simulation']['simulationId'])
+            )
+        );
+    }
 });
 
-app.controller('BeamlineController', function ($rootScope, appState, beamlineGraphics) {
-    $rootScope.pageTitle = "NSLS-II CHX beamline Day 1 - SRW - Radiasoft";
-    $rootScope.sectionTitle = "NSLS-II CHX beamline Day 1";
-    $rootScope.activeSection = "beamline";
+app.controller('SimulationsController', function ($rootScope, $http, $location, appState) {
+    $rootScope.activeSection = "simulations";
+    appState.clear_models({
+        newSimulation: {},
+    });
     var self = this;
-    self.models = appState.models;
-    self.toolbar_items = [
-        {name:'aperture', title:'Aperture'},
-        {name:'crl', title:'CRL'},
-        {name:'lens', title:'Lens'},
-        {name:'mirror', title:'Mirror'},
-        {name:'obstacle', title:'Obstacle'},
-        {name:'watch', title:'Watchpoint'},
-    ];
-    self.beamline = appState.beamline;
-    var current_id = 100;
 
-    function add_item(item) {
-        //TODO(pjm): conslidate clone()
-        var new_item = $.extend(true, {}, item);
-        new_item['id'] = ++current_id;
-        new_item['_show_popover'] = true;
-        if (self.beamline.length) {
-            new_item.position = parseFloat(self.beamline[self.beamline.length - 1].position) + 1;
-        }
-        else {
-            new_item.position = 20;
-        }
-        self.beamline.push(new_item);
-        $('.srw-beamline-element-label').popover('hide');
+    function new_simulation(name) {
+        $http.post('/srw/new-simulation', {
+            name: name,
+        }).success(function(data, status) {
+            self.open(data['models']['simulation']);
+        }).error(function(data, status) {
+            console.log("new-simulation failed: ", status, ' ', data);
+        });
     }
 
-    self.remove_element = function(item) {
-        $('.srw-beamline-element-label').popover('hide');
-        self.beamline.splice(self.beamline.indexOf(item), 1);
+    function load_list() {
+        $http["get"]('/srw/simulation-list')
+            .success(function(data, status) {
+                self.list = data;
+            })
+            .error(function() {
+                console.log('get simulation list failed!');
+            });
     }
 
-    self.drop_complete = function(data) {
-        if (data && ! data['id']) {
-            add_item(data);
-        }
+    self.list = [];
+    self.selected = null;
+    self.is_selected = function(item) {
+        return self.selected && self.selected == item;
     }
-    self.drop_between = function(index, data) {
-        if (! data)
-            return;
-        //console.log("drop_between: ", index, ' ', data, ' ', data['id'] ? 'old' : 'new');
-        var item;
-        if (data['id']) {
-            $('.srw-beamline-element-label').popover('hide');
-            var curr = self.beamline.indexOf(data);
-            if (curr < index)
-                index--;
-            self.beamline.splice(curr, 1);
-            item = data;
-        }
-        else {
-            // move last item to this index
-            item = self.beamline.pop()
-        }
-        self.beamline.splice(index, 0, item);
-        if (self.beamline.length > 1) {
-            if (index === 0) {
-                item.position = parseFloat(self.beamline[1].position) - 0.5;
-            }
-            else if (index === self.beamline.length - 1) {
-                item.position = parseFloat(self.beamline[self.beamline.length - 1].position) + 0.5;
-            }
-            else {
-                item.position = Math.round(100 * (parseFloat(self.beamline[index - 1].position) + parseFloat(self.beamline[index + 1].position)) / 2) / 100;
-            }
-        }
+    self.select_item = function(item) {
+        self.selected = item;
     }
+    self.delete_selected = function() {
+        $http.post('/srw/delete-simulation', {
+            simulationId: self.selected['simulationId'],
+        }).success(function(data, status) {
+            load_list();
+        }).error(function(data, status) {
+            console.log("delete-simulation failed: ", status, ' ', data);
+        });
+        self.selected = null;
+    }
+    $rootScope.$on('newSimulation.changed', function() {
+        if (appState.models.newSimulation.name) {
+            new_simulation(appState.models.newSimulation.name);
+            appState.models.newSimulation.name = '';
+            appState.save_changes('newSimulation');
+        }
+    });
+    self.open = function(item) {
+        //TODO(pjm): centralize route management
+        $location.path('/source/' + item.simulationId);
+    }
+    self.copy = function(item) {
+        $http.post('/srw/copy-simulation', {
+            simulationId: self.selected['simulationId'],
+        }).success(function(data, status) {
+            self.open(data['models']['simulation']);
+        }).error(function(data, status) {
+            console.log("copy-simulation failed: ", status, ' ', data);
+        });
+    }
+    self.python_source = function(item) {
+    }
+    load_list()
 });
 
 app.directive('toolbarItem', function(beamlineGraphics) {
@@ -1348,8 +1397,6 @@ app.directive('toolbarItem', function(beamlineGraphics) {
             var canvas = element[0];
             canvas.style.width = '30px';
             canvas.style.height = '35px';
-            canvas.width = beamlineGraphics.width;
-            canvas.height = beamlineGraphics.height;
             beamlineGraphics.draw_icon(scope.item.name, canvas);
         }
     };
@@ -1366,38 +1413,44 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
             }
         },
         link: function(scope, element) {
-            var canvas = $(element).find('canvas')[0];
-            canvas.width = beamlineGraphics.width;
-            canvas.height = beamlineGraphics.height;
-            beamlineGraphics.draw_icon(scope.item.name, canvas);
-            $(element).find('.srw-beamline-element-label').each(function (index, el) {
-                $(el).popover({
-                    html: true,
-                    placement: 'bottom',
-                    container: '.srw-popup-container-lg',
-                    viewport: { selector: '.srw-beamline'},
-                    content: $compile($('.srw-' + scope.item.name + '-editor').html())(scope),
-                    trigger: 'manual',
-                });
-                $(el).click(function() {
-                    $('.srw-beamline-element-label').not(this).popover('hide');
-                    $(el).popover('toggle');
-                });
-                if (scope.item['_show_popover']) {
-                    $timeout(function() {
-                        var position = $(el).parent().position().left;
-                        var width = $('.srw-beamline-container').width();
-                        var itemWidth = $(el).width();
-                        if (position + itemWidth > width) {
-                            var scrollPoint = $('.srw-beamline-container').scrollLeft();
-                            $('.srw-beamline-container').scrollLeft(position - width + scrollPoint + itemWidth);
-                        }
-                        $(el).popover('show');
-                        $(el).on('shown.bs.popover', function() {
-                            $('.popover-content .form-control').first().select();
-                        });
-                    }, 500);
-                }
+            beamlineGraphics.draw_icon(scope.item.name, $(element).find('canvas')[0]);
+            var el = $(element).find('.srw-beamline-element-label');
+            el.popover({
+                html: true,
+                placement: 'bottom',
+                container: '.srw-popup-container-lg',
+                viewport: { selector: '.srw-beamline'},
+                content: $compile($('.srw-' + scope.item.name + '-editor').html())(scope),
+                trigger: 'manual',
+            });
+            el.click(function() {
+                $('.srw-beamline-element-label').not(this).popover('hide');
+                el.popover('toggle');
+            });
+            if (scope.item['_show_popover']) {
+                // when the item is added, it may have been dropped between items
+                // don't show the popover until the position has been determined
+                $timeout(function() {
+                    var position = el.parent().position().left;
+                    var width = $('.srw-beamline-container').width();
+                    var itemWidth = el.width();
+                    if (position + itemWidth > width) {
+                        var scrollPoint = $('.srw-beamline-container').scrollLeft();
+                        $('.srw-beamline-container').scrollLeft(position - width + scrollPoint + itemWidth);
+                    }
+                    el.popover('show');
+                    el.on('shown.bs.popover', function() {
+                        $('.popover-content .form-control').first().select();
+                    });
+                }, 500);
+            }
+            scope.$on('$destroy', function() {
+                // release popover data to prevent memory leak
+                console.log("destroy");
+                $(element).off();
+                var el = $(element).find('.srw-beamline-element-label');
+                el.off();
+                el.popover('hide').data('bs.popover', null);
             });
         },
     };
@@ -1491,6 +1544,19 @@ app.directive('modalEditor', function(appState) {
             $scope.advancedFields = appState.model_info($scope.modalEditor).advanced;
             $scope.modalTitle = appState.model_info($scope.modalEditor).title;
             $scope.editorId = "srw-" + $scope.modalEditor + "-editor";
+        },
+        link: function(scope, element) {
+            $(element).on('hidden.bs.modal', function(e) {
+                // ensure that a dismissed modal doesn't keep changes
+                // ok processing will have already saved data before the modal is hidden
+                appState.cancel_changes(scope.modalEditor);
+                scope.$apply();
+            });
+            scope.$on('$destroy', function() {
+                // release modal data to prevent memory leak
+                $(element).off();
+                $('.modal').modal('hide').data('bs.modal', null);
+            });
         },
     };
 });
