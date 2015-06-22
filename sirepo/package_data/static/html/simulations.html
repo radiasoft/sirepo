@@ -1,42 +1,59 @@
     <div class="container">
       <div class="row">
         <div class="text-center col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
-          <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-plus"></span> New</button>
-          <a href="#/source" class="btn-primary btn btn-default" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</a>
-          <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-copy"></span> Copy</button>
-          <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-trash"></span> Delete</button>
-          <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
+          <button data-target="#srw-newSimulation-editor" data-toggle="modal" class="btn btn-default" type="submit"><span class="glyphicon glyphicon-plus"></span> New</button>
+          <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</a>
+          <button data-ng-click="simulations.copy(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-copy"></span> Copy</button>
+          <button data-target="#srw-delete-confirmation" data-toggle="modal" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-trash"></span> Delete</button>
+          <button data-ng-click="simulations.python_source(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
         </div>
       </div>
       <br>
       <div class="row">
         <div class="col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
-          <table class="table table-hover sortable">
+          <table class="table table-hover">
             <thead>
             <tr>
               <th>Name</th>
-              <th data-defaultsort="desc">Last Modified</th>
+              <th>Last Modified</th>
             </tr>
             </thead>
             <tbody>
-            <tr>
-              <td><a href>NSLS-II CHX beamline Final</a></td>
-              <td>2015-06-11 18:43</td>
-            </tr>
-            <tr class="success">
-              <td><a href="#/source">NSLS-II CHX beamline Day 1</a></td>
-              <td>2015-06-08 09:22</td>
-            </tr>
-            <tr>
-              <td><a href>Complex Materials Scattering CMS (11-BM)</a></td>
-              <td>2015-04-25 11:26</td>
-            </tr>
-            <tr>
-              <td><a href>NSLS-II CHX beamline (copy)</a></td>
-              <td>2015-03-22 17:38</td>
+            <tr data-ng-repeat="item in simulations.list" data-ng-class="{success: simulations.is_selected(item)}" data-ng-click="simulations.select_item(item)">
+              <td><a href data-ng-click="simulations.open(item)">{{ item.name }}</a></td>
+              <td>{{ item.last_modified }}</td>
             </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <div data-modal-editor="newSimulation"></div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="srw-delete-confirmation" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            <span class="lead modal-title text-info">Delete Simulation?</span>
+          </div>
+          <div class="modal-body">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-6 col-sm-offset-3">
+                  <p>Delete simulation "{{ simulations.selected.name }}"?</p>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-6 pull-right">
+                  <button data-dismiss="modal" data-ng-click="simulations.delete_selected()" class="btn btn-default">Delete</button>
+                  <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
