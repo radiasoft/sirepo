@@ -18,26 +18,28 @@ app = flask.Flask(__name__, static_folder=_STATIC_FOLDER)
 
 @app.route('/srw/copy-simulation', methods=('GET', 'POST'))
 def srw_copy_simulation():
-    id = json.loads(_read_http_input())['simulationId']
-    source_file = _simulation_filename_from_id(id)
-    with open(source_file) as f:
-        data = json.load(f)
+    data = _open_json_file(_simulation_filename_from_id(_json_input('simulationId')))
     data['models']['simulation']['name'] += ' (copy)'
     return _save_new_simulation(data)
 
 @app.route('/srw/delete-simulation', methods=('GET', 'POST'))
 def srw_delete_simulation():
-    id = json.loads(_read_http_input())['simulationId']
     #TODO(pjm): ensure it is a proper uuid and corresponds to a simulation json file
-    os.remove(_simulation_filename_from_id(id))
+    os.remove(_simulation_filename_from_id(_json_input('simulationId')))
     return '{}'
 
 @app.route('/srw/new-simulation', methods=('GET', 'POST'))
 def srw_new_simulation():
-    with open(os.path.join(_STATIC_FOLDER, 'json/default.json')) as f:
-        data = json.load(f)
-    data['models']['simulation']['name'] = json.loads(_read_http_input())['name']
+    data = _open_json_file(os.path.join(_STATIC_FOLDER, 'json/default.json'))
+    data['models']['simulation']['name'] = _json_input('name')
     return _save_new_simulation(data)
+
+@app.route('/srw/python-source/<simulation_id>')
+def srw_python_source(simulation_id):
+    return flask.Response(
+        _generate_parameters_file(_open_json_file(_simulation_filename_from_id(simulation_id))),
+        mimetype="text/plain",
+    )
 
 @app.route('/srw')
 def srw_root():
@@ -113,6 +115,9 @@ def _flatten_data(d, res, prefix=''):
             res[prefix + k] = _escape_value(v)
     return res
 
+def _json_input(field):
+    return json.loads(_read_http_input())[field]
+
 def _generate_parameters_file(data):
     vars = _flatten_data(data['models'], {})
     return sirepo.srw_template.TEMPLATE.format(**vars).decode('unicode-escape')
@@ -125,10 +130,16 @@ def _iterate_simulation_datafiles(op, params=None):
         path = os.path.join(_SIMULATION_DIR, filename)
         if not os.path.isfile(path):
             continue
-        with open(path) as f:
-            data = json.load(f)
-        op(res, path, data, params)
+        try:
+            op(res, path, _open_json_file(path), params)
+        except ValueError:
+            print('unparseable json file: {}'.format(path))
+
     return res
+
+def _open_json_file(path):
+    with open(path) as f:
+        return json.load(f)
 
 def _process_simulation_list(res, path, data, params):
     res.append({
