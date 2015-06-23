@@ -4,6 +4,25 @@
 
 // Application meta-data
 var _ENUM = {
+    Characteristic: [
+        [0, 'Single-Electron Intensity'],
+        [1, 'Multi-Electron Intensity'],
+        [3, 'Single-Electron Flux'],
+        [4, 'Multi-Electron Flux'],
+        [5, 'Single-Electron Radiation Phase'],
+        [6, 'Re(E): Real part of Single-Electron Electric Field'],
+        [7, 'Im(E): Imaginary part of Single-Electron Electric Field'],
+        [8, 'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)'],
+    ],
+    CRLShape: [
+        [1, 'Parabolic'],
+        [2, 'Circular'],
+    ],
+    FocalPlane: [
+        [1, 'Horizontal'],
+        [2, 'Vertical'],
+        [3, 'Both'],
+    ],
     Flux: [
         [1, 'Flux'],
         [2, 'Flux per Unit Surface'],
@@ -12,6 +31,10 @@ var _ENUM = {
         [0, 'Manual'],
         [1, 'Auto-Undulator'],
         [2, 'Auto-Wiggler'],
+    ],
+    MirrorOrientation: [
+        ['x', 'X'],
+        ['y', 'Y'],
     ],
     Polarization: [
         [0, 'Linear Horizontal'],
@@ -25,16 +48,6 @@ var _ENUM = {
     PowerDensityMethod: [
         [1, 'Near Field'],
         [2, 'Far Field'],
-    ],
-    Characteristic: [
-        [0, 'Single-Electron Intensity'],
-        [1, 'Multi-Electron Intensity'],
-        [3, 'Single-Electron Flux'],
-        [4, 'Multi-Electron Flux'],
-        [5, 'Single-Electron Radiation Phase'],
-        [6, 'Re(E): Real part of Single-Electron Electric Field'],
-        [7, 'Im(E): Imaginary part of Single-Electron Electric Field'],
-        [8, 'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)'],
     ],
     Symmetry: [
         [1, 'Symmetrical'],
@@ -148,14 +161,18 @@ var _MODEL = {
         title: 'Aperture',
         basic: [],
         advanced: [
-            ['horizontalSize', 'Horizontal Size[mm]', 'Float'],
-            ['verticalSize', 'Vertical Size[mm]', 'Float'],
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
+            ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
+            ['verticalSize', 'Vertical Size [mm]', 'Float'],
         ],
     },
     lens: {
         title: 'Lens',
         basic: [],
         advanced: [
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
             ['horizontalFocalLength', 'Horizontal Focal Length [m]', 'Float'],
             ['verticalFocalLength', 'Vertical Focal Length [m]', 'Float'],
         ],
@@ -164,24 +181,47 @@ var _MODEL = {
         title: 'Mirror',
         basic: [],
         advanced: [
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
+            ['heightProfileFile', 'Height Profile Data File', 'File'],
+            ['orientation', 'Orientation of Reflection Plane', 'MirrorOrientation'],
+            ['grazingAngle', 'Grazing Angle [mrad]', 'Float'],
+            ['heightAplification', 'Height Amplification Coefficient', 'Float'],
+            ['horizontalTransverseSize', 'Horizontal Transverse Size [mm]', 'Float'],
+            ['verticalTransverseSize', 'Vertical Transverse Size [mm]', 'Float'],
         ],
     },
     crl: {
         title: 'CRL',
         basic: [],
         advanced: [
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
+            ['focalPlane', 'Focal Plane', 'FocalPlane'],
+            ['refractiveIndex', 'Refractive Index Decrements of Material', 'Float'],
+            ['attenuationLength', 'Attenuation Length [m]', 'Float'],
+            ['shape', 'Shape', 'CRLShape'],
+            ['horizontalApertureSize', 'Horizontal Aperture Size [m]', 'Float'],
+            ['verticalApertureSize', 'Vertical Aperture Size [m]', 'Float'],
+            ['radius', 'Radius on Tip of Parabola [m]', 'Float'],
+            ['numberOfLenses', 'Number of Lenses', 'Integer'],
+            ['wallThickness', 'Wall Thickness at Tip of Parabola [m]', 'Float'],
         ],
     },
-    watchpoint: {
+    watch: {
         title: 'Watchpoint',
         basic: [],
         advanced: [
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
         ],
     },
     obstacle: {
         title: 'Obstacle',
         basic: [],
         advanced: [
+            ['title', 'Element Name', 'String'],
+            ['position', 'Nominal Position [m]', 'Float'],
             ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
             ['verticalSize', 'Verticalal Size [mm]', 'Float'],
         ],
@@ -417,12 +457,20 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         {type:'watch', title:'Watchpoint'},
     ];
     self.activeItem = null;
-    var current_id = 100;
+
+    function max_id(beamline) {
+        var max = 1;
+        for (var i = 0; i < beamline.length; i++) {
+            if (beamline[i].id > max)
+                max = beamline[i].id;
+        }
+        return max;
+    }
 
     function add_item(item) {
         //TODO(pjm): conslidate clone() -- move this code into appState
         var new_item = $.extend(true, {}, item);
-        new_item['id'] = ++current_id;
+        new_item['id'] = max_id(appState.models.beamline) + 1;
         new_item['_show_popover'] = true;
         if (appState.models.beamline.length) {
             new_item.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
@@ -500,6 +548,13 @@ app.directive('fieldEditor', function(appState, $http) {
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-3">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+              '</div>',
+              '<div data-ng-switch-when="Integer" class="col-sm-3">',
+                '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+              '</div>',
+              //TODO(pjm): need file interface
+              '<div data-ng-switch-when="File" class="col-sm-5">',
+                '<p class="form-control-static"><a href><span class="glyphicon glyphicon-file"></span> HDM_height_prof_1d.dat</a></p>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control">',
@@ -857,9 +912,9 @@ app.directive('plot2d', function(appState, d3Service) {
                 function request_data() {
                     if (! appState.is_loaded())
                         return;
-                    console.log('requesting data: ', scope.modelName);
+                    //console.log('requesting data: ', scope.modelName);
                     appState.request_data(scope.modelName, function(data) {
-                        console.log('loading data: ', scope.modelName);
+                        //console.log('loading data: ', scope.modelName);
                         if (scope.svg)
                             scope.load(data);
                     });
@@ -1301,9 +1356,9 @@ app.directive('plot3d', function(appState, d3Service) {
                 function request_data() {
                     if (! appState.is_loaded())
                         return;
-                    console.log('requesting data: ', scope.modelName);
+                    //console.log('requesting data: ', scope.modelName);
                     appState.request_data(scope.modelName, function(data) {
-                        console.log('loading data: ', scope.modelName);
+                        //console.log('loading data: ', scope.modelName);
                         if (scope.svg)
                             scope.load(data);
                     });
@@ -1450,12 +1505,16 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 placement: 'bottom',
                 container: '.srw-popup-container-lg',
                 viewport: { selector: '.srw-beamline'},
-                content: $('.srw-' + scope.item.type + '-editor'),
+                content: $('#srw-' + scope.item.type + '-editor'),
                 trigger: 'manual',
             }).on('show.bs.popover', function() {
                 scope.$parent.beamline.activeItem = scope.item;
-                scope.$digest();
+            }).on('hide.bs.popover', function() {
+                scope.$parent.beamline.activeItem = null;
             }).on('hidden.bs.popover', function() {
+                var active = scope.$parent.beamline.activeItem;
+                if (active && active.type == scope.item.type)
+                    return;
                 var editor = el.data('bs.popover').getContent();
                 if (editor && $('.srw-' + scope.item.type + '-editor').length == 0) {
                     $('.srw-editor-holder').append(editor);
@@ -1466,6 +1525,7 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 el.popover('toggle');
             });
             if (scope.item['_show_popover']) {
+                delete scope.item['_show_popover'];
                 // when the item is added, it may have been dropped between items
                 // don't show the popover until the position has been determined
                 $timeout(function() {
@@ -1594,6 +1654,34 @@ app.directive('modalEditor', function(appState) {
                 $(element).off();
                 $('.modal').modal('hide').data('bs.modal', null);
             });
+        },
+    };
+});
+
+app.directive('beamlineEditor', function(appState) {
+    return {
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div>',
+              '<form name="f2" class="form-horizontal">',
+                '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
+                  '<div data-field-editor="f" data-model="beamline.activeItem"></div>',
+                '</div>',
+                '<div class="form-group">',
+                  '<div class="col-sm-offset-6 col-sm-3">',
+                    '<button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>',
+                  '</div>',
+                '</div>',
+              '</form>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.beamline = $scope.$parent.beamline;
+            $scope.advancedFields = appState.model_info($scope.modelName).advanced;
+            //TODO(pjm): investigate why id needs to be set in html for revisiting the beamline page
+            //$scope.editorId = "srw-" + $scope.modelName + "-editor";
         },
     };
 });
