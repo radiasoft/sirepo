@@ -144,36 +144,46 @@ var _MODEL = {
             ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
         ],
     },
-    intensityAtSampleReport: {
-        title: 'Initial At Sample Report',
+    aperture: {
+        title: 'Aperture',
         basic: [],
         advanced: [
-            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
-            ['sampleFactor', 'Sampling Factor', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+            ['horizontalSize', 'Horizontal Size[mm]', 'Float'],
+            ['verticalSize', 'Vertical Size[mm]', 'Float'],
         ],
     },
-    intensityAtBPMReport: {
-        title: 'Initial At BPM Report',
+    lens: {
+        title: 'Lens',
         basic: [],
         advanced: [
-            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
-            ['sampleFactor', 'Sampling Factor', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+            ['horizontalFocalLength', 'Horizontal Focal Length [m]', 'Float'],
+            ['verticalFocalLength', 'Vertical Focal Length [m]', 'Float'],
+        ],
+    },
+    mirror: {
+        title: 'Mirror',
+        basic: [],
+        advanced: [
+        ],
+    },
+    crl: {
+        title: 'CRL',
+        basic: [],
+        advanced: [
+        ],
+    },
+    watchpoint: {
+        title: 'Watchpoint',
+        basic: [],
+        advanced: [
+        ],
+    },
+    obstacle: {
+        title: 'Obstacle',
+        basic: [],
+        advanced: [
+            ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
+            ['verticalSize', 'Verticalal Size [mm]', 'Float'],
         ],
     },
 };
@@ -399,13 +409,14 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
     appState.load_models($route.current.params['simulationId']);
     var self = this;
     self.toolbar_items = [
-        {name:'aperture', title:'Aperture'},
-        {name:'crl', title:'CRL'},
-        {name:'lens', title:'Lens'},
-        {name:'mirror', title:'Mirror'},
-        {name:'obstacle', title:'Obstacle'},
-        {name:'watch', title:'Watchpoint'},
+        {type:'aperture', title:'Aperture'},
+        {type:'crl', title:'CRL'},
+        {type:'lens', title:'Lens'},
+        {type:'mirror', title:'Mirror'},
+        {type:'obstacle', title:'Obstacle'},
+        {type:'watch', title:'Watchpoint'},
     ];
+    self.activeItem = null;
     var current_id = 100;
 
     function add_item(item) {
@@ -420,6 +431,10 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
             new_item.position = 20;
         }
         appState.models.beamline.push(new_item);
+        $('.srw-beamline-element-label').popover('hide');
+    }
+
+    self.dismiss_popup = function() {
         $('.srw-beamline-element-label').popover('hide');
     }
 
@@ -798,7 +813,7 @@ app.directive('plot2d', function(appState, d3Service) {
                 $scope.select(".plot-viewport")
                     .attr("width", width)
                     .attr("height", height);
-                $scope.select(".overlay")
+                $scope.select("svg .overlay")
                     .attr("width", width)
                     .attr("height", height)
                 $scope.select(".line")
@@ -855,6 +870,7 @@ app.directive('plot2d', function(appState, d3Service) {
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
+                $(".overlay").off();
                 scope.svg.remove();
                 scope.svg = null;
                 scope.slider.off();
@@ -1416,7 +1432,7 @@ app.directive('toolbarItem', function(beamlineGraphics) {
             var canvas = element[0];
             canvas.style.width = '30px';
             canvas.style.height = '35px';
-            beamlineGraphics.draw_icon(scope.item.name, canvas);
+            beamlineGraphics.draw_icon(scope.item.type, canvas);
         }
     };
 });
@@ -1426,21 +1442,24 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
         scope: {
             item: '=',
         },
-        controller: function($scope) {
-            $scope.dismiss = function() {
-                $('.srw-beamline-element-label').popover('hide');
-            }
-        },
         link: function(scope, element) {
-            beamlineGraphics.draw_icon(scope.item.name, $(element).find('canvas')[0]);
+            beamlineGraphics.draw_icon(scope.item.type, $(element).find('canvas')[0]);
             var el = $(element).find('.srw-beamline-element-label');
             el.popover({
                 html: true,
                 placement: 'bottom',
                 container: '.srw-popup-container-lg',
                 viewport: { selector: '.srw-beamline'},
-                content: $compile($('.srw-' + scope.item.name + '-editor').html())(scope),
+                content: $('.srw-' + scope.item.type + '-editor'),
                 trigger: 'manual',
+            }).on('show.bs.popover', function() {
+                scope.$parent.beamline.activeItem = scope.item;
+                scope.$digest();
+            }).on('hidden.bs.popover', function() {
+                var editor = el.data('bs.popover').getContent();
+                if (editor && $('.srw-' + scope.item.type + '-editor').length == 0) {
+                    $('.srw-editor-holder').append(editor);
+                }
             });
             el.click(function() {
                 $('.srw-beamline-element-label').not(this).popover('hide');
@@ -1464,12 +1483,11 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 }, 500);
             }
             scope.$on('$destroy', function() {
+                //TODO(pjm): doesn't clean up 100%
                 // release popover data to prevent memory leak
-                console.log("destroy");
-                $(element).off();
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
-                el.popover('hide').data('bs.popover', null);
+                el.popover('destroy');
             });
         },
     };
