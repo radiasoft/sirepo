@@ -28,54 +28,55 @@
         <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
       </div>
 
+      <div class="srw-editor-holder" style="display:none">
       <!-- Aperture Editor -->
-      <div class="srw-aperture-editor" style="display:none">
+      <div class="srw-aperture-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Horizontal Size [mm]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.horizontalSize">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.horizontalSize">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Vertical Size [mm]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.verticalSize">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.verticalSize">
             </div>
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
 
       <!-- CRL Editor -->
-      <div class="srw-crl-editor" style="display:none">
+      <div class="srw-crl-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group form-group-sm">
@@ -116,25 +117,25 @@
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
 
       <!-- Lens Editor -->
-      <div class="srw-lens-editor" style="display:none">
+      <div class="srw-lens-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group form-group-sm">
@@ -151,25 +152,25 @@
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
 
       <!-- Mirror editor -->
-      <div class="srw-mirror-editor" style="display:none">
+      <div class="srw-mirror-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-7 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group form-group-sm">
@@ -204,25 +205,25 @@
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
 
       <!-- Obstacle Editor -->
-      <div class="srw-obstacle-editor" style="display:none">
+      <div class="srw-obstacle-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group form-group-sm">
@@ -239,35 +240,35 @@
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
 
       <!-- Watch Editor -->
-      <div class="srw-watch-editor" style="display:none">
+      <div class="srw-watch-editor">
         <form class="form-horizontal">
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Element Name</label>
             <div class="col-sm-4">
-              <input type="text" class="form-control" ng-model="item.title">
+              <input type="text" class="form-control" ng-model="beamline.activeItem.title">
             </div>
           </div>
           <div class="form-group form-group-sm">
             <label class="col-sm-6 control-label">Nominal Position [m]</label>
             <div class="col-sm-3">
-              <input type="text" class="form-control" style="text-align: right" ng-model="item.position">
+              <input type="text" class="form-control" style="text-align: right" ng-model="beamline.activeItem.position">
             </div>
           </div>
           <div class="form-group">
             <div class="col-sm-offset-6 col-sm-3">
-              <button ng-click="dismiss()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
+              <button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>
             </div>
           </div>
         </form>
       </div>
-
+      </div> <!-- style display=none -->
 
     </div> <!-- /container -->
 
@@ -277,17 +278,10 @@
           <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
         </div>
 <!--
-        <div class="col-md-6 col-xl-4">
-          <div data-report-panel="3d" data-model-name="intensityAtBPMReport"></div>
-        </div>
-        <div class="col-md-6 col-xl-4">
-          <div data-report-panel="3d" data-model-name="intensityAtSampleReport"></div>
-        </div>
+    TODO(pjm): need to iterate dynamic list of watchpoint reports
 -->
       </div>
     </div>
 
     <!-- modal dialogs -->
     <div data-modal-editor="initialIntensityReport"></div>
-    <div data-modal-editor="intensityAtBPMReport"></div>
-    <div data-modal-editor="intensityAtSampleReport"></div>
