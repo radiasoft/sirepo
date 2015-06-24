@@ -12,6 +12,7 @@
 
       <!-- Beamline -->
       <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.drop_complete($data, $event)">
+        <div class="lead pull-right"><a href title="Propagation Parameters"><span class="glyphicon glyphicon-cog"></span></a></div>
         <p class="lead text-center">beamline definition area<br>
           <small><em>drag and drop optical elements here to define the beamline</em></small></p>
         <div class="srw-beamline-container">
@@ -26,6 +27,15 @@
           </div>
         </div>
         <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
+        <div class="row">
+          <form name="beamlineForm">
+            <div class="col-md-6 col-sm-8 pull-right cssFade" data-ng-show="beamline.is_dirty">
+              <button data-ng-click="beamline.save_changes()" class="btn btn-primary">Save Changes</button>
+              <button class="btn btn-default"><span class="glyphicon glyphicon-cog"></span> Propagation Parameters</button>
+              <button data-ng-click="beamline.cancel_changes()" class="btn btn-default">Cancel</button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div class="srw-editor-holder" style="display:none">
@@ -44,9 +54,9 @@
         <div class="col-md-6 col-xl-4">
           <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
         </div>
-<!--
-    TODO(pjm): need to iterate dynamic list of watchpoint reports
--->
+        <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.get_beamline('watch') track by item.id">
+          <div data-report-panel="3d" data-model-name="watchpointReport"></div>
+        </div>
       </div>
     </div>
 
