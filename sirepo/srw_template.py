@@ -18,7 +18,7 @@ varParam = [
     ['ebm_x', 'f', {electronBeam_horizontalPosition}, 'electron beam initial average horizontal position [m]'],
     ['ebm_y', 'f', {electronBeam_verticalPosition}, 'electron beam initial average vertical position [m]'],
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
-    ['ebm_dr', 'f', -1.65, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
+    ['ebm_dr', 'f', {electronBeamInitialDrift}, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
 
 #---Undulator
     ['und_b', 's', '1', 'use undulator'],
@@ -126,7 +126,7 @@ varParam = [
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
     #to add options
-    ['op_r', 'f', 20.5, 'longitudinal position of the first optical element [m]'],
+    ['op_r', 'f', {beamlineFirstElementPosition}, 'longitudinal position of the first optical element [m]'],
     ['op_fin', 's', 'S3_SMP', 'name of the final optical element wavefront has to be propagated through'],
 ]
 
