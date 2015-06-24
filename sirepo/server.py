@@ -115,11 +115,30 @@ def _flatten_data(d, res, prefix=''):
             res[prefix + k] = _escape_value(v)
     return res
 
-def _json_input(field):
-    return json.loads(_read_http_input())[field]
+def _generate_beamline_file(beamline):
+    return '''
+    _params.op_S0_dx = 0.0002
+    _params.op_S0_dy = 0.001
+    _params.op_S0_pp = [0, 0, 1, 0, 0, 2.5, 5.0, 1.5, 2.5, 0, 0, 0]
+
+    zS0 = 20.5
+    zHDM = 27.4
+    _params.op_S0_HDM_pp = [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0]
+
+    _params.op_fin_pp = [0, 0, 1, 0, 0, 0.3, 2.0, 0.5, 1.0, 0, 0, 0]
+
+    el = []; pp = [] #lists of SRW optical element objects and their corresponding propagation parameters
+    el.append(SRWLOptA('r', 'a', _params.op_S0_dx, _params.op_S0_dy)); pp.append(_params.op_S0_pp)
+    el.append(SRWLOptD(zHDM - zS0)); pp.append(_params.op_S0_HDM_pp)
+    pp.append(_params.op_fin_pp)
+
+    return SRWLOptC(el, pp)
+    '''
 
 def _generate_parameters_file(data):
     vars = _flatten_data(data['models'], {})
+    vars['beamlineOptics'] = _generate_beamline_file(data['models']['beamline'])
+    #TODO(pjm): calculate vars.ebm_dr based on undulator data
     return sirepo.srw_template.TEMPLATE.format(**vars).decode('unicode-escape')
 
 def _iterate_simulation_datafiles(op, params=None):
@@ -136,6 +155,9 @@ def _iterate_simulation_datafiles(op, params=None):
             print('unparseable json file: {}'.format(path))
 
     return res
+
+def _json_input(field):
+    return json.loads(_read_http_input())[field]
 
 def _open_json_file(path):
     with open(path) as f:
