@@ -442,7 +442,14 @@ app.factory('appState', function($http, $rootScope) {
         console.log("save changes: ", name);
         delete(self.models[name]['_error']);
         self.saved_model_values[name] = clone_model(name);
-        if (name.indexOf('Report') > 0) {
+        if (name == 'beamline') {
+            // need to save all watchpoinReports for beamline changes
+            for (var modelName in self.models) {
+                if (modelName.indexOf('watchpoinReport'))
+                    self.saved_model_values[modelName] = clone_model(modelName);
+            }
+        }
+        else if (name.indexOf('Report') > 0) {
             self.reportCache[name] = null;
         }
         else {
@@ -1674,7 +1681,6 @@ app.directive('reportPanel', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            console.log("item = ", $scope.item);
             var item_id = $scope.item ? $scope.item.id : '';
             $scope.appState = appState;
             $scope.fullModelName = $scope.modelName + item_id;
