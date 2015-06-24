@@ -55,10 +55,11 @@
           <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
         </div>
         <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.get_beamline('watch') track by item.id">
-          <div data-report-panel="3d" data-model-name="watchpointReport"></div>
+          <div data-report-panel="3d" data-model-name="watchpointReport" data-item="item"></div>
         </div>
       </div>
     </div>
 
     <!-- modal dialogs -->
     <div data-modal-editor="initialIntensityReport"></div>
+    <div data-modal-editor="watchpointReport" data-ng-repeat="item in beamline.get_beamline('watch') track by item.id" data-item-id="{{ item.id }}"></div>
