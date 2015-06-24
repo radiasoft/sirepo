@@ -16,10 +16,23 @@ _STATIC_FOLDER = 'package_data/static'
 
 app = flask.Flask(__name__, static_folder=_STATIC_FOLDER)
 
+def _simulation_name(res, path, data, params):
+    res.append(data['models']['simulation']['name'])
+
 @app.route('/srw/copy-simulation', methods=('GET', 'POST'))
 def srw_copy_simulation():
+    """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     data = _open_json_file(_simulation_filename_from_id(_json_input('simulationId')))
-    data['models']['simulation']['name'] += ' (copy)'
+    base_name = data['models']['simulation']['name']
+    names = _iterate_simulation_datafiles(_simulation_name)
+    count = 0
+    while True:
+        count += 1
+        name = base_name + ' (copy{})'.format(' {}'.format(count) if count > 1 else '')
+        if name in names and count < 100:
+            continue
+        break
+    data['models']['simulation']['name'] = name
     return _save_new_simulation(data)
 
 @app.route('/srw/delete-simulation', methods=('GET', 'POST'))
@@ -136,10 +149,13 @@ def _generate_beamline_file(beamline):
     '''
 
 def _generate_parameters_file(data):
-    vars = _flatten_data(data['models'], {})
-    vars['beamlineOptics'] = _generate_beamline_file(data['models']['beamline'])
-    #TODO(pjm): calculate vars.ebm_dr based on undulator data
-    return sirepo.srw_template.TEMPLATE.format(**vars).decode('unicode-escape')
+    v = _flatten_data(data['models'], {})
+    beamline = data['models']['beamline']
+    v['beamlineOptics'] = _generate_beamline_file(beamline)
+    v['beamlineFirstElementPosition'] = beamline[0]['position'] if beamline[0] else 20
+    # initial drift = 1/2 undulator length + 2 periods
+    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period'])
+    return sirepo.srw_template.TEMPLATE.format(**v).decode('unicode-escape')
 
 def _iterate_simulation_datafiles(op, params=None):
     res = []
