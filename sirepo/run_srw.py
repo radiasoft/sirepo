@@ -78,6 +78,7 @@ with open('in.json') as f:
     data = json.load(f)
 
     #TODO(pjm): need to properly escape data values, untrusted from client
+    # this defines the get_srw_params() and get_beamline_optics() functions
     execfile('srw_parameters.py')
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
 
@@ -94,7 +95,8 @@ with open('in.json') as f:
     elif data['report'] == 'initialIntensityReport':
         v.si = True
         outfile = v.si_fn
-    elif data['report'] == 'intensityAtSampleReport':
+    elif data['report'] == 'watchpointReport':
+        op = get_beamline_optics(v)
         v.ws = True
         outfile = v.ws_fni
     else:
