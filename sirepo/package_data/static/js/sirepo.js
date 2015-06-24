@@ -374,13 +374,14 @@ app.factory('appState', function($http, $rootScope) {
     var run_queue = [];
 
     function execute_queue() {
-        if (run_queue.length === 0)
+        var current_queue = run_queue;
+        if (current_queue.length === 0)
             return;
         $http.post('/srw/run', {
-            report: run_queue[0][0],
+            report: current_queue[0][0],
             models: self.saved_model_values,
         }).success(function(data, status) {
-            var item = run_queue.shift();
+            var item = current_queue.shift();
 
             if (data['error']) {
                 self.models[item[0]]._error = data['error'];
@@ -390,17 +391,19 @@ app.factory('appState', function($http, $rootScope) {
                 item[1](data);
             }
             //TODO(pjm): don't set loading to false unless there are no other queue items for this report
-            self.models[item[0]]._loading = false;
+            if (self.models[item[0]])
+                self.models[item[0]]._loading = false;
             execute_queue();
         }).error(function(data, status) {
             //TODO(pjm): combine error code with above
             console.log("run failed: ", status, ' ', data);
-            run_queue.shift();
+            current_queue.shift();
             execute_queue();
         });
     }
 
-    self.model_info = model_info,
+    self.clone_model = clone_model;
+    self.model_info = model_info;
     self.is_loaded = function() {
         return self.models['simulation'] && self.models['simulation']['simulationId'];
     };
@@ -408,6 +411,7 @@ app.factory('appState', function($http, $rootScope) {
         self.reportCache = {};
         self.models = emptyValues || {};
         self.saved_model_values = {};
+        run_queue = [];
     };
     self.load_models = function(simulationId) {
         if (self.is_loaded() && self.models['simulation']['simulationId'] == simulationId)
@@ -426,7 +430,7 @@ app.factory('appState', function($http, $rootScope) {
     self.request_data = function(name, callback) {
         if (self.reportCache[name])
             callback(self.reportCache[name]);
-        else {
+        else if (self.models[name]) {
             self.models[name]._loading = true;
             self.models[name]._error = null;
             run_queue.push([name, callback]);
@@ -435,7 +439,7 @@ app.factory('appState', function($http, $rootScope) {
         }
     };
     self.save_changes = function(name) {
-        //console.log("save changes: ", name);
+        console.log("save changes: ", name);
         delete(self.models[name]['_error']);
         self.saved_model_values[name] = clone_model(name);
         if (name.indexOf('Report') > 0) {
@@ -451,6 +455,18 @@ app.factory('appState', function($http, $rootScope) {
         if (self.saved_model_values[name])
             self.models[name] = JSON.parse(JSON.stringify(self.saved_model_values[name]));
     };
+    self.get_report_title = function(name) {
+        //TODO(pjm): generalize this
+        var match = name.match(/.*?(\d+)/);
+        if (match) {
+            var id = match[1];
+            for (var i = 0; i < self.saved_model_values.beamline.length; i += 1) {
+                if (self.saved_model_values.beamline[i].id == id)
+                    return 'Intensity at ' + self.saved_model_values.beamline[i].title + ' Report';
+            }
+        }
+        return model_info(name).title;
+    }
     return self;
 });
 
@@ -496,6 +512,8 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         else {
             new_item.position = 20;
         }
+        if (new_item['type'] == 'watch')
+            appState.models['watchpointReport' + new_item['id']] = appState.clone_model('initialIntensityReport');
         appState.models.beamline.push(new_item);
         $('.srw-beamline-element-label').popover('hide');
     }
@@ -520,7 +538,8 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
 
     self.get_beamline = function(itemType) {
         if (itemType && appState.is_loaded()) {
-            var beamline = appState.models.beamline;
+            // use the saved beamline for specific types (watch)
+            var beamline = appState.saved_model_values.beamline;
             var res = [];
             for (var i = 0; i < beamline.length; i++) {
                 if (beamline[i]['type'] == itemType)
@@ -533,6 +552,8 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
     self.remove_element = function(item) {
         $('.srw-beamline-element-label').popover('hide');
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+        if (item.type == 'watch')
+            delete appState.models['watchpointReport' + item['id']];
         self.is_dirty = true;
     }
 
@@ -1564,6 +1585,8 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 if (active && active.type == scope.item.type)
                     return;
                 var editor = el.data('bs.popover').getContent();
+                // return the editor to the editor-holder so it will be available for the
+                // next element of this type
                 if (editor && $('.srw-' + scope.item.type + '-editor').length == 0) {
                     $('.srw-editor-holder').append(editor);
                 }
@@ -1635,24 +1658,28 @@ app.directive('reportPanel', function(appState) {
         scope: {
             reportPanel: '@',
             modelName: '@',
+            // optional, for watch reports
+            item: '=',
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model="appState.models[modelName]" data-editor-id="{{ editorId }}" data-allow-full-screen="1"></div>',
-              '<panel-body data-model="appState.models[modelName]">',
+              '<div class="panel-heading" data-panel-heading="{{ appState.get_report_title(fullModelName) }}" data-model="appState.models[fullModelName]" data-editor-id="{{ editorId }}" data-allow-full-screen="1"></div>',
+              '<panel-body data-model="appState.models[fullModelName]">',
 
                 '<div data-ng-switch="reportPanel">',
-                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ modelName }}" id="{{ plotId }}"></div>',
-                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ modelName }}" id="{{ plotId }}"></div>',
+                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ fullModelName }}" id="{{ plotId }}"></div>',
+                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ fullModelName }}" id="{{ plotId }}"></div>',
                 '</div>',
               '</panel-body>',
             '</div>',
         ].join(''),
         controller: function($scope) {
+            console.log("item = ", $scope.item);
+            var item_id = $scope.item ? $scope.item.id : '';
             $scope.appState = appState;
-            $scope.panelTitle = appState.model_info($scope.modelName).title;
-            $scope.editorId = "srw-" + $scope.modelName + "-editor";
-            $scope.plotId = "srw-" + $scope.modelName + "-" + $scope.reportPanel + "-plot";
+            $scope.fullModelName = $scope.modelName + item_id;
+            $scope.editorId = "srw-" + $scope.fullModelName + "-editor";
+            $scope.plotId = "srw-" + $scope.modelName + "-" + $scope.reportPanel + "-plot" + item_id;
         },
     };
 });
@@ -1661,6 +1688,8 @@ app.directive('modalEditor', function(appState) {
     return {
         scope: {
             modalEditor: '@',
+            // optional, for watch reports
+            itemId: '@',
         },
         template: [
             '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
@@ -1668,16 +1697,16 @@ app.directive('modalEditor', function(appState) {
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
+	            '<span class="lead modal-title text-info">{{ appState.get_report_title(fullModelName) }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
                         '<form name="f1" class="form-horizontal">',
                           '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
-                            '<div data-field-editor="f" data-model="appState.models[modalEditor]"></div>',
+                            '<div data-field-editor="f" data-model="appState.models[fullModelName]"></div>',
                           '</div>',
-                          '<div data-buttons="" data-model-name="modalEditor" data-form-name="f1" data-modal-id="{{ editorId }}"></div>',
+                          '<div data-buttons="" data-model-name="fullModelName" data-form-name="f1" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
                       '</div>',
                     '</div>',
@@ -1689,14 +1718,14 @@ app.directive('modalEditor', function(appState) {
         controller: function($scope) {
             $scope.appState = appState;
             $scope.advancedFields = appState.model_info($scope.modalEditor).advanced;
-            $scope.modalTitle = appState.model_info($scope.modalEditor).title;
-            $scope.editorId = "srw-" + $scope.modalEditor + "-editor";
+            $scope.fullModelName = $scope.modalEditor + ($scope.itemId || '');
+            $scope.editorId = "srw-" + $scope.fullModelName + "-editor";
         },
         link: function(scope, element) {
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
-                appState.cancel_changes(scope.modalEditor);
+                appState.cancel_changes(scope.fullModelName);
                 scope.$digest();
             });
             scope.$on('$destroy', function() {
