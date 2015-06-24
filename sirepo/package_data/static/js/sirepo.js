@@ -157,6 +157,22 @@ var _MODEL = {
             ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
         ],
     },
+    watchpointReport: {
+        title: 'Watchpoint Report',
+        basic: [],
+        advanced: [
+            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['sampleFactor', 'Sampling Factor', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+        ],
+    },
     aperture: {
         title: 'Aperture',
         basic: [],
@@ -457,6 +473,7 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         {type:'watch', title:'Watchpoint'},
     ];
     self.activeItem = null;
+    self.is_dirty = false;
 
     function max_id(beamline) {
         var max = 1;
@@ -469,6 +486,7 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
 
     function add_item(item) {
         //TODO(pjm): conslidate clone() -- move this code into appState
+        self.is_dirty = true;
         var new_item = $.extend(true, {}, item);
         new_item['id'] = max_id(appState.models.beamline) + 1;
         new_item['_show_popover'] = true;
@@ -482,16 +500,40 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         $('.srw-beamline-element-label').popover('hide');
     }
 
+    self.save_changes = function() {
+        self.is_dirty = false;
+        // sort beamline based on position
+        appState.models.beamline.sort(function(a, b) {
+            return parseFloat(a['position']) - parseFloat(b['position']);
+        });
+        appState.save_changes('beamline');
+    }
+
+    self.cancel_changes = function() {
+        self.is_dirty = false;
+        appState.cancel_changes('beamline');
+    }
+
     self.dismiss_popup = function() {
         $('.srw-beamline-element-label').popover('hide');
     }
 
-    self.get_beamline = function() {
+    self.get_beamline = function(itemType) {
+        if (itemType && appState.is_loaded()) {
+            var beamline = appState.models.beamline;
+            var res = [];
+            for (var i = 0; i < beamline.length; i++) {
+                if (beamline[i]['type'] == itemType)
+                    res.push(beamline[i]);
+            }
+            return res;
+        }
         return appState.models.beamline;
     }
     self.remove_element = function(item) {
         $('.srw-beamline-element-label').popover('hide');
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+        self.is_dirty = true;
     }
 
     self.drop_complete = function(data) {
@@ -1369,6 +1411,7 @@ app.directive('plot3d', function(appState, d3Service) {
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
+                scope.zoom.on("zoom", null);
                 scope.svg.remove();
                 scope.svg = null;
                 scope.imageObj.onload = null;
@@ -1408,7 +1451,7 @@ app.controller('NavController', function ($rootScope, $location, appState) {
     }
 });
 
-app.controller('SimulationsController', function ($rootScope, $http, $location, appState) {
+app.controller('SimulationsController', function ($rootScope, $http, $location, $window, appState) {
     $rootScope.activeSection = "simulations";
     appState.clear_models({
         newSimulation: {},
@@ -1474,6 +1517,7 @@ app.controller('SimulationsController', function ($rootScope, $http, $location, 
         });
     }
     self.python_source = function(item) {
+        $window.open('/srw/python-source/' + self.selected['simulationId'], '_blank');
     }
     load_list()
 });
@@ -1498,6 +1542,10 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
             item: '=',
         },
         link: function(scope, element) {
+            scope.$watchCollection('item', function(newValue, oldValue) {
+                if (newValue != oldValue)
+                    scope.$parent.beamline.is_dirty = true;
+            });
             beamlineGraphics.draw_icon(scope.item.type, $(element).find('canvas')[0]);
             var el = $(element).find('.srw-beamline-element-label');
             el.popover({
@@ -1543,10 +1591,12 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 }, 500);
             }
             scope.$on('$destroy', function() {
-                //TODO(pjm): doesn't clean up 100%
-                // release popover data to prevent memory leak
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
+                var popover = el.data('bs.popover');
+                // popover has a memory leak with $tip user_data which needs to be cleaned up manually
+                if (popover.$tip)
+                    popover.$tip.removeData('bs.popover');
                 el.popover('destroy');
             });
         },
@@ -1647,12 +1697,12 @@ app.directive('modalEditor', function(appState) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 appState.cancel_changes(scope.modalEditor);
-                scope.$apply();
+                scope.$digest();
             });
             scope.$on('$destroy', function() {
                 // release modal data to prevent memory leak
                 $(element).off();
-                $('.modal').modal('hide').data('bs.modal', null);
+                $('.modal').modal('hide').removeData('bs.modal');
             });
         },
     };
