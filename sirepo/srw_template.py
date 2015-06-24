@@ -1,5 +1,8 @@
 
 TEMPLATE = '''
+
+from srwl_bl import SRWLOptA, SRWLOptC, SRWLOptD, SRWLOptL
+
 varParam = [
 
     ['name', 's', '{simulation_name}', 'simulation name'],
@@ -129,5 +132,8 @@ varParam = [
 
 def get_srw_params():
     return varParam
+
+def get_beamline_optics(_params):
+    {beamlineOptics}
 
 '''
