@@ -202,7 +202,7 @@ var _MODEL = {
             ['heightProfileFile', 'Height Profile Data File', 'File'],
             ['orientation', 'Orientation of Reflection Plane', 'MirrorOrientation'],
             ['grazingAngle', 'Grazing Angle [mrad]', 'Float'],
-            ['heightAplification', 'Height Amplification Coefficient', 'Float'],
+            ['heightAmplification', 'Height Amplification Coefficient', 'Float'],
             ['horizontalTransverseSize', 'Horizontal Transverse Size [mm]', 'Float'],
             ['verticalTransverseSize', 'Vertical Transverse Size [mm]', 'Float'],
         ],
@@ -442,17 +442,17 @@ app.factory('appState', function($http, $rootScope) {
         console.log("save changes: ", name);
         delete(self.models[name]['_error']);
         self.saved_model_values[name] = clone_model(name);
-        if (name == 'beamline') {
-            // need to save all watchpoinReports for beamline changes
-            for (var modelName in self.models) {
-                if (modelName.indexOf('watchpoinReport'))
-                    self.saved_model_values[modelName] = clone_model(modelName);
-            }
-        }
-        else if (name.indexOf('Report') > 0) {
+        if (name.indexOf('Report') > 0) {
             self.reportCache[name] = null;
         }
         else {
+            if (name == 'beamline') {
+                // need to save all watchpoinReports for beamline changes
+                for (var modelName in self.models) {
+                    if (modelName.indexOf('watchpoinReport'))
+                        self.saved_model_values[modelName] = clone_model(modelName);
+                }
+            }
             update_reports();
         }
         console.log('broadcast: ', name + '.changed');
