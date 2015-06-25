@@ -49,8 +49,12 @@ def srw_new_simulation():
 
 @app.route('/srw/python-source/<simulation_id>')
 def srw_python_source(simulation_id):
+    data = _open_json_file(_simulation_filename_from_id(simulation_id))
+    # ensure the whole source gets generated, not up to the last breakout report
+    if 'report' in data:
+        del data['report']
     return flask.Response(
-        _generate_parameters_file(_open_json_file(_simulation_filename_from_id(simulation_id))),
+        _generate_parameters_file(data),
         mimetype="text/plain",
     )
 
@@ -128,30 +132,15 @@ def _flatten_data(d, res, prefix=''):
             res[prefix + k] = _escape_value(v)
     return res
 
-def _generate_beamline_file(beamline):
-    return '''
-    _params.op_S0_dx = 0.0002
-    _params.op_S0_dy = 0.001
-    _params.op_S0_pp = [0, 0, 1, 0, 0, 2.5, 5.0, 1.5, 2.5, 0, 0, 0]
-
-    zS0 = 20.5
-    zHDM = 27.4
-    _params.op_S0_HDM_pp = [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0]
-
-    _params.op_fin_pp = [0, 0, 1, 0, 0, 0.3, 2.0, 0.5, 1.0, 0, 0, 0]
-
-    el = []; pp = [] #lists of SRW optical element objects and their corresponding propagation parameters
-    el.append(SRWLOptA('r', 'a', _params.op_S0_dx, _params.op_S0_dy)); pp.append(_params.op_S0_pp)
-    el.append(SRWLOptD(zHDM - zS0)); pp.append(_params.op_S0_HDM_pp)
-    pp.append(_params.op_fin_pp)
-
-    return SRWLOptC(el, pp)
-    '''
-
 def _generate_parameters_file(data):
     v = _flatten_data(data['models'], {})
     beamline = data['models']['beamline']
-    v['beamlineOptics'] = _generate_beamline_file(beamline)
+    last_id = None
+    if 'report' in data:
+        m = re.search('watchpointReport(\d+)', data['report'])
+        if m:
+            last_id = int(m.group(1))
+    v['beamlineOptics'] = sirepo.srw_template.generate_beamline_optics(beamline, last_id)
     v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
     # initial drift = 1/2 undulator length + 2 periods
     v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period'])
