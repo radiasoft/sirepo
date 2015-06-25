@@ -1,7 +1,10 @@
 
+import re
+
 TEMPLATE = '''
 
 from srwl_bl import SRWLOptA, SRWLOptC, SRWLOptD, SRWLOptL
+from srwlib import srwl_uti_read_data_cols, srwl_opt_setup_surf_height_1d, srwl_opt_setup_CRL, srwl_uti_save_intens_ascii
 
 varParam = [
 
@@ -127,7 +130,6 @@ varParam = [
 
     #to add options
     ['op_r', 'f', {beamlineFirstElementPosition}, 'longitudinal position of the first optical element [m]'],
-    ['op_fin', 's', 'S3_SMP', 'name of the final optical element wavefront has to be propagated through'],
 ]
 
 def get_srw_params():
@@ -137,3 +139,83 @@ def get_beamline_optics(_params):
     {beamlineOptics}
 
 '''
+
+_APERTURE = '''
+    el.append(SRWLOptA("r", "a", {horizontalSize}, {verticalSize}))
+'''
+
+_DRIFT = '''
+    el.append(SRWLOptD({size}))
+    pp.append([0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
+'''
+
+def generate_beamline_optics(beamline, last_id):
+    res = '''
+    el = []
+    pp = []
+'''
+    prev = None
+
+    for item in beamline:
+        if prev:
+            size = float(item['position']) - float(prev['position'])
+            if size != 0:
+                res += _DRIFT.format(size=size)
+        if item['type'] == 'aperture':
+            res += _APERTURE.format(
+                horizontalSize=_float(item, 'horizontalSize', 1000),
+                verticalSize=_float(item, 'verticalSize', 1000))
+            #TODO(pjm): define propagation parameters on client
+            if prev:
+                res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+            else:
+                res += '    pp.append([0, 0, 1, 0, 0, 2.5, 5.0, 1.5, 2.5, 0, 0, 0])\n'
+        elif item['type'] == 'crl':
+            res += '    el.append(srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0))\n'.format(
+                _escape(item['focalPlane']),
+                _float(item, 'refractiveIndex'),
+                _float(item, 'attenuationLength'),
+                _escape(item['shape']),
+                _float(item, 'horizontalApertureSize'),
+                _float(item, 'verticalApertureSize'),
+                _float(item, 'radius'),
+                int(item['numberOfLenses']),
+                _float(item,'wallThickness'))
+            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+        elif item['type'] == 'lens':
+            res += '    el.append(SRWLOptL({}, {}))\n'.format(
+                _float(item, 'horizontalFocalLength'),
+                _float(item, 'verticalFocalLength'))
+            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+        elif item['type'] == 'mirror':
+            res += '    ifnHDM = "../package_data/static/dat/mirror_1d.dat"\n';
+            res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
+            res += '    el.append(srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={}))\n'.format(
+                _escape(item['orientation']),
+                _float(item, 'grazingAngle', 1000),
+                _float(item, 'heightAmplification'),
+                _float(item, 'horizontalTransverseSize', 1000),
+                _float(item, 'verticalTransverseSize', 1000))
+            res += '    pp.append([0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+        elif item['type'] == 'obstacle':
+            res += '    el.append(SRWLOptA("r", "o", {}, {}))\n'.format(
+                _float(item, 'horizontalSize', 1000),
+                _float(item, 'verticalSize', 1000))
+            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+        elif item['type'] == 'watch':
+            if last_id and last_id == int(item['id']):
+                break
+        prev = item
+        res += '\n'
+
+    # final propagation parameters
+    #res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+    res += '    pp.append([0, 0, 1, 0, 0, 0.3, 2.0, 0.5, 1.0, 0, 0, 0])\n'
+    res += '    return SRWLOptC(el, pp)\n'
+    return res
+
+def _escape(v):
+    return re.sub(r'[ ()\.]', '', str(v))
+
+def _float(item, field, scale=1):
+    return float(item[field]) / scale
