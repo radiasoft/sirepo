@@ -96,7 +96,7 @@ with open('in.json') as f:
         v.si = True
         outfile = v.si_fn
     elif re.search('^watchpointReport', data['report']):
-        op = get_beamline_optics(v)
+        op = get_beamline_optics()
         v.ws = True
         outfile = v.ws_fni
     else:
