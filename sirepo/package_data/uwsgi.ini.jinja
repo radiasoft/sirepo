@@ -1,0 +1,11 @@
+[uwsgi]
+socket = *:{{ port }}
+master = true
+processes = 1
+threads = 40
+wsgi-file = {{ uwsgi_py }}
+callable = app
+die-on-term = true
+stats = {{ run_dir }}/sock
+pidfile = {{ run_dir }}/pid
+daemonize = {{ run_dir }}/uwsgi.log
