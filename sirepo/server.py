@@ -54,7 +54,7 @@ def srw_python_source(simulation_id):
     if 'report' in data:
         del data['report']
     return flask.Response(
-        _generate_parameters_file(data),
+        "{}{}".format(_generate_parameters_file(data), sirepo.srw_template.run_all_text()),
         mimetype="text/plain",
     )
 
@@ -113,9 +113,21 @@ def srw_simulation_list():
         )
     )
 
-def _escape_value(v):
-    #TODO(pjm): escape string values
-    return str(v).replace("'", '')
+_SCALE_VALUES = [
+    'period',
+    'horizontalPosition',
+    'verticalPosition',
+    'horizontalApertureSize',
+    'verticalApertureSize',
+    'horizontalRange',
+    'verticalRange',
+]
+
+def _escape_and_scale_value(k, v):
+    v = str(v).replace("'", '')
+    if k in _SCALE_VALUES:
+        v = float(v) / 1000;
+    return v
 
 def _find_simulation_data(res, path, data, params):
     if str(data['models']['simulation']['simulationId']) == params['simulationId']:
@@ -129,10 +141,13 @@ def _flatten_data(d, res, prefix=''):
         elif isinstance(v, list):
             pass
         else:
-            res[prefix + k] = _escape_value(v)
+            res[prefix + k] = _escape_and_scale_value(k, v)
     return res
 
 def _generate_parameters_file(data):
+    if 'report' in data and re.search('watchpointReport', data['report']):
+        # render the watchpoint report settings in the initialIntensityReport template slot
+        data['models']['initialIntensityReport'] = data['models'][data['report']]
     v = _flatten_data(data['models'], {})
     beamline = data['models']['beamline']
     last_id = None
@@ -140,10 +155,10 @@ def _generate_parameters_file(data):
         m = re.search('watchpointReport(\d+)', data['report'])
         if m:
             last_id = int(m.group(1))
-    v['beamlineOptics'] = sirepo.srw_template.generate_beamline_optics(beamline, last_id)
+    v['beamlineOptics'] = sirepo.srw_template.generate_beamline_optics(data['models'], last_id)
     v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
     # initial drift = 1/2 undulator length + 2 periods
-    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period'])
+    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period']) / 1000
     return sirepo.srw_template.TEMPLATE.format(**v).decode('unicode-escape')
 
 def _iterate_simulation_datafiles(op, params=None):
