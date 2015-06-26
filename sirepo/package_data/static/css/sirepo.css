@@ -8,7 +8,16 @@
       max-width: none;
       width: 100%;
     }
-
+    @media (min-width: 768px) {
+      .modal-lg {
+        width: 100%;
+      }
+    }
+    @media (min-width: 992px) {
+      .modal-lg {
+        width: 900px;
+      }
+    }
 
     body {
       min-height: 1000px;
@@ -241,4 +250,20 @@
   fill: none;
   stroke: steelblue;
   stroke-width: 1.5px;
+}
+
+table td.srw-center {
+  text-align: center;
+}
+input.srw-small-float {
+  text-align: right;
+  width: 100%;
+}
+th.srw-tiny-heading {
+  font-size: 12px;
+  font-weight: normal;
+  text-align: center;
+}
+.srw-info-pointer {
+  cursor: pointer;
 }
