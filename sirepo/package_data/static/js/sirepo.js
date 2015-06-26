@@ -76,20 +76,20 @@ var _MODEL = {
         advanced: [
             ['beamName', 'Beam Name', 'BeamList'],
             ['current',  'Current [A]', 'Float'],
-            ['horizontalPosition', 'Average Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Average Vertical Position [m]', 'Float'],
+            ['horizontalPosition', 'Average Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Average Vertical Position [mm]', 'Float'],
             ['energyDeviation', 'Average Energy Deviation [GeV]', 'Float'],
         ],
     },
     undulator: {
         title: 'Undulator',
         basic: [
-            ['period', 'Undulator Period [m]', 'Float'],
+            ['period', 'Undulator Period [mm]', 'Float'],
             ['length', 'Undulator Length [m]', 'Float'],
             ['verticalAmplitude', 'Vertical Amplitude [T]', 'Float'],
         ],
         advanced: [
-            ['period', 'Undulator Period [m]', 'Float'],
+            ['period', 'Undulator Period [mm]', 'Float'],
             ['length', 'Undulator Length [m]', 'Float'],
             ['longitudinalPosition', 'Undulator Center Longitudinal Position [m]', 'Float'],
             ['horizontalAmplitude', 'Horizontal Amplitude [T]', 'Float'],
@@ -106,8 +106,8 @@ var _MODEL = {
         advanced: [
             ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
             ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Position [m]', 'Float'],
+            ['horizontalPosition', 'Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Position [mm]', 'Float'],
             ['method', 'Method for Integration', 'IntegrationMethod'],
             ['precision', 'Relative Precision', 'Float'],
             ['polarization', 'Polarization Component to Extract', 'Polarization'],
@@ -119,10 +119,10 @@ var _MODEL = {
         advanced: [
             ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
             ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalApertureSize', 'Horizontal Aperture Size [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalApertureSize', 'Vertical Aperture Size [m]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
+            ['horizontalApertureSize', 'Horizontal Aperture Size [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
+            ['verticalApertureSize', 'Vertical Aperture Size [mm]', 'Float'],
             ['longitudinalPrecision', 'Longitudinal Integration Precision', 'Float'],
             ['azimuthalPrecision', 'Azimuthal Integration Precision', 'Float'],
             ['fluxType', 'Flux Calculation', 'Flux'],
@@ -133,10 +133,10 @@ var _MODEL = {
         title: 'Power Density Report',
         basic: [],
         advanced: [
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
             ['precision', 'Relative Precision', 'Float'],
             ['method', 'Power Density Computation Method', 'PowerDensityMethod'],
         ],
@@ -146,10 +146,10 @@ var _MODEL = {
         basic: [],
         advanced: [
             ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
             ['sampleFactor', 'Sampling Factor', 'Float'],
             ['method', 'Method for Integration', 'IntegrationMethod'],
             ['precision', 'Relative Precision', 'Float'],
@@ -162,10 +162,10 @@ var _MODEL = {
         basic: [],
         advanced: [
             ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [m]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [m]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [m]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [m]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
             ['sampleFactor', 'Sampling Factor', 'Float'],
             ['method', 'Method for Integration', 'IntegrationMethod'],
             ['precision', 'Relative Precision', 'Float'],
@@ -217,8 +217,8 @@ var _MODEL = {
             ['refractiveIndex', 'Refractive Index Decrements of Material', 'Float'],
             ['attenuationLength', 'Attenuation Length [m]', 'Float'],
             ['shape', 'Shape', 'CRLShape'],
-            ['horizontalApertureSize', 'Horizontal Aperture Size [m]', 'Float'],
-            ['verticalApertureSize', 'Vertical Aperture Size [m]', 'Float'],
+            ['horizontalApertureSize', 'Horizontal Aperture Size [mm]', 'Float'],
+            ['verticalApertureSize', 'Vertical Aperture Size [mm]', 'Float'],
             ['radius', 'Radius on Tip of Parabola [m]', 'Float'],
             ['numberOfLenses', 'Number of Lenses', 'Integer'],
             ['wallThickness', 'Wall Thickness at Tip of Parabola [m]', 'Float'],
@@ -447,9 +447,9 @@ app.factory('appState', function($http, $rootScope) {
         }
         else {
             if (name == 'beamline') {
-                // need to save all watchpoinReports for beamline changes
+                // need to save all watchpoinReports and propagations for beamline changes
                 for (var modelName in self.models) {
-                    if (modelName.indexOf('watchpoinReport'))
+                    if (modelName.indexOf('watchpoinReport') || modelName.indexOf('propagation'))
                         self.saved_model_values[modelName] = clone_model(modelName);
                 }
             }
@@ -483,7 +483,7 @@ app.controller('SourceController', function ($rootScope, $route, appState) {
     appState.load_models($route.current.params['simulationId']);
 });
 
-app.controller('BeamlineController', function ($rootScope, $route, appState) {
+app.controller('BeamlineController', function ($rootScope, $route, $location, appState) {
     $rootScope.activeSection = "beamline";
     appState.load_models($route.current.params['simulationId']);
     var self = this;
@@ -531,6 +531,7 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         appState.models.beamline.sort(function(a, b) {
             return parseFloat(a['position']) - parseFloat(b['position']);
         });
+        calculate_propagation();
         appState.save_changes('beamline');
     }
 
@@ -541,6 +542,54 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
 
     self.dismiss_popup = function() {
         $('.srw-beamline-element-label').popover('hide');
+    }
+    var _DEFAULT_ITEM_PROPAGATION_PARAMS = [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];
+    var _DEFAULT_DRIFT_PROPAGATION_PARAMS = [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
+
+    self.propagations = [];
+    self.post_propagation = [];
+
+    function format_float(v) {
+        var str = v.toFixed(4);
+        str = str.replace(/0+$/, '');
+        str = str.replace(/\.$/, '');
+        return str;
+    }
+
+    function calculate_propagation() {
+        if (! appState.is_loaded())
+            return;
+        var beamline = appState.models.beamline;
+        if (! appState.models.propagation)
+            appState.models.propagation = {};
+        var propagation = appState.models.propagation;
+        self.propagations = [];
+        for (var i = 0; i < beamline.length; i++) {
+            if (! propagation[beamline[i].id]) {
+                propagation[beamline[i].id] = [
+                    _DEFAULT_ITEM_PROPAGATION_PARAMS,
+                    _DEFAULT_DRIFT_PROPAGATION_PARAMS,
+                ];
+            }
+            var p = propagation[beamline[i].id];
+            if (beamline[i].type != 'watch')
+                self.propagations.push({
+                    title: beamline[i].title,
+                    params: p[0],
+                });
+            if (i == beamline.length - 1)
+                break;
+            var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position)
+            if (d > 0) {
+                self.propagations.push({
+                    title: 'Drift ' + format_float(d) + 'm',
+                    params: p[1],
+                });
+            }
+        }
+        if (! appState.models.post_propagation)
+            appState.models.post_propagation = _DEFAULT_ITEM_PROPAGATION_PARAMS;
+        self.post_propagation = appState.models.post_propagation;
     }
 
     self.get_beamline = function(itemType) {
@@ -556,11 +605,21 @@ app.controller('BeamlineController', function ($rootScope, $route, appState) {
         }
         return appState.models.beamline;
     }
+
+    self.open_beamline_page = function() {
+        $location.path('/beamline/' + appState.models['simulation']['simulationId']);
+    }
+
+    self.show_propagation_modal = function() {
+        //TODO(pjm): should only set dirty if propagation value changes
+        self.is_dirty = true;
+        calculate_propagation();
+        $('.srw-beamline-element-label').popover('hide');
+        $('#srw-propagation-parameters').modal('show');
+    }
     self.remove_element = function(item) {
         $('.srw-beamline-element-label').popover('hide');
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
-        if (item.type == 'watch')
-            delete appState.models['watchpointReport' + item['id']];
         self.is_dirty = true;
     }
 
@@ -1598,7 +1657,7 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                     $('.srw-editor-holder').append(editor);
                 }
             });
-            el.click(function() {
+            $(element).click(function() {
                 $('.srw-beamline-element-label').not(this).popover('hide');
                 el.popover('toggle');
             });
