@@ -158,7 +158,7 @@ def _generate_parameters_file(data):
     v['beamlineOptics'] = sirepo.srw_template.generate_beamline_optics(data['models'], last_id)
     v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
     # initial drift = 1/2 undulator length + 2 periods
-    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period']) / 1000
+    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period']) / 1000 + float(data['models']['undulator']['longitudinalPosition'])
     return sirepo.srw_template.TEMPLATE.format(**v).decode('unicode-escape')
 
 def _iterate_simulation_datafiles(op, params=None):
