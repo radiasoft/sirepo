@@ -87,14 +87,14 @@
     .srw-beamline-close-icon {
       visibility: hidden;
     }
-    .srw-beamline-element:hover {
+    .srw-hover:hover {
       border-radius: 5px;
       border: 1px solid #ccc;
     }
-    .srw-beamline-element:hover .srw-beamline-close-icon {
+    .srw-hover:hover .srw-beamline-close-icon {
       visibility: visible;
     }
-    .srw-beamline-close-icon:hover {
+    .srw-hover .srw-beamline-close-icon:hover {
       color: black;
     }
     .srw-drop-between-zone {
