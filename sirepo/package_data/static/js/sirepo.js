@@ -488,11 +488,13 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, ap
     appState.load_models($route.current.params['simulationId']);
     var self = this;
     self.toolbar_items = [
-        {type:'aperture', title:'Aperture'},
-        {type:'crl', title:'CRL'},
-        {type:'lens', title:'Lens'},
-        {type:'mirror', title:'Mirror'},
-        {type:'obstacle', title:'Obstacle'},
+        //TODO(pjm): move default values to separate area
+        {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1},
+        {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
+         horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
+        {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23},
+        {type:'mirror', title:'Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1},
+        {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5},
         {type:'watch', title:'Watchpoint'},
     ];
     self.activeItem = null;
@@ -587,7 +589,7 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, ap
                 });
             }
         }
-        if (! appState.models.post_propagation)
+        if (! appState.models.post_propagation || appState.models.post_propagation.length == 0)
             appState.models.post_propagation = _DEFAULT_ITEM_PROPAGATION_PARAMS;
         self.post_propagation = appState.models.post_propagation;
     }
