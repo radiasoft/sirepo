@@ -1,3 +1,11 @@
+.eggs/
+MANIFEST.in
+pytest.ini
+tox.ini
+.python-version
+.#*
+\#*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
