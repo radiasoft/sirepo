@@ -4,7 +4,7 @@ import re
 TEMPLATE = '''
 
 from srwl_bl import SRWLOptA, SRWLOptC, SRWLOptD, SRWLOptL
-from srwlib import srwl_uti_read_data_cols, srwl_opt_setup_surf_height_1d, srwl_opt_setup_CRL, srwl_uti_save_intens_ascii
+from srwlib import srwl_uti_read_data_cols, srwl_opt_setup_surf_height_1d, srwl_opt_setup_CRL
 
 varParam = [
 
@@ -97,20 +97,20 @@ varParam = [
     #Multi-Electron (partially-coherent) Wavefront Propagation
     ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
-    ['w_e', 'f', 9000., 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_e', 'f', {initialIntensityReport_photonEnergy}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ne', 'i', 1, 'number of points vs photon energy for calculation of intensity distribution'],
-    ['w_x', 'f', 0., 'central horizontal position [m] for calculation of intensity distribution'],
-    ['w_rx', 'f', 0.4e-03, 'range of horizontal position [m] for calculation of intensity distribution'],
+    ['w_x', 'f', {initialIntensityReport_horizontalPosition}, 'central horizontal position [m] for calculation of intensity distribution'],
+    ['w_rx', 'f', {initialIntensityReport_horizontalRange}, 'range of horizontal position [m] for calculation of intensity distribution'],
     ['w_nx', 'i', 100, 'number of points vs horizontal position for calculation of intensity distribution'],
-    ['w_y', 'f', 0., 'central vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_ry', 'f', 0.6e-03, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_y', 'f', {initialIntensityReport_verticalPosition}, 'central vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_ry', 'f', {initialIntensityReport_verticalRange}, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
-    ['w_smpf', 'f', 1., 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
-    ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
-    ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
+    ['w_smpf', 'f', {initialIntensityReport_sampleFactor}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', {initialIntensityReport_method}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_prec', 'f', {initialIntensityReport_precision}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
+    ['si_pol', 'i', {initialIntensityReport_polarization}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
+    ['si_type', 'i', {initialIntensityReport_characteristic}, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
     ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
 
     ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
@@ -135,21 +135,24 @@ varParam = [
 def get_srw_params():
     return varParam
 
-def get_beamline_optics(_params):
+def get_beamline_optics():
     {beamlineOptics}
 
 '''
 
-_APERTURE = '''
-    el.append(SRWLOptA("r", "a", {horizontalSize}, {verticalSize}))
-'''
+def _propagation_params(prop):
+    res = '    pp.append(['
+    for i in range(len(prop)):
+        v = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
+        res += str(v)
+        if (i != len(prop) - 1):
+            res += ', '
+    res += '])\n'
+    return res
 
-_DRIFT = '''
-    el.append(SRWLOptD({size}))
-    pp.append([0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
-'''
-
-def generate_beamline_optics(beamline, last_id):
+def generate_beamline_optics(models, last_id):
+    beamline = models['beamline']
+    propagation = models['propagation']
     res = '''
     el = []
     pp = []
@@ -160,35 +163,33 @@ def generate_beamline_optics(beamline, last_id):
         if prev:
             size = float(item['position']) - float(prev['position'])
             if size != 0:
-                res += _DRIFT.format(size=size)
+                res += '    el.append(SRWLOptD({}))\n'.format(size)
+                res += _propagation_params(propagation[str(prev['id'])][1])
+
         if item['type'] == 'aperture':
-            res += _APERTURE.format(
-                horizontalSize=_float(item, 'horizontalSize', 1000),
-                verticalSize=_float(item, 'verticalSize', 1000))
-            #TODO(pjm): define propagation parameters on client
-            if prev:
-                res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
-            else:
-                res += '    pp.append([0, 0, 1, 0, 0, 2.5, 5.0, 1.5, 2.5, 0, 0, 0])\n'
+            res += '    el.append(SRWLOptA("r", "a", {}, {}))\n'.format(
+                _float(item, 'horizontalSize', 1000),
+                _float(item, 'verticalSize', 1000))
+            res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'crl':
             res += '    el.append(srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0))\n'.format(
                 _escape(item['focalPlane']),
                 _float(item, 'refractiveIndex'),
                 _float(item, 'attenuationLength'),
                 _escape(item['shape']),
-                _float(item, 'horizontalApertureSize'),
-                _float(item, 'verticalApertureSize'),
+                _float(item, 'horizontalApertureSize', 1000),
+                _float(item, 'verticalApertureSize', 1000),
                 _float(item, 'radius'),
                 int(item['numberOfLenses']),
                 _float(item,'wallThickness'))
-            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+            res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'lens':
             res += '    el.append(SRWLOptL({}, {}))\n'.format(
                 _float(item, 'horizontalFocalLength'),
                 _float(item, 'verticalFocalLength'))
-            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+            res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'mirror':
-            res += '    ifnHDM = "../package_data/static/dat/mirror_1d.dat"\n';
+            res += '    ifnHDM = "../package_data/static/dat/mirror_1d.dat"\n'
             res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
             res += '    el.append(srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={}))\n'.format(
                 _escape(item['orientation']),
@@ -196,23 +197,45 @@ def generate_beamline_optics(beamline, last_id):
                 _float(item, 'heightAmplification'),
                 _float(item, 'horizontalTransverseSize', 1000),
                 _float(item, 'verticalTransverseSize', 1000))
-            res += '    pp.append([0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+            res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'obstacle':
             res += '    el.append(SRWLOptA("r", "o", {}, {}))\n'.format(
                 _float(item, 'horizontalSize', 1000),
                 _float(item, 'verticalSize', 1000))
-            res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
+            res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'watch':
+            if len(beamline) == 1:
+                res += '    el.append(SRWLOptD({}))\n'.format(1.0e-16)
+                res += _propagation_params(propagation[str(item['id'])][0])
             if last_id and last_id == int(item['id']):
                 break
         prev = item
         res += '\n'
 
     # final propagation parameters
-    #res += '    pp.append([0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])\n'
-    res += '    pp.append([0, 0, 1, 0, 0, 0.3, 2.0, 0.5, 1.0, 0, 0, 0])\n'
+    res += _propagation_params(models['post_propagation'])
     res += '    return SRWLOptC(el, pp)\n'
     return res
+
+def run_all_text():
+    return '''
+def run_all_reports():
+    import srwl_bl
+    v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+    v.ss = True
+    v.ss_pl = 'e'
+    v.sm = True
+    v.sm_pl = 'e'
+    v.pw = True
+    v.pw_pl = 'xy'
+    v.si = True
+    v.ws = True
+    v.ws_pl = 'xy'
+    op = get_beamline_optics()
+    srwl_bl.SRWLBeamline(v.name).calc_all(v, op)
+
+run_all_reports()
+'''
 
 def _escape(v):
     return re.sub(r'[ ()\.]', '', str(v))
