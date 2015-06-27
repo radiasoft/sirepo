@@ -57,8 +57,8 @@ def process_output(filename, model_data):
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'Single-Particle On-Axis Spectrum'], ['eV', 'ph/s/.1%bw/mm^2']],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
-        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', 'Intensity at {} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
-        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'Intensity at {} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
     }
 
     data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
