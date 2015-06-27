@@ -90,7 +90,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr data-ng-repeat="prop in beamline.propagations">
+                <tr data-ng-repeat="prop in beamline.propagations track by $index">
                   <td>{{ prop.title }}</td>
                   <td class="srw-center"><input type="checkbox" data-ng-model="prop.params[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
                   <td class="srw-center"><input type="checkbox" data-ng-model="prop.params[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
