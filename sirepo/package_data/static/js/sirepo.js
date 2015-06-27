@@ -251,15 +251,15 @@ app.config(function($routeProvider) {
     $routeProvider
         .when('/simulations', {
             controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html',
+            templateUrl: '/static/html/simulations.html?20150626',
         })
         .when('/source/:simulationId', {
             controller: 'SourceController as source',
-            templateUrl: '/static/html/source.html',
+            templateUrl: '/static/html/source.html?20150626',
         })
         .when('/beamline/:simulationId', {
             controller: 'BeamlineController as beamline',
-            templateUrl: '/static/html/beamline.html',
+            templateUrl: '/static/html/beamline.html?20150626',
         })
         .otherwise({
             redirectTo: '/simulations'
@@ -483,7 +483,7 @@ app.controller('SourceController', function ($rootScope, $route, appState) {
     appState.load_models($route.current.params['simulationId']);
 });
 
-app.controller('BeamlineController', function ($rootScope, $route, $location, appState) {
+app.controller('BeamlineController', function ($rootScope, $route, $location, $timeout, appState) {
     $rootScope.activeSection = "beamline";
     appState.load_models($route.current.params['simulationId']);
     var self = this;
@@ -538,8 +538,12 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, ap
     }
 
     self.cancel_changes = function() {
-        self.is_dirty = false;
         appState.cancel_changes('beamline');
+        //TODO(pjm): need to set clean later - the collection listener gets notified in later calls
+        self.dismiss_popup();
+        $timeout(function() {
+            self.is_dirty = false;
+        }, 300);
     }
 
     self.dismiss_popup = function() {
@@ -606,6 +610,10 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, ap
             return res;
         }
         return appState.models.beamline;
+    }
+
+    self.is_touchscreen = function() {
+        return Modernizr.touch;
     }
 
     self.open_beamline_page = function() {
@@ -685,7 +693,7 @@ app.directive('fieldEditor', function(appState, $http) {
               '</div>',
               //TODO(pjm): need file interface
               '<div data-ng-switch-when="File" class="col-sm-5">',
-                '<p class="form-control-static"><a href><span class="glyphicon glyphicon-file"></span> HDM_height_prof_1d.dat</a></p>',
+                '<p class="form-control-static"><a href="/static/dat/mirror_1d.dat"><span class="glyphicon glyphicon-file"></span> mirror_1d.dat</a></p>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control">',
@@ -777,8 +785,8 @@ app.directive('panelHeading', function() {
             '<span class="lead">{{ panelHeading }}</span>',
             '<div class="srw-panel-options pull-right">',
             '<a href data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
-            '<a href data-ng-show="allowFullScreen" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
-            '<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
+            //'<a href data-ng-show="allowFullScreen" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
+            //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
             '<a href data-ng-click="toggleVisible()" data-ng-show="isVisible()" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
             '<a href data-ng-click="toggleVisible()" data-ng-hide="isVisible()" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
@@ -1659,10 +1667,31 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                     $('.srw-editor-holder').append(editor);
                 }
             });
-            $(element).click(function() {
-                $('.srw-beamline-element-label').not(this).popover('hide');
+
+            function toggle_popover() {
+                $('.srw-beamline-element-label').not(el).popover('hide');
                 el.popover('toggle');
-            });
+                scope.$apply();
+            }
+            if (scope.$parent.beamline.is_touchscreen()) {
+                var has_touch_move = false;
+                $(element).bind('touchstart', function() {
+                    has_touch_move = false;
+                });
+                $(element).bind('touchend', function() {
+                    if (! has_touch_move)
+                        toggle_popover();
+                    has_touch_move = false;
+                });
+                $(element).bind('touchmove', function() {
+                    has_touch_move = true;
+                });
+            }
+            else {
+                $(element).click(function() {
+                    toggle_popover();
+                });
+            }
             if (scope.item['_show_popover']) {
                 delete scope.item['_show_popover'];
                 // when the item is added, it may have been dropped between items
@@ -1682,6 +1711,11 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                 }, 500);
             }
             scope.$on('$destroy', function() {
+                if (scope.$parent.beamline.is_touchscreen()) {
+                    $(element).bind('touchstart', null);
+                    $(element).bind('touchend', null);
+                    $(element).bind('touchmove', null);
+                }
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
                 var popover = el.data('bs.popover');
@@ -1820,12 +1854,20 @@ app.directive('beamlineEditor', function(appState) {
                     '<button ng-click="beamline.dismiss_popup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>',
                   '</div>',
                 '</div>',
+                '<div class="form-group" data-ng-show="beamline.is_touchscreen()">',
+                  '<div class="col-sm-offset-6 col-sm-3">',
+                    '<button ng-click="remove_active_item()" style="width: 100%" type="submit" class="btn btn-danger">Delete</button>',
+                  '</div>',
+                '</div>',
               '</form>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamline = $scope.$parent.beamline;
             $scope.advancedFields = appState.model_info($scope.modelName).advanced;
+            $scope.remove_active_item = function() {
+                $scope.beamline.remove_element($scope.beamline.activeItem);
+            }
             //TODO(pjm): investigate why id needs to be set in html for revisiting the beamline page
             //$scope.editorId = "srw-" + $scope.modelName + "-editor";
         },

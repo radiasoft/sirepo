@@ -41,8 +41,12 @@ def remap_3d(info, allrange, z_label, z_units):
         'z_matrix': ar2d.tolist(),
     }
 
-def process_output(filename):
+def process_output(filename, model_data):
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
+
+    if model_data['models']['fluxReport']['fluxType'] == 2:
+        sValShort = 'Intensity'
+        sValUnit = 'ph/s/.1%bw/mm^2'
 
     is_3d = {
         'res_pow.dat': True,
@@ -50,18 +54,21 @@ def process_output(filename):
         'res_int_pr_se.dat': True,
     }
     file_info = {
-        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum'], ['eV', 'ph/s/.1%bw/mm^2']],
+        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'Single-Particle On-Axis Spectrum'], ['eV', 'ph/s/.1%bw/mm^2']],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
-        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', 'Intensity Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
-        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'Intensity After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
     }
 
     data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
 
-    print(allrange)
+    title = file_info[filename][0][2]
+    if '{' in title:
+        title = title.format(model_data['models'][model_data['report']]['photonEnergy'])
+
     info = {
-        'title': file_info[filename][0][2],
+        'title': title,
         'x_range': [allrange[0], allrange[1]],
         'y_label': superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
@@ -104,7 +111,4 @@ with open('in.json') as f:
 
     #TODO(pjm): need a signal/alarm to stop long processes
     srwl_bl.SRWLBeamline(v.name).calc_all(v, op)
-    process_output(outfile)
-
-
-print("done")
+    process_output(outfile, data)

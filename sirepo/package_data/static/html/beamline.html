@@ -18,7 +18,7 @@
         <div class="srw-beamline-container">
 
           <div style="display: inline-block" data-ng-repeat="item in beamline.get_beamline() track by item.id">
-            <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element">
+            <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.is_touchscreen() ? '' : 'srw-hover' }}">
               <span class="srw-beamline-badge badge">{{ item.position }}m</span>
               <span data-ng-click="beamline.remove_element(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>
               <div class="srw-beamline-image"><canvas></canvas></div>
@@ -90,7 +90,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr data-ng-repeat="prop in beamline.propagations track by $index">
+                <tr data-ng-repeat="prop in beamline.propagations">
                   <td>{{ prop.title }}</td>
                   <td class="srw-center"><input type="checkbox" data-ng-model="prop.params[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
                   <td class="srw-center"><input type="checkbox" data-ng-model="prop.params[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
