@@ -483,7 +483,7 @@ app.controller('SourceController', function ($rootScope, $route, appState) {
     appState.load_models($route.current.params['simulationId']);
 });
 
-app.controller('BeamlineController', function ($rootScope, $route, $location, appState) {
+app.controller('BeamlineController', function ($rootScope, $route, $location, $timeout, appState) {
     $rootScope.activeSection = "beamline";
     appState.load_models($route.current.params['simulationId']);
     var self = this;
@@ -538,8 +538,12 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, ap
     }
 
     self.cancel_changes = function() {
-        self.is_dirty = false;
         appState.cancel_changes('beamline');
+        //TODO(pjm): need to set clean later - the collection listener gets notified in later calls
+        self.dismiss_popup();
+        $timeout(function() {
+            self.is_dirty = false;
+        }, 300);
     }
 
     self.dismiss_popup = function() {
@@ -1708,9 +1712,9 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
             }
             scope.$on('$destroy', function() {
                 if (scope.$parent.beamline.is_touchscreen()) {
-                    $(element).bind('touchstart', undef);
-                    $(element).bind('touchend', undef);
-                    $(element).bind('touchmove', undef);
+                    $(element).bind('touchstart', null);
+                    $(element).bind('touchend', null);
+                    $(element).bind('touchmove', null);
                 }
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
