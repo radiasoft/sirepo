@@ -6,14 +6,16 @@ u"""Flask routes
 """
 from __future__ import absolute_import, division, print_function
 
-from subprocess import Popen, PIPE
 import datetime
+import errno
 import json
 import os
 import random
 import re
 import shutil
 import string
+import subprocess
+import threading
 
 from pykern import pkio
 from pykern import pkresource
@@ -58,6 +60,12 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 
 #: Is file name json
 _JSON_FILE_RE = re.compile(r'\.json$')
+
+#: Parsing errors from SRW
+_SRW_ERROR_RE = re.compile(r'\bError: ([^\n]+)')
+
+#: How long before killing SRW process
+_SRW_MAX_SECONDS = 30
 
 #: Flask app instance, must be bound globally
 app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER))
@@ -127,23 +135,19 @@ def srw_run():
     http_text = _read_http_input()
     data = json.loads(http_text)
     with pkio.save_chdir(_work_dir(), mkdir=True) as wd:
-        pkdp('work_dir={}', wd)
+        pkdp('dir={}', wd)
         _save_simulation_json(data)
         pkio.write_text('in.json', http_text)
         pkio.write_text('srw_parameters.py', _generate_parameters_file(data))
         #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
         # with ebeam horizontal position of 0.05
-        p = Popen(['sirepo', 'srw', 'run'], stdout=PIPE, stderr=PIPE)
-        output, err = p.communicate()
-        if p.returncode != 0:
-            pkdp('run_srw.py failed with status code: {}, dir: {}, error: {}'.format(p.returncode, wd, err))
-            m = re.search('Error: ([^\n]+)', err)
-            if m:
-                error_text = m.group(1)
-            else:
-                error_text = 'an error occurred'
+        err = _Command(['sirepo', 'srw', 'run'], _SRW_MAX_SECONDS).run_and_read()
+        if err:
+            i = _id(data)
+            pkdp('error: simulationId={}, dir={}, out={}', i, wd, err)
             return json.dumps({
-                'error': error_text,
+                'error': _error_text(err),
+                'simulationId': i,
             })
         with open('out.json') as f:
             data = f.read()
@@ -155,7 +159,10 @@ def srw_run():
 
 @app.route('/srw/simulation/<simulation_id>')
 def srw_simulation_data(simulation_id):
-    res = _iterate_simulation_datafiles(_find_simulation_data, {'simulationId': simulation_id})
+    res = _iterate_simulation_datafiles(
+        _find_simulation_data,
+        {'simulationId': simulation_id},
+    )
     if len(res):
         if len(res) > 1:
             pkdp('multiple data files found for id: {}'.format(simulation_id))
@@ -174,6 +181,14 @@ def srw_simulation_list():
     )
 
 
+def _error_text(err):
+    """Parses error from SRW"""
+    m = re.search(_SRW_ERROR_RE, err)
+    if m:
+        return m.group(1)
+    return 'a system error occurred'
+
+
 def _escape_and_scale_value(k, v):
     v = str(v).replace("'", '')
     if k in _SCALE_VALUES:
@@ -182,7 +197,7 @@ def _escape_and_scale_value(k, v):
 
 
 def _find_simulation_data(res, path, data, params):
-    if str(data['models']['simulation']['simulationId']) == params['simulationId']:
+    if str(_id(data)) == params['simulationId']:
         res.append(data)
 
 
@@ -224,13 +239,17 @@ def _examples():
     return _SRW_EXAMPLES
 
 
+def _id(data):
+    """Extract id from data"""
+    return str(data['models']['simulation']['simulationId'])
+
 def _iterate_simulation_datafiles(op, params=None):
     res = []
     for path in pkio.walk_tree(_SIMULATION_DIR, _JSON_FILE_RE):
         try:
             op(res, path, _open_json_file(path), params)
         except ValueError:
-            pkdp('unparseable json file: {}'.format(path))
+            pkdp('unparseable json file: {}', path)
 
     return res
 
@@ -242,11 +261,11 @@ def _json_input(field):
 def _open_json_file(path):
     with open(str(path)) as f:
         return json.load(f)
-    pkdp(path)
+
 
 def _process_simulation_list(res, path, data, params):
     res.append({
-        'simulationId': data['models']['simulation']['simulationId'],
+        'simulationId': _id(data),
         'name': data['models']['simulation']['name'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
@@ -268,7 +287,7 @@ def _save_new_simulation(data, is_response=True):
 
 
 def _save_simulation_json(data):
-    si = data['models']['simulation']['simulationId']
+    si = _id(data)
     with open(_simulation_filename(si), 'w') as outfile:
         json.dump(data, outfile)
 
@@ -296,3 +315,41 @@ def _work_dir():
         if not d.check():
             return d
     raise RuntimeError('{}: failed to create unique directory name'.format(d))
+
+
+class _Command(threading.Thread):
+    """Run a command in a thread, and kill after timeout"""
+
+    def __init__(self, cmd, timeout):
+        super(_Command, self).__init__()
+        # Daemon threads are stopped abruptly so won't hang the server
+        self.daemon = True
+        self.cmd = cmd
+        self.timeout = timeout
+        self.process = None
+        self.out = ''
+
+    def run(self):
+        self.process = subprocess.Popen(
+            self.cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        self.out = self.process.communicate()[0]
+
+    def run_and_read(self):
+        self.start()
+        self.join(self.timeout)
+        try:
+            self.process.kill()
+            pkdp('Timeout: cmd={}', self.cmd)
+            # Thread should exit, but make sure
+            self.join(2)
+            return self.out + '\nError: simulation took too long'
+        except OSError as e:
+            if e.errno != errno.ESRCH:
+                raise
+        if self.process.returncode != 0:
+            pkdp('Error: cmd={}, returncode={}', self.cmd, self.process.returncode)
+            return self.out + '\nError: simulation failed'
+        return None
