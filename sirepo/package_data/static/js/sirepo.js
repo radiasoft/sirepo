@@ -573,8 +573,8 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
         for (var i = 0; i < beamline.length; i++) {
             if (! propagation[beamline[i].id]) {
                 propagation[beamline[i].id] = [
-                    _DEFAULT_ITEM_PROPAGATION_PARAMS,
-                    _DEFAULT_DRIFT_PROPAGATION_PARAMS,
+                    _DEFAULT_ITEM_PROPAGATION_PARAMS.slice(),
+                    _DEFAULT_DRIFT_PROPAGATION_PARAMS.slice(),
                 ];
             }
             var p = propagation[beamline[i].id];
@@ -594,7 +594,7 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
             }
         }
         if (! appState.models.post_propagation || appState.models.post_propagation.length == 0)
-            appState.models.post_propagation = _DEFAULT_ITEM_PROPAGATION_PARAMS;
+            appState.models.post_propagation = _DEFAULT_ITEM_PROPAGATION_PARAMS.slice();
         self.post_propagation = appState.models.post_propagation;
     }
 
