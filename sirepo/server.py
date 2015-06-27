@@ -75,6 +75,7 @@ def init(run_dir):
     """Initialize globals and populate simulation dir"""
     global _SIMULATION_DIR
     global _WORK_DIR
+    run_dir = py.path.local(run_dir)
     _WORK_DIR = run_dir.join('srw_tmp')
     _SIMULATION_DIR = run_dir.join('srw_simulations')
     if not _SIMULATION_DIR.check():

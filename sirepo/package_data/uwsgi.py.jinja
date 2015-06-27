@@ -4,13 +4,15 @@ import logging
 import logging.handlers;
 
 # Needs to be explicit
-server.init(port={{ port }}, run_dir='{{ run_dir }}')
+server.init(run_dir='{{ run_dir }}')
 app = server.app
 
 handler = logging.handlers.RotatingFileHandler(
     '{{ run_dir }}/app.log', maxBytes=10000, backupCount=1)
 handler.setLevel(logging.INFO)
+{% raw %}
 handler.setFormatter(logging.Formatter(
     '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s'))
+{% endraw %}
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
