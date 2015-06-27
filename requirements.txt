@@ -1,2 +1,3 @@
 git+https://github.com/radiasoft/pykern.git@master#egg=pykern
 flask>=0.10
+numconv>=2.1
