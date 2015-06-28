@@ -29,19 +29,21 @@ def http(port=None, run_dir=None):
     server.app.run(host='0.0.0.0', port=_port(port), debug=1)
 
 
-def uwsgi(port=None, run_dir=None, daemon=False):
+def uwsgi(port=None, run_dir=None, docker=False):
+    """Starts UWSGI server"""
     run_dir =_run_dir(run_dir)
     values = {
         'run_dir': run_dir,
         'port': _port(port),
-        'daemon': daemon,
+        'docker': docker,
     }
     # uwsgi.py must be first, because referenced by uwsgi.yml
     for f in ('uwsgi.py', 'uwsgi.yml'):
         output = run_dir.join(f)
         values[f.replace('.', '_')] = str(output)
         pkjinja.render_resource(f, values, output=output)
-    subprocess.check_call(['uwsgi', '--yaml=' + values['uwsgi_yml']])
+    cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
+    subprocess.check_call(cmd)
 
 
 def _port(port):

@@ -7,9 +7,10 @@ uwsgi:
   threads: 40
   wsgi-file: {{ uwsgi_py }}
   callable: app
+  chdir = {{ run_dir }}
   die-on-term: true
   stats: {{ run_dir }}/sock
   pidfile: {{ run_dir }}/pid
-  {% if daemon %}
-  daemonize = {{ run_dir }}/uwsgi.log
+  {% if docker %}
+  logto = {{ run_dir }}/uwsgi.log
   {% endif %}
