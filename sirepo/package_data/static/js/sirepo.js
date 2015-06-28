@@ -1716,11 +1716,14 @@ app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
                     $(element).bind('touchend', null);
                     $(element).bind('touchmove', null);
                 }
+                else {
+                    $(element).off();
+                }
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
                 var popover = el.data('bs.popover');
                 // popover has a memory leak with $tip user_data which needs to be cleaned up manually
-                if (popover.$tip)
+                if (popover && popover.$tip)
                     popover.$tip.removeData('bs.popover');
                 el.popover('destroy');
             });
