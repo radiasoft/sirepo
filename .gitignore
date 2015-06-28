@@ -1,3 +1,4 @@
+run/
 .eggs/
 MANIFEST.in
 pytest.ini
