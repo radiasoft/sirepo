@@ -1410,11 +1410,6 @@ app.directive('plot3d', function(appState, d3Service) {
                 $scope.canvas_size = 2 * (width - rightpanel_margin.left - rightpanel_margin.right) / 3;
                 var bottompanel_height = 2 * $scope.canvas_size / 5 + bottompanel_margin.top + bottompanel_margin.bottom;
                 var rightpanel_width = $scope.canvas_size / 2 + rightpanel_margin.left + rightpanel_margin.right;
-                $scope.rightpanel_xAxis.ticks(
-                    width >= 700 ? 5
-                        : width >= 566 ? 4
-                        : width >= 433 ? 3
-                        : 2);
                 $scope.x_axis_scale.range([0, $scope.canvas_size - 1]);
                 $scope.y_axis_scale.range([$scope.canvas_size - 1, 0]);
                 $scope.bottompanel_y_scale.range([bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom - 1, 0]).nice();
@@ -1470,6 +1465,17 @@ app.directive('plot3d', function(appState, d3Service) {
                 $scope.select(".z-axis-label")
                     .attr("x", $scope.canvas_size + rightpanel_width / 2)
                     .attr("y", $scope.canvas_size + margin);
+                var ticks = function(axis, axisRange, isShorterAxis) {
+                    var spacing = isShorterAxis ? 150 : 80;
+                    var n = Math.max(Math.round($scope.canvas_size/spacing), 3);
+                    axis.ticks(n);
+                };
+                ticks($scope.rightpanel_xAxis, true);
+                ticks($scope.rightpanel_yAxis, false);
+                ticks($scope.bottompanel_xAxis, false);
+                ticks($scope.bottompanel_yAxis, true);
+                ticks($scope.main_xAxis, false);
+                ticks($scope.main_yAxis, false);
                 $scope.select(".x.axis.grid")
                     .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
                     .call($scope.zoom)
