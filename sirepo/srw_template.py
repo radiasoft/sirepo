@@ -1,4 +1,3 @@
-
 import re
 
 TEMPLATE = '''
@@ -189,7 +188,7 @@ def generate_beamline_optics(models, last_id):
                 _float(item, 'verticalFocalLength'))
             res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'mirror':
-            res += '    ifnHDM = "../package_data/static/dat/mirror_1d.dat"\n'
+            res += '    ifnHDM = "mirror_1d.dat"\n'
             res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
             res += '    el.append(srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={}))\n'.format(
                 _escape(item['orientation']),

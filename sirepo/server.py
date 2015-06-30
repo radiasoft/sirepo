@@ -140,6 +140,7 @@ def srw_run():
         _save_simulation_json(data)
         pkio.write_text('in.json', http_text)
         pkio.write_text('srw_parameters.py', _generate_parameters_file(data))
+        shutil.copyfile(pkresource.filename('static/dat/mirror_1d.dat'), 'mirror_1d.dat')
         #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
         # with ebeam horizontal position of 0.05
         err = _Command(['sirepo', 'srw', 'run'], _SRW_MAX_SECONDS).run_and_read()
