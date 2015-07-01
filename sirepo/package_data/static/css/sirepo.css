@@ -146,8 +146,9 @@
       display: block;
     }
 
-    .slider-horizontal {
+    div.slider-horizontal {
       margin: 0 1em;
+      min-width: 160px;
     }
 
     /* plot2d styles */
