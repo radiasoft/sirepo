@@ -239,7 +239,7 @@ var _MODEL = {
             ['title', 'Element Name', 'String'],
             ['position', 'Nominal Position [m]', 'Float'],
             ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
-            ['verticalSize', 'Verticalal Size [mm]', 'Float'],
+            ['verticalSize', 'Vertical Size [mm]', 'Float'],
         ],
     },
 };
