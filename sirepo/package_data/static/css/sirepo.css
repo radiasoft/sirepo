@@ -268,3 +268,7 @@ th.srw-tiny-heading {
 .srw-info-pointer {
   cursor: pointer;
 }
+
+input.ng-invalid {
+  background-color: #fad8de;
+}
