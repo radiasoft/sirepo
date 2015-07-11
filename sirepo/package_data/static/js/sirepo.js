@@ -671,6 +671,28 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
     }
 });
 
+var NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
+
+app.directive('stringToNumber', function() {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return null;
+                if (NUMBER_REGEXP.test(value))
+                    return parseFloat(value);
+                return undefined;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return value;
+                return value.toString();
+            });
+        }
+    };
+});
 
 app.directive('fieldEditor', function(appState, $http) {
     return {
@@ -687,7 +709,7 @@ app.directive('fieldEditor', function(appState, $http) {
                 '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in appState.beams track by item.name"></select>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-3">',
-                '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+                '<input string-to-number="" data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-3">',
                 '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
@@ -735,7 +757,7 @@ app.directive('buttons', function(appState) {
         },
         template: [
             '<div class="col-sm-6 pull-right cssFade" data-ng-show="formName.$dirty">',
-              '<button data-ng-click="save_changes()" class="btn btn-primary">Save Changes</button> ',
+            '<button data-ng-click="save_changes()" class="btn btn-primary {{ formName.$valid ? \'\' : \'disabled\' }}">Save Changes</button> ',
               '<button data-ng-click="cancel_changes()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
@@ -749,7 +771,8 @@ app.directive('buttons', function(appState) {
                 change_done();
             });
             $scope.save_changes = function() {
-                appState.save_changes($scope.modelName);
+                if ($scope.formName.$valid)
+                    appState.save_changes($scope.modelName);
             };
             $scope.cancel_changes = function() {
                 appState.cancel_changes($scope.modelName);
