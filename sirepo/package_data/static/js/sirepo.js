@@ -1,6 +1,7 @@
-"use strict";
+'use strict';
 
 //TODO(pjm): needs consistent property/function naming convension
+// functionNamesLikeThis, variableNamesLikeThis, ClassNamesLikeThis, EnumNamesLikeThis, methodNamesLikeThis, CONSTANT_VALUES_LIKE_THIS, foo.namespaceNamesLikeThis.bar, and filenameslikethis.js.
 
 // Application meta-data
 var _ENUM = {
@@ -278,8 +279,8 @@ app.factory('beamlineGraphics', function() {
             width = 10;
             height = canvasHeight;
         }
-        ctx.fillStyle="#ddee00";
-        ctx.strokeStyle = "#000000";
+        ctx.fillStyle = '#ddee00';
+        ctx.strokeStyle = '#000000';
         ctx.beginPath();
         ctx.moveTo(x + width / 2, y);
         ctx.bezierCurveTo(x + width, y + 10, x + width, height - 10, x + width / 2, height);
@@ -291,20 +292,20 @@ app.factory('beamlineGraphics', function() {
         lens: draw_lens,
         aperture: function(ctx) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle="#000000";
+            ctx.fillStyle = '#000000';
             ctx.fillRect(23, 0, 5, 24);
             ctx.fillRect(23, 36, 5, 24);
         },
         mirror: function(ctx) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle="#bdd7ee";
+            ctx.fillStyle = '#bdd7ee';
             ctx.fillRect(23, 0, 5, canvasHeight);
-            ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = '#000000';
             ctx.strokeRect(23, 0, 5, canvasHeight);
         },
         crl: function(ctx) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle="#333333";
+            ctx.fillStyle = '#333333';
             ctx.fillRect(15, 0, 20, canvasHeight);
             draw_lens(ctx, 10, 0, 10, canvasHeight);
             draw_lens(ctx, 20, 0, 10, canvasHeight);
@@ -312,15 +313,15 @@ app.factory('beamlineGraphics', function() {
         },
         obstacle: function(ctx) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle="#669999";
+            ctx.fillStyle = '#669999';
             ctx.fillRect(15, 20, 20, 20);
-            ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = '#000000';
             ctx.strokeRect(15, 20, 20, 20);
         },
         watch: function(ctx) {
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             var radius = 15;
-            ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = '#000000';
             ctx.beginPath();
             ctx.moveTo(5, 30);
             ctx.bezierCurveTo(15, 30 + radius, 35, 30 + radius, 45, 30);
@@ -328,12 +329,12 @@ app.factory('beamlineGraphics', function() {
             ctx.stroke();
             ctx.beginPath();
             ctx.arc(25, 30, radius - 5, 0, 2 * Math.PI);
-            ctx.fillStyle="#a52a2a";
+            ctx.fillStyle = '#a52a2a';
             ctx.fill();
             ctx.stroke();
             ctx.beginPath();
             ctx.arc(25, 30, 4, 0, 2 * Math.PI);
-            ctx.fillStyle="#000000";
+            ctx.fillStyle = '#000000';
             ctx.fill();
         },
     };
@@ -342,7 +343,7 @@ app.factory('beamlineGraphics', function() {
         draw_icon: function(item, canvas) {
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
-            draw[item](canvas.getContext("2d"));
+            draw[item](canvas.getContext('2d'));
         },
     };
 });
@@ -365,7 +366,7 @@ app.factory('appState', function($http, $rootScope) {
                 $rootScope.$broadcast(key + '.changed');
             }
         }
-    };
+    }
 
     var model_info = function(name) {
         return _MODEL[name];
@@ -396,7 +397,7 @@ app.factory('appState', function($http, $rootScope) {
             execute_queue();
         }).error(function(data, status) {
             //TODO(pjm): combine error code with above
-            console.log("run failed: ", status, ' ', data);
+            console.log('run failed: ', status, ' ', data);
             current_queue.shift();
             execute_queue();
         });
@@ -439,7 +440,7 @@ app.factory('appState', function($http, $rootScope) {
         }
     };
     self.save_changes = function(name) {
-        console.log("save changes: ", name);
+        console.log('save changes: ', name);
         delete(self.models[name]['_error']);
         self.saved_model_values[name] = clone_model(name);
         if (name.indexOf('Report') > 0) {
@@ -478,13 +479,13 @@ app.factory('appState', function($http, $rootScope) {
 });
 
 app.controller('SourceController', function ($rootScope, $route, appState) {
-    $rootScope.activeSection = "source";
+    $rootScope.activeSection = 'source';
     var self = this;
     appState.load_models($route.current.params['simulationId']);
 });
 
 app.controller('BeamlineController', function ($rootScope, $route, $location, $timeout, appState) {
-    $rootScope.activeSection = "beamline";
+    $rootScope.activeSection = 'beamline';
     appState.load_models($route.current.params['simulationId']);
     var self = this;
     self.toolbar_items = [
@@ -641,7 +642,7 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
     self.drop_between = function(index, data) {
         if (! data)
             return;
-        //console.log("drop_between: ", index, ' ', data, ' ', data['id'] ? 'old' : 'new');
+        //console.log('drop_between: ', index, ' ', data, ' ', data['id'] ? 'old' : 'new');
         var item;
         if (data['id']) {
             $('.srw-beamline-element-label').popover('hide');
@@ -713,7 +714,7 @@ app.directive('fieldEditor', function(appState, $http) {
             if (scope.fieldEditor[2] == 'BeamList') {
                 if (appState.beams)
                     return;
-                $http["get"]('/static/json/beams.json')
+                $http['get']('/static/json/beams.json')
                     .success(function(data, status) {
                         appState.beams = data;
                     })
@@ -730,7 +731,7 @@ app.directive('buttons', function(appState) {
         scope: {
             formName: '=',
             modelName: '=',
-            modalId: "@",
+            modalId: '@',
         },
         template: [
             '<div class="col-sm-6 pull-right cssFade" data-ng-show="formName.$dirty">',
@@ -821,7 +822,7 @@ app.directive('plot2d', function(appState, d3Service) {
     function linspace(start, stop, nsteps) {
         var delta = (stop - start) / (nsteps - 1);
         return d3.range(start, stop + delta, delta).slice(0, nsteps);
-    };
+    }
 
     return {
         restrict: 'A',
@@ -857,13 +858,13 @@ app.directive('plot2d', function(appState, d3Service) {
                     if (! found)
                         x_peak_values.push([p[0], p[1], x_pixel]);
                 }
-                //console.log("local maxes: ", x_peak_values.length);
+                //console.log('local maxes: ', x_peak_values.length);
                 return x_peak_values;
             };
 
             $scope.init = function(id) {
                 $scope.plot_id = '#' + id;
-                formatter = d3.format(",.0f")
+                formatter = d3.format(',.0f')
                 $scope.slider = $($scope.plot_id + ' .srw-plot2d-slider').slider();
                 $scope.slider.on('slide', $scope.slider_changed);
                 $(window).resize($scope.resize);
@@ -871,10 +872,10 @@ app.directive('plot2d', function(appState, d3Service) {
                 $scope.y_axis_scale = d3.scale.linear();
                 $scope.x_axis = d3.svg.axis()
                     .scale($scope.x_axis_scale)
-                    .orient("bottom");
+                    .orient('bottom');
                 $scope.x_axis_grid = d3.svg.axis()
                     .scale($scope.x_axis_scale)
-                    .orient("bottom");
+                    .orient('bottom');
                 $scope.y_axis = d3.svg.axis()
                     .scale($scope.y_axis_scale)
                     // this causes a "number of fractional digits" error in MSIE
@@ -883,60 +884,60 @@ app.directive('plot2d', function(appState, d3Service) {
                         return value.toExponential();
                     })
                     .ticks(5)
-                    .orient("left");
+                    .orient('left');
                 $scope.y_axis_grid = d3.svg.axis()
                     .scale($scope.y_axis_scale)
-                    .orient("left");
+                    .orient('left');
                 $scope.graph_line = d3.svg.line()
                     .x(function(d) {return $scope.x_axis_scale(d[0])})
                     .y(function(d) {return $scope.y_axis_scale(d[1])});
 
                 $scope.svg = $scope.select('svg')
                 var context = $scope.svg
-                    .append("g")
-                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                context.append("g")
-                    .attr("class", "x axis")
-                context.append("g")
-                    .attr("class", "x axis grid")
-                context.append("g")
-                    .attr("class", "y axis")
-                context.append("g")
-                    .attr("class", "y axis grid")
-                context.append("text")
-                    .attr("transform", "rotate(-90)")
-                    .attr("class", "y-axis-label")
-                    .attr("y", - margin.left)
-                    .attr("dy", "1em")
-                    .style("text-anchor", "middle");
-                context.append("text")
-                    .attr("class", "x-axis-label")
-                    .attr("dy", "1em")
-                    .style("text-anchor", "middle");
-                context.append("text")
-                    .attr("class", "main-title")
-                    .attr("y", - margin.top / 2)
-                    .style("text-anchor", "middle");
+                    .append('g')
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+                context.append('g')
+                    .attr('class', 'x axis')
+                context.append('g')
+                    .attr('class', 'x axis grid')
+                context.append('g')
+                    .attr('class', 'y axis')
+                context.append('g')
+                    .attr('class', 'y axis grid')
+                context.append('text')
+                    .attr('transform', 'rotate(-90)')
+                    .attr('class', 'y-axis-label')
+                    .attr('y', - margin.left)
+                    .attr('dy', '1em')
+                    .style('text-anchor', 'middle');
+                context.append('text')
+                    .attr('class', 'x-axis-label')
+                    .attr('dy', '1em')
+                    .style('text-anchor', 'middle');
+                context.append('text')
+                    .attr('class', 'main-title')
+                    .attr('y', - margin.top / 2)
+                    .style('text-anchor', 'middle');
 
-                var focus = context.append("g")
-                    .attr("class", "focus")
-                    .style("display", "none");
-                focus.append("circle")
-                    .attr("r", 6);
-                focus.append("text")
-                    .attr("class", "focus-text")
-                    .attr("x", 9)
-                    .attr("dy", ".35em");
-                context.append("rect")
-                    .attr("class", "overlay")
-                    .on("mouseover", function() { focus.style("display", null); })
-                    .on("mouseout", function() { focus.style("display", "none"); })
-                    .on("mousemove", $scope.mousemove);
+                var focus = context.append('g')
+                    .attr('class', 'focus')
+                    .style('display', 'none');
+                focus.append('circle')
+                    .attr('r', 6);
+                focus.append('text')
+                    .attr('class', 'focus-text')
+                    .attr('x', 9)
+                    .attr('dy', '.35em');
+                context.append('rect')
+                    .attr('class', 'overlay')
+                    .on('mouseover', function() { focus.style('display', null); })
+                    .on('mouseout', function() { focus.style('display', 'none'); })
+                    .on('mousemove', $scope.mousemove);
 
-                var viewport = context.append("svg")
-                    .attr("class", "plot-viewport");
-                viewport.append("path")
-                    .attr("class", "line");
+                var viewport = context.append('svg')
+                    .attr('class', 'plot-viewport');
+                viewport.append('path')
+                    .attr('class', 'line');
             };
 
             $scope.load = function(json) {
@@ -946,10 +947,10 @@ app.directive('plot2d', function(appState, d3Service) {
                 $scope.x_units = json.x_units;
                 $scope.x_axis_scale.domain([json.x_range[0], json.x_range[1]]);
                 $scope.y_axis_scale.domain([d3.min(json.points), d3.max(json.points)]);
-                $scope.select(".y-axis-label").text(json.y_label);
-                $scope.select(".x-axis-label").text(json.x_label);
-                $scope.select(".main-title").text(json.title);
-                $scope.select(".line").datum($scope.points);
+                $scope.select('.y-axis-label').text(json.y_label);
+                $scope.select('.x-axis-label').text(json.x_label);
+                $scope.select('.main-title').text(json.title);
+                $scope.select('.line').datum($scope.points);
                 var dimensions = $scope.resize();
                 $scope.x_peak_values = $scope.compute_peaks(json, dimensions, x_points);
             };
@@ -967,56 +968,56 @@ app.directive('plot2d', function(appState, d3Service) {
                 }
                 if (local_max) {
                     var x_pixel = $scope.x_axis_scale(local_max[0]);
-                    if (x_pixel < 0 || x_pixel >= $scope.select(".plot-viewport").attr("width"))
+                    if (x_pixel < 0 || x_pixel >= $scope.select('.plot-viewport').attr('width'))
                         return;
-                    var focus = $scope.select(".focus");
-                    focus.attr("transform", "translate(" + x_pixel + "," + $scope.y_axis_scale(local_max[1]) + ")");
-                    focus.select("text").text(formatter(local_max[0]) + " " + $scope.x_units);
+                    var focus = $scope.select('.focus');
+                    focus.attr('transform', 'translate(' + x_pixel + ',' + $scope.y_axis_scale(local_max[1]) + ')');
+                    focus.select('text').text(formatter(local_max[0]) + ' ' + $scope.x_units);
                 }
             };
 
             $scope.resize = function() {
                 if (! $scope.points)
                     return;
-                var width = parseInt($scope.select().style("width")) - margin.left - margin.right;
-                var height = parseInt($scope.select().style("height")) - margin.top - margin.bottom;
+                var width = parseInt($scope.select().style('width')) - margin.left - margin.right;
+                var height = parseInt($scope.select().style('height')) - margin.top - margin.bottom;
                 if (height > width)
                     height = width;
                 $scope.x_axis_scale.range([-0.5, width - 0.5]);
                 $scope.y_axis_scale.range([height - 0.5, 0 - 0.5]).nice();
                 $scope.x_axis_grid.tickSize(-height);
                 $scope.y_axis_grid.tickSize(-width);
-                $scope.select(".x.axis")
-                    .attr("transform", "translate(0," + height + ")")
+                $scope.select('.x.axis')
+                    .attr('transform', 'translate(0,' + height + ')')
                     .call($scope.x_axis);
-                $scope.select(".x.axis.grid")
-                    .attr("transform", "translate(0," + height + ")")
+                $scope.select('.x.axis.grid')
+                    .attr('transform', 'translate(0,' + height + ')')
                     .call($scope.x_axis_grid); // tickLine == gridline
-                $scope.select(".y.axis")
+                $scope.select('.y.axis')
                     .call($scope.y_axis);
-                $scope.select(".y.axis.grid")
+                $scope.select('.y.axis.grid')
                     .call($scope.y_axis_grid);
-                $scope.select(".main-title")
-                    .attr("x", width / 2);
-                $scope.select(".y-axis-label")
-                    .attr("x", - height / 2);
-                $scope.select(".x-axis-label")
-                    .attr("x", width / 2)
+                $scope.select('.main-title')
+                    .attr('x', width / 2);
+                $scope.select('.y-axis-label')
+                    .attr('x', - height / 2);
+                $scope.select('.x-axis-label')
+                    .attr('x', width / 2)
                 // font height + 12 padding...
-                    .attr("y", height + 26);
-                $scope.select(".plot-viewport")
-                    .attr("width", width)
-                    .attr("height", height);
-                $scope.select("svg .overlay")
-                    .attr("width", width)
-                    .attr("height", height)
-                $scope.select(".line")
-                    .attr("d", $scope.graph_line);
+                    .attr('y', height + 26);
+                $scope.select('.plot-viewport')
+                    .attr('width', width)
+                    .attr('height', height);
+                $scope.select('svg .overlay')
+                    .attr('width', width)
+                    .attr('height', height)
+                $scope.select('.line')
+                    .attr('d', $scope.graph_line);
                 return [width, height];
             }
 
             $scope.select = function(selector) {
-                return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
+                return d3.select($scope.plot_id + (selector ? (' ' + selector) : ''));
             };
 
             $scope.slider_changed = function(ev) {
@@ -1064,7 +1065,7 @@ app.directive('plot2d', function(appState, d3Service) {
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
-                $(".overlay").off();
+                $('.overlay').off();
                 scope.svg.remove();
                 scope.svg = null;
                 scope.slider.off();
@@ -1098,10 +1099,10 @@ app.directive('plot3d', function(appState, d3Service) {
                 var xi_max = Math.floor($scope.x_index_scale(xv_max));
                 var xv_range = $scope.x_value_range.slice(xi_min, xi_max + 1);
                 var zv_range = row.slice(xi_min, xi_max + 1);
-                $scope.bottompanel_context.select($scope.plot_id + " path")
+                $scope.bottompanel_context.select($scope.plot_id + ' path')
                     .datum(d3.zip(xv_range, zv_range))
-                    .attr("class", "line")
-                    .attr("d", $scope.bottompanel_cut_line);
+                    .attr('class', 'line')
+                    .attr('d', $scope.bottompanel_cut_line);
             }
 
             $scope.draw_rightpanel_cut = function() {
@@ -1115,10 +1116,10 @@ app.directive('plot3d', function(appState, d3Service) {
                 var data = $scope.heatmap.slice(yi_min, yi_max + 1).map(function (v, i) {
                     return [$scope.y_value_range[i], v[xv]];
                 });
-                $scope.rightpanel_context.select($scope.plot_id + " path")
+                $scope.rightpanel_context.select($scope.plot_id + ' path')
                     .datum(data)
-                    .attr("class", "line")
-                    .attr("d", $scope.rightpanel_cut_line);
+                    .attr('class', 'line')
+                    .attr('d', $scope.rightpanel_cut_line);
             }
 
             $scope.init = function(id) {
@@ -1131,113 +1132,113 @@ app.directive('plot3d', function(appState, d3Service) {
                 $scope.rightpanel_x_scale = d3.scale.linear();
                 $scope.main_xAxis = d3.svg.axis()
                     .scale($scope.x_axis_scale)
-                    .orient("bottom");
+                    .orient('bottom');
                 $scope.main_yAxis = d3.svg.axis()
                     .scale($scope.y_axis_scale)
-                    .orient("left");
+                    .orient('left');
                 $scope.bottompanel_xAxis = d3.svg.axis()
                     .scale($scope.x_axis_scale)
-                    .orient("bottom");
+                    .orient('bottom');
                 $scope.bottompanel_yAxis = d3.svg.axis()
                     .scale($scope.bottompanel_y_scale)
-                    // this causes a "number of fractional digits" error in MSIE
+                    // this causes a 'number of fractional digits' error in MSIE
                     //.tickFormat(d3.format('e'))
                     .tickFormat(function (value) {
                         return value.toExponential();
                     })
                     .ticks(5)
-                    .orient("left");
+                    .orient('left');
                 $scope.rightpanel_xAxis = d3.svg.axis()
                     .scale($scope.rightpanel_x_scale)
-                    // this causes a "number of fractional digits" error in MSIE
+                    // this causes a 'number of fractional digits' error in MSIE
                     //.tickFormat(d3.format('e'))
                     .tickFormat(function (value) {
                         return value.toExponential();
                     })
                     .ticks(5)
-                    .orient("bottom");
+                    .orient('bottom');
                 $scope.rightpanel_yAxis = d3.svg.axis()
                     .scale($scope.y_axis_scale)
-                    .orient("right");
+                    .orient('right');
                 $scope.zoom = d3.behavior.zoom()
                     .scaleExtent([1, 10])
-                    .on("zoom", $scope.refresh);
+                    .on('zoom', $scope.refresh);
                 var root_div = $scope.select()
-                    .style("position", "relative");
-                $scope.canvas = root_div.append("canvas")
-                    .style("position", "absolute")
-                    .attr("transform", "translate(" + margin + "," + margin + ")")
-                    .style("left", margin + "px")
-                    .style("top", margin + "px");
-                $scope.svg = root_div.append("svg")
-                    .style("position", "relative")
-                    .append("g")
-                    .attr("transform", "translate(" + margin + "," + margin + ")");
-                $scope.svg.append("text")
-                    .attr("class", "main-title")
-                    .style("text-anchor", "middle");
+                    .style('position', 'relative');
+                $scope.canvas = root_div.append('canvas')
+                    .style('position', 'absolute')
+                    .attr('transform', 'translate(' + margin + ',' + margin + ')')
+                    .style('left', margin + 'px')
+                    .style('top', margin + 'px');
+                $scope.svg = root_div.append('svg')
+                    .style('position', 'relative')
+                    .append('g')
+                    .attr('transform', 'translate(' + margin + ',' + margin + ')');
+                $scope.svg.append('text')
+                    .attr('class', 'main-title')
+                    .style('text-anchor', 'middle');
                 // We make an invisible rectangle to intercept mouse events for zooming.
-                $scope.mouse_rect = $scope.svg.append("rect")
-                    .attr("class", "mouse-rect")
-                    .style("pointer-events", "all")
-                    .style("fill", "none");
-                $scope.ctx = $scope.canvas.node().getContext("2d");
+                $scope.mouse_rect = $scope.svg.append('rect')
+                    .attr('class', 'mouse-rect')
+                    .style('pointer-events', 'all')
+                    .style('fill', 'none');
+                $scope.ctx = $scope.canvas.node().getContext('2d');
                 $scope.imageObj = new Image();
                 $scope.imageObj.onload = function() {
                     // important - the image may not be ready initially
                     $scope.refresh();
                 };
-                $scope.svg.append("line")
-                    .attr("class", "y-cross-hair cross-hair")
-                    .attr("y1", 0)
-                    .attr("stroke-width", 1)
-                    .attr("shape-rendering", "crispEdges")
-                    .attr("stroke", "steelblue");
-                $scope.svg.append("line")
-                    .attr("class", "x-cross-hair cross-hair")
-                    .attr("x1", 0)
-                    .attr("stroke-width", 1)
-                    .attr("shape-rendering", "crispEdges")
-                    .attr("stroke", "steelblue");
-                $scope.svg.append("g")
-                    .attr("class", "y axis grid");
-                $scope.svg.append("defs").append("clipPath")
-                    .attr("id", "bottomclip")
-                    .append("rect")
-                    .attr("class", "bottompanel-rect");
-                $scope.bottompanel_context = $scope.svg.append("g")
-                    .attr("class", "bottompanel");
+                $scope.svg.append('line')
+                    .attr('class', 'y-cross-hair cross-hair')
+                    .attr('y1', 0)
+                    .attr('stroke-width', 1)
+                    .attr('shape-rendering', 'crispEdges')
+                    .attr('stroke', 'steelblue');
+                $scope.svg.append('line')
+                    .attr('class', 'x-cross-hair cross-hair')
+                    .attr('x1', 0)
+                    .attr('stroke-width', 1)
+                    .attr('shape-rendering', 'crispEdges')
+                    .attr('stroke', 'steelblue');
+                $scope.svg.append('g')
+                    .attr('class', 'y axis grid');
+                $scope.svg.append('defs').append('clipPath')
+                    .attr('id', 'bottomclip')
+                    .append('rect')
+                    .attr('class', 'bottompanel-rect');
+                $scope.bottompanel_context = $scope.svg.append('g')
+                    .attr('class', 'bottompanel');
                 // Clips the line graph
-                $scope.bottompanel_context.append("path")
-                    .attr("clip-path", "url(#bottomclip)");
-                $scope.bottompanel_context.append("g")
-                    .attr("class", "x axis bottom");
-                $scope.bottompanel_context.append("g")
-                    .attr("class", "x axis grid");
-                $scope.bottompanel_context.append("text")
-                    .attr("class", "x-axis-label")
-                    .style("text-anchor", "middle");
-                $scope.bottompanel_context.append("g")
-                    .attr("class", "y axis bottom");
-                $scope.rightpanel_context = $scope.svg.append("g")
-                    .attr("class", "rightpanel");
-                $scope.svg.append("defs").append("clipPath")
-                    .attr("id", "rightclip")
-                    .append("rect")
-                    .attr("class", "rightpanel-rect");
-                $scope.rightpanel_context.append("path")
-                    .attr("clip-path", "url(#rightclip)");
-                $scope.rightpanel_context.append("g")
-                    .attr("class", "y axis right");
-                $scope.rightpanel_context.append("g")
-                    .attr("class", "x axis right");
-                $scope.rightpanel_context.append("text")
-                    .attr("class", "y-axis-label")
-                    .style("text-anchor", "middle")
-                    .attr("transform", "rotate(270)");
-                $scope.svg.append("text")
-                    .attr("class", "z-axis-label")
-                    .style("text-anchor", "middle");
+                $scope.bottompanel_context.append('path')
+                    .attr('clip-path', 'url(#bottomclip)');
+                $scope.bottompanel_context.append('g')
+                    .attr('class', 'x axis bottom');
+                $scope.bottompanel_context.append('g')
+                    .attr('class', 'x axis grid');
+                $scope.bottompanel_context.append('text')
+                    .attr('class', 'x-axis-label')
+                    .style('text-anchor', 'middle');
+                $scope.bottompanel_context.append('g')
+                    .attr('class', 'y axis bottom');
+                $scope.rightpanel_context = $scope.svg.append('g')
+                    .attr('class', 'rightpanel');
+                $scope.svg.append('defs').append('clipPath')
+                    .attr('id', 'rightclip')
+                    .append('rect')
+                    .attr('class', 'rightpanel-rect');
+                $scope.rightpanel_context.append('path')
+                    .attr('clip-path', 'url(#rightclip)');
+                $scope.rightpanel_context.append('g')
+                    .attr('class', 'y axis right');
+                $scope.rightpanel_context.append('g')
+                    .attr('class', 'x axis right');
+                $scope.rightpanel_context.append('text')
+                    .attr('class', 'y-axis-label')
+                    .style('text-anchor', 'middle')
+                    .attr('transform', 'rotate(270)');
+                $scope.svg.append('text')
+                    .attr('class', 'z-axis-label')
+                    .style('text-anchor', 'middle');
                 $scope.bottompanel_cut_line = d3.svg.line()
                     .x(function(d) {return $scope.x_axis_scale(d[0])})
                     .y(function(d) {return $scope.bottompanel_y_scale(d[1])});
@@ -1251,7 +1252,7 @@ app.directive('plot3d', function(appState, d3Service) {
             $scope.init_draw = function(json, zmin, zmax) {
                 var color = d3.scale.linear()
                     .domain([zmin, zmax])
-                    .range(["#333", "#fff"]);
+                    .range(['#333', '#fff']);
                 var xmax = json.x_range.length - 1;
                 var ymax = json.y_range.length - 1;
                 // Compute the pixel colors; scaled by CSS.
@@ -1288,12 +1289,12 @@ app.directive('plot3d', function(appState, d3Service) {
                 $scope.y_value_range = json.y_range.slice(0);
                 $scope.x_index_scale.range([0, xmax]);
                 $scope.y_index_scale.range([0, ymax]);
-                $scope.canvas.attr("width", json.x_range.length)
-                    .attr("height", json.y_range.length);
-                $scope.select(".main-title").text(json.title);
-                $scope.select(".x-axis-label").text(json.x_label);
-                $scope.select(".y-axis-label").text(json.y_label);
-                $scope.select(".z-axis-label").text(json.z_label);
+                $scope.canvas.attr('width', json.x_range.length)
+                    .attr('height', json.y_range.length);
+                $scope.select('.main-title').text(json.title);
+                $scope.select('.x-axis-label').text(json.x_label);
+                $scope.select('.y-axis-label').text(json.y_label);
+                $scope.select('.z-axis-label').text(json.z_label);
                 $scope.x_axis_scale.domain([$scope.x_value_min, $scope.x_value_max]);
                 $scope.x_index_scale.domain([$scope.x_value_min, $scope.x_value_max]);
                 $scope.y_axis_scale.domain([$scope.y_value_min, $scope.y_value_max]);
@@ -1353,13 +1354,13 @@ app.directive('plot3d', function(appState, d3Service) {
 	                reset_s += 1;
                     }
                     if (reset_s == 2) {
-	                $scope.mouse_rect.attr("class", "mouse-zoom");
+	                $scope.mouse_rect.attr('class', 'mouse-zoom');
 	                // Both axes are full resolution. Reset.
 	                tx = 0;
 	                ty = 0;
                     }
                     else {
-	                $scope.mouse_rect.attr("class", "mouse-move");
+	                $scope.mouse_rect.attr('class', 'mouse-move');
 	                if (xdom[0] < $scope.x_value_min) {
                             //		tx = 0;
 	                    $scope.x_axis_scale.domain([$scope.x_value_min, xdom[1] - xdom[0] + $scope.x_value_min]);
@@ -1395,16 +1396,16 @@ app.directive('plot3d', function(appState, d3Service) {
                 );
                 $scope.draw_bottompanel_cut();
                 $scope.draw_rightpanel_cut();
-                $scope.bottompanel_context.selectAll($scope.plot_id + " .x.axis").call($scope.bottompanel_xAxis);
-                $scope.bottompanel_context.selectAll($scope.plot_id + " .y.axis").call($scope.bottompanel_yAxis);
-                $scope.rightpanel_context.selectAll($scope.plot_id + " .x.axis").call($scope.rightpanel_xAxis);
-                $scope.rightpanel_context.selectAll($scope.plot_id + " .y.axis").call($scope.rightpanel_yAxis);
-                $scope.svg.selectAll($scope.plot_id + " .x.axis.grid").call($scope.main_xAxis);
-                $scope.svg.selectAll($scope.plot_id + " .y.axis.grid").call($scope.main_yAxis);
+                $scope.bottompanel_context.selectAll($scope.plot_id + ' .x.axis').call($scope.bottompanel_xAxis);
+                $scope.bottompanel_context.selectAll($scope.plot_id + ' .y.axis').call($scope.bottompanel_yAxis);
+                $scope.rightpanel_context.selectAll($scope.plot_id + ' .x.axis').call($scope.rightpanel_xAxis);
+                $scope.rightpanel_context.selectAll($scope.plot_id + ' .y.axis').call($scope.rightpanel_yAxis);
+                $scope.svg.selectAll($scope.plot_id + ' .x.axis.grid').call($scope.main_xAxis);
+                $scope.svg.selectAll($scope.plot_id + ' .y.axis.grid').call($scope.main_yAxis);
             }
 
             $scope.resize = function() {
-                var width = parseInt($scope.select().style("width")) - 2 * margin;
+                var width = parseInt($scope.select().style('width')) - 2 * margin;
                 var rightpanel_margin = {left: 10, right: 40};
                 var bottompanel_margin = {top: 10, bottom: 30};
                 $scope.canvas_size = 2 * (width - rightpanel_margin.left - rightpanel_margin.right) / 3;
@@ -1419,52 +1420,52 @@ app.directive('plot3d', function(appState, d3Service) {
                 $scope.zoom.center([$scope.canvas_size / 2, $scope.canvas_size / 2])
                     .x($scope.x_axis_scale.domain([$scope.x_value_min, $scope.x_value_max]))
                     .y($scope.y_axis_scale.domain([$scope.y_value_min, $scope.y_value_max]));
-                $scope.select("canvas")
-                    .style("width", $scope.canvas_size + "px")
-                    .style("height", $scope.canvas_size + "px");
-                $scope.select("svg")
-                    .attr("width", margin * 2 + $scope.canvas_size + rightpanel_width)
-                    .attr("height", margin * 2 + $scope.canvas_size + bottompanel_height)
-                $scope.select(".main-title")
-                    .attr("x", $scope.canvas_size / 2)
-                    .attr("y", - margin / 2);
-                $scope.select(".mouse-rect")
-                    .attr("width", $scope.canvas_size)
-                    .attr("height", $scope.canvas_size)
+                $scope.select('canvas')
+                    .style('width', $scope.canvas_size + 'px')
+                    .style('height', $scope.canvas_size + 'px');
+                $scope.select('svg')
+                    .attr('width', margin * 2 + $scope.canvas_size + rightpanel_width)
+                    .attr('height', margin * 2 + $scope.canvas_size + bottompanel_height)
+                $scope.select('.main-title')
+                    .attr('x', $scope.canvas_size / 2)
+                    .attr('y', - margin / 2);
+                $scope.select('.mouse-rect')
+                    .attr('width', $scope.canvas_size)
+                    .attr('height', $scope.canvas_size)
                     .call($scope.zoom);
-                $scope.select(".y-cross-hair")
-                    .attr("x1", Math.floor($scope.canvas_size/2) - 0)
-                    .attr("x2", Math.floor($scope.canvas_size/2) - 0)
-                    .attr("y2", $scope.canvas_size);
-                $scope.select(".x-cross-hair")
-                    .attr("y1", Math.floor($scope.canvas_size/2) + 0)
-                    .attr("x2", $scope.canvas_size)
-                    .attr("y2", Math.floor($scope.canvas_size/2) + 0);
-                $scope.select(".bottompanel-rect")
-                    .attr("width", $scope.canvas_size)
-                    .attr("height", bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom);
-                $scope.select(".bottompanel")
-                    .attr("transform", "translate(0," + ($scope.canvas_size + bottompanel_margin.top) + ")");
-                $scope.select(".x-axis-label")
-                    .attr("x", $scope.canvas_size / 2)
-                    .attr("y", bottompanel_height);
-                $scope.select(".rightpanel-rect")
-                    .attr("width", rightpanel_width - rightpanel_margin.left - rightpanel_margin.right)
-                    .attr("height", $scope.canvas_size);
-                $scope.select(".rightpanel")
-                    .attr("transform", "translate(" + ($scope.canvas_size + rightpanel_margin.left) + ",0)");
-                $scope.select(".x.axis.bottom")
-                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
+                $scope.select('.y-cross-hair')
+                    .attr('x1', Math.floor($scope.canvas_size/2) - 0)
+                    .attr('x2', Math.floor($scope.canvas_size/2) - 0)
+                    .attr('y2', $scope.canvas_size);
+                $scope.select('.x-cross-hair')
+                    .attr('y1', Math.floor($scope.canvas_size/2) + 0)
+                    .attr('x2', $scope.canvas_size)
+                    .attr('y2', Math.floor($scope.canvas_size/2) + 0);
+                $scope.select('.bottompanel-rect')
+                    .attr('width', $scope.canvas_size)
+                    .attr('height', bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom);
+                $scope.select('.bottompanel')
+                    .attr('transform', 'translate(0,' + ($scope.canvas_size + bottompanel_margin.top) + ')');
+                $scope.select('.x-axis-label')
+                    .attr('x', $scope.canvas_size / 2)
+                    .attr('y', bottompanel_height);
+                $scope.select('.rightpanel-rect')
+                    .attr('width', rightpanel_width - rightpanel_margin.left - rightpanel_margin.right)
+                    .attr('height', $scope.canvas_size);
+                $scope.select('.rightpanel')
+                    .attr('transform', 'translate(' + ($scope.canvas_size + rightpanel_margin.left) + ',0)');
+                $scope.select('.x.axis.bottom')
+                    .attr('transform', 'translate(0,' + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ')')
                     .call($scope.bottompanel_xAxis);
-                $scope.select(".x.axis.right")
-                    .attr("transform", "translate(0," + $scope.canvas_size + ")")
+                $scope.select('.x.axis.right')
+                    .attr('transform', 'translate(0,' + $scope.canvas_size + ')')
                     .call($scope.rightpanel_xAxis);
-                $scope.select(".y-axis-label")
-                    .attr("x", - $scope.canvas_size / 2)
-                    .attr("y", rightpanel_width + 15);
-                $scope.select(".z-axis-label")
-                    .attr("x", $scope.canvas_size + rightpanel_width / 2)
-                    .attr("y", $scope.canvas_size + margin);
+                $scope.select('.y-axis-label')
+                    .attr('x', - $scope.canvas_size / 2)
+                    .attr('y', rightpanel_width + 15);
+                $scope.select('.z-axis-label')
+                    .attr('x', $scope.canvas_size + rightpanel_width / 2)
+                    .attr('y', $scope.canvas_size + margin);
                 var ticks = function(axis, axisRange, isShorterAxis) {
                     var spacing = isShorterAxis ? 150 : 80;
                     var n = Math.max(Math.round($scope.canvas_size/spacing), 3);
@@ -1476,23 +1477,23 @@ app.directive('plot3d', function(appState, d3Service) {
                 ticks($scope.bottompanel_yAxis, true);
                 ticks($scope.main_xAxis, false);
                 ticks($scope.main_yAxis, false);
-                $scope.select(".x.axis.grid")
-                    .attr("transform", "translate(0," + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ")")
+                $scope.select('.x.axis.grid')
+                    .attr('transform', 'translate(0,' + (bottompanel_height - bottompanel_margin.top - bottompanel_margin.bottom) + ')')
                     .call($scope.zoom)
                     .call($scope.main_xAxis);
-                $scope.select(".y.axis.grid")
+                $scope.select('.y.axis.grid')
                     .call($scope.zoom)
                     .call($scope.main_yAxis);
-                $scope.select(".y.axis.right")
-                    .attr("transform", "translate(" + (rightpanel_width - rightpanel_margin.left - rightpanel_margin.right) + ",0)")
+                $scope.select('.y.axis.right')
+                    .attr('transform', 'translate(' + (rightpanel_width - rightpanel_margin.left - rightpanel_margin.right) + ',0)')
                     .call($scope.rightpanel_yAxis);
-                $scope.select(".y.axis.bottom")
+                $scope.select('.y.axis.bottom')
                     .call($scope.bottompanel_yAxis);
                 $scope.refresh();
             }
 
             $scope.select = function(selector) {
-                return d3.select($scope.plot_id + (selector ? (" " + selector) : ""));
+                return d3.select($scope.plot_id + (selector ? (' ' + selector) : ''));
             };
         },
         link: function link(scope) {
@@ -1514,7 +1515,7 @@ app.directive('plot3d', function(appState, d3Service) {
             });
             scope.$on('$destroy', function() {
                 $(window).off('resize', scope.resize);
-                scope.zoom.on("zoom", null);
+                scope.zoom.on('zoom', null);
                 scope.svg.remove();
                 scope.svg = null;
                 scope.imageObj.onload = null;
@@ -1536,7 +1537,7 @@ app.controller('NavController', function ($rootScope, $location, appState) {
             .join(' - ');
     }
     self.section_title = function() {
-        if ($rootScope.activeSection == "simulations")
+        if ($rootScope.activeSection == 'simulations')
             return null;
         if (appState.is_loaded())
             return appState.models.simulation.name;
@@ -1555,7 +1556,7 @@ app.controller('NavController', function ($rootScope, $location, appState) {
 });
 
 app.controller('SimulationsController', function ($rootScope, $http, $location, $window, appState) {
-    $rootScope.activeSection = "simulations";
+    $rootScope.activeSection = 'simulations';
     appState.clear_models({
         newSimulation: {},
     });
@@ -1567,12 +1568,12 @@ app.controller('SimulationsController', function ($rootScope, $http, $location, 
         }).success(function(data, status) {
             self.open(data['models']['simulation']);
         }).error(function(data, status) {
-            console.log("new-simulation failed: ", status, ' ', data);
+            console.log('new-simulation failed: ', status, ' ', data);
         });
     }
 
     function load_list() {
-        $http["get"]('/srw/simulation-list')
+        $http['get']('/srw/simulation-list')
             .success(function(data, status) {
                 self.list = data;
             })
@@ -1595,7 +1596,7 @@ app.controller('SimulationsController', function ($rootScope, $http, $location, 
         }).success(function(data, status) {
             load_list();
         }).error(function(data, status) {
-            console.log("delete-simulation failed: ", status, ' ', data);
+            console.log('delete-simulation failed: ', status, ' ', data);
         });
         self.selected = null;
     }
@@ -1616,7 +1617,7 @@ app.controller('SimulationsController', function ($rootScope, $http, $location, 
         }).success(function(data, status) {
             self.open(data['models']['simulation']);
         }).error(function(data, status) {
-            console.log("copy-simulation failed: ", status, ' ', data);
+            console.log('copy-simulation failed: ', status, ' ', data);
         });
     }
     self.python_source = function(item) {
@@ -1759,7 +1760,7 @@ app.directive('panel', function(appState) {
             $scope.appState = appState;
             $scope.basicFields = appState.model_info($scope.modelName).basic;
             $scope.panelTitle = appState.model_info($scope.modelName).title;
-            $scope.editorId = "srw-" + $scope.modelName + "-editor";
+            $scope.editorId = 'srw-' + $scope.modelName + '-editor';
         },
     };
 });
@@ -1788,8 +1789,8 @@ app.directive('reportPanel', function(appState) {
             var item_id = $scope.item ? $scope.item.id : '';
             $scope.appState = appState;
             $scope.fullModelName = $scope.modelName + item_id;
-            $scope.editorId = "srw-" + $scope.fullModelName + "-editor";
-            $scope.plotId = "srw-" + $scope.modelName + "-" + $scope.reportPanel + "-plot" + item_id;
+            $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
+            $scope.plotId = 'srw-' + $scope.modelName + '-' + $scope.reportPanel + '-plot' + item_id;
         },
     };
 });
@@ -1829,7 +1830,7 @@ app.directive('modalEditor', function(appState) {
             $scope.appState = appState;
             $scope.advancedFields = appState.model_info($scope.modalEditor).advanced;
             $scope.fullModelName = $scope.modalEditor + ($scope.itemId || '');
-            $scope.editorId = "srw-" + $scope.fullModelName + "-editor";
+            $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
         },
         link: function(scope, element) {
             $(element).on('hidden.bs.modal', function(e) {
@@ -1878,7 +1879,7 @@ app.directive('beamlineEditor', function(appState) {
                 $scope.beamline.remove_element($scope.beamline.activeItem);
             }
             //TODO(pjm): investigate why id needs to be set in html for revisiting the beamline page
-            //$scope.editorId = "srw-" + $scope.modelName + "-editor";
+            //$scope.editorId = 'srw-' + $scope.modelName + '-editor';
         },
     };
 });
