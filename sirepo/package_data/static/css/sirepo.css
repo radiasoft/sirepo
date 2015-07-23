@@ -179,10 +179,12 @@
 .srw-plot-2d .x-axis-label {
   font-size: 14px;
   font-weight: bold;
+  text-anchor: middle;
 }
 .srw-plot-2d .main-title {
   font-size: 18px;
   font-weight: bold;
+  text-anchor: middle;
 }
 .srw-plot-2d .line {
   fill: none;
@@ -239,6 +241,7 @@
 .srw-plot-3d .x-axis-label {
   font-size: 14px;
   font-weight: bold;
+  text-anchor: middle;
 }
 .srw-plot-3d .z-axis-label {
   line-height: 160%;
@@ -246,6 +249,7 @@
 .srw-plot-3d .main-title {
   font-size: 18px;
   font-weight: bold;
+  text-anchor: middle;
 }
 .srw-plot-3d .line {
   fill: none;
