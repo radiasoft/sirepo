@@ -267,87 +267,6 @@ app.config(function($routeProvider) {
         });
 });
 
-app.factory('beamlineGraphics', function() {
-    var canvasWidth = 50;
-    var canvasHeight = 60;
-    //TODO(pjm): base all positions on width/height
-    var draw_lens = function(ctx, x, y, width, height) {
-        if (x === undefined) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            x = 20;
-            y = 0;
-            width = 10;
-            height = canvasHeight;
-        }
-        ctx.fillStyle = '#ddee00';
-        ctx.strokeStyle = '#000000';
-        ctx.beginPath();
-        ctx.moveTo(x + width / 2, y);
-        ctx.bezierCurveTo(x + width, y + 10, x + width, height - 10, x + width / 2, height);
-        ctx.bezierCurveTo(x, height - 10, x, y + 10, x + width / 2, y);
-        ctx.fill();
-        ctx.stroke();
-    };
-    var draw = {
-        lens: draw_lens,
-        aperture: function(ctx) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(23, 0, 5, 24);
-            ctx.fillRect(23, 36, 5, 24);
-        },
-        mirror: function(ctx) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle = '#bdd7ee';
-            ctx.fillRect(23, 0, 5, canvasHeight);
-            ctx.strokeStyle = '#000000';
-            ctx.strokeRect(23, 0, 5, canvasHeight);
-        },
-        crl: function(ctx) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle = '#333333';
-            ctx.fillRect(15, 0, 20, canvasHeight);
-            draw_lens(ctx, 10, 0, 10, canvasHeight);
-            draw_lens(ctx, 20, 0, 10, canvasHeight);
-            draw_lens(ctx, 30, 0, 10, canvasHeight);
-        },
-        obstacle: function(ctx) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.fillStyle = '#669999';
-            ctx.fillRect(15, 20, 20, 20);
-            ctx.strokeStyle = '#000000';
-            ctx.strokeRect(15, 20, 20, 20);
-        },
-        watch: function(ctx) {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            var radius = 15;
-            ctx.strokeStyle = '#000000';
-            ctx.beginPath();
-            ctx.moveTo(5, 30);
-            ctx.bezierCurveTo(15, 30 + radius, 35, 30 + radius, 45, 30);
-            ctx.bezierCurveTo(35, 30 - radius, 15, 30 - radius, 5, 30);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(25, 30, radius - 5, 0, 2 * Math.PI);
-            ctx.fillStyle = '#a52a2a';
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(25, 30, 4, 0, 2 * Math.PI);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
-        },
-    };
-
-    return {
-        draw_icon: function(item, canvas) {
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            draw[item](canvas.getContext('2d'));
-        },
-    };
-});
-
 app.factory('appState', function($http, $rootScope) {
     var self = {};
     self.models = {};
@@ -1649,31 +1568,70 @@ app.controller('SimulationsController', function ($rootScope, $http, $location, 
     load_list()
 });
 
-app.directive('toolbarItem', function(beamlineGraphics) {
+app.directive('beamlineIcon', function() {
     return {
         scope: {
             item: '=',
         },
-        link: function(scope, element) {
-            var canvas = element[0];
-            canvas.style.width = '30px';
-            canvas.style.height = '35px';
-            beamlineGraphics.draw_icon(scope.item.type, canvas);
-        }
+        template: [
+            '<svg class="srw-beamline-item-icon" viewbox="0 0 50 60" data-ng-switch="item.type">',
+              '<g data-ng-switch-when="lens">',
+                '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
+                '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
+              '</g>',
+              '<g data-ng-switch-when="aperture">',
+                '<rect x="23", y="0", width="5", height="24" class="srw-aperture" />',
+                '<rect x="23", y="36", width="5", height="24" class="srw-aperture" />',
+              '</g>',
+              '<g data-ng-switch-when="mirror">',
+                '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
+              '</g>',
+              '<g data-ng-switch-when="obstacle">',
+                '<rect x="15" y="20" width="20", height="20" class="srw-obstacle" />',
+              '</g>',
+              '<g data-ng-switch-when="crl">',
+                '<rect x="15", y="0", width="20", height="60" class="srw-crl" />',
+                '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
+                '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
+                '<path d="M15 0 C20 10 20 50 15 60" class="srw-lens" />',
+                '<path d="M15 60 C10 50 10 10 15 0" class="srw-lens" />',
+                '<path d="M35 0 C40 10 40 50 35 60" class="srw-lens" />',
+                '<path d="M35 60 C30 50 30 10 35 0" class="srw-lens" />',
+              '</g>',
+              '<g data-ng-switch-when="watch">',
+                '<path d="M5 30 C 15 45 35 45 45 30" class="srw-watch" />',
+                '<path d="M45 30 C 35 15 15 15 5 30" class="srw-watch" />',
+                '<circle cx="25" cy="30" r="10" class="srw-watch" />',
+                '<circle cx="25" cy="30" r="4" class="srw-watch-pupil" />',
+              '</g>',
+            '</svg>',
+        ].join(''),
     };
 });
 
-app.directive('beamlineItem', function($compile, $timeout, beamlineGraphics) {
+app.directive('beamlineItem', function($compile, $timeout) {
     return {
         scope: {
             item: '=',
+        },
+        template: [
+            '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
+            '<span data-ng-click="remove_element(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
+            '<div class="srw-beamline-image">',
+              '<span data-beamline-icon="", data-item="item"></span>',
+            '</div>',
+            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.remove_element = function(item) {
+                $scope.$parent.beamline.remove_element(item);
+            };
         },
         link: function(scope, element) {
             scope.$watchCollection('item', function(newValue, oldValue) {
                 if (newValue != oldValue)
                     scope.$parent.beamline.is_dirty = true;
             });
-            beamlineGraphics.draw_icon(scope.item.type, $(element).find('canvas')[0]);
             var el = $(element).find('.srw-beamline-element-label');
             el.popover({
                 html: true,
