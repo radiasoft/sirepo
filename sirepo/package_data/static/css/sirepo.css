@@ -272,3 +272,40 @@ th.srw-tiny-heading {
 input.ng-invalid {
   background-color: #fad8de;
 }
+
+/* toolbar icons */
+rect.srw-obstacle {
+  stroke: #000;
+  fill: #699;
+}
+rect.srw-mirror {
+  stroke: #000;
+  fill: #bdd7ee;
+}
+path.srw-lens {
+  stroke: #000;
+  fill: #ddee00;
+}
+rect.srw-crl {
+  fill: #333;
+}
+path.srw-watch {
+  stroke: #000;
+  fill: #fff;
+}
+circle.srw-watch {
+  stroke: #a52a2a;
+  fill: #a52a2a;
+}
+circle.srw-pupil {
+  stroke: #000;
+  fill: #000;
+}
+svg.srw-beamline-item-icon {
+  width: 50px;
+  height: 60px;
+}
+.srw-toolbar-button svg.srw-beamline-item-icon {
+  width: 30px;
+  height: 35px;
+}
