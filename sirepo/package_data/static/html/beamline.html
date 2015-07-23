@@ -3,7 +3,7 @@
       <div class="row">
         <div class="col-sm-12">
           <p class="text-center bg-info">
-            <span data-ng-repeat="item in beamline.toolbar_items" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
+            <span data-ng-repeat="item in beamline.toolbarItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
               <span data-beamline-icon="" data-item="item"></span><br>{{ item.title }}
             </span>
           </p>
@@ -11,24 +11,24 @@
       </div>
 
       <!-- Beamline -->
-      <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.drop_complete($data, $event)">
-        <div class="lead pull-right"><a href data-ng-show="beamline.get_beamline().length" data-ng-click="beamline.show_propagation_modal()" title="Propagation Parameters"><span class="glyphicon glyphicon-cog"></span></a></div>
+      <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.dropComplete($data, $event)">
+        <div class="lead pull-right"><a href data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-cog"></span></a></div>
         <p class="lead text-center">beamline definition area<br>
           <small><em>drag and drop optical elements here to define the beamline</em></small></p>
         <div class="srw-beamline-container">
 
-          <div style="display: inline-block" data-ng-repeat="item in beamline.get_beamline() track by item.id">
-            <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.is_touchscreen() ? '' : 'srw-hover' }}">
-            </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.drop_between($index + 1, $data)">&nbsp;</div>
+          <div style="display: inline-block" data-ng-repeat="item in beamline.getBeamline() track by item.id">
+            <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.isTouchscreen() ? '' : 'srw-hover' }}">
+            </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween($index + 1, $data)">&nbsp;</div>
           </div>
         </div>
         <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
         <div class="row">
           <form name="beamlineForm">
-            <div class="col-md-6 col-sm-8 pull-right cssFade" data-ng-show="beamline.is_dirty">
-              <button data-ng-click="beamline.save_changes()" class="btn btn-primary">Save Changes</button>
-              <a href class="btn btn-default" data-ng-show="beamline.get_beamline().length" data-ng-click="beamline.show_propagation_modal()"><span class="glyphicon glyphicon-cog"></span> Propagation Parameters</a>
-              <button data-ng-click="beamline.cancel_changes()" class="btn btn-default">Cancel</button>
+            <div class="col-md-6 col-sm-8 pull-right cssFade" data-ng-show="beamline.isDirty">
+              <button data-ng-click="beamline.saveChanges()" class="btn btn-primary">Save Changes</button>
+              <a href class="btn btn-default" data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()"><span class="glyphicon glyphicon-cog"></span> Propagation Parameters</a>
+              <button data-ng-click="beamline.cancelChanges()" class="btn btn-default">Cancel</button>
             </div>
           </form>
         </div>
@@ -50,7 +50,7 @@
         <div class="col-md-6 col-xl-4">
           <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
         </div>
-        <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.get_beamline('watch') track by item.id">
+        <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.getBeamline('watch') track by item.id">
           <div data-report-panel="3d" data-model-name="watchpointReport" data-item="item"></div>
         </div>
       </div>
@@ -58,7 +58,7 @@
 
     <!-- modal dialogs -->
     <div data-modal-editor="initialIntensityReport"></div>
-    <div data-modal-editor="watchpointReport" data-ng-repeat="item in beamline.get_beamline('watch') track by item.id" data-item-id="{{ item.id }}"></div>
+    <div data-modal-editor="watchpointReport" data-ng-repeat="item in beamline.getBeamline('watch') track by item.id" data-item-id="{{ item.id }}"></div>
 
 <div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg">
@@ -100,15 +100,15 @@
                 </tr>
                 <tr class="warning">
                   <td>Final post-propagation (resize)</td>
-                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.post_propagation[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.post_propagation[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.post_propagation[2]"></td>
-                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.post_propagation[3]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.post_propagation[4]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.post_propagation[5]"></td>
-                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.post_propagation[6]"></td>
-                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.post_propagation[7]"></td>
-                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.post_propagation[8]"></td>
+                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.postPropagation[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
+                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.postPropagation[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
+                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[2]"></td>
+                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.postPropagation[3]" data-ng-true-value="1", data-ng-false-value="0"></td>
+                  <td class="srw-center"><input type="checkbox" data-ng-model="beamline.postPropagation[4]" data-ng-true-value="1", data-ng-false-value="0"></td>
+                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[5]"></td>
+                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[6]"></td>
+                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[7]"></td>
+                  <td><input type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[8]"></td>
                 </tr>
               </tbody>
             </table>
