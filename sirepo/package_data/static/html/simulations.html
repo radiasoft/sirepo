@@ -5,7 +5,7 @@
           <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</a>
           <button data-ng-click="simulations.copy(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-copy"></span> Copy</button>
           <button data-target="#srw-delete-confirmation" data-toggle="modal" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-trash"></span> Delete</button>
-          <button data-ng-click="simulations.python_source(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
+          <button data-ng-click="simulations.pythonSource(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
         </div>
       </div>
       <br>
@@ -19,7 +19,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr data-ng-repeat="item in simulations.list" data-ng-class="{success: simulations.is_selected(item)}" data-ng-click="simulations.select_item(item)">
+            <tr data-ng-repeat="item in simulations.list" data-ng-class="{success: simulations.isSelected(item)}" data-ng-click="simulations.selectItem(item)">
               <td><a href data-ng-click="simulations.open(item)">{{ item.name }}</a></td>
               <td>{{ item.last_modified }}</td>
             </tr>
@@ -48,7 +48,7 @@
               </div>
               <div class="row">
                 <div class="col-sm-6 pull-right">
-                  <button data-dismiss="modal" data-ng-click="simulations.delete_selected()" class="btn btn-default">Delete</button>
+                  <button data-dismiss="modal" data-ng-click="simulations.deleteSelected()" class="btn btn-default">Delete</button>
                   <button data-dismiss="modal" class="btn btn-default">Cancel</button>
                 </div>
               </div>
