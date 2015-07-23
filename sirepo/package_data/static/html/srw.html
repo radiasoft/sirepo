@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico">
-    <title data-ng-controller="NavController as nav" data-ng-bind="nav.page_title()">SRW - Radiasoft</title>
+    <title data-ng-controller="NavController as nav" data-ng-bind="nav.pageTitle()">SRW - Radiasoft</title>
     <link href="/static/css/bootstrap-3.3.4.min.css" rel="stylesheet">
     <link href="/static/css/bootstrap-slider-2.0.0.css" rel="stylesheet">
     <link href="/static/css/bootstrap-colxl.css" rel="stylesheet">
@@ -21,16 +21,16 @@
     <nav data-ng-controller="NavController as nav" class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href data-ng-click="nav.open_section('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
-          <a class="navbar-brand" href data-ng-click="nav.open_section('simulations')">SRW</a>
+          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
+          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')">SRW</a>
         </div>
         <ul class="nav navbar-nav">
-          <li data-ng-class="{active: activeSection == 'simulations'}"><a href data-ng-click="nav.open_section('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
+          <li data-ng-class="{active: activeSection == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
         </ul>
-        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><strong data-ng-bind="nav.section_title()"></strong></a></div>
+        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
         <ul class="nav navbar-nav navbar-right" data-ng-hide="activeSection == 'simulations'">
-          <li data-ng-class="{active: activeSection == 'source'}"><a href data-ng-click="nav.open_section('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
-          <li data-ng-class="{active: activeSection == 'beamline'}"><a href data-ng-click="nav.open_section('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+          <li data-ng-class="{active: activeSection == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+          <li data-ng-class="{active: activeSection == 'beamline'}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
           <!--<li data-ng-class="{active: activeSection == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>-->
         </ul>
       </div>
@@ -49,5 +49,6 @@
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
     <script src="/static/js/angular-d3.js"></script>
     <script src="/static/js/sirepo.js?20150626"></script>
+    <script src="/static/js/sirepo-plotting.js?20150723"></script>
   </body>
 </html>
