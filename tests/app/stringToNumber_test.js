@@ -4,9 +4,9 @@ beforeEach(module('SRWApp'));
 describe('Directive: stringToNumber', function() {
     var $scope, $compile, $sniffer;
 
-    beforeEach(inject(function(_$rootScope_, _$compile_, _$sniffer_) {
-        $scope = _$rootScope_.$new();
-        $compile = _$compile_;
+    beforeEach(inject(function($injector, _$sniffer_) {
+        $scope = $injector.get('$rootScope').$new();
+        $compile = $injector.get('$compile');
         $sniffer = _$sniffer_;
     }));
 
