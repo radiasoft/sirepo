@@ -2,6 +2,22 @@
 
 (function() {
 
+    function createAxis(scale, orient) {
+        return d3.svg.axis()
+            .scale(scale)
+            .orient(orient);
+    }
+
+    function createExponentialAxis(scale, orient) {
+        return createAxis(scale, orient)
+        // this causes a 'number of fractional digits' error in MSIE
+        //.tickFormat(d3.format('e'))
+            .tickFormat(function (value) {
+                return value.toExponential();
+            })
+            .ticks(5);
+    }
+
     function linkPlot(scope, d3Service, appState) {
         d3Service.d3().then(function(d3) {
 
@@ -31,19 +47,19 @@
             template: [
                 '<svg>',
                   '<g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
-                    '<g class="x axis"></g>',
-                    '<g class="x axis grid"></g>',
+                    '<g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>',
+                    '<g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>',
                     '<g class="y axis"></g>',
                     '<g class="y axis grid"></g>',
-                    '<text class="y-axis-label" transform="rotate(-90)" ng-attr-y="-{{ margin.left }}" dy="1em"></text>',
-                    '<text class="x-axis-label" dy="1em"></text>',
-                    '<text class="main-title" ng-attr-y="-{{ margin.top / 2 }}"></text>',
+                    '<text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>',
+                    '<text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>',
+                    '<text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>',
                     '<g class="focus" style="display: none;">',
                       '<circle r="6" />',
                       '<text class="focus-text" x="9" dy=".35em"></text>',
                     '</g>',
-                    '<rect class="overlay" />',
-                    '<svg class="plot-viewport">',
+                    '<rect class="overlay" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"/>',
+                    '<svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">',
                       '<path class="line" />',
                     '</svg>',
                   '</g>',
@@ -144,29 +160,16 @@
                 $scope.init = function(id) {
                     plotId = '#' + id;
                     formatter = d3.format(',.0f');
+                    $scope.width = $scope.height = 0;
                     $scope.slider = $(plotId + ' .srw-plot2d-slider').slider();
                     $scope.slider.on('slide', sliderChanged);
                     $(window).resize($scope.resize);
                     xAxisScale = d3.scale.linear();
                     yAxisScale = d3.scale.linear();
-                    xAxis = d3.svg.axis()
-                        .scale(xAxisScale)
-                        .orient('bottom');
-                    xAxisGrid = d3.svg.axis()
-                        .scale(xAxisScale)
-                        .orient('bottom');
-                    yAxis = d3.svg.axis()
-                        .scale(yAxisScale)
-                    // this causes a "number of fractional digits" error in MSIE
-                    //.tickFormat(d3.format('e'))
-                        .tickFormat(function (value) {
-                            return value.toExponential();
-                        })
-                        .ticks(5)
-                        .orient('left');
-                    yAxisGrid = d3.svg.axis()
-                        .scale(yAxisScale)
-                        .orient('left');
+                    xAxis = createAxis(xAxisScale, 'bottom');
+                    xAxisGrid = createAxis(xAxisScale, 'bottom');
+                    yAxis = createExponentialAxis(yAxisScale, 'left');
+                    yAxisGrid = createAxis(yAxisScale, 'left');
                     graphLine = d3.svg.line()
                         .x(function(d) {return xAxisScale(d[0])})
                         .y(function(d) {return yAxisScale(d[1])});
@@ -196,41 +199,20 @@
                 $scope.resize = function() {
                     if (! points)
                         return;
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    var height = parseInt(select().style('height')) - $scope.margin.top - $scope.margin.bottom;
-                    if (height > width)
-                        height = width;
-                    xAxisScale.range([-0.5, width - 0.5]);
-                    yAxisScale.range([height - 0.5, 0 - 0.5]).nice();
-                    xAxisGrid.tickSize(-height);
-                    yAxisGrid.tickSize(-width);
-                    select('.x.axis')
-                        .attr('transform', 'translate(0,' + height + ')')
-                        .call(xAxis);
-                    select('.x.axis.grid')
-                        .attr('transform', 'translate(0,' + height + ')')
-                        .call(xAxisGrid); // tickLine == gridline
-                    select('.y.axis')
-                        .call(yAxis);
-                    select('.y.axis.grid')
-                        .call(yAxisGrid);
-                    select('.main-title')
-                        .attr('x', width / 2);
-                    select('.y-axis-label')
-                        .attr('x', - height / 2);
-                    select('.x-axis-label')
-                        .attr('x', width / 2)
-                    // font height + 12 padding...
-                        .attr('y', height + 26);
-                    select('.plot-viewport')
-                        .attr('width', width)
-                        .attr('height', height);
-                    select('svg .overlay')
-                        .attr('width', width)
-                        .attr('height', height)
-                    select('.line')
-                        .attr('d', graphLine);
-                    return [width, height];
+                    $scope.width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    $scope.height = parseInt(select().style('height')) - $scope.margin.top - $scope.margin.bottom;
+                    if ($scope.height > $scope.width)
+                        $scope.height = $scope.width;
+                    xAxisScale.range([-0.5, $scope.width - 0.5]);
+                    yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
+                    xAxisGrid.tickSize(-$scope.height);
+                    yAxisGrid.tickSize(-$scope.width);
+                    select('.x.axis').call(xAxis);
+                    select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
+                    select('.y.axis').call(yAxis);
+                    select('.y.axis.grid').call(yAxisGrid);
+                    select('.line').attr('d', graphLine);
+                    return [$scope.width, $scope.height];
                 };
             },
             link: function link(scope) {
@@ -257,38 +239,38 @@
             },
             template: [
                 '<div style="position: relative;">',
-                '<canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>',
-                '<svg style="position: relative;">',
+                '<canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{ margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>',
+                '<svg style="position: relative;" ng-attr-width="{{ margin * 2 + canvasSize + rightPanelWidth }}" ng-attr-height="{{ margin * 2 + canvasSize + bottomPanelHeight }}">',
                   '<g ng-attr-transform="translate({{ margin }},{{ margin }})">',
-                    '<text class="main-title" />',
-                    '<rect class="mouse-rect" style="pointer-events: all; fill: none;" />',
-                    '<line class="y-cross-hair cross-hair" y1="0" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
-                    '<line class="x-cross-hair cross-hair" x1="0" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
+                    '<text class="main-title" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ -margin / 2 }}" />',
+                    '<rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;" />',
+                    '<line class="y-cross-hair cross-hair" ng-attr-x1="{{ canvasSize / 2 }}" y1="0" ng-attr-x2="{{ canvasSize / 2 }}" ng-attr-y2="{{ canvasSize }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
+                    '<line class="x-cross-hair cross-hair" x1="0" ng-attr-y1="{{ canvasSize / 2 }}" ng-attr-x2="{{ canvasSize }}" ng-attr-y2="{{ canvasSize / 2 }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
                     '<g class="y axis grid"></g>',
                     '<defs>',
                       '<clippath id="bottomclip">',
-                        '<rect class="bottom-panel-rect" />',
+                        '<rect class="bottom-panel-rect" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }}"  />',
                       '</clippath>',
                     '</defs>',
-                    '<g class="bottom-panel">',
-                      '<path clip-path="url(#bottomclip)" />',
-                      '<g class="x axis bottom"></g>',
-                      '<g class="x axis grid"></g>',
-                      '<text class="x-axis-label" />',
+                    '<g class="bottom-panel" ng-attr-transform="translate(0, {{ canvasSize + bottomPanelMargin.top }})">',
+                      '<path class="line" clip-path="url(#bottomclip)" />',
+                      '<g class="x axis bottom" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>',
+                      '<g class="x axis grid" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>',
+                      '<text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ bottomPanelHeight }}" />',
                       '<g class="y axis bottom"></g>',
                     '</g>',
                     '<defs>',
                       '<clippath id="rightclip">',
-                        '<rect class="right-panel-rect" />',
+                        '<rect class="right-panel-rect" ng-attr-width="{{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}" ng-attr-height="{{ canvasSize }}" />',
                       '</clippath>',
                     '</defs>',
-                    '<g class="right-panel">',
-                      '<path clip-path="url(#rightclip)" />',
-                      '<g class="y axis right"></g>',
-                      '<g class="x axis right"></g>',
-                      '<text class="y-axis-label" transform="rotate(270)" />',
+                    '<g class="right-panel" ng-attr-transform="translate({{ canvasSize + rightPanelMargin.left }}, 0)">',
+                      '<path class="line" clip-path="url(#rightclip)" />',
+                      '<g class="y axis right" ng-attr-transform="translate({{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}, 0)"></g>',
+                      '<g class="x axis right" ng-attr-transform="translate(0, {{ canvasSize }})"></g>',
+                      '<text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" ng-attr-y="{{ rightPanelWidth + 15 }}" transform="rotate(270)" />',
                     '</g>',
-                    '<text class="z-axis-label" />',
+                    '<text class="z-axis-label" ng-attr-x="{{ canvasSize + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize + margin }}" />',
                   '</g>',
                 '</svg>',
                 '</div>',
@@ -296,6 +278,13 @@
             controller: function($scope) {
 
                 $scope.margin = 50;
+                $scope.bottomPanelMargin = {top: 10, bottom: 30};
+                $scope.rightPanelMargin = {left: 10, right: 40};
+                // will be set to the correct size in resize()
+                $scope.canvasSize = 50;
+                $scope.rightPanelWidth = 50;
+                $scope.bottomPanelHeight = 50;
+
                 var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, plotId, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
                 function drawBottomPanelCut() {
@@ -311,7 +300,6 @@
                     var zvRange = row.slice(xiMin, xiMax + 1);
                     select('.bottom-panel path')
                         .datum(d3.zip(xvRange, zvRange))
-                        .attr('class', 'line')
                         .attr('d', bottomPanelCutLine);
                 }
 
@@ -328,7 +316,6 @@
                     });
                     select('.right-panel path')
                         .datum(data)
-                        .attr('class', 'line')
                         .attr('d', rightPanelCutLine);
                 }
 
@@ -443,6 +430,38 @@
                     select('.y.axis.grid').call(mainYAxis);
                 }
 
+                function resize() {
+                    if (! heatmap)
+                        return;
+                    var width = parseInt(select().style('width')) - 2 * $scope.margin;
+                    var canvasSize = 2 * (width - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right) / 3;
+                    $scope.canvasSize = canvasSize;
+                    $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.bottomPanelMargin.top + $scope.bottomPanelMargin.bottom;
+                    $scope.rightPanelWidth = canvasSize / 2 + $scope.rightPanelMargin.left + $scope.rightPanelMargin.right;
+                    xAxisScale.range([0, canvasSize - 1]);
+                    yAxisScale.range([canvasSize - 1, 0]);
+                    bottomPanelYScale.range([$scope.bottomPanelHeight - $scope.bottomPanelMargin.top - $scope.bottomPanelMargin.bottom - 1, 0]).nice();
+                    rightPanelXScale.range([0, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right]).nice();
+                    mainXAxis.tickSize(- canvasSize - $scope.bottomPanelHeight + $scope.bottomPanelMargin.bottom); // tickLine == gridline
+                    mainYAxis.tickSize(- canvasSize - $scope.rightPanelWidth + $scope.rightPanelMargin.right); // tickLine == gridline
+                    $scope.zoom.center([canvasSize / 2, canvasSize / 2])
+                        .x(xAxisScale.domain([xValueMin, xValueMax]))
+                        .y(yAxisScale.domain([yValueMin, yValueMax]));
+                    select('.mouse-rect').call($scope.zoom);
+                    var ticks = function(axis, isShorterAxis) {
+                        var spacing = isShorterAxis ? 150 : 80;
+                        var n = Math.max(Math.round(canvasSize / spacing), 3);
+                        axis.ticks(n);
+                    };
+                    ticks(rightPanelXAxis, true);
+                    ticks(rightPanelYAxis, false);
+                    ticks(bottomPanelXAxis, false);
+                    ticks(bottomPanelYAxis, true);
+                    ticks(mainXAxis, false);
+                    ticks(mainYAxis, false);
+                    refresh();
+                };
+
                 function select(selector) {
                     return d3.select(plotId + (selector ? (' ' + selector) : ''));
                 }
@@ -455,36 +474,12 @@
                     yIndexScale = d3.scale.linear();
                     bottomPanelYScale = d3.scale.linear();
                     rightPanelXScale = d3.scale.linear();
-                    mainXAxis = d3.svg.axis()
-                        .scale(xAxisScale)
-                        .orient('bottom');
-                    mainYAxis = d3.svg.axis()
-                        .scale(yAxisScale)
-                        .orient('left');
-                    bottomPanelXAxis = d3.svg.axis()
-                        .scale(xAxisScale)
-                        .orient('bottom');
-                    bottomPanelYAxis = d3.svg.axis()
-                        .scale(bottomPanelYScale)
-                    // this causes a 'number of fractional digits' error in MSIE
-                    //.tickFormat(d3.format('e'))
-                        .tickFormat(function (value) {
-                            return value.toExponential();
-                        })
-                        .ticks(5)
-                        .orient('left');
-                    rightPanelXAxis = d3.svg.axis()
-                        .scale(rightPanelXScale)
-                    // this causes a 'number of fractional digits' error in MSIE
-                    //.tickFormat(d3.format('e'))
-                        .tickFormat(function (value) {
-                            return value.toExponential();
-                        })
-                        .ticks(5)
-                        .orient('bottom');
-                    rightPanelYAxis = d3.svg.axis()
-                        .scale(yAxisScale)
-                        .orient('right');
+                    mainXAxis = createAxis(xAxisScale, 'bottom');
+                    mainYAxis = createAxis(yAxisScale, 'left');
+                    bottomPanelXAxis = createAxis(xAxisScale, 'bottom');
+                    bottomPanelYAxis = createExponentialAxis(bottomPanelYScale, 'left');
+                    rightPanelXAxis = createExponentialAxis(rightPanelXScale, 'bottom');
+                    rightPanelYAxis = createAxis(yAxisScale, 'right');
                     $scope.zoom = d3.behavior.zoom()
                         .scaleExtent([1, 10])
                         .on('zoom', refresh);
@@ -501,9 +496,8 @@
                         .x(function(d) {return xAxisScale(d[0])})
                         .y(function(d) {return bottomPanelYScale(d[1])});
                     rightPanelCutLine = d3.svg.line()
-                        .y(function(d) { return yAxisScale(d[0]); })
-                        .x(function(d) { return rightPanelXScale(d[1]); });
-
+                        .y(function(d) { return yAxisScale(d[0])})
+                        .x(function(d) { return rightPanelXScale(d[1])});
                     $(window).resize($scope.windowResize);
                 };
 
@@ -548,99 +542,11 @@
                     bottomPanelYScale.domain([zmin, zmax]);
                     rightPanelXScale.domain([zmax, zmin]);
                     initDraw(json, zmin, zmax);
-                    $scope.resize();
-                };
-
-                $scope.resize = function() {
-                    if (! heatmap)
-                        return;
-                    var width = parseInt(select().style('width')) - 2 * $scope.margin;
-                    var rightPanelMargin = {left: 10, right: 40};
-                    var bottomPanelMargin = {top: 10, bottom: 30};
-                    var canvasSize = 2 * (width - rightPanelMargin.left - rightPanelMargin.right) / 3;
-                    $scope.canvasSize = canvasSize;
-                    var bottomPanelHeight = 2 * canvasSize / 5 + bottomPanelMargin.top + bottomPanelMargin.bottom;
-                    var rightPanelWidth = canvasSize / 2 + rightPanelMargin.left + rightPanelMargin.right;
-                    xAxisScale.range([0, canvasSize - 1]);
-                    yAxisScale.range([canvasSize - 1, 0]);
-                    bottomPanelYScale.range([bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom - 1, 0]).nice();
-                    rightPanelXScale.range([0, rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right]).nice();
-                    mainXAxis.tickSize(- canvasSize - bottomPanelHeight + bottomPanelMargin.bottom); // tickLine == gridline
-                    mainYAxis.tickSize(- canvasSize - rightPanelWidth + rightPanelMargin.right); // tickLine == gridline
-                    $scope.zoom.center([canvasSize / 2, canvasSize / 2])
-                        .x(xAxisScale.domain([xValueMin, xValueMax]))
-                        .y(yAxisScale.domain([yValueMin, yValueMax]));
-                    $scope.svg
-                        .attr('width', $scope.margin * 2 + canvasSize + rightPanelWidth)
-                        .attr('height', $scope.margin * 2 + canvasSize + bottomPanelHeight)
-                    select('.main-title')
-                        .attr('x', canvasSize / 2)
-                        .attr('y', - $scope.margin / 2);
-                    select('.mouse-rect')
-                        .attr('width', canvasSize)
-                        .attr('height', canvasSize)
-                        .call($scope.zoom);
-                    select('.y-cross-hair')
-                        .attr('x1', Math.floor(canvasSize/2) - 0)
-                        .attr('x2', Math.floor(canvasSize/2) - 0)
-                        .attr('y2', canvasSize);
-                    select('.x-cross-hair')
-                        .attr('y1', Math.floor(canvasSize/2) + 0)
-                        .attr('x2', canvasSize)
-                        .attr('y2', Math.floor(canvasSize/2) + 0);
-                    select('.bottom-panel-rect')
-                        .attr('width', canvasSize)
-                        .attr('height', bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom);
-                    select('.bottom-panel')
-                        .attr('transform', 'translate(0,' + (canvasSize + bottomPanelMargin.top) + ')');
-                    select('.x-axis-label')
-                        .attr('x', canvasSize / 2)
-                        .attr('y', bottomPanelHeight);
-                    select('.right-panel-rect')
-                        .attr('width', rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right)
-                        .attr('height', canvasSize);
-                    select('.right-panel')
-                        .attr('transform', 'translate(' + (canvasSize + rightPanelMargin.left) + ',0)');
-                    select('.x.axis.bottom')
-                        .attr('transform', 'translate(0,' + (bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom) + ')')
-                        .call(bottomPanelXAxis);
-                    select('.x.axis.right')
-                        .attr('transform', 'translate(0,' + canvasSize + ')')
-                        .call(rightPanelXAxis);
-                    select('.y-axis-label')
-                        .attr('x', - canvasSize / 2)
-                        .attr('y', rightPanelWidth + 15);
-                    select('.z-axis-label')
-                        .attr('x', canvasSize + rightPanelWidth / 2)
-                        .attr('y', canvasSize + $scope.margin);
-                    var ticks = function(axis, axisRange, isShorterAxis) {
-                        var spacing = isShorterAxis ? 150 : 80;
-                        var n = Math.max(Math.round(canvasSize/spacing), 3);
-                        axis.ticks(n);
-                    };
-                    ticks(rightPanelXAxis, true);
-                    ticks(rightPanelYAxis, false);
-                    ticks(bottomPanelXAxis, false);
-                    ticks(bottomPanelYAxis, true);
-                    ticks(mainXAxis, false);
-                    ticks(mainYAxis, false);
-                    select('.x.axis.grid')
-                        .attr('transform', 'translate(0,' + (bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom) + ')')
-                        .call($scope.zoom)
-                        .call(mainXAxis);
-                    select('.y.axis.grid')
-                        .call($scope.zoom)
-                        .call(mainYAxis);
-                    select('.y.axis.right')
-                        .attr('transform', 'translate(' + (rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right) + ',0)')
-                        .call(rightPanelYAxis);
-                    select('.y.axis.bottom')
-                        .call(bottomPanelYAxis);
-                    refresh();
+                    resize();
                 };
 
                 $scope.windowResize = function() {
-                    $scope.resize();
+                    resize();
                     $scope.$apply();
                 }
             },
