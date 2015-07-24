@@ -243,15 +243,15 @@ app.config(function($routeProvider) {
     $routeProvider
         .when('/simulations', {
             controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html?20150723',
+            templateUrl: '/static/html/simulations.html?20150724',
         })
         .when('/source/:simulationId', {
             controller: 'SourceController as source',
-            templateUrl: '/static/html/source.html?20150723',
+            templateUrl: '/static/html/source.html?20150724',
         })
         .when('/beamline/:simulationId', {
             controller: 'BeamlineController as beamline',
-            templateUrl: '/static/html/beamline.html?20150723',
+            templateUrl: '/static/html/beamline.html?20150724',
         })
         .otherwise({
             redirectTo: '/simulations'
