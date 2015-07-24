@@ -166,7 +166,8 @@ def generate_beamline_optics(models, last_id):
                 res += _propagation_params(propagation[str(prev['id'])][1])
 
         if item['type'] == 'aperture':
-            res += '    el.append(SRWLOptA("r", "a", {}, {}))\n'.format(
+            res += '    el.append(SRWLOptA("{}", "a", {}, {}))\n'.format(
+                _escape(item['shape'] if item.get('shape') else 'r'),
                 _float(item, 'horizontalSize', 1000),
                 _float(item, 'verticalSize', 1000))
             res += _propagation_params(propagation[str(item['id'])][0])
@@ -198,7 +199,8 @@ def generate_beamline_optics(models, last_id):
                 _float(item, 'verticalTransverseSize', 1000))
             res += _propagation_params(propagation[str(item['id'])][0])
         elif item['type'] == 'obstacle':
-            res += '    el.append(SRWLOptA("r", "o", {}, {}))\n'.format(
+            res += '    el.append(SRWLOptA("{}", "o", {}, {}))\n'.format(
+                _escape(item['shape'] if item.get('shape') else 'r'),
                 _float(item, 'horizontalSize', 1000),
                 _float(item, 'verticalSize', 1000))
             res += _propagation_params(propagation[str(item['id'])][0])
