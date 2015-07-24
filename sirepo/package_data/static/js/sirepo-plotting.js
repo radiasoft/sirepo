@@ -257,7 +257,7 @@
             },
             template: [
                 '<div style="position: relative;">',
-                '<canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{margin }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>',
+                '<canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>',
                 '<svg style="position: relative;">',
                   '<g ng-attr-transform="translate({{ margin }},{{ margin }})">',
                     '<text class="main-title" />',
@@ -296,7 +296,7 @@
             controller: function($scope) {
 
                 $scope.margin = 50;
-                var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, canvasSize, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, plotId, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
+                var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, plotId, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
                 function drawBottomPanelCut() {
                     var bBottom = yIndexScale(yAxisScale.domain()[0]);
@@ -371,12 +371,12 @@
                             0,
                             Math.max(
                                 tx,
-                                canvasSize - (s * $scope.imageObj.width) / ($scope.imageObj.width / canvasSize)));
+                                $scope.canvasSize - (s * $scope.imageObj.width) / ($scope.imageObj.width / $scope.canvasSize)));
                         ty = Math.min(
                             0,
                             Math.max(
                                 ty,
-                                canvasSize - (s * $scope.imageObj.height) / ($scope.imageObj.height / canvasSize)));
+                                $scope.canvasSize - (s * $scope.imageObj.height) / ($scope.imageObj.height / $scope.canvasSize)));
 
                         var xdom = xAxisScale.domain();
                         var ydom = yAxisScale.domain();
@@ -420,7 +420,7 @@
                         }
                     }
 
-                    ctx.clearRect(0, 0, canvasSize, canvasSize);
+                    ctx.clearRect(0, 0, $scope.canvasSize, $scope.canvasSize);
                     if (s == 1) {
                         tx = 0;
                         ty = 0;
@@ -428,8 +428,8 @@
                     }
                     ctx.drawImage(
                         $scope.imageObj,
-                        tx*$scope.imageObj.width/canvasSize,
-                        ty*$scope.imageObj.height/canvasSize,
+                        tx*$scope.imageObj.width/$scope.canvasSize,
+                        ty*$scope.imageObj.height/$scope.canvasSize,
                         $scope.imageObj.width*s,
                         $scope.imageObj.height*s
                     );
@@ -489,7 +489,7 @@
                         .scaleExtent([1, 10])
                         .on('zoom', refresh);
                     canvas = select('canvas');
-                    $scope.svg = select('svg g');
+                    $scope.svg = select('svg');
                     mouseRect = select('.mouse-rect');
                     ctx = canvas.node().getContext('2d');
                     $scope.imageObj = new Image();
@@ -504,7 +504,7 @@
                         .y(function(d) { return yAxisScale(d[0]); })
                         .x(function(d) { return rightPanelXScale(d[1]); });
 
-                    $(window).resize($scope.resize);
+                    $(window).resize($scope.windowResize);
                 };
 
                 $scope.load = function(json) {
@@ -552,10 +552,13 @@
                 };
 
                 $scope.resize = function() {
+                    if (! heatmap)
+                        return;
                     var width = parseInt(select().style('width')) - 2 * $scope.margin;
                     var rightPanelMargin = {left: 10, right: 40};
                     var bottomPanelMargin = {top: 10, bottom: 30};
-                    canvasSize = 2 * (width - rightPanelMargin.left - rightPanelMargin.right) / 3;
+                    var canvasSize = 2 * (width - rightPanelMargin.left - rightPanelMargin.right) / 3;
+                    $scope.canvasSize = canvasSize;
                     var bottomPanelHeight = 2 * canvasSize / 5 + bottomPanelMargin.top + bottomPanelMargin.bottom;
                     var rightPanelWidth = canvasSize / 2 + rightPanelMargin.left + rightPanelMargin.right;
                     xAxisScale.range([0, canvasSize - 1]);
@@ -567,10 +570,7 @@
                     $scope.zoom.center([canvasSize / 2, canvasSize / 2])
                         .x(xAxisScale.domain([xValueMin, xValueMax]))
                         .y(yAxisScale.domain([yValueMin, yValueMax]));
-                    select('canvas')
-                        .style('width', canvasSize + 'px')
-                        .style('height', canvasSize + 'px');
-                    select('svg')
+                    $scope.svg
                         .attr('width', $scope.margin * 2 + canvasSize + rightPanelWidth)
                         .attr('height', $scope.margin * 2 + canvasSize + bottomPanelHeight)
                     select('.main-title')
@@ -638,11 +638,16 @@
                         .call(bottomPanelYAxis);
                     refresh();
                 };
+
+                $scope.windowResize = function() {
+                    $scope.resize();
+                    $scope.$apply();
+                }
             },
             link: function link(scope) {
                 linkPlot(scope, d3Service, appState);
                 scope.$on('$destroy', function() {
-                    $(window).off('resize', scope.resize);
+                    $(window).off('resize', scope.windowResize);
                     scope.zoom.on('zoom', null);
                     scope.svg.remove();
                     scope.svg = null;
