@@ -1,7 +1,30 @@
 'use strict';
 
+function wavefrontIntensityReportFields(title) {
+    return {
+        title: title,
+        basic: [],
+        advanced: [
+            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
+            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
+            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
+            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
+            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
+            ['sampleFactor', 'Sampling Factor', 'Float'],
+            ['method', 'Method for Integration', 'IntegrationMethod'],
+            ['precision', 'Relative Precision', 'Float'],
+            ['polarization', 'Polarization Component to Extract', 'Polarization'],
+            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
+        ],
+    };
+}
+
 // Application meta-data
 var _ENUM = {
+    ApertureShape: [
+        ['r', 'Rectangular'],
+        ['c', 'Circular'],
+    ],
     Characteristic: [
         [0, 'Single-Electron Intensity'],
         [1, 'Multi-Electron Intensity'],
@@ -139,44 +162,15 @@ var _MODEL = {
             ['method', 'Power Density Computation Method', 'PowerDensityMethod'],
         ],
     },
-    initialIntensityReport: {
-        title: 'Initial Intensity Report',
-        basic: [],
-        advanced: [
-            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
-            ['sampleFactor', 'Sampling Factor', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
-        ],
-    },
-    watchpointReport: {
-        title: 'Watchpoint Report',
-        basic: [],
-        advanced: [
-            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
-            ['sampleFactor', 'Sampling Factor', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
-        ],
-    },
+    initialIntensityReport: wavefrontIntensityReportFields('Initial Intensity Report'),
+    watchpointReport: wavefrontIntensityReportFields('Watchpoint Report'),
     aperture: {
         title: 'Aperture',
         basic: [],
         advanced: [
             ['title', 'Element Name', 'String'],
             ['position', 'Nominal Position [m]', 'Float'],
+            ['shape', 'Shape', 'ApertureShape'],
             ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
             ['verticalSize', 'Vertical Size [mm]', 'Float'],
         ],
@@ -236,12 +230,12 @@ var _MODEL = {
         advanced: [
             ['title', 'Element Name', 'String'],
             ['position', 'Nominal Position [m]', 'Float'],
+            ['shape', 'Shape', 'ApertureShape'],
             ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
             ['verticalSize', 'Vertical Size [mm]', 'Float'],
         ],
     },
 };
-
 
 var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
 
@@ -267,9 +261,14 @@ app.config(function($routeProvider) {
 app.factory('appState', function($http, $rootScope) {
     var self = {};
     self.models = {};
-    self.reportCache = {};
-    self.savedModelValues = {};
+    var reportCache = {};
+    var savedModelValues = {};
     var runQueue = [];
+
+    function cloneModel(name) {
+        var val = name ? self.models[name] : self.models;
+        return JSON.parse(JSON.stringify(val));
+    }
 
     function executeQueue() {
         var currentQueue = runQueue;
@@ -277,7 +276,7 @@ app.factory('appState', function($http, $rootScope) {
             return;
         $http.post('/srw/run', {
             report: currentQueue[0][0],
-            models: self.savedModelValues,
+            models: savedModelValues,
         }).success(function(data, status) {
             var item = currentQueue.shift();
 
@@ -285,7 +284,7 @@ app.factory('appState', function($http, $rootScope) {
                 self.models[item[0]]._error = data['error'];
             }
             else {
-                self.reportCache[item[0]] = data;
+                reportCache[item[0]] = data;
                 item[1](data);
             }
             //TODO(pjm): don't set loading to false unless there are no other queue items for this report
@@ -301,7 +300,7 @@ app.factory('appState', function($http, $rootScope) {
     }
 
     function updateReports() {
-        self.reportCache = {};
+        reportCache = {};
         for (var key in self.models) {
             if (key.indexOf('Report') > 0) {
                 $rootScope.$broadcast(key + '.changed');
@@ -309,19 +308,48 @@ app.factory('appState', function($http, $rootScope) {
         }
     }
 
+    self.cancelChanges = function(name) {
+        if (savedModelValues[name])
+            self.models[name] = JSON.parse(JSON.stringify(savedModelValues[name]));
+    };
+
     self.clearModels = function(emptyValues) {
-        self.reportCache = {};
+        reportCache = {};
         self.models = emptyValues || {};
-        self.savedModelValues = {};
+        savedModelValues = {};
         runQueue = [];
     };
-    self.cloneModel = function(name) {
-        var val = name ? self.models[name] : self.models;
-        return JSON.parse(JSON.stringify(val));
+
+    self.getWatchItems = function() {
+        if (self.isLoaded()) {
+            var beamline = savedModelValues.beamline;
+            var res = [];
+            for (var i = 0; i < beamline.length; i++) {
+                if (beamline[i]['type'] == 'watch')
+                    res.push(beamline[i]);
+            }
+            return res;
+        }
+        return [];
     };
+
+    self.getReportTitle = function(name) {
+        //TODO(pjm): generalize this
+        var match = name.match(/.*?(\d+)/);
+        if (match) {
+            var id = match[1];
+            for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
+                if (savedModelValues.beamline[i].id == id)
+                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report';
+            }
+        }
+        return self.modelInfo(name).title;
+    }
+
     self.isLoaded = function() {
         return self.models['simulation'] && self.models['simulation']['simulationId'];
     };
+
     self.loadModels = function(simulationId) {
         if (self.isLoaded() && self.models['simulation']['simulationId'] == simulationId)
             return;
@@ -329,19 +357,21 @@ app.factory('appState', function($http, $rootScope) {
         $http.get('/srw/simulation/' + simulationId)
             .success(function(data, status) {
                 self.models = data['models'];
-                self.savedModelValues = self.cloneModel();
+                savedModelValues = cloneModel();
                 updateReports();
             })
             .error(function(data, status) {
                 console.log('loadModels failed: ', simulationId);
             });
     };
+
     self.modelInfo = function(name) {
         return _MODEL[name];
     };
+
     self.requestData = function(name, callback) {
-        if (self.reportCache[name])
-            callback(self.reportCache[name]);
+        if (reportCache[name])
+            callback(reportCache[name]);
         else if (self.models[name]) {
             self.models[name]._loading = true;
             self.models[name]._error = null;
@@ -350,19 +380,20 @@ app.factory('appState', function($http, $rootScope) {
                 executeQueue();
         }
     };
+
     self.saveChanges = function(name) {
         console.log('save changes: ', name);
         delete(self.models[name]['_error']);
-        self.savedModelValues[name] = self.cloneModel(name);
+        savedModelValues[name] = cloneModel(name);
         if (name.indexOf('Report') > 0) {
-            self.reportCache[name] = null;
+            reportCache[name] = null;
         }
         else {
             if (name == 'beamline') {
                 // need to save all watchpoinReports and propagations for beamline changes
                 for (var modelName in self.models) {
                     if (modelName.indexOf('watchpoinReport') || modelName.indexOf('propagation'))
-                        self.savedModelValues[modelName] = self.cloneModel(modelName);
+                        savedModelValues[modelName] = cloneModel(modelName);
                 }
             }
             updateReports();
@@ -370,22 +401,7 @@ app.factory('appState', function($http, $rootScope) {
         console.log('broadcast: ', name + '.changed');
         $rootScope.$broadcast(name + '.changed');
     };
-    self.cancelChanges = function(name) {
-        if (self.savedModelValues[name])
-            self.models[name] = JSON.parse(JSON.stringify(self.savedModelValues[name]));
-    };
-    self.getReportTitle = function(name) {
-        //TODO(pjm): generalize this
-        var match = name.match(/.*?(\d+)/);
-        if (match) {
-            var id = match[1];
-            for (var i = 0; i < self.savedModelValues.beamline.length; i += 1) {
-                if (self.savedModelValues.beamline[i].id == id)
-                    return 'Intensity at ' + self.savedModelValues.beamline[i].title + ' Report';
-            }
-        }
-        return self.modelInfo(name).title;
-    }
+
     return self;
 });
 
@@ -516,17 +532,11 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
         self.postPropagation = appState.models.postPropagation;
     }
 
-    self.getBeamline = function(itemType) {
-        if (itemType && appState.isLoaded()) {
-            // use the saved beamline for specific types (watch)
-            var beamline = appState.savedModelValues.beamline;
-            var res = [];
-            for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i]['type'] == itemType)
-                    res.push(beamline[i]);
-            }
-            return res;
-        }
+    self.getWatchItems = function() {
+        return appState.getWatchItems();
+    }
+
+    self.getBeamline = function() {
         return appState.models.beamline;
     }
 
@@ -897,7 +907,7 @@ app.directive('beamlineIcon', function() {
     };
 });
 
-app.directive('beamlineItem', function($compile, $timeout) {
+app.directive('beamlineItem', function($timeout) {
     return {
         scope: {
             item: '=',
@@ -1106,7 +1116,7 @@ app.directive('modalEditor', function(appState) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 appState.cancelChanges(scope.fullModelName);
-                scope.$digest();
+                scope.$apply();
             });
             scope.$on('$destroy', function() {
                 // release modal data to prevent memory leak
