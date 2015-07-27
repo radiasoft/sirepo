@@ -214,7 +214,7 @@ def generate_beamline_optics(models, last_id):
         res += '\n'
 
     # final propagation parameters
-    res += _propagation_params(models['post_propagation'])
+    res += _propagation_params(models['postPropagation'])
     res += '    return SRWLOptC(el, pp)\n'
     return res
 
