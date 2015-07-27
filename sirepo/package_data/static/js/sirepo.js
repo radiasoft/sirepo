@@ -766,23 +766,7 @@ app.directive('panelBody', function() {
 
 app.controller('NavController', function ($rootScope, $location, appState) {
     var self = this;
-    self.pageTitle = function() {
-        return $.grep(
-            [
-                self.sectionTitle(),
-                'SRW',
-                'Radiasoft',
-            ],
-            function(n){ return n })
-            .join(' - ');
-    }
-    self.sectionTitle = function() {
-        if ($rootScope.activeSection == 'simulations')
-            return null;
-        if (appState.isLoaded())
-            return appState.models.simulation.name;
-        return null;
-    }
+
     self.openSection = function(name) {
         //TODO(pjm): centralize route management
         $location.path(
@@ -792,7 +776,26 @@ app.controller('NavController', function ($rootScope, $location, appState) {
                     : ('/' + appState.models['simulation']['simulationId'])
             )
         );
-    }
+    };
+
+    self.pageTitle = function() {
+        return $.grep(
+            [
+                self.sectionTitle(),
+                'SRW',
+                'Radiasoft',
+            ],
+            function(n){ return n })
+            .join(' - ');
+    };
+
+    self.sectionTitle = function() {
+        if ($rootScope.activeSection == 'simulations')
+            return null;
+        if (appState.isLoaded())
+            return appState.models.simulation.name;
+        return null;
+    };
 });
 
 app.controller('SimulationsController', function ($rootScope, $http, $location, $window, appState) {
@@ -1058,8 +1061,8 @@ app.directive('reportPanel', function(appState) {
               '<panel-body data-model="appState.models[fullModelName]">',
 
                 '<div data-ng-switch="reportPanel">',
-                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ fullModelName }}" id="{{ plotId }}"></div>',
-                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ fullModelName }}" id="{{ plotId }}"></div>',
+                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ fullModelName }}"></div>',
+                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ fullModelName }}"></div>',
                 '</div>',
               '</panel-body>',
             '</div>',
@@ -1069,7 +1072,6 @@ app.directive('reportPanel', function(appState) {
             $scope.appState = appState;
             $scope.fullModelName = $scope.modelName + itemId;
             $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
-            $scope.plotId = 'srw-' + $scope.modelName + '-' + $scope.reportPanel + '-plot' + itemId;
         },
     };
 });
