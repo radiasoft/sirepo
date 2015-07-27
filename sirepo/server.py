@@ -168,7 +168,7 @@ def srw_simulation_data(simulation_id):
     if len(res):
         if len(res) > 1:
             pkdp('multiple data files found for id: {}'.format(simulation_id))
-        return json.dumps(res[0])
+        return json.dumps(_fixup_old_data(res[0]))
     flask.abort(404)
 
 
@@ -194,7 +194,7 @@ def _error_text(err):
 def _escape_and_scale_value(k, v):
     v = str(v).replace("'", '')
     if k in _SCALE_VALUES:
-        v = float(v) / 1000;
+        v = float(v) / 1000
     return v
 
 
@@ -202,6 +202,16 @@ def _find_simulation_data(res, path, data, params):
     if str(_id(data)) == params['simulationId']:
         res.append(data)
 
+def _fixup_old_data(data):
+    #TODO(pjm): put version number at root level in data
+    if 'post_propagation' in data['models']:
+        data['models']['postPropagation'] = data['models']['post_propagation']
+        del data['models']['post_propagation']
+    for item in data['models']['beamline']:
+        if item['type'] == 'aperture' or item['type'] == 'obstacle':
+            if not item.get('shape'):
+                item['shape'] = 'r'
+    return data
 
 def _flatten_data(d, res, prefix=''):
     for k in d:
