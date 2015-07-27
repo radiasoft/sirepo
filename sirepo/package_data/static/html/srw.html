@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html data-ng-app="SRWApp">
+<html data-ng-app="SRWApp" data-ng-controller="NavController as nav">
   <head lang="en">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico">
-    <title data-ng-controller="NavController as nav" data-ng-bind="nav.pageTitle()">SRW - Radiasoft</title>
+    <title data-ng-bind="nav.pageTitle()">SRW - Radiasoft</title>
     <link href="/static/css/bootstrap-3.3.4.min.css" rel="stylesheet">
     <link href="/static/css/bootstrap-slider-2.0.0.css" rel="stylesheet">
     <link href="/static/css/bootstrap-colxl.css" rel="stylesheet">
@@ -18,7 +18,7 @@
     <![endif]-->
   </head>
   <body>
-    <nav data-ng-controller="NavController as nav" class="navbar navbar-default navbar-static-top">
+    <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header">
           <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
