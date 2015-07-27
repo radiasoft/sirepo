@@ -18,8 +18,29 @@
             .ticks(5);
     }
 
-    function linkPlot(scope, d3Service, appState) {
+    // Returns a function, that, as long as it continues to be invoked, will not
+    // be triggered. The function will be called after it stops being called for
+    // N milliseconds. If `immediate` is passed, trigger the function on the
+    // leading edge, instead of the trailing.
+    // taken from http://davidwalsh.name/javascript-debounce-function
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+
+    function linkPlot(scope, element, d3Service, appState) {
         d3Service.d3().then(function(d3) {
+            scope.element = element[0];
 
             function requestData() {
                 if (! appState.isLoaded())
@@ -27,12 +48,12 @@
                 //console.log('requesting data: ', scope.modelName);
                 appState.requestData(scope.modelName, function(data) {
                     //console.log('loading data: ', scope.modelName);
-                    if (scope.svg)
+                    if (scope.element)
                         scope.load(data);
                 });
             }
             scope.$on(scope.modelName + '.changed', requestData);
-            scope.init(scope.id);
+            scope.init();
             requestData();
         });
     }
@@ -42,38 +63,13 @@
             restrict: 'A',
             scope: {
                 modelName: '@',
-                id: '@',
             },
-            template: [
-                '<svg>',
-                  '<g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
-                    '<g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>',
-                    '<g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>',
-                    '<g class="y axis"></g>',
-                    '<g class="y axis grid"></g>',
-                    '<text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>',
-                    '<text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>',
-                    '<text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>',
-                    '<g class="focus" style="display: none;">',
-                      '<circle r="6" />',
-                      '<text class="focus-text" x="9" dy=".35em"></text>',
-                    '</g>',
-                    '<rect class="overlay" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"/>',
-                    '<svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">',
-                      '<path class="line" />',
-                    '</svg>',
-                  '</g>',
-                '</svg>',
-                '<div style="margin-left: 30px" class="text-center">',
-                  '<strong>{{ xRange[0] | number }}</strong>',
-                  '<input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">',
-                  '<strong>{{ xRange[1] | number }}</strong>',
-                '</div>',
-            ].join(''),
+            templateUrl: '/static/html/plot2d.html?20150724',
             controller: function($scope) {
 
                 $scope.margin = {top: 50, right: 50, bottom: 80, left: 70};
-                var formatter, graphLine, plotId, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale;
+                $scope.width = $scope.height = 0;
+                var formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale;
 
                 function computePeaks(json, dimensions, xPoints) {
                     var peakSpacing = dimensions[0] / 20;
@@ -127,8 +123,28 @@
                     }
                 };
 
+                function resize() {
+                    if (! points)
+                        return;
+                    $scope.width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    $scope.height = parseInt(select().style('height')) - $scope.margin.top - $scope.margin.bottom;
+                    if ($scope.height > $scope.width)
+                        $scope.height = $scope.width;
+                    xAxisScale.range([-0.5, $scope.width - 0.5]);
+                    yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
+                    xAxisGrid.tickSize(-$scope.height);
+                    yAxisGrid.tickSize(-$scope.width);
+                    select('.x.axis').call(xAxis);
+                    select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
+                    select('.y.axis').call(yAxis);
+                    select('.y.axis.grid').call(yAxisGrid);
+                    select('.line').attr('d', graphLine);
+                    return [$scope.width, $scope.height];
+                }
+
                 function select(selector) {
-                    return d3.select(plotId + (selector ? (' ' + selector) : ''));
+                    var e = d3.select($scope.element);
+                    return selector ? e.select(selector) : e;
                 }
 
                 function sliderChanged(ev) {
@@ -154,16 +170,19 @@
                             yMax = p[1];
                     }
                     yAxisScale.domain([yMin, yMax]);
-                    $scope.resize();
+                    resize();
                 }
 
-                $scope.init = function(id) {
-                    plotId = '#' + id;
+                $scope.windowResize = debounce(function() {
+                    resize();
+                    $scope.$apply();
+                }, 250);
+
+                $scope.init = function() {
                     formatter = d3.format(',.0f');
-                    $scope.width = $scope.height = 0;
-                    $scope.slider = $(plotId + ' .srw-plot2d-slider').slider();
+                    $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                     $scope.slider.on('slide', sliderChanged);
-                    $(window).resize($scope.resize);
+                    $(window).resize($scope.windowResize);
                     xAxisScale = d3.scale.linear();
                     yAxisScale = d3.scale.linear();
                     xAxis = createAxis(xAxisScale, 'bottom');
@@ -173,7 +192,6 @@
                     graphLine = d3.svg.line()
                         .x(function(d) {return xAxisScale(d[0])})
                         .y(function(d) {return yAxisScale(d[1])});
-                    $scope.svg = select('svg')
                     var focus = select('.focus');
                     select('.overlay')
                         .on('mouseover', function() { focus.style('display', null); })
@@ -192,36 +210,16 @@
                     select('.x-axis-label').text(json.x_label);
                     select('.main-title').text(json.title);
                     select('.line').datum(points);
-                    var dimensions = $scope.resize();
+                    var dimensions = resize();
                     xPeakValues = computePeaks(json, dimensions, xPoints);
                 };
-
-                $scope.resize = function() {
-                    if (! points)
-                        return;
-                    $scope.width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    $scope.height = parseInt(select().style('height')) - $scope.margin.top - $scope.margin.bottom;
-                    if ($scope.height > $scope.width)
-                        $scope.height = $scope.width;
-                    xAxisScale.range([-0.5, $scope.width - 0.5]);
-                    yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
-                    xAxisGrid.tickSize(-$scope.height);
-                    yAxisGrid.tickSize(-$scope.width);
-                    select('.x.axis').call(xAxis);
-                    select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
-                    select('.y.axis').call(yAxis);
-                    select('.y.axis.grid').call(yAxisGrid);
-                    select('.line').attr('d', graphLine);
-                    return [$scope.width, $scope.height];
-                };
             },
-            link: function link(scope) {
-                linkPlot(scope, d3Service, appState);
+            link: function link(scope, element) {
+                linkPlot(scope, element, d3Service, appState);
                 scope.$on('$destroy', function() {
-                    $(window).off('resize', scope.resize);
+                    scope.element = null;
+                    $(window).off('resize', scope.windowResize);
                     $('.overlay').off();
-                    scope.svg.remove();
-                    scope.svg = null;
                     scope.slider.off();
                     scope.slider.data('slider').picker.off();
                     scope.slider.remove();
@@ -235,57 +233,17 @@
             restrict: 'A',
             scope: {
                 modelName: '@',
-                id: '@',
             },
-            template: [
-                '<div style="position: relative;">',
-                '<canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{ margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>',
-                '<svg style="position: relative;" ng-attr-width="{{ margin * 2 + canvasSize + rightPanelWidth }}" ng-attr-height="{{ margin * 2 + canvasSize + bottomPanelHeight }}">',
-                  '<g ng-attr-transform="translate({{ margin }},{{ margin }})">',
-                    '<text class="main-title" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ -margin / 2 }}" />',
-                    '<rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;" />',
-                    '<line class="y-cross-hair cross-hair" ng-attr-x1="{{ canvasSize / 2 }}" y1="0" ng-attr-x2="{{ canvasSize / 2 }}" ng-attr-y2="{{ canvasSize }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
-                    '<line class="x-cross-hair cross-hair" x1="0" ng-attr-y1="{{ canvasSize / 2 }}" ng-attr-x2="{{ canvasSize }}" ng-attr-y2="{{ canvasSize / 2 }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />',
-                    '<g class="y axis grid"></g>',
-                    '<defs>',
-                      '<clippath id="bottomclip">',
-                        '<rect class="bottom-panel-rect" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }}"  />',
-                      '</clippath>',
-                    '</defs>',
-                    '<g class="bottom-panel" ng-attr-transform="translate(0, {{ canvasSize + bottomPanelMargin.top }})">',
-                      '<path class="line" clip-path="url(#bottomclip)" />',
-                      '<g class="x axis bottom" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>',
-                      '<g class="x axis grid" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>',
-                      '<text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ bottomPanelHeight }}" />',
-                      '<g class="y axis bottom"></g>',
-                    '</g>',
-                    '<defs>',
-                      '<clippath id="rightclip">',
-                        '<rect class="right-panel-rect" ng-attr-width="{{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}" ng-attr-height="{{ canvasSize }}" />',
-                      '</clippath>',
-                    '</defs>',
-                    '<g class="right-panel" ng-attr-transform="translate({{ canvasSize + rightPanelMargin.left }}, 0)">',
-                      '<path class="line" clip-path="url(#rightclip)" />',
-                      '<g class="y axis right" ng-attr-transform="translate({{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}, 0)"></g>',
-                      '<g class="x axis right" ng-attr-transform="translate(0, {{ canvasSize }})"></g>',
-                      '<text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" ng-attr-y="{{ rightPanelWidth + 15 }}" transform="rotate(270)" />',
-                    '</g>',
-                    '<text class="z-axis-label" ng-attr-x="{{ canvasSize + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize + margin }}" />',
-                  '</g>',
-                '</svg>',
-                '</div>',
-            ].join(''),
+            templateUrl: '/static/html/plot3d.html?20150724',
             controller: function($scope) {
 
                 $scope.margin = 50;
                 $scope.bottomPanelMargin = {top: 10, bottom: 30};
                 $scope.rightPanelMargin = {left: 10, right: 40};
                 // will be set to the correct size in resize()
-                $scope.canvasSize = 50;
-                $scope.rightPanelWidth = 50;
-                $scope.bottomPanelHeight = 50;
+                $scope.canvasSize = $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
 
-                var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, plotId, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
+                var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
                 function drawBottomPanelCut() {
                     var bBottom = yIndexScale(yAxisScale.domain()[0]);
@@ -463,11 +421,11 @@
                 };
 
                 function select(selector) {
-                    return d3.select(plotId + (selector ? (' ' + selector) : ''));
+                    var e = d3.select($scope.element);
+                    return selector ? e.select(selector) : e;
                 }
 
-                $scope.init = function(id) {
-                    plotId = '#' + id;
+                $scope.init = function() {
                     xAxisScale = d3.scale.linear();
                     xIndexScale = d3.scale.linear();
                     yAxisScale = d3.scale.linear();
@@ -484,7 +442,6 @@
                         .scaleExtent([1, 10])
                         .on('zoom', refresh);
                     canvas = select('canvas');
-                    $scope.svg = select('svg');
                     mouseRect = select('.mouse-rect');
                     ctx = canvas.node().getContext('2d');
                     $scope.imageObj = new Image();
@@ -545,18 +502,17 @@
                     resize();
                 };
 
-                $scope.windowResize = function() {
+                $scope.windowResize = debounce(function() {
                     resize();
                     $scope.$apply();
-                }
+                }, 250);
             },
-            link: function link(scope) {
-                linkPlot(scope, d3Service, appState);
+            link: function link(scope, element) {
+                linkPlot(scope, element, d3Service, appState);
                 scope.$on('$destroy', function() {
+                    scope.element = null;
                     $(window).off('resize', scope.windowResize);
                     scope.zoom.on('zoom', null);
-                    scope.svg.remove();
-                    scope.svg = null;
                     scope.imageObj.onload = null;
                 });
             },
