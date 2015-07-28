@@ -1,6 +1,7 @@
 'use strict';
 
 (function() {
+    var INITIAL_HEIGHT = 400;
 
     function createAxis(scale, orient) {
         return d3.svg.axis()
@@ -14,8 +15,7 @@
         //.tickFormat(d3.format('e'))
             .tickFormat(function (value) {
                 return value.toExponential();
-            })
-            .ticks(5);
+            });
     }
 
     // Returns a function, that, as long as it continues to be invoked, will not
@@ -58,15 +58,23 @@
         });
     }
 
+    function ticks(axis, width, isHorizontalAxis) {
+        var spacing = isHorizontalAxis ? 80 : 30;
+        var n = Math.max(Math.round(width / spacing), 2);
+        axis.ticks(n);
+    };
+
+
     app.directive('plot2d', function(appState, d3Service) {
         return {
             restrict: 'A',
             scope: {
                 modelName: '@',
             },
-            templateUrl: '/static/html/plot2d.html?20150724',
+            templateUrl: '/static/html/plot2d.html?20150728',
             controller: function($scope) {
 
+                var ASPECT_RATIO = 4.0 / 7;
                 $scope.margin = {top: 50, right: 50, bottom: 80, left: 70};
                 $scope.width = $scope.height = 0;
                 var formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale;
@@ -127,9 +135,14 @@
                     if (! points)
                         return;
                     $scope.width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    $scope.height = parseInt(select().style('height')) - $scope.margin.top - $scope.margin.bottom;
-                    if ($scope.height > $scope.width)
-                        $scope.height = $scope.width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                    ticks(xAxis, $scope.width, true);
+                    ticks(xAxisGrid, $scope.width, true);
+                    ticks(yAxis, $scope.height, false);
+                    ticks(yAxisGrid, $scope.height, false);
                     xAxisScale.range([-0.5, $scope.width - 0.5]);
                     yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
                     xAxisGrid.tickSize(-$scope.height);
@@ -180,6 +193,7 @@
 
                 $scope.init = function() {
                     formatter = d3.format(',.0f');
+                    select('svg').attr('height', INITIAL_HEIGHT);
                     $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                     $scope.slider.on('slide', sliderChanged);
                     $(window).resize($scope.windowResize);
@@ -234,14 +248,15 @@
             scope: {
                 modelName: '@',
             },
-            templateUrl: '/static/html/plot3d.html?20150724',
+            templateUrl: '/static/html/plot3d.html?20150728',
             controller: function($scope) {
 
                 $scope.margin = 50;
                 $scope.bottomPanelMargin = {top: 10, bottom: 30};
                 $scope.rightPanelMargin = {left: 10, right: 40};
                 // will be set to the correct size in resize()
-                $scope.canvasSize = $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
+                $scope.canvasSize = 0;
+                $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
 
                 var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
@@ -396,6 +411,12 @@
                     $scope.canvasSize = canvasSize;
                     $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.bottomPanelMargin.top + $scope.bottomPanelMargin.bottom;
                     $scope.rightPanelWidth = canvasSize / 2 + $scope.rightPanelMargin.left + $scope.rightPanelMargin.right;
+                    ticks(rightPanelXAxis, $scope.rightPanelWidth, true);
+                    ticks(rightPanelYAxis, canvasSize, false);
+                    ticks(bottomPanelXAxis, canvasSize, true);
+                    ticks(bottomPanelYAxis, $scope.bottomPanelHeight, false);
+                    ticks(mainXAxis, canvasSize, false);
+                    ticks(mainYAxis, canvasSize, false);
                     xAxisScale.range([0, canvasSize - 1]);
                     yAxisScale.range([canvasSize - 1, 0]);
                     bottomPanelYScale.range([$scope.bottomPanelHeight - $scope.bottomPanelMargin.top - $scope.bottomPanelMargin.bottom - 1, 0]).nice();
@@ -406,17 +427,6 @@
                         .x(xAxisScale.domain([xValueMin, xValueMax]))
                         .y(yAxisScale.domain([yValueMin, yValueMax]));
                     select('.mouse-rect').call($scope.zoom);
-                    var ticks = function(axis, isShorterAxis) {
-                        var spacing = isShorterAxis ? 150 : 80;
-                        var n = Math.max(Math.round(canvasSize / spacing), 3);
-                        axis.ticks(n);
-                    };
-                    ticks(rightPanelXAxis, true);
-                    ticks(rightPanelYAxis, false);
-                    ticks(bottomPanelXAxis, false);
-                    ticks(bottomPanelYAxis, true);
-                    ticks(mainXAxis, false);
-                    ticks(mainYAxis, false);
                     refresh();
                 };
 
@@ -426,6 +436,7 @@
                 }
 
                 $scope.init = function() {
+                    select('svg').attr('height', INITIAL_HEIGHT);
                     xAxisScale = d3.scale.linear();
                     xIndexScale = d3.scale.linear();
                     yAxisScale = d3.scale.linear();
