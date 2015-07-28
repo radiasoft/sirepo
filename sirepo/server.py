@@ -134,7 +134,7 @@ def srw_root():
 @app.route('/srw/run', methods=('GET', 'POST'))
 def srw_run():
     http_text = _read_http_input()
-    data = json.loads(http_text)
+    data = _fixup_old_data(json.loads(http_text))
     with pkio.save_chdir(_work_dir(), mkdir=True) as wd:
         pkdp('dir={}', wd)
         _save_simulation_json(data)
@@ -168,7 +168,7 @@ def srw_simulation_data(simulation_id):
     if len(res):
         if len(res) > 1:
             pkdp('multiple data files found for id: {}'.format(simulation_id))
-        return json.dumps(_fixup_old_data(res[0]))
+        return json.dumps(res[0])
     flask.abort(404)
 
 
@@ -272,7 +272,7 @@ def _json_input(field):
 
 def _open_json_file(path):
     with open(str(path)) as f:
-        return json.load(f)
+        return _fixup_old_data(json.load(f))
 
 
 def _process_simulation_list(res, path, data, params):
