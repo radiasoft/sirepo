@@ -1061,8 +1061,8 @@ app.directive('reportPanel', function(appState) {
               '<panel-body data-model="appState.models[fullModelName]">',
 
                 '<div data-ng-switch="reportPanel">',
-                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot-2d" data-model-name="{{ fullModelName }}"></div>',
-                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot-3d" data-model-name="{{ fullModelName }}"></div>',
+                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                 '</div>',
               '</panel-body>',
             '</div>',
