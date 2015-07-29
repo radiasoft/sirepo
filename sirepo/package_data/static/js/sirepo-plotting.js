@@ -59,7 +59,7 @@
     }
 
     function ticks(axis, width, isHorizontalAxis) {
-        var spacing = isHorizontalAxis ? 80 : 30;
+        var spacing = isHorizontalAxis ? 80 : 40;
         var n = Math.max(Math.round(width / spacing), 2);
         axis.ticks(n);
     };
@@ -200,6 +200,7 @@
                     xAxisScale = d3.scale.linear();
                     yAxisScale = d3.scale.linear();
                     xAxis = createAxis(xAxisScale, 'bottom');
+                    xAxis.tickFormat(d3.format('s'))
                     xAxisGrid = createAxis(xAxisScale, 'bottom');
                     yAxis = createExponentialAxis(yAxisScale, 'left');
                     yAxisGrid = createAxis(yAxisScale, 'left');
@@ -344,7 +345,6 @@
                         if ((xdom[1] - xdom[0]) >= (xValueMax - xValueMin) * 0.9999) {
 	                    $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]));
 	                    xdom = xAxisScale.domain();
-
 	                    resetS += 1;
                         }
                         if ((ydom[1] - ydom[0]) >= (yValueMax - yValueMin) * 0.9999) {
@@ -361,7 +361,6 @@
                         else {
 	                    mouseRect.attr('class', 'mouse-move');
 	                    if (xdom[0] < xValueMin) {
-                                //		tx = 0;
 	                        xAxisScale.domain([xValueMin, xdom[1] - xdom[0] + xValueMin]);
 	                        xdom = xAxisScale.domain();
 	                    }
@@ -413,7 +412,7 @@
                     $scope.rightPanelWidth = canvasSize / 2 + $scope.rightPanelMargin.left + $scope.rightPanelMargin.right;
                     ticks(rightPanelXAxis, $scope.rightPanelWidth, true);
                     ticks(rightPanelYAxis, canvasSize, false);
-                    ticks(bottomPanelXAxis, canvasSize, true);
+                    ticks(bottomPanelXAxis, canvasSize, false);
                     ticks(bottomPanelYAxis, $scope.bottomPanelHeight, false);
                     ticks(mainXAxis, canvasSize, false);
                     ticks(mainYAxis, canvasSize, false);
@@ -446,9 +445,20 @@
                     mainXAxis = createAxis(xAxisScale, 'bottom');
                     mainYAxis = createAxis(yAxisScale, 'left');
                     bottomPanelXAxis = createAxis(xAxisScale, 'bottom');
+
+                    // amounts near zero may appear as NNNz, change them to 0
+                    var format = d3.format('.3s');
+                    function fixFormat(n) {
+                        var v = format(n);
+                        if (v && v.indexOf('z') > 0)
+                            return '0.00';
+                        return v;
+                    }
+                    bottomPanelXAxis.tickFormat(fixFormat);
                     bottomPanelYAxis = createExponentialAxis(bottomPanelYScale, 'left');
                     rightPanelXAxis = createExponentialAxis(rightPanelXScale, 'bottom');
                     rightPanelYAxis = createAxis(yAxisScale, 'right');
+                    rightPanelYAxis.tickFormat(fixFormat);
                     $scope.zoom = d3.behavior.zoom()
                         .scaleExtent([1, 10])
                         .on('zoom', refresh);
