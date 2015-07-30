@@ -1,0 +1,369 @@
+{
+    "enum": {
+        "ApertureShape": [
+            ["r", "Rectangular"],
+            ["c", "Circular"]
+        ],
+        "Characteristic": [
+            ["0", "Single-Electron Intensity"],
+            ["1", "Multi-Electron Intensity"],
+            ["3", "Single-Electron Flux"],
+            ["4", "Multi-Electron Flux"],
+            ["5", "Single-Electron Radiation Phase"],
+            ["6", "Re(E): Real part of Single-Electron Electric Field"],
+            ["7", "Im(E): Imaginary part of Single-Electron Electric Field"],
+            ["8", "Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)"]],
+        "CRLShape": [
+            ["1", "Parabolic"],
+            ["2", "Circular"]],
+        "FocalPlane": [
+            ["1", "Horizontal"],
+            ["2", "Vertical"],
+            ["3", "Both"]],
+        "Flux": [
+            ["1", "Flux"],
+            ["2", "Flux per Unit Surface"]],
+        "IntegrationMethod": [
+            ["0", "Manual"],
+            ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"]],
+        "MirrorOrientation": [
+            ["x", "X"],
+            ["y", "Y"]],
+        "Polarization": [
+            ["0", "Linear Horizontal"],
+            ["1", "Linear Vertical"],
+            ["2", "Linear 45 degrees"],
+            ["3", "Linear 135 degrees"],
+            ["4", "Circular Right"],
+            ["5", "Circular Left"],
+            ["6", "Total"]],
+        "PowerDensityMethod": [
+            ["1", "Near Field"],
+            ["2", "Far Field"]],
+        "Symmetry": [
+            ["1", "Symmetrical"],
+            ["-1", "Anti-symmetrical"]
+        ]
+    },
+    "model": {
+        "newSimulation": {
+            "name": ["Name", "String"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "electronBeam": {
+            "beamName": ["Beam Name", "BeamList"],
+            "current": ["Current [A]", "Float"],
+            "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Average Vertical Position [mm]", "Float"],
+            "energyDeviation": ["Average Energy Deviation [GeV]", "Float"]
+        },
+        "undulator": {
+            "period": ["Undulator Period [mm]", "Float"],
+            "length": ["Undulator Length [m]", "Float"],
+            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
+            "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
+            "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
+            "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
+            "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
+            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"]
+        },
+        "intensityReport": {
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "horizontalPosition": ["Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Position [mm]", "Float"],
+            "method": ["Method for Integration", "IntegrationMethod"],
+            "precision": ["Relative Precision", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization"]
+        },
+        "fluxReport": {
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
+            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "fluxType": ["Flux Calculation", "Flux"],
+            "polarization": ["Polarization Component to Extract", "Polarization"]
+        },
+        "powerDensityReport": {
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "precision": ["Relative Precision", "Float"],
+            "method": ["Power Density Computation Method", "PowerDensityMethod"]
+        },
+        "initialIntensityReport": {
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "method": ["Method for Integration", "IntegrationMethod"],
+            "precision": ["Relative Precision", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+        },
+        "watchpointReport": {
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "method": ["Method for Integration", "IntegrationMethod"],
+            "precision": ["Relative Precision", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+        },
+        "aperture": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "shape": ["Shape", "ApertureShape"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"]},
+        "lens": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float"],
+            "verticalFocalLength": ["Vertical Focal Length [m]", "Float"]},
+        "mirror": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "heightProfileFile": ["Height Profile Data File", "File"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float"],
+            "horizontalTransverseSize": ["Horizontal Transverse Size [mm]", "Float"],
+            "verticalTransverseSize": ["Vertical Transverse Size [mm]", "Float"]},
+        "crl": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "focalPlane": ["Focal Plane", "FocalPlane"],
+            "refractiveIndex": ["Refractive Index Decrements of Material", "Float"],
+            "attenuationLength": ["Attenuation Length [m]", "Float"],
+            "shape": ["Shape", "CRLShape"],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "radius": ["Radius on Tip of Parabola [m]", "Float"],
+            "numberOfLenses": ["Number of Lenses", "Integer"],
+            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]},
+        "watch": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"]},
+        "obstacle": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "shape": ["Shape", "ApertureShape"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"]
+        }
+    },
+    "view": {
+        "newSimulation": {
+            "title": "New Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "electronBeam": {
+            "title": "Electron Beam",
+            "basic": [
+                "beamName",
+                "current"
+            ],
+            "advanced": [
+                "beamName",
+                "current",
+                "horizontalPosition",
+                "verticalPosition",
+                "energyDeviation"
+            ]
+        },
+        "undulator": {
+            "title": "Undulator",
+            "basic": [
+                "period",
+                "length",
+                "verticalAmplitude"
+            ],
+            "advanced": [
+                "period",
+                "length",
+                "longitudinalPosition",
+                "horizontalAmplitude",
+                "horizontalSymmetry",
+                "horizontalInitialPhase",
+                "verticalAmplitude",
+                "verticalSymmetry",
+                "verticalInitialPhase"
+            ]
+        },
+        "intensityReport": {
+            "title": "Intensity Report",
+            "basic": [],
+            "advanced": [
+                "initialEnergy",
+                "finalEnergy",
+                "horizontalPosition",
+                "verticalPosition",
+                "method",
+                "precision",
+                "polarization"
+            ]
+        },
+        "fluxReport": {
+            "title": "Flux Report",
+            "basic": [],
+            "advanced": [
+                "initialEnergy",
+                "finalEnergy",
+                "horizontalPosition",
+                "horizontalApertureSize",
+                "verticalPosition",
+                "verticalApertureSize",
+                "longitudinalPrecision",
+                "azimuthalPrecision",
+                "fluxType",
+                "polarization"
+            ]
+        },
+        "powerDensityReport": {
+            "title": "Power Density Report",
+            "basic": [],
+            "advanced": [
+                "horizontalPosition",
+                "horizontalRange",
+                "verticalPosition",
+                "verticalRange",
+                "precision",
+                "method"
+            ]
+        },
+        "initialIntensityReport": {
+            "title": "Initial Intensity Report",
+            "basic": [],
+            "advanced": [
+                "photonEnergy",
+                "horizontalPosition",
+                "horizontalRange",
+                "verticalPosition",
+                "verticalRange",
+                "sampleFactor",
+                "method",
+                "precision",
+                "polarization",
+                "characteristic"
+            ]
+        },
+        "watchpointReport": {
+            "title": "Watchpoint Report",
+            "basic": [],
+            "advanced": [
+                "photonEnergy",
+                "horizontalPosition",
+                "horizontalRange",
+                "verticalPosition",
+                "verticalRange",
+                "sampleFactor",
+                "method",
+                "precision",
+                "polarization",
+                "characteristic"
+            ]
+        },
+        "aperture": {
+            "title": "Aperture",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                "horizontalSize",
+                "verticalSize",
+                "horizontalOffset",
+                "verticalOffset"
+            ]
+        },
+        "lens": {
+            "title": "Lens",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "horizontalFocalLength",
+                "verticalFocalLength"
+            ]
+        },
+        "mirror": {
+            "title": "Mirror",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "heightProfileFile",
+                "orientation",
+                "grazingAngle",
+                "heightAmplification",
+                "horizontalTransverseSize",
+                "verticalTransverseSize"
+            ]
+        },
+        "crl": {
+            "title": "CRL",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "focalPlane",
+                "refractiveIndex",
+                "attenuationLength",
+                "shape",
+                "horizontalApertureSize",
+                "verticalApertureSize",
+                "radius",
+                "numberOfLenses",
+                "wallThickness"
+            ]
+        },
+        "watch": {
+            "title": "Watchpoint",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position"
+            ]
+        },
+        "obstacle": {
+            "title": "Obstacle",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                "horizontalSize",
+                "verticalSize",
+                "horizontalOffset",
+                "verticalOffset"
+            ]
+        }
+    }
+}
