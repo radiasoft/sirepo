@@ -139,84 +139,25 @@ def get_beamline_optics():
 
 '''
 
-def _propagation_params(prop):
-    res = '    pp.append(['
-    for i in range(len(prop)):
-        v = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
-        res += str(v)
-        if (i != len(prop) - 1):
-            res += ', '
-    res += '])\n'
-    return res
 
-def generate_beamline_optics(models, last_id):
-    beamline = models['beamline']
-    propagation = models['propagation']
-    res = '''
-    el = []
-    pp = []
-'''
-    prev = None
+def generate_parameters_file(data, schema):
+    if 'report' in data and re.search('watchpointReport', data['report']):
+        # render the watchpoint report settings in the initialIntensityReport template slot
+        data['models']['initialIntensityReport'] = data['models'][data['report']]
+    _validate_data(data, schema)
+    last_id = None
+    if 'report' in data:
+        m = re.search('watchpointReport(\d+)', data['report'])
+        if m:
+            last_id = int(m.group(1))
+    v = _flatten_data(data['models'], {})
+    v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    beamline = data['models']['beamline']
+    v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
+    # initial drift = 1/2 undulator length + 2 periods
+    v['electronBeamInitialDrift'] = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period'] + data['models']['undulator']['longitudinalPosition']
+    return TEMPLATE.format(**v).decode('unicode-escape')
 
-    for item in beamline:
-        if prev:
-            size = float(item['position']) - float(prev['position'])
-            if size != 0:
-                res += '    el.append(SRWLOptD({}))\n'.format(size)
-                res += _propagation_params(propagation[str(prev['id'])][1])
-
-        if item['type'] == 'aperture':
-            res += '    el.append(SRWLOptA("{}", "a", {}, {}))\n'.format(
-                _escape(item['shape'] if item.get('shape') else 'r'),
-                _float(item, 'horizontalSize', 1000),
-                _float(item, 'verticalSize', 1000))
-            res += _propagation_params(propagation[str(item['id'])][0])
-        elif item['type'] == 'crl':
-            res += '    el.append(srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0))\n'.format(
-                _escape(item['focalPlane']),
-                _float(item, 'refractiveIndex'),
-                _float(item, 'attenuationLength'),
-                _escape(item['shape']),
-                _float(item, 'horizontalApertureSize', 1000),
-                _float(item, 'verticalApertureSize', 1000),
-                _float(item, 'radius'),
-                int(item['numberOfLenses']),
-                _float(item,'wallThickness'))
-            res += _propagation_params(propagation[str(item['id'])][0])
-        elif item['type'] == 'lens':
-            res += '    el.append(SRWLOptL({}, {}))\n'.format(
-                _float(item, 'horizontalFocalLength'),
-                _float(item, 'verticalFocalLength'))
-            res += _propagation_params(propagation[str(item['id'])][0])
-        elif item['type'] == 'mirror':
-            res += '    ifnHDM = "mirror_1d.dat"\n'
-            res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
-            res += '    el.append(srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={}))\n'.format(
-                _escape(item['orientation']),
-                _float(item, 'grazingAngle', 1000),
-                _float(item, 'heightAmplification'),
-                _float(item, 'horizontalTransverseSize', 1000),
-                _float(item, 'verticalTransverseSize', 1000))
-            res += _propagation_params(propagation[str(item['id'])][0])
-        elif item['type'] == 'obstacle':
-            res += '    el.append(SRWLOptA("{}", "o", {}, {}))\n'.format(
-                _escape(item['shape'] if item.get('shape') else 'r'),
-                _float(item, 'horizontalSize', 1000),
-                _float(item, 'verticalSize', 1000))
-            res += _propagation_params(propagation[str(item['id'])][0])
-        elif item['type'] == 'watch':
-            if len(beamline) == 1:
-                res += '    el.append(SRWLOptD({}))\n'.format(1.0e-16)
-                res += _propagation_params(propagation[str(item['id'])][0])
-            if last_id and last_id == int(item['id']):
-                break
-        prev = item
-        res += '\n'
-
-    # final propagation parameters
-    res += _propagation_params(models['postPropagation'])
-    res += '    return SRWLOptC(el, pp)\n'
-    return res
 
 def run_all_text():
     return '''
@@ -239,7 +180,148 @@ run_all_reports()
 '''
 
 def _escape(v):
-    return re.sub(r'[ ()\.]', '', str(v))
+    return re.sub("['()\.]", '', str(v))
 
-def _float(item, field, scale=1):
-    return float(item[field]) / scale
+
+def _flatten_data(d, res, prefix=''):
+    for k in d:
+        v = d[k]
+        if isinstance(v, dict):
+            _flatten_data(v, res, prefix + k + '_')
+        elif isinstance(v, list):
+            pass
+        else:
+            res[prefix + k] = v
+    return res
+
+
+def _beamline_element(template, item, fields, propagation):
+    return '    el.append({})\n{}'.format(
+        template.format(*map(lambda x: item[x], fields)),
+        _propagation_params(propagation[str(item['id'])][0]),
+    )
+
+
+def _generate_beamline_optics(models, last_id):
+    beamline = models['beamline']
+    propagation = models['propagation']
+    res = '''
+    el = []
+    pp = []
+'''
+    prev = None
+
+    for item in beamline:
+        if prev:
+            size = item['position'] - prev['position']
+            if size != 0:
+                res += '    el.append(SRWLOptD({}))\n'.format(size)
+                res += _propagation_params(propagation[str(prev['id'])][1])
+        if item['type'] == 'aperture':
+            res += _beamline_element(
+                'SRWLOptA("{}", "a", {}, {}, {}, {})',
+                item,
+                ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+        elif item['type'] == 'crl':
+            res += _beamline_element(
+                'srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
+                item,
+                ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
+                propagation)
+        elif item['type'] == 'lens':
+            res += _beamline_element(
+                'SRWLOptL({}, {})',
+                item,
+                ['horizontalFocalLength', 'verticalFocalLength'],
+                propagation)
+        elif item['type'] == 'mirror':
+            res += '    ifnHDM = "mirror_1d.dat"\n'
+            res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
+            res += _beamline_element(
+                'srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
+                item,
+                ['orientation', 'grazingAngle', 'heightAmplification', 'horizontalTransverseSize', 'verticalTransverseSize'],
+                propagation)
+        elif item['type'] == 'obstacle':
+            res += _beamline_element(
+                'SRWLOptA("{}", "o", {}, {}, {}, {})',
+                item,
+                ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+        elif item['type'] == 'watch':
+            if len(beamline) == 1:
+                res += '    el.append(SRWLOptD({}))\n'.format(1.0e-16)
+                res += _propagation_params(propagation[str(item['id'])][0])
+            if last_id and last_id == int(item['id']):
+                break
+        prev = item
+        res += '\n'
+
+    # final propagation parameters
+    res += _propagation_params(models['postPropagation'])
+    res += '    return SRWLOptC(el, pp)\n'
+    return res
+
+
+def _parse_enums(enum_schema):
+    res = {}
+    for k in enum_schema:
+        res[k] = {}
+        for v in enum_schema[k]:
+            res[k][v[0]] = True
+    return res
+
+def _propagation_params(prop):
+    res = '    pp.append(['
+    for i in range(len(prop)):
+        res += str(prop[i])
+        if (i != len(prop) - 1):
+            res += ', '
+    res += '])\n'
+    return res
+
+def _validate_data(data, schema):
+    # ensure enums match, convert ints/floats, apply scaling
+    enum_info = _parse_enums(schema['enum'])
+    for k in data['models']:
+        if k in schema['model']:
+            _validate_model(data['models'][k], schema['model'][k], enum_info)
+    for m in data['models']['beamline']:
+        _validate_model(m, schema['model'][m['type']], enum_info)
+    for item_id in data['models']['propagation']:
+        _validate_propagation(data['models']['propagation'][item_id][0])
+        _validate_propagation(data['models']['propagation'][item_id][1])
+    _validate_propagation(data['models']['postPropagation'])
+
+def _validate_model(model_data, model_schema, enum_info):
+    for k in model_schema:
+        label = model_schema[k][0]
+        field_type = model_schema[k][1]
+        value = model_data[k]
+        if field_type in enum_info:
+            if not enum_info[field_type][str(value)]:
+                raise Exception('invalid enum value: {}'.format(value))
+        elif field_type == 'Float':
+            if not value:
+                value = 0
+            v = float(value)
+            if re.search('\[m(m|rad)\]', label):
+                v /= 1000
+            model_data[k] = v
+        elif field_type == 'Integer':
+            if not value:
+                value = 0
+            model_data[k] = int(value)
+        elif field_type == 'BeamList':
+            value['name'] = _escape(value['name'])
+        elif field_type == 'File':
+            model_data[k] = _escape(value)
+        elif field_type == 'String':
+            model_data[k] = _escape(value)
+        else:
+            raise Exception('unknown field type: {}'.format(field_type))
+
+def _validate_propagation(prop):
+    for i in range(len(prop)):
+        prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
