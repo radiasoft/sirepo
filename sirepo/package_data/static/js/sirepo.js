@@ -1,241 +1,15 @@
 'use strict';
 
-function wavefrontIntensityReportFields(title) {
-    return {
-        title: title,
-        basic: [],
-        advanced: [
-            ['photonEnergy', 'Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
-            ['sampleFactor', 'Sampling Factor', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-            ['characteristic', 'Characteristic to be Extracted', 'Characteristic'],
-        ],
-    };
-}
+var APP_SCHEMA;
 
-// Application meta-data
-var _ENUM = {
-    ApertureShape: [
-        ['r', 'Rectangular'],
-        ['c', 'Circular'],
-    ],
-    Characteristic: [
-        [0, 'Single-Electron Intensity'],
-        [1, 'Multi-Electron Intensity'],
-        [3, 'Single-Electron Flux'],
-        [4, 'Multi-Electron Flux'],
-        [5, 'Single-Electron Radiation Phase'],
-        [6, 'Re(E): Real part of Single-Electron Electric Field'],
-        [7, 'Im(E): Imaginary part of Single-Electron Electric Field'],
-        [8, 'Single-Electron Intensity, integrated over Time or Photon Energy (i.e. Fluence)'],
-    ],
-    CRLShape: [
-        [1, 'Parabolic'],
-        [2, 'Circular'],
-    ],
-    FocalPlane: [
-        [1, 'Horizontal'],
-        [2, 'Vertical'],
-        [3, 'Both'],
-    ],
-    Flux: [
-        [1, 'Flux'],
-        [2, 'Flux per Unit Surface'],
-    ],
-    IntegrationMethod: [
-        [0, 'Manual'],
-        [1, 'Auto-Undulator'],
-        [2, 'Auto-Wiggler'],
-    ],
-    MirrorOrientation: [
-        ['x', 'X'],
-        ['y', 'Y'],
-    ],
-    Polarization: [
-        [0, 'Linear Horizontal'],
-        [1, 'Linear Vertical'],
-        [2, 'Linear 45 degrees'],
-        [3, 'Linear 135 degrees'],
-        [4, 'Circular Right'],
-        [5, 'Circular Left'],
-        [6, 'Total'],
-    ],
-    PowerDensityMethod: [
-        [1, 'Near Field'],
-        [2, 'Far Field'],
-    ],
-    Symmetry: [
-        [1, 'Symmetrical'],
-        [-1, 'Anti-symmetrical'],
-    ],
-};
-var _MODEL = {
-    newSimulation: {
-        title: 'New Simulation',
-        advanced: [
-            ['name', 'Name', 'String'],
-        ],
+// Load the application schema sychronously, before creating app module
+$.ajax({
+    url: '/static/json/schema.json?20150729',
+    success: function(result) {
+        APP_SCHEMA = result;
     },
-    simulation: {
-        title: 'Simulation',
-        advanced: [
-            ['name', 'Name', 'String'],
-        ],
-    },
-    electronBeam: {
-        title: 'Electron Beam',
-        basic: [
-            ['beamName', 'Beam Name', 'BeamList'],
-            ['current',  'Current [A]', 'Float'],
-        ],
-        advanced: [
-            ['beamName', 'Beam Name', 'BeamList'],
-            ['current',  'Current [A]', 'Float'],
-            ['horizontalPosition', 'Average Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Average Vertical Position [mm]', 'Float'],
-            ['energyDeviation', 'Average Energy Deviation [GeV]', 'Float'],
-        ],
-    },
-    undulator: {
-        title: 'Undulator',
-        basic: [
-            ['period', 'Undulator Period [mm]', 'Float'],
-            ['length', 'Undulator Length [m]', 'Float'],
-            ['verticalAmplitude', 'Vertical Magnetic Field [T]', 'Float'],
-        ],
-        advanced: [
-            ['period', 'Undulator Period [mm]', 'Float'],
-            ['length', 'Undulator Length [m]', 'Float'],
-            ['longitudinalPosition', 'Undulator Center Longitudinal Position [m]', 'Float'],
-            ['horizontalAmplitude', 'Horizontal Magnetic Field [T]', 'Float'],
-            ['horizontalSymmetry', 'Horizontal Symmetry', 'Symmetry'],
-            ['horizontalInitialPhase', 'Initial Horizontal Phase [rad]', 'Float'],
-            ['verticalAmplitude', 'Vertical Magnetic Field [T]', 'Float'],
-            ['verticalSymmetry', 'Vertical Symmetry', 'Symmetry'],
-            ['verticalInitialPhase', 'Initial Vertical Phase [rad]', 'Float'],
-        ],
-    },
-    intensityReport: {
-        title: 'Intensity Report',
-        basic: [],
-        advanced: [
-            ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
-            ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Position [mm]', 'Float'],
-            ['method', 'Method for Integration', 'IntegrationMethod'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-        ],
-    },
-    fluxReport: {
-        title: 'Flux Report',
-        basic: [],
-        advanced: [
-            ['initialEnergy', 'Initial Photon Energy [eV]', 'Float'],
-            ['finalEnergy', 'Final Photon Energy [eV]', 'Float'],
-            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
-            ['horizontalApertureSize', 'Horizontal Aperture Size [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
-            ['verticalApertureSize', 'Vertical Aperture Size [mm]', 'Float'],
-            ['longitudinalPrecision', 'Longitudinal Integration Precision', 'Float'],
-            ['azimuthalPrecision', 'Azimuthal Integration Precision', 'Float'],
-            ['fluxType', 'Flux Calculation', 'Flux'],
-            ['polarization', 'Polarization Component to Extract', 'Polarization'],
-        ],
-    },
-    powerDensityReport: {
-        title: 'Power Density Report',
-        basic: [],
-        advanced: [
-            ['horizontalPosition', 'Horizontal Center Position [mm]', 'Float'],
-            ['horizontalRange', 'Range of Horizontal Position [mm]', 'Float'],
-            ['verticalPosition', 'Vertical Center Position [mm]', 'Float'],
-            ['verticalRange', 'Range of Vertical Position [mm]', 'Float'],
-            ['precision', 'Relative Precision', 'Float'],
-            ['method', 'Power Density Computation Method', 'PowerDensityMethod'],
-        ],
-    },
-    initialIntensityReport: wavefrontIntensityReportFields('Initial Intensity Report'),
-    watchpointReport: wavefrontIntensityReportFields('Watchpoint Report'),
-    aperture: {
-        title: 'Aperture',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-            ['shape', 'Shape', 'ApertureShape'],
-            ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
-            ['verticalSize', 'Vertical Size [mm]', 'Float'],
-        ],
-    },
-    lens: {
-        title: 'Lens',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-            ['horizontalFocalLength', 'Horizontal Focal Length [m]', 'Float'],
-            ['verticalFocalLength', 'Vertical Focal Length [m]', 'Float'],
-        ],
-    },
-    mirror: {
-        title: 'Mirror',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-            ['heightProfileFile', 'Height Profile Data File', 'File'],
-            ['orientation', 'Orientation of Reflection Plane', 'MirrorOrientation'],
-            ['grazingAngle', 'Grazing Angle [mrad]', 'Float'],
-            ['heightAmplification', 'Height Amplification Coefficient', 'Float'],
-            ['horizontalTransverseSize', 'Horizontal Transverse Size [mm]', 'Float'],
-            ['verticalTransverseSize', 'Vertical Transverse Size [mm]', 'Float'],
-        ],
-    },
-    crl: {
-        title: 'CRL',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-            ['focalPlane', 'Focal Plane', 'FocalPlane'],
-            ['refractiveIndex', 'Refractive Index Decrements of Material', 'Float'],
-            ['attenuationLength', 'Attenuation Length [m]', 'Float'],
-            ['shape', 'Shape', 'CRLShape'],
-            ['horizontalApertureSize', 'Horizontal Aperture Size [mm]', 'Float'],
-            ['verticalApertureSize', 'Vertical Aperture Size [mm]', 'Float'],
-            ['radius', 'Radius on Tip of Parabola [m]', 'Float'],
-            ['numberOfLenses', 'Number of Lenses', 'Integer'],
-            ['wallThickness', 'Wall Thickness at Tip of Parabola [m]', 'Float'],
-        ],
-    },
-    watch: {
-        title: 'Watchpoint',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-        ],
-    },
-    obstacle: {
-        title: 'Obstacle',
-        basic: [],
-        advanced: [
-            ['title', 'Element Name', 'String'],
-            ['position', 'Nominal Position [m]', 'Float'],
-            ['shape', 'Shape', 'ApertureShape'],
-            ['horizontalSize', 'Horizontal Size [mm]', 'Float'],
-            ['verticalSize', 'Vertical Size [mm]', 'Float'],
-        ],
-    },
-};
+    async: false,
+});
 
 var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
 
@@ -265,9 +39,20 @@ app.factory('appState', function($http, $rootScope) {
     var savedModelValues = {};
     var runQueue = [];
 
-    function cloneModel(name) {
-        var val = name ? self.models[name] : self.models;
-        return JSON.parse(JSON.stringify(val));
+    function handleQueueResult(currentQueue, data) {
+        var item = currentQueue.shift();
+
+        if (data['error']) {
+            self.models[item[0]]._error = data['error'];
+        }
+        else {
+            reportCache[item[0]] = data;
+            item[1](data);
+        }
+        //TODO(pjm): don't set loading to false unless there are no other queue items for this report
+        if (self.models[item[0]])
+            self.models[item[0]]._loading = false;
+        executeQueue();
     }
 
     function executeQueue() {
@@ -278,24 +63,9 @@ app.factory('appState', function($http, $rootScope) {
             report: currentQueue[0][0],
             models: savedModelValues,
         }).success(function(data, status) {
-            var item = currentQueue.shift();
-
-            if (data['error']) {
-                self.models[item[0]]._error = data['error'];
-            }
-            else {
-                reportCache[item[0]] = data;
-                item[1](data);
-            }
-            //TODO(pjm): don't set loading to false unless there are no other queue items for this report
-            if (self.models[item[0]])
-                self.models[item[0]]._loading = false;
-            executeQueue();
+            handleQueueResult(currentQueue, data);
         }).error(function(data, status) {
-            //TODO(pjm): combine error code with above
-            console.log('run failed: ', status, ' ', data);
-            currentQueue.shift();
-            executeQueue();
+            handleQueueResult(currentQueue, { error: 'a server error occurred' });
         });
     }
 
@@ -318,6 +88,11 @@ app.factory('appState', function($http, $rootScope) {
         self.models = emptyValues || {};
         savedModelValues = {};
         runQueue = [];
+    };
+
+    self.cloneModel = function(name) {
+        var val = name ? self.models[name] : self.models;
+        return JSON.parse(JSON.stringify(val));
     };
 
     self.getWatchItems = function() {
@@ -343,7 +118,7 @@ app.factory('appState', function($http, $rootScope) {
                     return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report';
             }
         }
-        return self.modelInfo(name).title;
+        return self.viewInfo(name).title;
     }
 
     self.isLoaded = function() {
@@ -357,7 +132,7 @@ app.factory('appState', function($http, $rootScope) {
         $http.get('/srw/simulation/' + simulationId)
             .success(function(data, status) {
                 self.models = data['models'];
-                savedModelValues = cloneModel();
+                savedModelValues = self.cloneModel();
                 updateReports();
             })
             .error(function(data, status) {
@@ -366,7 +141,7 @@ app.factory('appState', function($http, $rootScope) {
     };
 
     self.modelInfo = function(name) {
-        return _MODEL[name];
+        return APP_SCHEMA.model[name];
     };
 
     self.requestData = function(name, callback) {
@@ -384,7 +159,7 @@ app.factory('appState', function($http, $rootScope) {
     self.saveChanges = function(name) {
         console.log('save changes: ', name);
         delete(self.models[name]['_error']);
-        savedModelValues[name] = cloneModel(name);
+        savedModelValues[name] = self.cloneModel(name);
         if (name.indexOf('Report') > 0) {
             reportCache[name] = null;
         }
@@ -393,13 +168,17 @@ app.factory('appState', function($http, $rootScope) {
                 // need to save all watchpoinReports and propagations for beamline changes
                 for (var modelName in self.models) {
                     if (modelName.indexOf('watchpoinReport') || modelName.indexOf('propagation'))
-                        savedModelValues[modelName] = cloneModel(modelName);
+                        savedModelValues[modelName] = self.cloneModel(modelName);
                 }
             }
             updateReports();
         }
         console.log('broadcast: ', name + '.changed');
         $rootScope.$broadcast(name + '.changed');
+    };
+
+    self.viewInfo = function(name) {
+        return APP_SCHEMA.view[name];
     };
 
     return self;
@@ -417,12 +196,12 @@ app.controller('BeamlineController', function ($rootScope, $route, $location, $t
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
-        {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1},
+        {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23},
-        {type:'mirror', title:'Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1},
-        {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5},
+        {type:'mirror', title:'Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
+        {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
     self.activeItem = null;
@@ -621,46 +400,69 @@ app.directive('stringToNumber', function() {
     };
 });
 
+app.directive('numberToString', function() {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return null;
+                return '' + value;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return value;
+                return value.toString();
+            });
+        }
+    };
+});
+
 app.directive('fieldEditor', function(appState, $http) {
     return {
         restirct: 'A',
         scope: {
             fieldEditor: '=',
             model: '=',
+            modelName: '=',
         },
         template: [
             // field def: [name, label, type]
-            '<label class="col-sm-5 control-label">{{ fieldEditor[1] }}</label>',
-            '<div data-ng-switch="fieldEditor[2]">',
+            '<label class="col-sm-5 control-label">{{ label }}</label>',
+            '<div data-ng-switch="type">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
-                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item.name for item in appState.beams track by item.name"></select>',
+                '<select class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item.name for item in appState.beams track by item.name"></select>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-3">',
-                '<input string-to-number="" data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-3">',
-                '<input data-ng-model="model[fieldEditor[0]]" class="form-control" style="text-align: right">',
+                '<input data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
               '</div>',
               //TODO(pjm): need file interface
               '<div data-ng-switch-when="File" class="col-sm-5">',
                 '<p class="form-control-static"><a href="/static/dat/mirror_1d.dat"><span class="glyphicon glyphicon-file"></span> mirror_1d.dat</a></p>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
-                '<input data-ng-model="model[fieldEditor[0]]" class="form-control">',
+                '<input data-ng-model="model[fieldEditor]" class="form-control">',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
-                '<select class="form-control" data-ng-model="model[fieldEditor[0]]" data-ng-options="item[0] as item[1] for item in enum[fieldEditor[2]]"></select>',
+                '<select number-to-string class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item[0] as item[1] for item in enum[type]"></select>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            var info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
+            $scope.label = info[0];
+            $scope.type = info[1];
         },
         link: function link(scope) {
-            scope.enum = _ENUM;
+            scope.enum = APP_SCHEMA.enum;
             //TODO(pjm): move list loading logic into appState
-            if (scope.fieldEditor[2] == 'BeamList') {
+            if (scope.type == 'BeamList') {
                 if (appState.beams)
                     return;
                 $http['get']('/static/json/beams.json')
@@ -1031,7 +833,7 @@ app.directive('panel', function(appState) {
               '<div class="panel-body cssFade" data-ng-show="appState.models[modelName]._visible">',
                 '<form name="f0" class="form-horizontal">',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
-                    '<div data-field-editor="f" data-model="appState.models[modelName]"></div>',
+                    '<div data-field-editor="f" data-model-name="modelName" data-model="appState.models[modelName]"></div>',
                   '</div>',
                   '<div data-buttons="" data-model-name="modelName" data-form-name="f0"></div>',
                 '</form>',
@@ -1040,8 +842,8 @@ app.directive('panel', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            $scope.basicFields = appState.modelInfo($scope.modelName).basic;
-            $scope.panelTitle = appState.modelInfo($scope.modelName).title;
+            $scope.basicFields = appState.viewInfo($scope.modelName).basic;
+            $scope.panelTitle = appState.viewInfo($scope.modelName).title;
             $scope.editorId = 'srw-' + $scope.modelName + '-editor';
         },
     };
@@ -1096,7 +898,7 @@ app.directive('modalEditor', function(appState) {
                       '<div class="row">',
                         '<form name="f1" class="form-horizontal">',
                           '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
-                            '<div data-field-editor="f" data-model="appState.models[fullModelName]"></div>',
+                            '<div data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]"></div>',
                           '</div>',
                           '<div data-buttons="" data-model-name="fullModelName" data-form-name="f1" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
@@ -1109,7 +911,7 @@ app.directive('modalEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            $scope.advancedFields = appState.modelInfo($scope.modalEditor).advanced;
+            $scope.advancedFields = appState.viewInfo($scope.modalEditor).advanced;
             $scope.fullModelName = $scope.modalEditor + ($scope.itemId || '');
             $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
         },
@@ -1138,7 +940,7 @@ app.directive('beamlineEditor', function(appState) {
             '<div>',
               '<form name="f2" class="form-horizontal">',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
-                  '<div data-field-editor="f" data-model="beamline.activeItem"></div>',
+                  '<div data-field-editor="f" data-model-name="modelName" data-model="beamline.activeItem"></div>',
                 '</div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
@@ -1155,7 +957,7 @@ app.directive('beamlineEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.beamline = $scope.$parent.beamline;
-            $scope.advancedFields = appState.modelInfo($scope.modelName).advanced;
+            $scope.advancedFields = appState.viewInfo($scope.modelName).advanced;
             $scope.removeActiveItem = function() {
                 $scope.beamline.removeElement($scope.beamline.activeItem);
             }
