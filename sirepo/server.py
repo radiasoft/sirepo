@@ -38,17 +38,6 @@ _SRW_EXAMPLES = None
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
-#: Which values need to be downscaled (1/1000)
-_SCALE_VALUES = [
-    'period',
-    'horizontalPosition',
-    'verticalPosition',
-    'horizontalApertureSize',
-    'verticalApertureSize',
-    'horizontalRange',
-    'verticalRange',
-]
-
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
 
@@ -121,7 +110,7 @@ def srw_python_source(simulation_id):
     if 'report' in data:
         del data['report']
     return flask.Response(
-        '{}{}'.format(_generate_parameters_file(data), sirepo.srw_template.run_all_text()),
+        '{}{}'.format(sirepo.srw_template.generate_parameters_file(data, _app_schema()), sirepo.srw_template.run_all_text()),
         mimetype='text/plain',
     )
 
@@ -139,7 +128,7 @@ def srw_run():
         pkdp('dir={}', wd)
         _save_simulation_json(data)
         pkio.write_text('in.json', http_text)
-        pkio.write_text('srw_parameters.py', _generate_parameters_file(data))
+        pkio.write_text('srw_parameters.py', sirepo.srw_template.generate_parameters_file(data, _app_schema()))
         shutil.copyfile(pkresource.filename('static/dat/mirror_1d.dat'), 'mirror_1d.dat')
         #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
         # with ebeam horizontal position of 0.05
@@ -183,6 +172,12 @@ def srw_simulation_list():
     )
 
 
+def _app_schema():
+    #TODO(pjm): consider caching this
+    with open(str(_STATIC_FOLDER.join('json/schema.json'))) as f:
+        return json.load(f)
+
+
 def _error_text(err):
     """Parses error from SRW"""
     m = re.search(_SRW_ERROR_RE, err)
@@ -191,56 +186,30 @@ def _error_text(err):
     return 'a system error occurred'
 
 
-def _escape_and_scale_value(k, v):
-    v = str(v).replace("'", '')
-    if k in _SCALE_VALUES:
-        v = float(v) / 1000
-    return v
-
-
 def _find_simulation_data(res, path, data, params):
     if str(_id(data)) == params['simulationId']:
         res.append(data)
+
 
 def _fixup_old_data(data):
     #TODO(pjm): put version number at root level in data
     if 'post_propagation' in data['models']:
         data['models']['postPropagation'] = data['models']['post_propagation']
         del data['models']['post_propagation']
+    if 'watchpointReport' in data['models']:
+        del data['models']['watchpointReport']
     for item in data['models']['beamline']:
         if item['type'] == 'aperture' or item['type'] == 'obstacle':
             if not item.get('shape'):
                 item['shape'] = 'r'
+            if not item.get('horizontalOffset'):
+                item['horizontalOffset'] = 0
+            if not item.get('verticalOffset'):
+                item['verticalOffset'] = 0
+        elif item['type'] == 'mirror':
+            if not item.get('heightProfileFile'):
+                item['heightProfileFile'] = 'mirror_1d.dat'
     return data
-
-def _flatten_data(d, res, prefix=''):
-    for k in d:
-        v = d[k]
-        if isinstance(v, dict):
-            _flatten_data(v, res, prefix + k + '_')
-        elif isinstance(v, list):
-            pass
-        else:
-            res[prefix + k] = _escape_and_scale_value(k, v)
-    return res
-
-
-def _generate_parameters_file(data):
-    if 'report' in data and re.search('watchpointReport', data['report']):
-        # render the watchpoint report settings in the initialIntensityReport template slot
-        data['models']['initialIntensityReport'] = data['models'][data['report']]
-    v = _flatten_data(data['models'], {})
-    beamline = data['models']['beamline']
-    last_id = None
-    if 'report' in data:
-        m = re.search('watchpointReport(\d+)', data['report'])
-        if m:
-            last_id = int(m.group(1))
-    v['beamlineOptics'] = sirepo.srw_template.generate_beamline_optics(data['models'], last_id)
-    v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
-    # initial drift = 1/2 undulator length + 2 periods
-    v['electronBeamInitialDrift'] = -0.5 * float(data['models']['undulator']['length']) - 2 * float(data['models']['undulator']['period']) / 1000 + float(data['models']['undulator']['longitudinalPosition'])
-    return sirepo.srw_template.TEMPLATE.format(**v).decode('unicode-escape')
 
 
 def _examples():
