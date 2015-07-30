@@ -104,11 +104,9 @@ def remap_3d(info, allrange, z_label, z_units):
         ar2d = np.array(auxAr)
     if isinstance(ar2d,(list,array)): ar2d = np.array(ar2d)
     ar2d = ar2d.reshape(y_range[2],x_range[2])
-    x = np.linspace(x_range[0],x_range[1],x_range[2])
-    y = np.linspace(y_range[0],y_range[1],y_range[2])
     return {
-        'x_range': x.tolist(),
-        'y_range': y.tolist(),
+        'x_range': x_range,
+        'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
         'z_label': superscript(z_label + ' [' + z_units + ']'),
