@@ -1,6 +1,6 @@
 'use strict';
 
-app.factory('plotting', function(appState, d3Service) {
+app.factory('plotting', function(d3Service, panelState) {
     return {
         INITIAL_HEIGHT: 400,
 
@@ -63,16 +63,17 @@ app.factory('plotting', function(appState, d3Service) {
                 scope.element = element[0];
 
                 function requestData() {
-                    if (! appState.isLoaded())
-                        return;
-                    //console.log('requesting data: ', scope.modelName);
-                    appState.requestData(scope.modelName, function(data) {
-                        //console.log('loading data: ', scope.modelName);
+                    panelState.requestData(scope.modelName, function(data) {
                         if (scope.element)
                             scope.load(data);
                     });
                 }
-                scope.$on(scope.modelName + '.changed', requestData);
+                scope.$on(
+                    scope.modelName + '.changed',
+                    function() {
+                        panelState.clear(scope.modelName);
+                        requestData();
+                    });
                 scope.init();
                 requestData();
             });
@@ -103,7 +104,7 @@ app.directive('plot2d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot2d.html?20150730',
+        templateUrl: '/static/html/plot2d.html?20150731',
         controller: function($scope) {
 
             var ASPECT_RATIO = 4.0 / 7;
@@ -252,7 +253,7 @@ app.directive('plot3d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot3d.html?20150730',
+        templateUrl: '/static/html/plot3d.html?20150731',
         controller: function($scope) {
 
             $scope.margin = 30;
