@@ -99,7 +99,9 @@ def srw_delete_simulation():
 @app.route('/srw/new-simulation', methods=('GET', 'POST'))
 def srw_new_simulation():
     data = _open_json_file(_STATIC_FOLDER.join('json/default.json'))
-    data['models']['simulation']['name'] = _json_input('name')
+    data['models']['simulation'] = {
+        'name': _json_input('name'),
+    }
     return _save_new_simulation(data)
 
 
