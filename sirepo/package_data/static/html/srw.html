@@ -10,7 +10,7 @@
     <link href="/static/css/bootstrap-3.3.4.min.css" rel="stylesheet">
     <link href="/static/css/bootstrap-slider-2.0.0.css" rel="stylesheet">
     <link href="/static/css/bootstrap-colxl.css" rel="stylesheet">
-    <link href="/static/css/sirepo.css?20150724" rel="stylesheet">
+    <link href="/static/css/sirepo.css?20150731" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="/static/js/html5shiv-3.7.2.min.js"></script>
@@ -25,13 +25,13 @@
           <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')">SRW</a>
         </div>
         <ul class="nav navbar-nav">
-          <li data-ng-class="{active: activeSection == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
+          <li data-ng-class="{active: nav.activeSection() == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
         </ul>
         <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
-        <ul class="nav navbar-nav navbar-right" data-ng-hide="activeSection == 'simulations'">
-          <li data-ng-class="{active: activeSection == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
-          <li data-ng-class="{active: activeSection == 'beamline'}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
-          <!--<li data-ng-class="{active: activeSection == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>-->
+        <ul class="nav navbar-nav navbar-right" data-ng-hide="nav.activeSection() == 'simulations'">
+          <li data-ng-class="{active: nav.activeSection() == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+          <li data-ng-class="{active: nav.activeSection() == 'beamline'}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+          <!--<li data-ng-class="{active: nav.activeSection() == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>-->
         </ul>
       </div>
     </nav>
@@ -48,7 +48,8 @@
     <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
     <script src="/static/js/angular-d3.js"></script>
-    <script src="/static/js/sirepo.js?20150724"></script>
-    <script src="/static/js/sirepo-plotting.js?20150724"></script>
+    <script src="/static/js/sirepo.js?20150731"></script>
+    <script src="/static/js/sirepo-components.js?20150731"></script>
+    <script src="/static/js/sirepo-plotting.js?20150731"></script>
   </body>
 </html>
