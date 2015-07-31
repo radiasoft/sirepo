@@ -352,7 +352,7 @@ app.controller('BeamlineController', function ($timeout, activeSection, appState
         self.isDirty = true;
         var newItem = $.extend(true, {}, item);
         newItem.id = maxId(appState.models.beamline) + 1;
-        newItem._showPopover = true;
+        newItem.showPopover = true;
         if (appState.models.beamline.length) {
             newItem.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
         }
