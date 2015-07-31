@@ -133,9 +133,10 @@ app.directive('plot2d', function(plotting) {
             };
 
             function resize() {
-                if (! points)
+                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (! points || isNaN(width))
                     return;
-                $scope.width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
                 select('svg')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
@@ -222,7 +223,8 @@ app.directive('plot2d', function(plotting) {
                 select('.main-title').text(json.title);
                 select('.line').datum(points);
                 var dimensions = resize();
-                xPeakValues = plotting.computePeaks(json, dimensions, xPoints, xAxisScale, yAxisScale);
+                if (dimensions)
+                    xPeakValues = plotting.computePeaks(json, dimensions, xPoints, xAxisScale, yAxisScale);
             };
 
             $scope.windowResize = plotting.debounce(function() {
@@ -408,9 +410,9 @@ app.directive('plot3d', function(plotting) {
             }
 
             function resize() {
-                if (! heatmap)
-                    return;
                 var width = parseInt(select().style('width')) - 2 * $scope.margin;
+                if (! heatmap || isNaN(width))
+                    return;
                 var canvasSize = 2 * (width - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right) / 3;
                 $scope.canvasSize = canvasSize;
                 $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.bottomPanelMargin.top + $scope.bottomPanelMargin.bottom;
