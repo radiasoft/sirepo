@@ -104,16 +104,11 @@ app.directive('beamlineItem', function($timeout) {
                 scope.$parent.beamline.activeItem = scope.item;
             }).on('hide.bs.popover', function() {
                 scope.$parent.beamline.activeItem = null;
-            }).on('hidden.bs.popover', function() {
-                var active = scope.$parent.beamline.activeItem;
-                if (active && active.type == scope.item.type)
-                    return;
                 var editor = el.data('bs.popover').getContent();
                 // return the editor to the editor-holder so it will be available for the
                 // next element of this type
-                if (editor && $('.srw-' + scope.item.type + '-editor').length == 0) {
+                if (editor)
                     $('.srw-editor-holder').append(editor);
-                }
             });
 
             function togglePopover() {
