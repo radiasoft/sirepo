@@ -42,7 +42,7 @@ app.factory('activeSection', function($route, appState) {
     };
 
     self.setActiveSection = function(name) {
-        self.activeSection = name;
+        activeSection = name;
         if ($route.current.params.simulationId)
             appState.loadModels($route.current.params.simulationId);
     };
