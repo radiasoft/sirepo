@@ -82,7 +82,7 @@ app.factory('appState', function($http, $rootScope) {
 
     self.cancelChanges = function(name) {
         if (savedModelValues[name])
-            self.models[name] = JSON.parse(JSON.stringify(savedModelValues[name]));
+            self.models[name] = self.clone(savedModelValues[name]);
     };
 
     self.clearModels = function(emptyValues) {
@@ -91,9 +91,13 @@ app.factory('appState', function($http, $rootScope) {
         savedModelValues = {};
     };
 
+    self.clone = function(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    };
+
     self.cloneModel = function(name) {
         var val = name ? self.models[name] : self.models;
-        return JSON.parse(JSON.stringify(val));
+        return self.clone(val);
     };
 
     self.getWatchItems = function() {
@@ -194,12 +198,10 @@ app.factory('appState', function($http, $rootScope) {
 });
 
 app.factory('panelState', function($window, $rootScope, appState, requestQueue) {
-    // Tracks the data, error, hidden and isLoading values
+    // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
-    $rootScope.$on('clearCache', function() {
-        self.clear();
-    });
+    $rootScope.$on('clearCache', self.clear);
 
     function getPanelValue(name, key) {
         if (panels[name] && panels[name][key])
@@ -209,23 +211,11 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
 
     function setPanelValue(name, key, value) {
         if (! (name || key))
-            throw "missing name or key";
+            throw 'missing name or key';
         if (! panels[name])
             panels[name] = {};
         panels[name][key] = value;
     }
-
-    self.toggleHidden = function(name) {
-        setPanelValue(name, 'hidden', ! self.isHidden(name));
-        if (! self.isHidden(name) && appState.isReportModelName(name)) {
-            // needed to resize a hidden report
-            $($window).trigger('resize');
-        }
-    };
-
-    self.isHidden = function(name) {
-        return getPanelValue(name, 'hidden');
-    };
 
     self.clear = function(name) {
         if (name)
@@ -238,8 +228,12 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
         return getPanelValue(name, 'error');
     };
 
+    self.isHidden = function(name) {
+        return getPanelValue(name, 'hidden');
+    };
+
     self.isLoading = function(name) {
-        return getPanelValue(name, 'isLoading');
+        return getPanelValue(name, 'loading');
     };
 
     self.requestData = function(name, callback) {
@@ -250,10 +244,10 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
             callback(data);
             return;
         }
-        setPanelValue(name, 'isLoading', true);
+        setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(data, error) {
-            setPanelValue(name, 'isLoading', false);
+            setPanelValue(name, 'loading', false);
             if (error) {
                 setPanelValue(name, 'error', error);
             }
@@ -264,6 +258,14 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
             }
         };
         requestQueue.addItem([name, appState.applicationState(), responseHandler]);
+    };
+
+    self.toggleHidden = function(name) {
+        setPanelValue(name, 'hidden', ! self.isHidden(name));
+        if (! self.isHidden(name) && appState.isReportModelName(name)) {
+            // needed to resize a hidden report
+            $($window).trigger('resize');
+        }
     };
 
     return self;
@@ -322,7 +324,7 @@ app.factory('requestQueue', function($http, $rootScope) {
     return self;
 });
 
-app.controller('BeamlineController', function ($timeout, activeSection, appState) {
+app.controller('BeamlineController', function (activeSection, appState) {
     activeSection.setActiveSection('beamline');
     var self = this;
     self.toolbarItems = [
@@ -337,20 +339,12 @@ app.controller('BeamlineController', function ($timeout, activeSection, appState
     ];
     self.activeItem = null;
     self.isDirty = false;
-
-    function maxId(beamline) {
-        var max = 1;
-        for (var i = 0; i < beamline.length; i++) {
-            if (beamline[i].id > max)
-                max = beamline[i].id;
-        }
-        return max;
-    }
+    self.postPropagation = [];
+    self.propagations = [];
 
     function addItem(item) {
-        //TODO(pjm): conslidate clone() -- move this code into appState
         self.isDirty = true;
-        var newItem = $.extend(true, {}, item);
+        var newItem = appState.clone(item);
         newItem.id = maxId(appState.models.beamline) + 1;
         newItem.showPopover = true;
         if (appState.models.beamline.length) {
@@ -362,48 +356,7 @@ app.controller('BeamlineController', function ($timeout, activeSection, appState
         if (newItem.type == 'watch')
             appState.models[appState.watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
         appState.models.beamline.push(newItem);
-        $('.srw-beamline-element-label').popover('hide');
-    }
-
-    self.saveChanges = function() {
-        self.isDirty = false;
-        // sort beamline based on position
-        appState.models.beamline.sort(function(a, b) {
-            return parseFloat(a.position) - parseFloat(b.position);
-        });
-        calculatePropagation();
-        appState.saveBeamline();
-    }
-
-    self.cancelChanges = function() {
-        appState.cancelChanges('beamline');
-        //TODO(pjm): need to set clean later - the collection listener gets notified in later calls
         self.dismissPopup();
-        $timeout(function() {
-            self.isDirty = false;
-        }, 300);
-    }
-
-    self.dismissPopup = function() {
-        $('.srw-beamline-element-label').popover('hide');
-    }
-
-    self.propagations = [];
-    self.postPropagation = [];
-
-    function formatFloat(v) {
-        var str = v.toFixed(4);
-        str = str.replace(/0+$/, '');
-        str = str.replace(/\.$/, '');
-        return str;
-    }
-
-    function defaultItemPropagationParams() {
-        return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];
-    }
-
-    function defaultDriftPropagationParams() {
-        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
     }
 
     function calculatePropagation() {
@@ -442,43 +395,47 @@ app.controller('BeamlineController', function ($timeout, activeSection, appState
         self.postPropagation = appState.models.postPropagation;
     }
 
-    self.getWatchItems = function() {
-        return appState.getWatchItems();
+    function defaultItemPropagationParams() {
+        return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];
     }
 
-    self.getBeamline = function() {
-        return appState.models.beamline;
+    function defaultDriftPropagationParams() {
+        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
     }
 
-    self.isTouchscreen = function() {
-        return Modernizr.touch;
+    function formatFloat(v) {
+        var str = v.toFixed(4);
+        str = str.replace(/0+$/, '');
+        str = str.replace(/\.$/, '');
+        return str;
     }
 
-    self.showPropagationModal = function() {
-        //TODO(pjm): should only set dirty if propagation value changes
-        self.isDirty = true;
-        calculatePropagation();
-        $('.srw-beamline-element-label').popover('hide');
-        $('#srw-propagation-parameters').modal('show');
-    }
-    self.removeElement = function(item) {
-        $('.srw-beamline-element-label').popover('hide');
-        appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
-        self.isDirty = true;
-    }
-
-    self.dropComplete = function(data) {
-        if (data && ! data.id) {
-            addItem(data);
+    function maxId(beamline) {
+        var max = 1;
+        for (var i = 0; i < beamline.length; i++) {
+            if (beamline[i].id > max)
+                max = beamline[i].id;
         }
+        return max;
     }
+
+    self.cancelChanges = function() {
+        self.dismissPopup();
+        appState.cancelChanges('beamline');
+        self.isDirty = false;
+    };
+
+    self.dismissPopup = function() {
+        $('.srw-beamline-element-label').popover('hide');
+    };
+
     self.dropBetween = function(index, data) {
         if (! data)
             return;
         //console.log('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
         var item;
         if (data.id) {
-            $('.srw-beamline-element-label').popover('hide');
+            self.dismissPopup();
             var curr = appState.models.beamline.indexOf(data);
             if (curr < index)
                 index--;
@@ -501,7 +458,49 @@ app.controller('BeamlineController', function ($timeout, activeSection, appState
                 item.position = Math.round(100 * (parseFloat(appState.models.beamline[index - 1].position) + parseFloat(appState.models.beamline[index + 1].position)) / 2) / 100;
             }
         }
-    }
+    };
+
+    self.dropComplete = function(data) {
+        if (data && ! data.id) {
+            addItem(data);
+        }
+    };
+
+    self.getBeamline = function() {
+        return appState.models.beamline;
+    };
+
+    self.getWatchItems = function() {
+        return appState.getWatchItems();
+    };
+
+    self.isTouchscreen = function() {
+        return Modernizr.touch;
+    };
+
+    self.removeElement = function(item) {
+        self.dismissPopup();
+        appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+        self.isDirty = true;
+    };
+
+    self.saveChanges = function() {
+        self.isDirty = false;
+        // sort beamline based on position
+        appState.models.beamline.sort(function(a, b) {
+            return parseFloat(a.position) - parseFloat(b.position);
+        });
+        calculatePropagation();
+        appState.saveBeamline();
+    };
+
+    self.showPropagationModal = function() {
+        //TODO(pjm): should only set dirty if propagation value changes
+        self.isDirty = true;
+        calculatePropagation();
+        self.dismissPopup();
+        $('#srw-propagation-parameters').modal('show');
+    };
 });
 
 app.controller('NavController', function ($location, activeSection, appState) {
@@ -534,8 +533,6 @@ app.controller('NavController', function ($location, activeSection, appState) {
     };
 
     self.sectionTitle = function() {
-        if (activeSection.getActiveSection() == 'simulations')
-            return null;
         if (appState.isLoaded())
             return appState.models.simulation.name;
         return null;
@@ -544,10 +541,16 @@ app.controller('NavController', function ($location, activeSection, appState) {
 
 app.controller('SimulationsController', function ($scope, $http, $location, $window, activeSection, appState) {
     activeSection.setActiveSection('simulations');
+    var self = this;
+    self.list = [];
+    self.selected = null;
     appState.clearModels({
         newSimulation: {},
     });
-    var self = this;
+    $scope.$on('newSimulation.changed', function() {
+        if (appState.models.newSimulation.name)
+            newSimulation(appState.models.newSimulation.name);
+    });
 
     function newSimulation(name) {
         $http.post('/srw/new-simulation', {
@@ -569,14 +572,16 @@ app.controller('SimulationsController', function ($scope, $http, $location, $win
             });
     }
 
-    self.list = [];
-    self.selected = null;
-    self.isSelected = function(item) {
-        return self.selected && self.selected == item;
-    }
-    self.selectItem = function(item) {
-        self.selected = item;
-    }
+    self.copy = function(item) {
+        $http.post('/srw/copy-simulation', {
+            simulationId: self.selected.simulationId,
+        }).success(function(data, status) {
+            self.open(data.models.simulation);
+        }).error(function(data, status) {
+            console.log('copy-simulation failed: ', status, ' ', data);
+        });
+    };
+
     self.deleteSelected = function() {
         $http.post('/srw/delete-simulation', {
             simulationId: self.selected.simulationId,
@@ -586,31 +591,26 @@ app.controller('SimulationsController', function ($scope, $http, $location, $win
             console.log('delete-simulation failed: ', status, ' ', data);
         });
         self.selected = null;
-    }
-    $scope.$on('newSimulation.changed', function() {
-        if (appState.models.newSimulation.name) {
-            newSimulation(appState.models.newSimulation.name);
-            appState.models.newSimulation.name = '';
-            appState.saveChanges('newSimulation');
-        }
-    });
+    };
+
+    self.isSelected = function(item) {
+        return self.selected && self.selected == item;
+    };
+
     self.open = function(item) {
         //TODO(pjm): centralize route management
         $location.path('/source/' + item.simulationId);
-    }
-    self.copy = function(item) {
-        $http.post('/srw/copy-simulation', {
-            simulationId: self.selected.simulationId,
-        }).success(function(data, status) {
-            self.open(data.models.simulation);
-        }).error(function(data, status) {
-            console.log('copy-simulation failed: ', status, ' ', data);
-        });
-    }
+    };
+
     self.pythonSource = function(item) {
         $window.open('/srw/python-source/' + self.selected.simulationId, '_blank');
-    }
-    loadList()
+    };
+
+    self.selectItem = function(item) {
+        self.selected = item;
+    };
+
+    loadList();
 });
 
 app.controller('SourceController', function (activeSection) {
