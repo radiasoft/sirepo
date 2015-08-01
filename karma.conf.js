@@ -25,6 +25,8 @@ module.exports = function(config) {
         'sirepo/package_data//static/js/bootstrap-slider-2.0.0.js',
         'sirepo/package_data//static/js/angular-d3.js',
         'sirepo/package_data//static/js/sirepo.js',
+        'sirepo/package_data//static/js/sirepo-components.js',
+        'sirepo/package_data//static/js/sirepo-plotting.js',
         'tests/helpers/angular/*.js',
         'tests/**/*.js'
     ],
