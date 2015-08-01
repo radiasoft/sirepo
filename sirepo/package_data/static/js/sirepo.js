@@ -127,7 +127,7 @@ app.factory('appState', function($http, $rootScope) {
     };
 
     self.isLoaded = function() {
-        return self.models.simulation && self.models.simulation.simulationId;
+        return self.models.simulation && self.models.simulation.simulationId ? true: false;
     };
 
     self.isReportModelName = function(name) {
@@ -201,7 +201,9 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
-    $rootScope.$on('clearCache', self.clear);
+    $rootScope.$on('clearCache', function() {
+        self.clear();
+    });
 
     function getPanelValue(name, key) {
         if (panels[name] && panels[name][key])
@@ -229,11 +231,11 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
     };
 
     self.isHidden = function(name) {
-        return getPanelValue(name, 'hidden');
+        return getPanelValue(name, 'hidden') ? true : false;
     };
 
     self.isLoading = function(name) {
-        return getPanelValue(name, 'loading');
+        return getPanelValue(name, 'loading') ? true : false;
     };
 
     self.requestData = function(name, callback) {
