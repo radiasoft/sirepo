@@ -9,6 +9,9 @@ $.ajax({
     success: function(result) {
         APP_SCHEMA = result;
     },
+    error: function(xhr, status, err) {
+        console.log("schema load failed: ", err);
+    },
     async: false,
 });
 
