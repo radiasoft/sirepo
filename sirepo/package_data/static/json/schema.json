@@ -365,5 +365,15 @@
                 "verticalOffset"
             ]
         }
+    },
+    "route": {
+        "copySimulation": "/srw/copy-simulation",
+        "deleteSimulation": "/srw/delete-simulation",
+        "listSimulations": "/srw/simulation-list",
+        "newSimulation": "/srw/new-simulation",
+        "pythonSource": "/srw/python-source/<simulation_id>",
+        "root": "/srw",
+        "runSimulation": "/srw/run",
+        "simulationData": "/srw/simulation/<simulation_id>"
     }
 }
