@@ -5,7 +5,7 @@ var APP_SCHEMA;
 // Load the application schema synchronously, before creating app module
 //TODO(pjm): deprecated, change this to a requires/callback
 $.ajax({
-    url: '/static/json/schema.json?20150731',
+    url: '/static/json/schema.json?' + SIREPO_APP_VERSION,
     success: function(result) {
         APP_SCHEMA = result;
     },
@@ -25,15 +25,15 @@ app.config(function($routeProvider, localRoutesProvider) {
     $routeProvider
         .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html?20150731',
+            templateUrl: '/static/html/simulations.html?' + SIREPO_APP_VERSION,
         })
         .when(localRoutes.source, {
             controller: 'SourceController as source',
-            templateUrl: '/static/html/source.html?20150731',
+            templateUrl: '/static/html/source.html?' + SIREPO_APP_VERSION,
         })
         .when(localRoutes.beamline, {
             controller: 'BeamlineController as beamline',
-            templateUrl: '/static/html/beamline.html?20150731',
+            templateUrl: '/static/html/beamline.html?' + SIREPO_APP_VERSION,
         })
         .otherwise({
             redirectTo: localRoutes.simulations,
@@ -608,11 +608,11 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
     self.list = [];
     self.selected = null;
     appState.clearModels({
-        newSimulation: {},
+        simulation: {},
     });
-    $scope.$on('newSimulation.changed', function() {
-        if (appState.models.newSimulation.name)
-            newSimulation(appState.models.newSimulation.name);
+    $scope.$on('simulation.changed', function() {
+        if (appState.models.simulation.name)
+            newSimulation(appState.models.simulation.name);
     });
 
     function newSimulation(name) {
