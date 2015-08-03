@@ -2,7 +2,7 @@
       <div class="row">
         <div class="text-center col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
           <button data-target="#srw-simulation-editor" data-toggle="modal" class="btn btn-default" type="submit"><span class="glyphicon glyphicon-plus"></span> New</button>
-          <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</a>
+          <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</button>
           <button data-ng-click="simulations.copy(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-copy"></span> Copy</button>
           <button data-target="#srw-delete-confirmation" data-toggle="modal" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-trash"></span> Delete</button>
           <button data-ng-click="simulations.pythonSource(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
