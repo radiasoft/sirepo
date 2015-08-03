@@ -60,7 +60,7 @@ with open(str(_STATIC_FOLDER.join('json/schema.json'))) as f:
     _APP_SCHEMA = json.load(f)
 
 #: Flask app instance, must be bound globally
-app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER))
+app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER), template_folder=str(_STATIC_FOLDER))
 
 def init(run_dir):
     """Initialize globals and populate simulation dir"""
@@ -121,7 +121,10 @@ def srw_python_source(simulation_id):
 
 @app.route(_APP_SCHEMA['route']['root'])
 def srw_root():
-    return app.send_static_file('html/srw.html')
+    return flask.render_template(
+        'html/srw.html',
+        version=_APP_SCHEMA['version'],
+    )
 
 
 @app.route(_APP_SCHEMA['route']['runSimulation'], methods=('GET', 'POST'))
@@ -190,7 +193,8 @@ def _find_simulation_data(res, path, data, params):
 
 
 def _fixup_old_data(data):
-    #TODO(pjm): put version number at root level in data
+    if 'version' in data and data['version'] == _APP_SCHEMA['version']:
+        return data
     if 'post_propagation' in data['models']:
         data['models']['postPropagation'] = data['models']['post_propagation']
         del data['models']['post_propagation']
@@ -207,6 +211,7 @@ def _fixup_old_data(data):
         elif item['type'] == 'mirror':
             if not item.get('heightProfileFile'):
                 item['heightProfileFile'] = 'mirror_1d.dat'
+    data['version'] = _APP_SCHEMA['version']
     return data
 
 
