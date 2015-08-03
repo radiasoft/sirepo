@@ -17,24 +17,30 @@ module.exports = function(config) {
     files: [
         'sirepo/package_data/static/js/angular-1.4.2.js',
         'sirepo/package_data/static/js/angular-animate-1.4.2.js',
-        'sirepo/package_data//static/js/angular-route-1.4.2.js',
-        'sirepo/package_data//static/js/jquery-2.1.4.js',
-        'sirepo/package_data//static/js/bootstrap-3.3.4.js',
-        'sirepo/package_data//static/js/ngDraggable.js',
-        'sirepo/package_data//static/js/modernizr-touch-2.8.3.min.js',
-        'sirepo/package_data//static/js/bootstrap-slider-2.0.0.js',
-        'sirepo/package_data//static/js/angular-d3.js',
-        'sirepo/package_data//static/js/sirepo.js',
-        'sirepo/package_data//static/js/sirepo-components.js',
-        'sirepo/package_data//static/js/sirepo-plotting.js',
+        'sirepo/package_data/static/js/angular-route-1.4.2.js',
+        'sirepo/package_data/static/js/jquery-2.1.4.js',
+        'sirepo/package_data/static/js/bootstrap-3.3.4.js',
+        'sirepo/package_data/static/js/ngDraggable.js',
+        'sirepo/package_data/static/js/modernizr-touch-2.8.3.min.js',
+        'sirepo/package_data/static/js/bootstrap-slider-2.0.0.js',
+        'sirepo/package_data/static/js/angular-d3.js',
+        'sirepo/package_data/static/js/sirepo.js',
+        'sirepo/package_data/static/js/sirepo-plotting.js',
+        'sirepo/package_data/static/js/sirepo-components.js',
+        'sirepo/package_data/static/js/sirepo-plotting.js',
         'tests/helpers/angular/*.js',
-        'tests/**/*.js'
+        'tests/**/*.js',
+        {pattern: 'sirepo/package_data/static/json/*.json', included: false, served: true},
     ],
 
 
     // list of files to exclude
     exclude: [
     ],
+
+    proxies: {
+        '/static/json/': '/base/sirepo/package_data/static/json/',
+    },
 
 
     // preprocess matching files before serving them to the browser
