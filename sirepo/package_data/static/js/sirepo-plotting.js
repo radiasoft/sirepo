@@ -104,7 +104,7 @@ app.directive('plot2d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot2d.html?20150731',
+        templateUrl: '/static/html/plot2d.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
 
             var ASPECT_RATIO = 4.0 / 7;
@@ -253,7 +253,7 @@ app.directive('plot3d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot3d.html?20150731',
+        templateUrl: '/static/html/plot3d.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
 
             $scope.margin = 30;
