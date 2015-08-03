@@ -1,4 +1,5 @@
 {
+    "version": "20150803",
     "enum": {
         "ApertureShape": [
             ["r", "Rectangular"],
@@ -47,9 +48,6 @@
         ]
     },
     "model": {
-        "newSimulation": {
-            "name": ["Name", "String"]
-        },
         "simulation": {
             "name": ["Name", "String"]
         },
@@ -172,12 +170,6 @@
         }
     },
     "view": {
-        "newSimulation": {
-            "title": "New Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
         "simulation": {
             "title": "Simulation",
             "advanced": [
