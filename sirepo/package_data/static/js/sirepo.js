@@ -14,22 +14,29 @@ $.ajax({
 
 var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
 
-app.config(function($routeProvider) {
+app.value('localRoutes', {
+    simulations: '/simulations',
+    source: '/source/:simulationId',
+    beamline: '/beamline/:simulationId',
+});
+
+app.config(function($routeProvider, localRoutesProvider) {
+    var localRoutes = localRoutesProvider.$get();
     $routeProvider
-        .when('/simulations', {
+        .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html?20150731',
         })
-        .when('/source/:simulationId', {
+        .when(localRoutes.source, {
             controller: 'SourceController as source',
             templateUrl: '/static/html/source.html?20150731',
         })
-        .when('/beamline/:simulationId', {
+        .when(localRoutes.beamline, {
             controller: 'BeamlineController as beamline',
             templateUrl: '/static/html/beamline.html?20150731',
         })
         .otherwise({
-            redirectTo: '/simulations'
+            redirectTo: localRoutes.simulations,
         });
 });
 
@@ -50,14 +57,17 @@ app.factory('activeSection', function($route, appState) {
     return self;
 });
 
-app.factory('appState', function($http, $rootScope) {
+app.factory('appState', function($rootScope, requestSender) {
     var self = {};
     self.models = {};
     var savedModelValues = {};
 
-    function broadcastEvent(eventName) {
-        //console.log('broadcast: ', eventName);
-        $rootScope.$broadcast(eventName);
+    function broadcastClear() {
+        $rootScope.$broadcast('clearCache');
+    }
+
+    function broadcastChanged(name) {
+        $rootScope.$broadcast(name + '.changed');
     }
 
     function isPropagationModelName(name) {
@@ -69,10 +79,10 @@ app.factory('appState', function($http, $rootScope) {
     }
 
     function updateReports() {
-        broadcastEvent('clearCache');
+        broadcastClear();
         for (var key in self.models) {
             if (self.isReportModelName(key))
-                broadcastEvent(key + '.changed');
+                broadcastChanged(key);
         }
     }
 
@@ -86,7 +96,7 @@ app.factory('appState', function($http, $rootScope) {
     };
 
     self.clearModels = function(emptyValues) {
-        broadcastEvent('clearCache');
+        broadcastClear();
         self.models = emptyValues || {};
         savedModelValues = {};
     };
@@ -138,14 +148,16 @@ app.factory('appState', function($http, $rootScope) {
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId)
             return;
         self.clearModels();
-        $http.get('/srw/simulation/' + simulationId)
-            .success(function(data, status) {
+        requestSender.sendRequest(
+            requestSender.formatUrl(
+                'simulationData',
+                {
+                    '<simulation_id>': simulationId,
+                }),
+            function(data, status) {
                 self.models = data.models;
                 savedModelValues = self.cloneModel();
                 updateReports();
-            })
-            .error(function(data, status) {
-                console.log('loadModels failed: ', simulationId);
             });
     };
 
@@ -183,7 +195,7 @@ app.factory('appState', function($http, $rootScope) {
         savedModelValues[name] = self.cloneModel(name);
         if (! self.isReportModelName(name))
             updateReports();
-        broadcastEvent(name + '.changed');
+        broadcastChanged(name);
     };
 
     self.viewInfo = function(name) {
@@ -273,7 +285,54 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
     return self;
 });
 
-app.factory('requestQueue', function($http, $rootScope) {
+app.factory('requestSender', function($http, $location, localRoutes) {
+    var self = {};
+
+    function logError(data) {
+        console.log('request failed: ', data);
+    }
+
+    function formatUrl(map, routeName, params) {
+        if (! map[routeName])
+            throw 'unknown routeName: ' + routeName;
+        var url = map[routeName];
+        if (params) {
+            for (var k in params)
+                url = url.replace(k, params[k]);
+        }
+        return url;
+    }
+
+    self.formatLocalUrl = function(routeName, params) {
+        return formatUrl(localRoutes, routeName, params);
+    }
+
+    self.formatUrl = function(routeName, params) {
+        return formatUrl(APP_SCHEMA.route, routeName, params);
+    };
+
+    self.localRedirect = function(routeName, params) {
+        $location.path(self.formatLocalUrl(routeName, params));
+    }
+
+    self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
+        var url = urlOrName.indexOf('/') >= 0
+            ? urlOrName
+            : self.formatUrl(urlOrName);
+        var promise = data
+            ? $http.post(url, data)
+            : $http.get(url);
+        promise.success(successCallback);
+        if (errorCallback)
+            promise.error(errorCallback);
+        else
+            promise.error(logError);
+    };
+
+    return self;
+});
+
+app.factory('requestQueue', function($rootScope, requestSender) {
     var self = {};
     var runQueue = [];
     var queueId = 1;
@@ -286,14 +345,19 @@ app.factory('requestQueue', function($http, $rootScope) {
         var queueItem = runQueue[0];
         if (! queueItem)
             return;
-        $http.post('/srw/run', {
-            report: queueItem.item[0],
-            models: queueItem.item[1],
-        }).success(function(data, status) {
-            handleQueueResult(queueItem, data);
-        }).error(function(data, status) {
-            handleQueueResult(queueItem, { error: 'a server error occurred' });
-        });
+
+        requestSender.sendRequest(
+            'runSimulation',
+            function(data) {
+                handleQueueResult(queueItem, data);
+            },
+            {
+                report: queueItem.item[0],
+                models: queueItem.item[1],
+            },
+            function() {
+                handleQueueResult(queueItem, { error: 'a server error occurred' });
+            });
     }
 
     function handleQueueResult(queueItem, data) {
@@ -505,7 +569,7 @@ app.controller('BeamlineController', function (activeSection, appState) {
     };
 });
 
-app.controller('NavController', function ($location, activeSection, appState) {
+app.controller('NavController', function (activeSection, appState, requestSender) {
     var self = this;
 
     self.activeSection = function() {
@@ -513,14 +577,11 @@ app.controller('NavController', function ($location, activeSection, appState) {
     };
 
     self.openSection = function(name) {
-        //TODO(pjm): centralize route management
-        $location.path(
-            ('/' + name) + (
-                name == 'simulations'
-                    ? ''
-                    : ('/' + appState.models.simulation.simulationId)
-            )
-        );
+        requestSender.localRedirect(name, {
+            ':simulationId': appState.isLoaded()
+                ? appState.models.simulation.simulationId
+                : null,
+        });
     };
 
     self.pageTitle = function() {
@@ -541,7 +602,7 @@ app.controller('NavController', function ($location, activeSection, appState) {
     };
 });
 
-app.controller('SimulationsController', function ($scope, $http, $location, $window, activeSection, appState) {
+app.controller('SimulationsController', function ($scope, $window, activeSection, appState, requestSender) {
     activeSection.setActiveSection('simulations');
     var self = this;
     self.list = [];
@@ -555,57 +616,61 @@ app.controller('SimulationsController', function ($scope, $http, $location, $win
     });
 
     function newSimulation(name) {
-        $http.post('/srw/new-simulation', {
-            name: name,
-        }).success(function(data, status) {
-            self.open(data.models.simulation);
-        }).error(function(data, status) {
-            console.log('new-simulation failed: ', status, ' ', data);
-        });
+        requestSender.sendRequest(
+            'newSimulation',
+            function(data) {
+                self.open(data.models.simulation);
+            },
+            {
+                name: name,
+            });
     }
 
     function loadList() {
-        $http['get']('/srw/simulation-list')
-            .success(function(data, status) {
+        requestSender.sendRequest(
+            'listSimulations',
+            function(data) {
                 self.list = data;
-            })
-            .error(function() {
-                console.log('get simulation list failed!');
             });
     }
 
     self.copy = function(item) {
-        $http.post('/srw/copy-simulation', {
-            simulationId: self.selected.simulationId,
-        }).success(function(data, status) {
-            self.open(data.models.simulation);
-        }).error(function(data, status) {
-            console.log('copy-simulation failed: ', status, ' ', data);
-        });
+        requestSender.sendRequest(
+            'copySimulation',
+            function(data) {
+                self.open(data.models.simulation);
+            },
+            {
+                simulationId: self.selected.simulationId,
+            });
     };
 
     self.deleteSelected = function() {
-        $http.post('/srw/delete-simulation', {
-            simulationId: self.selected.simulationId,
-        }).success(function(data, status) {
-            loadList();
-        }).error(function(data, status) {
-            console.log('delete-simulation failed: ', status, ' ', data);
-        });
+        requestSender.sendRequest(
+            'deleteSimulation',
+            function() {
+                loadList();
+            },
+            {
+                simulationId: self.selected.simulationId,
+            });
         self.selected = null;
     };
 
     self.isSelected = function(item) {
-        return self.selected && self.selected == item;
+        return self.selected && self.selected == item ? true : false;
     };
 
     self.open = function(item) {
-        //TODO(pjm): centralize route management
-        $location.path('/source/' + item.simulationId);
+        requestSender.localRedirect('source', {
+            ':simulationId': item.simulationId,
+        });
     };
 
     self.pythonSource = function(item) {
-        $window.open('/srw/python-source/' + self.selected.simulationId, '_blank');
+        $window.open(requestSender.formatUrl('pythonSource', {
+            '<simulation_id>': self.selected.simulationId,
+        }), '_blank');
     };
 
     self.selectItem = function(item) {
