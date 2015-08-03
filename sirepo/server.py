@@ -56,9 +56,11 @@ _SRW_ERROR_RE = re.compile(r'\bError: ([^\n]+)')
 #: How long before killing SRW process
 _SRW_MAX_SECONDS = 30
 
+with open(str(_STATIC_FOLDER.join('json/schema.json'))) as f:
+    _APP_SCHEMA = json.load(f)
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER))
-
 
 def init(run_dir):
     """Initialize globals and populate simulation dir"""
@@ -73,7 +75,7 @@ def init(run_dir):
             _save_new_simulation(s, is_response=False)
 
 
-@app.route('/srw/copy-simulation', methods=('GET', 'POST'))
+@app.route(_APP_SCHEMA['route']['copySimulation'], methods=('GET', 'POST'))
 def srw_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     data = _open_json_file(_simulation_filename(_json_input('simulationId')))
@@ -90,13 +92,13 @@ def srw_copy_simulation():
     return _save_new_simulation(data)
 
 
-@app.route('/srw/delete-simulation', methods=('GET', 'POST'))
+@app.route(_APP_SCHEMA['route']['deleteSimulation'], methods=('GET', 'POST'))
 def srw_delete_simulation():
     pkio.unchecked_remove(_simulation_filename(_json_input('simulationId')))
     return '{}'
 
 
-@app.route('/srw/new-simulation', methods=('GET', 'POST'))
+@app.route(_APP_SCHEMA['route']['newSimulation'], methods=('GET', 'POST'))
 def srw_new_simulation():
     data = _open_json_file(_STATIC_FOLDER.join('json/default.json'))
     data['models']['simulation'] = {
@@ -105,24 +107,24 @@ def srw_new_simulation():
     return _save_new_simulation(data)
 
 
-@app.route('/srw/python-source/<simulation_id>')
+@app.route(_APP_SCHEMA['route']['pythonSource'])
 def srw_python_source(simulation_id):
     data = _open_json_file(_simulation_filename(simulation_id))
     # ensure the whole source gets generated, not up to the last breakout report
     if 'report' in data:
         del data['report']
     return flask.Response(
-        '{}{}'.format(sirepo.srw_template.generate_parameters_file(data, _app_schema()), sirepo.srw_template.run_all_text()),
+        '{}{}'.format(sirepo.srw_template.generate_parameters_file(data, _APP_SCHEMA), sirepo.srw_template.run_all_text()),
         mimetype='text/plain',
     )
 
 
-@app.route('/srw')
+@app.route(_APP_SCHEMA['route']['root'])
 def srw_root():
     return app.send_static_file('html/srw.html')
 
 
-@app.route('/srw/run', methods=('GET', 'POST'))
+@app.route(_APP_SCHEMA['route']['runSimulation'], methods=('GET', 'POST'))
 def srw_run():
     http_text = _read_http_input()
     data = _fixup_old_data(json.loads(http_text))
@@ -130,7 +132,7 @@ def srw_run():
         pkdp('dir={}', wd)
         _save_simulation_json(data)
         pkio.write_text('in.json', http_text)
-        pkio.write_text('srw_parameters.py', sirepo.srw_template.generate_parameters_file(data, _app_schema()))
+        pkio.write_text('srw_parameters.py', sirepo.srw_template.generate_parameters_file(data, _APP_SCHEMA))
         shutil.copyfile(pkresource.filename('static/dat/mirror_1d.dat'), 'mirror_1d.dat')
         #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
         # with ebeam horizontal position of 0.05
@@ -150,7 +152,7 @@ def srw_run():
     return data
 
 
-@app.route('/srw/simulation/<simulation_id>')
+@app.route(_APP_SCHEMA['route']['simulationData'])
 def srw_simulation_data(simulation_id):
     res = _iterate_simulation_datafiles(
         _find_simulation_data,
@@ -163,7 +165,7 @@ def srw_simulation_data(simulation_id):
     flask.abort(404)
 
 
-@app.route('/srw/simulation-list')
+@app.route(_APP_SCHEMA['route']["listSimulations"])
 def srw_simulation_list():
     return json.dumps(
         sorted(
@@ -172,12 +174,6 @@ def srw_simulation_list():
             reverse=True
         )
     )
-
-
-def _app_schema():
-    #TODO(pjm): consider caching this
-    with open(str(_STATIC_FOLDER.join('json/schema.json'))) as f:
-        return json.load(f)
 
 
 def _error_text(err):
