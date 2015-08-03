@@ -13,6 +13,7 @@ $.ajax({
         console.log("schema load failed: ", err);
     },
     async: false,
+    dataType: 'json',
 });
 
 var app = angular.module('SRWApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
