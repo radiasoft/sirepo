@@ -61,13 +61,28 @@ describe('Factory: panelState', function() {
         successCallback({ a: 1 });
         expect(data.a).toEqual(1);
         var originalData = data;
+        data = null;
         panelState.requestData('myReport', function(d) { data = d; });
-        // this callback doesn't matter, the requestData would return immediately with cached data
-        successCallback({ a: 2});
         expect(data.a === originalData.a).toBe(true);
         panelState.clear();
+        data = null
         panelState.requestData('myReport', function(d) { data = d; });
+        expect(data).toBeNull();
         successCallback({ a: 2});
         expect(data.a).toEqual(2);
+    }));
+
+    it('should clear the cache on clearCache event', inject(function(panelState, $rootScope) {
+        var data = null;
+        panelState.requestData('myReport', function(d) { data = d; });
+        successCallback({ a: 1 });
+        expect(data).toBeDefined();
+        data = null;
+        panelState.requestData('myReport', function(d) { data = d; });
+        expect(data).toBeDefined();
+        $rootScope.$broadcast('clearCache');
+        data = null;
+        panelState.requestData('myReport', function(d) { data = d; });
+        expect(data).toBeNull();
     }));
 });
