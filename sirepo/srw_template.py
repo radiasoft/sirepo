@@ -2,10 +2,10 @@ import re
 
 TEMPLATE = '''
 
-from srwl_bl import SRWLOptA, SRWLOptC, SRWLOptD, SRWLOptL
-from srwlib import srwl_uti_read_data_cols, srwl_opt_setup_surf_height_1d, srwl_opt_setup_CRL
+import srwlib
+import srwl_bl
 
-varParam = [
+srwblParam = [
 
     ['name', 's', '{simulation_name}', 'simulation name'],
 
@@ -23,7 +23,6 @@ varParam = [
     ['ebm_dr', 'f', {electronBeamInitialDrift}, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
 
 #---Undulator
-    ['und_b', 's', '1', 'use undulator'],
     ['und_bx', 'f', {undulator_horizontalAmplitude}, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', {undulator_verticalAmplitude}, 'undulator vertical peak magnetic field [T]'],
     ['und_phx', 'f', {undulator_horizontalInitialPhase}, 'initial phase of the horizontal magnetic field [rad]'],
@@ -131,11 +130,74 @@ varParam = [
     ['op_r', 'f', {beamlineFirstElementPosition}, 'longitudinal position of the first optical element [m]'],
 ]
 
+appParam = [
+    ['mag_type', 's', '{simulation_magneticField}', 'magnetic field type, (u) undulator, (m) multipole, (s) solenoid'],
+#---Multipole
+    ['mp_field', 'f', {multipole_field}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
+    ['mp_order', 'i', {multipole_order}, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
+    ['mp_distribution', 's', '{multipole_distribution}', 'normal (n) or skew (s)'],
+    ['mp_len', 'f', {multipole_length}, 'effective length [m]'],
+    ['mp_zc', 'f', {multipole_longitudinalPosition}, 'multipole center longitudinal position [m]'],
+#---Solenoid
+    ['sn_field', 'f', {solenoid_field}, 'magnetic field [T]'],
+    ['sn_len', 'f', {solenoid_length}, 'effective length [m]'],
+    ['sn_zc', 'f', {solenoid_longitudinalPosition}, 'solenoid center longitudinal position [m]'],
+#---User Defined Electron Beam
+    ['ueb', 'i', {userDefinedElectronBeam}, 'user defined electron beam'],
+    ['ueb_e', 'f', {twissParameters_energy}, 'energy [GeV]'],
+    ['ueb_sig_e', 'f', {twissParameters_rmsSpread}, 'RMS energy spread'],
+    ['ueb_emit_x', 'f', {twissParameters_horizontalEmittance}, 'horizontal emittance [m]'],
+    ['ueb_beta_x', 'f', {twissParameters_horizontalBeta}, 'horizontal beta-function [m]'],
+    ['ueb_alpha_x', 'f', {twissParameters_horizontalAlpha}, 'horizontal alpha-function [rad]'],
+    ['ueb_eta_x', 'f', {twissParameters_horizontalDispersion}, 'horizontal dispersion function [m]'],
+    ['ueb_eta_x_pr', 'f', {twissParameters_horizontalDispersionDerivative}, 'horizontal dispersion function derivative [rad]'],
+    ['ueb_emit_y', 'f', {twissParameters_verticalEmittance}, 'vertical emittance [m]'],
+    ['ueb_beta_y', 'f', {twissParameters_verticalBeta}, 'vertical beta-function [m]'],
+    ['ueb_alpha_y', 'f', {twissParameters_verticalAlpha}, 'vertical alpha-function [rad]'],
+    ['ueb_eta_y', 'f', {twissParameters_verticalDispersion}, 'vertical dispersion function [m]'],
+    ['ueb_eta_y_pr', 'f', {twissParameters_verticalDispersionDerivative}, 'vertical dispersion function derivative [rad]'],
+]
+
+def setup_magnetic_field(v):
+    appV = srwl_bl.srwl_uti_parse_options(appParam)
+
+    if appV.ueb:
+        srwl_bl._USER_DEFINED_EBEAM = srwl_bl.SRWLPartBeam()
+        srwl_bl._USER_DEFINED_EBEAM.from_Twiss(_e=appV.ueb_e, _sig_e=appV.ueb_sig_e, _emit_x=appV.ueb_emit_x, _beta_x=appV.ueb_beta_x, _alpha_x=appV.ueb_alpha_x, _eta_x=appV.ueb_eta_x, _eta_x_pr=appV.ueb_eta_x_pr, _emit_y=appV.ueb_emit_y, _beta_y=appV.ueb_beta_y, _alpha_y=appV.ueb_alpha_y, _eta_y=appV.ueb_eta_y, _eta_y_pr=appV.ueb_eta_y_pr)
+
+    if appV.mag_type == 'u':
+        v.und_b = 1
+        return None
+    mag = srwlib.SRWLMagFldC();
+    mag.arXc.append(0)
+    mag.arYc.append(0)
+    if appV.mag_type == 'm':
+        mag.arMagFld.append(srwlib.SRWLMagFldM(appV.mp_field, appV.mp_order, appV.mp_distribution, appV.mp_len))
+        mag.arZc.append(appV.mp_zc)
+    elif appV.mag_type == 's':
+        mag.arMagFld.append(srwlib.SRWLMagFldS(appV.sn_field, appV.sn_len))
+        mag.arZc.append(appV.sn_zc)
+    return mag
+
 def get_srw_params():
-    return varParam
+    return srwblParam
+
+def get_app_params():
+    return appParam
 
 def get_beamline_optics():
     {beamlineOptics}
+
+# monkey patch SRWLBeamline.set_e_beam() to allow a user defined ebeam when called from calc_all()
+original_method = srwl_bl.SRWLBeamline.set_e_beam
+
+def patched_srwl_bl_set_e_beam(self, **kwargs):
+    if hasattr(srwl_bl, '_USER_DEFINED_EBEAM'):
+        kwargs['_e_beam_name'] = ''
+        kwargs['_e_beam'] = srwl_bl._USER_DEFINED_EBEAM
+    return original_method(self, **kwargs)
+
+srwl_bl.SRWLBeamline.set_e_beam = patched_srwl_bl_set_e_beam
 
 '''
 
@@ -155,26 +217,40 @@ def generate_parameters_file(data, schema):
     beamline = data['models']['beamline']
     v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
     # initial drift = 1/2 undulator length + 2 periods
-    v['electronBeamInitialDrift'] = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period'] + data['models']['undulator']['longitudinalPosition']
+    mag_type = data['models']['simulation']['magneticField']
+    drift = 0
+    if mag_type == 'u':
+        drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period'] + data['models']['undulator']['longitudinalPosition']
+    elif mag_type == 'm':
+        #TODO(pjm): allow this to be set in UI?
+        #drift = -0.49;
+        drift = 0;
+    elif mag_type == 's':
+        drift = 0
+    else:
+        raise Exception('invalid magneticField type: {}'.format(mag_type))
+    v['electronBeamInitialDrift'] = drift
+    v['userDefinedElectronBeam'] = 1 if data['models']['electronBeam']['beamName']['name'] == schema['constant']['USER_DEFINED'] else 0
     return TEMPLATE.format(**v).decode('unicode-escape')
 
 
 def run_all_text():
     return '''
 def run_all_reports():
-    import srwl_bl
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+    mag = setup_magnetic_field(v)
     v.ss = True
     v.ss_pl = 'e'
-    v.sm = True
-    v.sm_pl = 'e'
+    if isinstance(mag, srwlib.SRWLMagFldU):
+        v.sm = True
+        v.sm_pl = 'e'
     v.pw = True
     v.pw_pl = 'xy'
     v.si = True
     v.ws = True
     v.ws_pl = 'xy'
     op = get_beamline_optics()
-    srwl_bl.SRWLBeamline(v.name).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 run_all_reports()
 '''
@@ -210,48 +286,50 @@ def _generate_beamline_optics(models, last_id):
     pp = []
 '''
     prev = None
+    has_item = False
 
     for item in beamline:
         if prev:
+            has_item = True
             size = item['position'] - prev['position']
             if size != 0:
-                res += '    el.append(SRWLOptD({}))\n'.format(size)
+                res += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
                 res += _propagation_params(propagation[str(prev['id'])][1])
         if item['type'] == 'aperture':
             res += _beamline_element(
-                'SRWLOptA("{}", "a", {}, {}, {}, {})',
+                'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
                 propagation)
         elif item['type'] == 'crl':
             res += _beamline_element(
-                'srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
+                'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
                 item,
                 ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
                 propagation)
         elif item['type'] == 'lens':
             res += _beamline_element(
-                'SRWLOptL({}, {})',
+                'srwlib.SRWLOptL({}, {}, {}, {})',
                 item,
-                ['horizontalFocalLength', 'verticalFocalLength'],
+                ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
                 propagation)
         elif item['type'] == 'mirror':
             res += '    ifnHDM = "mirror_1d.dat"\n'
-            res += '    hProfDataHDM = srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
+            res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
             res += _beamline_element(
-                'srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
+                'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
                 item,
                 ['orientation', 'grazingAngle', 'heightAmplification', 'horizontalTransverseSize', 'verticalTransverseSize'],
                 propagation)
         elif item['type'] == 'obstacle':
             res += _beamline_element(
-                'SRWLOptA("{}", "o", {}, {}, {}, {})',
+                'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
                 propagation)
         elif item['type'] == 'watch':
-            if len(beamline) == 1:
-                res += '    el.append(SRWLOptD({}))\n'.format(1.0e-16)
+            if not has_item:
+                res += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
                 res += _propagation_params(propagation[str(item['id'])][0])
             if last_id and last_id == int(item['id']):
                 break
@@ -260,7 +338,7 @@ def _generate_beamline_optics(models, last_id):
 
     # final propagation parameters
     res += _propagation_params(models['postPropagation'])
-    res += '    return SRWLOptC(el, pp)\n'
+    res += '    return srwlib.SRWLOptC(el, pp)\n'
     return res
 
 
@@ -308,6 +386,8 @@ def _validate_model(model_data, model_schema, enum_info):
             v = float(value)
             if re.search('\[m(m|rad)\]', label):
                 v /= 1000
+            elif re.search('\[nm\]', label):
+                v /= 1e09;
             model_data[k] = v
         elif field_type == 'Integer':
             if not value:
