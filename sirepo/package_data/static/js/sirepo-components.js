@@ -9,11 +9,11 @@ app.directive('basicEditorPanel', function(appState, panelState) {
             '<div class="panel panel-info">',
               '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}" data-editor-id="{{ editorId }}"></div>',
               '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
-                '<form name="f0" class="form-horizontal">',
+                '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
                     '<div data-field-editor="f" data-model-name="modelName" data-model="appState.models[modelName]"></div>',
                   '</div>',
-                  '<div data-buttons="" data-model-name="modelName" data-form-name="f0"></div>',
+                  '<div data-buttons="" data-model-name="modelName"></div>',
                 '</form>',
               '</div>',
             '</div>',
@@ -102,6 +102,8 @@ app.directive('beamlineItem', function($timeout) {
                 trigger: 'manual',
             }).on('show.bs.popover', function() {
                 scope.$parent.beamline.activeItem = scope.item;
+            }).on('shown.bs.popover', function() {
+                $('.popover-content .form-control').first().select();
             }).on('hide.bs.popover', function() {
                 scope.$parent.beamline.activeItem = null;
                 var editor = el.data('bs.popover').getContent();
@@ -148,9 +150,6 @@ app.directive('beamlineItem', function($timeout) {
                         $('.srw-beamline-container').scrollLeft(position - width + scrollPoint + itemWidth);
                     }
                     el.popover('show');
-                    el.on('shown.bs.popover', function() {
-                        $('.popover-content .form-control').first().select();
-                    });
                 }, 500);
             }
             scope.$on('$destroy', function() {
@@ -181,7 +180,7 @@ app.directive('beamlineItemEditor', function(appState) {
         },
         template: [
             '<div>',
-              '<form name="f2" class="form-horizontal">',
+              '<form name="form" class="form-horizontal" novalidate>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
                   '<div data-field-editor="f" data-model-name="modelName" data-model="beamline.activeItem"></div>',
                 '</div>',
@@ -213,19 +212,19 @@ app.directive('beamlineItemEditor', function(appState) {
 app.directive('buttons', function(appState) {
     return {
         scope: {
-            formName: '=',
             modelName: '=',
             modalId: '@',
         },
         template: [
-            '<div class="col-sm-6 pull-right cssFade" data-ng-show="formName.$dirty">',
-            '<button data-ng-click="saveChanges()" class="btn btn-primary {{ formName.$valid ? \'\' : \'disabled\' }}">Save Changes</button> ',
+            '<div class="col-sm-6 pull-right cssFade" data-ng-show="form.$dirty">',
+            '<button data-ng-click="saveChanges()" class="btn btn-primary {{ form.$valid ? \'\' : \'disabled\' }}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.form = $scope.$parent.form;
             function changeDone() {
-                $scope.formName.$setPristine();
+                $scope.form.$setPristine();
                 if ($scope.modalId)
                     $('#' + $scope.modalId).modal('hide');
             }
@@ -233,7 +232,7 @@ app.directive('buttons', function(appState) {
                 changeDone();
             });
             $scope.saveChanges = function() {
-                if ($scope.formName.$valid)
+                if ($scope.form.$valid)
                     appState.saveChanges($scope.modelName);
             };
             $scope.cancelChanges = function() {
@@ -251,18 +250,33 @@ app.directive('fieldEditor', function(appState, $http) {
             fieldEditor: '=',
             model: '=',
             modelName: '=',
+            customLabel: '=',
+            labelSize: "@",
+            numberSize: "@",
         },
         template: [
-            // field def: [name, label, type]
-            '<label class="col-sm-5 control-label">{{ label }}</label>',
-            '<div data-ng-switch="type">',
+            '<label data-ng-hide="customLabel" class="col-sm-{{ labelSize || \'5\' }} control-label">{{ info[0] }}</label>',
+            '<label data-ng-show="customLabel" class="col-sm-{{ labelSize || \'5\' }} control-label">{{ customLabel }}</label>',
+            '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
-                '<select class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item.name for item in appState.beams track by item.name"></select>',
+                '<div class="dropdown">',
+                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor].name }}</button>',
+                  '<ul class="dropdown-menu">',
+                    '<li><a href data-ng-click="selectTwissParameters()"><span class="glyphicon glyphicon-cog"></span> Twiss Parameters</a></li>',
+                    '<li class="divider"></li>',
+                    '<li class="dropdown-header">Predefined Electron Beams</li>',
+                    '<li data-ng-repeat="item in appState.beams track by item.name">',
+                      '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
+                    '</li>',
+                    '<li class="divider"></li>',
+                    '<li><a href data-ng-click="selectUserDefinedBeam()">User Defined</a></li>',
+                  '</ul>',
+                '</div>',
               '</div>',
-              '<div data-ng-switch-when="Float" class="col-sm-3">',
+              '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
                 '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
               '</div>',
-              '<div data-ng-switch-when="Integer" class="col-sm-3">',
+              '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
                 '<input data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
               '</div>',
               //TODO(pjm): need file interface
@@ -270,27 +284,43 @@ app.directive('fieldEditor', function(appState, $http) {
                 '<p class="form-control-static"><a href="/static/dat/mirror_1d.dat"><span class="glyphicon glyphicon-file"></span> mirror_1d.dat</a></p>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control">',
+                '<input data-ng-model="model[fieldEditor]" class="form-control" required>',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
-                '<select number-to-string class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item[0] as item[1] for item in enum[type]"></select>',
+                '<select number-to-string class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            var info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
-            $scope.label = info[0];
-            $scope.type = info[1];
+            // field def: [label, type]
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
+            $scope.selectBeam = function(item) {
+                $scope.model[$scope.fieldEditor] = item;
+                $scope.$parent.form.$setDirty();
+            };
+            $scope.selectTwissParameters = function() {
+                if (appState.models.electronBeam.beamName.name != APP_SCHEMA.constant.USER_DEFINED)
+                    appState.populateTwissParameters();
+                $('#srw-twissParameters-editor').modal('show');
+            };
+            $scope.selectUserDefinedBeam = function() {
+                if (! appState.models.twissParameters)
+                    appState.populateTwissParameters();
+                var data = appState.cloneModel('twissParameters');
+                data.name = APP_SCHEMA.constant.USER_DEFINED;
+                appState.models.electronBeam.beamName = data;
+                $scope.$parent.form.$setDirty();
+            };
         },
         link: function link(scope) {
             scope.enum = APP_SCHEMA.enum;
-            //TODO(pjm): move list loading logic into appState
-            if (scope.type == 'BeamList') {
+            //TODO(pjm): move list loading logic into pre angular load, along with schema.json
+            if (scope.info[1] == 'BeamList') {
                 if (appState.beams)
                     return;
-                $http['get']('/static/json/beams.json')
+                $http['get']('/static/json/beams.json?' + SIREPO_APP_VERSION)
                     .success(function(data, status) {
                         appState.beams = data;
                     })
@@ -298,6 +328,38 @@ app.directive('fieldEditor', function(appState, $http) {
                         console.log('get beams.json failed!');
                     });
             }
+        },
+    };
+});
+
+app.directive('columnEditor', function(appState) {
+    return {
+        scope: {
+            columnFields: '=',
+            modelName: '=',
+            fullModelName: '=',
+        },
+        template: [
+            '<div class="row">',
+              '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
+                '<div class="lead text-center">{{ col[0] }}</div>',
+                '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
+                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]"></div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.customLabel = function(heading, f) {
+                var info = appState.modelInfo($scope.modelName)[f];
+                var label = info[0];
+                heading = heading.replace(/ .*/, '');
+                label = label.replace(heading, '');
+                return label;
+            };
+        },
+        link: function(scope, element) {
         },
     };
 });
@@ -320,11 +382,12 @@ app.directive('modalEditor', function(appState) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
-                        '<form name="f1" class="form-horizontal">',
-                          '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
-                            '<div data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]"></div>',
+                        '<form name="form" class="form-horizontal" novalidate>',
+                          '<div data-ng-repeat="f in advancedFields">',
+                            '<div class="form-group form-group-sm" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]"></div>',
+                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modalEditor" data-full-model-name="fullModelName"></div>',
                           '</div>',
-                          '<div data-buttons="" data-model-name="fullModelName" data-form-name="f1" data-modal-id="{{ editorId }}"></div>',
+                          '<div data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
                       '</div>',
                     '</div>',
@@ -338,8 +401,14 @@ app.directive('modalEditor', function(appState) {
             $scope.advancedFields = appState.viewInfo($scope.modalEditor).advanced;
             $scope.fullModelName = $scope.modalEditor + ($scope.itemId || '');
             $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
+            $scope.isStringField = function(f) {
+                return typeof(f) == 'string' ? true : false;
+            };
         },
         link: function(scope, element) {
+            $(element).on('shown.bs.modal', function() {
+                $('#' + scope.editorId + ' .form-control').first().select();
+            });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
@@ -374,7 +443,7 @@ app.directive('numberToString', function() {
     };
 });
 
-app.directive('panelHeading', function(panelState) {
+app.directive('panelHeading', function(panelState, appState) {
     return {
         restrict: 'A',
         scope: {
@@ -388,11 +457,13 @@ app.directive('panelHeading', function(panelState) {
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
             };
+            $scope.showAdvancedEditor = appState.viewInfo($scope.modelName)
+                && appState.viewInfo($scope.modelName).advanced.length == 0 ? false : true;
         },
         template: [
             '<span class="lead">{{ panelHeading }}</span>',
             '<div class="srw-panel-options pull-right">',
-            '<a href data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+            '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
             //'<a href data-ng-show="allowFullScreen" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
             //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
             '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
@@ -419,7 +490,7 @@ app.directive('reportPanel', function(appState, panelState) {
             '<div data-ng-show="panelState.isLoading(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Refreshing...</div>',
             '<div data-ng-show="panelState.getError(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(fullModelName) }}</div>',
 
-                '<div data-ng-switch="reportPanel">',
+                '<div data-ng-switch="reportPanel" class="{{ panelState.getError(fullModelName) ? \'srw-hide-report\' : \'\' }}">',
                   '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                   '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                 '</div>',
