@@ -51,7 +51,7 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 _JSON_FILE_RE = re.compile(r'\.json$')
 
 #: Parsing errors from SRW
-_SRW_ERROR_RE = re.compile(r'\bError: ([^\n]+)')
+_SRW_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
 #: How long before killing SRW process
 _SRW_MAX_SECONDS = 30
@@ -103,7 +103,13 @@ def srw_new_simulation():
     data = _open_json_file(_STATIC_FOLDER.join('json/default.json'))
     data['models']['simulation'] = {
         'name': _json_input('name'),
+        'magneticField': _json_input('magneticField'),
     }
+    # special handling for non-udulators - default integration method to auto-wiggler
+    #TODO(pjm): use enum labels, not values
+    if not data['models']['simulation']['magneticField'] == 'u':
+        data['models']['initialIntensityReport']['method'] = 2
+        data['models']['intensityReport']['method'] = 2
     return _save_new_simulation(data)
 
 
@@ -211,6 +217,49 @@ def _fixup_old_data(data):
         elif item['type'] == 'mirror':
             if not item.get('heightProfileFile'):
                 item['heightProfileFile'] = 'mirror_1d.dat'
+        elif item['type'] == 'lens':
+            if not item.get('horizontalOffset'):
+                item['horizontalOffset'] = 0
+            if not item.get('verticalOffset'):
+                item['verticalOffset'] = 0
+    if 'simulation' in data['models'] and 'magneticField' not in data['models']['simulation']:
+        data['models']['simulation']['magneticField'] = 'u'
+    if 'multipole' not in data['models']:
+        data['models']['multipole'] = {
+            'field': 0.4,
+            'order': 1,
+            'distribution': 'n',
+            'length': 3,
+            'longitudinalPosition': 0,
+        }
+    if 'solenoid' not in data['models']:
+        data['models']['solenoid'] = {
+            'field': 0.4,
+            'length': 3,
+            'longitudinalPosition': 0,
+        }
+    if 'twissParameters' not in data['models']:
+        data['models']['twissParameters'] = {
+            'energy': 3,
+            'rmsSpread': 0.89e-03,
+            'horizontalEmittance': 0.9,
+            'horizontalBeta': 2.02,
+            'horizontalAlpha': 0,
+            'horizontalDispersion': 0,
+            'horizontalDispersionDerivative': 0,
+            'verticalEmittance': 0.008,
+            'verticalBeta': 1.06,
+            'verticalAlpha': 0,
+            'verticalDispersion': 0,
+            'verticalDispersionDerivative': 0,
+        }
+    for k in data['models']:
+        model = data['models'][k]
+        if isinstance(model, dict):
+            for old_field in ['_visible', '_loading', '_error']:
+                if old_field in model:
+                    del model[old_field]
+
     data['version'] = _APP_SCHEMA['version']
     return data
 
