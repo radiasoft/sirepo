@@ -21,7 +21,6 @@ import numpy as np
 import srwl_bl
 import sys
 
-
 def main():
     with open('in.json') as f:
         data = json.load(f)
@@ -29,6 +28,7 @@ def main():
     # this defines the get_srw_params() and get_beamline_optics() functions
     exec(pkio.read_text('srw_parameters.py'), locals(), locals())
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+    mag = setup_magnetic_field(v)
     op = None
     if data['report'] == 'intensityReport':
         v.ss = True
@@ -48,8 +48,7 @@ def main():
         outfile = v.ws_fni
     else:
         raise Exception('unknown report: {}'.format(data['report']))
-    #TODO(pjm): need a signal/alarm to stop long processes
-    srwl_bl.SRWLBeamline(v.name).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
     process_output(outfile, data)
 
 
