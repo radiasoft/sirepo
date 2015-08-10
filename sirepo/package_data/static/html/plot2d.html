@@ -17,8 +17,8 @@
         </svg>
       </g>
     </svg>
-    <div style="margin-left: 30px" class="text-center">
-      <strong>{{ xRange[0] | number }}</strong>
+    <div class="srw-slider-values text-center">
+      <strong>{{ xRange[0] | number:0 }}</strong>
       <input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
-      <strong>{{ xRange[1] | number }}</strong>
+      <strong>{{ xRange[1] | number:0 }}</strong>
     </div>
