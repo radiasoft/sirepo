@@ -27,7 +27,7 @@
         <ul class="nav navbar-nav">
           <li data-ng-class="{active: nav.activeSection() == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
         </ul>
-        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
+        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
         <ul class="nav navbar-nav navbar-right" data-ng-hide="nav.activeSection() == 'simulations'">
           <li data-ng-class="{active: nav.activeSection() == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
           <li data-ng-class="{active: nav.activeSection() == 'beamline'}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
