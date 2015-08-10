@@ -74,6 +74,10 @@ app.factory('appState', function($rootScope, requestSender) {
         $rootScope.$broadcast(name + '.changed');
     }
 
+    function broadcastLoaded() {
+        $rootScope.$broadcast('modelsLoaded');
+    }
+
     function isPropagationModelName(name) {
         return name.toLowerCase().indexOf('propagation') >= 0;
     }
@@ -148,6 +152,10 @@ app.factory('appState', function($rootScope, requestSender) {
         return name.indexOf('Report') >= 0;
     };
 
+    self.isUndulator = function() {
+        return savedModelValues.simulation && savedModelValues.simulation.magneticField == 'u' ? true : false;
+    };
+
     self.loadModels = function(simulationId) {
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId)
             return;
@@ -162,11 +170,24 @@ app.factory('appState', function($rootScope, requestSender) {
                 self.models = data.models;
                 savedModelValues = self.cloneModel();
                 updateReports();
+                broadcastLoaded();
             });
     };
 
     self.modelInfo = function(name) {
         return APP_SCHEMA.model[name];
+    };
+
+    self.populateTwissParameters = function() {
+        if (self.isLoaded()) {
+            var name = self.models.electronBeam.beamName.name;
+            for (var i = 0; i < self.beams.length; i++) {
+                if (name == self.beams[i].name) {
+                    self.models.twissParameters = self.clone(self.beams[i]);
+                    break;
+                }
+            }
+        }
     };
 
     self.saveBeamline = function() {
@@ -197,6 +218,13 @@ app.factory('appState', function($rootScope, requestSender) {
 
     self.saveChanges = function(name) {
         savedModelValues[name] = self.cloneModel(name);
+        if (name == 'twissParameters') {
+            // save both models for twiss changes, only replot reports once
+            broadcastChanged(name);
+            self.models.electronBeam.beamName.name = APP_SCHEMA.constant.USER_DEFINED;
+            self.saveChanges('electronBeam');
+            return;
+        }
         if (! self.isReportModelName(name))
             updateReports();
         broadcastChanged(name);
@@ -252,6 +280,12 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
 
     self.isLoading = function(name) {
         return getPanelValue(name, 'loading') ? true : false;
+    };
+
+    self.isReportValid = function(name) {
+        if (name == 'fluxReport' && ! appState.isUndulator())
+            return false;
+        return true;
     };
 
     self.requestData = function(name, callback) {
@@ -359,8 +393,12 @@ app.factory('requestQueue', function($rootScope, requestSender) {
                 report: queueItem.item[0],
                 models: queueItem.item[1],
             },
-            function() {
-                handleQueueResult(queueItem, { error: 'a server error occurred' });
+            function(data, status) {
+                handleQueueResult(queueItem, {
+                    error: (data == null && status == 0)
+                        ? 'the server is unavailable'
+                        : 'a server error occurred',
+                });
             });
     }
 
@@ -612,21 +650,23 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
     self.list = [];
     self.selected = null;
     appState.clearModels({
-        simulation: {},
+        simulation: {
+            magneticField: 'u',
+        },
     });
     $scope.$on('simulation.changed', function() {
-        if (appState.models.simulation.name)
-            newSimulation(appState.models.simulation.name);
+        newSimulation(appState.models.simulation);
     });
 
-    function newSimulation(name) {
+    function newSimulation(model) {
         requestSender.sendRequest(
             'newSimulation',
             function(data) {
                 self.open(data.models.simulation);
             },
             {
-                name: name,
+                name: model.name,
+                magneticField: model.magneticField,
             });
     }
 
@@ -684,6 +724,40 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
     loadList();
 });
 
-app.controller('SourceController', function (activeSection) {
+app.controller('SourceController', function ($scope, activeSection, appState) {
     activeSection.setActiveSection('source');
+    var self = this;
+    $scope.multipole = appState.isLoaded() ? appState.models.multipole : null;
+    $scope.$on('modelsLoaded', function() {
+        $scope.multipole = appState.models.multipole;
+        setMultipoleLabel();
+    });
+
+    function setMultipoleLabel() {
+        if ($scope.multipole) {
+            //TODO(pjm): don't assume enum order matches value
+            var label = APP_SCHEMA.enum.MagneticFieldLabel[$scope.multipole.order - 1][1];
+            appState.modelInfo('multipole').field[0] = label;
+        }
+    }
+
+    function isSelected(magneticField) {
+        if (appState.isLoaded())
+            return appState.applicationState().simulation.magneticField == magneticField;
+        return false;
+    }
+
+    self.isUndulator = function() {
+        return isSelected('u');
+    };
+
+    self.isMultipole = function() {
+        return isSelected('m');
+    };
+
+    self.isSolenoid = function() {
+        return isSelected('s');
+    };
+
+    $scope.$watchCollection('multipole', setMultipoleLabel);
 });
