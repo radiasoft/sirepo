@@ -129,8 +129,7 @@
     }
     .srw-panel-error .srw-panel-wait {
       position: absolute;
-      color: red;
-      font-weight: bold;
+      color: #fad8de;
       display: block;
     }
     .srw-panel-loading {
@@ -144,8 +143,18 @@
       color: white;
       font-weight: bold;
       display: block;
+      z-index: 1000;
+    }
+    .srw-hide-report {
+      opacity: 0;
     }
 
+    div.srw-slider-values {
+      margin-left: 30px;
+    }
+    .srw-panel-loading div.srw-slider-values {
+      display: none;
+    }
     div.slider-horizontal {
       margin: 0 1em;
       min-width: 160px;
@@ -243,7 +252,7 @@ th.srw-tiny-heading {
   cursor: pointer;
 }
 
-input.ng-invalid {
+input.ng-invalid.ng-dirty {
   background-color: #fad8de;
 }
 
