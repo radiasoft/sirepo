@@ -59,6 +59,9 @@ _SRW_MAX_SECONDS = 30
 with open(str(_STATIC_FOLDER.join('json/schema.json'))) as f:
     _APP_SCHEMA = json.load(f)
 
+with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
+    _PREDEFINED_BEAMS = json.load(f)
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER), template_folder=str(_STATIC_FOLDER))
 
@@ -103,13 +106,8 @@ def srw_new_simulation():
     data = _open_json_file(_STATIC_FOLDER.join('json/default.json'))
     data['models']['simulation'] = {
         'name': _json_input('name'),
-        'magneticField': _json_input('magneticField'),
+        'sourceType': 'u',
     }
-    # special handling for non-udulators - default integration method to auto-wiggler
-    #TODO(pjm): use enum labels, not values
-    if not data['models']['simulation']['magneticField'] == 'u':
-        data['models']['initialIntensityReport']['method'] = 2
-        data['models']['intensityReport']['method'] = 2
     return _save_new_simulation(data)
 
 
@@ -198,14 +196,39 @@ def _find_simulation_data(res, path, data, params):
         res.append(data)
 
 
+def _fixup_beam(data, beam):
+    # fix old beam structure to match new schema
+    beam['name'] = beam['beamName']['name']
+    beam['beamSelector'] = beam['name']
+    for b in _PREDEFINED_BEAMS:
+        if b['name'] == beam['name']:
+            beam.update(b)
+            return
+    if 'twissParameters' in data['models']:
+        if 'name' in data['models']['twissParameters']:
+            del data['models']['twissParameters']['name']
+        beam.update(data['models']['twissParameters'])
+        beam['id'] = 1
+        data['models']['electronBeams'] = [beam]
+        return
+
+    # otherwise default to the first predefined beam
+    beam.update(_PREDEFINED_BEAMS[0])
+    beam['beamSelector'] = beam['name']
+
+
 def _fixup_old_data(data):
     if 'version' in data and data['version'] == _APP_SCHEMA['version']:
         return data
     if 'post_propagation' in data['models']:
         data['models']['postPropagation'] = data['models']['post_propagation']
         del data['models']['post_propagation']
-    if 'watchpointReport' in data['models']:
-        del data['models']['watchpointReport']
+    if 'beamName' in data['models']['electronBeam']:
+        _fixup_beam(data, data['models']['electronBeam'])
+        del data['models']['electronBeam']['beamName']
+    for k in ('watchpointReport', 'twissParameters'):
+        if k in data['models']:
+            del data['models'][k]
     for item in data['models']['beamline']:
         if item['type'] == 'aperture' or item['type'] == 'obstacle':
             if not item.get('shape'):
@@ -222,44 +245,32 @@ def _fixup_old_data(data):
                 item['horizontalOffset'] = 0
             if not item.get('verticalOffset'):
                 item['verticalOffset'] = 0
-    if 'simulation' in data['models'] and 'magneticField' not in data['models']['simulation']:
-        data['models']['simulation']['magneticField'] = 'u'
+    if 'simulation' in data['models'] and 'magneticField' in data['models']['simulation']:
+        data['models']['simulation']['sourceType'] = data['models']['simulation']['magneticField']
+        del data['models']['simulation']['magneticField']
+    if 'simulation' in data['models'] and 'sourceType' not in data['models']['simulation']:
+        data['models']['simulation']['sourceType'] = 'u'
     if 'multipole' not in data['models']:
         data['models']['multipole'] = {
             'field': 0.4,
             'order': 1,
             'distribution': 'n',
             'length': 3,
-            'longitudinalPosition': 0,
         }
-    if 'solenoid' not in data['models']:
-        data['models']['solenoid'] = {
-            'field': 0.4,
-            'length': 3,
-            'longitudinalPosition': 0,
-        }
-    if 'twissParameters' not in data['models']:
-        data['models']['twissParameters'] = {
-            'energy': 3,
-            'rmsSpread': 0.89e-03,
-            'horizontalEmittance': 0.9,
-            'horizontalBeta': 2.02,
-            'horizontalAlpha': 0,
-            'horizontalDispersion': 0,
-            'horizontalDispersionDerivative': 0,
-            'verticalEmittance': 0.008,
-            'verticalBeta': 1.06,
-            'verticalAlpha': 0,
-            'verticalDispersion': 0,
-            'verticalDispersionDerivative': 0,
-        }
+    if 'electronBeams' not in data['models']:
+        data['models']['electronBeams'] = []
+    if 'solenoid' in data['models']:
+        del data['models']['solenoid']
+
     for k in data['models']:
         model = data['models'][k]
         if isinstance(model, dict):
             for old_field in ['_visible', '_loading', '_error']:
                 if old_field in model:
                     del model[old_field]
-
+            if k == 'intensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                if 'method' in model:
+                    del model['method']
     data['version'] = _APP_SCHEMA['version']
     return data
 
