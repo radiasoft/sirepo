@@ -253,6 +253,7 @@ app.directive('fieldEditor', function(appState, $http) {
             customLabel: '=',
             labelSize: "@",
             numberSize: "@",
+            isReadOnly: "=",
         },
         template: [
             '<label data-ng-hide="customLabel" class="col-sm-{{ labelSize || \'5\' }} control-label">{{ info[0] }}</label>',
@@ -260,31 +261,33 @@ app.directive('fieldEditor', function(appState, $http) {
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
                 '<div class="dropdown">',
-                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor].name }}</button>',
+                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor] }}</button>',
                   '<ul class="dropdown-menu">',
-                    '<li><a href data-ng-click="selectTwissParameters()"><span class="glyphicon glyphicon-cog"></span> Twiss Parameters</a></li>',
-                    '<li class="divider"></li>',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
                     '<li data-ng-repeat="item in appState.beams track by item.name">',
                       '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
                     '</li>',
                     '<li class="divider"></li>',
-                    '<li><a href data-ng-click="selectUserDefinedBeam()">User Defined</a></li>',
+                    '<li class="dropdown-header">User Defined Electron Beams</li>',
+                    '<li data-ng-repeat="item in appState.models.electronBeams track by item.name">',
+                      '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
+                    '</li>',
+                    '<li><a href data-ng-click="newUserDefinedBeam()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                   '</ul>',
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
+                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right">',
+                '<input data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
               '</div>',
               //TODO(pjm): need file interface
               '<div data-ng-switch-when="File" class="col-sm-5">',
                 '<p class="form-control-static"><a href="/static/dat/mirror_1d.dat"><span class="glyphicon glyphicon-file"></span> mirror_1d.dat</a></p>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control" required>',
+                '<input data-ng-model="model[fieldEditor]" class="form-control" required data-ng-readonly="isReadOnly">',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
@@ -294,24 +297,24 @@ app.directive('fieldEditor', function(appState, $http) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+
+            var match = $scope.fieldEditor.match(/(.*?)\.(.*)/);
+            if (match) {
+                $scope.modelName = match[1];
+                $scope.fieldEditor = match[2];
+            }
+
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
             $scope.selectBeam = function(item) {
-                $scope.model[$scope.fieldEditor] = item;
+                $scope.model = item;
+                $scope.model[$scope.fieldEditor] = item.name;
                 $scope.$parent.form.$setDirty();
             };
-            $scope.selectTwissParameters = function() {
-                if (appState.models.electronBeam.beamName.name != APP_SCHEMA.constant.USER_DEFINED)
-                    appState.populateTwissParameters();
-                $('#srw-twissParameters-editor').modal('show');
-            };
-            $scope.selectUserDefinedBeam = function() {
-                if (! appState.models.twissParameters)
-                    appState.populateTwissParameters();
-                var data = appState.cloneModel('twissParameters');
-                data.name = APP_SCHEMA.constant.USER_DEFINED;
-                appState.models.electronBeam.beamName = data;
-                $scope.$parent.form.$setDirty();
+            $scope.newUserDefinedBeam = function() {
+                // copy the current beam, rename and show editor
+                appState.addNewElectronBeam();
+                $('#srw-electronBeam-editor').modal('show');
             };
         },
         link: function link(scope) {
@@ -338,13 +341,14 @@ app.directive('columnEditor', function(appState) {
             columnFields: '=',
             modelName: '=',
             fullModelName: '=',
+            isReadOnly: '=',
         },
         template: [
             '<div class="row">',
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]"></div>',
+                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
                 '</div>',
               '</div>',
             '</div>',
@@ -370,6 +374,7 @@ app.directive('modalEditor', function(appState) {
             modalEditor: '@',
             // optional, for watch reports
             itemId: '@',
+            isReadOnly: '=',
         },
         template: [
             '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
@@ -384,8 +389,8 @@ app.directive('modalEditor', function(appState) {
                       '<div class="row">',
                         '<form name="form" class="form-horizontal" novalidate>',
                           '<div data-ng-repeat="f in advancedFields">',
-                            '<div class="form-group form-group-sm" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]"></div>',
-                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modalEditor" data-full-model-name="fullModelName"></div>',
+                            '<div class="form-group form-group-sm" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
+                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modalEditor" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
                           '</div>',
                           '<div data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
@@ -407,7 +412,8 @@ app.directive('modalEditor', function(appState) {
         },
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {
-                $('#' + scope.editorId + ' .form-control').first().select();
+                if (! scope.isReadOnly)
+                    $('#' + scope.editorId + ' .form-control').first().select();
             });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
