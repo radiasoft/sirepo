@@ -1,8 +1,5 @@
 {
-    "version": "20150810",
-    "constant": {
-        "USER_DEFINED": "User Defined"
-    },
+    "version": "20150826",
     "enum": {
         "ApertureShape": [
             ["r", "Rectangular"],
@@ -31,31 +28,13 @@
             ["1", "Flux"],
             ["2", "Flux per Unit Surface"]
         ],
-        "IntegrationMethod": [
-            ["0", "Manual"],
-            ["1", "Auto-Undulator"],
-            ["2", "Auto-Wiggler"]
-        ],
-        "MagneticField": [
+        "SourceType": [
             ["u", "Undulator"],
-            ["m", "Multipole"],
-            ["s", "Solenoid"]
+            ["m", "Dipole"]
         ],
-        "MagneticFieldLabel": [
-            ["1", "Magnetic Field [T]"],
-            ["2", "Magnetic Field [T/m]"],
-            ["3", "Magnetic Field [T/m\u00b2]"],
-            ["4", "Magnetic Field [T/m\u00b3]"]
-        ],
-        "MultipoleDistribution": [
-            ["n", "Normal"],
-            ["s", "Skew"]
-        ],
-        "MultipoleOrder": [
-            ["1", "Dipole"],
-            ["2", "Quadrupole"],
-            ["3", "Sextupole"],
-            ["4", "Octupole"]
+        "MultipoleOrientation": [
+            ["n", "Horizontal"],
+            ["s", "Vertical"]
         ],
         "MirrorOrientation": [
             ["x", "X"],
@@ -103,11 +82,24 @@
             "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]
         },
         "electronBeam": {
-            "beamName": ["Beam Name", "BeamList"],
+            "beamSelector": ["Beam Name", "BeamList"],
+            "name": ["Beam Name", "String"],
+            "energy": ["Energy [GeV]", "Float"],
             "current": ["Current [A]", "Float"],
+            "energyDeviation": ["Average Energy Deviation [GeV]", "Float"],
+            "rmsSpread": ["RMS Energy Spread", "Float"],
             "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Average Vertical Position [mm]", "Float"],
-            "energyDeviation": ["Average Energy Deviation [GeV]", "Float"]
+            "horizontalEmittance": ["Horizontal Emittance [nm]", "Float"],
+            "horizontalBeta": ["Horizontal Beta [m]", "Float"],
+            "horizontalAlpha": ["Horizontal Alpha [rad]", "Float"],
+            "horizontalDispersion": ["Horizontal Dispersion [m]", "Float"],
+            "horizontalDispersionDerivative": ["Horizontal Dispersion Derivative [rad]", "Float"],
+            "verticalEmittance": ["Vertical Emittance [nm]", "Float"],
+            "verticalBeta": ["Vertical Beta [m]", "Float"],
+            "verticalAlpha": ["Vertical Alpha [rad]", "Float"],
+            "verticalDispersion": ["Vertical Dispersion [m]", "Float"],
+            "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"]
         },
         "fluxReport": {
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
@@ -128,7 +120,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
-            "method": ["Method for Integration", "IntegrationMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
@@ -138,7 +129,6 @@
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
-            "method": ["Method for Integration", "IntegrationMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
@@ -162,10 +152,8 @@
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
-            "order": ["Multipole Order", "MultipoleOrder"],
-            "distribution": ["Distribution", "MultipoleDistribution"],
-            "length": ["Effective Length [m]", "Float"],
-            "longitudinalPosition": ["Center Longitudinal Position [m]", "Float"]
+            "distribution": ["Orientation", "MultipoleOrientation"],
+            "length": ["Effective Length [m]", "Float"]
         },
         "obstacle": {
             "title": ["Element Name", "String"],
@@ -186,31 +174,11 @@
         },
         "simulation": {
             "name": ["Name", "String"],
-            "magneticField": ["Magnetic Field", "MagneticField"]
-        },
-        "solenoid": {
-            "field": ["Magnetic Field [T]", "Float"],
-            "length": ["Effective Length [m]", "Float"],
-            "longitudinalPosition": ["Center Longitudinal Position [m]", "Float"]
-        },
-        "twissParameters": {
-            "energy": ["Energy [GeV]", "Float"],
-            "rmsSpread": ["RMS Energy Spread", "Float"],
-            "horizontalEmittance": ["Horizontal Emittance [nm]", "Float"],
-            "horizontalBeta": ["Horizontal Beta [m]", "Float"],
-            "horizontalAlpha": ["Horizontal Alpha [rad]", "Float"],
-            "horizontalDispersion": ["Horizontal Dispersion [m]", "Float"],
-            "horizontalDispersionDerivative": ["Horizontal Dispersion Derivative [rad]", "Float"],
-            "verticalEmittance": ["Vertical Emittance [nm]", "Float"],
-            "verticalBeta": ["Vertical Beta [m]", "Float"],
-            "verticalAlpha": ["Vertical Alpha [rad]", "Float"],
-            "verticalDispersion": ["Vertical Dispersion [m]", "Float"],
-            "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"]
+            "sourceType": ["Source Type", "SourceType"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
-            "longitudinalPosition": ["Center Longitudinal Position [m]", "Float"],
             "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
             "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
@@ -229,7 +197,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
-            "method": ["Method for Integration", "IntegrationMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
@@ -269,15 +236,32 @@
         "electronBeam": {
             "title": "Electron Beam",
             "basic": [
-                "beamName",
-                "current"
+                "beamSelector"
             ],
             "advanced": [
-                "beamName",
+                "name",
+                "energy",
                 "current",
+                "energyDeviation",
+                "rmsSpread",
                 "horizontalPosition",
                 "verticalPosition",
-                "energyDeviation"
+                [
+                    ["Horizontal Twiss Parameters", [
+                        "horizontalEmittance",
+                        "horizontalBeta",
+                        "horizontalAlpha",
+                        "horizontalDispersion",
+                        "horizontalDispersionDerivative"
+                    ]],
+                    ["Vertical Twiss Parameters", [
+                        "verticalEmittance",
+                        "verticalBeta",
+                        "verticalAlpha",
+                        "verticalDispersion",
+                        "verticalDispersionDerivative"
+                    ]]
+                ]
             ]
         },
         "lens": {
@@ -292,6 +276,21 @@
                 "verticalOffset"
             ]
         },
+        "initialIntensityReport": {
+            "title": "Initial Intensity Report",
+            "basic": [],
+            "advanced": [
+                "photonEnergy",
+                "horizontalPosition",
+                "horizontalRange",
+                "verticalPosition",
+                "verticalRange",
+                "sampleFactor",
+                "precision",
+                "polarization",
+                "characteristic"
+            ]
+        },
         "intensityReport": {
             "title": "Intensity Report",
             "basic": [],
@@ -300,7 +299,6 @@
                 "finalEnergy",
                 "horizontalPosition",
                 "verticalPosition",
-                "method",
                 "precision",
                 "polarization"
             ]
@@ -336,19 +334,14 @@
             ]
         },
         "multipole": {
-            "title": "Multipole",
+            "title": "Source",
             "basic": [
+                "simulation.sourceType",
                 "field",
-                "order",
-                "length"
-            ],
-            "advanced": [
-                "field",
-                "order",
                 "length",
-                "distribution",
-                "longitudinalPosition"
-            ]
+                "distribution"
+            ],
+            "advanced": []
         },
         "obstacle": {
             "title": "Obstacle",
@@ -375,66 +368,16 @@
                 "method"
             ]
         },
-        "initialIntensityReport": {
-            "title": "Initial Intensity Report",
-            "basic": [],
-            "advanced": [
-                "photonEnergy",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
-                "sampleFactor",
-                "method",
-                "precision",
-                "polarization",
-                "characteristic"
-            ]
-        },
         "simulation": {
             "title": "Simulation",
             "advanced": [
-                "name",
-                "magneticField"
-            ]
-        },
-        "solenoid": {
-            "title": "Solenoid",
-            "basic": [
-                "field",
-                "length",
-                "longitudinalPosition"
-            ],
-            "advanced": []
-        },
-        "twissParameters": {
-            "title": "Electron Beam Twiss Parameters",
-            "basic": [
-            ],
-            "advanced": [
-                "energy",
-                "rmsSpread",
-                [
-                    ["Horizontal Twiss Parameters", [
-                        "horizontalEmittance",
-                        "horizontalBeta",
-                        "horizontalAlpha",
-                        "horizontalDispersion",
-                        "horizontalDispersionDerivative"
-                    ]],
-                    ["Vertical Twiss Parameters", [
-                        "verticalEmittance",
-                        "verticalBeta",
-                        "verticalAlpha",
-                        "verticalDispersion",
-                        "verticalDispersionDerivative"
-                    ]]
-                ]
+                "name"
             ]
         },
         "undulator": {
-            "title": "Undulator",
+            "title": "Source",
             "basic": [
+                "simulation.sourceType",
                 "period",
                 "length",
                 "verticalAmplitude"
@@ -442,7 +385,6 @@
             "advanced": [
                 "period",
                 "length",
-                "longitudinalPosition",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
@@ -475,7 +417,6 @@
                 "verticalPosition",
                 "verticalRange",
                 "sampleFactor",
-                "method",
                 "precision",
                 "polarization",
                 "characteristic"
