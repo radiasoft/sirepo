@@ -13,7 +13,7 @@ srwblParam = [
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
-    ['ebm_nm', 's', '{electronBeam_beamName_name}', 'standard electron beam name'],
+    ['ebm_nm', 's', '{electronBeam_name}', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', {electronBeam_current}, 'electron beam current [A]'],
     ['ebm_de', 'f', {electronBeam_energyDeviation}, 'electron beam average energy deviation [GeV]'],
@@ -31,7 +31,7 @@ srwblParam = [
     ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
     ['und_per', 'f', {undulator_period}, 'undulator period [m]'],
     ['und_len', 'f', {undulator_length}, 'undulator length [m]'],
-    ['und_zc', 'f', {undulator_longitudinalPosition}, 'undulator center longitudinal position [m]'],
+    ['und_zc', 'f', 0., 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', {undulator_horizontalSymmetry}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', {undulator_verticalSymmetry}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
 
@@ -43,7 +43,7 @@ srwblParam = [
     ['ss_ne', 'i', 10000, 'number of points vs photon energy for single-e spectrum vs photon energy calculation'],
     ['ss_x', 'f', {intensityReport_horizontalPosition}, 'horizontal position [m] for single-e spectrum vs photon energy calculation'],
     ['ss_y', 'f', {intensityReport_verticalPosition}, 'vertical position [m] for single-e spectrum vs photon energy calculation'],
-    ['ss_meth', 'i', {intensityReport_method}, 'method to use for single-e spectrum vs photon energy calculation: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
+    ['ss_meth', 'i', {energyCalculationMethod}, 'method to use for single-e spectrum vs photon energy calculation: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['ss_prec', 'f', {intensityReport_precision}, 'relative precision for single-e spectrum vs photon energy calculation (nominal value is 0.01)'],
     ['ss_pol', 'i', {intensityReport_polarization}, 'polarization component to extract after spectrum vs photon energy calculation: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['ss_mag', 'i', 1, 'magnetic field to be used for single-e spectrum vs photon energy calculation: 1- approximate, 2- accurate'],
@@ -105,7 +105,7 @@ srwblParam = [
     ['w_ry', 'f', {initialIntensityReport_verticalRange}, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', {initialIntensityReport_sampleFactor}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', {initialIntensityReport_method}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', {energyCalculationMethod}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_prec', 'f', {initialIntensityReport_precision}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['si_pol', 'i', {initialIntensityReport_polarization}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['si_type', 'i', {initialIntensityReport_characteristic}, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
@@ -131,31 +131,27 @@ srwblParam = [
 ]
 
 appParam = [
-    ['mag_type', 's', '{simulation_magneticField}', 'magnetic field type, (u) undulator, (m) multipole, (s) solenoid'],
+    ['mag_type', 's', '{simulation_sourceType}', 'source type, (u) undulator, (m) multipole'],
 #---Multipole
     ['mp_field', 'f', {multipole_field}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
-    ['mp_order', 'i', {multipole_order}, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
+    ['mp_order', 'i', 1, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
     ['mp_distribution', 's', '{multipole_distribution}', 'normal (n) or skew (s)'],
     ['mp_len', 'f', {multipole_length}, 'effective length [m]'],
-    ['mp_zc', 'f', {multipole_longitudinalPosition}, 'multipole center longitudinal position [m]'],
-#---Solenoid
-    ['sn_field', 'f', {solenoid_field}, 'magnetic field [T]'],
-    ['sn_len', 'f', {solenoid_length}, 'effective length [m]'],
-    ['sn_zc', 'f', {solenoid_longitudinalPosition}, 'solenoid center longitudinal position [m]'],
+    ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
 #---User Defined Electron Beam
-    ['ueb', 'i', {userDefinedElectronBeam}, 'user defined electron beam'],
-    ['ueb_e', 'f', {twissParameters_energy}, 'energy [GeV]'],
-    ['ueb_sig_e', 'f', {twissParameters_rmsSpread}, 'RMS energy spread'],
-    ['ueb_emit_x', 'f', {twissParameters_horizontalEmittance}, 'horizontal emittance [m]'],
-    ['ueb_beta_x', 'f', {twissParameters_horizontalBeta}, 'horizontal beta-function [m]'],
-    ['ueb_alpha_x', 'f', {twissParameters_horizontalAlpha}, 'horizontal alpha-function [rad]'],
-    ['ueb_eta_x', 'f', {twissParameters_horizontalDispersion}, 'horizontal dispersion function [m]'],
-    ['ueb_eta_x_pr', 'f', {twissParameters_horizontalDispersionDerivative}, 'horizontal dispersion function derivative [rad]'],
-    ['ueb_emit_y', 'f', {twissParameters_verticalEmittance}, 'vertical emittance [m]'],
-    ['ueb_beta_y', 'f', {twissParameters_verticalBeta}, 'vertical beta-function [m]'],
-    ['ueb_alpha_y', 'f', {twissParameters_verticalAlpha}, 'vertical alpha-function [rad]'],
-    ['ueb_eta_y', 'f', {twissParameters_verticalDispersion}, 'vertical dispersion function [m]'],
-    ['ueb_eta_y_pr', 'f', {twissParameters_verticalDispersionDerivative}, 'vertical dispersion function derivative [rad]'],
+    ['ueb', 'i', {userDefinedElectronBeam}, 'Use user defined beam'],
+    ['ueb_e', 'f', {electronBeam_energy}, 'energy [GeV]'],
+    ['ueb_sig_e', 'f', {electronBeam_rmsSpread}, 'RMS energy spread'],
+    ['ueb_emit_x', 'f', {electronBeam_horizontalEmittance}, 'horizontal emittance [m]'],
+    ['ueb_beta_x', 'f', {electronBeam_horizontalBeta}, 'horizontal beta-function [m]'],
+    ['ueb_alpha_x', 'f', {electronBeam_horizontalAlpha}, 'horizontal alpha-function [rad]'],
+    ['ueb_eta_x', 'f', {electronBeam_horizontalDispersion}, 'horizontal dispersion function [m]'],
+    ['ueb_eta_x_pr', 'f', {electronBeam_horizontalDispersionDerivative}, 'horizontal dispersion function derivative [rad]'],
+    ['ueb_emit_y', 'f', {electronBeam_verticalEmittance}, 'vertical emittance [m]'],
+    ['ueb_beta_y', 'f', {electronBeam_verticalBeta}, 'vertical beta-function [m]'],
+    ['ueb_alpha_y', 'f', {electronBeam_verticalAlpha}, 'vertical alpha-function [rad]'],
+    ['ueb_eta_y', 'f', {electronBeam_verticalDispersion}, 'vertical dispersion function [m]'],
+    ['ueb_eta_y_pr', 'f', {electronBeam_verticalDispersionDerivative}, 'vertical dispersion function derivative [rad]'],
 ]
 
 def setup_magnetic_field(v):
@@ -174,9 +170,6 @@ def setup_magnetic_field(v):
     if appV.mag_type == 'm':
         mag.arMagFld.append(srwlib.SRWLMagFldM(appV.mp_field, appV.mp_order, appV.mp_distribution, appV.mp_len))
         mag.arZc.append(appV.mp_zc)
-    elif appV.mag_type == 's':
-        mag.arMagFld.append(srwlib.SRWLMagFldS(appV.sn_field, appV.sn_len))
-        mag.arZc.append(appV.sn_zc)
     return mag
 
 def get_srw_params():
@@ -217,20 +210,23 @@ def generate_parameters_file(data, schema):
     beamline = data['models']['beamline']
     v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
     # initial drift = 1/2 undulator length + 2 periods
-    mag_type = data['models']['simulation']['magneticField']
+    source_type = data['models']['simulation']['sourceType']
     drift = 0
-    if mag_type == 'u':
-        drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period'] + data['models']['undulator']['longitudinalPosition']
-    elif mag_type == 'm':
+    if source_type == 'u':
+        drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
+    elif source_type == 'm':
         #TODO(pjm): allow this to be set in UI?
-        #drift = -0.49;
         drift = 0;
-    elif mag_type == 's':
+    elif source_type == 's':
         drift = 0
     else:
-        raise Exception('invalid magneticField type: {}'.format(mag_type))
+        raise Exception('invalid magneticField type: {}'.format(source_type))
     v['electronBeamInitialDrift'] = drift
-    v['userDefinedElectronBeam'] = 1 if data['models']['electronBeam']['beamName']['name'] == schema['constant']['USER_DEFINED'] else 0
+    # 1: auto-undulator 2: auto-wiggler
+    v['energyCalculationMethod'] = 1 if source_type == 'u' else 2
+    v['userDefinedElectronBeam'] = 1
+    if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
+        v['userDefinedElectronBeam'] = 0
     return TEMPLATE.format(**v).decode('unicode-escape')
 
 
@@ -393,11 +389,7 @@ def _validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
-        elif field_type == 'BeamList':
-            value['name'] = _escape(value['name'])
-        elif field_type == 'File':
-            model_data[k] = _escape(value)
-        elif field_type == 'String':
+        elif field_type == 'BeamList' or field_type == 'File' or field_type == 'String':
             model_data[k] = _escape(value)
         else:
             raise Exception('unknown field type: {}'.format(field_type))
