@@ -11,10 +11,7 @@
         <div data-ng-show="source.isMultipole()" class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="multipole"></div>
         </div>
-        <div data-ng-show="source.isSolenoid()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="solenoid"></div>
-        </div>
-        <div data-ng-show="source.isUndulator()" class="col-sm-12">
+        <div data-ng-show="source.showFluxReport()" class="col-sm-12">
           <div data-report-panel="2d" data-model-name="fluxReport"></div>
         </div>
       </div>
@@ -29,11 +26,9 @@
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
-<div data-modal-editor="electronBeam"></div>
-<div data-modal-editor="twissParameters"></div>
+<div data-modal-editor="electronBeam" data-is-read-only="source.isPredefinedBeam()"></div>
 <div data-modal-editor="undulator"></div>
 <div data-modal-editor="multipole"></div>
-<div data-modal-editor="solenoid"></div>
 <div data-modal-editor="intensityReport"></div>
 <div data-modal-editor="fluxReport"></div>
 <div data-modal-editor="powerDensityReport"></div>
