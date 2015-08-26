@@ -94,6 +94,15 @@ app.factory('appState', function($rootScope, requestSender) {
         }
     }
 
+    self.addNewElectronBeam = function() {
+        var newBeam = self.clone(self.models.electronBeam);
+        delete newBeam.isReadOnly;
+        newBeam.name = 'Beam Name';
+        newBeam.id = self.maxId(self.models.electronBeams) + 1;
+        self.models.electronBeams.push(newBeam);
+        self.models.electronBeam = newBeam;
+    };
+
     self.applicationState = function() {
         return savedModelValues;
     };
@@ -101,6 +110,8 @@ app.factory('appState', function($rootScope, requestSender) {
     self.cancelChanges = function(name) {
         if (savedModelValues[name])
             self.models[name] = self.clone(savedModelValues[name]);
+        if (name == 'undulator' || name == 'multipole')
+            self.cancelChanges('simulation');
     };
 
     self.clearModels = function(emptyValues) {
@@ -153,7 +164,7 @@ app.factory('appState', function($rootScope, requestSender) {
     };
 
     self.isUndulator = function() {
-        return savedModelValues.simulation && savedModelValues.simulation.magneticField == 'u' ? true : false;
+        return savedModelValues.simulation && savedModelValues.simulation.sourceType == 'u' ? true : false;
     };
 
     self.loadModels = function(simulationId) {
@@ -174,20 +185,17 @@ app.factory('appState', function($rootScope, requestSender) {
             });
     };
 
-    self.modelInfo = function(name) {
-        return APP_SCHEMA.model[name];
+    self.maxId = function(items) {
+        var max = 1;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].id > max)
+                max = items[i].id;
+        }
+        return max;
     };
 
-    self.populateTwissParameters = function() {
-        if (self.isLoaded()) {
-            var name = self.models.electronBeam.beamName.name;
-            for (var i = 0; i < self.beams.length; i++) {
-                if (name == self.beams[i].name) {
-                    self.models.twissParameters = self.clone(self.beams[i]);
-                    break;
-                }
-            }
-        }
+    self.modelInfo = function(name) {
+        return APP_SCHEMA.model[name];
     };
 
     self.saveBeamline = function() {
@@ -217,12 +225,34 @@ app.factory('appState', function($rootScope, requestSender) {
     };
 
     self.saveChanges = function(name) {
+        if (name == 'electronBeam') {
+            // keep beamSelector in sync with name, sort beams by name
+            self.models.electronBeam.beamSelector = self.models.electronBeam.name;
+            if (! self.models.electronBeam.isReadOnly) {
+                // update the user defined beam in the electronBeams list
+                for (var i = 0; i < self.models.electronBeams.length; i++) {
+                    var beam = self.models.electronBeams[i];
+                    if (beam.id == self.models.electronBeam.id) {
+                        self.models.electronBeams.splice(i, 1, self.models.electronBeam);
+                        break;
+                    }
+                }
+            }
+            self.models.electronBeams.sort(function(a, b) {
+                return a.name.localeCompare(b.name);
+            });
+        }
         savedModelValues[name] = self.cloneModel(name);
-        if (name == 'twissParameters') {
-            // save both models for twiss changes, only replot reports once
+
+        if (name == 'electronBeam') {
             broadcastChanged(name);
-            self.models.electronBeam.beamName.name = APP_SCHEMA.constant.USER_DEFINED;
-            self.saveChanges('electronBeam');
+            self.saveChanges('electronBeams');
+            // save electronBeam and electronBeams, but only repolot reports once
+            return;
+        }
+        if (name == 'multipole' || name == 'undulator') {
+            broadcastChanged(name);
+            self.saveChanges('simulation');
             return;
         }
         if (! self.isReportModelName(name))
@@ -453,7 +483,7 @@ app.controller('BeamlineController', function (activeSection, appState) {
     function addItem(item) {
         self.isDirty = true;
         var newItem = appState.clone(item);
-        newItem.id = maxId(appState.models.beamline) + 1;
+        newItem.id = appState.maxId(appState.models.beamline) + 1;
         newItem.showPopover = true;
         if (appState.models.beamline.length) {
             newItem.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
@@ -516,15 +546,6 @@ app.controller('BeamlineController', function (activeSection, appState) {
         str = str.replace(/0+$/, '');
         str = str.replace(/\.$/, '');
         return str;
-    }
-
-    function maxId(beamline) {
-        var max = 1;
-        for (var i = 0; i < beamline.length; i++) {
-            if (beamline[i].id > max)
-                max = beamline[i].id;
-        }
-        return max;
     }
 
     self.cancelChanges = function() {
@@ -651,7 +672,7 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
     self.selected = null;
     appState.clearModels({
         simulation: {
-            magneticField: 'u',
+            sourceType: 'u',
         },
     });
     $scope.$on('simulation.changed', function() {
@@ -666,7 +687,7 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
             },
             {
                 name: model.name,
-                magneticField: model.magneticField,
+                sourceType: model.sourceType,
             });
     }
 
@@ -727,24 +748,25 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
 app.controller('SourceController', function ($scope, activeSection, appState) {
     activeSection.setActiveSection('source');
     var self = this;
-    $scope.multipole = appState.isLoaded() ? appState.models.multipole : null;
-    $scope.$on('modelsLoaded', function() {
-        $scope.multipole = appState.models.multipole;
-        setMultipoleLabel();
-    });
+    $scope.appState = appState;
 
-    function setMultipoleLabel() {
-        if ($scope.multipole) {
-            //TODO(pjm): don't assume enum order matches value
-            var label = APP_SCHEMA.enum.MagneticFieldLabel[$scope.multipole.order - 1][1];
-            appState.modelInfo('multipole').field[0] = label;
-        }
+    function isSelected(sourceType) {
+        if (appState.isLoaded())
+            return appState.models.simulation.sourceType == sourceType;
+        return false;
     }
 
-    function isSelected(magneticField) {
-        if (appState.isLoaded())
-            return appState.applicationState().simulation.magneticField == magneticField;
-        return false;
+    function sourceTypeChanged(newValue, oldValue) {
+        if (oldValue && newValue) {
+            // set form dirty for both undulator and multipole forms
+            //TODO(pjm): remove this, multi-model forms needs to track both models
+            var current = $scope.$$childHead;
+            while (current) {
+                if (current.form && current.panelTitle == "Source")
+                    current.form.$setDirty();
+                current = current.$$nextSibling;
+            }
+        }
     }
 
     self.isUndulator = function() {
@@ -755,9 +777,15 @@ app.controller('SourceController', function ($scope, activeSection, appState) {
         return isSelected('m');
     };
 
-    self.isSolenoid = function() {
-        return isSelected('s');
+    self.isPredefinedBeam = function() {
+        if (appState.isLoaded())
+            return appState.models.electronBeam.isReadOnly ? true : false;
+        return false;
     };
 
-    $scope.$watchCollection('multipole', setMultipoleLabel);
+    self.showFluxReport = function() {
+        return appState.isUndulator();
+    };
+
+    $scope.$watch('appState.models.simulation.sourceType', sourceTypeChanged);
 });
