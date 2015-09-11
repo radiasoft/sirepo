@@ -135,24 +135,29 @@ def srw_root():
 def srw_run():
     http_text = _read_http_input()
     data = _fixup_old_data(json.loads(http_text))
-    with pkio.save_chdir(_work_dir(), mkdir=True) as wd:
-        pkdp('dir={}', wd)
-        _save_simulation_json(data)
-        pkio.write_text('in.json', http_text)
-        pkio.write_text('srw_parameters.py', sirepo.srw_template.generate_parameters_file(data, _APP_SCHEMA))
-        shutil.copyfile(pkresource.filename('static/dat/mirror_1d.dat'), 'mirror_1d.dat')
-        #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
-        # with ebeam horizontal position of 0.05
-        err = _Command(['sirepo', 'srw', 'run'], _SRW_MAX_SECONDS).run_and_read()
-        if err:
-            i = _id(data)
-            pkdp('error: simulationId={}, dir={}, out={}', i, wd, err)
-            return json.dumps({
-                'error': _error_text(err),
-                'simulationId': i,
-            })
-        with open('out.json') as f:
-            data = f.read()
+    wd = _work_dir()
+    pkdp('dir={}', wd)
+    _save_simulation_json(data)
+    pkio.write_text(wd.join('in.json'), http_text)
+    pkio.write_text(
+        wd.join('srw_parameters.py'),
+        sirepo.srw_template.generate_parameters_file(data, _APP_SCHEMA),
+    )
+    shutil.copyfile(
+        pkresource.filename('static/dat/mirror_1d.dat'),
+        str(wd.join('mirror_1d.dat')),
+    )
+    #TODO(pjm): need a kill timer for long calculates, ex. Intensity Report
+    # with ebeam horizontal position of 0.05
+    err = _Command(['sirepo', 'srw', 'run', str(wd)], _SRW_MAX_SECONDS).run_and_read()
+    if err:
+        i = _id(data)
+        pkdp('error: simulationId={}, dir={}, out={}', i, wd, err)
+        return json.dumps({
+            'error': _error_text(err),
+            'simulationId': i,
+        })
+    data = pkio.read_text(wd.join('out.json'))
     # Remove only in the case of a non-error/exception. If there's an error, we may
     # want to debug
     pkio.unchecked_remove(wd)
@@ -354,10 +359,15 @@ def _simulation_name(res, path, data, params):
 
 def _work_dir():
     fmt = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S_{}')
-    for i in range(3):
+    for i in range(5):
         d = _WORK_DIR.join(fmt.format(random.randint(1000, 9999)))
-        if not d.check():
+        try:
+            os.mkdir(str(d))
             return d
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
     raise RuntimeError('{}: failed to create unique directory name'.format(d))
 
 

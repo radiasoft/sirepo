@@ -26,7 +26,7 @@ def http(port=None, run_dir=None):
     """Starts Flask server"""
     from sirepo import server
     server.init(_run_dir(run_dir))
-    server.app.run(host='0.0.0.0', port=_port(port), debug=1)
+    server.app.run(host='0.0.0.0', port=_port(port), debug=1, threaded=True)
 
 
 def uwsgi(port=None, run_dir=None, docker=False):
