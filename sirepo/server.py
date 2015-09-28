@@ -71,6 +71,8 @@ def init(run_dir):
     global _WORK_DIR
     run_dir = py.path.local(run_dir)
     _WORK_DIR = run_dir.join('srw_tmp')
+    if not _WORK_DIR.check():
+        pkio.mkdir_parent(_WORK_DIR)
     _SIMULATION_DIR = run_dir.join('srw_simulations')
     if not _SIMULATION_DIR.check():
         pkio.mkdir_parent(_SIMULATION_DIR)

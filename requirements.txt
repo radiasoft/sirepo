@@ -1,4 +1,4 @@
-git+https://github.com/radiasoft/pykern.git@master#egg=pykern
-flask>=0.10
-uwsgi>=2
-numconv>=2.1
+flask
+numconv
+pykern
+uwsgi

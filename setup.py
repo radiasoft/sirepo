@@ -12,4 +12,20 @@ setup(
     author='RadiaSoft LLC.',
     author_email='pip@sirepo.org',
     url='http://sirepo.org',
+    license='http://www.apache.org/licenses/LICENSE-2.0.html',
+    classifiers=[
+        'Development Status :: 4 - Beta'
+        'Environment :: Web Environment'
+        'Framework :: Flask',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: Apache Software License',
+        'Natural Language :: English',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: JavaScript',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Software Development :: Libraries :: Application Frameworks',
+    ],
 )
