@@ -1,0 +1,14 @@
+{
+    "version": "20150924-1",
+    "route": {
+        "copySimulation": "/copy-simulation",
+        "deleteSimulation": "/delete-simulation",
+        "listSimulations": "/simulation-list/<simulation_type>",
+        "newSimulation": "/new-simulation",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>",
+        "root": "/<simulation_type>",
+        "runSimulation": "/run",
+        "simulationData": "/simulation/<simulation_type>/<simulation_id>",
+        "simulationSchema": "/simulation-schema"
+    }
+}

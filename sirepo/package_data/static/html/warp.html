@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html data-ng-app="SirepoApp" data-ng-controller="NavController as nav">
+  <head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <link rel="icon" href="/static/img/favicon.ico">
+    <title data-ng-bind="nav.pageTitle()">WARP - Radiasoft</title>
+    <link href="/static/css/bootstrap-3.3.4.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-slider-2.0.0.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-colxl.css" rel="stylesheet">
+    <link href="/static/css/sirepo.css?{{ version }}" rel="stylesheet">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="/static/js/html5shiv-3.7.2.min.js"></script>
+      <script src="/static/js/respond-1.4.2.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
+          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')">WARP</a>
+        </div>
+        <ul class="nav navbar-nav">
+          <li data-ng-class="{active: nav.activeSection() == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
+        </ul>
+        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
+        <ul class="nav navbar-nav navbar-right" data-ng-hide="nav.activeSection() == 'simulations'">
+          <li data-ng-class="{active: nav.activeSection() == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+          <li data-ng-class="{active: nav.activeSection() == 'dynamics'}"><a href data-ng-click="nav.openSection('dynamics')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>
+          <!--<li data-ng-class="{active: nav.activeSection() == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>-->
+        </ul>
+      </div>
+    </nav>
+    <div data-ng-view></div>
+    <div data-modal-editor="simulation"></div>
+    <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
+    <script src="/static/js/angular-1.4.2.js"></script>
+    <script src="/static/js/angular-animate-1.4.2.min.js"></script>
+    <script src="/static/js/angular-route-1.4.2.min.js"></script>
+    <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
+    <script src="/static/js/jquery-2.1.4.min.js"></script>
+    <script src="/static/js/bootstrap-3.3.4.js"></script>
+    <script src="/static/js/ngDraggable.js"></script>
+    <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
+    <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
+    <script src="/static/js/angular-d3.js"></script>
+    <script src="/static/js/colorbar.js"></script>
+    <script>
+      var SIREPO_APP_NAME = 'warp';
+      var SIREPO_APP_VERSION = '{{ version }}';
+    </script>
+    <script src="/static/js/sirepo.js?{{ version }}"></script>
+    <script src="/static/js/sirepo-components.js?{{ version }}"></script>
+    <script src="/static/js/sirepo-plotting.js?{{ version }}"></script>
+    <script src="/static/js/warp.js?{{ version }}"></script>
+  </body>
+</html>
