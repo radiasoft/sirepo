@@ -178,9 +178,9 @@
     .srw-plot .axis.grid text {
       display: none;
     }
-    .srw-plot .z-axis-label,
-    .srw-plot .y-axis-label,
-    .srw-plot .x-axis-label {
+    .srw-plot text.z-axis-label,
+    .srw-plot text.y-axis-label,
+    .srw-plot text.x-axis-label {
       font-size: 14px;
       font-weight: bold;
       text-anchor: middle;

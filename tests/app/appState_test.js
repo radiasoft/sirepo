@@ -1,5 +1,5 @@
 'use strict';
-beforeEach(module('SRWApp'));
+beforeEach(module('SirepoApp'));
 
 describe('Factory: appState', function() {
     var successCallback;
