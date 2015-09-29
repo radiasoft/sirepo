@@ -200,7 +200,7 @@ app.directive('plot2d', function(plotting) {
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(d3.format('s'))
+                xAxis.tickFormat(d3.format('s'));
                 xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
                 yAxis = plotting.createExponentialAxis(yAxisScale, 'left');
                 yAxisGrid = plotting.createAxis(yAxisScale, 'left');
@@ -303,13 +303,10 @@ app.directive('plot3d', function(plotting) {
                 var color = d3.scale.linear()
                     .domain([zmin, zmax])
                     .range(['#333', '#fff']);
-                //var xmax = json.x_range.length - 1;
-                //var ymax = json.y_range.length - 1;
                 var xmax = xValueRange.length - 1;
                 var ymax = yValueRange.length - 1;
 
                 // Compute the pixel colors; scaled by CSS.
-                //var img = ctx.createImageData(json.x_range.length, json.y_range.length);
                 var img = ctx.createImageData(xValueRange.length, yValueRange.length);
                 for (var yi = 0, p = -1; yi <= ymax; ++yi) {
 	            for (var xi = 0; xi <= xmax; ++xi) {
@@ -529,6 +526,274 @@ app.directive('plot3d', function(plotting) {
                 }
                 bottomPanelYScale.domain([zmin, zmax]);
                 rightPanelXScale.domain([zmax, zmin]);
+                initDraw(zmin, zmax);
+                resize();
+            };
+
+            $scope.windowResize = plotting.debounce(function() {
+                resize();
+                $scope.$apply();
+            }, 250);
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+            scope.$on('$destroy', function() {
+                scope.element = null;
+                $(window).off('resize', scope.windowResize);
+                scope.zoom.on('zoom', null);
+                scope.imageObj.onload = null;
+            });
+        },
+    };
+});
+
+app.directive('heatmap', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/heatmap.html?' + SIREPO_APP_VERSION,
+        controller: function($scope) {
+
+            $scope.margin = {top: 40, left: 60, right: 100, bottom: 40};
+            // will be set to the correct size in resize()
+            $scope.canvasSize = 0;
+
+            var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange;
+
+            function colorMap(levels) {
+                var colorMap = [];
+                var mapGen = {
+                    afmhot: function(x) {
+                        return hex(2 * x) + hex(2 * x - 0.5) + hex(2 * x - 1);
+                    },
+                    grayscale: function(x) {
+                        return hex(x) + hex(x) + hex(x);
+                    }
+                };
+
+                function hex(v) {
+                    if (v > 1)
+                        v = 1;
+                    else if (v < 0)
+                        v = 0;
+                    return ('0' + Math.round(v * 255).toString(16)).slice(-2);
+                }
+
+                var gen = mapGen.afmhot;
+
+                for (var i = 0; i < levels; i++) {
+                    var x = i / (levels - 1);
+                    colorMap.push('#' + gen(x));
+                }
+                return colorMap;
+            }
+
+            function initDraw(zmin, zmax) {
+                var levels = 50;
+                var color = d3.scale.linear()
+                    .domain(d3.range(zmin, zmax, (zmax - zmin) / levels))
+                    .range(colorMap(levels));
+                var xmax = xValueRange.length - 1;
+                var ymax = yValueRange.length - 1;
+                var img = ctx.createImageData(xValueRange.length, yValueRange.length);
+
+                for (var yi = 0, p = -1; yi <= ymax; ++yi) {
+	            for (var xi = 0; xi <= xmax; ++xi) {
+	                var c = d3.rgb(color(heatmap[yi][xi]));
+	                img.data[++p] = c.r;
+	                img.data[++p] = c.g;
+	                img.data[++p] = c.b;
+                        // var c = color(heatmap[yi][xi]);
+                        // img.data[++p] = c[0];
+                        // img.data[++p] = c[1];
+                        // img.data[++p] = c[2];
+	                img.data[++p] = 255;
+	            }
+                }
+                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
+                // without doing more programming) allows us to see how the marginals
+                // line up when zooming in a lot.
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
+                ctx.putImageData(img, 0, 0);
+                $scope.imageObj.src = canvas.node().toDataURL();
+
+                colorbar = Colorbar()
+                    .scale(color)
+                    .thickness(30)
+                    .margin({top: 0, right: 60, bottom: 20, left: 10})
+                    .orient("vertical");
+            }
+
+            function refresh() {
+                var tx = 0, ty = 0, s = 1;
+                if (d3.event && d3.event.translate) {
+                    var t = d3.event.translate;
+                    s = d3.event.scale;
+                    tx = t[0];
+                    ty = t[1];
+                    tx = Math.min(
+                        0,
+                        Math.max(
+                            tx,
+                            $scope.canvasSize - (s * $scope.imageObj.width) / ($scope.imageObj.width / $scope.canvasSize)));
+                    ty = Math.min(
+                        0,
+                        Math.max(
+                            ty,
+                            $scope.canvasSize - (s * $scope.imageObj.height) / ($scope.imageObj.height / $scope.canvasSize)));
+
+                    var xdom = xAxisScale.domain();
+                    var ydom = yAxisScale.domain();
+                    var resetS = 0;
+                    if ((xdom[1] - xdom[0]) >= (xValueMax - xValueMin) * 0.9999) {
+	                $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]));
+	                xdom = xAxisScale.domain();
+	                resetS += 1;
+                    }
+                    if ((ydom[1] - ydom[0]) >= (yValueMax - yValueMin) * 0.9999) {
+	                $scope.zoom.y(yAxisScale.domain([yValueMin, yValueMax]));
+	                ydom = yAxisScale.domain();
+	                resetS += 1;
+                    }
+                    if (resetS == 2) {
+	                mouseRect.attr('class', 'mouse-zoom');
+	                // Both axes are full resolution. Reset.
+	                tx = 0;
+	                ty = 0;
+                    }
+                   else {
+	                mouseRect.attr('class', 'mouse-move');
+	                if (xdom[0] < xValueMin) {
+	                    xAxisScale.domain([xValueMin, xdom[1] - xdom[0] + xValueMin]);
+	                    xdom = xAxisScale.domain();
+	                }
+	                if (xdom[1] > xValueMax) {
+	                    xdom[0] -= xdom[1] - xValueMax;
+	                    xAxisScale.domain([xdom[0], xValueMax]);
+	                }
+	                if (ydom[0] < yValueMin) {
+	                    yAxisScale.domain([yValueMin, ydom[1] - ydom[0] + yValueMin]);
+	                    ydom = yAxisScale.domain();
+	                }
+	                if (ydom[1] > yValueMax) {
+	                    ydom[0] -= ydom[1] - yValueMax;
+	                    yAxisScale.domain([ydom[0], yValueMax]);
+	                }
+                    }
+                }
+
+                ctx.clearRect(0, 0, $scope.canvasSize, $scope.canvasSize);
+                if (s == 1) {
+                    tx = 0;
+                    ty = 0;
+                    $scope.zoom.translate([tx, ty]);
+                }
+                ctx.drawImage(
+                    $scope.imageObj,
+                    tx*$scope.imageObj.width/$scope.canvasSize,
+                    ty*$scope.imageObj.height/$scope.canvasSize,
+                    $scope.imageObj.width*s,
+                    $scope.imageObj.height*s
+                );
+                select('.x.axis').call(xAxis);
+                select('.y.axis').call(yAxis);
+            }
+
+            function resize() {
+                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (! heatmap || isNaN(width))
+                    return;
+                var canvasSize = 3 * width / 4;
+                $scope.canvasSize = canvasSize;
+                plotting.ticks(yAxis, canvasSize, false);
+                plotting.ticks(xAxis, canvasSize, false);
+                xAxisScale.range([0, canvasSize - 1]);
+                yAxisScale.range([canvasSize - 1, 0]);
+                $scope.zoom.center([canvasSize / 2, canvasSize / 2])
+                    .x(xAxisScale.domain([xValueMin, xValueMax]))
+                    .y(yAxisScale.domain([yValueMin, yValueMax]));
+                select('.mouse-rect').call($scope.zoom);
+                colorbar.barlength(canvasSize)
+                    .origin([0, 0]);
+                select('.colorbar').call(colorbar);
+                refresh();
+            };
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            $scope.init = function() {
+                select('svg').attr('height', plotting.INITIAL_HEIGHT);
+                xAxisScale = d3.scale.linear();
+                yAxisScale = d3.scale.linear();
+                xAxis = plotting.createAxis(xAxisScale, 'bottom');
+
+                // amounts near zero may appear as NNNz, change them to 0
+                var format = d3.format('.3s');
+                function fixFormat(n) {
+                    var v = format(n);
+                    if (v && v.indexOf('z') > 0)
+                        return '0.00';
+                    return v;
+                }
+                xAxis.tickFormat(fixFormat);
+                yAxis = plotting.createAxis(yAxisScale, 'left');
+                yAxis.tickFormat(fixFormat);
+                $scope.zoom = d3.behavior.zoom()
+                    .scaleExtent([1, 10])
+                    .on('zoom', refresh);
+                canvas = select('canvas');
+                mouseRect = select('.mouse-rect');
+                ctx = canvas.node().getContext('2d');
+                $scope.imageObj = new Image();
+                $scope.imageObj.onload = function() {
+                    // important - the image may not be ready initially
+                    refresh();
+                };
+                $(window).resize($scope.windowResize);
+            };
+
+            $scope.load = function(json) {
+                heatmap = [];
+                xValueMin = json.x_range[0];
+                xValueMax = json.x_range[1];
+                xValueRange = plotting.linspace(xValueMin, xValueMax, json.x_range[2]);
+                yValueMin = json.y_range[0];
+                yValueMax = json.y_range[1];
+                yValueRange = plotting.linspace(yValueMin, yValueMax, json.y_range[2]);
+                var xmax = xValueRange.length - 1;
+                var ymax = yValueRange.length - 1;
+                canvas.attr('width', xValueRange.length)
+                    .attr('height', yValueRange.length);
+                select('.main-title').text(json.title);
+                select('.x-axis-label').text(json.x_label);
+                select('.y-axis-label').text(json.y_label);
+                select('.z-axis-label').text(json.z_label);
+                xAxisScale.domain([xValueMin, xValueMax]);
+                yAxisScale.domain([yValueMin, yValueMax]);
+                var zmin = json.z_matrix[0][0]
+                var zmax = json.z_matrix[0][0]
+
+                for (var yi = 0; yi <= ymax; ++yi) {
+                    // flip to match the canvas coordinate system (origin: top left)
+                    // matplotlib is bottom left
+                    heatmap[ymax - yi] = [];
+                    for (var xi = 0; xi <= xmax; ++xi) {
+                        var zi = json.z_matrix[yi][xi];
+                        heatmap[ymax - yi][xi] = zi;
+                        if (zmax < zi)
+                            zmax = zi;
+                        else if (zmin > zi)
+                            zmin = zi;
+                    }
+                }
                 initDraw(zmin, zmax);
                 resize();
             };

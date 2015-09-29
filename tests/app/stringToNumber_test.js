@@ -1,5 +1,5 @@
 'use strict';
-beforeEach(module('SRWApp'));
+beforeEach(module('SirepoApp'));
 
 describe('Directive: stringToNumber', function() {
     var $scope, $compile, $sniffer;

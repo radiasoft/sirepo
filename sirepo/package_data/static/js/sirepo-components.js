@@ -11,7 +11,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
               '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
-                    '<div data-field-editor="f" data-model-name="modelName" data-model="appState.models[modelName]"></div>',
+                    '<div data-field-editor="f" data-model-name="modelName" data-model="appState.models[modelName]" class="model-{{modelName}}-{{f}}"></div>',
                   '</div>',
                   '<div data-buttons="" data-model-name="modelName"></div>',
                 '</form>',
@@ -24,6 +24,9 @@ app.directive('basicEditorPanel', function(appState, panelState) {
             $scope.basicFields = appState.viewInfo($scope.modelName).basic;
             $scope.panelTitle = appState.viewInfo($scope.modelName).title;
             $scope.editorId = 'srw-' + $scope.modelName + '-editor';
+            $scope.isStringField = function(f) {
+                return typeof(f) == 'string' ? true : false;
+            };
         },
     };
 });
@@ -348,7 +351,7 @@ app.directive('columnEditor', function(appState) {
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
+                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly" class="model-{{modelName}}-{{f}}"></div>',
                 '</div>',
               '</div>',
             '</div>',
@@ -389,7 +392,7 @@ app.directive('modalEditor', function(appState) {
                       '<div class="row">',
                         '<form name="form" class="form-horizontal" novalidate>',
                           '<div data-ng-repeat="f in advancedFields">',
-                            '<div class="form-group form-group-sm" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
+                            '<div class="form-group form-group-sm model-{{modalEditor}}-{{f}}" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
                             '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modalEditor" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
                           '</div>',
                           '<div data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
@@ -499,6 +502,7 @@ app.directive('reportPanel', function(appState, panelState) {
                 '<div data-ng-switch="reportPanel" class="{{ panelState.getError(fullModelName) ? \'srw-hide-report\' : \'\' }}">',
                   '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                   '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+                  '<div data-ng-switch-when="heatmap" data-heatmap="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                 '</div>',
               '</div>',
             '</div>',

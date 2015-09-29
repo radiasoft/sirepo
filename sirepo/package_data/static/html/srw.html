@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-ng-app="SRWApp" data-ng-controller="NavController as nav">
+<html data-ng-app="SirepoApp" data-ng-controller="NavController as nav">
   <head lang="en">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -49,10 +49,12 @@
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
     <script src="/static/js/angular-d3.js"></script>
     <script>
+      var SIREPO_APP_NAME = 'srw';
       var SIREPO_APP_VERSION = '{{ version }}';
     </script>
     <script src="/static/js/sirepo.js?{{ version }}"></script>
     <script src="/static/js/sirepo-components.js?{{ version }}"></script>
     <script src="/static/js/sirepo-plotting.js?{{ version }}"></script>
+    <script src="/static/js/srw.js?{{ version }}"></script>
   </body>
 </html>
