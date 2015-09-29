@@ -1,6 +1,13 @@
 // Karma configuration
 // Generated on Tue Jul 21 2015 19:52:26 GMT+0000 (UCT)
 
+// before running the first time:
+//   npm install karma --save-dev
+//   npm install karma-jasmine --save-dev
+//   npm install karma-chrome-launcher
+// then:
+//   karma start --single-run
+
 module.exports = function(config) {
   config.set({
 
