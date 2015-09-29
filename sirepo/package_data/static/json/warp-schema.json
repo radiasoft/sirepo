@@ -1,0 +1,165 @@
+{
+    "enum": {
+        "PulseDimensions": [
+            ["a", "Absolute"],
+            ["r", "Resonant with Plasma Density"]
+        ],
+        "Field": [
+            ["E", "E"],
+            ["B", "B"],
+            ["J", "J"],
+            ["rho", "rho"]
+        ],
+        "FieldCoordinate": [
+            ["r", "r"],
+            ["t", "t"],
+            ["z", "z"]
+        ],
+        "FieldMode": [
+            ["0", "mode 0"],
+            ["1", "real part of mode 1"],
+            ["2", "imaginary part of mode 1"]
+        ],
+        "GridDimensions": [
+            ["a", "Absolute"],
+            ["s", "Scale to Laser Pulse"]
+        ],
+        "XValue": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"],
+            ["ux", "ux"],
+            ["uy", "uy"],
+            ["uz", "uz"]
+        ],
+        "YValue": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"],
+            ["ux", "ux"],
+            ["uy", "uy"],
+            ["uz", "uz"],
+            ["", "None"]
+        ]
+    },
+    "model": {
+        "electronPlasma": {
+            "density": ["Density [m⁻³]", "Float"],
+            "length": ["Length [mm]", "Float"],
+            "entranceRampLength": ["Entrance Ramp [mm]", "Float"],
+            "exitRampLength": ["Exit Ramp [mm]", "Float"]
+        },
+        "laserPulse": {
+            "wavelength": ["Wavelength [µm]", "Float"],
+            "amplitude": ["Normalized Amplitude A₀", "Float"],
+            "polarizationAngle": ["Polarization Angle [rad]", "Float"],
+            "pulseDimensions": ["Pulse Dimensions", "PulseDimensions"],
+            "waist": ["Waist [µm]", "Float"],
+            "duration": ["Pulse Length [ps]", "Float"],
+            "length": ["Normalized Length", "Float"],
+            "spotSize": ["Normalized Transverse Spot Size", "Float"]
+        },
+        "simulationGrid": {
+            "gridDimensions": ["Grid Dimensions", "GridDimensions"],
+            "zLambda": ["Z Count Lambda", "Float"],
+            "xMin": ["X Min [µm]", "Float"],
+            "xMax": ["X Max [µm]", "Float"],
+            "xCount": ["X Count", "Integer"],
+            "zMin": ["Z Min [µm]", "Float"],
+            "zMax": ["Z Min [µm]", "Float"],
+            "zCount": ["Z Count", "Integer"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "particleReport": {
+            "x": ["X Value", "XValue"],
+            "y": ["Y Value", "YValue"]
+        },
+        "fieldReport": {
+            "field": ["Field", "Field"],
+            "coordinate": ["Coordinate", "FieldCoordinate"],
+            "mode": ["Mode", "FieldMode"]
+        }
+    },
+    "view": {
+        "electronPlasma": {
+            "title": "Electron Plasma",
+            "basic": [
+                "density",
+                "length"
+            ],
+            "advanced": [
+                "density",
+                "length",
+                "entranceRampLength",
+                "exitRampLength"
+            ]
+        },
+        "simulationGrid": {
+            "title": "Simulation Grid",
+            "basic": [
+                "gridDimensions"
+            ],
+            "advanced": [
+                "gridDimensions",
+                "zLambda",
+                [
+                    ["X", [
+                        "xMin",
+                        "xMax",
+                        "xCount"
+                    ]],
+                    ["Z", [
+                        "zMin",
+                        "zMax",
+                        "zCount"
+                    ]]
+                ]
+            ]
+        },
+        "laserPulse": {
+            "title": "Laser Pulse",
+            "basic": [
+                "wavelength",
+                "amplitude",
+                "pulseDimensions",
+                "length",
+                "spotSize",
+                "waist",
+                "duration"
+            ],
+            "advanced": [
+                "wavelength",
+                "amplitude",
+                "polarizationAngle",
+                "pulseDimensions",
+                "length",
+                "spotSize",
+                "waist",
+                "duration"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "particleReport": {
+            "title": "Particle Report",
+            "advanced": [
+                "x",
+                "y"
+            ]
+        },
+        "fieldReport": {
+            "title": "Field Report",
+            "advanced": [
+                "field",
+                "coordinate",
+                "mode"
+            ]
+        }
+    }
+}
