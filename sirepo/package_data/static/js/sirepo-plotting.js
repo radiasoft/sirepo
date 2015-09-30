@@ -76,6 +76,9 @@ app.factory('plotting', function(d3Service, panelState) {
                         panelState.clear(scope.modelName);
                         requestData();
                     });
+                scope.isLoading = function() {
+                    return panelState.isLoading(scope.modelName);
+                };
                 scope.init();
                 requestData();
             });
@@ -605,10 +608,6 @@ app.directive('heatmap', function(plotting) {
 	                img.data[++p] = c.r;
 	                img.data[++p] = c.g;
 	                img.data[++p] = c.b;
-                        // var c = color(heatmap[yi][xi]);
-                        // img.data[++p] = c[0];
-                        // img.data[++p] = c[1];
-                        // img.data[++p] = c[2];
 	                img.data[++p] = 255;
 	            }
                 }
