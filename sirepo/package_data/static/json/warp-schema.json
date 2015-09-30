@@ -66,7 +66,7 @@
             "xMax": ["X Max [µm]", "Float"],
             "xCount": ["X Count", "Integer"],
             "zMin": ["Z Min [µm]", "Float"],
-            "zMax": ["Z Min [µm]", "Float"],
+            "zMax": ["Z Max [µm]", "Float"],
             "zCount": ["Z Count", "Integer"]
         },
         "simulation": {
