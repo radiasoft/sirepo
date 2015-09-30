@@ -218,6 +218,9 @@
     .srw-plot .z-axis-label {
       line-height: 160%;
     }
+    .srw-plot-loading {
+      opacity: 0.2;
+    }
 
     @media (max-width: 767px) {
       div.srw-plot .z-axis-label,
