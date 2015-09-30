@@ -1,3 +1,4 @@
+  <div ng-class="{'srw-plot-loading': isLoading()}">
     <svg>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
@@ -22,3 +23,4 @@
       <input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
       <strong>{{ xRange[1] | number:0 }}</strong>
     </div>
+  </div>
