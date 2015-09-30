@@ -1,5 +1,14 @@
 # {{simulation_name}}
 
+from __future__ import absolute_import, division, print_function
+
+#TODO(pjm): remove this when warp is in the python path
+import sys
+sys.path.insert(0, '/home/vagrant/src/radiasoft/atap-warp/scripts/')
+
+import warpoptions
+warpoptions.ignoreUnknownArgs = True
+
 from warp import *
 from em3dsolver import *
 from boosted_frame import *
@@ -164,17 +173,17 @@ GAMMAG_LINEAR       = 1./sqrt(1-BETAG_LINEAR*BETAG_LINEAR)
 
 # print some plasma parameters to the screen
 print("the laser group velocity is: ")
-print BETAG_LINEAR*clight
+print( BETAG_LINEAR*clight)
 print("the laser spot size is: ")
-print laser_waist
+print( laser_waist)
 print("the Rayleigh length is: ")
-print ZR
+print( ZR)
 print("the laser wavelength is: ")
-print lambda_laser
+print( lambda_laser)
 print("the plasma wavelength is: ")
-print lambda_plasma
+print( lambda_plasma)
 print("the plasma length is: ")
-print Lplasma
+print( Lplasma)
 
 #-------------------------------------------------------------------------------
 # Time and dump/plot_intervals
@@ -527,9 +536,9 @@ em = EM3D(       laser_func=laser_func,
                  dtcoef=dtcoef,
                  l_verbose=l_verbose)
 # register solver
-print 'register solver'
+print( 'register solver')
 registersolver(em)
-print 'done'
+print( 'done')
 
 #-------------------------------------------------------------------------------
 # Set moving window velocity
@@ -761,24 +770,8 @@ else :
 installafterstep( diag_f.write )
 installafterstep( diag_p.write )
 
-print '\nInitialization complete\n'
+print( '\nInitialization complete\n')
 
 ################################################################################
 ###########################  END OF INITIALIZATION   ###########################
 ################################################################################
-
-# If this is a test, then stop, else execute main loop
-if l_test:
-    print '<<< To execute n steps, type "step(n)" at the prompt >>>'
-else:
-# Else run until last beam particle has crossed the last beam z-station diagnostic
-    doit = True
-    while(doit):
-        step(10)
-        if getn()==0:
-            doit = True
-        else:
-            doit = ( w3d.zmmin + top.zgrid < Lplasma )
-
-#savebeamstations()
-#if nzfieldstations>0 : saveebstations()
