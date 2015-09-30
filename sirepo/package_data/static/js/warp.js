@@ -54,9 +54,9 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
             if (grid.gridDimensions == 's') {
                 var laserPulse = appState.models.laserPulse;
                 var totalLength = laserPulse.duration / 1e12 * 4 * constants.clight;
-                grid.xMax = (1.5 * totalLength * 1e6).toFixed(12);
+                grid.xMax = (2.5 * totalLength * 1e6).toFixed(12);
                 grid.xMin = (-grid.xMax).toFixed(12);
-                grid.zMin = grid.xMin;
+                grid.zMin = (-1.3 * totalLength * 1e6).toFixed(12);
                 var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
                 grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
                 grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zLambda / lambdaLaser);
@@ -64,55 +64,57 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
         }
     }
 
-    function gridDimensionsChanged(newValue, oldValue) {
-        if (newValue) {
-            if (newValue == 'a') {
+    function fieldClass(field) {
+        return '.model-' + field.replace('.', '-');
+    }
+
+    function setVisibility(fields, isVisible, oldValue) {
+        for (var i = 0; i < fields.length; i++) {
+            var fc = fieldClass(fields[i]);
+            if (isVisible) {
                 if (oldValue)
-                    $('.model-simulationGrid-zLambda').parent().slideUp()
-                else
-                    $('.model-simulationGrid-zLambda').parent().hide();
-                $('.model-simulationGrid-xMin input').prop('readonly', false);
-                $('.model-simulationGrid-xMax input').prop('readonly', false);
-                $('.model-simulationGrid-zMin input').prop('readonly', false);
-                $('.model-simulationGrid-zMax input').prop('readonly', false);
-                $('.model-simulationGrid-zCount input').prop('readonly', false);
+                    $(fc).parent().slideDown()
             }
             else {
                 if (oldValue)
-                    $('.model-simulationGrid-zLambda').parent().slideDown()
-                $('.model-simulationGrid-xMin input').prop('readonly', true);
-                $('.model-simulationGrid-xMax input').prop('readonly', true);
-                $('.model-simulationGrid-zMin input').prop('readonly', true);
-                $('.model-simulationGrid-zMax input').prop('readonly', true);
-                $('.model-simulationGrid-zCount input').prop('readonly', true);
+                    $(fc).parent().slideUp()
+                else
+                    $(fc).parent().hide();
+            }
+        }
+    }
+
+    function setReadOnly(fields, isReadOnly) {
+        for (var i = 0; i < fields.length; i++) {
+            $(fieldClass(fields[i]) + ' input').prop('readonly', isReadOnly);
+        }
+    }
+
+    function gridDimensionsChanged(newValue, oldValue) {
+        if (newValue) {
+            var fields = ['simulationGrid.xMin', 'simulationGrid.xMax', 'simulationGrid.zMin', 'simulationGrid.zMax', 'simulationGrid.zCount'];
+            if (newValue == 'a') {
+                setVisibility(['simulationGrid.zLambda'], false, oldValue);
+                setReadOnly(fields, false);
+            }
+            else {
+                setVisibility(['simulationGrid.zLambda'], true, oldValue);
+                setReadOnly(fields, true);
                 calculateXZMinMax(1);
             }
         }
-        // if (newValue && oldValue) {
-        //     console.log('display: ', $('#srw-simulationGrid-editor').css('display'));
-        //     $('#srw-simulationGrid-editor').modal('show');
-        // }
     }
 
     function pulseDimensionsChanged(newValue, oldValue) {
         if (newValue) {
+            var fields = ['laserPulse.waist', 'laserPulse.duration'];
             if (newValue == 'a') {
-                if (oldValue) {
-                    $('.model-laserPulse-length').parent().slideUp();
-                    $('.model-laserPulse-spotSize').parent().slideUp();
-                }
-                else {
-                    $('.model-laserPulse-length').parent().hide();
-                    $('.model-laserPulse-spotSize').parent().hide();
-                }
-                $('.model-laserPulse-waist input').prop('readonly', false);
-                $('.model-laserPulse-duration input').prop('readonly', false);
+                setVisibility(['laserPulse.length', 'laserPulse.spotSize'], false, oldValue);
+                setReadOnly(fields, false);
             }
             else {
-                $('.model-laserPulse-length').parent().slideDown();
-                $('.model-laserPulse-spotSize').parent().slideDown();
-                $('.model-laserPulse-waist input').prop('readonly', true);
-                $('.model-laserPulse-duration input').prop('readonly', true);
+                setVisibility(['laserPulse.length', 'laserPulse.spotSize'], true, oldValue);
+                setReadOnly(fields, true);
                 calculateWaistAndLength(1);
             }
         }
@@ -124,4 +126,6 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
     $scope.$watch('appState.models.electronPlasma.density', calculateWaistAndLength);
     $scope.$watch('appState.models.simulationGrid.gridDimensions', gridDimensionsChanged);
     $scope.$watch('appState.models.simulationGrid.zLambda', calculateXZMinMax);
+    $scope.$watch('appState.models.laserPulse.duration', calculateXZMinMax);
+    $scope.$watch('appState.models.laserPulse.wavelength', calculateXZMinMax);
 });
