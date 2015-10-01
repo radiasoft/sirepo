@@ -23,18 +23,27 @@ def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         _run_warp()
 
+_MODE_TEXT = {
+    '0': '0',
+    '1': '1 (real part)',
+    '2': '1 (imaginary part)',
+}
 
 def _run_warp():
     with open('in.json') as f:
         data = json.load(f)
 
-    exec(pkio.read_text('warp_parameters.py'), locals(), locals())
-    step(400)
+    field = 'E'
+    coordinate = 'r'
+    mode = 1
+    iteration = 400
 
-    dfile = h5py.File('diags/hdf5/data00000400.h5', "r")
-    dset = dfile['fields/E/r']
-    mCompAzimuthal = 1
-    F = np.flipud(np.array(dset[mCompAzimuthal,:,:]).T)
+    exec(pkio.read_text('warp_parameters.py'), locals(), locals())
+    step(iteration)
+
+    dfile = h5py.File('diags/hdf5/data00000' + str(iteration) + '.h5', "r")
+    dset = dfile['fields/{}/{}'.format(field, coordinate)]
+    F = np.flipud(np.array(dset[mode,:,:]).T)
     Nr, Nz = F.shape[0], F.shape[1]
     dz = dset.attrs['dx']
     dr = dset.attrs['dy']
@@ -43,9 +52,10 @@ def _run_warp():
     data = {
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
-        'x_label': 'z (µm)',
-        'y_label': 'r (µm)',
-        'title': 'E r in mode 1 (real) at 44.2 fs (iteration 400)',
+        'x_label': 'z [m]',
+        'y_label': '{} [m]'.format(coordinate),
+        'title': "{} {} in the mode {} at {:.1f} fs (iteration {})".format(
+            field, coordinate, _MODE_TEXT[str(mode)], iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration),
         'z_matrix': np.flipud(F).tolist(),
     }
     with open ('out.json', 'w') as f:
