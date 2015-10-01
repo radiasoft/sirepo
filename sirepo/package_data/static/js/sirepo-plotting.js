@@ -559,7 +559,7 @@ app.directive('heatmap', function(plotting) {
         templateUrl: '/static/html/heatmap.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
 
-            $scope.margin = {top: 40, left: 60, right: 100, bottom: 40};
+            $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
 
