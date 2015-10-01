@@ -80,6 +80,8 @@
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"]
+        },
+        "laserPreviewReport": {
         }
     },
     "view": {
@@ -160,6 +162,10 @@
                 "coordinate",
                 "mode"
             ]
+        },
+        "laserPreviewReport": {
+            "title": "Laser Preview Report",
+            "advanced": []
         }
     }
 }
