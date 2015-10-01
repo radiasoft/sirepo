@@ -217,8 +217,7 @@ def _find_simulation_data(res, path, data, params):
 def _fixup_old_data(simulation_type, data):
     if 'version' in data and data['version'] == _SCHEMA_COMMON['version']:
         return data
-    if simulation_type == 'srw':
-        sirepo.template.srw.fixup_old_data(data)
+    _template_for_simulation_type(simulation_type).fixup_old_data(data)
     data['version'] = _SCHEMA_COMMON['version']
     return data
 
