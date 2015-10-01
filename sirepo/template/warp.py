@@ -10,22 +10,31 @@ from pykern import pkjinja
 from . import template_common
 
 #: How long before killing WARP process
-MAX_SECONDS = 60 * 60 * 24
+MAX_SECONDS = 60 * 60
+
 
 def fixup_old_data(data):
-    pass
+    if 'laserPreviewReport' not in data['models']:
+        data['models']['laserPreviewReport'] = {}
+
 
 def generate_parameters_file(data, schema):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
-    v['enablePlasma'] = 0
+    if 'report' in data and data['report'] == 'laserPreviewReport':
+        v['enablePlasma'] = 0
+    else:
+        v['enablePlasma'] = 1
     return pkjinja.render_resource('warp.py', v)
+
 
 def prepare_aux_files(wd):
     pass
 
+
 def run_all_text():
     return ''
+
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
