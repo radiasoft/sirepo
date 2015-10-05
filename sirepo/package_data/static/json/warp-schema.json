@@ -1,9 +1,5 @@
 {
     "enum": {
-        "PulseDimensions": [
-            ["a", "Absolute"],
-            ["r", "Resonant with Plasma Density"]
-        ],
         "Field": [
             ["E", "E"],
             ["B", "B"],
@@ -23,6 +19,16 @@
         "GridDimensions": [
             ["a", "Absolute"],
             ["s", "Scale to Laser Pulse"]
+        ],
+        "PulseDimensions": [
+            ["a", "Absolute"],
+            ["r", "Resonant with Plasma Density"]
+        ],
+        "SimulationState": [
+            ["initial", "Initial State"],
+            ["running", "Running"],
+            ["completed", "Completed"],
+            ["canceled", "Canceled"]
         ],
         "XValue": [
             ["x", "x"],
@@ -82,6 +88,9 @@
             "mode": ["Mode", "FieldMode"]
         },
         "laserPreviewReport": {
+        },
+        "simulationStatus": {
+            "state": ["State", "SimulationState"]
         }
     },
     "view": {
@@ -147,6 +156,13 @@
             "advanced": [
                 "name"
             ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "basic": [
+                "percentComplete"
+            ],
+            "advanced": []
         },
         "particleReport": {
             "title": "Particle Report",
