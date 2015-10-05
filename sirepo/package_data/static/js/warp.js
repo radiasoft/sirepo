@@ -15,9 +15,103 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('WARPDynamicsController', function(activeSection) {
+app.controller('WARPDynamicsController', function(activeSection, appState, panelState, requestSender, $timeout, $scope) {
     activeSection.setActiveSection('dynamics');
     var self = this;
+    self.panelState = panelState;
+    self.percentComplete = 0;
+    self.frameCount = 0;
+    self.isDestroyed = false;
+    self.isAborting = false;
+    self.dots = '.';
+
+    $scope.$on('$destroy', function () {
+        self.isDestroyed = true;
+    });
+
+    function refreshStatus() {
+        requestSender.sendRequest(
+            'runStatus',
+            function(data) {
+                self.frameCount = data.frameCount;
+                appState.models.simulationStatus.state = data.state;
+                if (self.isAborting)
+                    return;
+                if (data.state != 'running') {
+                    appState.saveChanges('simulationStatus');
+                }
+                else {
+                    self.percentComplete = data.percentComplete;
+                    if (! self.isDestroyed) {
+                        self.dots += '.';
+                        if (self.dots.length > 3)
+                            self.dots = '.';
+                        $timeout(refreshStatus, 2000);
+                    }
+                }
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    }
+
+    self.cancelSimulation = function() {
+        if (appState.models.simulationStatus.state != 'running')
+            return;
+        appState.models.simulationStatus.state = 'canceled';
+        self.isAborting = true;
+        requestSender.sendRequest(
+            'runCancel',
+            function(data) {
+                self.isAborting = false;
+                appState.saveChanges('simulationStatus');
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    self.displayPercentComplete = function() {
+        if (self.percentComplete < 1)
+            return 100;
+        return self.percentComplete;
+    };
+
+    self.isInitializing = function() {
+        if (self.isState('running'))
+            return self.percentComplete < 1;
+        return false;
+    };
+
+    self.isState = function(state) {
+        if (appState.isLoaded())
+            return appState.models.simulationStatus.state == state;
+        return false;
+    };
+
+    self.runSimulation = function() {
+        if (appState.models.simulationStatus.state == 'running')
+            return;
+        appState.models.simulationStatus.state = 'running';
+        requestSender.sendRequest(
+            'runBackground',
+            function(data) {
+                appState.saveChanges('simulationStatus');
+                refreshStatus();
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    if (appState.isLoaded())
+        refreshStatus();
+    else {
+        $scope.$on('modelsLoaded', refreshStatus);
+    }
 });
 
 app.controller('WARPSourceController', function($scope, activeSection, appState) {
