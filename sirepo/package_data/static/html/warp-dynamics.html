@@ -1,5 +1,47 @@
 <div class="container-fluid">
   <div class="row">
-    dynamics
+    <div class="col-md-6 col-xl-4">
+      <div class="panel panel-info">
+        <div class="panel-heading" data-panel-heading="Simulation Status" data-model-name="simulationStatus"></div>
+        <div class="panel-body cssFade" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('initial')">
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-primary" data-ng-click="dynamics.runSimulation()">Start Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('running')">
+            <div class="col-sm-12">
+              <div data-ng-show="dynamics.isInitializing()">
+                Initializing {{ dynamics.dots }}
+              </div>
+              <div data-ng-hide="dynamics.isInitializing()">
+                {{ dynamics.percentComplete | number:0 }}%
+              </div>
+              <div class="progress">
+                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ dynamics.displayPercentComplete() }}%">
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">Abort Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('completed') || dynamics.isState('canceled')">
+            <div class="col-sm-12">
+              Simulation
+              <span data-ng-show="dynamics.isState('completed')">Completed</span><span data-ng-show="dynamics.isState('canceled')">Canceled</span><span data-ng-show="dynamics.frameCount">:
+                {{ dynamics.frameCount }} animation frames
+              </span>
+              <br><br>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="dynamics.runSimulation()">Start New Simulation</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- modal dialogs -->
