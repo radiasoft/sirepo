@@ -6,11 +6,55 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern import pkio
 from pykern import pkjinja
 from . import template_common
+import h5py
+import numpy as np
+import os
 
 #: How long before killing WARP process
 MAX_SECONDS = 60 * 60
+
+
+def background_percent_complete(data, persistent_files_dir, is_running):
+    simulation_id = data['models']['simulation']['simulationId']
+    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
+    if len(files) < 2:
+        return {
+            'percent_complete': 0,
+            'frame_count': 0,
+        }
+    # look at 2nd to last file if running, last one may be incomplete
+    name = files[-2 if is_running else -1]
+    field = 'E'
+    coordinate = 'r'
+    mode = 1
+
+    Lplasma_lab = float(data['models']['electronPlasma']['length']) / 1e3
+    zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
+
+    dfile = h5py.File(name, 'r')
+    dset = dfile['fields/{}/{}'.format(field, coordinate)]
+    F = np.flipud(np.array(dset[mode,:,:]).T)
+    Nr, Nz = F.shape[0], F.shape[1]
+    dz = dset.attrs['dx']
+    dr = dset.attrs['dy']
+    zmin = dset.attrs['xmin']
+    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
+    edge = zmin + dz * (Nz + 10)
+    position = zmmin + edge
+
+    percent_complete = position * 100 / Lplasma_lab
+
+    if percent_complete < 0:
+        percent_complete = 0.0
+    elif percent_complete > 100:
+        percent_complete = 100
+    return {
+        'percent_complete': percent_complete,
+        'frame_count': len(files),
+    }
 
 
 def fixup_old_data(data):
@@ -18,9 +62,15 @@ def fixup_old_data(data):
         data['models']['laserPreviewReport'] = {}
 
 
-def generate_parameters_file(data, schema):
+def generate_parameters_file(data, schema, persistent_files_dir=None):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
+    if persistent_files_dir:
+        if not persistent_files_dir.check():
+            pkio.mkdir_parent(persistent_files_dir)
+        v['outputDir'] = '"{}"'.format(persistent_files_dir)
+    else:
+        v['outputDir'] = None
     if 'report' in data and data['report'] == 'laserPreviewReport':
         v['enablePlasma'] = 0
     else:
@@ -33,8 +83,26 @@ def prepare_aux_files(wd):
 
 
 def run_all_text():
-    return ''
+    return '''
+doit = True
+while(doit):
+    step(10)
+    doit = ( w3d.zmmin + top.zgrid < Lplasma )
+'''
 
+def _h5_file_list(path_to_dir):
+    if not os.path.isdir(path_to_dir):
+        return []
+    all_files = os.listdir(path_to_dir)
+
+    # Select the hdf5 files
+    h5_files = []
+    for filename in all_files :
+        if filename[-3:] == '.h5' :
+            h5_files.append( os.path.join( path_to_dir, filename) )
+    # Sort them
+    h5_files.sort()
+    return h5_files
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
