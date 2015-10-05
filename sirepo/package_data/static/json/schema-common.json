@@ -1,5 +1,5 @@
 {
-    "version": "20151001",
+    "version": "20151004",
     "route": {
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
@@ -7,7 +7,10 @@
         "newSimulation": "/new-simulation",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>",
         "root": "/<simulation_type>",
+        "runBackground": "/run-background",
+        "runCancel": "/run-cancel",
         "runSimulation": "/run",
+        "runStatus": "/run-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
         "simulationSchema": "/simulation-schema"
     }
