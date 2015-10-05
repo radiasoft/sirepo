@@ -9,8 +9,16 @@ from __future__ import absolute_import, division, print_function
 import h5py
 import json
 import numpy as np
+import time
 
 from pykern import pkio
+
+_MODE_TEXT = {
+    '0': '0',
+    '1': '1 (real part)',
+    '2': '1 (imaginary part)',
+}
+
 
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
@@ -23,13 +31,16 @@ def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         _run_warp()
 
-_MODE_TEXT = {
-    '0': '0',
-    '1': '1 (real part)',
-    '2': '1 (imaginary part)',
-}
 
-def _run_warp():
+def run_background(cfg_dir, persistent_file_dir):
+    with pkio.save_chdir(cfg_dir):
+        exec(pkio.read_text('warp_parameters.py'), locals(), locals())
+        doit = True
+        while(doit):
+            step(10)
+            doit = ( w3d.zmmin + top.zgrid < Lplasma )
+
+def _run_warp(persistent_file_dir=None):
     with open('in.json') as f:
         data = json.load(f)
 
@@ -41,7 +52,8 @@ def _run_warp():
     exec(pkio.read_text('warp_parameters.py'), locals(), locals())
     step(iteration)
 
-    dfile = h5py.File('diags/hdf5/data00000' + str(iteration) + '.h5', "r")
+    out_dir = (persistent_file_dir + '/') if persistent_file_dir else ''
+    dfile = h5py.File(out_dir + 'diags/hdf5/data00000' + str(iteration) + '.h5', "r")
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
     F = np.flipud(np.array(dset[mode,:,:]).T)
     Nr, Nz = F.shape[0], F.shape[1]
