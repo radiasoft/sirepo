@@ -68,12 +68,12 @@ def init(run_dir):
     _WORK_DIR = run_dir.join('tmp')
     if not _WORK_DIR.check():
         pkio.mkdir_parent(_WORK_DIR)
-    for app in _APP_NAMES:
-        _SIMULATION_DIR[app] = run_dir.join('{}_simulations'.format(app))
-        if not _SIMULATION_DIR[app].check():
-            pkio.mkdir_parent(_SIMULATION_DIR[app])
-            for s in _examples(app):
-                _save_new_simulation(app, s, is_response=False)
+    for app_name in _APP_NAMES:
+        _SIMULATION_DIR[app_name] = run_dir.join('{}_simulations'.format(app_name))
+        if not _SIMULATION_DIR[app_name].check():
+            pkio.mkdir_parent(_SIMULATION_DIR[app_name])
+            for s in _examples(app_name):
+                _save_new_simulation(app_name, s, is_response=False)
 
 
 @app.route(_SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
@@ -125,7 +125,7 @@ def app_python_source(simulation_type, simulation_id):
         del data['report']
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type)),
+            template.generate_parameters_file(data, _schema_cache(simulation_type), None),
             template.run_all_text()),
         mimetype='text/plain',
     )
@@ -142,19 +142,8 @@ def app_root(simulation_type):
 @app.route(_SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
     data = json.loads(_read_http_input())
-    simulation_type = data['simulationType']
-    data = _fixup_old_data(simulation_type, data)
-    template = _template_for_simulation_type(simulation_type)
     wd = _work_dir()
-    _save_simulation_json(simulation_type, data)
-    with open(str(wd.join('in.json')), 'w') as outfile:
-        json.dump(data, outfile)
-    pkio.write_text(
-        wd.join(simulation_type + '_parameters.py'),
-        template.generate_parameters_file(data, _schema_cache(simulation_type)),
-    )
-    template.prepare_aux_files(wd)
-    err = _Command(['sirepo', simulation_type, 'run', str(wd)], template.MAX_SECONDS).run_and_read()
+    err = _setup_simulation(data, wd, ['run', str(wd)]).run_and_read()
     if err:
         i = _id(data)
         pkdp('error: simulationId={}, dir={}, out={}', i, wd, err)
@@ -167,6 +156,57 @@ def app_run():
     # want to debug
     pkio.unchecked_remove(wd)
     return data
+
+
+@app.route(_SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
+def app_run_background():
+    data = json.loads(_read_http_input())
+    if _Command.is_background_running(_id(data)):
+        pkdp('ignoring second call to runBackground: {}'.format(_id(data)))
+        return '{}'
+    data['models']['simulationStatus']['state'] = 'running'
+    _save_simulation_json(data['simulationType'], data)
+    wd = _work_dir()
+    out_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
+    pkio.unchecked_remove(out_dir)
+    _setup_simulation(data, wd, ['run-background', str(wd), str(out_dir)], persistent_files_dir=out_dir).run_background(_id(data))
+    return '{}'
+
+
+@app.route(_SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
+def app_run_cancel():
+    data = json.loads(_read_http_input())
+    data['models']['simulationStatus']['state'] = 'canceled'
+    _save_simulation_json(data['simulationType'], data)
+    _Command.kill_background(_id(data))
+    return '{}'
+
+
+@app.route(_SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
+def app_run_status():
+    data = json.loads(_read_http_input())
+    simulation_type = data['simulationType']
+    template = _template_for_simulation_type(simulation_type)
+
+    if _Command.is_background_running(_id(data)):
+        completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), True)
+        state = 'running'
+    else:
+        data = _open_json_file(simulation_type, _simulation_filename(simulation_type, _id(data)))
+        state = data['models']['simulationStatus']['state']
+        completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), False)
+        if state == 'running':
+            if completion['percent_complete'] == 100:
+                state = 'completed'
+            else:
+                state = 'canceled'
+            data['models']['simulationStatus']['state'] = state
+            _save_simulation_json(data['simulationType'], data)
+    return flask.jsonify({
+        'state': state,
+        'percentComplete': completion['percent_complete'],
+        'frameCount': completion['frame_count'],
+    })
 
 
 @app.route(_SCHEMA_COMMON['route']['simulationData'])
@@ -183,7 +223,7 @@ def app_simulation_data(simulation_type, simulation_id):
     flask.abort(404)
 
 
-@app.route(_SCHEMA_COMMON['route']["listSimulations"], methods=('GET', 'POST'))
+@app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list(simulation_type):
     simulation_type = _json_input('simulationType')
     return json.dumps(
@@ -295,13 +335,34 @@ def _schema_cache(sim_type):
 
 
 def _simulation_filename(simulation_type, value):
-    if not _ID_RE.search(value):
-        raise RuntimeError('{}: invalid simulation id'.format(value))
-    return str(_SIMULATION_DIR[simulation_type].join(value)) + '.json'
+    return str(_simulation_persistent_dir(simulation_type, value)) + '.json'
 
 
 def _simulation_name(res, path, data, params):
     res.append(data['models']['simulation']['name'])
+
+
+def _simulation_persistent_dir(simulation_type, value):
+    if not _ID_RE.search(value):
+        raise RuntimeError('{}: invalid simulation id'.format(value))
+    return _SIMULATION_DIR[simulation_type].join(value)
+
+
+def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
+    simulation_type = data['simulationType']
+    data = _fixup_old_data(simulation_type, data)
+    template = _template_for_simulation_type(simulation_type)
+    _save_simulation_json(simulation_type, data)
+    with open(str(wd.join('in.json')), 'w') as outfile:
+        json.dump(data, outfile)
+    pkio.write_text(
+        wd.join(simulation_type + '_parameters.py'),
+        template.generate_parameters_file(
+            data, _schema_cache(simulation_type),
+            persistent_files_dir=persistent_files_dir)
+    )
+    template.prepare_aux_files(wd)
+    return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
 
 
 def _template_for_simulation_type(simulation_type):
@@ -326,6 +387,8 @@ def _work_dir():
     raise RuntimeError('{}: failed to create unique directory name'.format(d))
 
 
+_BACKGROUND_THREAD_LIST = {}
+
 class _Command(threading.Thread):
     """Run a command in a thread, and kill after timeout"""
 
@@ -337,6 +400,18 @@ class _Command(threading.Thread):
         self.timeout = timeout
         self.process = None
         self.out = ''
+        self.background_simulation_id = ''
+
+    @classmethod
+    def is_background_running(cls, simulation_id):
+        return simulation_id in _BACKGROUND_THREAD_LIST
+
+    @classmethod
+    def kill_background(cls, simulation_id):
+        #TODO(pjm): thread safety
+        if simulation_id in _BACKGROUND_THREAD_LIST:
+            print('killing {}'.format(simulation_id))
+            _BACKGROUND_THREAD_LIST[simulation_id].process.kill()
 
     def run(self):
         self.process = subprocess.Popen(
@@ -345,6 +420,9 @@ class _Command(threading.Thread):
             stderr=subprocess.STDOUT,
         )
         self.out = self.process.communicate()[0]
+        if self.background_simulation_id in _BACKGROUND_THREAD_LIST:
+            del _BACKGROUND_THREAD_LIST[self.background_simulation_id]
+            #TODO(pjm): clean up working directory
 
     def run_and_read(self):
         self.start()
@@ -362,3 +440,8 @@ class _Command(threading.Thread):
             pkdp('Error: cmd={}, returncode={}', self.cmd, self.process.returncode)
             return self.out + '\nError: simulation failed'
         return None
+
+    def run_background(self, simulation_id):
+        self.start()
+        self.background_simulation_id = simulation_id
+        _BACKGROUND_THREAD_LIST[simulation_id] = self
