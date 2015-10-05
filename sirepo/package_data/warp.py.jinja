@@ -759,14 +759,18 @@ if l_beam:
 lparallel_openpmd = True
 if lparallel == True :
     diag_f = FieldDiagnostic( period=50, top=top, w3d=w3d, em=em,
-            comm_world=comm_world, lparallel_output=lparallel_openpmd )
+            comm_world=comm_world, lparallel_output=lparallel_openpmd,
+            write_dir={{ outputDir }})
     diag_p = ParticleDiagnostic( period=50, top=top, w3d=w3d,
             species = {"electrons" : elec},
-            comm_world=comm_world, lparallel_output=lparallel_openpmd )
+            comm_world=comm_world, lparallel_output=lparallel_openpmd,
+            write_dir={{ outputDir }})
 else :
-    diag_f = FieldDiagnostic( period=50, top=top, w3d=w3d, em=em )
+    diag_f = FieldDiagnostic( period=50, top=top, w3d=w3d, em=em,
+            write_dir={{ outputDir }})
     diag_p = ParticleDiagnostic( period=50, top=top, w3d=w3d,
-                              species = {"electrons" : elec} )
+            species = {"electrons" : elec},
+            write_dir={{ outputDir }})
 installafterstep( diag_f.write )
 installafterstep( diag_p.write )
 
