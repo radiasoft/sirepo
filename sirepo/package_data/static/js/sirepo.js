@@ -7,7 +7,7 @@ var APP_SCHEMA;
 $.ajax({
     url: typeof KARMA_TEST_MODE == 'undefined'
         ? ('/simulation-schema?' + SIREPO_APP_VERSION)
-        : '/static/json/schema.json',
+        : '/static/json/test-schema.json',
     data: {
         simulationType: SIREPO_APP_NAME,
     },
