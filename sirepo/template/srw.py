@@ -80,7 +80,7 @@ def fixup_old_data(data):
                     del model['method']
 
 
-def generate_parameters_file(data, schema):
+def generate_parameters_file(data, schema, persistent_files_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']]
