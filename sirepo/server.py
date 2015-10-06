@@ -223,6 +223,14 @@ def app_simulation_data(simulation_type, simulation_id):
     flask.abort(404)
 
 
+@app.route(_SCHEMA_COMMON['route']['simulationFrame'], methods=('GET', 'POST'))
+def app_simulation_frame():
+    data = json.loads(_read_http_input())
+    persistent_files_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
+    return flask.jsonify(_template_for_simulation_type(
+        data['simulationType']).get_simulation_frame(persistent_files_dir, data))
+
+
 @app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list(simulation_type):
     simulation_type = _json_input('simulationType')
