@@ -22,7 +22,15 @@
       <div class="container">
         <div class="navbar-header">
           <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
-          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')">SRW</a>
+          <ul class="nav navbar-nav">
+            <li class="dropdown">
+              <a href class="navbar-brand dropdown-toggle" data-toggle="dropdown">SRW <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li class="active"><a href data-ng-click="nav.openSection('simulations')">SRW</a></li>
+                <li><a href="/warp">WARP</a></li>
+              </ul>
+            </li>
+          </ul>
         </div>
         <ul class="nav navbar-nav">
           <li data-ng-class="{active: nav.activeSection() == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
