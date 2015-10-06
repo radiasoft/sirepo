@@ -1,5 +1,5 @@
 {
-    "version": "20151004",
+    "version": "20151005",
     "route": {
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
@@ -12,6 +12,7 @@
         "runSimulation": "/run",
         "runStatus": "/run-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
+        "simulationFrame": "/simulation-frame",
         "simulationSchema": "/simulation-schema"
     }
 }
