@@ -34,11 +34,11 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
             'runStatus',
             function(data) {
                 self.frameCount = data.frameCount;
-                appState.models.simulationStatus.state = data.state;
                 if (self.isAborting)
                     return;
                 if (data.state != 'running') {
-                    appState.saveChanges('simulationStatus');
+                    if (data.state != appState.models.simulationStatus.state)
+                        appState.saveChanges('simulationStatus');
                 }
                 else {
                     self.percentComplete = data.percentComplete;
@@ -49,6 +49,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
                         $timeout(refreshStatus, 2000);
                     }
                 }
+                appState.models.simulationStatus.state = data.state;
             },
             {
                 models: appState.applicationState(),
