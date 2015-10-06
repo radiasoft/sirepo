@@ -12,10 +12,16 @@ from . import template_common
 import h5py
 import numpy as np
 import os
+import re
 
 #: How long before killing WARP process
 MAX_SECONDS = 60 * 60
 
+_MODE_TEXT = {
+    '0': '0',
+    '1': '1 (real part)',
+    '2': '1 (imaginary part)',
+}
 
 def background_percent_complete(data, persistent_files_dir, is_running):
     simulation_id = data['models']['simulation']['simulationId']
@@ -76,6 +82,43 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
     else:
         v['enablePlasma'] = 1
     return pkjinja.render_resource('warp.py', v)
+
+
+def get_simulation_frame(persistent_files_dir, data):
+    frame_index = int(data['frameIndex'])
+    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
+
+    field = data['models']['fieldAnimation']['field']
+    coordinate = data['models']['fieldAnimation']['coordinate']
+    mode = int(data['models']['fieldAnimation']['mode'])
+
+    filename = files[frame_index]
+    iteration = int(re.search(r'data(\d+)', filename).group(1))
+
+    #TODO(pjm): consolidate with pykern_cli/warp.py
+    dfile = h5py.File(filename, "r")
+
+    if field == 'rho' :
+        dset = dfile['fields/rho']
+        coordinate = ''
+    else:
+        dset = dfile['fields/{}/{}'.format(field, coordinate)]
+    F = np.flipud(np.array(dset[mode,:,:]).T)
+    Nr, Nz = F.shape[0], F.shape[1]
+    dz = dset.attrs['dx']
+    dr = dset.attrs['dy']
+    zmin = dset.attrs['xmin']
+    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
+    return {
+        'x_range': [extent[0], extent[1], len(F[0])],
+        'y_range': [extent[2], extent[3], len(F)],
+        'x_label': 'z [m]',
+        'y_label': 'r [m]',
+        'title': "{} {} in the mode {} at {:.1f} fs (iteration {})".format(
+            field, coordinate, _MODE_TEXT[str(mode)], iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration),
+        'z_matrix': np.flipud(F).tolist(),
+        'frameCount': len(files),
+    }
 
 
 def prepare_aux_files(wd):
