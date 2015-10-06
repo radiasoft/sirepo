@@ -271,6 +271,26 @@ app.factory('appState', function($rootScope, requestSender) {
     return self;
 });
 
+app.factory('frameCache', function(appState, requestSender) {
+    var self = {};
+    self.getFrame = function(name, index, callbackTimer, callback) {
+        if (! appState.isLoaded())
+            return;
+        requestSender.sendRequest(
+            'simulationFrame',
+            function(data) {
+                callback(index, data);
+            },
+            {
+                report: name,
+                frameIndex: index,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+    return self;
+})
+
 app.factory('panelState', function($window, $rootScope, appState, requestQueue) {
     // Tracks the data, error, hidden and loading values
     var self = {};
