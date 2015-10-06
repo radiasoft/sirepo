@@ -1,14 +1,13 @@
 {
     "enum": {
         "Field": [
-            ["E", "E"],
-            ["B", "B"],
-            ["J", "J"],
-            ["rho", "rho"]
+            ["E", "E - Electron field [V/m]"],
+            ["B", "B - Magnetic field [T]"],
+            ["J", "J - Particle current [A]"],
+            ["rho", "rho - Charge density [C/m³]"]
         ],
         "FieldCoordinate": [
             ["r", "r"],
-            ["t", "t"],
             ["z", "z"]
         ],
         "FieldMode": [
@@ -82,7 +81,7 @@
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"]
         },
-        "fieldReport": {
+        "fieldAnimation": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"]
@@ -171,8 +170,8 @@
                 "y"
             ]
         },
-        "fieldReport": {
-            "title": "Field Report",
+        "fieldAnimation": {
+            "title": "Field Animation",
             "advanced": [
                 "field",
                 "coordinate",
