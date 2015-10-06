@@ -15,7 +15,7 @@
                 Initializing {{ dynamics.dots }}
               </div>
               <div data-ng-hide="dynamics.isInitializing()">
-                {{ dynamics.percentComplete | number:0 }}%
+                {{ dynamics.percentComplete | number:0 }}% {{ dynamics.dots }}
               </div>
               <div class="progress">
                 <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ dynamics.displayPercentComplete() }}%">
@@ -41,7 +41,11 @@
         </div>
       </div>
     </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
+    </div>
   </div>
 </div>
 
 <!-- modal dialogs -->
+<div data-modal-editor="fieldAnimation"></div>
