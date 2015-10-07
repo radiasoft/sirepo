@@ -209,7 +209,7 @@ def _generate_beamline_optics(models, last_id):
                 propagation)
         elif item['type'] == 'mirror':
             res += '    ifnHDM = "mirror_1d.dat"\n'
-            res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\\\t", 0, 1)\n'
+            res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
             res += _beamline_element(
                 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
                 item,
