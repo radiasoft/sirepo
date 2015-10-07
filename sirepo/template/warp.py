@@ -30,36 +30,29 @@ def background_percent_complete(data, persistent_files_dir, is_running):
         return {
             'percent_complete': 0,
             'frame_count': 0,
+            'total_frames': 0,
         }
+    file_index = len(files) - 1
     # look at 2nd to last file if running, last one may be incomplete
-    name = files[-2 if is_running else -1]
+    if is_running:
+        file_index -= 1
     field = 'E'
     coordinate = 'r'
-    mode = 1
-
     Lplasma_lab = float(data['models']['electronPlasma']['length']) / 1e3
     zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
-
-    dfile = h5py.File(name, 'r')
+    dfile = h5py.File(files[file_index], 'r')
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
-    F = np.flipud(np.array(dset[mode,:,:]).T)
-    Nr, Nz = F.shape[0], F.shape[1]
-    dz = dset.attrs['dx']
-    dr = dset.attrs['dy']
     zmin = dset.attrs['xmin']
-    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
-    edge = zmin + dz * (Nz + 10)
-    position = zmmin + edge
-
-    percent_complete = position * 100 / Lplasma_lab
+    percent_complete = (zmin - zmmin) / (Lplasma_lab - zmmin)
 
     if percent_complete < 0:
         percent_complete = 0.0
     elif percent_complete > 100:
         percent_complete = 100
     return {
-        'percent_complete': percent_complete,
-        'frame_count': len(files),
+        'percent_complete': percent_complete * 100,
+        'frame_count': file_index + 1,
+        'total_frames': int((file_index + 1) / percent_complete),
     }
 
 
