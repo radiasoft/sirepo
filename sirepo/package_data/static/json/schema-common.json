@@ -1,5 +1,5 @@
 {
-    "version": "20151005",
+    "version": "20151006",
     "route": {
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
