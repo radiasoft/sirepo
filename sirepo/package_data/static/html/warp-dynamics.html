@@ -12,7 +12,7 @@
           <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('running')">
             <div class="col-sm-12">
               <div data-ng-show="dynamics.isInitializing()">
-                Initializing {{ dynamics.dots }}
+                Initializing Laser Pulse and Plasma {{ dynamics.dots }}
               </div>
               <div data-ng-hide="dynamics.isInitializing()">
                 {{ dynamics.percentComplete | number:0 }}% {{ dynamics.dots }}
@@ -23,7 +23,7 @@
               </div>
             </div>
             <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">Abort Simulation</button>
+              <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">End Simulation</button>
             </div>
           </form>
           <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('completed') || dynamics.isState('canceled')">
