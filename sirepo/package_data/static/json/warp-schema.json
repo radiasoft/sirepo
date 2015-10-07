@@ -66,13 +66,13 @@
         },
         "simulationGrid": {
             "gridDimensions": ["Grid Dimensions", "GridDimensions"],
-            "zLambda": ["Z Count Lambda", "Float"],
+            "zLambda": ["Number of Wavelengths", "Float"],
             "xMin": ["X Min [µm]", "Float"],
             "xMax": ["X Max [µm]", "Float"],
-            "xCount": ["X Count", "Integer"],
+            "xCount": ["X Number of Cells", "Integer"],
             "zMin": ["Z Min [µm]", "Float"],
             "zMax": ["Z Max [µm]", "Float"],
-            "zCount": ["Z Count", "Integer"]
+            "zCount": ["Z Number of Cells", "Integer"]
         },
         "simulation": {
             "name": ["Name", "String"]
