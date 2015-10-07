@@ -21,6 +21,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
     self.panelState = panelState;
     self.percentComplete = 0;
     self.frameCount = 0;
+    self.totalFrames = 0;
     self.isDestroyed = false;
     self.isAborting = false;
     self.dots = '.';
@@ -34,6 +35,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
             'runStatus',
             function(data) {
                 self.frameCount = data.frameCount;
+                self.totalFrames = data.totalFrames;
                 if (self.isAborting)
                     return;
                 if (data.state != 'running') {
