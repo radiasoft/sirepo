@@ -15,7 +15,7 @@
                 Initializing Laser Pulse and Plasma {{ dynamics.dots }}
               </div>
               <div data-ng-hide="dynamics.isInitializing()">
-                {{ dynamics.percentComplete | number:0 }}% {{ dynamics.dots }}
+                Completed frame: {{ dynamics.frameCount }} / {{ dynamics.totalFrames | number:0 }}
               </div>
               <div class="progress">
                 <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ dynamics.displayPercentComplete() }}%">
