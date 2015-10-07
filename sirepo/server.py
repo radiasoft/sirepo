@@ -206,6 +206,7 @@ def app_run_status():
         'state': state,
         'percentComplete': completion['percent_complete'],
         'frameCount': completion['frame_count'],
+        'totalFrames': completion['total_frames'],
     })
 
 
