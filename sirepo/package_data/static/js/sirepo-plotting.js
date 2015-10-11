@@ -65,32 +65,63 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                 var requestData;
 
                 if (scope.isAnimation) {
-                    scope.frameIndex = 0;
                     scope.prevFrameIndex = -1;
-                    scope.firstFrame = function() {
-                        scope.frameIndex = 0;
-                    };
-                    scope.lastFrame = function() {
-                        //TODO(pjm): get this from somewhere
-                        scope.frameIndex = 11;
-                    };
-                    scope.advanceFrame = function(increment) {
-                        var next = scope.frameIndex + increment;
-                        if (next < 0 || next > 11)
-                            return;
-                        scope.frameIndex = next;
-                    };
+                    scope.isPlaying = false;
                     requestData = function() {
-                        if (scope.frameIndex == scope.prevFrameIndex)
+                        if (! scope.hasFrames())
                             return;
-                        scope.prevFrameIndex = scope.frameIndex;
-                        frameCache.getFrame(scope.modelName, scope.frameIndex, 200, function(index, data) {
+                        var index = frameCache.getCurrentFrame(scope.modelName);
+                        if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex)
+                            return;
+                        scope.prevFrameIndex = index;
+                        frameCache.getFrame(scope.modelName, index, 50, function(index, data) {
                             if (scope.element)
                                 scope.load(data);
+                            if (scope.isPlaying)
+                                scope.advanceFrame(1);
                         });
                     }
+                    scope.advanceFrame = function(increment) {
+                        var next = frameCache.getCurrentFrame(scope.modelName) + increment;
+                        if (next < 0 || next > frameCache.frameCount - 1) {
+                            scope.isPlaying = false;
+                            return;
+                        }
+                        frameCache.setCurrentFrame(scope.modelName, next);
+                        requestData();
+                    };
+                    scope.firstFrame = function() {
+                        scope.isPlaying = false;
+                        frameCache.setCurrentFrame(scope.modelName, 0);
+                        requestData();
+                    };
+                    scope.hasFrames = function() {
+                        return frameCache.isLoaded() && frameCache.frameCount > 0;
+                    };
+                    scope.isFirstFrame = function() {
+                        return frameCache.getCurrentFrame(scope.modelName) == 0;
+                    };
+                    scope.isLastFrame = function() {
+                        return frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 1;
+                    };
+                    scope.lastFrame = function() {
+                        scope.isPlaying = false;
+                        frameCache.setCurrentFrame(scope.modelName, frameCache.frameCount - 1);
+                        requestData();
+                    };
+                    scope.togglePlay = function() {
+                        scope.isPlaying = ! scope.isPlaying;
+                        if (scope.isPlaying)
+                            scope.advanceFrame(1);
+                    };
                     scope.$on('modelsLoaded', requestData);
-                    scope.$watch('frameIndex', requestData);
+                    scope.$on('framesLoaded', function() {
+                        if (scope.prevFrameIndex < 0)
+                            scope.firstFrame();
+                        // go to the next last frame, if the current frame was the previous last frame
+                        else if (frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 2)
+                            scope.lastFrame();
+                    });
                 }
                 else {
                     requestData = function() {
