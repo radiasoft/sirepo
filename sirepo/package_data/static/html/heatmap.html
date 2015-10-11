@@ -13,11 +13,11 @@
           <g class="colorbar" ng-attr-transform="translate({{ margin.left + canvasSize }}, 0)"></g>
         </g>
       </svg>
-      <div data-ng-if="isAnimation" style="width: {{ margin.left + margin.right + canvasSize }}px;" class="text-center">
-        <button type="button" class="btn btn-default" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>
-        <button type="button" class="btn btn-default" data-ng-click="advanceFrame(-1)"><span class="glyphicon glyphicon-step-backward"></span></button>
-        <button type="button" class="btn btn-default"><span class="glyphicon glyphicon-play"></span></button>
-        <button type="button" class="btn btn-default" data-ng-click="advanceFrame(1)"><span class="glyphicon glyphicon-step-forward"></span></button>
-        <button type="button" class="btn btn-default" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>
+      <div data-ng-if="isAnimation && hasFrames()" style="width: {{ margin.left + margin.right + canvasSize }}px;" class="text-center">
+        <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>
+        <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1)"><span class="glyphicon glyphicon-step-backward"></span></button>
+        <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? 'pause' : 'play' }}"></span></button>
+        <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1)"><span class="glyphicon glyphicon-step-forward"></span></button>
+        <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>
       </div>
     </div>
