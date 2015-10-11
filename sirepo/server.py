@@ -15,6 +15,7 @@ import re
 import string
 import subprocess
 import threading
+import time
 
 from pykern import pkio
 from pykern import pkresource
@@ -164,13 +165,18 @@ def app_run_background():
     if _Command.is_background_running(_id(data)):
         pkdp('ignoring second call to runBackground: {}'.format(_id(data)))
         return '{}'
-    data['models']['simulationStatus']['state'] = 'running'
+    status = data['models']['simulationStatus'];
+    status['state'] = 'running'
+    status['startTime'] = int(time.time() * 1000)
     _save_simulation_json(data['simulationType'], data)
     wd = _work_dir()
     out_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
     pkio.unchecked_remove(out_dir)
     _setup_simulation(data, wd, ['run-background', str(wd), str(out_dir)], persistent_files_dir=out_dir).run_background(_id(data))
-    return '{}'
+    return flask.jsonify({
+        'state': status['state'],
+        'startTime': status['startTime'],
+    })
 
 
 @app.route(_SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
@@ -196,7 +202,7 @@ def app_run_status():
         state = data['models']['simulationStatus']['state']
         completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), False)
         if state == 'running':
-            if completion['percent_complete'] == 100:
+            if completion['frame_count'] == completion['total_frames']:
                 state = 'completed'
             else:
                 state = 'canceled'
@@ -224,12 +230,19 @@ def app_simulation_data(simulation_type, simulation_id):
     flask.abort(404)
 
 
-@app.route(_SCHEMA_COMMON['route']['simulationFrame'], methods=('GET', 'POST'))
-def app_simulation_frame():
-    data = json.loads(_read_http_input())
-    persistent_files_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
-    return flask.jsonify(_template_for_simulation_type(
-        data['simulationType']).get_simulation_frame(persistent_files_dir, data))
+@app.route(_SCHEMA_COMMON['route']['simulationFrame'])
+def app_simulation_frame(frame_id):
+    keys = ['simulation_type', 'simulation_id', 'model_name', 'animation_args', 'frame_index', 'start_time']
+    data = dict(zip(keys, frame_id.split('-')))
+    persistent_files_dir = _simulation_persistent_dir(data['simulation_type'], data['simulation_id'])
+    response = flask.jsonify(_template_for_simulation_type(
+        data['simulation_type']).get_simulation_frame(persistent_files_dir, data))
+    now = datetime.datetime.utcnow()
+    expires = now + datetime.timedelta(365)
+    response.headers['Cache-Control'] = 'public, max-age=31536000'
+    response.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    response.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    return response
 
 
 @app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
