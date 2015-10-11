@@ -42,23 +42,28 @@ def background_percent_complete(data, persistent_files_dir, is_running):
     zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
     dfile = h5py.File(files[file_index], 'r')
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
+    dz = dset.attrs['dx']
     zmin = dset.attrs['xmin']
     percent_complete = (zmin - zmmin) / (Lplasma_lab - zmmin)
-
     if percent_complete < 0:
         percent_complete = 0.0
-    elif percent_complete > 100:
-        percent_complete = 100
+    elif percent_complete > 1.0:
+        percent_complete = 1.0
     return {
         'percent_complete': percent_complete * 100,
         'frame_count': file_index + 1,
-        'total_frames': int((file_index + 1) / percent_complete),
+        #TODO(pjm): this isn't a great calculation ...
+        'total_frames': int((file_index + 1) / percent_complete + 0.3),
     }
 
 
 def fixup_old_data(data):
     if 'laserPreviewReport' not in data['models']:
         data['models']['laserPreviewReport'] = {}
+    if 'startTime' not in data['models']['simulationStatus']:
+        data['models']['simulationStatus']['startTime'] = 0
+    if 'histogramBins' not in data['models']['particleAnimation']:
+        data['models']['particleAnimation']['histogramBins'] = 100
 
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
@@ -78,18 +83,39 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
 
 
 def get_simulation_frame(persistent_files_dir, data):
-    frame_index = int(data['frameIndex'])
+    frame_index = int(data['frame_index'])
     files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
-
-    field = data['models']['fieldAnimation']['field']
-    coordinate = data['models']['fieldAnimation']['coordinate']
-    mode = int(data['models']['fieldAnimation']['mode'])
-
     filename = files[frame_index]
     iteration = int(re.search(r'data(\d+)', filename).group(1))
 
     #TODO(pjm): consolidate with pykern_cli/warp.py
     dfile = h5py.File(filename, "r")
+
+    args = data['animation_args'].split('_')
+
+    if data['model_name'] == 'fieldAnimation':
+        return _field_animation(args, dfile, iteration, len(files))
+    if data['model_name'] == 'particleAnimation':
+        return _particle_animation(args, dfile, iteration, len(files))
+    raise RuntimeError('{}: unknown simulation frame model'.format(data['model_name']))
+
+
+def prepare_aux_files(wd):
+    pass
+
+
+def run_all_text():
+    return '''
+doit = True
+while(doit):
+    step(10)
+    doit = ( w3d.zmmin + top.zgrid < Lplasma )
+'''
+
+def _field_animation(args, dfile, iteration, frame_count):
+    field = args[0]
+    coordinate = args[1]
+    mode = int(args[2])
 
     if field == 'rho' :
         dset = dfile['fields/rho']
@@ -106,25 +132,13 @@ def get_simulation_frame(persistent_files_dir, data):
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
         'x_label': 'z [m]',
+#TODO(pjm): fix labels
         'y_label': 'r [m]',
         'title': "{} {} in the mode {} at {:.1f} fs (iteration {})".format(
             field, coordinate, _MODE_TEXT[str(mode)], iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration),
         'z_matrix': np.flipud(F).tolist(),
-        'frameCount': len(files),
+        'frameCount': frame_count,
     }
-
-
-def prepare_aux_files(wd):
-    pass
-
-
-def run_all_text():
-    return '''
-doit = True
-while(doit):
-    step(10)
-    doit = ( w3d.zmmin + top.zgrid < Lplasma )
-'''
 
 def _h5_file_list(path_to_dir):
     if not os.path.isdir(path_to_dir):
@@ -139,6 +153,33 @@ def _h5_file_list(path_to_dir):
     # Sort them
     h5_files.sort()
     return h5_files
+
+
+_PARTICLE_ARG_PATH = {
+    'x' : 'position/x',
+    'y' : 'position/y',
+    'z' : 'position/z',
+    'ux' : 'momentum/x',
+    'uy' : 'momentum/y',
+    'uz' : 'momentum/z',
+}
+
+def _particle_animation(args, dfile, iteration, frame_count):
+    xarg = args[0]
+    yarg = args[1]
+    histogramBins = args[2]
+    x = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
+    y = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
+    hist, edges = np.histogramdd([x, y], int(histogramBins))
+    return {
+        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        'z_matrix': hist.T.tolist(),
+        'x_label': '{} [m]'.format(xarg),
+        'y_label': '{} [m]'.format(yarg),
+        'frameCount': frame_count,
+    }
+
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
