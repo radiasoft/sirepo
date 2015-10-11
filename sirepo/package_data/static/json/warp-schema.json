@@ -43,8 +43,7 @@
             ["z", "z"],
             ["ux", "ux"],
             ["uy", "uy"],
-            ["uz", "uz"],
-            ["", "None"]
+            ["uz", "uz"]
         ]
     },
     "model": {
@@ -77,9 +76,10 @@
         "simulation": {
             "name": ["Name", "String"]
         },
-        "particleReport": {
+        "particleAnimation": {
             "x": ["X Value", "XValue"],
-            "y": ["Y Value", "YValue"]
+            "y": ["Y Value", "YValue"],
+            "histogramBins": ["Histogram Bins", "Integer"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
@@ -89,7 +89,8 @@
         "laserPreviewReport": {
         },
         "simulationStatus": {
-            "state": ["State", "SimulationState"]
+            "state": ["State", "SimulationState"],
+            "startTime": ["Start Time [ms]", "String"]
         }
     },
     "view": {
@@ -163,11 +164,12 @@
             ],
             "advanced": []
         },
-        "particleReport": {
-            "title": "Particle Report",
+        "particleAnimation": {
+            "title": "Particle Animation",
             "advanced": [
                 "x",
-                "y"
+                "y",
+                "histogramBins"
             ]
         },
         "fieldAnimation": {
