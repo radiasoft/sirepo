@@ -15,7 +15,7 @@
                 Initializing Laser Pulse and Plasma {{ dynamics.dots }}
               </div>
               <div data-ng-hide="dynamics.isInitializing()">
-                Completed frame: {{ dynamics.frameCount }} / {{ dynamics.totalFrames | number:0 }}
+                Completed frame: {{ dynamics.getFrameCount() }} / {{ dynamics.totalFrames | number:0 }}
               </div>
               <div class="progress">
                 <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ dynamics.displayPercentComplete() }}%">
@@ -29,8 +29,8 @@
           <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('completed') || dynamics.isState('canceled')">
             <div class="col-sm-12">
               Simulation
-              <span data-ng-show="dynamics.isState('completed')">Completed</span><span data-ng-show="dynamics.isState('canceled')">Canceled</span><span data-ng-show="dynamics.frameCount">:
-                {{ dynamics.frameCount }} animation frames
+              <span data-ng-show="dynamics.isState('completed')">Completed</span><span data-ng-show="dynamics.isState('canceled')">Stopped</span><span data-ng-show="dynamics.getFrameCount()">:
+                {{ dynamics.getFrameCount() }} animation frames
               </span>
               <br><br>
             </div>
@@ -41,11 +41,16 @@
         </div>
       </div>
     </div>
+    <div class="clearfix"></div>
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="heatmap" data-model-name="particleAnimation"></div>
     </div>
   </div>
 </div>
 
 <!-- modal dialogs -->
 <div data-modal-editor="fieldAnimation"></div>
+<div data-modal-editor="particleAnimation"></div>
