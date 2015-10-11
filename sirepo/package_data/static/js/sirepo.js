@@ -271,25 +271,80 @@ app.factory('appState', function($rootScope, requestSender) {
     return self;
 });
 
-app.factory('frameCache', function(appState, requestSender) {
+app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope) {
     var self = {};
-    self.getFrame = function(name, index, callbackTimer, callback) {
+    self.animationInfo = {};
+    self.frameCount = 0;
+
+    function animationArgs(modelName) {
+        var values = appState.applicationState()[modelName];
+        var fields = self.animationArgFields[modelName];
+        var args = [];
+        for (var i = 0; i < fields.length; i++)
+            args.push(values[fields[i]]);
+        return args.join('_');
+    }
+
+    self.getCurrentFrame = function(modelName) {
+        var v = self.animationInfo[modelName];
+        if (v)
+            return v.currentFrame;
+        return 0;
+    };
+
+    self.getFrame = function(modelName, index, callbackTimer, callback) {
         if (! appState.isLoaded())
             return;
+        var startTime = new Date().getTime();
+        var frameId = [
+            APP_SCHEMA.simulationType,
+            appState.models.simulation.simulationId,
+            modelName,
+            animationArgs(modelName),
+            index,
+            appState.models.simulationStatus.startTime,
+        ].join('-');
         requestSender.sendRequest(
-            'simulationFrame',
+            requestSender.formatUrl(
+                'simulationFrame',
+                {
+                    '<frame_id>': frameId,
+                }),
             function(data) {
-                callback(index, data);
-            },
-            {
-                report: name,
-                frameIndex: index,
-                models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
+                var endTime = new Date().getTime();
+                var elapsed = endTime - startTime;
+                if (elapsed < callbackTimer)
+                    $timeout(function() {
+                        callback(index, data);
+                    }, callbackTimer - elapsed);
+                else
+                    callback(index, data);
             });
     };
+
+    self.isLoaded = function() {
+        return appState.isLoaded();
+    };
+
+    self.setAnimationArgs = function(argFields) {
+        self.animationArgFields = argFields;
+    };
+
+    self.setCurrentFrame = function(modelName, currentFrame) {
+        if (! self.animationInfo[modelName])
+            self.animationInfo[modelName] = {};
+        self.animationInfo[modelName].currentFrame = currentFrame;
+    };
+
+    self.setFrameCount = function(frameCount) {
+        if ((frameCount > 0) && (frameCount != self.frameCount)) {
+            self.frameCount = frameCount;
+            $rootScope.$broadcast('framesLoaded');
+        }
+    }
+
     return self;
-})
+});
 
 app.factory('panelState', function($window, $rootScope, appState, requestQueue) {
     // Tracks the data, error, hidden and loading values
