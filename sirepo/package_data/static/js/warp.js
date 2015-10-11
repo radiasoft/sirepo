@@ -15,16 +15,20 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('WARPDynamicsController', function(activeSection, appState, panelState, requestSender, $timeout, $scope) {
+app.controller('WARPDynamicsController', function(activeSection, appState, panelState, requestSender, frameCache, $timeout, $scope) {
     activeSection.setActiveSection('dynamics');
     var self = this;
     self.panelState = panelState;
     self.percentComplete = 0;
-    self.frameCount = 0;
     self.totalFrames = 0;
     self.isDestroyed = false;
     self.isAborting = false;
     self.dots = '.';
+
+    frameCache.setAnimationArgs({
+        fieldAnimation: ['field', 'coordinate', 'mode'],
+        particleAnimation: ['x', 'y', 'histogramBins'],
+    });
 
     $scope.$on('$destroy', function () {
         self.isDestroyed = true;
@@ -34,7 +38,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
         requestSender.sendRequest(
             'runStatus',
             function(data) {
-                self.frameCount = data.frameCount;
+                frameCache.setFrameCount(data.frameCount);
                 self.totalFrames = data.totalFrames;
                 if (self.isAborting)
                     return;
@@ -82,6 +86,10 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
         return self.percentComplete;
     };
 
+    self.getFrameCount = function() {
+        return frameCache.frameCount;
+    };
+
     self.isInitializing = function() {
         if (self.isState('running'))
             return self.percentComplete < 1;
@@ -101,6 +109,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
         requestSender.sendRequest(
             'runBackground',
             function(data) {
+                appState.models.simulationStatus.startTime = data['startTime'];
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
