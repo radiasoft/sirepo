@@ -12,7 +12,9 @@ import json
 import os
 import random
 import re
+import signal
 import string
+import sys
 import subprocess
 import threading
 import time
@@ -55,6 +57,10 @@ _JSON_FILE_RE = re.compile(r'\.json$')
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+
+_BACKGROUND_PID = None
+
+_BACKGROUND_SIMULATION_ID = None
 
 with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
     _SCHEMA_COMMON = json.load(f)
@@ -162,7 +168,7 @@ def app_run():
 @app.route(_SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
     data = json.loads(_read_http_input())
-    if _Command.is_background_running(_id(data)):
+    if _Background.is_running():
         pkdp('ignoring second call to runBackground: {}'.format(_id(data)))
         return '{}'
     status = data['models']['simulationStatus'];
@@ -172,7 +178,7 @@ def app_run_background():
     wd = _work_dir()
     out_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
     pkio.unchecked_remove(out_dir)
-    _setup_simulation(data, wd, ['run-background', str(wd), str(out_dir)], persistent_files_dir=out_dir).run_background(_id(data))
+    _setup_simulation(data, wd, ['run-background', str(wd), str(out_dir)], persistent_files_dir=out_dir).run(_id(data))
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -185,7 +191,7 @@ def app_run_cancel():
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
     _save_simulation_json(simulation_type, data)
-    _Command.kill_background(_id(data))
+    _Background.kill()
     # the last frame file may not be finished, remove it
     _template_for_simulation_type(simulation_type).remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
     return '{}'
@@ -197,7 +203,7 @@ def app_run_status():
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
 
-    if _Command.is_background_running(_id(data)):
+    if _Background.is_running():
         completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), True)
         state = 'running'
     else:
@@ -387,6 +393,8 @@ def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
             persistent_files_dir=persistent_files_dir)
     )
     template.prepare_aux_files(wd)
+    if persistent_files_dir:
+        return _Background(['sirepo', simulation_type] + cmd, workdir=wd)
     return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
 
 
@@ -412,7 +420,91 @@ def _work_dir():
     raise RuntimeError('{}: failed to create unique directory name'.format(d))
 
 
-_BACKGROUND_THREAD_LIST = {}
+class _Background(object):
+    def __init__(self, cmd, workdir):
+        self.cmd = cmd
+        self.workdir = workdir
+
+    @classmethod
+    def wait(cls):
+        for _ in range(5):
+            cls.is_running()
+            if not _BACKGROUND_PID:
+                return
+            time.sleep(1)
+
+    @classmethod
+    def is_running(cls):
+        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
+        if not _BACKGROUND_PID:
+            return False
+        try:
+            os.kill(_BACKGROUND_PID, 0)
+            pid, status = os.waitpid(_BACKGROUND_PID, os.WNOHANG)
+            if pid == _BACKGROUND_PID:
+                _BACKGROUND_PID = None
+                _BACKGROUND_SIMULATION_ID = None
+                return False
+        except OSError:
+            _BACKGROUND_PID = None
+            _BACKGROUND_SIMULATION_ID = None
+            return False
+        return True
+
+    @classmethod
+    def kill(cls):
+        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
+        if cls.is_running():
+            pkdp('killing {} {}', _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID)
+            os.kill(_BACKGROUND_PID, signal.SIGKILL)
+            cls.wait()
+
+    def run(self, simulation_id):
+        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
+        _BACKGROUND_PID = self._create_daemon()
+        _BACKGROUND_SIMULATION_ID = simulation_id
+
+    def _create_daemon(self):
+        """Detach a process from the controlling terminal and run it in the
+        background as a daemon.
+        """
+        try:
+            pid = os.fork()
+        except OSError, e:
+            pkdp('fork: {} ({})', e.strerror, e.errno)
+            reraise
+        if pid != 0:
+            return pid
+        try:
+            os.chdir(str(self.workdir))
+            os.setsid()
+            import resource
+            maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+            if (maxfd == resource.RLIM_INFINITY):
+                maxfd = 1024
+            for fd in range(0, maxfd):
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+            sys.stdin = open('/tmp/daemon.log', 'a+')
+            assert sys.stdin.fileno() == 0
+            os.dup2(0, 1)
+            sys.stdout = os.fdopen(1, 'a+')
+            os.dup2(0, 2)
+            sys.stderr = os.fdopen(2, 'a+')
+            pkdp('Starting: {}', self.cmd)
+            try:
+                os.execvp(self.cmd[0], self.cmd)
+            finally:
+                pkdp('execvp: {} ({})', e.strerror, e.errno)
+                sys.exit(1)
+        except BaseException as e:
+            err = open(str(self.workdir.join('daemon-err.log')), 'a')
+            err.write('Error starting daemon: {}\n'.format(e))
+            err.close()
+            reraise
+
 
 class _Command(threading.Thread):
     """Run a command in a thread, and kill after timeout"""
@@ -427,17 +519,6 @@ class _Command(threading.Thread):
         self.out = ''
         self.background_simulation_id = ''
 
-    @classmethod
-    def is_background_running(cls, simulation_id):
-        return simulation_id in _BACKGROUND_THREAD_LIST
-
-    @classmethod
-    def kill_background(cls, simulation_id):
-        #TODO(pjm): thread safety
-        if simulation_id in _BACKGROUND_THREAD_LIST:
-            print('killing {}'.format(simulation_id))
-            _BACKGROUND_THREAD_LIST[simulation_id].process.kill()
-
     def run(self):
         self.process = subprocess.Popen(
             self.cmd,
@@ -445,9 +526,6 @@ class _Command(threading.Thread):
             stderr=subprocess.STDOUT,
         )
         self.out = self.process.communicate()[0]
-        if self.background_simulation_id in _BACKGROUND_THREAD_LIST:
-            del _BACKGROUND_THREAD_LIST[self.background_simulation_id]
-            #TODO(pjm): clean up working directory
 
     def run_and_read(self):
         self.start()
@@ -466,7 +544,8 @@ class _Command(threading.Thread):
             return self.out + '\nError: simulation failed'
         return None
 
-    def run_background(self, simulation_id):
-        self.start()
-        self.background_simulation_id = simulation_id
-        _BACKGROUND_THREAD_LIST[simulation_id] = self
+
+def _sigchld_handler(signum=None, frame=None):
+    _Background.wait()
+
+signal.signal(signal.SIGCHLD, _sigchld_handler)
