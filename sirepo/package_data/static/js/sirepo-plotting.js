@@ -116,7 +116,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                     };
                     scope.$on('modelsLoaded', requestData);
                     scope.$on('framesLoaded', function() {
-                        if (scope.prevFrameIndex < 0)
+                        if (scope.prevFrameIndex < 0 || scope.prevFrameIndex > frameCache.frameCount)
                             scope.firstFrame();
                         // go to the next last frame, if the current frame was the previous last frame
                         else if (frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 2)
