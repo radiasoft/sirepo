@@ -65,7 +65,7 @@
         },
         "simulationGrid": {
             "gridDimensions": ["Grid Dimensions", "GridDimensions"],
-            "zLambda": ["Number of Wavelengths", "Float"],
+            "zLambda": ["Number of Cells per Wavelength", "Float"],
             "xMin": ["X Min [µm]", "Float"],
             "xMax": ["X Max [µm]", "Float"],
             "xCount": ["X Number of Cells", "Integer"],
