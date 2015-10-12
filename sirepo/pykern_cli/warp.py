@@ -47,10 +47,15 @@ def _run_warp(persistent_file_dir=None):
     field = 'E'
     coordinate = 'r'
     mode = 1
-    iteration = 400
 
     exec(pkio.read_text('warp_parameters.py'), locals(), locals())
-    step(iteration)
+    iteration = 0
+
+    doit = True
+    while(doit):
+        step(50)
+        iteration += 50
+        doit = ( w3d.zmmin + top.zgrid < 0 )
 
     out_dir = (persistent_file_dir + '/') if persistent_file_dir else ''
     dfile = h5py.File(out_dir + 'diags/hdf5/data00000' + str(iteration) + '.h5', "r")
