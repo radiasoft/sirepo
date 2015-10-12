@@ -58,7 +58,7 @@ def _run_warp(persistent_file_dir=None):
         doit = ( w3d.zmmin + top.zgrid < 0 )
 
     out_dir = (persistent_file_dir + '/') if persistent_file_dir else ''
-    dfile = h5py.File(out_dir + 'diags/hdf5/data00000' + str(iteration) + '.h5', "r")
+    dfile = h5py.File(out_dir + 'diags/hdf5/data' + str(iteration).zfill(8) + '.h5', "r")
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
     F = np.flipud(np.array(dset[mode,:,:]).T)
     Nr, Nz = F.shape[0], F.shape[1]
