@@ -124,6 +124,11 @@ def prepare_aux_files(wd):
     pass
 
 
+def remove_last_frame(persistent_files_dir):
+    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
+    if len(files) > 0:
+        os.remove(files[-1])
+
 def run_all_text():
     return '''
 doit = True
