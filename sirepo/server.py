@@ -183,8 +183,11 @@ def app_run_background():
 def app_run_cancel():
     data = json.loads(_read_http_input())
     data['models']['simulationStatus']['state'] = 'canceled'
-    _save_simulation_json(data['simulationType'], data)
+    simulation_type = data['simulationType']
+    _save_simulation_json(simulation_type, data)
     _Command.kill_background(_id(data))
+    # the last frame file may not be finished, remove it
+    _template_for_simulation_type(simulation_type).remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
     return '{}'
 
 
