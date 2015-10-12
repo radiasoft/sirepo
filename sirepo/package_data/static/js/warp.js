@@ -29,6 +29,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
         fieldAnimation: ['field', 'coordinate', 'mode'],
         particleAnimation: ['x', 'y', 'histogramBins'],
     });
+    frameCache.setFrameCount(0);
 
     $scope.$on('$destroy', function () {
         self.isDestroyed = true;
@@ -105,6 +106,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
     self.runSimulation = function() {
         if (appState.models.simulationStatus.state == 'running')
             return;
+        frameCache.setFrameCount(0);
         appState.models.simulationStatus.state = 'running';
         requestSender.sendRequest(
             'runBackground',
