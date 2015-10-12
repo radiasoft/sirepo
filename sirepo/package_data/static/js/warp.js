@@ -142,33 +142,40 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
     constants.betafrm = Math.sqrt(1.0 -1.0 / Math.pow(constants.gammafrm, 2));
 
     function calculateWaistAndLength(newValue, oldValue) {
-        if (newValue) {
-            var laserPulse = appState.models.laserPulse;
-            if (laserPulse.pulseDimensions == 'r') {
-                var wplab = Math.sqrt(
-                    appState.models.electronPlasma.density
-                        * Math.pow(constants.echarge, 2)
-                        / (constants.eps0 * constants.emass));
-                var kplab = wplab / constants.clight;
-                laserPulse.waist = (1e6 * laserPulse.spotSize / kplab).toFixed(12);
-                laserPulse.duration = (1e12 * laserPulse.length / kplab / constants.clight).toFixed(12);
-            }
+        if (newValue)
+            recalculateWaistAndLength();
+    }
+
+    function recalculateWaistAndLength() {
+        var laserPulse = appState.models.laserPulse;
+        if (laserPulse.pulseDimensions == 'r') {
+            var wplab = Math.sqrt(
+                appState.models.electronPlasma.density
+                    * Math.pow(constants.echarge, 2)
+                    / (constants.eps0 * constants.emass));
+            var kplab = wplab / constants.clight;
+            laserPulse.waist = (1e6 * laserPulse.spotSize / kplab).toFixed(12);
+            laserPulse.duration = (1e12 * laserPulse.length / kplab / constants.clight).toFixed(12);
+            recalculateXZMinMax();
         }
     }
 
     function calculateXZMinMax(newValue, oldValue) {
-        if (newValue) {
-            var grid = appState.models.simulationGrid;
-            if (grid.gridDimensions == 's') {
-                var laserPulse = appState.models.laserPulse;
-                var totalLength = laserPulse.duration / 1e12 * 4 * constants.clight;
-                grid.xMax = (2.5 * totalLength * 1e6).toFixed(12);
-                grid.xMin = (-grid.xMax).toFixed(12);
-                grid.zMin = (-1.3 * totalLength * 1e6).toFixed(12);
-                var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
-                grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
-                grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zLambda / lambdaLaser);
-            }
+        if (newValue)
+            recalculateXZMinMax();
+    }
+
+    function recalculateXZMinMax() {
+        var grid = appState.models.simulationGrid;
+        if (grid.gridDimensions == 's') {
+            var laserPulse = appState.models.laserPulse;
+            var totalLength = laserPulse.duration / 1e12 * 4 * constants.clight;
+            grid.xMax = (2.5 * totalLength * 1e6).toFixed(12);
+            grid.xMin = (-grid.xMax).toFixed(12);
+            grid.zMin = (-1.3 * totalLength * 1e6).toFixed(12);
+            var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
+            grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
+            grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zLambda / lambdaLaser);
         }
     }
 
@@ -208,7 +215,7 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
             else {
                 setVisibility(['simulationGrid.zLambda'], true, oldValue);
                 setReadOnly(fields, true);
-                calculateXZMinMax(1);
+                recalculateXZMinMax();
             }
         }
     }
@@ -223,7 +230,7 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
             else {
                 setVisibility(['laserPulse.length', 'laserPulse.spotSize'], true, oldValue);
                 setReadOnly(fields, true);
-                calculateWaistAndLength(1);
+                recalculateWaistAndLength();
             }
         }
     }
@@ -236,4 +243,20 @@ app.controller('WARPSourceController', function($scope, activeSection, appState)
     $scope.$watch('appState.models.simulationGrid.zLambda', calculateXZMinMax);
     $scope.$watch('appState.models.laserPulse.duration', calculateXZMinMax);
     $scope.$watch('appState.models.laserPulse.wavelength', calculateXZMinMax);
+
+    $scope.$on(
+        'laserPulse.changed',
+        function() {
+            if (appState.models.simulationGrid.gridDimensions == 's')
+                appState.saveQuietly('simulationGrid');
+        });
+    $scope.$on(
+        'electronPlasma.changed',
+        function() {
+            if (appState.models.simulationGrid.gridDimensions == 's')
+                appState.saveQuietly('simulationGrid');
+            if (appState.models.laserPulse.pulseDimensions == 'r')
+                appState.saveQuietly('laserPulse');
+        });
+
 });
