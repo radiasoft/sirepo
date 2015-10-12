@@ -224,6 +224,11 @@ app.factory('appState', function($rootScope, requestSender) {
         self.saveChanges('beamline');
     };
 
+    self.saveQuietly = function(name) {
+        // saves the model, but doesn't broadcast the change
+        savedModelValues[name] = self.cloneModel(name);
+    }
+
     self.saveChanges = function(name) {
         if (name == 'electronBeam') {
             // keep beamSelector in sync with name, sort beams by name
@@ -242,7 +247,7 @@ app.factory('appState', function($rootScope, requestSender) {
                 return a.name.localeCompare(b.name);
             });
         }
-        savedModelValues[name] = self.cloneModel(name);
+        self.saveQuietly(name);
 
         if (name == 'electronBeam') {
             broadcastChanged(name);
@@ -255,9 +260,9 @@ app.factory('appState', function($rootScope, requestSender) {
             self.saveChanges('simulation');
             return;
         }
+        broadcastChanged(name);
         if (! self.isReportModelName(name))
             updateReports();
-        broadcastChanged(name);
     };
 
     self.viewInfo = function(name) {
