@@ -23,6 +23,15 @@ _MODE_TEXT = {
     '2': '1 (imaginary part)',
 }
 
+_PARTICLE_ARG_PATH = {
+    'x' : 'position/x',
+    'y' : 'position/y',
+    'z' : 'position/z',
+    'ux' : 'momentum/x',
+    'uy' : 'momentum/y',
+    'uz' : 'momentum/z',
+}
+
 def background_percent_complete(data, persistent_files_dir, is_running):
     simulation_id = data['models']['simulation']['simulationId']
     files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
@@ -60,6 +69,17 @@ def background_percent_complete(data, persistent_files_dir, is_running):
 def fixup_old_data(data):
     if 'laserPreviewReport' not in data['models']:
         data['models']['laserPreviewReport'] = {}
+    if 'particleAnimation' not in data['models']:
+        data['models']['particleAnimation'] = {
+            'x': 'z',
+            'y': 'x',
+            'histogramBins': 100,
+        }
+    if 'simulationStatus' not in data['models']:
+        data['models']['simulationStatus'] = {
+            'startTime': 0,
+            'state': 'initial',
+        }
     if 'startTime' not in data['models']['simulationStatus']:
         data['models']['simulationStatus']['startTime'] = 0
     if 'histogramBins' not in data['models']['particleAnimation']:
@@ -132,10 +152,9 @@ def _field_animation(args, dfile, iteration, frame_count):
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
         'x_label': 'z [m]',
-#TODO(pjm): fix labels
         'y_label': 'r [m]',
-        'title': "{} {} in the mode {} at {:.1f} fs (iteration {})".format(
-            field, coordinate, _MODE_TEXT[str(mode)], iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration),
+        'title': "{} {} in the mode {} at {}".format(
+            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(dfile, iteration)),
         'z_matrix': np.flipud(F).tolist(),
         'frameCount': frame_count,
     }
@@ -154,15 +173,9 @@ def _h5_file_list(path_to_dir):
     h5_files.sort()
     return h5_files
 
-
-_PARTICLE_ARG_PATH = {
-    'x' : 'position/x',
-    'y' : 'position/y',
-    'z' : 'position/z',
-    'ux' : 'momentum/x',
-    'uy' : 'momentum/y',
-    'uz' : 'momentum/z',
-}
+def _iteration_title(dfile, iteration):
+    return '{:.1f} fs (iteration {})'.format(
+        iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration)
 
 def _particle_animation(args, dfile, iteration, frame_count):
     xarg = args[0]
@@ -174,12 +187,12 @@ def _particle_animation(args, dfile, iteration, frame_count):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'z_matrix': hist.T.tolist(),
         'x_label': '{} [m]'.format(xarg),
         'y_label': '{} [m]'.format(yarg),
+        'title': 't = {}'.format(_iteration_title(dfile, iteration)),
+        'z_matrix': hist.T.tolist(),
         'frameCount': frame_count,
     }
-
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
