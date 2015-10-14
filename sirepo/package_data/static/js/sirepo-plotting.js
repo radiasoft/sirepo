@@ -629,7 +629,7 @@ app.directive('heatmap', function(plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
 
-            var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange;
+            var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange, pointer;
 
             function colorMap(levels) {
                 var colorMap = [];
@@ -661,8 +661,10 @@ app.directive('heatmap', function(plotting) {
 
             function initDraw(zmin, zmax) {
                 var levels = 50;
+                var colorRange = d3.range(zmin, zmax, (zmax - zmin) / levels);
+                colorRange.push(zmax);
                 var color = d3.scale.linear()
-                    .domain(d3.range(zmin, zmax, (zmax - zmin) / levels))
+                    .domain(colorRange)
                     .range(colorMap(levels));
                 var xmax = xValueRange.length - 1;
                 var ymax = yValueRange.length - 1;
@@ -692,6 +694,16 @@ app.directive('heatmap', function(plotting) {
                     .thickness(30)
                     .margin({top: 0, right: 60, bottom: 20, left: 10})
                     .orient("vertical");
+            }
+
+            function mouseMove() {
+                var point = d3.mouse(this);
+                var x0 = xAxisScale.invert(point[0] - 1);
+                var y0 = yAxisScale.invert(point[1] - 1);
+                var x = Math.round((heatmap[0].length - 1) * (x0 - xValueMin) / (xValueMax - xValueMin));
+                var y = Math.round((heatmap.length - 1) * (y0 - yValueMin) / (yValueMax - yValueMin));
+                var value = heatmap[heatmap.length - 1 - y][x];
+                pointer.pointTo(value)
             }
 
             function refresh() {
@@ -770,10 +782,9 @@ app.directive('heatmap', function(plotting) {
             }
 
             function resize() {
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! heatmap || isNaN(width))
+                var canvasSize = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (! heatmap || isNaN(canvasSize))
                     return;
-                var canvasSize = 3 * width / 4;
                 $scope.canvasSize = canvasSize;
                 plotting.ticks(yAxis, canvasSize, false);
                 plotting.ticks(xAxis, canvasSize, false);
@@ -785,7 +796,7 @@ app.directive('heatmap', function(plotting) {
                 select('.mouse-rect').call($scope.zoom);
                 colorbar.barlength(canvasSize)
                     .origin([0, 0]);
-                select('.colorbar').call(colorbar);
+                pointer = select('.colorbar').call(colorbar);
                 refresh();
             };
 
@@ -816,6 +827,7 @@ app.directive('heatmap', function(plotting) {
                     .on('zoom', refresh);
                 canvas = select('canvas');
                 mouseRect = select('.mouse-rect');
+                mouseRect.on('mousemove', mouseMove);
                 ctx = canvas.node().getContext('2d');
                 $scope.imageObj = new Image();
                 $scope.imageObj.onload = function() {
@@ -873,6 +885,7 @@ app.directive('heatmap', function(plotting) {
             scope.$on('$destroy', function() {
                 scope.element = null;
                 $(window).off('resize', scope.windowResize);
+                $('.mouse-rect').off();
                 scope.zoom.on('zoom', null);
                 scope.imageObj.onload = null;
             });
