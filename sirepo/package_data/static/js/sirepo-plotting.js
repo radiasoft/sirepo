@@ -137,6 +137,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                     scope.modelName + '.changed',
                     function() {
                         scope.prevFrameIndex = -1;
+                        scope.modelChanged();
                         panelState.clear(scope.modelName);
                         requestData();
                     });
@@ -631,6 +632,20 @@ app.directive('heatmap', function(plotting) {
 
             var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange, pointer;
 
+            var EMA = function() {
+                var avg = null;
+                var length = 10;
+                var alpha = 2.0 / (length + 1.0);
+                this.compute = function(value) {
+                    return avg += avg !== null
+	                ? alpha * (value - avg)
+	                : value;
+                }
+            };
+
+            var allFrameMin = new EMA();
+            var allFrameMax = new EMA();
+
             function colorMap(levels) {
                 var colorMap = [];
                 var mapGen = {
@@ -871,8 +886,13 @@ app.directive('heatmap', function(plotting) {
                             zmin = zi;
                     }
                 }
-                initDraw(zmin, zmax);
+                initDraw(allFrameMin.compute(zmin), allFrameMax.compute(zmax));
                 resize();
+            };
+
+            $scope.modelChanged = function() {
+                allFrameMin = new EMA();
+                allFrameMax = new EMA();
             };
 
             $scope.windowResize = plotting.debounce(function() {
