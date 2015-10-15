@@ -137,7 +137,8 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                     scope.modelName + '.changed',
                     function() {
                         scope.prevFrameIndex = -1;
-                        scope.modelChanged();
+                        if (scope.modelChanged)
+                            scope.modelChanged();
                         panelState.clear(scope.modelName);
                         requestData();
                     });
