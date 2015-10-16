@@ -427,6 +427,7 @@ class _Background(object):
 
     @classmethod
     def wait(cls):
+        pkdp('wait {}', os.getpid())
         for _ in range(5):
             cls.is_running()
             if not _BACKGROUND_PID:
@@ -455,11 +456,20 @@ class _Background(object):
     def kill(cls):
         global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
         if cls.is_running():
-            pkdp('killing {} {}', _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID)
+            pkdp(
+                '{} is killing {} {}',
+                os.getpid(),
+                _BACKGROUND_PID,
+                _BACKGROUND_SIMULATION_ID,
+            )
             os.kill(_BACKGROUND_PID, signal.SIGKILL)
             cls.wait()
 
     def run(self, simulation_id):
+        try:
+            signal.signal(signal.SIGCHLD, _sigchld_handler)
+        except ValueError:
+            pass
         global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
         _BACKGROUND_PID = self._create_daemon()
         _BACKGROUND_SIMULATION_ID = simulation_id
@@ -546,6 +556,8 @@ class _Command(threading.Thread):
 
 
 def _sigchld_handler(signum=None, frame=None):
+    os.kill(os.getpid(), signal.SIGTERM)
+    pkdp('wait on {}', os.getpid())
     _Background.wait()
 
 signal.signal(signal.SIGCHLD, _sigchld_handler)
