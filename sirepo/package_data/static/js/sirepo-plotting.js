@@ -93,6 +93,8 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                     scope.firstFrame = function() {
                         scope.isPlaying = false;
                         frameCache.setCurrentFrame(scope.modelName, 0);
+                        if (scope.modelChanged)
+                            scope.modelChanged();
                         requestData();
                     };
                     scope.hasFrames = function() {
@@ -635,7 +637,7 @@ app.directive('heatmap', function(plotting) {
 
             var EMA = function() {
                 var avg = null;
-                var length = 10;
+                var length = 3;
                 var alpha = 2.0 / (length + 1.0);
                 this.compute = function(value) {
                     return avg += avg !== null
