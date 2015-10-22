@@ -84,6 +84,9 @@ def fixup_old_data(data):
         data['models']['simulationStatus']['startTime'] = 0
     if 'histogramBins' not in data['models']['particleAnimation']:
         data['models']['particleAnimation']['histogramBins'] = 100
+    if 'framesPerSecond' not in data['models']['fieldAnimation']:
+        data['models']['fieldAnimation']['framesPerSecond'] = 20
+        data['models']['particleAnimation']['framesPerSecond'] = 20
 
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
