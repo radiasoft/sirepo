@@ -74,7 +74,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                         if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex)
                             return;
                         scope.prevFrameIndex = index;
-                        frameCache.getFrame(scope.modelName, index, 50, function(index, data) {
+                        frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
                             if (scope.element)
                                 scope.load(data);
                             if (scope.isPlaying)
