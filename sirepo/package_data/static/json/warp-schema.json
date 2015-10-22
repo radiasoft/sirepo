@@ -15,6 +15,14 @@
             ["1", "real part of mode 1"],
             ["2", "imaginary part of mode 1"]
         ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
         "GridDimensions": [
             ["a", "Absolute"],
             ["s", "Scale to Laser Pulse"]
@@ -79,12 +87,14 @@
         "particleAnimation": {
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"],
-            "histogramBins": ["Histogram Bins", "Integer"]
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
-            "mode": ["Mode", "FieldMode"]
+            "mode": ["Mode", "FieldMode"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
         "laserPreviewReport": {
         },
@@ -169,7 +179,8 @@
             "advanced": [
                 "x",
                 "y",
-                "histogramBins"
+                "histogramBins",
+                "framesPerSecond"
             ]
         },
         "fieldAnimation": {
@@ -177,7 +188,8 @@
             "advanced": [
                 "field",
                 "coordinate",
-                "mode"
+                "mode",
+                "framesPerSecond"
             ]
         },
         "laserPreviewReport": {
