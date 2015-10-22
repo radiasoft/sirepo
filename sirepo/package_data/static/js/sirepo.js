@@ -297,10 +297,13 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
         return 0;
     };
 
-    self.getFrame = function(modelName, index, callbackTimer, callback) {
+    self.getFrame = function(modelName, index, isPlaying, callback) {
         if (! appState.isLoaded())
             return;
         var startTime = new Date().getTime();
+        var delay = isPlaying
+            ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
+            : 0;
         var frameId = [
             APP_SCHEMA.simulationType,
             appState.models.simulation.simulationId,
@@ -318,10 +321,10 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             function(data) {
                 var endTime = new Date().getTime();
                 var elapsed = endTime - startTime;
-                if (elapsed < callbackTimer)
+                if (elapsed < delay)
                     $timeout(function() {
                         callback(index, data);
-                    }, callbackTimer - elapsed);
+                    }, delay - elapsed);
                 else
                     callback(index, data);
             });
