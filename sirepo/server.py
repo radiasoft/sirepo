@@ -58,15 +58,14 @@ _JSON_FILE_RE = re.compile(r'\.json$')
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
-_BACKGROUND_PID = None
-
-_BACKGROUND_SIMULATION_ID = None
 
 with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
     _SCHEMA_COMMON = json.load(f)
 
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER), template_folder=str(_STATIC_FOLDER))
+
 
 def init(run_dir):
     """Initialize globals and populate simulation dir"""
@@ -152,33 +151,37 @@ def app_run():
     wd = _work_dir()
     err = _setup_simulation(data, wd, ['run', str(wd)]).run_and_read()
     if err:
-        i = _id(data)
-        pkdp('error: simulationId={}, dir={}, out={}', i, wd, err)
+        sid = _id(data)
+        pkdp('error: sid={}, dir={}, out={}', sid, wd, err)
         return flask.jsonify({
             'error': _error_text(err),
-            'simulationId': i,
+            'simulationId': sid,
         })
     data = pkio.read_text(wd.join('out.json'))
     # Remove only in the case of a non-error/exception. If there's an error, we may
     # want to debug
-    pkio.unchecked_remove(wd)
+    # pkio.unchecked_remove(wd)
     return data
 
 
 @app.route(_SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
     data = json.loads(_read_http_input())
-    if _Background.is_running():
-        pkdp('ignoring second call to runBackground: {}'.format(_id(data)))
+    sid = _id(data)
+    #TODO(robnagler) race condition. Need to lock the simulation
+    if _Background.is_running(sid):
+        #TODO(robnagler) return error to user if in different window
+        pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
     status = data['models']['simulationStatus'];
     status['state'] = 'running'
     status['startTime'] = int(time.time() * 1000)
     _save_simulation_json(data['simulationType'], data)
     wd = _work_dir()
-    out_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
+    out_dir = _simulation_persistent_dir(data['simulationType'], sid)
     pkio.unchecked_remove(out_dir)
-    _setup_simulation(data, wd, ['run-background', str(wd), str(out_dir)], persistent_files_dir=out_dir).run(_id(data))
+    cmd = ['run-background', str(wd), str(out_dir)]
+    _setup_simulation(data, wd, cmd, out_dir)
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -191,9 +194,10 @@ def app_run_cancel():
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
     _save_simulation_json(simulation_type, data)
-    _Background.kill()
+    _Background.kill(_id(data))
     # the last frame file may not be finished, remove it
-    _template_for_simulation_type(simulation_type).remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
+    t = _template_for_simulation_type(simulation_type)
+    t.remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
     return '{}'
 
 
@@ -202,8 +206,7 @@ def app_run_status():
     data = json.loads(_read_http_input())
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
-
-    if _Background.is_running():
+    if _Background.is_running(_id(data)):
         completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), True)
         state = 'running'
     else:
@@ -394,7 +397,7 @@ def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
     )
     template.prepare_aux_files(wd)
     if persistent_files_dir:
-        return _Background(['sirepo', simulation_type] + cmd, workdir=wd)
+        return _Background(_id(data), ['sirepo', simulation_type] + cmd, workdir=wd)
     return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
 
 
@@ -421,58 +424,93 @@ def _work_dir():
 
 
 class _Background(object):
-    def __init__(self, cmd, workdir):
-        self.cmd = cmd
-        self.workdir = workdir
+
+    # Map of sid to instance
+    _process = {}
+
+    # mutex for _process
+    _lock = threading.Lock()
+
+    def __init__(self, sid, cmd, workdir):
+        with self._lock:
+            assert not sid in self._process, \
+                'Simulation already running: sid={}'.format(sid)
+            self.in_kill = False
+            self.sid = sid
+            self.cmd = cmd
+            self.workdir = workdir
+            self._process[sid] = self
+            # This command may blow up
+            self.pid = self._create_daemon()
 
     @classmethod
-    def wait(cls):
-        pkdp('wait {}', os.getpid())
-        for _ in range(5):
-            cls.is_running()
-            if not _BACKGROUND_PID:
-                return
-            time.sleep(1)
-
-    @classmethod
-    def is_running(cls):
-        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
-        if not _BACKGROUND_PID:
-            return False
-        try:
-            os.kill(_BACKGROUND_PID, 0)
-            pid, status = os.waitpid(_BACKGROUND_PID, os.WNOHANG)
-            if pid == _BACKGROUND_PID:
-                _BACKGROUND_PID = None
-                _BACKGROUND_SIMULATION_ID = None
+    def is_running(cls, sid):
+        with cls._lock:
+            try:
+                self = cls._process[sid]
+            except KeyError:
                 return False
-        except OSError:
-            _BACKGROUND_PID = None
-            _BACKGROUND_SIMULATION_ID = None
-            return False
+            if self.in_kill:
+                # Strange but true. The process is alive at this point so we
+                # don't want to do anything like start a new process
+                return True
+            try:
+                os.kill(self.pid, 0)
+            except OSError:
+                # Has to exist so no need to protect
+                del self._process[sid]
+                return False
         return True
 
     @classmethod
-    def kill(cls):
-        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
-        if cls.is_running():
-            pkdp(
-                '{} is killing {} {}',
-                os.getpid(),
-                _BACKGROUND_PID,
-                _BACKGROUND_SIMULATION_ID,
-            )
-            os.kill(_BACKGROUND_PID, signal.SIGKILL)
-            cls.wait()
+    def kill(cls, sid):
+        self = None
+        with cls._lock:
+            try:
+                self = cls._process[sid]
+            except KeyError:
+                return
+            #TODO(robnagler) will this happen?
+            if self.in_kill:
+                return
+            self.in_kill = True
+        pkdp('Killing: pid={} sid={}', self.pid, self.sid)
+        sig = signal.SIGTERM
+        for i in range(3):
+            try:
+                os.kill(self.pid, sig)
+                time.sleep(1)
+                pid, status = os.waitpid(self.pid, os.WNOHANG)
+                if pid == self.pid:
+                    pkdp('waitpid: pid={} status={}', pid, status)
+                    break
+                sig = signal.SIGKILL
+            except OSError:
+                # Already reaped(?)
+                break
+        with cls._lock:
+            self.in_kill = False
+            try:
+                del self._process[self.sid]
+                pkdp('Deleted: sid={}', self.sid)
+            except KeyError:
+                pass
 
-    def run(self, simulation_id):
+    @classmethod
+    def sigchld_handler(cls, signum=None, frame=None):
         try:
-            signal.signal(signal.SIGCHLD, _sigchld_handler)
-        except ValueError:
-            pass
-        global _BACKGROUND_PID, _BACKGROUND_SIMULATION_ID
-        _BACKGROUND_PID = self._create_daemon()
-        _BACKGROUND_SIMULATION_ID = simulation_id
+            pid, status = os.waitpid(-1, os.WNOHANG)
+            pkdp('waitpid: pid={} status={}', pid, status)
+            with cls._lock:
+                for self in cls._process.values():
+                    if self.pid == pid:
+                        del self._process[self.sid]
+                        pkdp('Deleted: sid={}', self.sid)
+                        return
+        except OSError as e:
+            if e.errno != errno.ECHILD:
+                pkdp('waitpid OSError: {} ({})', e.strerror, e.errno)
+                # Fall through. Not much to do here
 
     def _create_daemon(self):
         """Detach a process from the controlling terminal and run it in the
@@ -480,10 +518,11 @@ class _Background(object):
         """
         try:
             pid = os.fork()
-        except OSError, e:
-            pkdp('fork: {} ({})', e.strerror, e.errno)
+        except OSError as e:
+            pkdp('fork OSError: {} ({})', e.strerror, e.errno)
             reraise
         if pid != 0:
+            pkdp('Started: pid={} sid={} cmd={}', pid, self.sid, self.cmd)
             return pid
         try:
             os.chdir(str(self.workdir))
@@ -497,20 +536,21 @@ class _Background(object):
                     os.close(fd)
                 except OSError:
                     pass
-            sys.stdin = open('/tmp/daemon.log', 'a+')
+            sys.stdin = open('background.log', 'a+')
             assert sys.stdin.fileno() == 0
             os.dup2(0, 1)
             sys.stdout = os.fdopen(1, 'a+')
             os.dup2(0, 2)
             sys.stderr = os.fdopen(2, 'a+')
-            pkdp('Starting: {}', self.cmd)
+            pkdp('Starting: cmd={}', self.cmd)
+            sys.stderr.flush()
             try:
                 os.execvp(self.cmd[0], self.cmd)
             finally:
-                pkdp('execvp: {} ({})', e.strerror, e.errno)
+                pkdp('execvp error: {} ({})', e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
-            err = open(str(self.workdir.join('daemon-err.log')), 'a')
+            err = open(str(self.workdir.join('background.log')), 'a')
             err.write('Error starting daemon: {}\n'.format(e))
             err.close()
             reraise
@@ -555,9 +595,4 @@ class _Command(threading.Thread):
         return None
 
 
-def _sigchld_handler(signum=None, frame=None):
-    os.kill(os.getpid(), signal.SIGTERM)
-    pkdp('wait on {}', os.getpid())
-    _Background.wait()
-
-signal.signal(signal.SIGCHLD, _sigchld_handler)
+signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
