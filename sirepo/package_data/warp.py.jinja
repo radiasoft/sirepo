@@ -200,8 +200,8 @@ plot_intervals = tmax/10
 #-------------------------------------------------------------------------------
 
 # Grid dimensions
-w3d.xmmax = {{simulationGrid_xMax}}
-w3d.xmmin = {{simulationGrid_xMin}}
+w3d.xmmax = {{simulationGrid_rMax}}
+w3d.xmmin = {{simulationGrid_rMin}}
 w3d.ymmax = w3d.xmmax
 w3d.ymmin = -w3d.ymmax
 w3d.zmmin = {{simulationGrid_zMin}}
@@ -218,9 +218,8 @@ if dim == "2d" and l_circ == 1 :
     w3d.xmmin = 0.
 
 # Number of grid points
-w3d.nx = {{simulationGrid_xCount}} # transverse
+w3d.nx = {{simulationGrid_rCount}} # transverse
 w3d.ny = 300            # transverse
-nzplambda = {{simulationGrid_zLambda}} # longitudinal (per laser wavelength)
 w3d.nz = {{simulationGrid_zCount}} # total
 # Verification of the input parameters
 if dim == "1d" : w3d.nx = w3d.ny = 2
