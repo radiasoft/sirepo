@@ -73,12 +73,17 @@
         },
         "simulationGrid": {
             "gridDimensions": ["Grid Dimensions", "GridDimensions"],
-            "zLambda": ["Number of Cells per Wavelength", "Float"],
-            "xMin": ["X Min [µm]", "Float"],
-            "xMax": ["X Max [µm]", "Float"],
-            "xCount": ["X Number of Cells", "Integer"],
+            "rScale": ["R Scale", "Float"],
+            "rLength": ["R Length [µm]", "Float"],
+            "rMin": ["R Min [µm]", "Float"],
+            "rMax": ["R Max [µm]", "Float"],
+            "rCellsPerSpotSize": ["R Cells per Spot Size", "Integer"],
+            "rCount": ["R Number of Cells", "Integer"],
+            "zScale": ["Z Scale", "Float"],
+            "zLength": ["Z Length [µm]", "Float"],
             "zMin": ["Z Min [µm]", "Float"],
             "zMax": ["Z Max [µm]", "Float"],
+            "zCellsPerWavelength": ["Z Cells per Laser Wavelength", "Integer"],
             "zCount": ["Z Number of Cells", "Integer"]
         },
         "simulation": {
@@ -124,16 +129,21 @@
             ],
             "advanced": [
                 "gridDimensions",
-                "zLambda",
                 [
-                    ["X", [
-                        "xMin",
-                        "xMax",
-                        "xCount"
+                    ["R", [
+                        "rScale",
+                        "rLength",
+                        "rMin",
+                        "rMax",
+                        "rCellsPerSpotSize",
+                        "rCount"
                     ]],
                     ["Z", [
+                        "zScale",
+                        "zLength",
                         "zMin",
                         "zMax",
+                        "zCellsPerWavelength",
                         "zCount"
                     ]]
                 ]
