@@ -87,7 +87,24 @@ def fixup_old_data(data):
     if 'framesPerSecond' not in data['models']['fieldAnimation']:
         data['models']['fieldAnimation']['framesPerSecond'] = 20
         data['models']['particleAnimation']['framesPerSecond'] = 20
-
+    if 'rScale' not in data['models']['simulationGrid']:
+        grid = data['models']['simulationGrid']
+        grid['rScale'] = 4
+        grid['rLength'] = '20.324980154380'
+        grid['rMin'] = 0
+        grid['rMax'] = '20.324980154380'
+        grid['rCellsPerSpotSize'] = 8
+        grid['rCount'] = 32
+        grid['zScale'] = 2
+        grid['zLength'] = '10.162490077189'
+        grid['zMin'] = '-10.162490077189'
+        grid['zMax'] = '1.64'
+        grid['zCellsPerWavelength'] = 8
+        grid['zCount'] = 115
+        del grid['xMin']
+        del grid['xMax']
+        del grid['xCount']
+        del grid['zLambda']
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
     _validate_data(data, schema)
