@@ -171,12 +171,13 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         if (! appState.isLoaded())
             return;
         var fields = {
-            visible: ['simulationGrid.zLambda'],
-            editable: ['simulationGrid.xMin', 'simulationGrid.xMax', 'simulationGrid.zMin', 'simulationGrid.zMax', 'simulationGrid.zCount'],
+            visible: ['simulationGrid.rScale', 'simulationGrid.zScale'],
+            editable: ['simulationGrid.rLength', 'simulationGrid.zLength'],
         };
         var isAbsolute = appState.models.simulationGrid.gridDimensions == 'a';
         setVisibility(fields.visible, ! isAbsolute, oldValue);
         setReadOnly(fields.editable, ! isAbsolute);
+        setReadOnly(['simulationGrid.rMin', 'simulationGrid.rMax', 'simulationGrid.zMin', 'simulationGrid.zMax', 'simulationGrid.rCount', 'simulationGrid.zCount'], true);
         recalcValues();
     }
 
@@ -193,30 +194,46 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         recalcValues();
     }
 
+    function recalcCellCount() {
+        if (! appState.isLoaded())
+            return;
+        var laserPulse = appState.models.laserPulse;
+        var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
+        var grid = appState.models.simulationGrid;
+        grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zCellsPerWavelength / lambdaLaser);
+        grid.rCount = Math.round((grid.rMax - grid.rMin) * grid.rCellsPerSpotSize / laserPulse.waist);
+    }
+
+    function recalcLength() {
+        if (! appState.isLoaded())
+            return;
+        var grid = appState.models.simulationGrid;
+        grid.rMax = grid.rLength;
+        grid.zMin = - grid.zLength;
+    }
+
     function recalcValues() {
         if (! appState.isLoaded())
             return;
         var laserPulse = appState.models.laserPulse;
+        var wplab = Math.sqrt(
+            appState.models.electronPlasma.density
+                * Math.pow(constants.echarge, 2)
+                / (constants.eps0 * constants.emass));
+        var kplab = wplab / constants.clight;
         // resonant wth plasma density
         if (laserPulse.pulseDimensions == 'r') {
-            var wplab = Math.sqrt(
-                appState.models.electronPlasma.density
-                    * Math.pow(constants.echarge, 2)
-                    / (constants.eps0 * constants.emass));
-            var kplab = wplab / constants.clight;
             laserPulse.waist = (1e6 * laserPulse.spotSize / kplab).toFixed(12);
             laserPulse.duration = (1e12 * laserPulse.length / kplab / constants.clight).toFixed(12);
         }
         var grid = appState.models.simulationGrid;
+        grid.rMin = 0;
+        var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
+        grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
         // scale to laser pulse
         if (grid.gridDimensions == 's') {
-            var totalLength = laserPulse.duration / 1e12 * 4 * constants.clight;
-            grid.xMax = (2.5 * totalLength * 1e6).toFixed(12);
-            grid.xMin = (-grid.xMax).toFixed(12);
-            grid.zMin = (-1.3 * totalLength * 1e6).toFixed(12);
-            var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
-            grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
-            grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zLambda / lambdaLaser);
+            grid.rLength = (grid.rScale * laserPulse.waist).toFixed(12);
+            grid.zLength = (grid.zScale * 4 / kplab * 1e6).toFixed(12);
         }
     }
 
@@ -225,7 +242,12 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
     $scope.$watch('appState.models.laserPulse.spotSize', recalcValues);
     $scope.$watch('appState.models.electronPlasma.density', recalcValues);
     $scope.$watch('appState.models.simulationGrid.gridDimensions', gridDimensionsChanged);
-    $scope.$watch('appState.models.simulationGrid.zLambda', recalcValues);
+    $scope.$watch('appState.models.simulationGrid.rScale', recalcValues);
+    $scope.$watch('appState.models.simulationGrid.zScale', recalcValues);
+    $scope.$watch('appState.models.simulationGrid.rCellsPerSpotSize', recalcCellCount);
+    $scope.$watch('appState.models.simulationGrid.zCellsPerWavelength', recalcCellCount);
+    $scope.$watch('appState.models.simulationGrid.rLength', recalcLength);
+    $scope.$watch('appState.models.simulationGrid.zLength', recalcLength);
     $scope.$watch('appState.models.laserPulse.duration', recalcValues);
     $scope.$watch('appState.models.laserPulse.wavelength', recalcValues);
 
@@ -241,16 +263,14 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
     $scope.$on(
         'laserPulse.changed',
         function() {
-            if (appState.models.simulationGrid.gridDimensions == 's')
-                appState.saveQuietly('simulationGrid');
+            appState.saveQuietly('simulationGrid');
         });
     $scope.$on(
         'electronPlasma.changed',
         function() {
-            if (appState.models.simulationGrid.gridDimensions == 's')
-                appState.saveQuietly('simulationGrid');
             if (appState.models.laserPulse.pulseDimensions == 'r')
                 appState.saveQuietly('laserPulse');
+            appState.saveQuietly('simulationGrid');
         });
 
 });
