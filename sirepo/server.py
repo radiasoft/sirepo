@@ -160,7 +160,7 @@ def app_run():
     data = pkio.read_text(wd.join('out.json'))
     # Remove only in the case of a non-error/exception. If there's an error, we may
     # want to debug
-    # pkio.unchecked_remove(wd)
+    pkio.unchecked_remove(wd)
     return data
 
 
@@ -180,7 +180,7 @@ def app_run_background():
     wd = _work_dir()
     out_dir = _simulation_persistent_dir(data['simulationType'], sid)
     pkio.unchecked_remove(out_dir)
-    cmd = ['run-background', str(wd), str(out_dir)]
+    cmd = ['run-background', str(wd)]
     _setup_simulation(data, wd, cmd, out_dir)
     return flask.jsonify({
         'state': status['state'],
