@@ -79,12 +79,14 @@
             "rMax": ["R Max [µm]", "Float"],
             "rCellsPerSpotSize": ["R Cells per Spot Size", "Integer"],
             "rCount": ["R Number of Cells", "Integer"],
+            "rParticlesPerCell": ["R Particles per Cell", "Integer"],
             "zScale": ["Z Scale", "Float"],
             "zLength": ["Z Length [µm]", "Float"],
             "zMin": ["Z Min [µm]", "Float"],
             "zMax": ["Z Max [µm]", "Float"],
             "zCellsPerWavelength": ["Z Cells per Laser Wavelength", "Integer"],
-            "zCount": ["Z Number of Cells", "Integer"]
+            "zCount": ["Z Number of Cells", "Integer"],
+            "zParticlesPerCell": ["Z Particles per Cell", "Integer"]
         },
         "simulation": {
             "name": ["Name", "String"]
@@ -102,6 +104,9 @@
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
         "laserPreviewReport": {
+            "field": ["Field", "Field"],
+            "coordinate": ["Coordinate", "FieldCoordinate"],
+            "mode": ["Mode", "FieldMode"]
         },
         "simulationStatus": {
             "state": ["State", "SimulationState"],
@@ -136,7 +141,8 @@
                         "rMin",
                         "rMax",
                         "rCellsPerSpotSize",
-                        "rCount"
+                        "rCount",
+                        "rParticlesPerCell"
                     ]],
                     ["Z", [
                         "zScale",
@@ -144,7 +150,8 @@
                         "zMin",
                         "zMax",
                         "zCellsPerWavelength",
-                        "zCount"
+                        "zCount",
+                        "zParticlesPerCell"
                     ]]
                 ]
             ]
@@ -204,7 +211,11 @@
         },
         "laserPreviewReport": {
             "title": "Laser Preview Report",
-            "advanced": []
+            "advanced": [
+                "field",
+                "coordinate",
+                "mode"
+            ]
         }
     }
 }
