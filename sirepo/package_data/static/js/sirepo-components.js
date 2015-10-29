@@ -283,7 +283,7 @@ app.directive('fieldEditor', function(appState, $http) {
                 '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
+                '<input string-to-number="integer" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
               '</div>',
               //TODO(pjm): need file interface
               '<div data-ng-switch-when="File" class="col-sm-5">',
@@ -522,12 +522,24 @@ app.directive('stringToNumber', function() {
     return {
         restrict: 'A',
         require: 'ngModel',
+        scope: {
+            numberType: '@stringToNumber',
+        },
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))
                     return null;
-                if (NUMBER_REGEXP.test(value))
+                if (NUMBER_REGEXP.test(value)) {
+                    if (scope.numberType == 'integer') {
+                        var v = parseInt(value);
+                        if (v != value) {
+                            ngModel.$setViewValue(v);
+                            ngModel.$render();
+                        }
+                        return v;
+                    }
                     return parseFloat(value);
+                }
                 return undefined;
             });
             ngModel.$formatters.push(function(value) {
