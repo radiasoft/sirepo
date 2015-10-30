@@ -119,11 +119,11 @@ def fixup_old_data(data):
         grid['rCellsPerSpotSize'] = 8
         grid['rCount'] = 32
         grid['zScale'] = 2
-        grid['zLength'] = '10.162490077189'
-        grid['zMin'] = '-10.162490077189'
-        grid['zMax'] = '1.64'
+        grid['zLength'] = '20.324980154631'
+        grid['zMin'] = '-20.324980154631'
+        grid['zMax'] = '1.60'
         grid['zCellsPerWavelength'] = 8
-        grid['zCount'] = 115
+        grid['zCount'] = 214
         del grid['xMin']
         del grid['xMax']
         del grid['xCount']
