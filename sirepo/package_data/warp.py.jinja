@@ -2,10 +2,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-#TODO(pjm): remove this when warp is in the python path
-import sys
-sys.path.insert(0, '/home/vagrant/src/radiasoft/atap-warp/scripts/')
-
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
 
@@ -81,7 +77,7 @@ l_theta_rand       = 1      # In the Circ version, whether to use partially
 # Numerical parameters
 dtcoef      = 1.       # coefficient to multiply default time step that
                        # is set at the EM solver CFL
-top.depos_order  = 1   # particles deposition order
+top.depos_order  = 2   # particles deposition order
                        # (1=linear, 2=quadratic, 3=cubic)
 top.efetch       = 1   # field gather type (1=from nodes "momentum conserving";
                        # 4=from Yee mesh "energy conserving")
