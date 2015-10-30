@@ -167,12 +167,6 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         }
     }
 
-    function constrainInteger(value, max) {
-        if (value && (value > max))
-            return max;
-        return value;
-    }
-
     function gridDimensionsChanged(newValue, oldValue) {
         if (! appState.isLoaded())
             return;
@@ -206,12 +200,8 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         var laserPulse = appState.models.laserPulse;
         var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
         var grid = appState.models.simulationGrid;
-        grid.zCellsPerWavelength = constrainInteger(grid.zCellsPerWavelength, 32);
-        grid.rCellsPerSpotSize = constrainInteger(grid.rCellsPerSpotSize, 32);
-        var zcells = grid.zCellsPerWavelength < 8 ? 8 : grid.zCellsPerWavelength;
-        grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * zcells / lambdaLaser);
-        var rcells = grid.rCellsPerSpotSize < 8 ? 8 : grid.rCellsPerSpotSize;
-        grid.rCount = Math.round((grid.rMax - grid.rMin) * rcells / laserPulse.waist);
+        grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zCellsPerWavelength / lambdaLaser);
+        grid.rCount = Math.round((grid.rMax - grid.rMin) * grid.rCellsPerSpotSize / laserPulse.waist);
     }
 
     function recalcLength() {
@@ -243,8 +233,9 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         // scale to laser pulse
         if (grid.gridDimensions == 's') {
             grid.rLength = (grid.rScale * laserPulse.waist).toFixed(12);
-            grid.zLength = (grid.zScale * 4 / kplab * 1e6).toFixed(12);
+            grid.zLength = (grid.zScale * laserPulse.duration / 1e6 * 4 * constants.clight).toFixed(12);
         }
+        recalcCellCount();
     }
 
     $scope.$watch('appState.models.laserPulse.pulseDimensions', pulseDimensionsChanged);
