@@ -67,6 +67,9 @@ with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
 app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER), template_folder=str(_STATIC_FOLDER))
 
 
+#: _Celery or _Background
+_DAEMONZER = None
+
 def init(run_dir):
     """Initialize globals and populate simulation dir"""
     global _WORK_DIR
@@ -169,7 +172,7 @@ def app_run_background():
     data = json.loads(_read_http_input())
     sid = _id(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if _Background.is_running(sid):
+    if _DAEMONZER.is_running(sid):
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
@@ -194,7 +197,7 @@ def app_run_cancel():
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
     _save_simulation_json(simulation_type, data)
-    _Background.kill(_id(data))
+    _DAEMONZER.kill(_id(data))
     # the last frame file may not be finished, remove it
     t = _template_for_simulation_type(simulation_type)
     t.remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
@@ -206,7 +209,7 @@ def app_run_status():
     data = json.loads(_read_http_input())
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
-    if _Background.is_running(_id(data)):
+    if _DAEMONZER.is_running(_id(data)):
         completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), True)
         state = 'running'
     else:
@@ -397,7 +400,7 @@ def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
     )
     template.prepare_aux_files(wd)
     if persistent_files_dir:
-        return _Background(_id(data), ['sirepo', simulation_type] + cmd, workdir=wd)
+        return _DAEMONZER(_id(data), ['sirepo', simulation_type] + cmd, workdir=wd)
     return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
 
 
@@ -440,6 +443,7 @@ class _Background(object):
             self.cmd = cmd
             self.workdir = workdir
             self._process[sid] = self
+            self.pid = None
             # This command may blow up
             self.pid = self._create_daemon()
 
@@ -556,6 +560,69 @@ class _Background(object):
             reraise
 
 
+class _Celery(object):
+
+    # Map of sid to instance
+    _task = {}
+
+    # mutex for _task
+    _lock = threading.Lock()
+
+    def __init__(self, sid, cmd, workdir):
+        with self._lock:
+            assert not sid in self._task, \
+                'Simulation already running: sid={}'.format(sid)
+            self.sid = sid
+            self.cmd = cmd
+            self.workdir = workdir
+            self._task[sid] = self
+            self.async_result = None
+            # This command may blow up
+            self.async_result = self._start_task()
+
+    @classmethod
+    def is_running(cls, sid):
+        with cls._lock:
+            return cls._async_result(sid) is not None
+
+    @classmethod
+    def kill(cls, sid):
+        from celery.exceptions import TimeoutError
+        with cls._lock:
+            res = cls._async_result(sid)
+            if not res:
+                return
+            pkdp('Killing: tid={} sid={}', res.task_id, sid)
+        try:
+            res.revoke(terminate=True, wait=True, timeout=1, signal='SIGTERM')
+        except TimeoutError as e:
+            res.revoke(terminate=True, signal='SIGKILL')
+        with cls._lock:
+            try:
+                del cls._task[sid]
+                pkdp('Deleted: sid={}', sid)
+            except KeyError:
+                pass
+
+    @classmethod
+    def _async_result(cls, sid):
+            try:
+                self = cls._task[sid]
+            except KeyError:
+                return None
+            res = self.async_result
+            if not res or res.ready():
+                del self._task[sid]
+                return None
+            return res
+
+    def _start_task(self):
+        """Detach a process from the controlling terminal and run it in the
+        background as a daemon.
+        """
+        return celery_tasks.start_simulation.apply_async([self.cmd[1], self.workdir])
+
+
 class _Command(threading.Thread):
     """Run a command in a thread, and kill after timeout"""
 
@@ -595,4 +662,16 @@ class _Command(threading.Thread):
         return None
 
 
-signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
+if os.getenv('SIREPO_SERVER_CELERY', None):
+    _DAEMONZER = _Celery
+    from sirepo import celery_tasks
+    try:
+        if not celery_tasks.celery.control.ping():
+            print('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
+            sys.exit(1)
+    except Exception:
+        print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
+        sys.exit(1)
+else:
+    _DAEMONZER = _Background
+    signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
