@@ -226,9 +226,9 @@ if dim == "1d" : w3d.nx = w3d.ny = 2
 if dim == "2d" : w3d.ny = 2
 
 # Number of plasma macro-particles/cell
-nppcellx = 2
+nppcellx = {{simulationGrid_rParticlesPerCell}}
 nppcelly = 1
-nppcellz = 2
+nppcellz = {{simulationGrid_zParticlesPerCell}}
 # Vefification of the input parameters
 if dim=="2d" and circ_m > 0 : nppcelly = 4*circ_m
   #  In the case with azimuthal decomposition, nppcelly represents the

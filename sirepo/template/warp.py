@@ -66,6 +66,29 @@ def background_percent_complete(data, persistent_files_dir, is_running):
     }
 
 
+def extract_field_report(field, coordinate, mode, dfile, iteration):
+    if field == 'rho' :
+        dset = dfile['fields/rho']
+        coordinate = ''
+    else:
+        dset = dfile['fields/{}/{}'.format(field, coordinate)]
+    F = np.flipud(np.array(dset[mode,:,:]).T)
+    Nr, Nz = F.shape[0], F.shape[1]
+    dz = dset.attrs['dx']
+    dr = dset.attrs['dy']
+    zmin = dset.attrs['xmin']
+    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
+    return {
+        'x_range': [extent[0], extent[1], len(F[0])],
+        'y_range': [extent[2], extent[3], len(F)],
+        'x_label': 'z [m]',
+        'y_label': 'r [m]',
+        'title': "{} {} in the mode {} at {}".format(
+            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(dfile, iteration)),
+        'z_matrix': np.flipud(F).tolist(),
+    }
+
+
 def fixup_old_data(data):
     if 'laserPreviewReport' not in data['models']:
         data['models']['laserPreviewReport'] = {}
@@ -105,6 +128,14 @@ def fixup_old_data(data):
         del grid['xMax']
         del grid['xCount']
         del grid['zLambda']
+    if 'rParticlesPerCell' not in data['models']['simulationGrid']:
+        data['models']['simulationGrid']['rParticlesPerCell'] = 1
+        data['models']['simulationGrid']['zParticlesPerCell'] = 2
+    if 'field' not in data['models']['laserPreviewReport']:
+        laserPreview = data['models']['laserPreviewReport']
+        laserPreview['field'] = 'E'
+        laserPreview['coordinate'] = 'r'
+        laserPreview['mode'] = '1'
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
     _validate_data(data, schema)
@@ -115,10 +146,7 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
         v['outputDir'] = '"{}"'.format(persistent_files_dir)
     else:
         v['outputDir'] = None
-    if 'report' in data and data['report'] == 'laserPreviewReport':
-        v['enablePlasma'] = 0
-    else:
-        v['enablePlasma'] = 1
+    v['enablePlasma'] = 1
     return pkjinja.render_resource('warp.py', v)
 
 
@@ -127,10 +155,7 @@ def get_simulation_frame(persistent_files_dir, data):
     files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
     filename = files[frame_index]
     iteration = int(re.search(r'data(\d+)', filename).group(1))
-
-    #TODO(pjm): consolidate with pykern_cli/warp.py
     dfile = h5py.File(filename, "r")
-
     args = data['animation_args'].split('_')
 
     if data['model_name'] == 'fieldAnimation':
@@ -161,28 +186,9 @@ def _field_animation(args, dfile, iteration, frame_count):
     field = args[0]
     coordinate = args[1]
     mode = int(args[2])
-
-    if field == 'rho' :
-        dset = dfile['fields/rho']
-        coordinate = ''
-    else:
-        dset = dfile['fields/{}/{}'.format(field, coordinate)]
-    F = np.flipud(np.array(dset[mode,:,:]).T)
-    Nr, Nz = F.shape[0], F.shape[1]
-    dz = dset.attrs['dx']
-    dr = dset.attrs['dy']
-    zmin = dset.attrs['xmin']
-    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
-    return {
-        'x_range': [extent[0], extent[1], len(F[0])],
-        'y_range': [extent[2], extent[3], len(F)],
-        'x_label': 'z [m]',
-        'y_label': 'r [m]',
-        'title': "{} {} in the mode {} at {}".format(
-            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(dfile, iteration)),
-        'z_matrix': np.flipud(F).tolist(),
-        'frameCount': frame_count,
-    }
+    res = extract_field_report(field, coordinate, mode, dfile, iteration)
+    res['frameCount'] = frame_count
+    return res
 
 def _h5_file_list(path_to_dir):
     if not os.path.isdir(path_to_dir):

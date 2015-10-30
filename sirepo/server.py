@@ -180,7 +180,7 @@ def app_run_background():
     wd = _work_dir()
     out_dir = _simulation_persistent_dir(data['simulationType'], sid)
     pkio.unchecked_remove(out_dir)
-    cmd = ['run-background', str(wd), str(out_dir)]
+    cmd = ['run-background', str(wd)]
     _setup_simulation(data, wd, cmd, out_dir)
     return flask.jsonify({
         'state': status['state'],
