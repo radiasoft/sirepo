@@ -1,6 +1,7 @@
 {
-    "version": "20151029",
+    "version": "20151102",
     "route": {
+        "clearFrames": "/clear-frames",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
         "listSimulations": "/simulation-list/<simulation_type>",
