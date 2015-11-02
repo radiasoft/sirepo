@@ -128,7 +128,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
     }
 });
 
-app.controller('WARPSourceController', function($scope, activeSection, appState, $timeout) {
+app.controller('WARPSourceController', function($scope, activeSection, appState, frameCache, $timeout) {
     activeSection.setActiveSection('source');
     var self = this;
     $scope.appState = appState;
@@ -140,6 +140,11 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
         gammafrm: 1.0,
     };
     constants.betafrm = Math.sqrt(1.0 -1.0 / Math.pow(constants.gammafrm, 2));
+
+    function clearFrames() {
+        //TODO(pjm): show a warning dialog before saving model if frame count > 10
+        frameCache.clearFrames();
+    }
 
     function fieldClass(field) {
         return '.model-' + field.replace('.', '-');
@@ -251,6 +256,10 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
     $scope.$watch('appState.models.simulationGrid.zLength', recalcLength);
     $scope.$watch('appState.models.laserPulse.duration', recalcValues);
     $scope.$watch('appState.models.laserPulse.wavelength', recalcValues);
+
+    $scope.$on('laserPulse.changed', clearFrames);
+    $scope.$on('electronPlasma.changed', clearFrames);
+    $scope.$on('simulationGrid.changed', clearFrames);
 
     if (appState.isLoaded()) {
         if (! $(fieldClass('simulationGrid.xMin') + ' input').length) {
