@@ -215,11 +215,13 @@ def _particle_animation(args, dfile, iteration, frame_count):
     x = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
     y = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
     hist, edges = np.histogramdd([x, y], int(histogramBins))
+    xunits = ' [m]' if len(xarg) == 1 else ''
+    yunits = ' [m]' if len(yarg) == 1 else ''
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': '{} [m]'.format(xarg),
-        'y_label': '{} [m]'.format(yarg),
+        'x_label': '{}{}'.format(xarg, xunits),
+        'y_label': '{}{}'.format(yarg, yunits),
         'title': 't = {}'.format(_iteration_title(dfile, iteration)),
         'z_matrix': hist.T.tolist(),
         'frameCount': frame_count,
