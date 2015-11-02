@@ -82,6 +82,14 @@ def init(run_dir):
                 _save_new_simulation(app_name, s, is_response=False)
 
 
+@app.route(_SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
+def app_clear_frames():
+    """Clear animation frames for the simulation."""
+    data = json.loads(_read_http_input())
+    pkio.unchecked_remove(_simulation_persistent_dir(data['simulationType'], data['simulationId']))
+    return '{}'
+
+
 @app.route(_SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
 def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
@@ -110,7 +118,9 @@ def app_route_favicon():
 
 @app.route(_SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
-    pkio.unchecked_remove(_simulation_filename(_json_input('simulationType'), _json_input('simulationId')))
+    data = json.loads(_read_http_input())
+    pkio.unchecked_remove(_simulation_filename(data['simulationType'], data['simulationId']))
+    pkio.unchecked_remove(_simulation_persistent_dir(data['simulationType'], data['simulationId']))
     return '{}'
 
 
