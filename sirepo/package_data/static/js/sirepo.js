@@ -159,7 +159,8 @@ app.factory('appState', function($rootScope, requestSender) {
     };
 
     self.isReportModelName = function(name) {
-        return name.indexOf('Report') >= 0;
+        //TODO(pjm): need better name for this, a model which doesn't affect other models
+        return  name.indexOf('Report') >= 0 || name.indexOf('Animation') >= 0 || name.indexOf('Status') >= 0;
     };
 
     self.isUndulator = function() {
@@ -289,6 +290,28 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             args.push(values[fields[i]]);
         return args.join('_');
     }
+
+    self.clearFrames = function() {
+        if (! appState.isLoaded())
+            return;
+        requestSender.sendRequest(
+            'runCancel',
+            function() {
+                requestSender.sendRequest(
+                    'clearFrames',
+                    function() {
+                        self.setFrameCount(0);
+                    },
+                    {
+                        simulationId: appState.models.simulation.simulationId,
+                        simulationType: APP_SCHEMA.simulationType,
+                    });
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
 
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
