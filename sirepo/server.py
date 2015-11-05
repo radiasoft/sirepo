@@ -126,9 +126,11 @@ def app_delete_simulation():
 
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
-    simulation_type = _json_input('simulationType')
+    new_simulation_data = json.loads(_read_http_input())
+    simulation_type = new_simulation_data['simulationType']
     data = _open_json_file(simulation_type, _STATIC_FOLDER.join('json/{}-default.json'.format(simulation_type)))
-    data['models']['simulation']['name'] = _json_input('name')
+    data['models']['simulation']['name'] = new_simulation_data['name']
+    _template_for_simulation_type(simulation_type).new_simulation(data, new_simulation_data)
     return _save_new_simulation(simulation_type, data)
 
 
