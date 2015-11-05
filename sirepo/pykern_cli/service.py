@@ -71,5 +71,4 @@ def _run_dir(run_dir):
             # Don't run from an install directory
             root = py.path.local('.')
         run_dir = root.join(_DEFAULT_SUBDIR)
-    pkdp(run_dir)
     return pkio.mkdir_parent(run_dir)
