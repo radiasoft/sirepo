@@ -165,6 +165,10 @@ def get_simulation_frame(persistent_files_dir, data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['model_name']))
 
 
+def new_simulation(data, new_simulation_data):
+    pass
+
+
 def prepare_aux_files(wd):
     pass
 
