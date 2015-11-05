@@ -1,6 +1,6 @@
 'use strict';
 
-app.factory('plotting', function(d3Service, panelState, frameCache) {
+app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
     return {
         INITIAL_HEIGHT: 400,
 
@@ -131,12 +131,15 @@ app.factory('plotting', function(d3Service, panelState, frameCache) {
                 }
                 else {
                     requestData = function() {
-                        if (! panelState.isReportValid(scope.modelName))
-                            return;
-                        panelState.requestData(scope.modelName, function(data) {
-                            if (scope.element)
-                                scope.load(data);
-                        });
+                        //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
+                        $timeout(function() {
+                            if (! scope.element)
+                                return;
+                            panelState.requestData(scope.modelName, function(data) {
+                                if (scope.element)
+                                    scope.load(data);
+                            });
+                        }, 50);
                     }
                 }
                 scope.$on(
