@@ -185,36 +185,30 @@ app.controller('SRWBeamlineController', function (activeSection, appState) {
     };
 });
 
-app.controller('SRWSourceController', function ($scope, activeSection, appState) {
+app.controller('SRWSourceController', function (activeSection, appState) {
     activeSection.setActiveSection('source');
     var self = this;
-    $scope.appState = appState;
 
     function isSelected(sourceType) {
         if (appState.isLoaded())
-            return appState.models.simulation.sourceType == sourceType;
+            return appState.applicationState().simulation.sourceType == sourceType;
         return false;
     }
 
-    function sourceTypeChanged(newValue, oldValue) {
-        if (oldValue && newValue) {
-            // set form dirty for both undulator and multipole forms
-            //TODO(pjm): remove this, multi-model forms needs to track both models
-            var current = $scope.$$childHead;
-            while (current) {
-                if (current.form && current.panelTitle == "Source")
-                    current.form.$setDirty();
-                current = current.$$nextSibling;
-            }
-        }
-    }
+    self.isElectronBeam = function() {
+        return self.isUndulator() || self.isMultipole();
+    };
 
-    self.isUndulator = function() {
-        return isSelected('u');
+    self.isGaussianBeam = function() {
+        return isSelected('g');
     };
 
     self.isMultipole = function() {
         return isSelected('m');
+    };
+
+    self.isUndulator = function() {
+        return isSelected('u');
     };
 
     self.isPredefinedBeam = function() {
@@ -222,10 +216,4 @@ app.controller('SRWSourceController', function ($scope, activeSection, appState)
             return appState.models.electronBeam.isReadOnly ? true : false;
         return false;
     };
-
-    self.showFluxReport = function() {
-        return appState.isUndulator();
-    };
-
-    $scope.$watch('appState.models.simulation.sourceType', sourceTypeChanged);
 });
