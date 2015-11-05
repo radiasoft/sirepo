@@ -109,8 +109,6 @@ app.factory('appState', function($rootScope, requestSender) {
     self.cancelChanges = function(name) {
         if (savedModelValues[name])
             self.models[name] = self.clone(savedModelValues[name]);
-        if (name == 'undulator' || name == 'multipole')
-            self.cancelChanges('simulation');
     };
 
     self.clearModels = function(emptyValues) {
@@ -161,10 +159,6 @@ app.factory('appState', function($rootScope, requestSender) {
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
         return  name.indexOf('Report') >= 0 || name.indexOf('Animation') >= 0 || name.indexOf('Status') >= 0;
-    };
-
-    self.isUndulator = function() {
-        return savedModelValues.simulation && savedModelValues.simulation.sourceType == 'u' ? true : false;
     };
 
     self.loadModels = function(simulationId) {
@@ -254,11 +248,6 @@ app.factory('appState', function($rootScope, requestSender) {
             broadcastChanged(name);
             self.saveChanges('electronBeams');
             // save electronBeam and electronBeams, but only repolot reports once
-            return;
-        }
-        if (name == 'multipole' || name == 'undulator') {
-            broadcastChanged(name);
-            self.saveChanges('simulation');
             return;
         }
         broadcastChanged(name);
@@ -420,12 +409,6 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
 
     self.isLoading = function(name) {
         return getPanelValue(name, 'loading') ? true : false;
-    };
-
-    self.isReportValid = function(name) {
-        if (name == 'fluxReport' && ! appState.isUndulator())
-            return false;
-        return true;
     };
 
     self.requestData = function(name, callback) {
