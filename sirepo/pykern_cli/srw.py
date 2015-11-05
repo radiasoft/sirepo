@@ -36,7 +36,7 @@ def _run_srw():
     # this defines the get_srw_params() and get_beamline_optics() functions
     exec(pkio.read_text('srw_parameters.py'), locals(), locals())
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-    mag = setup_magnetic_field(v)
+    source_type, mag = setup_source(v)
     op = None
     if data['report'] == 'intensityReport':
         v.ss = True
@@ -47,7 +47,7 @@ def _run_srw():
     elif data['report'] == 'powerDensityReport':
         v.pw = True
         outfile = v.pw_fn
-    elif data['report'] == 'initialIntensityReport':
+    elif data['report'] == 'initialIntensityReport' or data['report'] == 'gaussianBeamIntensityReport':
         v.si = True
         outfile = v.si_fn
     elif re.search('^watchpointReport', data['report']):
