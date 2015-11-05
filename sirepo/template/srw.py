@@ -16,7 +16,7 @@ from pykern import pkresource
 from . import template_common
 
 #: How long before killing SRW process
-MAX_SECONDS = 30
+MAX_SECONDS = 60
 
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
@@ -79,11 +79,40 @@ def fixup_old_data(data):
                 if 'method' in model:
                     del model['method']
 
+    if 'gaussianBeam' not in data['models']:
+        data['models']['gaussianBeam'] = {
+            'waistX': 0,
+            'waistY': 0,
+            'waistZ': 0,
+            'waistAngleX': 0,
+            'waistAngleY': 0,
+            'photonEnergy': 9000,
+            'energyPerPulse': '0.001',
+            'repititionRate': 1,
+            'polarization': 1,
+            'rmsSizeX': '9.78723',
+            'rmsSizeY': '9.78723',
+            'rmsPulseDuration': 0.1,
+        }
+    if 'gaussianBeamIntensityReport' not in data['models']:
+        data['models']['gaussianBeamIntensityReport'] = {
+            'distanceFromSource': 300,
+            'verticalRange': 0.5,
+            'verticalPosition': 0,
+            'horizontalRange': 0.5,
+            'characteristic': 0,
+            'sampleFactor': 1,
+            'precision': 0.01,
+            'photonEnergy': 9000,
+            'polarization': 6,
+            'horizontalPosition': 0,
+        }
+
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
-    if 'report' in data and re.search('watchpointReport', data['report']):
+    if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
-        data['models']['initialIntensityReport'] = data['models'][data['report']]
+        data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
@@ -93,19 +122,22 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
     beamline = data['models']['beamline']
-    v['beamlineFirstElementPosition'] = beamline[0]['position'] if len(beamline) else 20
+
+    if 'report' in data and data['report'] == 'gaussianBeamIntensityReport':
+        position = data['models']['gaussianBeamIntensityReport']['distanceFromSource']
+    elif len(beamline):
+        position = beamline[0]['position']
+    else:
+        position = 20
+    v['beamlineFirstElementPosition'] = position
     # initial drift = 1/2 undulator length + 2 periods
     source_type = data['models']['simulation']['sourceType']
     drift = 0
     if source_type == 'u':
         drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
-    elif source_type == 'm':
+    else:
         #TODO(pjm): allow this to be set in UI?
         drift = 0;
-    elif source_type == 's':
-        drift = 0
-    else:
-        raise Exception('invalid magneticField type: {}'.format(source_type))
     v['electronBeamInitialDrift'] = drift
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if source_type == 'u' else 2
@@ -113,6 +145,10 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
     return pkjinja.render_resource('srw.py', v)
+
+
+def new_simulation(data, new_simulation_data):
+    data['models']['simulation']['sourceType'] = new_simulation_data['sourceType']
 
 
 def prepare_aux_files(wd):
@@ -127,14 +163,15 @@ def run_all_text():
     return '''
 def run_all_reports():
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-    mag = setup_magnetic_field(v)
-    v.ss = True
-    v.ss_pl = 'e'
-    if isinstance(mag, srwlib.SRWLMagFldU):
+    source_type, mag = setup_source(v)
+    if source_type != 'g':
+        v.ss = True
+        v.ss_pl = 'e'
+        v.pw = True
+        v.pw_pl = 'xy'
+    if source_type == 'u':
         v.sm = True
         v.sm_pl = 'e'
-    v.pw = True
-    v.pw_pl = 'xy'
     v.si = True
     v.ws = True
     v.ws_pl = 'xy'
