@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkio
 from pykern import pkjinja
-from . import template_common
+from sirepo.template import template_common
 import h5py
 import numpy as np
 import os
@@ -32,9 +32,10 @@ _PARTICLE_ARG_PATH = {
     'uz' : 'momentum/z',
 }
 
-def background_percent_complete(data, persistent_files_dir, is_running):
+
+def background_percent_complete(data, run_dir, is_running):
     simulation_id = data['models']['simulation']['simulationId']
-    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
+    files = _h5_file_list(run_dir)
     if len(files) < 2:
         return {
             'percent_complete': 0,
@@ -49,7 +50,7 @@ def background_percent_complete(data, persistent_files_dir, is_running):
     coordinate = 'r'
     Lplasma_lab = float(data['models']['electronPlasma']['length']) / 1e3
     zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
-    dfile = h5py.File(files[file_index], 'r')
+    dfile = h5py.File(str(files[file_index]), 'r')
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
     dz = dset.attrs['dx']
     zmin = dset.attrs['xmin']
@@ -137,23 +138,19 @@ def fixup_old_data(data):
         laserPreview['coordinate'] = 'r'
         laserPreview['mode'] = '1'
 
-def generate_parameters_file(data, schema, persistent_files_dir=None):
+
+def generate_parameters_file(data, schema, run_dir=None):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
-    if persistent_files_dir:
-        if not persistent_files_dir.check():
-            pkio.mkdir_parent(persistent_files_dir)
-        v['outputDir'] = '"{}"'.format(persistent_files_dir)
-    else:
-        v['outputDir'] = None
+    v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['enablePlasma'] = 1
     return pkjinja.render_resource('warp.py', v)
 
 
-def get_simulation_frame(persistent_files_dir, data):
+def get_simulation_frame(run_dir, data):
     frame_index = int(data['frame_index'])
-    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
-    filename = files[frame_index]
+    files = _h5_file_list(run_dir)
+    filename = str(files[frame_index])
     iteration = int(re.search(r'data(\d+)', filename).group(1))
     dfile = h5py.File(filename, "r")
     args = data['animation_args'].split('_')
@@ -169,14 +166,15 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
-def prepare_aux_files(wd):
+def prepare_aux_files(run_dir):
     pass
 
 
-def remove_last_frame(persistent_files_dir):
-    files = _h5_file_list(str(persistent_files_dir.join('diags/hdf5')))
+def remove_last_frame(run_dir):
+    files = _h5_file_list(run_dir)
     if len(files) > 0:
-        os.remove(files[-1])
+        pkio.unchecked_remove(files[-1])
+
 
 def run_all_text():
     return '''
@@ -186,6 +184,7 @@ while(doit):
     doit = ( w3d.zmmin + top.zgrid < Lplasma )
 '''
 
+
 def _field_animation(args, dfile, iteration, frame_count):
     field = args[0]
     coordinate = args[1]
@@ -194,23 +193,18 @@ def _field_animation(args, dfile, iteration, frame_count):
     res['frameCount'] = frame_count
     return res
 
-def _h5_file_list(path_to_dir):
-    if not os.path.isdir(path_to_dir):
-        return []
-    all_files = os.listdir(path_to_dir)
 
-    # Select the hdf5 files
-    h5_files = []
-    for filename in all_files :
-        if filename[-3:] == '.h5' :
-            h5_files.append( os.path.join( path_to_dir, filename) )
-    # Sort them
-    h5_files.sort()
-    return h5_files
+def _h5_file_list(run_dir):
+    return pkio.walk_tree(
+        run_dir.join('diags', 'hdf5'),
+        r'\.h5$',
+    )
+
 
 def _iteration_title(dfile, iteration):
     return '{:.1f} fs (iteration {})'.format(
         iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration)
+
 
 def _particle_animation(args, dfile, iteration, frame_count):
     xarg = args[0]
@@ -230,6 +224,7 @@ def _particle_animation(args, dfile, iteration, frame_count):
         'z_matrix': hist.T.tolist(),
         'frameCount': frame_count,
     }
+
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling

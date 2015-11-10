@@ -1,4 +1,5 @@
 flask
+beaker
 numconv
 pykern
 uwsgi

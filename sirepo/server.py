@@ -22,7 +22,10 @@ import time
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
+from pykern import pkcollections
+import beaker.middleware
 import flask
+import flask.sessions
 import numconv
 import py
 import sirepo.template.srw
@@ -31,17 +34,14 @@ import sirepo.template.warp
 #: Implemented apps
 _APP_NAMES = ['srw', 'warp']
 
-#: Known emporary directory where simulation dirs are created
-_WORK_DIR = None
-
-#: Where simulation config files are found
-_SIMULATION_DIR = {}
-
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+
+#: How to find examples in resources
+_EXAMPLE_DIR_FORMAT = '{}_examples'
 
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
@@ -52,11 +52,32 @@ _ID_LEN = 8
 #: Verify ID
 _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 
-#: Is file name json
-_JSON_FILE_RE = re.compile(r'\.json$')
+#: Json files
+_JSON_SUFFIX = '.json'
+
+#: Simulation file name is globally unique to avoid collisions with simulation output
+_SIMULATION_DATA_FILE = 'sirepo-data' + _JSON_SUFFIX
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+
+#: Subdir shere to run the simulation
+_SIMULATION_RUN_DIR = 'run'
+
+#: Attribute in session object
+_UID_ATTR = 'uid'
+
+#: where users live under db_dir
+_USER_ROOT_DIR = 'user'
+
+#: where users live under db_dir
+_BEAKER_DATA_DIR = 'beaker'
+
+#: where users live under db_dir
+_BEAKER_LOCK_DIR = 'lock'
+
+#: What to exec (root_pkg)
+_ROOT_CMD = 'sirepo'
 
 
 with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
@@ -64,40 +85,83 @@ with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
 
 
 #: Flask app instance, must be bound globally
-app = flask.Flask(__name__, static_folder=str(_STATIC_FOLDER), template_folder=str(_STATIC_FOLDER))
+app = None
 
 
-#: _Celery or _Background
-_DAEMONZER = None
+class BeakerSession(flask.sessions.SessionInterface):
+    """Session manager for Flask using Beaker.
 
-def init(run_dir):
+    Stores session info in files in sirepo.server.data_dir. Minimal info kept
+    in session.
+    """
+    def __init__(self, app=None):
+        if app is None:
+            self.app = None
+        else:
+            self.init_app(app)
+
+    def sirepo_init_app(self, app, db_dir):
+        """Initialize _cfg with db_dir and register self with Flask
+
+        Args:
+            app (flask): Flask application object
+            db_dir (py.path.local): db_dir passed on command line
+        """
+        if not _cfg.db_dir:
+            _cfg.db_dir = db_dir
+        else:
+            _cfg.db_dir = py.path.local(_cfg.db_dir)
+        data_dir = _cfg.db_dir.join(_BEAKER_DATA_DIR)
+        lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
+        pkio.mkdir_parent(lock_dir)
+        sc = {
+            'session.auto': True,
+            'session.cookie_expires': False,
+            'session.type': 'file',
+            'session.data_dir': str(data_dir),
+            'session.lock_dir': str(lock_dir),
+        }
+        #TODO(robnagler) Generalize? seems like we'll be shadowing lots of config
+        for k in _cfg.session:
+            sc['session.' + k] = _cfg.session[k]
+        app.wsgi_app = beaker.middleware.SessionMiddleware(app.wsgi_app, sc)
+        app.session_interface = self
+
+    def open_session(self, app, request):
+        """Called by flask to create the session"""
+        return request.environ['beaker.session']
+
+    def save_session(self, *args, **kwargs):
+        """Necessary to complete abstraction, but Beaker autosaves"""
+        pass
+
+
+app = flask.Flask(
+    __name__,
+    static_folder=str(_STATIC_FOLDER),
+    template_folder=str(_STATIC_FOLDER),
+)
+
+
+def init(db_dir):
     """Initialize globals and populate simulation dir"""
-    global _WORK_DIR
-    run_dir = py.path.local(run_dir)
-    _WORK_DIR = run_dir.join('tmp')
-    if not _WORK_DIR.check():
-        pkio.mkdir_parent(_WORK_DIR)
-    for app_name in _APP_NAMES:
-        _SIMULATION_DIR[app_name] = run_dir.join('{}_simulations'.format(app_name))
-        if not _SIMULATION_DIR[app_name].check():
-            pkio.mkdir_parent(_SIMULATION_DIR[app_name])
-            for s in _examples(app_name):
-                _save_new_simulation(app_name, s, is_response=False)
+    BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
 
 
 @app.route(_SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
 def app_clear_frames():
     """Clear animation frames for the simulation."""
-    data = json.loads(_read_http_input())
-    pkio.unchecked_remove(_simulation_persistent_dir(data['simulationType'], data['simulationId']))
+    data = _json_input()
+    _simulation_run_dir(data['simulationType'], data['simulationId'], remove_dir=True)
     return '{}'
 
 
 @app.route(_SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
 def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
-    simulation_type = _json_input('simulationType')
-    data = _open_json_file(simulation_type, _simulation_filename(simulation_type, _json_input('simulationId')))
+    req = _json_input()
+    simulation_type = req['simulationType']
+    data = _open_json_file(simulation_type, sid=req['simulationId'])
     base_name = data['models']['simulation']['name']
     names = _iterate_simulation_datafiles(simulation_type, _simulation_name)
     count = 0
@@ -121,17 +185,19 @@ def app_route_favicon():
 
 @app.route(_SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
-    data = json.loads(_read_http_input())
-    pkio.unchecked_remove(_simulation_filename(data['simulationType'], data['simulationId']))
-    pkio.unchecked_remove(_simulation_persistent_dir(data['simulationType'], data['simulationId']))
+    data = _json_input()
+    pkio.unchecked_remove(_simulation_dir(data['simulationType'], data['simulationId']))
     return '{}'
 
 
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
-    new_simulation_data = json.loads(_read_http_input())
+    new_simulation_data = _json_input()
     simulation_type = new_simulation_data['simulationType']
-    data = _open_json_file(simulation_type, _STATIC_FOLDER.join('json/{}-default.json'.format(simulation_type)))
+    data = _open_json_file(
+        simulation_type,
+        _STATIC_FOLDER.join('json', '{}-default.json'.format(simulation_type)),
+    )
     data['models']['simulation']['name'] = new_simulation_data['name']
     _template_for_simulation_type(simulation_type).new_simulation(data, new_simulation_data)
     return _save_new_simulation(simulation_type, data)
@@ -139,7 +205,7 @@ def app_new_simulation():
 
 @app.route(_SCHEMA_COMMON['route']['pythonSource'])
 def app_python_source(simulation_type, simulation_id):
-    data = _open_json_file(simulation_type, _simulation_filename(simulation_type, simulation_id))
+    data = _open_json_file(simulation_type, sid=simulation_id)
     template = _template_for_simulation_type(simulation_type)
     # ensure the whole source gets generated, not up to the last breakout report
     if 'report' in data:
@@ -162,29 +228,25 @@ def app_root(simulation_type):
 
 @app.route(_SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
-    data = json.loads(_read_http_input())
-    wd = _work_dir()
-    err = _setup_simulation(data, wd, ['run', str(wd)]).run_and_read()
+    data = _json_input()
+    sid = _sid(data)
+    run_dir = _simulation_run_dir(data['simulationType'], sid, remove_dir=True)
+    err = _setup_simulation(data, run_dir, ['run', str(run_dir)]).run_and_read()
     if err:
-        sid = _id(data)
-        pkdp('error: sid={}, dir={}, out={}', sid, wd, err)
+        pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
         return flask.jsonify({
             'error': _error_text(err),
             'simulationId': sid,
         })
-    data = pkio.read_text(wd.join('out.json'))
-    # Remove only in the case of a non-error/exception. If there's an error, we may
-    # want to debug
-    pkio.unchecked_remove(wd)
-    return data
+    return pkio.read_text(run_dir.join('out.json'))
 
 
 @app.route(_SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
-    data = json.loads(_read_http_input())
-    sid = _id(data)
+    data = _json_input()
+    sid = _sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if _DAEMONZER.is_running(sid):
+    if _cfg.daemonizer.is_running(sid):
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
@@ -192,11 +254,9 @@ def app_run_background():
     status['state'] = 'running'
     status['startTime'] = int(time.time() * 1000)
     _save_simulation_json(data['simulationType'], data)
-    wd = _work_dir()
-    out_dir = _simulation_persistent_dir(data['simulationType'], sid)
-    pkio.unchecked_remove(out_dir)
-    cmd = ['run-background', str(wd)]
-    _setup_simulation(data, wd, cmd, out_dir)
+    run_dir = _simulation_run_dir(data['simulationType'], sid, remove_dir=True)
+    cmd = ['run-background', str(run_dir)]
+    _setup_simulation(data, run_dir, cmd, run_async=True)
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -205,29 +265,31 @@ def app_run_background():
 
 @app.route(_SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
-    data = json.loads(_read_http_input())
+    data = _json_input()
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
     _save_simulation_json(simulation_type, data)
-    _DAEMONZER.kill(_id(data))
+    _cfg.daemonizer.kill(_sid(data))
     # the last frame file may not be finished, remove it
     t = _template_for_simulation_type(simulation_type)
-    t.remove_last_frame(_simulation_persistent_dir(simulation_type, _id(data)))
+    t.remove_last_frame(_simulation_run_dir(simulation_type, _sid(data)))
     return '{}'
 
 
 @app.route(_SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
-    data = json.loads(_read_http_input())
+    data = _json_input()
+    sid = _sid(data)
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
-    if _DAEMONZER.is_running(_id(data)):
-        completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), True)
+    run_dir = _simulation_run_dir(simulation_type, sid)
+    if _cfg.daemonizer.is_running(sid):
+        completion = template.background_percent_complete(data, run_dir, True)
         state = 'running'
     else:
-        data = _open_json_file(simulation_type, _simulation_filename(simulation_type, _id(data)))
+        data = _open_json_file(simulation_type, sid=sid)
         state = data['models']['simulationStatus']['state']
-        completion = template.background_percent_complete(data, _simulation_persistent_dir(simulation_type, _id(data)), False)
+        completion = template.background_percent_complete(data, run_dir, False)
         if state == 'running':
             if completion['frame_count'] == completion['total_frames']:
                 state = 'completed'
@@ -261,9 +323,9 @@ def app_simulation_data(simulation_type, simulation_id):
 def app_simulation_frame(frame_id):
     keys = ['simulation_type', 'simulation_id', 'model_name', 'animation_args', 'frame_index', 'start_time']
     data = dict(zip(keys, frame_id.split('-')))
-    persistent_files_dir = _simulation_persistent_dir(data['simulation_type'], data['simulation_id'])
+    run_dir = _simulation_run_dir(data['simulation_type'], data['simulation_id'])
     response = flask.jsonify(_template_for_simulation_type(
-        data['simulation_type']).get_simulation_frame(persistent_files_dir, data))
+        data['simulation_type']).get_simulation_frame(run_dir, data))
     now = datetime.datetime.utcnow()
     expires = now + datetime.timedelta(365)
     response.headers['Cache-Control'] = 'public, max-age=31536000'
@@ -274,7 +336,7 @@ def app_simulation_frame(frame_id):
 
 @app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list(simulation_type):
-    simulation_type = _json_input('simulationType')
+    simulation_type = _json_input()['simulationType']
     return json.dumps(
         sorted(
             _iterate_simulation_datafiles(simulation_type, _process_simulation_list),
@@ -290,6 +352,29 @@ def app_simulation_schema():
     return flask.jsonify(_schema_cache(sim_type))
 
 
+def _cfg_daemonizer(value):
+    """Converts string to class"""
+    if isinstance(value, (_Celery, _Background)):
+        # Already initialized but may call initializer with original object
+        return value
+    if value == 'Celery':
+        from sirepo import celery_tasks
+        try:
+            if not celery_tasks.celery.control.ping():
+                print('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
+                sys.exit(1)
+        except Exception:
+            print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
+            sys.exit(1)
+        return _Celery
+
+    elif value == 'Background':
+        signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
+        return _Background
+    else:
+        raise AssertionError('{}: unknown daemonizer'.format(value))
+
+
 def _error_text(err):
     """Parses error from subprocess"""
     m = re.search(_SUBPROCESS_ERROR_RE, err)
@@ -298,52 +383,46 @@ def _error_text(err):
     return 'a system error occurred'
 
 
-def _find_simulation_data(res, path, data, params):
-    if str(_id(data)) == params['simulationId']:
-        res.append(data)
-
-
-def _fixup_old_data(simulation_type, data):
-    if 'version' in data and data['version'] == _SCHEMA_COMMON['version']:
-        return data
-    _template_for_simulation_type(simulation_type).fixup_old_data(data)
-    data['version'] = _SCHEMA_COMMON['version']
-    return data
-
-
 def _examples(app):
-    files = pkio.walk_tree(pkresource.filename('{}_examples'.format(app)), _JSON_FILE_RE)
+    files = pkio.walk_tree(
+        pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
+        re.escape(_JSON_SUFFIX) + '$',
+    )
     return [_open_json_file(app, str(f)) for f in files]
 
 
-def _id(data):
-    """Extract id from data"""
-    return str(data['models']['simulation']['simulationId'])
+def _find_simulation_data(res, path, data, params):
+    if str(_sid(data)) == params['simulationId']:
+        res.append(data)
 
 
 def _iterate_simulation_datafiles(simulation_type, op, params=None):
     res = []
-    for path in pkio.walk_tree(_SIMULATION_DIR[simulation_type], _JSON_FILE_RE):
+    for path in pkio.walk_tree(
+        _simulation_dir(simulation_type),
+        re.escape(_SIMULATION_DATA_FILE) + '$',
+    ):
         try:
             op(res, path, _open_json_file(simulation_type, path), params)
         except ValueError:
             pkdp('unparseable json file: {}', path)
-
     return res
 
 
-def _json_input(field):
-    return json.loads(_read_http_input())[field]
+def _json_input():
+    return json.loads(_read_http_input())
 
 
-def _open_json_file(simulation_type, path):
+def _open_json_file(simulation_type, path=None, sid=None):
+    if not path:
+        path = _simulation_data_file(simulation_type, sid)
     with open(str(path)) as f:
-        return _fixup_old_data(simulation_type, json.load(f))
+        return json.load(f)
 
 
 def _process_simulation_list(res, path, data, params):
     res.append({
-        'simulationId': _id(data),
+        'simulationId': _sid(data),
         'name': data['models']['simulation']['name'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
@@ -351,24 +430,46 @@ def _process_simulation_list(res, path, data, params):
     })
 
 
+def _random_id(parent_dir):
+    """Create a random id in parent_dir
+
+    Args:
+        parent_dir (py.path): where id should be unique
+    Returns:
+        str: id (not directory)
+    """
+    #TODO(pjm): use database sequence for Id
+    pkio.mkdir_parent(parent_dir)
+    r = random.SystemRandom()
+    # Generate cryptographically secure random string
+    for _ in range(5):
+        i = ''.join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        d = parent_dir.join(i)
+        try:
+            os.mkdir(str(d))
+            return i
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
+    raise RuntimeError('{}: failed to create unique direcotry'.format(parent_dir))
+
+
 def _read_http_input():
     return flask.request.data.decode('unicode-escape')
 
 
 def _save_new_simulation(simulation_type, data, is_response=True):
-    #TODO(pjm): use database sequence for Id
-    r = random.SystemRandom()
-    # Generate cryptographically secure random string
-    i = ''.join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
-    data['models']['simulation']['simulationId'] = i
+    sid = _random_id(_simulation_dir(simulation_type))
+    data['models']['simulation']['simulationId'] = sid
     _save_simulation_json(simulation_type, data)
     if is_response:
-        return app_simulation_data(simulation_type, i)
+        return app_simulation_data(simulation_type, sid)
 
 
 def _save_simulation_json(simulation_type, data):
-    si = _id(data)
-    with open(_simulation_filename(simulation_type, si), 'w') as outfile:
+    sid = _sid(data)
+    with open(_simulation_data_file(simulation_type, sid), 'w') as outfile:
         json.dump(data, outfile)
 
 
@@ -383,37 +484,81 @@ def _schema_cache(sim_type):
     return schema
 
 
-def _simulation_filename(simulation_type, value):
-    return str(_simulation_persistent_dir(simulation_type, value)) + '.json'
+def _sid(data):
+    """Extract id from data"""
+    return str(data['models']['simulation']['simulationId'])
+
+
+def _simulation_data_file(simulation_type, sid):
+    return str(_simulation_dir(simulation_type, sid).join(_SIMULATION_DATA_FILE))
+
+
+def _simulation_dir(simulation_type, sid=None):
+    """Generates simulation directory from sid and simulation_type
+
+    Args:
+        simulation_type (str): srw or warp
+        sid (str): simulation id (optional)
+    """
+    d = _user_dir().join(simulation_type)
+    if not sid:
+        return d
+    if not _ID_RE.search(sid):
+        raise RuntimeError('{}: invalid simulation id'.format(sid))
+    return d.join(sid)
 
 
 def _simulation_name(res, path, data, params):
+    """Extract name of simulation from data file
+
+    Args:
+        res (list): results of iteration
+        path (py.path): full path to file
+        data (dict): parsed json
+        params (object): additional params
+
+    Returns:
+        str: Human readable name for simulation
+    """
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_persistent_dir(simulation_type, value):
-    if not _ID_RE.search(value):
-        raise RuntimeError('{}: invalid simulation id'.format(value))
-    return _SIMULATION_DIR[simulation_type].join(value)
+def _simulation_run_dir(simulation_type, sid, remove_dir=False):
+    """Where to run the simulation
+
+    Args:
+        simulation_type (str): srw or warp
+        sid (str): simulation id
+        remove_dir (bool): remove the directory [False]
+
+    Returns:
+        py.path: directory to run
+    """
+    d = _simulation_dir(simulation_type, sid).join(_SIMULATION_RUN_DIR)
+    if remove_dir:
+        pkio.unchecked_remove(d)
+    return d
 
 
-def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
+def _setup_simulation(data, run_dir, cmd, run_async=False):
+    pkio.mkdir_parent(run_dir)
     simulation_type = data['simulationType']
-    data = _fixup_old_data(simulation_type, data)
     template = _template_for_simulation_type(simulation_type)
     _save_simulation_json(simulation_type, data)
-    with open(str(wd.join('in.json')), 'w') as outfile:
+    with open(str(run_dir.join('in.json')), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
-        wd.join(simulation_type + '_parameters.py'),
+        run_dir.join(simulation_type + '_parameters.py'),
         template.generate_parameters_file(
-            data, _schema_cache(simulation_type),
-            persistent_files_dir=persistent_files_dir)
+            data,
+            _schema_cache(simulation_type),
+            run_dir=run_dir,
+        )
     )
-    template.prepare_aux_files(wd)
-    if persistent_files_dir:
-        return _DAEMONZER(_id(data), ['sirepo', simulation_type] + cmd, workdir=wd)
-    return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
+    template.prepare_aux_files(run_dir)
+    if run_async:
+        return _cfg.daemonizer(_sid(data), run_dir, [_ROOT_CMD, simulation_type] + cmd)
+    return _Command([_ROOT_CMD, simulation_type] + cmd, template.MAX_SECONDS)
 
 
 def _template_for_simulation_type(simulation_type):
@@ -424,18 +569,41 @@ def _template_for_simulation_type(simulation_type):
     raise RuntimeError('{}: invalid simulation_type'.format(simulation_type))
 
 
-def _work_dir():
-    fmt = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S_{}')
-    for i in range(5):
-        d = _WORK_DIR.join(fmt.format(random.randint(1000, 9999)))
-        try:
-            os.mkdir(str(d))
-            return d
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            raise
-    raise RuntimeError('{}: failed to create unique directory name'.format(d))
+def _user_dir():
+    """User for the session
+
+    Returns:
+        str: unique id for user from flask session
+    """
+    if not _UID_ATTR in flask.session:
+        _user_dir_create()
+    return _user_dir_name(flask.session[_UID_ATTR])
+
+
+def _user_dir_create():
+    """Create a user and initialize the directory"""
+    uid = _random_id(_user_dir_name())
+    # Must set before calling _simulation_dir
+    flask.session[_UID_ATTR] = uid
+    for app_name in _APP_NAMES:
+        d = _simulation_dir(app_name)
+        pkio.mkdir_parent(d)
+        for s in _examples(app_name):
+            _save_new_simulation(app_name, s, is_response=False)
+
+
+def _user_dir_name(uid=None):
+    """String name for user name
+
+    Args:
+        uid (str): properly formated user name (optional)
+    Return:
+        py.path: directory name
+    """
+    d = _cfg.db_dir.join(_USER_ROOT_DIR)
+    if not uid:
+        return d
+    return d.join(uid)
 
 
 class _Background(object):
@@ -446,14 +614,14 @@ class _Background(object):
     # mutex for _process
     _lock = threading.Lock()
 
-    def __init__(self, sid, cmd, workdir):
+    def __init__(self, sid, run_dir, cmd):
         with self._lock:
             assert not sid in self._process, \
                 'Simulation already running: sid={}'.format(sid)
             self.in_kill = False
             self.sid = sid
             self.cmd = cmd
-            self.workdir = workdir
+            self.run_dir = run_dir
             self._process[sid] = self
             self.pid = None
             # This command may blow up
@@ -541,7 +709,7 @@ class _Background(object):
             pkdp('Started: pid={} sid={} cmd={}', pid, self.sid, self.cmd)
             return pid
         try:
-            os.chdir(str(self.workdir))
+            os.chdir(str(self.run_dir))
             os.setsid()
             import resource
             maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
@@ -566,7 +734,7 @@ class _Background(object):
                 pkdp('execvp error: {} ({})', e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
-            err = open(str(self.workdir.join('background.log')), 'a')
+            err = open(str(self.run_dir.join('background.log')), 'a')
             err.write('Error starting daemon: {}\n'.format(e))
             err.close()
             reraise
@@ -580,13 +748,13 @@ class _Celery(object):
     # mutex for _task
     _lock = threading.Lock()
 
-    def __init__(self, sid, cmd, workdir):
+    def __init__(self, sid, run_dir, cmd):
         with self._lock:
             assert not sid in self._task, \
                 'Simulation already running: sid={}'.format(sid)
             self.sid = sid
             self.cmd = cmd
-            self.workdir = workdir
+            self.run_dir = run_dir
             self._task[sid] = self
             self.async_result = None
             # This command may blow up
@@ -632,7 +800,7 @@ class _Celery(object):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
-        return celery_tasks.start_simulation.apply_async([self.cmd[1], self.workdir])
+        return celery_tasks.start_simulation.apply_async([self.cmd[1], self.run_dir])
 
 
 class _Command(threading.Thread):
@@ -674,16 +842,18 @@ class _Command(threading.Thread):
         return None
 
 
-if os.getenv('SIREPO_SERVER_CELERY', None):
-    _DAEMONZER = _Celery
-    from sirepo import celery_tasks
-    try:
-        if not celery_tasks.celery.control.ping():
-            print('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
-            sys.exit(1)
-    except Exception:
-        print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
-        sys.exit(1)
-else:
-    _DAEMONZER = _Background
-    signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
+#: Replace with pkconfig
+_cfg = pkcollections.OrderedMapping(
+    db_dir=os.getenv('SIREPO_SERVER_DB_DIR', None),
+    session=pkcollections.OrderedMapping(
+        secure=os.getenv('SIREPO_SERVER_SESSION_SECURE', False),
+        secret=os.getenv('SIREPO_SERVER_SESSION_SECRET', 'development secret'),
+        # Eventually {{ root_pkg }}_{{ channel }}
+        key=os.getenv('SIREPO_SERVER_SESSION_SECRET', 'sirepo_dev'),
+        session_key=os.getenv('SIREPO_SERVER_COOKIE_KEY', False),
+    ),
+    daemonizer=os.getenv('SIREPO_SERVER_JOB_QUEUE', 'Background'),
+)
+
+# This would a be a parser
+_cfg.daemonizer = _cfg_daemonizer(_cfg.daemonizer)

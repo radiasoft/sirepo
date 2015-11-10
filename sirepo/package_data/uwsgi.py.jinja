@@ -4,11 +4,11 @@ import logging
 import logging.handlers;
 
 # Needs to be explicit
-server.init(run_dir='{{ run_dir }}')
+server.init(db_dir='{{ db_dir }}')
 app = server.app
 
 handler = logging.handlers.RotatingFileHandler(
-    '{{ run_dir }}/app.log', maxBytes=10000, backupCount=1)
+    '{{ db_dir }}/app.log', maxBytes=10000, backupCount=1)
 handler.setLevel(logging.INFO)
 {% raw %}
 handler.setFormatter(logging.Formatter(

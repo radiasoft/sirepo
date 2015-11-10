@@ -109,7 +109,7 @@ def fixup_old_data(data):
         }
 
 
-def generate_parameters_file(data, schema, persistent_files_dir=None):
+def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
@@ -151,11 +151,11 @@ def new_simulation(data, new_simulation_data):
     data['models']['simulation']['sourceType'] = new_simulation_data['sourceType']
 
 
-def prepare_aux_files(wd):
+def prepare_aux_files(run_dir):
     """Copy any files required for execution into the specified directory"""
     shutil.copyfile(
         pkresource.filename('static/dat/mirror_1d.dat'),
-        str(wd.join('mirror_1d.dat')),
+        str(run_dir.join('mirror_1d.dat')),
     )
 
 

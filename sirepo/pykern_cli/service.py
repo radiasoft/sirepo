@@ -22,24 +22,24 @@ _DEFAULT_PORT = 8000
 _DEFAULT_SUBDIR = 'run'
 
 
-def http(port=None, run_dir=None):
+def http(port=None, db_dir=None):
     """Starts Flask server"""
     from sirepo import server
-    server.init(_run_dir(run_dir))
+    server.init(_db_dir(db_dir))
     server.app.run(host='0.0.0.0', port=_port(port), debug=1, threaded=True)
 
 
-def uwsgi(port=None, run_dir=None, docker=False):
+def uwsgi(port=None, db_dir=None, docker=False):
     """Starts UWSGI server"""
-    run_dir =_run_dir(run_dir)
+    db_dir =_db_dir(db_dir)
     values = {
-        'run_dir': run_dir,
+        'db_dir': db_dir,
         'port': _port(port),
         'docker': docker,
     }
     # uwsgi.py must be first, because referenced by uwsgi.yml
     for f in ('uwsgi.py', 'uwsgi.yml'):
-        output = run_dir.join(f)
+        output = db_dir.join(f)
         values[f.replace('.', '_')] = str(output)
         pkjinja.render_resource(f, values, output=output)
     cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
@@ -60,9 +60,9 @@ def _port(port):
     return _DEFAULT_PORT
 
 
-def _run_dir(run_dir):
+def _db_dir(db_dir):
     """Returns root package's parent or cwd with _DEFAULT_SUBDIR"""
-    if not run_dir:
+    if not db_dir:
         fn = sys.modules[pkinspect.root_package(http)].__file__
         root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
         # Check to see if we are in our dev directory. This is a hack,
@@ -70,5 +70,5 @@ def _run_dir(run_dir):
         if not root.join('requirements.txt').check():
             # Don't run from an install directory
             root = py.path.local('.')
-        run_dir = root.join(_DEFAULT_SUBDIR)
-    return pkio.mkdir_parent(run_dir)
+        db_dir = root.join(_DEFAULT_SUBDIR)
+    return pkio.mkdir_parent(db_dir)
