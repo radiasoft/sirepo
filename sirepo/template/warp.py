@@ -148,18 +148,18 @@ def generate_parameters_file(data, schema, run_dir=None):
 
 
 def get_simulation_frame(run_dir, data):
-    frame_index = int(data['frame_index'])
+    frame_index = int(data['frameIndex'])
     files = _h5_file_list(run_dir)
     filename = str(files[frame_index])
     iteration = int(re.search(r'data(\d+)', filename).group(1))
     dfile = h5py.File(filename, "r")
-    args = data['animation_args'].split('_')
+    args = data['animationArgs'].split('_')
 
-    if data['model_name'] == 'fieldAnimation':
+    if data['modelName'] == 'fieldAnimation':
         return _field_animation(args, dfile, iteration, len(files))
-    if data['model_name'] == 'particleAnimation':
+    if data['modelName'] == 'particleAnimation':
         return _particle_animation(args, dfile, iteration, len(files))
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['model_name']))
+    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def new_simulation(data, new_simulation_data):

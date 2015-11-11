@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 import datetime
 import errno
+import glob
 import json
 import os
 import random
@@ -152,7 +153,7 @@ def init(db_dir):
 def app_clear_frames():
     """Clear animation frames for the simulation."""
     data = _json_input()
-    _simulation_run_dir(data['simulationType'], data['simulationId'], remove_dir=True)
+    _simulation_run_dir(data, remove_dir=True)
     return '{}'
 
 
@@ -230,8 +231,8 @@ def app_root(simulation_type):
 def app_run():
     data = _json_input()
     sid = _sid(data)
-    run_dir = _simulation_run_dir(data['simulationType'], sid, remove_dir=True)
-    err = _setup_simulation(data, run_dir, ['run', str(run_dir)]).run_and_read()
+    err = _start_simulation(data).run_and_read()
+    run_dir = _simulation_run_dir(data)
     if err:
         pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
         return flask.jsonify({
@@ -252,11 +253,9 @@ def app_run_background():
         return '{}'
     status = data['models']['simulationStatus'];
     status['state'] = 'running'
+    #TODO: Javascript weirdness. Should normalize time as UTC
     status['startTime'] = int(time.time() * 1000)
-    _save_simulation_json(data['simulationType'], data)
-    run_dir = _simulation_run_dir(data['simulationType'], sid, remove_dir=True)
-    cmd = ['run-background', str(run_dir)]
-    _setup_simulation(data, run_dir, cmd, run_async=True)
+    _start_simulation(data, run_async=True)
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -272,7 +271,7 @@ def app_run_cancel():
     _cfg.daemonizer.kill(_sid(data))
     # the last frame file may not be finished, remove it
     t = _template_for_simulation_type(simulation_type)
-    t.remove_last_frame(_simulation_run_dir(simulation_type, _sid(data)))
+    t.remove_last_frame(_simulation_run_dir(data))
     return '{}'
 
 
@@ -282,7 +281,7 @@ def app_run_status():
     sid = _sid(data)
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
-    run_dir = _simulation_run_dir(simulation_type, sid)
+    run_dir = _simulation_run_dir(data)
     if _cfg.daemonizer.is_running(sid):
         completion = template.background_percent_complete(data, run_dir, True)
         state = 'running'
@@ -307,6 +306,7 @@ def app_run_status():
 
 @app.route(_SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
+    return flask.jsonify(_open_json_file(simulation_type, sid=simulation_id))
     res = _iterate_simulation_datafiles(
         simulation_type,
         _find_simulation_data,
@@ -321,11 +321,11 @@ def app_simulation_data(simulation_type, simulation_id):
 
 @app.route(_SCHEMA_COMMON['route']['simulationFrame'])
 def app_simulation_frame(frame_id):
-    keys = ['simulation_type', 'simulation_id', 'model_name', 'animation_args', 'frame_index', 'start_time']
+    keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('-')))
-    run_dir = _simulation_run_dir(data['simulation_type'], data['simulation_id'])
+    run_dir = _simulation_run_dir(data)
     response = flask.jsonify(_template_for_simulation_type(
-        data['simulation_type']).get_simulation_frame(run_dir, data))
+        data['simulationType']).get_simulation_frame(run_dir, data))
     now = datetime.datetime.utcnow()
     expires = now + datetime.timedelta(365)
     response.headers['Cache-Control'] = 'public, max-age=31536000'
@@ -396,6 +396,14 @@ def _find_simulation_data(res, path, data, params):
         res.append(data)
 
 
+def _fixup_old_data(simulation_type, data):
+    if 'version' in data and data['version'] == _SCHEMA_COMMON['version']:
+        return data
+    _template_for_simulation_type(simulation_type).fixup_old_data(data)
+    data['version'] = _SCHEMA_COMMON['version']
+    return data
+
+
 def _iterate_simulation_datafiles(simulation_type, op, params=None):
     res = []
     for path in pkio.walk_tree(
@@ -417,7 +425,7 @@ def _open_json_file(simulation_type, path=None, sid=None):
     if not path:
         path = _simulation_data_file(simulation_type, sid)
     with open(str(path)) as f:
-        return json.load(f)
+        return _fixup_old_data(simulation_type, json.load(f))
 
 
 def _process_simulation_list(res, path, data, params):
@@ -459,6 +467,22 @@ def _read_http_input():
     return flask.request.data.decode('unicode-escape')
 
 
+def _report_name(data):
+    """Extract report name from data
+
+    Animations don't have a report name so we just return animation.
+
+    Args:
+        data (dict): passed in params
+    Returns:
+        str: name of the report requested in the data
+    """
+    try:
+        return data['report']
+    except KeyError:
+        return 'animation'
+
+
 def _save_new_simulation(simulation_type, data, is_response=True):
     sid = _random_id(_simulation_dir(simulation_type))
     data['models']['simulation']['simulationId'] = sid
@@ -485,8 +509,18 @@ def _schema_cache(sim_type):
 
 
 def _sid(data):
-    """Extract id from data"""
-    return str(data['models']['simulation']['simulationId'])
+    """Extract id from data file
+
+    Args:
+        data (dict): data file parsed
+
+    Returns:
+        str: simulationId from data fiel
+    """
+    try:
+        return str(data['simulationId'])
+    except KeyError:
+        return str(data['models']['simulation']['simulationId'])
 
 
 def _simulation_data_file(simulation_type, sid):
@@ -523,28 +557,43 @@ def _simulation_name(res, path, data, params):
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_run_dir(simulation_type, sid, remove_dir=False):
+def _simulation_run_dir(data, remove_dir=False):
     """Where to run the simulation
 
     Args:
-        simulation_type (str): srw or warp
-        sid (str): simulation id
+        data (dict): contains simulationType and simulationId
         remove_dir (bool): remove the directory [False]
 
     Returns:
         py.path: directory to run
     """
-    d = _simulation_dir(simulation_type, sid).join(_SIMULATION_RUN_DIR)
+    d = _simulation_dir(data['simulationType'], _sid(data)).join(_report_name(data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
 
 
-def _setup_simulation(data, run_dir, cmd, run_async=False):
+def _start_simulation(data, run_async=False):
+    """Setup and start the simulation.
+
+    Args:
+        data (dict): app data
+        run_async (bool): run-background or run
+
+    Returns:
+        object: _Command or daemon instance
+    """
+    run_dir = _simulation_run_dir(data, remove_dir=True)
     pkio.mkdir_parent(run_dir)
+    #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
+    #   probably can only do with celery.
     simulation_type = data['simulationType']
+    sid = _sid(data)
+    data = _fixup_old_data(simulation_type, data)
     template = _template_for_simulation_type(simulation_type)
     _save_simulation_json(simulation_type, data)
+    for f in glob.glob(str(_simulation_dir(simulation_type, sid).join('*.*'))):
+        py.path.local(f).copy(run_dir)
     with open(str(run_dir.join('in.json')), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
@@ -556,9 +605,11 @@ def _setup_simulation(data, run_dir, cmd, run_async=False):
         )
     )
     template.prepare_aux_files(run_dir)
+    cmd = [_ROOT_CMD, simulation_type] \
+        + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:
-        return _cfg.daemonizer(_sid(data), run_dir, [_ROOT_CMD, simulation_type] + cmd)
-    return _Command([_ROOT_CMD, simulation_type] + cmd, template.MAX_SECONDS)
+        return _cfg.daemonizer(sid, run_dir, cmd)
+    return _Command(cmd, template.MAX_SECONDS)
 
 
 def _template_for_simulation_type(simulation_type):
@@ -577,6 +628,11 @@ def _user_dir():
     """
     if not _UID_ATTR in flask.session:
         _user_dir_create()
+    d = _user_dir_name(flask.session[_UID_ATTR])
+    if d.check():
+        return d
+    # Beaker session might have been deleted (in dev) so "logout" and "login"
+    _user_dir_create()
     return _user_dir_name(flask.session[_UID_ATTR])
 
 
