@@ -18,6 +18,7 @@ import sys
 import subprocess
 import threading
 import time
+import werkzeug
 
 from pykern import pkio
 from pykern import pkresource
@@ -164,7 +165,8 @@ def app_root(simulation_type):
 def app_run():
     data = json.loads(_read_http_input())
     wd = _work_dir()
-    err = _setup_simulation(data, wd, ['run', str(wd)]).run_and_read()
+    persistent_files_dir = _simulation_persistent_dir(data['simulationType'], _id(data))
+    err = _setup_simulation(data, wd, ['run', str(wd)], persistent_files_dir).run_and_read()
     if err:
         sid = _id(data)
         pkdp('error: sid={}, dir={}, out={}', sid, wd, err)
@@ -196,7 +198,7 @@ def app_run_background():
     out_dir = _simulation_persistent_dir(data['simulationType'], sid)
     pkio.unchecked_remove(out_dir)
     cmd = ['run-background', str(wd)]
-    _setup_simulation(data, wd, cmd, out_dir)
+    _setup_simulation(data, wd, cmd, out_dir, is_background=True)
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -289,6 +291,26 @@ def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
     return flask.jsonify(_schema_cache(sim_type))
 
+
+@app.route(_SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
+def app_upload_file(simulation_type, simulation_id):
+    file = flask.request.files['file']
+    persistent_files_dir = _simulation_persistent_dir(simulation_type, simulation_id)
+    if not persistent_files_dir.check():
+        pkio.mkdir_parent(persistent_files_dir)
+    filename = werkzeug.secure_filename(file.filename)
+    path = persistent_files_dir.join(filename)
+    if path.check():
+        return flask.jsonify({
+            #'error': 'file exists: ' + filename,
+            'filename': filename,
+            'simulationId': simulation_id,
+        })
+    file.save(path)
+    return flask.jsonify({
+        'filename': filename,
+        'simulationId': simulation_id,
+    })
 
 def _error_text(err):
     """Parses error from subprocess"""
@@ -397,7 +419,7 @@ def _simulation_persistent_dir(simulation_type, value):
     return _SIMULATION_DIR[simulation_type].join(value)
 
 
-def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
+def _setup_simulation(data, wd, cmd, persistent_files_dir, is_background=False):
     simulation_type = data['simulationType']
     data = _fixup_old_data(simulation_type, data)
     template = _template_for_simulation_type(simulation_type)
@@ -408,10 +430,10 @@ def _setup_simulation(data, wd, cmd, persistent_files_dir=None):
         wd.join(simulation_type + '_parameters.py'),
         template.generate_parameters_file(
             data, _schema_cache(simulation_type),
-            persistent_files_dir=persistent_files_dir)
+            persistent_files_dir=persistent_files_dir if is_background else None)
     )
-    template.prepare_aux_files(wd)
-    if persistent_files_dir:
+    template.prepare_aux_files(wd, persistent_files_dir)
+    if is_background:
         return _DAEMONZER(_id(data), ['sirepo', simulation_type] + cmd, workdir=wd)
     return _Command(['sirepo', simulation_type] + cmd, template.MAX_SECONDS)
 
