@@ -338,7 +338,7 @@ app.directive('plot3d', function(plotting) {
         templateUrl: '/static/html/plot3d.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
 
-            $scope.margin = 40;
+            $scope.margin = 50;
             $scope.bottomPanelMargin = {top: 10, bottom: 30};
             $scope.rightPanelMargin = {left: 10, right: 40};
             // will be set to the correct size in resize()
