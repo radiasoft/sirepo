@@ -169,7 +169,7 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
-def prepare_aux_files(wd):
+def prepare_aux_files(wd, persistent_files_dir):
     pass
 
 
