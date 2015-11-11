@@ -7,10 +7,12 @@ u"""SRW execution template.
 from __future__ import absolute_import, division, print_function
 
 import json
+import os
 import py
 import re
 import shutil
 
+from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from . import template_common
@@ -23,6 +25,9 @@ _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
 with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
     _PREDEFINED_BEAMS = json.load(f)
+
+with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
+    _PREDEFINED_MIRRORS = json.load(f)
 
 
 def fixup_old_data(data):
@@ -52,11 +57,13 @@ def fixup_old_data(data):
                 item['horizontalOffset'] = 0
             if not item.get('verticalOffset'):
                 item['verticalOffset'] = 0
-    if 'simulation' in data['models'] and 'magneticField' in data['models']['simulation']:
+    if 'magneticField' in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = data['models']['simulation']['magneticField']
         del data['models']['simulation']['magneticField']
-    if 'simulation' in data['models'] and 'sourceType' not in data['models']['simulation']:
+    if 'sourceType' not in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = 'u'
+    if 'mirrorFiles' not in data['models']['simulation']:
+        data['models']['simulation']['mirrorFiles'] = ''
     if 'multipole' not in data['models']:
         data['models']['multipole'] = {
             'field': 0.4,
@@ -107,6 +114,8 @@ def fixup_old_data(data):
             'polarization': 6,
             'horizontalPosition': 0,
         }
+    if 'sampleFactor' not in data['models']['gaussianBeam']:
+        data['models']['gaussianBeam']['sampleFactor'] = 5
 
 
 def generate_parameters_file(data, schema, persistent_files_dir=None):
@@ -137,7 +146,7 @@ def generate_parameters_file(data, schema, persistent_files_dir=None):
         drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
     else:
         #TODO(pjm): allow this to be set in UI?
-        drift = 0;
+        drift = 0
     v['electronBeamInitialDrift'] = drift
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if source_type == 'u' else 2
@@ -151,12 +160,18 @@ def new_simulation(data, new_simulation_data):
     data['models']['simulation']['sourceType'] = new_simulation_data['sourceType']
 
 
-def prepare_aux_files(wd):
+def prepare_aux_files(wd, persistent_files_dir):
     """Copy any files required for execution into the specified directory"""
-    shutil.copyfile(
-        pkresource.filename('static/dat/mirror_1d.dat'),
-        str(wd.join('mirror_1d.dat')),
-    )
+
+    for mirror in _PREDEFINED_MIRRORS:
+        shutil.copyfile(
+            pkresource.filename('static/dat/' + mirror['fileName']),
+            str(wd.join(mirror['fileName'])),
+        )
+    for f in pkio.walk_tree(persistent_files_dir):
+        basename = os.path.basename(str(f))
+        shutil.copyfile(str(f), str(wd.join(basename)))
+
 
 
 def run_all_text():
@@ -238,6 +253,12 @@ def _generate_beamline_optics(models, last_id):
                 item,
                 ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
                 propagation)
+        elif item['type'] == 'ellipsoidMirror':
+            res += _beamline_element(
+                'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+                item,
+                ['distanceToCenter', 'distanceFromCenter', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+                propagation)
         elif item['type'] == 'lens':
             res += _beamline_element(
                 'srwlib.SRWLOptL({}, {}, {}, {})',
@@ -245,10 +266,11 @@ def _generate_beamline_optics(models, last_id):
                 ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
                 propagation)
         elif item['type'] == 'mirror':
-            res += '    ifnHDM = "mirror_1d.dat"\n'
+            res += '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
             res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
             res += _beamline_element(
-                'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
+                # 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
+                'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})',
                 item,
                 ['orientation', 'grazingAngle', 'heightAmplification', 'horizontalTransverseSize', 'verticalTransverseSize'],
                 propagation)
