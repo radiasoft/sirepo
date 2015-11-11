@@ -11,6 +11,7 @@ import errno
 import glob
 import json
 import os
+import os.path
 import random
 import re
 import signal
@@ -406,10 +407,10 @@ def _fixup_old_data(simulation_type, data):
 
 def _iterate_simulation_datafiles(simulation_type, op, params=None):
     res = []
-    for path in pkio.walk_tree(
-        _simulation_dir(simulation_type),
-        re.escape(_SIMULATION_DATA_FILE) + '$',
+    for path in glob.glob(
+        str(_simulation_dir(simulation_type).join('*', _SIMULATION_DATA_FILE)),
     ):
+        path = py.path.local(path)
         try:
             op(res, path, _open_json_file(simulation_type, path), params)
         except ValueError:
@@ -593,7 +594,8 @@ def _start_simulation(data, run_async=False):
     template = _template_for_simulation_type(simulation_type)
     _save_simulation_json(simulation_type, data)
     for f in glob.glob(str(_simulation_dir(simulation_type, sid).join('*.*'))):
-        py.path.local(f).copy(run_dir)
+        if os.path.isfile(f):
+            py.path.local(f).copy(run_dir)
     with open(str(run_dir.join('in.json')), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
