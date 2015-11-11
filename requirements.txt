@@ -1,4 +1,3 @@
-aqmp
 beaker
 celery
 flask
