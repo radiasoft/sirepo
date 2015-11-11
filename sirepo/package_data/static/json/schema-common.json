@@ -1,5 +1,5 @@
 {
-    "version": "20151105",
+    "version": "20151110",
     "route": {
         "clearFrames": "/clear-frames",
         "copySimulation": "/copy-simulation",
@@ -14,6 +14,7 @@
         "runStatus": "/run-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
         "simulationFrame": "/simulation-frame/<frame_id>",
-        "simulationSchema": "/simulation-schema"
+        "simulationSchema": "/simulation-schema",
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>"
     }
 }

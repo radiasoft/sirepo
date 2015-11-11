@@ -166,10 +166,6 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
-def prepare_aux_files(run_dir):
-    pass
-
-
 def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:
@@ -183,6 +179,15 @@ while(doit):
     step(10)
     doit = ( w3d.zmmin + top.zgrid < Lplasma )
 '''
+
+
+def static_lib_files():
+    """Library shared between simulations of this type
+
+    Returns:
+        list: py.path.local objects
+    """
+    return []
 
 
 def _field_animation(args, dfile, iteration, frame_count):

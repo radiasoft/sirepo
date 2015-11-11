@@ -15,7 +15,7 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('SRWBeamlineController', function (activeSection, appState) {
+app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, $scope) {
     activeSection.setActiveSection('beamline');
     var self = this;
     self.toolbarItems = [
@@ -25,6 +25,7 @@ app.controller('SRWBeamlineController', function (activeSection, appState) {
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23},
         {type:'mirror', title:'Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
+        {type:'ellipsoidMirror', title:'Ellipsoid Mirror', distanceToCenter:928.3, distanceFromCenter:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
@@ -183,6 +184,35 @@ app.controller('SRWBeamlineController', function (activeSection, appState) {
         self.dismissPopup();
         $('#srw-propagation-parameters').modal('show');
     };
+
+    self.uploadMirrorFile = function(mirrorFile) {
+        if (! mirrorFile)
+            return;
+        fileUpload.uploadFileToUrl(
+            mirrorFile,
+            requestSender.formatUrl(
+                'uploadFile',
+                {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': APP_SCHEMA.simulationType,
+                }),
+            function(data) {
+                if (data.error) {
+                    console.log('file upload error: ', data.error);
+                    return;
+                }
+                var fileName = data.filename;
+                if (appState.models.simulation.mirrorFiles)
+                    appState.models.simulation.mirrorFiles += ',' + fileName;
+                else
+                    appState.models.simulation.mirrorFiles = fileName;
+                $('#srw-upload-mirror-file').modal('hide');
+            });
+    };
+
+    $scope.$on('mirrorReport.shown', function(event) {
+        self.showMirrorReport = true;
+    });
 });
 
 app.controller('SRWSourceController', function (activeSection, appState) {

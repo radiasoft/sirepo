@@ -23,6 +23,11 @@
       min-height: 1000px;
     }
 
+    /* allow modals to cover active popovers */
+    body.modal-open div.popover {
+      z-index: 1000;
+    }
+
     /* app styles */
     .srw-toolbar-button {
         background-color: #fff;
@@ -264,7 +269,7 @@ rect.srw-obstacle {
   stroke: #000;
   fill: #699;
 }
-rect.srw-mirror {
+rect.srw-mirror, path.srw-mirror {
   stroke: #000;
   fill: #bdd7ee;
 }

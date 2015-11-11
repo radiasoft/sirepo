@@ -20,6 +20,7 @@ import sys
 import subprocess
 import threading
 import time
+import werkzeug
 
 from pykern import pkio
 from pykern import pkresource
@@ -68,6 +69,9 @@ _SIMULATION_RUN_DIR = 'run'
 
 #: Attribute in session object
 _UID_ATTR = 'uid'
+
+#: where users live under db_dir
+_LIB_DIR = 'lib'
 
 #: where users live under db_dir
 _USER_ROOT_DIR = 'user'
@@ -376,6 +380,26 @@ def _cfg_daemonizer(value):
         raise AssertionError('{}: unknown daemonizer'.format(value))
 
 
+@app.route(_SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
+def app_upload_file(simulation_type, simulation_id):
+    f = flask.request.files['file']
+    lib = _simulation_lib_dir(simulation_type)
+    #TODO(robnagler) need to specify file name differently so no conflicts
+    filename = werkzeug.secure_filename(f.filename)
+    p = lib.join(filename)
+    if p.check():
+        return flask.jsonify({
+            #'error': 'file exists: ' + filename,
+            'filename': filename,
+            'simulationId': simulation_id,
+        })
+    f.save(p)
+    return flask.jsonify({
+        'filename': filename,
+        'simulationId': simulation_id,
+    })
+
+
 def _error_text(err):
     """Parses error from subprocess"""
     m = re.search(_SUBPROCESS_ERROR_RE, err)
@@ -543,6 +567,18 @@ def _simulation_dir(simulation_type, sid=None):
     return d.join(sid)
 
 
+def _simulation_lib_dir(simulation_type):
+    """String name for user library dir
+
+    Args:
+        simulation_type: which app is this for
+
+    Return:
+        py.path: directory name
+    """
+    return _simulation_dir(simulation_type).join(_LIB_DIR)
+
+
 def _simulation_name(res, path, data, params):
     """Extract name of simulation from data file
 
@@ -593,9 +629,10 @@ def _start_simulation(data, run_async=False):
     data = _fixup_old_data(simulation_type, data)
     template = _template_for_simulation_type(simulation_type)
     _save_simulation_json(simulation_type, data)
-    for f in glob.glob(str(_simulation_dir(simulation_type, sid).join('*.*'))):
-        if os.path.isfile(f):
-            py.path.local(f).copy(run_dir)
+    for d in _simulation_dir(simulation_type, sid), _simulation_lib_dir(simulation_type):
+        for f in glob.glob(str(d.join('*.*'))):
+            if os.path.isfile(f):
+                py.path.local(f).copy(run_dir)
     with open(str(run_dir.join('in.json')), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
@@ -606,7 +643,6 @@ def _start_simulation(data, run_async=False):
             run_dir=run_dir,
         )
     )
-    template.prepare_aux_files(run_dir)
     cmd = [_ROOT_CMD, simulation_type] \
         + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:
@@ -648,6 +684,10 @@ def _user_dir_create():
         pkio.mkdir_parent(d)
         for s in _examples(app_name):
             _save_new_simulation(app_name, s, is_response=False)
+        d = _simulation_lib_dir(app_name)
+        pkio.mkdir_parent(d)
+        for f in _template_for_simulation_type(app_name).static_lib_files():
+            f.copy(d)
 
 
 def _user_dir_name(uid=None):

@@ -59,10 +59,10 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
-        elif field_type == 'BeamList' or field_type == 'File' or field_type == 'String':
+        elif field_type == 'BeamList' or field_type == 'MirrorFile' or field_type == 'String':
             model_data[k] = _escape(value)
         else:
             raise Exception('unknown field type: {}'.format(field_type))
 
 def _escape(v):
-    return re.sub("['()\.]", '', str(v))
+    return re.sub("['()]", '', str(v))
