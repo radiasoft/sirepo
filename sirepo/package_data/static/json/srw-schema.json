@@ -109,6 +109,20 @@
             "verticalDispersion": ["Vertical Dispersion [m]", "Float"],
             "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"]
         },
+        "ellipsoidMirror": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "distanceToCenter": ["Distance From First Focus to Center [m]", "Float"],
+            "distanceFromCenter": ["Distance from Center to Second Focus [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
+            "tangentialSize": ["Tangential Size [m]", "Float"],
+            "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
+            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
+            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"]
+        },
         "fluxReport": {
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
@@ -133,7 +147,8 @@
             "polarization": ["Polarization", "GaussianBeamPolarization"],
             "rmsSizeX": ["RMS Beam Size vs Horizontal Position at Waist [µm]", "Float"],
             "rmsSizeY": ["RMS Beam Size vs Vertical Position at Waist [µm]", "Float"],
-            "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
+            "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"],
+            "sampleFactor": ["X Y Sampling Factor", "Float"]
         },
         "gaussianBeamIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -177,13 +192,14 @@
         "mirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "heightProfileFile": ["Height Profile Data File", "File"],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"],
             "horizontalTransverseSize": ["Horizontal Transverse Size [mm]", "Float"],
             "verticalTransverseSize": ["Vertical Transverse Size [mm]", "Float"]
         },
+        "mirrorReport": {},
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
             "distribution": ["Orientation", "MultipoleOrientation"],
@@ -208,7 +224,8 @@
         },
         "simulation": {
             "name": ["Name", "String"],
-            "sourceType": ["Source Type", "SourceType"]
+            "sourceType": ["Source Type", "SourceType"],
+            "mirrorFiles": ["Mirror Files", "String"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -315,7 +332,8 @@
                 "waistY",
                 "waistZ",
                 "waistAngleX",
-                "waistAngleY"
+                "waistAngleY",
+                "sampleFactor"
             ]
         },
         "lens": {
@@ -373,6 +391,24 @@
                 "polarization"
             ]
         },
+        "ellipsoidMirror": {
+            "title": "Ellipsoid Mirror",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "distanceToCenter",
+                "distanceFromCenter",
+                "grazingAngle",
+                "tangentialSize",
+                "sagittalSize",
+                "normalVectorX",
+                "normalVectorY",
+                "normalVectorZ",
+                "tangentialVectorX",
+                "tangentialVectorY"
+            ]
+        },
         "fluxReport": {
             "title": "Flux Report",
             "basic": [],
@@ -402,6 +438,11 @@
                 "horizontalTransverseSize",
                 "verticalTransverseSize"
             ]
+        },
+        "mirrorReport": {
+            "title": "Mirror",
+            "basic": [],
+            "advanced": []
         },
         "multipole": {
             "title": "Dipole",
