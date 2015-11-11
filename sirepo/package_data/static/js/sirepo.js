@@ -174,6 +174,7 @@ app.factory('appState', function($rootScope, requestSender) {
                 }),
             function(data, status) {
                 self.models = data.models;
+                delete self.models.mirrorReport;
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
@@ -253,6 +254,13 @@ app.factory('appState', function($rootScope, requestSender) {
         broadcastChanged(name);
         if (! self.isReportModelName(name))
             updateReports();
+    };
+
+    self.showMirrorReport = function(model) {
+        savedModelValues['mirrorReport'] = model;
+        broadcastChanged('mirrorReport');
+        //TODO(pjm): needs to be reworked
+        $rootScope.$broadcast('mirrorReport.shown');
     };
 
     self.viewInfo = function(name) {
@@ -417,6 +425,7 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
         var data = getPanelValue(name, 'data');
         if (data) {
             callback(data);
+            //console.log('cached: ', name);
             return;
         }
         setPanelValue(name, 'loading', true);
@@ -432,6 +441,7 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
                 callback(data);
             }
         };
+        //console.log('requesting: ', name);
         requestQueue.addItem([name, appState.applicationState(), responseHandler]);
     };
 
@@ -470,6 +480,21 @@ app.factory('requestSender', function($http, $location, localRoutes) {
 
     self.formatUrl = function(routeName, params) {
         return formatUrl(APP_SCHEMA.route, routeName, params);
+    };
+
+    self.getAuxiliaryData = function(name, path) {
+        if (self[name] || self[name + ".loading"])
+            return;
+        self[name + ".loading"] = true;
+        $http['get'](path + '?' + SIREPO_APP_VERSION)
+            .success(function(data, status) {
+                self[name] = data;
+                delete self[name + ".loading"];
+            })
+            .error(function() {
+                console.log(path, ' load failed!');
+                delete self[name + ".loading"];
+            });
     };
 
     self.localRedirect = function(routeName, params) {
