@@ -898,6 +898,7 @@ class _Celery(object):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
+        from sirepo import celery_tasks
         return celery_tasks.start_simulation.apply_async([self.cmd[1], self.run_dir])
 
 
@@ -947,8 +948,7 @@ _cfg = pkcollections.OrderedMapping(
         secure=os.getenv('SIREPO_SERVER_SESSION_SECURE', False),
         secret=os.getenv('SIREPO_SERVER_SESSION_SECRET', 'development secret'),
         # Eventually {{ root_pkg }}_{{ channel }}
-        key=os.getenv('SIREPO_SERVER_SESSION_SECRET', 'sirepo_dev'),
-        session_key=os.getenv('SIREPO_SERVER_COOKIE_KEY', False),
+        key=os.getenv('SIREPO_SERVER_SESSION_KEY', 'sirepo_dev'),
     ),
     daemonizer=os.getenv('SIREPO_SERVER_JOB_QUEUE', 'Background'),
 )

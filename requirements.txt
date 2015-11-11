@@ -1,5 +1,7 @@
-flask
+aqmp
 beaker
+celery
+flask
 numconv
 pykern
 uwsgi

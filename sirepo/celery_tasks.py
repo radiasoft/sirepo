@@ -8,14 +8,15 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
 
 import importlib
+import os
 
 from celery import Celery
 
 celery = Celery('sirepo')
 
 celery.conf.update(
-    BROKER_URL='amqp://guest@localhost//',
-    CELERYD_CONCURRENCY=2,
+    BROKER_URL=os.getenv('SIREPO_CELERY_TASKS_BROKER_URL', 'amqp://guest@localhost//'),
+    CELERYD_CONCURRENCY=1,
     CELERYD_LOG_COLOR=False,
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_TIME_LIMIT=3600,
@@ -28,12 +29,12 @@ celery.conf.update(
 )
 
 @celery.task
-def start_simulation(simulation_type, workdir):
-    """Call simulation's in run_background with workdir
+def start_simulation(simulation_type, run_dir):
+    """Call simulation's in run_background with run_dir
 
     Args:
         simulation_type (str): currently must be warp
-        workdir (py.path.local): directory
+        run_dir (py.path.local): directory
     """
-    importlib.import_module('sirepo.pykern_cli.' + simulation_type).run_background(workdir)
+    importlib.import_module('sirepo.pykern_cli.' + simulation_type).run_background(run_dir)
     # Doesn't return anything
