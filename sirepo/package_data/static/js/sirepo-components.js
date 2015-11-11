@@ -46,6 +46,9 @@ app.directive('beamlineIcon', function() {
                 '<rect x="23", y="0", width="5", height="24" class="srw-aperture" />',
                 '<rect x="23", y="36", width="5", height="24" class="srw-aperture" />',
               '</g>',
+              '<g data-ng-switch-when="ellipsoidMirror">',
+                '<path d="M20 0 C30 10 30 50 20 60" class="srw-mirror" />',
+              '</g>',
               '<g data-ng-switch-when="mirror">',
                 '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
               '</g>',
@@ -246,7 +249,7 @@ app.directive('buttons', function(appState) {
     };
 });
 
-app.directive('fieldEditor', function(appState, $http) {
+app.directive('fieldEditor', function(appState, requestSender) {
     return {
         restirct: 'A',
         scope: {
@@ -264,10 +267,10 @@ app.directive('fieldEditor', function(appState, $http) {
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
                 '<div class="dropdown">',
-                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor] }}</button>',
+                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor] }} <span class="caret"></span></button>',
                   '<ul class="dropdown-menu">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
-                    '<li data-ng-repeat="item in appState.beams track by item.name">',
+                    '<li data-ng-repeat="item in requestSender.beams track by item.name">',
                       '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
                     '</li>',
                     '<li class="divider"></li>',
@@ -285,9 +288,25 @@ app.directive('fieldEditor', function(appState, $http) {
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
                 '<input string-to-number="integer" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
               '</div>',
-              //TODO(pjm): need file interface
-              '<div data-ng-switch-when="File" class="col-sm-5">',
-                '<p class="form-control-static"><a href="/static/dat/mirror_1d.dat"><span class="glyphicon glyphicon-file"></span> mirror_1d.dat</a></p>',
+              '<div data-ng-switch-when="MirrorFile" class="col-sm-5">',
+                '<div class="btn-group" role="group">',
+                  '<div class="btn-group" role="group">',
+                    '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fieldEditor] }} <span class="caret"></span></button>',
+                    '<ul class="dropdown-menu">',
+                      '<li class="dropdown-header">Predefined Mirror Files</li>',
+                      '<li data-ng-repeat="item in requestSender.mirrors track by item.fileName"><a href data-ng-click="selectMirror(item)">{{ item.fileName }}</a></li>',
+                      '<li class="divider"></li>',
+                      '<li class="dropdown-header">User Defined Mirror Files</li>',
+                      '<li data-ng-repeat="item in userDefinedMirrors() track by item.fileName"><a href data-ng-click="selectMirror(item)">{{ item.fileName }}</a></li>',
+                      '<li><a href data-ng-click="showMirrorFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+                    '</ul>',
+                  '</div>',
+                '</div> ',
+                '<div class="btn-group" role="group">',
+                  '<button type="button" title="View Graph" class="btn btn-default" data-ng-click="showMirrorReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+                  //TODO(pjm): need dynamic link to get mirror file
+                  '<a href="/static/dat/mirror_1d.dat" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
+                '</div>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
                 '<input data-ng-model="model[fieldEditor]" class="form-control" required data-ng-readonly="isReadOnly">',
@@ -300,6 +319,7 @@ app.directive('fieldEditor', function(appState, $http) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            $scope.requestSender = requestSender;
 
             var match = $scope.fieldEditor.match(/(.*?)\.(.*)/);
             if (match) {
@@ -314,6 +334,33 @@ app.directive('fieldEditor', function(appState, $http) {
                 $scope.model[$scope.fieldEditor] = item.name;
                 $scope.$parent.form.$setDirty();
             };
+            $scope.selectMirror = function(item) {
+                $scope.model[$scope.fieldEditor] = item.fileName;
+                $scope.$parent.form.$setDirty();
+            };
+            $scope.showMirrorFileUpload = function() {
+                $('#srw-upload-mirror-file').modal('show');
+            };
+            $scope.showMirrorReport = function() {
+                appState.showMirrorReport($scope.model);
+                $('#srw-mirror-plot').modal('show');
+            };
+            $scope.userDefinedMirrors = function() {
+                var res = [];
+                if (appState.isLoaded() && appState.models.simulation.mirrorFiles) {
+                    var names = appState.models.simulation.mirrorFiles.split(',');
+                    for (var i = 0; i < names.length; i++) {
+                        res.push({
+                            fileName: names[i],
+                        });
+                    }
+                }
+                if ($scope.mirrorFiles && $scope.mirrorFiles.length == res.length)
+                    return $scope.mirrorFiles;
+                $scope.mirrorFiles = res;
+                return res;
+            };
+
             $scope.newUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
                 appState.addNewElectronBeam();
@@ -322,18 +369,10 @@ app.directive('fieldEditor', function(appState, $http) {
         },
         link: function link(scope) {
             scope.enum = APP_SCHEMA.enum;
-            //TODO(pjm): move list loading logic into pre angular load, along with schema.json
-            if (scope.info[1] == 'BeamList') {
-                if (appState.beams)
-                    return;
-                $http['get']('/static/json/beams.json?' + SIREPO_APP_VERSION)
-                    .success(function(data, status) {
-                        appState.beams = data;
-                    })
-                    .error(function() {
-                        console.log('get beams.json failed!');
-                    });
-            }
+            if (scope.info[1] == 'BeamList')
+                requestSender.getAuxiliaryData('beams', '/static/json/beams.json');
+            else if (scope.info[1] == 'MirrorFile')
+                requestSender.getAuxiliaryData('mirrors', '/static/json/mirrors.json');
         },
     };
 });
@@ -482,6 +521,30 @@ app.directive('panelHeading', function(panelState, appState) {
     };
 });
 
+app.directive('reportContent', function(panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            reportContent: '@',
+            fullModelName: '@',
+        },
+        template: [
+            '<div data-ng-class="{\'srw-panel-loading\': panelState.isLoading(fullModelName), \'srw-panel-error\': panelState.getError(fullModelName)}" class="panel-body cssFade" data-ng-hide="panelState.isHidden(fullModelName)">',
+              '<div data-ng-show="panelState.isLoading(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
+              '<div data-ng-show="panelState.getError(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(fullModelName) }}</div>',
+              '<div data-ng-switch="reportContent" class="{{ panelState.getError(fullModelName) ? \'srw-hide-report\' : \'\' }}">',
+                '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+                '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+                '<div data-ng-switch-when="heatmap" data-heatmap="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.panelState = panelState;
+        },
+    };
+});
+
 app.directive('reportPanel', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -494,17 +557,7 @@ app.directive('reportPanel', function(appState, panelState) {
         template: [
             '<div class="panel panel-info">',
               '<div class="panel-heading" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-editor-id="{{ editorId }}" data-allow-full-screen="1"></div>',
-
-              '<div data-ng-class="{\'srw-panel-loading\': panelState.isLoading(fullModelName), \'srw-panel-error\': panelState.getError(fullModelName)}" class="panel-body cssFade" data-ng-hide="panelState.isHidden(fullModelName)">',
-            '<div data-ng-show="panelState.isLoading(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
-            '<div data-ng-show="panelState.getError(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(fullModelName) }}</div>',
-
-                '<div data-ng-switch="reportPanel" class="{{ panelState.getError(fullModelName) ? \'srw-hide-report\' : \'\' }}">',
-                  '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                  '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                  '<div data-ng-switch-when="heatmap" data-heatmap="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                '</div>',
-              '</div>',
+              '<div data-report-content="{{ reportPanel }}" data-full-model-name="{{ fullModelName }}"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -550,3 +603,34 @@ app.directive('stringToNumber', function() {
         }
     };
 });
+
+app.directive('fileModel', ['$parse', function ($parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            var model = $parse(attrs.fileModel);
+            var modelSetter = model.assign;
+            element.bind('change', function(){
+                scope.$apply(function(){
+                    modelSetter(scope, element[0].files[0]);
+                });
+            });
+        }
+    };
+}]);
+
+app.service('fileUpload', ['$http', function ($http) {
+    this.uploadFileToUrl = function(file, uploadUrl, callback){
+        var fd = new FormData();
+        fd.append('file', file);
+        $http.post(uploadUrl, fd, {
+            transformRequest: angular.identity,
+            headers: {'Content-Type': undefined}
+        })
+            .success(callback)
+            .error(function(){
+                //TODO(pjm): error handling
+                console.log('file upload failed');
+            });
+    }
+}]);
