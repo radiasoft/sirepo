@@ -1,10 +1,12 @@
 {
-    "version": "20151110",
+    "version": "20151111",
     "route": {
         "clearFrames": "/clear-frames",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
-        "listSimulations": "/simulation-list/<simulation_type>",
+        "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
+        "listSimulations": "/simulation-list",
+        "listFiles": "/file-list/<simulation_type>/<simulation_id>",
         "newSimulation": "/new-simulation",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>",
         "root": "/<simulation_type>",
