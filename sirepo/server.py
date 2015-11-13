@@ -196,6 +196,13 @@ def app_delete_simulation():
     return '{}'
 
 
+@app.route(_SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
+def app_download_file(simulation_type, simulation_id, filename):
+    lib = _simulation_lib_dir(simulation_type)
+    p = lib.join(werkzeug.secure_filename(filename))
+    return flask.send_file(str(p))
+
+
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
     new_simulation_data = _json_input()
@@ -256,7 +263,7 @@ def app_run_background():
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
-    status = data['models']['simulationStatus'];
+    status = data['models']['simulationStatus']
     status['state'] = 'running'
     #TODO: Javascript weirdness. Should normalize time as UTC
     status['startTime'] = int(time.time() * 1000)
@@ -339,8 +346,19 @@ def app_simulation_frame(frame_id):
     return response
 
 
+@app.route(_SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
+def app_file_list(simulation_type, simulation_id):
+    res = []
+    d = _simulation_lib_dir(simulation_type)
+    for f in glob.glob(str(d.join('*.*'))):
+        if os.path.isfile(f):
+            res.append(os.path.basename(f))
+    res.sort()
+    return json.dumps(res)
+
+
 @app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
-def app_simulation_list(simulation_type):
+def app_simulation_list():
     simulation_type = _json_input()['simulationType']
     return json.dumps(
         sorted(
@@ -384,16 +402,22 @@ def _cfg_daemonizer(value):
 def app_upload_file(simulation_type, simulation_id):
     f = flask.request.files['file']
     lib = _simulation_lib_dir(simulation_type)
-    #TODO(robnagler) need to specify file name differently so no conflicts
     filename = werkzeug.secure_filename(f.filename)
     p = lib.join(filename)
+    err = None
     if p.check():
+        err = 'file exists: {}'.format(filename)
+    if not err:
+        f.save(p)
+        err = _validate_data_file(p)
+        if err:
+            pkio.unchecked_remove(p)
+    if err:
         return flask.jsonify({
-            #'error': 'file exists: ' + filename,
+            'error': err,
             'filename': filename,
             'simulationId': simulation_id,
         })
-    f.save(p)
     return flask.jsonify({
         'filename': filename,
         'simulationId': simulation_id,
@@ -702,6 +726,25 @@ def _user_dir_name(uid=None):
     if not uid:
         return d
     return d.join(uid)
+
+
+def _validate_data_file(path):
+    """Ensure the data file contains parseable rows data"""
+    try:
+        count = 0
+        with open(str(path)) as f:
+            for line in f.readlines():
+                parts = line.split("\t")
+                if len(parts) > 0:
+                    float(parts[0])
+                if len(parts) > 1:
+                    float(parts[1])
+                    count += 1
+        if count == 0:
+            return 'no data rows found in file'
+    except ValueError as e:
+        return 'invalid file format: {}'.format(e)
+    return None
 
 
 class _Background(object):
