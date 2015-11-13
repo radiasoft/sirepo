@@ -1,5 +1,6 @@
-flask
 beaker
+celery
+flask
 numconv
 pykern
 uwsgi
