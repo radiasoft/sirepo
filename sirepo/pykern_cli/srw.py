@@ -62,7 +62,7 @@ def _process_output(filename, model_data):
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
-        'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Height'], ['m', 'm', 'm']],
+        'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     }
 
     data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
