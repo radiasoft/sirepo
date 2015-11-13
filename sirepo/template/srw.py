@@ -59,13 +59,18 @@ def fixup_old_data(data):
                 item['horizontalOffset'] = 0
             if not item.get('verticalOffset'):
                 item['verticalOffset'] = 0
+        elif item['type'] == 'ellipsoidMirror':
+            if 'distanceToCenter' in item:
+                del item['distanceToCenter']
+                item['focalLength'] = item['distanceFromCenter']
+                del item['distanceFromCenter']
     if 'magneticField' in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = data['models']['simulation']['magneticField']
         del data['models']['simulation']['magneticField']
     if 'sourceType' not in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = 'u'
-    if 'mirrorFiles' not in data['models']['simulation']:
-        data['models']['simulation']['mirrorFiles'] = ''
+    if 'mirrorFiles' in data['models']['simulation']:
+        del data['models']['simulation']['mirrorFiles']
     if 'multipole' not in data['models']:
         data['models']['multipole'] = {
             'field': 0.4,
@@ -97,7 +102,6 @@ def fixup_old_data(data):
             'waistAngleY': 0,
             'photonEnergy': 9000,
             'energyPerPulse': '0.001',
-            'repititionRate': 1,
             'polarization': 1,
             'rmsSizeX': '9.78723',
             'rmsSizeY': '9.78723',
@@ -254,7 +258,7 @@ def _generate_beamline_optics(models, last_id):
             res += _beamline_element(
                 'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
                 item,
-                ['distanceToCenter', 'distanceFromCenter', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+                ['position', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
         elif item['type'] == 'lens':
             res += _beamline_element(
