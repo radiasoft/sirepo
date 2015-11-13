@@ -157,7 +157,6 @@ appParam = [
     ['gb_waist_angle_y', 'f', {{gaussianBeam_waistAngleY}}, 'average verical angle at waist [rad]'],
     ['gb_photon_energy', 'f', {{gaussianBeam_photonEnergy}}, 'average photon energy [eV]'],
     ['gb_energy_per_pulse', 'f', {{gaussianBeam_energyPerPulse}}, 'energy per pulse [J]'],
-    ['gb_repition_rate', 'f', {{gaussianBeam_repititionRate}}, 'rep. rate [Hz]'],
     ['gb_polarization', 'f', {{gaussianBeam_polarization}}, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
     ['gb_rms_size_x', 'f', {{gaussianBeam_rmsSizeX}}, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
     ['gb_rms_size_y', 'f', {{gaussianBeam_rmsSizeY}}, 'rms beam size vs vertical position [m] at waist (for intensity)'],
@@ -184,7 +183,6 @@ def setup_source(v):
         GsnBm.yp = appV.gb_waist_angle_y
         GsnBm.avgPhotEn = appV.gb_photon_energy
         GsnBm.pulseEn = appV.gb_energy_per_pulse
-        GsnBm.repRate = appV.gb_repition_rate
         GsnBm.polar = appV.gb_polarization
         GsnBm.sigX = appV.gb_rms_size_x
         GsnBm.sigY = appV.gb_rms_size_y
