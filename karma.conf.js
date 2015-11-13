@@ -6,7 +6,7 @@
 //   npm install karma-jasmine --save-dev
 //   npm install karma-chrome-launcher
 // then:
-//   karma start --single-run
+//   ./node_modules/karma/bin/karma start --single-run
 
 module.exports = function(config) {
   config.set({
