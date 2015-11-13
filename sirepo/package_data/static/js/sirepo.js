@@ -174,7 +174,6 @@ app.factory('appState', function($rootScope, requestSender) {
                 }),
             function(data, status) {
                 self.models = data.models;
-                delete self.models.mirrorReport;
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
@@ -254,13 +253,6 @@ app.factory('appState', function($rootScope, requestSender) {
         broadcastChanged(name);
         if (! self.isReportModelName(name))
             updateReports();
-    };
-
-    self.showMirrorReport = function(model) {
-        savedModelValues['mirrorReport'] = model;
-        broadcastChanged('mirrorReport');
-        //TODO(pjm): needs to be reworked
-        $rootScope.$broadcast('mirrorReport.shown');
     };
 
     self.viewInfo = function(name) {
