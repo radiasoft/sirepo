@@ -21,6 +21,7 @@ import subprocess
 import threading
 import time
 import werkzeug
+import werkzeug.exceptions
 
 from pykern import pkio
 from pykern import pkresource
@@ -473,6 +474,8 @@ def _json_input():
 def _open_json_file(simulation_type, path=None, sid=None):
     if not path:
         path = _simulation_data_file(simulation_type, sid)
+    if not os.path.isfile(str(path)):
+        werkzeug.exceptions.abort(404)
     with open(str(path)) as f:
         return _fixup_old_data(simulation_type, json.load(f))
 
