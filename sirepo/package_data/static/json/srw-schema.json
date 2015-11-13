@@ -112,8 +112,7 @@
         "ellipsoidMirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "distanceToCenter": ["Distance From First Focus to Center [m]", "Float"],
-            "distanceFromCenter": ["Distance from Center to Second Focus [m]", "Float"],
+            "focalLength": ["Focal Length [m]", "Float"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
@@ -143,7 +142,6 @@
             "waistAngleY": ["Waist Angle Y [rad]", "Float"],
             "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
-            "repititionRate": ["Repitition Rate [Hz]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
             "rmsSizeX": ["RMS Beam Size vs Horizontal Position at Waist [µm]", "Float"],
             "rmsSizeY": ["RMS Beam Size vs Vertical Position at Waist [µm]", "Float"],
@@ -224,8 +222,7 @@
         },
         "simulation": {
             "name": ["Name", "String"],
-            "sourceType": ["Source Type", "SourceType"],
-            "mirrorFiles": ["Mirror Files", "String"]
+            "sourceType": ["Source Type", "SourceType"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -323,7 +320,6 @@
             "advanced": [
                 "energyPerPulse",
                 "photonEnergy",
-                "repititionRate",
                 "polarization",
                 "rmsPulseDuration",
                 "rmsSizeX",
@@ -397,8 +393,7 @@
             "advanced": [
                 "title",
                 "position",
-                "distanceToCenter",
-                "distanceFromCenter",
+                "focalLength",
                 "grazingAngle",
                 "tangentialSize",
                 "sagittalSize",
@@ -426,7 +421,7 @@
             ]
         },
         "mirror": {
-            "title": "Mirror",
+            "title": "Flat Mirror",
             "basic": [],
             "advanced": [
                 "title",
