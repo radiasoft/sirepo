@@ -24,8 +24,8 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23},
-        {type:'mirror', title:'Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
-        {type:'ellipsoidMirror', title:'Ellipsoid Mirror', distanceToCenter:928.3, distanceFromCenter:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387},
+        {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387},
+        {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
@@ -177,6 +177,23 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         appState.saveBeamline();
     };
 
+    self.showMirrorFileUpload = function() {
+        self.fileUploadError = '';
+        $('#srw-upload-mirror-file').modal('show');
+    };
+
+    self.showMirrorReport = function(model) {
+        self.mirrorReportShown = true;
+        appState.models.mirrorReport = model;
+        appState.saveChanges('mirrorReport');
+        var el = $('#srw-mirror-plot');
+        el.modal('show');
+        el.on('hidden.bs.modal', function() {
+            self.mirrorReportShown = false;
+            el.off();
+        });
+    };
+
     self.showPropagationModal = function() {
         //TODO(pjm): should only set dirty if propagation value changes
         self.isDirty = true;
@@ -198,21 +215,16 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
                 }),
             function(data) {
                 if (data.error) {
-                    console.log('file upload error: ', data.error);
+                    self.fileUploadError = data.error;
                     return;
                 }
-                var fileName = data.filename;
-                if (appState.models.simulation.mirrorFiles)
-                    appState.models.simulation.mirrorFiles += ',' + fileName;
-                else
-                    appState.models.simulation.mirrorFiles = fileName;
+                else {
+                    requestSender.mirrors.push(data.filename);
+                    self.activeItem.heightProfileFile = data.filename;
+                }
                 $('#srw-upload-mirror-file').modal('hide');
             });
     };
-
-    $scope.$on('mirrorReport.shown', function(event) {
-        self.showMirrorReport = true;
-    });
 });
 
 app.controller('SRWSourceController', function (activeSection, appState) {
