@@ -137,7 +137,7 @@
       <div class="modal-body">
         <div class="container-fluid">
           <div class="row">
-            <div data-ng-if="beamline.showMirrorReport" class="col-sm-12">
+            <div data-ng-if="beamline.mirrorReportShown" class="col-sm-12">
               <div data-report-content="3d" data-full-model-name="mirrorReport"></div>
             </div>
           </div>
@@ -167,6 +167,7 @@
             <div class="form-group">
               <label>Select File</label>
               <input type="file" data-file-model="mirrorFile">
+              <div class="text-warning"><strong>{{ beamline.fileUploadError }}</strong></div>
             </div>
             <div class="col-sm-6 pull-right">
               <button data-ng-click="beamline.uploadMirrorFile(mirrorFile)" class="btn btn-primary">Save Changes</button>
