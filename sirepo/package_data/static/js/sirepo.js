@@ -27,6 +27,7 @@ var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd
 var APP_LOCAL_ROUTES = {
     simulations: '/simulations',
     source: '/source/:simulationId',
+    notFound: '/not-found',
 };
 
 app.value('localRoutes', APP_LOCAL_ROUTES);
@@ -37,6 +38,9 @@ app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html?' + SIREPO_APP_VERSION,
+        })
+        .when(localRoutes.notFound, {
+            templateUrl: '/static/html/not-found.html?' + SIREPO_APP_VERSION,
         })
         .otherwise({
             redirectTo: localRoutes.simulations,
@@ -451,8 +455,10 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
 app.factory('requestSender', function($http, $location, localRoutes) {
     var self = {};
 
-    function logError(data) {
+    function logError(data, status) {
         console.log('request failed: ', data);
+        if (status == 404)
+            self.localRedirect('notFound');
     }
 
     function formatUrl(map, routeName, params) {
