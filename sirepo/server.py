@@ -408,7 +408,7 @@ def app_upload_file(simulation_type, simulation_id):
     if p.check():
         err = 'file exists: {}'.format(filename)
     if not err:
-        f.save(p)
+        f.save(str(p))
         err = _validate_data_file(p)
         if err:
             pkio.unchecked_remove(p)
