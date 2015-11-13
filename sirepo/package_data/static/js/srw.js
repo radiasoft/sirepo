@@ -161,6 +161,12 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         return Modernizr.touch;
     };
 
+    self.mirrorReportTitle = function() {
+        if (self.activeItem && self.activeItem.title)
+            return self.activeItem.title;
+        return '';
+    };
+
     self.removeElement = function(item) {
         self.dismissPopup();
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
@@ -185,9 +191,11 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
     self.showMirrorReport = function(model) {
         self.mirrorReportShown = true;
         appState.models.mirrorReport = model;
-        appState.saveChanges('mirrorReport');
         var el = $('#srw-mirror-plot');
         el.modal('show');
+        el.on('shown.bs.modal', function() {
+            appState.saveChanges('mirrorReport');
+        });
         el.on('hidden.bs.modal', function() {
             self.mirrorReportShown = false;
             el.off();
