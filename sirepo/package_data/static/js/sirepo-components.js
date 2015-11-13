@@ -293,19 +293,15 @@ app.directive('fieldEditor', function(appState, requestSender) {
                   '<div class="btn-group" role="group">',
                     '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fieldEditor] }} <span class="caret"></span></button>',
                     '<ul class="dropdown-menu">',
-                      '<li class="dropdown-header">Predefined Mirror Files</li>',
-                      '<li data-ng-repeat="item in requestSender.mirrors track by item.fileName"><a href data-ng-click="selectMirror(item)">{{ item.fileName }}</a></li>',
+                      '<li data-ng-repeat="item in mirrorList()"><a href data-ng-click="selectMirror(item)">{{ item }}</a></li>',
                       '<li class="divider"></li>',
-                      '<li class="dropdown-header">User Defined Mirror Files</li>',
-                      '<li data-ng-repeat="item in userDefinedMirrors() track by item.fileName"><a href data-ng-click="selectMirror(item)">{{ item.fileName }}</a></li>',
                       '<li><a href data-ng-click="showMirrorFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                     '</ul>',
                   '</div>',
                 '</div> ',
                 '<div class="btn-group" role="group">',
                   '<button type="button" title="View Graph" class="btn btn-default" data-ng-click="showMirrorReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-                  //TODO(pjm): need dynamic link to get mirror file
-                  '<a href="/static/dat/mirror_1d.dat" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
+                  '<a data-ng-href="{{ downloadMirrorFileUrl() }}" type="button" title="Download" class="btn btn-default""><span class="glyphicon glyphicon-cloud-download"></a>',
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
@@ -327,40 +323,55 @@ app.directive('fieldEditor', function(appState, requestSender) {
                 $scope.fieldEditor = match[2];
             }
 
+            function findParentAttribute(name) {
+                var scope = $scope;
+                while (scope && ! scope[name]) {
+                    scope = scope.$parent;
+                }
+                return scope[name];
+            }
+
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
+            $scope.downloadMirrorFileUrl = function() {
+                if ($scope.model) {
+                    return requestSender.formatUrl('downloadFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<filename>': $scope.model[$scope.fieldEditor],
+                    });
+                }
+                return '';
+            };
             $scope.selectBeam = function(item) {
                 $scope.model = item;
                 $scope.model[$scope.fieldEditor] = item.name;
                 $scope.$parent.form.$setDirty();
             };
             $scope.selectMirror = function(item) {
-                $scope.model[$scope.fieldEditor] = item.fileName;
+                $scope.model[$scope.fieldEditor] = item;
                 $scope.$parent.form.$setDirty();
             };
             $scope.showMirrorFileUpload = function() {
-                $('#srw-upload-mirror-file').modal('show');
+                findParentAttribute('beamline').showMirrorFileUpload();
             };
             $scope.showMirrorReport = function() {
-                appState.showMirrorReport($scope.model);
-                $('#srw-mirror-plot').modal('show');
+                findParentAttribute('beamline').showMirrorReport($scope.model);
             };
-            $scope.userDefinedMirrors = function() {
-                var res = [];
-                if (appState.isLoaded() && appState.models.simulation.mirrorFiles) {
-                    var names = appState.models.simulation.mirrorFiles.split(',');
-                    for (var i = 0; i < names.length; i++) {
-                        res.push({
-                            fileName: names[i],
-                        });
-                    }
-                }
-                if ($scope.mirrorFiles && $scope.mirrorFiles.length == res.length)
-                    return $scope.mirrorFiles;
-                $scope.mirrorFiles = res;
-                return res;
+            $scope.emptyList = [];
+            $scope.mirrorList = function() {
+                if (requestSender.mirrors)
+                    return requestSender.mirrors;
+                if (! appState.isLoaded())
+                    return $scope.emptyList;
+                requestSender.getAuxiliaryData(
+                    'mirrors',
+                    requestSender.formatUrl('listFiles', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': APP_SCHEMA.simulationType,
+                    }));
+                return $scope.emptyList;
             };
-
             $scope.newUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
                 appState.addNewElectronBeam();
@@ -371,8 +382,6 @@ app.directive('fieldEditor', function(appState, requestSender) {
             scope.enum = APP_SCHEMA.enum;
             if (scope.info[1] == 'BeamList')
                 requestSender.getAuxiliaryData('beams', '/static/json/beams.json');
-            else if (scope.info[1] == 'MirrorFile')
-                requestSender.getAuxiliaryData('mirrors', '/static/json/mirrors.json');
         },
     };
 });
