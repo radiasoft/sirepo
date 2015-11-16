@@ -46,29 +46,31 @@ def uwsgi(port=None, db_dir=None, docker=False):
     subprocess.check_call(cmd)
 
 
-def _port(port):
+def _port(value):
     """Returns port or default"""
+    if not value:
+        value = os.getenv('SIREPO_PKCLI_SERVICE_PORT', _DEFAULT_PORT)
     try:
-        if port:
-            res = int(port)
-            # http://stackoverflow.com/a/924337
-            if res <= 5000 or res >= 32768:
-                pkcli.command_error('{}: port is outside 5001 .. 32767', port)
-            return res
+        res = int(value)
+        # http://stackoverflow.com/a/924337
+        if res <= 5000 or res >= 32768:
+            pkcli.command_error('{}: port is outside 5001 .. 32767', value)
+        return res
     except ValueError:
-        pkcli.command_error('{}: port is not an int', port)
-    return _DEFAULT_PORT
+        pkcli.command_error('{}: port is not an int', value)
 
 
-def _db_dir(db_dir):
+def _db_dir(value):
     """Returns root package's parent or cwd with _DEFAULT_SUBDIR"""
-    if not db_dir:
-        fn = sys.modules[pkinspect.root_package(http)].__file__
-        root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
-        # Check to see if we are in our dev directory. This is a hack,
-        # but should be reliable.
-        if not root.join('requirements.txt').check():
-            # Don't run from an install directory
-            root = py.path.local('.')
-        db_dir = root.join(_DEFAULT_SUBDIR)
-    return pkio.mkdir_parent(db_dir)
+    if not value:
+        value = os.getenv('SIREPO_PKCLI_SERVICE_DB_DIR', None)
+        if not value:
+            fn = sys.modules[pkinspect.root_package(http)].__file__
+            root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
+            # Check to see if we are in our dev directory. This is a hack,
+            # but should be reliable.
+            if not root.join('requirements.txt').check():
+                # Don't run from an install directory
+                root = py.path.local('.')
+            value = root.join(_DEFAULT_SUBDIR)
+    return pkio.mkdir_parent(value)
