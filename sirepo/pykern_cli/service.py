@@ -25,7 +25,7 @@ _DEFAULT_SUBDIR = 'run'
 def http(port=None, db_dir=None):
     """Starts Flask server"""
     from sirepo import server
-    server.init(_db_dir(db_dir))
+    server.init(pkdp(_db_dir(db_dir)))
     server.app.run(host='0.0.0.0', port=_port(port), debug=1, threaded=True)
 
 
@@ -46,20 +46,6 @@ def uwsgi(port=None, db_dir=None, docker=False):
     subprocess.check_call(cmd)
 
 
-def _port(value):
-    """Returns port or default"""
-    if not value:
-        value = os.getenv('SIREPO_PKCLI_SERVICE_PORT', _DEFAULT_PORT)
-    try:
-        res = int(value)
-        # http://stackoverflow.com/a/924337
-        if res <= 5000 or res >= 32768:
-            pkcli.command_error('{}: port is outside 5001 .. 32767', value)
-        return res
-    except ValueError:
-        pkcli.command_error('{}: port is not an int', value)
-
-
 def _db_dir(value):
     """Returns root package's parent or cwd with _DEFAULT_SUBDIR"""
     if not value:
@@ -74,3 +60,17 @@ def _db_dir(value):
                 root = py.path.local('.')
             value = root.join(_DEFAULT_SUBDIR)
     return pkio.mkdir_parent(value)
+
+
+def _port(value):
+    """Returns port or default"""
+    if not value:
+        value = os.getenv('SIREPO_PKCLI_SERVICE_PORT', _DEFAULT_PORT)
+    try:
+        res = int(value)
+        # http://stackoverflow.com/a/924337
+        if res <= 5000 or res >= 32768:
+            pkcli.command_error('{}: port is outside 5001 .. 32767', value)
+        return res
+    except ValueError:
+        pkcli.command_error('{}: port is not an int', value)
