@@ -18,24 +18,38 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
 
-_DEFAULT_PORT = 8000
-_DEFAULT_SUBDIR = 'run'
+
+_DEFAULT_DB_SUBDIR = 'run'
+_CFG = {
+    'db_dir': None,
+     # http://stackoverflow.com/a/924337
+    'port': [8000, , 5001, 32767],
+    'processes': [1, 1, 16],
+    'run_dir': None,
+    'threads': [10, 1, 128],
+    'ip': '0.0.0.0',
+}
 
 
-def http(port=None, db_dir=None):
+def http():
     """Starts Flask server"""
     from sirepo import server
-    server.init(pkdp(_db_dir(db_dir)))
-    server.app.run(host='0.0.0.0', port=_port(port), debug=1, threaded=True)
+    db_dir = _db_dir()
+    with pkio.save_chdir(_run_dir(db_dir), mkdir=True):
+        server.init(db_dir)
+        server.app.run(host=_ip(), port=_port(), debug=1, threaded=True)
 
 
-def uwsgi(port=None, db_dir=None, docker=False):
+def uwsgi():
     """Starts UWSGI server"""
-    db_dir =_db_dir(db_dir)
+    db_dir =_db_dir()
     values = {
         'db_dir': db_dir,
-        'port': _port(port),
-        'docker': docker,
+        'ip': _ip(),
+        'port': _int('port'),
+        'processes': _int('processes'),
+        'run_dir': _run_dir(db_dir),
+        'threads': _int('threads'),
     }
     # uwsgi.py must be first, because referenced by uwsgi.yml
     for f in ('uwsgi.py', 'uwsgi.yml'):
@@ -46,31 +60,51 @@ def uwsgi(port=None, db_dir=None, docker=False):
     subprocess.check_call(cmd)
 
 
-def _db_dir(value):
-    """Returns root package's parent or cwd with _DEFAULT_SUBDIR"""
+def _db_dir():
+    """Config value or root package's parent or cwd with _DEFAULT_SUBDIR"""
+    value = _env('db_dir')
     if not value:
-        value = os.getenv('SIREPO_PKCLI_SERVICE_DB_DIR', None)
-        if not value:
-            fn = sys.modules[pkinspect.root_package(http)].__file__
-            root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
-            # Check to see if we are in our dev directory. This is a hack,
-            # but should be reliable.
-            if not root.join('requirements.txt').check():
-                # Don't run from an install directory
-                root = py.path.local('.')
-            value = root.join(_DEFAULT_SUBDIR)
+        fn = sys.modules[pkinspect.root_package(http)].__file__
+        root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
+        # Check to see if we are in our dev directory. This is a hack,
+        # but should be reliable.
+        if not root.join('requirements.txt').check():
+            # Don't run from an install directory
+            root = py.path.local('.')
+        value = root.join(_DEFAULT_DB_SUBDIR)
     return pkio.mkdir_parent(value)
 
 
-def _port(value):
-    """Returns port or default"""
-    if not value:
-        value = os.getenv('SIREPO_PKCLI_SERVICE_PORT', _DEFAULT_PORT)
+def _env(name, default=None):
+    d = _CFG[name] if default is None else default
+    return os.getenv(
+        'SIREPO_PKCLI_SERVICE_' + name.upper(),
+        d[0] if isinstance(d, 'list') else d,
+    )
+
+
+def _int(name, default, floor, ceil):
+    value = _env(name)
     try:
         res = int(value)
-        # http://stackoverflow.com/a/924337
-        if res <= 5000 or res >= 32768:
-            pkcli.command_error('{}: port is outside 5001 .. 32767', value)
+        d = _CFG[name]
+        if not d[1] <= res <= d[2]:
+            pkcli.command_error('{}: {} is outside {} .. {}', value, name, d[1], d[2])
         return res
     except ValueError:
-        pkcli.command_error('{}: port is not an int', value)
+        pkcli.command_error('{}: {} is not an int', value, name)
+
+
+def _ip():
+    try:
+        value = _env('ip');
+        socket.inet_aton(value)
+        return value
+    except socket.error:
+        pkcli.command_error('{}: ip is not a valid IPv4 address', value)
+
+
+def _run_dir(db_dir):
+    """Returns execution directory"""
+    return pkio.mkdir_parent(_env('run_dir'), db_dir)
+
