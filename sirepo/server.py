@@ -86,9 +86,6 @@ _BEAKER_LOCK_DIR = 'lock'
 #: What to exec (root_pkg)
 _ROOT_CMD = 'sirepo'
 
-#: database directory
-_db_dir = None
-
 
 with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
     _SCHEMA_COMMON = json.load(f)
@@ -117,8 +114,8 @@ class BeakerSession(flask.sessions.SessionInterface):
             app (flask): Flask application object
             db_dir (py.path.local): db_dir passed on command line
         """
-        _db_dir = db_dir
-        data_dir = _db_dir.join(_BEAKER_DATA_DIR)
+        app.sirepo_db_dir = db_dir
+        data_dir = db_dir.join(_BEAKER_DATA_DIR)
         lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
         pkio.mkdir_parent(lock_dir)
         sc = {
@@ -403,9 +400,8 @@ def _cfg_session_secret(value):
     """Converts file to binary"""
     if not value:
         return 'dev dummy secret'
-    with open(value, 'rt') as f:
-        import binascii
-        return binascii.a2b_hex(f.read())
+    with open(value) as f:
+        return f.read()
 
 
 @app.route(_SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
@@ -734,7 +730,7 @@ def _user_dir_name(uid=None):
     Return:
         py.path: directory name
     """
-    d = _db_dir.join(_USER_ROOT_DIR)
+    d = app.sirepo_db_dir.join(_USER_ROOT_DIR)
     if not uid:
         return d
     return d.join(uid)
