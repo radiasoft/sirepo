@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import socket
 import subprocess
 import sys
 
@@ -23,9 +24,12 @@ _DEFAULT_DB_SUBDIR = 'run'
 _CFG = {
     'db_dir': None,
      # http://stackoverflow.com/a/924337
-    'port': [8000, , 5001, 32767],
+    'port': [8000, 5001, 32767],
     'processes': [1, 1, 16],
     'run_dir': None,
+    # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
+    # so limit to 128, which is probably more than enough with
+    # this application.
     'threads': [10, 1, 128],
     'ip': '0.0.0.0',
 }
@@ -37,27 +41,29 @@ def http():
     db_dir = _db_dir()
     with pkio.save_chdir(_run_dir(db_dir), mkdir=True):
         server.init(db_dir)
-        server.app.run(host=_ip(), port=_port(), debug=1, threaded=True)
+        server.app.run(host=_ip(), port=_int('port'), debug=1, threaded=True)
 
 
 def uwsgi():
     """Starts UWSGI server"""
     db_dir =_db_dir()
-    values = {
-        'db_dir': db_dir,
-        'ip': _ip(),
-        'port': _int('port'),
-        'processes': _int('processes'),
-        'run_dir': _run_dir(db_dir),
-        'threads': _int('threads'),
-    }
-    # uwsgi.py must be first, because referenced by uwsgi.yml
-    for f in ('uwsgi.py', 'uwsgi.yml'):
-        output = db_dir.join(f)
-        values[f.replace('.', '_')] = str(output)
-        pkjinja.render_resource(f, values, output=output)
-    cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
-    subprocess.check_call(cmd)
+    run_dir = _run_dir(db_dir)
+    with pkio.save_chdir(run_dir, mkdir=True):
+        values = {
+            'db_dir': db_dir,
+            'ip': _ip(),
+            'port': _int('port'),
+            'processes': _int('processes'),
+            'run_dir': run_dir,
+            'threads': _int('threads'),
+        }
+        # uwsgi.py must be first, because referenced by uwsgi.yml
+        for f in ('uwsgi.py', 'uwsgi.yml'):
+            output = run_dir.join(f)
+            values[f.replace('.', '_')] = str(output)
+            pkjinja.render_resource(f, values, output=output)
+        cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
+        subprocess.check_call(cmd)
 
 
 def _db_dir():
@@ -76,14 +82,12 @@ def _db_dir():
 
 
 def _env(name, default=None):
-    d = _CFG[name] if default is None else default
-    return os.getenv(
-        'SIREPO_PKCLI_SERVICE_' + name.upper(),
-        d[0] if isinstance(d, 'list') else d,
-    )
+    default = _CFG[name] if default is None else default
+    default = default[0] if isinstance(default, list) else default
+    return os.getenv('SIREPO_PKCLI_SERVICE_' + name.upper(), default)
 
 
-def _int(name, default, floor, ceil):
+def _int(name):
     value = _env(name)
     try:
         res = int(value)
@@ -106,5 +110,4 @@ def _ip():
 
 def _run_dir(db_dir):
     """Returns execution directory"""
-    return pkio.mkdir_parent(_env('run_dir'), db_dir)
-
+    return pkio.mkdir_parent(_env('run_dir', db_dir))

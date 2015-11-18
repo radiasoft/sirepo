@@ -1,14 +1,13 @@
 ---
 # -*-yaml-*-
 uwsgi:
-  socket: {{ ip_address }}:{{ port }}
+  socket: {{ ip }}:{{ port }}
   master: true
   processes: {{ processes }}
   threads: {{ threads }}
   wsgi-file: {{ uwsgi_py }}
   callable: app
-  chdir = {{ run_dir }}
   die-on-term: true
-  stats: {{ run_dir }}/sock
-  pidfile: {{ run_dir }}/pid
+  stats: {{ run_dir }}/uwsgi.sock
+  pidfile: {{ run_dir }}/uwsgi.pid
   logto = {{ run_dir }}/uwsgi.log
