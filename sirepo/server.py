@@ -86,6 +86,9 @@ _BEAKER_LOCK_DIR = 'lock'
 #: What to exec (root_pkg)
 _ROOT_CMD = 'sirepo'
 
+#: database directory
+_db_dir = None
+
 
 with open(str(_STATIC_FOLDER.join('json/schema-common.json'))) as f:
     _SCHEMA_COMMON = json.load(f)
@@ -114,11 +117,8 @@ class BeakerSession(flask.sessions.SessionInterface):
             app (flask): Flask application object
             db_dir (py.path.local): db_dir passed on command line
         """
-        if not _cfg.db_dir:
-            _cfg.db_dir = db_dir
-        else:
-            _cfg.db_dir = py.path.local(_cfg.db_dir)
-        data_dir = _cfg.db_dir.join(_BEAKER_DATA_DIR)
+        _db_dir = db_dir
+        data_dir = _db_dir.join(_BEAKER_DATA_DIR)
         lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
         pkio.mkdir_parent(lock_dir)
         sc = {
@@ -397,6 +397,15 @@ def _cfg_daemonizer(value):
         return _Background
     else:
         raise AssertionError('{}: unknown daemonizer'.format(value))
+
+
+def _cfg_session_secret(value):
+    """Converts file to binary"""
+    if not value:
+        return 'dev dummy secret'
+    with open(value, 'rt') as f:
+        import binascii
+        return binascii.a2b_hex(f.read())
 
 
 @app.route(_SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
@@ -725,7 +734,7 @@ def _user_dir_name(uid=None):
     Return:
         py.path: directory name
     """
-    d = _cfg.db_dir.join(_USER_ROOT_DIR)
+    d = _db_dir.join(_USER_ROOT_DIR)
     if not uid:
         return d
     return d.join(uid)
@@ -989,10 +998,9 @@ class _Command(threading.Thread):
 
 #: Replace with pkconfig
 _cfg = pkcollections.OrderedMapping(
-    db_dir=os.getenv('SIREPO_SERVER_DB_DIR', None),
     session=pkcollections.OrderedMapping(
         secure=os.getenv('SIREPO_SERVER_SESSION_SECURE', False),
-        secret=os.getenv('SIREPO_SERVER_SESSION_SECRET', 'development secret'),
+        secret=os.getenv('SIREPO_SERVER_SESSION_SECRET', None),
         # Eventually {{ root_pkg }}_{{ channel }}
         key=os.getenv('SIREPO_SERVER_SESSION_KEY', 'sirepo_dev'),
     ),
@@ -1001,3 +1009,4 @@ _cfg = pkcollections.OrderedMapping(
 
 # This would a be a parser
 _cfg.daemonizer = _cfg_daemonizer(_cfg.daemonizer)
+_cfg.session.secret = _cfg_session_secret(_cfg.session.secret)

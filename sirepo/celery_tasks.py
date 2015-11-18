@@ -16,7 +16,7 @@ celery = Celery('sirepo')
 
 celery.conf.update(
     BROKER_URL=os.getenv('SIREPO_CELERY_TASKS_BROKER_URL', 'amqp://guest@localhost//'),
-    CELERYD_CONCURRENCY=1,
+    CELERYD_CONCURRENCY=os.getenv('SIREPO_CELERY_TASKS_CELERYD_CONCURRENCY', 1),
     CELERYD_LOG_COLOR=False,
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_TIME_LIMIT=3600,
