@@ -161,7 +161,6 @@ appParam = [
     ['gb_rms_size_x', 'f', {{gaussianBeam_rmsSizeX}}, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
     ['gb_rms_size_y', 'f', {{gaussianBeam_rmsSizeY}}, 'rms beam size vs vertical position [m] at waist (for intensity)'],
     ['gb_rms_pulse_duration', 'f', {{gaussianBeam_rmsPulseDuration}}, 'rms pulse duration [s] (for intensity)'],
-    ['gb_sample_factor', 'f', {{gaussianBeam_sampleFactor}}, 'sampling factor for adjusting nx, ny (effective if > 0)'],
 ]
 
 def setup_source(v):
@@ -189,7 +188,6 @@ def setup_source(v):
         GsnBm.sigT = appV.gb_rms_pulse_duration
         GsnBm.mx = 0 #Transverse Gauss-Hermite Mode Orders
         GsnBm.my = 0
-        GsnBm.sirepo_sampling_factor = appV.gb_sample_factor
         srwl_bl._GAUSSIAN_BEAM = GsnBm
     else:
         mag = srwlib.SRWLMagFldC()
@@ -237,7 +235,7 @@ def _gaussian_beam_intensity(GsnBm, _mesh, **kwargs):
     wfr.partBeam.partStatMom1.z = GsnBm.z
     wfr.partBeam.partStatMom1.xp = GsnBm.xp
     wfr.partBeam.partStatMom1.yp = GsnBm.yp
-    arPrecPar = [GsnBm.sirepo_sampling_factor]
+    arPrecPar = [kwargs['_samp_fact']]
 
     srwlpy.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 
