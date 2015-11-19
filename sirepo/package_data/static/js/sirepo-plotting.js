@@ -1,8 +1,17 @@
 'use strict';
 
 app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
+
+    function cleanNumber(v) {
+        v = v.replace(/\.0+(\D+)/, '$1');
+        v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
+        return v;
+    }
+
     return {
         INITIAL_HEIGHT: 400,
+
+        cleanNumber: cleanNumber,
 
         computePeaks: function(json, dimensions, xPoints, xAxisScale, yAxisScale) {
             var peakSpacing = dimensions[0] / 20;
@@ -37,7 +46,9 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
             // this causes a 'number of fractional digits' error in MSIE
             //.tickFormat(d3.format('e'))
                 .tickFormat(function (value) {
-                    return value.toExponential();
+                    if (value)
+                        return cleanNumber(value.toExponential(2));
+                    return value;
                 });
         },
         // Returns a function, that, as long as it continues to be invoked, will not
@@ -167,7 +178,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
         },
 
         ticks: function(axis, width, isHorizontalAxis) {
-            var spacing = isHorizontalAxis ? 80 : 40;
+            var spacing = isHorizontalAxis ? 60 : 40;
             var n = Math.max(Math.round(width / spacing), 2);
             axis.ticks(n);
         },
@@ -345,7 +356,7 @@ app.directive('plot3d', function(plotting) {
             $scope.canvasSize = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange, xyUnits;
 
             function drawBottomPanelCut() {
                 var bBottom = yIndexScale(yAxisScale.domain()[0]);
@@ -377,6 +388,17 @@ app.directive('plot3d', function(plotting) {
                 select('.right-panel path')
                     .datum(data)
                     .attr('d', rightPanelCutLine);
+            }
+
+            function extractUnits(label) {
+                var match = label.match(/\[(.*?)\]/);
+                if (match) {
+                    if (xyUnits && xyUnits != match[1])
+                        console.log('mismatched x/y axis units: ', xyUnits, ' != ', match[1]);
+                    xyUnits = match[1];
+                    label = label.replace(/\[.*?\]/, '');
+                }
+                return label;
             }
 
             function initDraw(zmin, zmax) {
@@ -497,11 +519,11 @@ app.directive('plot3d', function(plotting) {
                 $scope.canvasSize = canvasSize;
                 $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.bottomPanelMargin.top + $scope.bottomPanelMargin.bottom;
                 $scope.rightPanelWidth = canvasSize / 2 + $scope.rightPanelMargin.left + $scope.rightPanelMargin.right;
-                plotting.ticks(rightPanelXAxis, $scope.rightPanelWidth, true);
+                plotting.ticks(rightPanelXAxis, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right, true);
                 plotting.ticks(rightPanelYAxis, canvasSize, false);
-                plotting.ticks(bottomPanelXAxis, canvasSize, false);
+                plotting.ticks(bottomPanelXAxis, canvasSize, true);
                 plotting.ticks(bottomPanelYAxis, $scope.bottomPanelHeight, false);
-                plotting.ticks(mainXAxis, canvasSize, false);
+                plotting.ticks(mainXAxis, canvasSize, true);
                 plotting.ticks(mainYAxis, canvasSize, false);
                 xAxisScale.range([0, canvasSize - 1]);
                 yAxisScale.range([canvasSize - 1, 0]);
@@ -537,9 +559,10 @@ app.directive('plot3d', function(plotting) {
                 var format = d3.format('.3s');
                 function fixFormat(n) {
                     var v = format(n);
-                    if (v && v.indexOf('z') > 0)
-                        return '0.00';
-                    return v;
+                    if ((v && v.indexOf('z') > 0) || v == '0.00')
+                        return '0';
+                    v = plotting.cleanNumber(v);
+                    return v + (xyUnits || '');
                 }
                 bottomPanelXAxis.tickFormat(fixFormat);
                 bottomPanelYAxis = plotting.createExponentialAxis(bottomPanelYScale, 'left');
@@ -581,8 +604,8 @@ app.directive('plot3d', function(plotting) {
                 canvas.attr('width', xValueRange.length)
                     .attr('height', yValueRange.length);
                 select('.main-title').text(json.title);
-                select('.x-axis-label').text(json.x_label);
-                select('.y-axis-label').text(json.y_label);
+                select('.x-axis-label').text(extractUnits(json.x_label));
+                select('.y-axis-label').text(extractUnits(json.y_label));
                 select('.z-axis-label').text(json.z_label);
                 xAxisScale.domain([xValueMin, xValueMax]);
                 xIndexScale.domain([xValueMin, xValueMax]);
@@ -812,7 +835,7 @@ app.directive('heatmap', function(plotting) {
                     return;
                 $scope.canvasSize = canvasSize;
                 plotting.ticks(yAxis, canvasSize, false);
-                plotting.ticks(xAxis, canvasSize, false);
+                plotting.ticks(xAxis, canvasSize, true);
                 xAxisScale.range([0, canvasSize - 1]);
                 yAxisScale.range([canvasSize - 1, 0]);
                 $scope.zoom.center([canvasSize / 2, canvasSize / 2])
