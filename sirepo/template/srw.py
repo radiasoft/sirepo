@@ -114,20 +114,26 @@ def fixup_old_data(data):
             'verticalPosition': 0,
             'horizontalRange': 0.5,
             'characteristic': 0,
-            'sampleFactor': 1,
-            'precision': 0.01,
+            'sampleFactor': 0,
             'photonEnergy': 9000,
             'polarization': 6,
             'horizontalPosition': 0,
         }
-    if 'sampleFactor' not in data['models']['gaussianBeam']:
-        data['models']['gaussianBeam']['sampleFactor'] = 5
+    # move gaussianBeam.sampleFactor into reports
+    if 'sampleFactor' in data['models']['gaussianBeam']:
+        sampleFactor = data['models']['gaussianBeam'].pop('sampleFactor')
+        for k in data['models']:
+            if k == 'gaussianBeamIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                data['models'][k]['sampleFactor'] = sampleFactor
 
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+        # gaussian report doesn't use precision
+        if not 'precision' in data['models']['initialIntensityReport']:
+            data['models']['initialIntensityReport']['precision'] = 1
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
@@ -163,7 +169,11 @@ def generate_parameters_file(data, schema, run_dir=None):
 
 
 def new_simulation(data, new_simulation_data):
-    data['models']['simulation']['sourceType'] = new_simulation_data['sourceType']
+    source = new_simulation_data['sourceType']
+    data['models']['simulation']['sourceType'] = source
+    if source == 'g':
+        intensityReport = data['models']['initialIntensityReport']
+        intensityReport['sampleFactor'] = 0
 
 
 def run_all_text():
