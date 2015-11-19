@@ -145,8 +145,7 @@
             "polarization": ["Polarization", "GaussianBeamPolarization"],
             "rmsSizeX": ["RMS Beam Size vs Horizontal Position at Waist [µm]", "Float"],
             "rmsSizeY": ["RMS Beam Size vs Vertical Position at Waist [µm]", "Float"],
-            "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"],
-            "sampleFactor": ["X Y Sampling Factor", "Float"]
+            "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "gaussianBeamIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -156,7 +155,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
-            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
@@ -318,8 +316,8 @@
                 "photonEnergy"
             ],
             "advanced": [
-                "energyPerPulse",
                 "photonEnergy",
+                "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
                 "rmsSizeX",
@@ -328,8 +326,7 @@
                 "waistY",
                 "waistZ",
                 "waistAngleX",
-                "waistAngleY",
-                "sampleFactor"
+                "waistAngleY"
             ]
         },
         "lens": {
@@ -355,7 +352,6 @@
                 "verticalPosition",
                 "verticalRange",
                 "sampleFactor",
-                "precision",
                 "polarization",
                 "characteristic"
             ]
