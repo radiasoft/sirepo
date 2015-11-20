@@ -125,7 +125,10 @@ def fixup_old_data(data):
         for k in data['models']:
             if k == 'gaussianBeamIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                 data['models'][k]['sampleFactor'] = sampleFactor
-
+    if 'distanceFromSource' not in data['models']['intensityReport']:
+        position = _get_first_element_position(data)
+        for name in ('intensityReport', 'powerDensityReport', 'fluxReport'):
+            data['models'][name]['distanceFromSource'] = position
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
@@ -142,14 +145,11 @@ def generate_parameters_file(data, schema, run_dir=None):
             last_id = int(m.group(1))
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
-    beamline = data['models']['beamline']
 
-    if 'report' in data and data['report'] == 'gaussianBeamIntensityReport':
-        position = data['models']['gaussianBeamIntensityReport']['distanceFromSource']
-    elif len(beamline):
-        position = beamline[0]['position']
+    if 'report' in data and 'distanceFromSource' in data['models'][data['report']]:
+        position = data['models'][data['report']]['distanceFromSource']
     else:
-        position = 20
+        position = _get_first_element_position(data)
     v['beamlineFirstElementPosition'] = position
     # initial drift = 1/2 undulator length + 2 periods
     source_type = data['models']['simulation']['sourceType']
@@ -305,6 +305,11 @@ def _generate_beamline_optics(models, last_id):
     res += '    return srwlib.SRWLOptC(el, pp)\n'
     return res
 
+def _get_first_element_position(data):
+    beamline = data['models']['beamline']
+    if len(beamline):
+        return beamline[0]['position']
+    return 20
 
 def _propagation_params(prop):
     res = '    pp.append(['
