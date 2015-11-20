@@ -75,6 +75,7 @@ app.factory('appState', function($rootScope, requestSender) {
 
     function broadcastChanged(name) {
         $rootScope.$broadcast(name + '.changed');
+        $rootScope.$broadcast('modelChanged', name);
     }
 
     function broadcastLoaded() {
@@ -149,11 +150,20 @@ app.factory('appState', function($rootScope, requestSender) {
         if (match) {
             var id = match[1];
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
-                if (savedModelValues.beamline[i].id == id)
-                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report';
+                if (savedModelValues.beamline[i].id == id) {
+                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                        + savedModelValues.beamline[i].position + 'm';
+
+                }
             }
         }
-        return self.viewInfo(name).title;
+        var model = savedModelValues[name];
+        var distance = '';
+        if (model && model.distanceFromSource != null)
+            distance = ', ' + model.distanceFromSource + 'm';
+        else if (savedModelValues.beamline && savedModelValues.beamline.length)
+            distance = ', ' + savedModelValues.beamline[0].position + 'm';
+        return self.viewInfo(name).title + distance;
     };
 
     self.isLoaded = function() {
