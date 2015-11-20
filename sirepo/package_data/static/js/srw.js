@@ -15,7 +15,7 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, $scope) {
+app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, $scope, $timeout) {
     activeSection.setActiveSection('beamline');
     var self = this;
     self.toolbarItems = [
@@ -95,11 +95,28 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
     }
 
+    function fieldClass(field) {
+        return '.model-' + field.replace('.', '-');
+    }
+
     function formatFloat(v) {
         var str = v.toFixed(4);
         str = str.replace(/0+$/, '');
         str = str.replace(/\.$/, '');
         return str;
+    }
+
+    function updateIntensityFields() {
+        $timeout(function() {
+            var hidePrecision = appState.applicationState().simulation.sourceType == 'g';
+            var fields = ['watchpointReport.precision', 'initialIntensityReport.precision'];
+            for (var i = 0; i < fields.length; i++) {
+                if (hidePrecision)
+                    $(fieldClass(fields[i])).hide();
+                else
+                    $(fieldClass(fields[i])).show();
+            }
+        }, 500);
     }
 
     self.cancelChanges = function() {
@@ -233,6 +250,13 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
                 $('#srw-upload-mirror-file').modal('hide');
             });
     };
+
+    if (appState.isLoaded())
+        updateIntensityFields();
+    else {
+        $scope.$on('modelsLoaded', updateIntensityFields);
+    }
+
 });
 
 app.controller('SRWSourceController', function (activeSection, appState) {
