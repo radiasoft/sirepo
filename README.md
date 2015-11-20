@@ -36,6 +36,14 @@ Or, if you would like to do development:
 
 ```bash
 vagrant ssh
-cd src/radiasoft/sirepo
+cd src/radiasoft
+pip uninstall sirepo pykern
+git clone https://github.com/radiasoft/pykern
+cd pykern
+pip install -e .
+cd ..
+git clone https://github.com/radiasoft/sirepo
+cd sirepo
+pip install -e .
 sirepo service http
 ```
