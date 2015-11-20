@@ -123,6 +123,7 @@
             "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"]
         },
         "fluxReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
@@ -170,6 +171,7 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
         "intensityReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
@@ -211,6 +213,7 @@
             "verticalOffset": ["Vertical Offset [mm]", "Float"]
         },
         "powerDensityReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -375,6 +378,7 @@
             "title": "Intensity Report",
             "basic": [],
             "advanced": [
+                "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
                 "horizontalPosition",
@@ -404,6 +408,7 @@
             "title": "Flux Report",
             "basic": [],
             "advanced": [
+                "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
                 "horizontalPosition",
@@ -461,6 +466,7 @@
             "title": "Power Density Report",
             "basic": [],
             "advanced": [
+                "distanceFromSource",
                 "horizontalPosition",
                 "horizontalRange",
                 "verticalPosition",
