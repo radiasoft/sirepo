@@ -15,7 +15,26 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, $scope, $timeout) {
+app.factory('srwService', function(appState) {
+    var self = {};
+    self.updatePhotonEnergy = function(modelName, energy) {
+        for (var name in appState.models) {
+            if (appState.isReportModelName(name) && appState.models[name].photonEnergy != null) {
+                if (energy != appState.models[name].photonEnergy) {
+                    console.log('updating photon energy: ', name);
+                    appState.models[name].photonEnergy = energy;
+                    if (appState.isReportModelName(modelName))
+                        appState.saveChanges(name);
+                    else
+                        appState.saveQuietly(name);
+                }
+            }
+        }
+    };
+    return self;
+});
+
+app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, srwService, $scope, $timeout) {
     activeSection.setActiveSection('beamline');
     var self = this;
     self.toolbarItems = [
@@ -104,6 +123,13 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         str = str.replace(/0+$/, '');
         str = str.replace(/\.$/, '');
         return str;
+    }
+
+    function modelChanged(event, name) {
+        if (! appState.isLoaded())
+            return;
+        if (appState.applicationState()[name].photonEnergy)
+            srwService.updatePhotonEnergy(name, appState.applicationState()[name].photonEnergy);
     }
 
     function updateIntensityFields() {
@@ -257,11 +283,19 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         $scope.$on('modelsLoaded', updateIntensityFields);
     }
 
+    $scope.$on('modelChanged', modelChanged);
 });
 
-app.controller('SRWSourceController', function (activeSection, appState) {
+app.controller('SRWSourceController', function (activeSection, appState, srwService, $scope) {
     activeSection.setActiveSection('source');
     var self = this;
+
+    // keep gaussianBeam.photonEnergy in sync with report models
+    function gaussianBeamChanged() {
+        if (! appState.isLoaded)
+            return;
+        srwService.updatePhotonEnergy('gaussianBeam', appState.applicationState().gaussianBeam.photonEnergy);
+    }
 
     function isSelected(sourceType) {
         if (appState.isLoaded())
@@ -290,4 +324,6 @@ app.controller('SRWSourceController', function (activeSection, appState) {
             return appState.models.electronBeam.isReadOnly ? true : false;
         return false;
     };
+
+    $scope.$on('gaussianBeam.changed', gaussianBeamChanged);
 });
