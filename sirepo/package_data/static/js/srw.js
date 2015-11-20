@@ -21,7 +21,6 @@ app.factory('srwService', function(appState) {
         for (var name in appState.models) {
             if (appState.isReportModelName(name) && appState.models[name].photonEnergy != null) {
                 if (energy != appState.models[name].photonEnergy) {
-                    console.log('updating photon energy: ', name);
                     appState.models[name].photonEnergy = energy;
                     if (appState.isReportModelName(modelName))
                         appState.saveChanges(name);
