@@ -232,8 +232,9 @@ def app_python_source(simulation_type, simulation_id):
 @app.route(_SCHEMA_COMMON['route']['root'])
 def app_root(simulation_type):
     return flask.render_template(
-        'html/' + simulation_type + '.html',
+        'html/index.html',
         version=_SCHEMA_COMMON['version'],
+        app_name=simulation_type,
     )
 
 
