@@ -2,13 +2,13 @@
       <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})"></canvas>
       <div><svg class="srw-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
-          <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}" />
-          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;" />
+          <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
+          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;"></rect>
           <g class="x axis" ng-attr-transform="translate(0, {{ canvasSize }})">
-            <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" y="40" />
+            <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" y="40"></text>
           </g>
           <g class="y axis">
-            <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" y="-45" transform="rotate(270)" />
+            <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" y="-45" transform="rotate(270)"></text>
           </g>
           <g class="colorbar" ng-attr-transform="translate({{ margin.left + canvasSize }}, 0)"></g>
         </g>
