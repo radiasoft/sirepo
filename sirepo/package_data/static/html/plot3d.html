@@ -1,5 +1,5 @@
     <div style="position: relative;" ng-class="{'srw-plot-loading': isLoading()}">
-      <canvas class="plot3d-canvas" ng-attr-style="position: absolute; left: {{ margin }}px; top: {{ margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>
+      <canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{ margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>
       <div><svg class="srw-plot" style="position: relative;" ng-attr-width="{{ margin * 2 + canvasSize + rightPanelWidth }}" ng-attr-height="{{ margin * 2 + canvasSize + bottomPanelHeight }}">
         <g ng-attr-transform="translate({{ margin }},{{ margin }})">
           <text class="main-title" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ -margin / 2 }}" />
