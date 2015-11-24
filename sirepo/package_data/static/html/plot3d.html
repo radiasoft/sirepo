@@ -2,35 +2,35 @@
       <canvas ng-attr-style="position: absolute; left: {{ margin }}px; top: {{ margin }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin }},{{ margin }})"></canvas>
       <div><svg class="srw-plot" style="position: relative;" ng-attr-width="{{ margin * 2 + canvasSize + rightPanelWidth }}" ng-attr-height="{{ margin * 2 + canvasSize + bottomPanelHeight }}">
         <g ng-attr-transform="translate({{ margin }},{{ margin }})">
-          <text class="main-title" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ -margin / 2 }}" />
-          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;" />
-          <line class="y-cross-hair cross-hair" ng-attr-x1="{{ canvasSize / 2 }}" y1="0" ng-attr-x2="{{ canvasSize / 2 }}" ng-attr-y2="{{ canvasSize }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />
-          <line class="x-cross-hair cross-hair" x1="0" ng-attr-y1="{{ canvasSize / 2 }}" ng-attr-x2="{{ canvasSize }}" ng-attr-y2="{{ canvasSize / 2 }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue" />
+          <text class="main-title" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ -margin / 2 }}"></text>
+          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;"></rect>
+          <line class="y-cross-hair cross-hair" ng-attr-x1="{{ canvasSize / 2 }}" y1="0" ng-attr-x2="{{ canvasSize / 2 }}" ng-attr-y2="{{ canvasSize }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue"></line>
+          <line class="x-cross-hair cross-hair" x1="0" ng-attr-y1="{{ canvasSize / 2 }}" ng-attr-x2="{{ canvasSize }}" ng-attr-y2="{{ canvasSize / 2 }}" stroke-width="1" shape-rendering="crispEdges" stroke="steelblue"></line>
           <g class="y axis grid"></g>
           <defs>
             <clippath id="{{ modelName }}-bottomclip">
-              <rect class="bottom-panel-rect" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }}"  />
+              <rect class="bottom-panel-rect" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }}"></rect>
             </clippath>
           </defs>
           <g class="bottom-panel" ng-attr-transform="translate(0, {{ canvasSize + bottomPanelMargin.top }})">
-            <path class="line" clip-path="url(#{{ modelName }}-bottomclip)" />
+            <path class="line" clip-path="url(#{{ modelName }}-bottomclip)"></path>
             <g class="x axis bottom" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>
             <g class="x axis grid" ng-attr-transform="translate(0, {{ bottomPanelHeight - bottomPanelMargin.top - bottomPanelMargin.bottom }})"></g>
-            <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ bottomPanelHeight }}" />
+            <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ bottomPanelHeight }}"></text>
             <g class="y axis bottom"></g>
           </g>
           <defs>
             <clippath id="{{ modelName }}-rightclip">
-              <rect class="right-panel-rect" ng-attr-width="{{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}" ng-attr-height="{{ canvasSize }}" />
+              <rect class="right-panel-rect" ng-attr-width="{{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}" ng-attr-height="{{ canvasSize }}"></rect>
             </clippath>
           </defs>
           <g class="right-panel" ng-attr-transform="translate({{ canvasSize + rightPanelMargin.left }}, 0)">
-            <path class="line" clip-path="url(#{{ modelName }}-rightclip)" />
+            <path class="line" clip-path="url(#{{ modelName }}-rightclip)"></path>
             <g class="y axis right" ng-attr-transform="translate({{ rightPanelWidth - rightPanelMargin.left - rightPanelMargin.right }}, 0)"></g>
             <g class="x axis right" ng-attr-transform="translate(0, {{ canvasSize }})"></g>
-            <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" ng-attr-y="{{ rightPanelWidth + 15 }}" transform="rotate(270)" />
+            <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" ng-attr-y="{{ rightPanelWidth + 15 }}" transform="rotate(270)"></text>
           </g>
-          <text class="z-axis-label" ng-attr-x="{{ canvasSize + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize + margin + 10 }}" />
+          <text class="z-axis-label" ng-attr-x="{{ canvasSize + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize + margin + 10 }}"></text>
         </g>
       </svg></div>
     </div>
