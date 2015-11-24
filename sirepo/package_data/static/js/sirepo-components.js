@@ -500,7 +500,7 @@ app.directive('numberToString', function() {
     };
 });
 
-app.directive('panelHeading', function(panelState, appState) {
+app.directive('panelHeading', function(panelState, appState, $http) {
     return {
         restrict: 'A',
         scope: {
@@ -509,24 +509,74 @@ app.directive('panelHeading', function(panelState, appState) {
             editorId: '@',
             allowFullScreen: '@',
         },
+        template: [
+            '<span class="lead">{{ panelHeading }}</span>',
+            '<div class="srw-panel-options pull-right">',
+            '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+            '<a href data-ng-show="allowFullScreen" data-ng-click="downloadImage()" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
+            //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
+            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
+            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
+            '</div>',
+        ].join(''),
         controller: function($scope) {
+
+            function pxToInteger(value) {
+                value = value.replace(/px/, '');
+                return parseInt(value);
+            }
+
+            function downloadPlot(svg, plot3dCanvas) {
+                new Simg(svg).toSvgImage(function(img){
+                    var canvas = document.createElement('canvas');
+                    var context = canvas.getContext("2d");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.fillStyle = '#FFFFFF';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+
+                    if (plot3dCanvas) {
+                        var el = $(plot3dCanvas);
+                        context.drawImage(
+                            plot3dCanvas, pxToInteger(el.css('left')), pxToInteger(el.css('top')),
+                            pxToInteger(el.css('width')), pxToInteger(el.css('height')));
+                    }
+                    context.drawImage(img, 0, 0);
+                    canvas.toBlob(function(blob) {
+                        var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
+                        saveAs(blob, fileName);
+                    });
+                });
+
+            }
+
             $scope.panelState = panelState;
+            $scope.downloadImage = function() {
+                var svg = $scope.reportPanel.find('svg')[0];
+                if (! svg)
+                    return;
+                var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
+                // embed sirepo.css style within SVG for first download, css file is cached by browser
+                $http.get('/static/css/sirepo.css?' + SIREPO_APP_VERSION)
+                    .success(function(data) {
+                        if (svg.firstChild.nodeName != 'STYLE') {
+                            var css = document.createElement('style');
+                            css.type = 'text/css';
+                            css.appendChild(document.createTextNode(data));
+                            svg.insertBefore(css, svg.firstChild);
+                        }
+                        downloadPlot(svg, plot3dCanvas);
+                    });
+            };
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
             };
             $scope.showAdvancedEditor = appState.viewInfo($scope.modelName)
                 && appState.viewInfo($scope.modelName).advanced.length == 0 ? false : true;
         },
-        template: [
-            '<span class="lead">{{ panelHeading }}</span>',
-            '<div class="srw-panel-options pull-right">',
-            '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
-            //'<a href data-ng-show="allowFullScreen" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
-            //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
-            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
-            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
-            '</div>',
-        ].join(''),
+        link: function(scope, element) {
+            scope.reportPanel = element.next();
+        },
     };
 });
 
@@ -575,6 +625,38 @@ app.directive('reportPanel', function(appState, panelState) {
             $scope.panelState = panelState;
             $scope.fullModelName = $scope.modelName + itemId;
             $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
+        },
+    };
+});
+
+app.directive('appNavigator', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<li class="dropdown">',
+              '<a href class="navbar-brand dropdown-toggle" data-toggle="dropdown"><span data-ng-bind="currentAppName()"></span> <span class="caret"></span></a>',
+              '<ul class="dropdown-menu">',
+                '<li data-ng-repeat="app in apps" data-ng-class="{\'active\': isCurrentApp(app)}">',
+                  '<a href="{{ appUrl(app) }}">{{ appName(app) }}</a>',
+                '</li>',
+              '</ul>',
+            '</li>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.apps = ['srw', 'warp'];
+            $scope.appName = function(app) {
+                return app.toUpperCase();
+            };
+            $scope.currentAppName = function() {
+                return $scope.appName(SIREPO_APP_NAME);
+            };
+            $scope.isCurrentApp = function(app) {
+                return app == SIREPO_APP_NAME;
+            };
+            $scope.appUrl = function(name) {
+                return '/' + name;
+            };
         },
     };
 });
