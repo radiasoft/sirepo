@@ -620,6 +620,14 @@ app.controller('NavController', function (activeSection, appState, requestSender
             return appState.models.simulation.name;
         return null;
     };
+
+    self.showBeamline = function() {
+        return SIREPO_APP_NAME == 'srw';
+    };
+
+    self.showDynamics = function() {
+        return SIREPO_APP_NAME == 'warp';
+    };
 });
 
 app.controller('SimulationsController', function ($scope, $window, activeSection, appState, requestSender) {
