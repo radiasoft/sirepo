@@ -1,6 +1,6 @@
     <div style="position: relative" ng-class="{'srw-plot-loading': isLoading()}">
       <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px; width: {{ canvasSize }}px; height: {{ canvasSize }}px;" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})"></canvas>
-      <svg style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
+      <div><svg class="srw-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
           <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}" />
           <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;" />
@@ -12,7 +12,7 @@
           </g>
           <g class="colorbar" ng-attr-transform="translate({{ margin.left + canvasSize }}, 0)"></g>
         </g>
-      </svg>
+      </svg></div>
       <div data-ng-if="isAnimation && hasFrames()" style="width: {{ margin.left + margin.right + canvasSize }}px;" class="text-center">
         <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>
         <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1)"><span class="glyphicon glyphicon-step-backward"></span></button>
