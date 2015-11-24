@@ -1,5 +1,5 @@
   <div ng-class="{'srw-plot-loading': isLoading()}">
-    <svg>
+    <div><svg>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
         <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
@@ -17,7 +17,7 @@
           <path class="line" />
         </svg>
       </g>
-    </svg>
+    </svg></div>
     <div class="srw-slider-values text-center">
       <strong>{{ xRange[0] | number:0 }}</strong>
       <input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
