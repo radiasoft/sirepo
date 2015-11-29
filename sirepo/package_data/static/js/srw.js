@@ -48,12 +48,10 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         {type:'watch', title:'Watchpoint'},
     ];
     self.activeItem = null;
-    self.isDirty = false;
     self.postPropagation = [];
     self.propagations = [];
 
     function addItem(item) {
-        self.isDirty = true;
         var newItem = appState.clone(item);
         newItem.id = appState.maxId(appState.models.beamline) + 1;
         newItem.showPopover = true;
@@ -147,7 +145,17 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
     self.cancelChanges = function() {
         self.dismissPopup();
         appState.cancelChanges('beamline');
-        self.isDirty = false;
+    };
+
+    self.checkIfDirty = function() {
+        var savedValues = appState.applicationState();
+        var models = appState.models;
+        if (appState.deepEquals(savedValues.beamline, models.beamline)
+            && appState.deepEquals(savedValues.propagation, models.propagation)
+            && appState.deepEquals(savedValues.postPropagation, models.postPropagation)) {
+            return false;
+        }
+        return true;
     };
 
     self.dismissPopup = function() {
@@ -212,11 +220,9 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
     self.removeElement = function(item) {
         self.dismissPopup();
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
-        self.isDirty = true;
     };
 
     self.saveChanges = function() {
-        self.isDirty = false;
         // sort beamline based on position
         appState.models.beamline.sort(function(a, b) {
             return parseFloat(a.position) - parseFloat(b.position);
@@ -245,8 +251,6 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
     };
 
     self.showPropagationModal = function() {
-        //TODO(pjm): should only set dirty if propagation value changes
-        self.isDirty = true;
         calculatePropagation();
         self.dismissPopup();
         $('#srw-propagation-parameters').modal('show');
