@@ -94,10 +94,6 @@ app.directive('beamlineItem', function($timeout) {
             };
         },
         link: function(scope, element) {
-            scope.$watchCollection('item', function(newValue, oldValue) {
-                if (newValue != oldValue)
-                    scope.$parent.beamline.isDirty = true;
-            });
             var el = $(element).find('.srw-beamline-element-label');
             el.popover({
                 html: true,
@@ -192,7 +188,7 @@ app.directive('beamlineItemEditor', function(appState) {
                 '</div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamline.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary">Close</button>',
+                    '<button ng-click="beamline.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
                   '</div>',
                 '</div>',
                 '<div class="form-group" data-ng-show="beamline.isTouchscreen()">',
@@ -223,7 +219,7 @@ app.directive('buttons', function(appState) {
         },
         template: [
             '<div class="col-sm-6 pull-right cssFade" data-ng-show="form.$dirty">',
-            '<button data-ng-click="saveChanges()" class="btn btn-primary {{ form.$valid ? \'\' : \'disabled\' }}">Save Changes</button> ',
+            '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
