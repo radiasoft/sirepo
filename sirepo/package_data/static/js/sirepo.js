@@ -131,6 +131,30 @@ app.factory('appState', function($rootScope, requestSender) {
         return self.clone(val);
     };
 
+    self.deepEquals = function(v1, v2) {
+        if (angular.isArray(v1) && angular.isArray(v2)) {
+            if (v1.length != v2.length)
+                return false;
+            for (var i = 0; i < v1.length; i++) {
+                if (! self.deepEquals(v1[i], v2[i]))
+                    return false;
+            }
+            return true;
+        }
+        if (angular.isObject(v1) && angular.isObject(v2)) {
+            var keys = Object.keys(v1);
+            if (keys.length != Object.keys(v2).length)
+                return false;
+            var isEqual = true;
+            keys.forEach(function (k) {
+                if (! self.deepEquals(v1[k], v2[k]))
+                    isEqual = false;
+            });
+            return isEqual;
+        }
+        return v1 == v2;
+    };
+
     self.getWatchItems = function() {
         if (self.isLoaded()) {
             var beamline = savedModelValues.beamline;
