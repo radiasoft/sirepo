@@ -244,8 +244,13 @@ def _generate_beamline_optics(models, last_id):
 '''
     prev = None
     has_item = False
+    last_element = False
+    want_final_propagation = True
 
     for item in beamline:
+        if last_element:
+            want_final_propagation = False
+            break;
         if prev:
             has_item = True
             size = item['position'] - prev['position']
@@ -296,12 +301,13 @@ def _generate_beamline_optics(models, last_id):
                 res += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
                 res += _propagation_params(propagation[str(item['id'])][0])
             if last_id and last_id == int(item['id']):
-                break
+                last_element = True
         prev = item
         res += '\n'
 
     # final propagation parameters
-    res += _propagation_params(models['postPropagation'])
+    if want_final_propagation:
+        res += _propagation_params(models['postPropagation'])
     res += '    return srwlib.SRWLOptC(el, pp)\n'
     return res
 
