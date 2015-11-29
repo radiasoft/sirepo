@@ -92,4 +92,15 @@ describe('Factory: appState', function() {
         v.a.b = 2;
         expect(v.a.b).not.toEqual(v2.a.b);
     }));
+
+    it('should compare nested structures', inject(function(appState) {
+        var v1 = {a: ['1', {x: 'y'}, 3.0], b: null};
+        var v2 = {b: null, a: ['1', {x: 'y'}, 3.0]};
+        expect(appState.deepEquals(v1, v2)).toBe(true);
+        v2 = {b: null, a: ['1', {x: 'z'}, 3.0]};
+        expect(appState.deepEquals(v1, v2)).toBe(false);
+        v2 = {b: null, a: ['1', {x: 'y'}, 3.0, null]};
+        expect(appState.deepEquals(v1, v2)).toBe(false);
+        expect(appState.deepEquals(null, null)).toBe(true);
+    }));
 });
