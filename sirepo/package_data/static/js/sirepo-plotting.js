@@ -174,7 +174,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
 
         linspace: function(start, stop, nsteps) {
             var delta = (stop - start) / (nsteps - 1);
-            return d3.range(start, stop + delta, delta).slice(0, nsteps);
+            return d3.range(start, stop, delta).slice(0, nsteps);
         },
 
         ticks: function(axis, width, isHorizontalAxis) {
@@ -361,7 +361,7 @@ app.directive('plot3d', function(plotting) {
             function drawBottomPanelCut() {
                 var bBottom = yIndexScale(yAxisScale.domain()[0]);
                 var yTop = yIndexScale(yAxisScale.domain()[1]);
-                var yv = Math.floor(bBottom + (yTop - bBottom + 1)/2);
+                var yv = Math.floor(bBottom + (yTop - bBottom + 1)/2) + 1;
                 var row = heatmap[yValueRange.length - yv];
                 var xvMin = xIndexScale.domain()[0];
                 var xvMax = xIndexScale.domain()[1];
@@ -525,8 +525,8 @@ app.directive('plot3d', function(plotting) {
                 plotting.ticks(bottomPanelYAxis, $scope.bottomPanelHeight, false);
                 plotting.ticks(mainXAxis, canvasSize, true);
                 plotting.ticks(mainYAxis, canvasSize, false);
-                xAxisScale.range([0, canvasSize - 1]);
-                yAxisScale.range([canvasSize - 1, 0]);
+                xAxisScale.range([0, canvasSize]);
+                yAxisScale.range([canvasSize, 0]);
                 bottomPanelYScale.range([$scope.bottomPanelHeight - $scope.bottomPanelMargin.top - $scope.bottomPanelMargin.bottom - 1, 0]).nice();
                 rightPanelXScale.range([0, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right]).nice();
                 mainXAxis.tickSize(- canvasSize - $scope.bottomPanelHeight + $scope.bottomPanelMargin.bottom); // tickLine == gridline
@@ -836,8 +836,8 @@ app.directive('heatmap', function(plotting) {
                 $scope.canvasSize = canvasSize;
                 plotting.ticks(yAxis, canvasSize, false);
                 plotting.ticks(xAxis, canvasSize, true);
-                xAxisScale.range([0, canvasSize - 1]);
-                yAxisScale.range([canvasSize - 1, 0]);
+                xAxisScale.range([0, canvasSize]);
+                yAxisScale.range([canvasSize, 0]);
                 $scope.zoom.center([canvasSize / 2, canvasSize / 2])
                     .x(xAxisScale.domain([xValueMin, xValueMax]))
                     .y(yAxisScale.domain([yValueMin, yValueMax]));
