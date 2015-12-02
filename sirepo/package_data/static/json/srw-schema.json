@@ -144,8 +144,8 @@
             "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
-            "rmsSizeX": ["RMS Horizontal Waist [µm]", "Float"],
-            "rmsSizeY": ["RMS Vertical Waist [µm]", "Float"],
+            "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
+            "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "gaussianBeamIntensityReport": {
@@ -323,13 +323,19 @@
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
-                "rmsSizeX",
-                "rmsSizeY",
-                "waistX",
-                "waistY",
                 "waistZ",
-                "waistAngleX",
-                "waistAngleY"
+                [
+                    ["Horizontal", [
+                        "rmsSizeX",
+                        "waistX",
+                        "waistAngleX"
+                    ]],
+                    ["Vertical", [
+                        "rmsSizeY",
+                        "waistY",
+                        "waistAngleY"
+                    ]]
+                ]
             ]
         },
         "lens": {
