@@ -185,7 +185,7 @@ app.factory('appState', function($rootScope, requestSender) {
         var distance = '';
         if (model && model.distanceFromSource != null)
             distance = ', ' + model.distanceFromSource + 'm';
-        else if (savedModelValues.beamline && savedModelValues.beamline.length)
+        else if (self.isReportModelName(name) && savedModelValues.beamline && savedModelValues.beamline.length)
             distance = ', ' + savedModelValues.beamline[0].position + 'm';
         return self.viewInfo(name).title + distance;
     };
