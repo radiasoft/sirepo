@@ -1,5 +1,5 @@
 {
-    "version": "20151130",
+    "version": "20151201",
     "route": {
         "clearFrames": "/clear-frames",
         "copySimulation": "/copy-simulation",
