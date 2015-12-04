@@ -496,7 +496,7 @@ app.directive('numberToString', function() {
     };
 });
 
-app.directive('panelHeading', function(panelState, appState, $http) {
+app.directive('panelHeading', function(panelState, appState, requestSender, frameCache, $http) {
     return {
         restrict: 'A',
         scope: {
@@ -508,11 +508,21 @@ app.directive('panelHeading', function(panelState, appState, $http) {
         template: [
             '<span class="lead">{{ panelHeading }}</span>',
             '<div class="srw-panel-options pull-right">',
-            '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
-            '<a href data-ng-show="allowFullScreen" data-ng-click="downloadImage()" title="Download"><span class="lead glyphicon glyphicon-cloud-download"></span></a> ',
-            //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
-            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
-            '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
+              '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+              '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
+                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="lead glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                '<ul class="dropdown-menu dropdown-menu-right">',
+                  '<li class="dropdown-header">Download Report</li>',
+                  '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
+                  '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
+                  '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
+                  '<li role="separator" class="divider"></li>',
+                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                '</ul>',
+              '</div>',
+              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -522,32 +532,44 @@ app.directive('panelHeading', function(panelState, appState, $http) {
                 return parseInt(value);
             }
 
-            function downloadPlot(svg, plot3dCanvas) {
+            function downloadPlot(svg, height, plot3dCanvas) {
                 new Simg(svg).toSvgImage(function(img){
                     var canvas = document.createElement('canvas');
                     var context = canvas.getContext("2d");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    var scale = height / img.height;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
                     context.fillStyle = '#FFFFFF';
                     context.fillRect(0, 0, canvas.width, canvas.height);
 
                     if (plot3dCanvas) {
                         var el = $(plot3dCanvas);
                         context.drawImage(
-                            plot3dCanvas, pxToInteger(el.css('left')), pxToInteger(el.css('top')),
-                            pxToInteger(el.css('width')), pxToInteger(el.css('height')));
+                            plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
+                            pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
                     }
-                    context.drawImage(img, 0, 0);
+                    context.drawImage(img, 0, 0, canvas.width, canvas.height);
                     canvas.toBlob(function(blob) {
                         var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
                         saveAs(blob, fileName);
                     });
                 });
-
             }
 
             $scope.panelState = panelState;
-            $scope.downloadImage = function() {
+            $scope.dataFileURL = function() {
+                if (appState.isLoaded()) {
+                    return requestSender.formatUrl('downloadDataFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<model_or_frame>':  appState.isAnimationModelName($scope.modelName)
+                            ? frameCache.getCurrentFrame($scope.modelName)
+                            : $scope.modelName,
+                    });
+                }
+                return '';
+            },
+            $scope.downloadImage = function(height) {
                 var svg = $scope.reportPanel.find('svg')[0];
                 if (! svg)
                     return;
@@ -561,8 +583,16 @@ app.directive('panelHeading', function(panelState, appState, $http) {
                             css.appendChild(document.createTextNode(data));
                             svg.insertBefore(css, svg.firstChild);
                         }
-                        downloadPlot(svg, plot3dCanvas);
+                        downloadPlot(svg, height, plot3dCanvas);
                     });
+            };
+            $scope.hasData = function() {
+                if (appState.isLoaded()) {
+                    if (appState.isAnimationModelName($scope.modelName))
+                        return frameCache.frameCount > 0;
+                    return ! panelState.isLoading($scope.modelName);
+                }
+                return false;
             };
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
