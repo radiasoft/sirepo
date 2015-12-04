@@ -6,12 +6,13 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+import glob
 import json
 import os
 import py
+import py.path
 import re
 import shutil
-import py.path
 
 from pykern import pkio
 from pykern import pkjinja
@@ -166,6 +167,14 @@ def generate_parameters_file(data, schema, run_dir=None):
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
     return pkjinja.render_resource('srw.py', v)
+
+
+def get_data_file(run_dir, frame_index):
+    for path in glob.glob(str(run_dir.join('res_*.dat'))):
+        path = str(py.path.local(path))
+        with open(path) as f:
+            return os.path.basename(path), f.read(), 'text/plain'
+    raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
 
 
 def new_simulation(data, new_simulation_data):
