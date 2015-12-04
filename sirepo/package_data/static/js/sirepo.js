@@ -190,13 +190,17 @@ app.factory('appState', function($rootScope, requestSender) {
         return self.viewInfo(name).title + distance;
     };
 
+    self.isAnimationModelName = function(name) {
+        return name.indexOf('Animation') >= 0;
+    };
+
     self.isLoaded = function() {
         return self.models.simulation && self.models.simulation.simulationId ? true: false;
     };
 
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
-        return  name.indexOf('Report') >= 0 || name.indexOf('Animation') >= 0 || name.indexOf('Status') >= 0;
+        return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
     self.loadModels = function(simulationId) {
