@@ -187,11 +187,32 @@ def app_route_favicon():
         'favicon.ico', mimetype='image/vnd.microsoft.icon'
     )
 
+
 @app.route(_SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
     data = _json_input()
     pkio.unchecked_remove(_simulation_dir(data['simulationType'], data['simulationId']))
     return '{}'
+
+
+@app.route(_SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
+def app_download_data_file(simulation_type, simulation_id, model_or_frame):
+    data = {
+        'simulationType': simulation_type,
+        'simulationId': simulation_id,
+    }
+    frame_index = -1
+    if re.match(r'^\d+$', model_or_frame):
+        frame_index = int(model_or_frame)
+    else:
+        data['report'] = model_or_frame
+    run_dir = _simulation_run_dir(data)
+    template = _template_for_simulation_type(simulation_type)
+    filename, content, content_type = template.get_data_file(run_dir, frame_index)
+    response = flask.make_response(content)
+    response.mimetype = content_type
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
 
 
 @app.route(_SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
@@ -372,6 +393,14 @@ def app_simulation_list():
 def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
     return flask.jsonify(_schema_cache(sim_type))
+
+
+@app.route('/sr')
+def sr_landing_page():
+    return flask.render_template(
+        'html/sr-landing-page.html',
+        version=_SCHEMA_COMMON['version'],
+    )
 
 
 def _cfg_daemonizer(value):
