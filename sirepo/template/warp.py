@@ -162,6 +162,17 @@ def get_simulation_frame(run_dir, data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
+def get_data_file(run_dir, frame_index):
+    files = _h5_file_list(run_dir)
+    #TODO(pjm): last client file may have been deleted on a canceled animation,
+    # give the last available file instead.
+    if len(files) < frame_index + 1:
+        frame_index = -1
+    filename = str(files[int(frame_index)])
+    with open(filename) as f:
+        return os.path.basename(filename), f.read(), 'application/octet-stream'
+
+
 def new_simulation(data, new_simulation_data):
     pass
 
