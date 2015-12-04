@@ -118,7 +118,7 @@
       transition: all 0.5s ease 0s;
     }
 
-    .srw-panel-options a {
+    .srw-panel-options > a, .srw-panel-options > div {
       margin-left: 1em;
     }
     .cssFade {
