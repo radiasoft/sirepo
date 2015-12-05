@@ -338,17 +338,10 @@ def app_run_status():
 
 @app.route(_SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
-    return flask.jsonify(_open_json_file(simulation_type, sid=simulation_id))
-    res = _iterate_simulation_datafiles(
-        simulation_type,
-        _find_simulation_data,
-        {'simulationId': simulation_id},
-    )
-    if len(res):
-        if len(res) > 1:
-            pkdp('multiple data files found for id: {}'.format(simulation_id))
-        return flask.jsonify(res[0])
-    flask.abort(404)
+    response = flask.jsonify(_open_json_file(simulation_type, sid=simulation_id))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 
 @app.route(_SCHEMA_COMMON['route']['simulationFrame'])
