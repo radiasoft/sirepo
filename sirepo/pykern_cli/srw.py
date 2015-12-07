@@ -69,7 +69,7 @@ def _process_output(filename, model_data):
 
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
-        title = title.format(photonEnergy=model_data['models'][model_data['report']]['photonEnergy'])
+        title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
     info = {
         'title': title,
         'x_range': [allrange[0], allrange[1]],
