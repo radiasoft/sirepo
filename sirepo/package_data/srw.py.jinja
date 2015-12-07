@@ -92,7 +92,7 @@ srwblParam = [
     #Multi-Electron (partially-coherent) Wavefront Propagation
     ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
-    ['w_e', 'f', {{initialIntensityReport_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_e', 'f', {{simulation_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ne', 'i', 1, 'number of points vs photon energy for calculation of intensity distribution'],
     ['w_x', 'f', {{initialIntensityReport_horizontalPosition}}, 'central horizontal position [m] for calculation of intensity distribution'],
@@ -155,7 +155,7 @@ appParam = [
     ['gb_waist_z', 'f', {{gaussianBeam_waistZ}}, 'average longitudinal coordinate of waist [m]'],
     ['gb_waist_angle_x', 'f', {{gaussianBeam_waistAngleX}}, 'average horizontal angle at waist [rad]'],
     ['gb_waist_angle_y', 'f', {{gaussianBeam_waistAngleY}}, 'average verical angle at waist [rad]'],
-    ['gb_photon_energy', 'f', {{gaussianBeam_photonEnergy}}, 'average photon energy [eV]'],
+    ['gb_photon_energy', 'f', {{simulation_photonEnergy}}, 'average photon energy [eV]'],
     ['gb_energy_per_pulse', 'f', {{gaussianBeam_energyPerPulse}}, 'energy per pulse [J]'],
     ['gb_polarization', 'f', {{gaussianBeam_polarization}}, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
     ['gb_rms_size_x', 'f', {{gaussianBeam_rmsSizeX}}, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
