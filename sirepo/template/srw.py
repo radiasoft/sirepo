@@ -101,7 +101,6 @@ def fixup_old_data(data):
             'waistZ': 0,
             'waistAngleX': 0,
             'waistAngleY': 0,
-            'photonEnergy': 9000,
             'energyPerPulse': '0.001',
             'polarization': 1,
             'rmsSizeX': '9.78723',
@@ -116,7 +115,6 @@ def fixup_old_data(data):
             'horizontalRange': 0.5,
             'characteristic': 0,
             'sampleFactor': 0,
-            'photonEnergy': 9000,
             'polarization': 6,
             'horizontalPosition': 0,
         }
@@ -130,6 +128,14 @@ def fixup_old_data(data):
         position = _get_first_element_position(data)
         for name in ('intensityReport', 'powerDensityReport', 'fluxReport'):
             data['models'][name]['distanceFromSource'] = position
+    if 'photonEnergy' in data['models']['initialIntensityReport']:
+        photonEnergy = data['models']['initialIntensityReport']['photonEnergy']
+        for k in data['models']:
+            model = data['models'][k]
+            if isinstance(model, dict):
+                if 'photonEnergy' in data['models'][k]:
+                    del data['models'][k]['photonEnergy']
+        data['models']['simulation']['photonEnergy'] = photonEnergy
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
