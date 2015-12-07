@@ -267,6 +267,14 @@ app.factory('appState', function($rootScope, requestSender) {
     }
 
     self.saveChanges = function(name) {
+        //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
+        if (name != 'simulation' && self.models.simulation.photonEnergy
+            && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
+            self.saveQuietly(name);
+            self.saveChanges('simulation');
+            return;
+        }
+
         if (name == 'electronBeam') {
             // keep beamSelector in sync with name, sort beams by name
             self.models.electronBeam.beamSelector = self.models.electronBeam.name;
