@@ -317,6 +317,8 @@ app.directive('fieldEditor', function(appState, requestSender) {
             if (match) {
                 $scope.modelName = match[1];
                 $scope.fieldEditor = match[2];
+                if ($scope.$parent.fullModelName)
+                    $scope.$parent.fullModelName = $scope.modelName;
             }
 
             function findParentAttribute(name) {
