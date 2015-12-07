@@ -515,10 +515,10 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                 '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="lead glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
-                  '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
-                  '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
-                  '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
-                  '<li role="separator" class="divider"></li>',
+                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
+                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
+                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
+                  '<li data-ng-hide="isMSIE()" role="separator" class="divider"></li>',
                   '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                 '</ul>',
               '</div>',
@@ -595,6 +595,10 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                     return ! panelState.isLoading($scope.modelName);
                 }
                 return false;
+            };
+            $scope.isMSIE = function() {
+                var agent = window.navigator.userAgent;
+                return agent.indexOf('MSIE ') >= 0 || agent.indexOf('Trident/') >= 0;
             };
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
