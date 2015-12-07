@@ -141,7 +141,6 @@
             "waistZ": ["Longitudinal Waist Position [µm]", "Float"],
             "waistAngleX": ["Horizontal Beam Angle [mrad]", "Float"],
             "waistAngleY": ["Vertical Beam Angle [mrad]", "Float"],
-            "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
@@ -150,7 +149,6 @@
         },
         "gaussianBeamIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "photonEnergy": ["Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -160,7 +158,6 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
         "initialIntensityReport": {
-            "photonEnergy": ["Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -223,7 +220,8 @@
         },
         "simulation": {
             "name": ["Name", "String"],
-            "sourceType": ["Source Type", "SourceType"]
+            "sourceType": ["Source Type", "SourceType"],
+            "photonEnergy": ["Photon Energy [eV]", "Float"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -240,7 +238,6 @@
             "position": ["Nominal Position [m]", "Float"]
         },
         "watchpointReport": {
-            "photonEnergy": ["Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -316,10 +313,11 @@
         "gaussianBeam": {
             "title": "Gaussian Beam",
             "basic": [
-                "photonEnergy"
+                "simulation.photonEnergy",
+                "energyPerPulse"
             ],
             "advanced": [
-                "photonEnergy",
+                "simulation.photonEnergy",
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
@@ -355,7 +353,7 @@
             "basic": [],
             "advanced": [
                 "distanceFromSource",
-                "photonEnergy",
+                "simulation.photonEnergy",
                 "horizontalPosition",
                 "horizontalRange",
                 "verticalPosition",
@@ -369,7 +367,7 @@
             "title": "Initial Intensity Report",
             "basic": [],
             "advanced": [
-                "photonEnergy",
+                "simulation.photonEnergy",
                 "horizontalPosition",
                 "horizontalRange",
                 "verticalPosition",
@@ -524,7 +522,7 @@
             "title": "Watchpoint Report",
             "basic": [],
             "advanced": [
-                "photonEnergy",
+                "simulation.photonEnergy",
                 "horizontalPosition",
                 "horizontalRange",
                 "verticalPosition",
