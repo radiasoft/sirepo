@@ -515,10 +515,10 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                 '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="lead glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
-                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
-                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
-                  '<li data-ng-hide="isMSIE()"><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
-                  '<li data-ng-hide="isMSIE()" role="separator" class="divider"></li>',
+                  '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
+                  '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
+                  '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
+                  '<li role="separator" class="divider"></li>',
                   '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                 '</ul>',
               '</div>',
@@ -529,33 +529,33 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
         ].join(''),
         controller: function($scope) {
 
+            function downloadPlot(svg, height, plot3dCanvas) {
+                var canvas = document.createElement('canvas');
+                var context = canvas.getContext("2d");
+                var scale = height / parseInt(svg.getAttribute('height'));
+                canvas.width = parseInt(svg.getAttribute('width')) * scale;
+                canvas.height = parseInt(svg.getAttribute('height')) * scale;
+                context.fillStyle = '#FFFFFF';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.fillStyle = '#000000';
+
+                if (plot3dCanvas) {
+                    var el = $(plot3dCanvas);
+                    context.drawImage(
+                        plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
+                        pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
+                }
+                var svgString = svg.parentNode.innerHTML;
+                context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function(blob) {
+                    var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
+                    saveAs(blob, fileName);
+                });
+            }
+
             function pxToInteger(value) {
                 value = value.replace(/px/, '');
                 return parseInt(value);
-            }
-
-            function downloadPlot(svg, height, plot3dCanvas) {
-                new Simg(svg).toSvgImage(function(img){
-                    var canvas = document.createElement('canvas');
-                    var context = canvas.getContext("2d");
-                    var scale = height / img.height;
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
-                    context.fillStyle = '#FFFFFF';
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-
-                    if (plot3dCanvas) {
-                        var el = $(plot3dCanvas);
-                        context.drawImage(
-                            plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
-                            pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
-                    }
-                    context.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob(function(blob) {
-                        var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
-                        saveAs(blob, fileName);
-                    });
-                });
             }
 
             $scope.panelState = panelState;
@@ -595,10 +595,6 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                     return ! panelState.isLoading($scope.modelName);
                 }
                 return false;
-            };
-            $scope.isMSIE = function() {
-                var agent = window.navigator.userAgent;
-                return agent.indexOf('MSIE ') >= 0 || agent.indexOf('Trident/') >= 0;
             };
             $scope.showEditor = function() {
                 $('#' + $scope.editorId).modal('show');
