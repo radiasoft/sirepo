@@ -120,7 +120,10 @@
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
             "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
             "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
-            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"]
+            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "fluxReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -405,7 +408,10 @@
                 "normalVectorY",
                 "normalVectorZ",
                 "tangentialVectorX",
-                "tangentialVectorY"
+                "tangentialVectorY",
+                "heightProfileFile",
+                "orientation",
+                "heightAmplification"
             ]
         },
         "fluxReport": {

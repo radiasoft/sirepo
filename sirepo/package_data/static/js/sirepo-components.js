@@ -287,15 +287,17 @@ app.directive('fieldEditor', function(appState, requestSender) {
               '<div data-ng-switch-when="MirrorFile" class="col-sm-5">',
                 '<div class="btn-group" role="group">',
                   '<div class="btn-group" role="group">',
-                    '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fieldEditor] }} <span class="caret"></span></button>',
+                    '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fieldEditor] || "No Mirror Error" }} <span class="caret"></span></button>',
                     '<ul class="dropdown-menu">',
                       '<li data-ng-repeat="item in mirrorList()"><a href data-ng-click="selectMirror(item)">{{ item }}</a></li>',
                       '<li class="divider"></li>',
+                      '<li data-ng-hide="requireMirrorErrors()"><a href data-ng-click="selectMirror(null)">No Mirror Error</a></li>',
+                      '<li  data-ng-hide="requireMirrorErrors()" class="divider"></li>',
                       '<li><a href data-ng-click="showMirrorFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                     '</ul>',
                   '</div>',
                 '</div> ',
-                '<div class="btn-group" role="group">',
+                '<div data-ng-if="model[fieldEditor]" class="btn-group" role="group">',
                   '<button type="button" title="View Graph" class="btn btn-default" data-ng-click="showMirrorReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
                   '<a data-ng-href="{{ downloadMirrorFileUrl() }}" type="button" title="Download" class="btn btn-default""><span class="glyphicon glyphicon-cloud-download"></a>',
                 '</div>',
@@ -340,6 +342,9 @@ app.directive('fieldEditor', function(appState, requestSender) {
                     });
                 }
                 return '';
+            };
+            $scope.requireMirrorErrors = function() {
+                return $scope.modelName == 'mirror';
             };
             $scope.selectBeam = function(item) {
                 $scope.model = item;

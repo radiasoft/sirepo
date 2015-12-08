@@ -65,6 +65,11 @@ def fixup_old_data(data):
                 del item['distanceToCenter']
                 item['focalLength'] = item['distanceFromCenter']
                 del item['distanceFromCenter']
+            if 'orientation' not in item:
+                item['orientation'] = 'y'
+                item['heightProfileFile'] = None
+                item['heightAmplification'] = 1
+
     if 'magneticField' in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = data['models']['simulation']['magneticField']
         del data['models']['simulation']['magneticField']
@@ -265,7 +270,7 @@ def _generate_beamline_optics(models, last_id):
     for item in beamline:
         if last_element:
             want_final_propagation = False
-            break;
+            break
         if prev:
             has_item = True
             size = item['position'] - prev['position']
@@ -290,6 +295,16 @@ def _generate_beamline_optics(models, last_id):
                 item,
                 ['position', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
+            if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
+                res += '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
+                res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
+                # overwrite propagation
+                propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
+                res += _beamline_element(
+                    'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})',
+                    item,
+                    ['orientation', 'grazingAngle', 'heightAmplification'],
+                    propagation)
         elif item['type'] == 'lens':
             res += _beamline_element(
                 'srwlib.SRWLOptL({}, {}, {}, {})',
