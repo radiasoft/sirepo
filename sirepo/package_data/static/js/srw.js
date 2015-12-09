@@ -24,6 +24,7 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
+        {type:'grating', title:'Grating', tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, diffractionOrder:1, grooveDensity0: 0, grooveDensity1: 0, grooveDensity1: 0, grooveDensity2: 0, grooveDensity3: 0, grooveDensity4: 0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
@@ -33,6 +34,7 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
     self.activeItem = null;
     self.postPropagation = [];
     self.propagations = [];
+    self.analyticalTreatmentEnum = APP_SCHEMA.enum['AnalyticalTreatment'];
 
     function addItem(item) {
         var newItem = appState.clone(item);

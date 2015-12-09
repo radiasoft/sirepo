@@ -269,7 +269,7 @@ rect.srw-obstacle {
   stroke: #000;
   fill: #699;
 }
-rect.srw-mirror, path.srw-mirror {
+rect.srw-mirror, path.srw-mirror, polygon.srw-mirror {
   stroke: #000;
   fill: #bdd7ee;
 }

@@ -1,5 +1,12 @@
 {
     "enum": {
+        "AnalyticalTreatment": [
+            ["0", "None"],
+            ["1", "Linear Term"],
+            ["2", "Quadratic Term"],
+            ["3", "From Waist"],
+            ["4", "To Waist"]
+        ],
         "ApertureShape": [
             ["r", "Rectangular"],
             ["c", "Circular"]
@@ -159,6 +166,23 @@
             "sampleFactor": ["Sampling Factor", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+        },
+        "grating": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "tangentialSize": ["Tangential Size [m]", "Float"],
+            "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
+            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
+            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "diffractionOrder": ["Diffraction Order", "Float"],
+            "grooveDensity0": ["Groove Density a0", "Float"],
+            "grooveDensity1": ["Groove Density a1y", "Float"],
+            "grooveDensity2": ["Groove Density a2y²", "Float"],
+            "grooveDensity3": ["Groove Density a3y³", "Float"],
+            "grooveDensity4": ["Groove Density a4y⁴", "Float"]
         },
         "initialIntensityReport": {
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
@@ -429,6 +453,27 @@
                 "azimuthalPrecision",
                 "fluxType",
                 "polarization"
+            ]
+        },
+        "grating": {
+            "title": "Grating",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "tangentialSize",
+                "sagittalSize",
+                "normalVectorX",
+                "normalVectorY",
+                "normalVectorZ",
+                "tangentialVectorX",
+                "tangentialVectorY",
+                "diffractionOrder",
+                "grooveDensity0",
+                "grooveDensity1",
+                "grooveDensity2",
+                "grooveDensity3",
+                "grooveDensity4"
             ]
         },
         "mirror": {

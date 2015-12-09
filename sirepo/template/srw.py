@@ -305,6 +305,12 @@ def _generate_beamline_optics(models, last_id):
                     item,
                     ['orientation', 'grazingAngle', 'heightAmplification'],
                     propagation)
+        elif item['type'] == 'grating':
+            res += _beamline_element(
+                'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
+                item,
+                ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
+                propagation)
         elif item['type'] == 'lens':
             res += _beamline_element(
                 'srwlib.SRWLOptL({}, {}, {}, {})',
