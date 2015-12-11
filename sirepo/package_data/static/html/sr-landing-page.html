@@ -1,28 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html data-ng-app="LandingPageApp" data-ng-controller="LandingPageController as landingPage">
   <head lang="en">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico">
-    <title>Synchrotron Radiation Workshop - Radiasoft</title>
+    <title data-ng-bind="landingPage.pageTitle()">Synchrotron Radiation Workshop - Radiasoft</title>
     <link href="/static/css/bootstrap-3.3.4.min.css" rel="stylesheet">
     <link href="/static/css/bootstrap-colxl.css" rel="stylesheet">
-    <style>
-      @media(max-width: 480px) {
-        h3 {
-          font-size: 12pt;
-        }
-        div.navbar-brand {
-          font-size: 12pt;
-          padding-left: 5px;
-        }
-        .btn-group .btn {
-          font-size: 7pt;
-        }
-      }
-    </style>
+    <link href="/static/css/landing-page.css?{{ version }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="/static/js/html5shiv-3.7.2.min.js"></script>
@@ -33,50 +20,33 @@
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
-          <div class="navbar-brand" href>Synchrotron Radiation Workshop</div>
+          <a class="navbar-brand" href="#/home"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
+          <div class="navbar-brand"><a href="#/home">Synchrotron Radiation Workshop</a>
+            <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span>
+            <span class="hidden-xs" data-ng-if="landingPage.pageName()" data-ng-bind="landingPage.pageName()"></span>
+          </div>
         </div>
       </div>
     </nav>
-    <div>
-
-<div class="container">
-  <div class="row">
-    <div class="col-md-6 col-md-offset-3">
-      <a class="btn btn-default thumbnail"><h3>Undulator Radiation</h3><img src="/static/img/source-undulator.png" alt="Undulator" /></a>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-6 col-md-offset-3">
-      <a class="btn btn-default thumbnail"><h3>Bending Magnet Radiation</h3><img src="/static/img/source-bending-magnet.png" alt="Undulator" /></a>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-6 col-md-offset-3">
-      <a class="btn btn-default thumbnail"><h3>Idealized Free Electron Laser Pulse</h3><img src="/static/img/source-fel.png" alt="Undulator" /></a>
-    </div>
-  </div>
-  <div class="row" style="height: 30px"></div>
-  <div class="row">
-    <div class="col-xs-12 col-md-6 col-md-offset-3 text-center"><div class="btn-group">
-      <a href class="btn btn-default"><span class="glyphicon glyphicon-unchecked"></span> NSLS II</a>
-      <a href class="btn btn-default"><span class="glyphicon glyphicon-book"></span> Textbook examples</a>
-      <a href class="btn btn-default"><span class="glyphicon glyphicon-education"></span> Expert users only</a>
-    </div></div>
-  </div>
-  <div class="row" style="height: 30px"></div>
-  <div class="row">
-    <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif" alt="Radiasoft" />radiasoft</a></div>
-  </div>
-</div>
-
+    <div class="container">
+      <div class="row visible-xs">
+        <div class="h3 text-center" data-ng-bind="landingPage.pageName()"></div>
+      </div>
+      <div data-ng-view></div>
+      <div class="row" style="height: 30px"></div>
+      <div class="row">
+        <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif" alt="Radiasoft" />radiasoft</a></div>
+      </div>
     </div>
     <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
+    <script src="/static/js/angular-1.4.2.js"></script>
+    <script src="/static/js/angular-route-1.4.2.min.js"></script>
     <script src="/static/js/jquery-2.1.4.min.js"></script>
     <script src="/static/js/bootstrap-3.3.4.js"></script>
     <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
     <script>
-
+      var LANDING_PAGE_APP_VERSION = '{{ version }}';
     </script>
+    <script src="/static/js/landing-page.js?{{ version }}"></script>
   </body>
 </html>

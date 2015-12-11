@@ -1,0 +1,16 @@
+@media(max-width: 480px) {
+  h3 {
+    font-size: 12pt;
+  }
+  div.navbar-brand {
+    font-size: 12pt;
+    padding-left: 5px;
+  }
+  .btn-group .btn {
+    font-size: 7pt;
+  }
+}
+
+.lp-big-button {
+  padding-bottom: 20px;
+}
