@@ -665,6 +665,36 @@ app.directive('reportPanel', function(appState, panelState) {
     };
 });
 
+app.directive('appLogo', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appLogo',
+        },
+        template: [
+            '<div class="navbar-header">',
+              '<a class="navbar-brand" href data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<ul class="nav navbar-nav" data-app-navigator=""></ul>',
+            '</div>',
+        ].join(''),
+    };
+});
+
+app.directive('appHeaderLeft', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appHeaderLeft',
+        },
+        template: [
+            '<ul class="nav navbar-nav">',
+              '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
+            '</ul>',
+            '<div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
+        ].join(''),
+    };
+});
+
 app.directive('appNavigator', function() {
     return {
         restrict: 'A',
