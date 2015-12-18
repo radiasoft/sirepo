@@ -68,6 +68,11 @@ describe('Factory: appState', function() {
         appState.loadModels('123');
         successCallback({
             models: {
+                simulation: {
+                    name: 'test',
+                    sourceType: 'u',
+                    photonEnergy: 9000,
+                },
                 m1: {},
                 myReport1: {},
                 myReport2: {},
