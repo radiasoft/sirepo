@@ -1,6 +1,6 @@
 'use strict';
 
-APP_LOCAL_ROUTES.beamline = '/beamline/:simulationId';
+app_local_routes.beamline = '/beamline/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -15,9 +15,21 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
+app.factory('srwService', function(appState, activeSection) {
+    var self = {};
 
-app.controller('SRWBeamlineController', function (activeSection, appState, fileUpload, requestSender, $scope, $timeout) {
-    activeSection.setActiveSection('beamline');
+    self.isApplicationMode = function(name) {
+        if (appState.isLoaded())
+            return appState.models.simulation.applicationMode == name;
+        if (activeSection.getActiveSection() == 'simulations')
+            return name == 'default';
+        return false;
+    };
+    return self;
+});
+
+
+app.controller('SRWBeamlineController', function (appState, fileUpload, requestSender, $scope, $timeout) {
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
@@ -105,19 +117,6 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
         str = str.replace(/0+$/, '');
         str = str.replace(/\.$/, '');
         return str;
-    }
-
-    function updateIntensityFields() {
-        $timeout(function() {
-            var hidePrecision = appState.applicationState().simulation.sourceType == 'g';
-            var fields = ['watchpointReport.precision', 'initialIntensityReport.precision'];
-            for (var i = 0; i < fields.length; i++) {
-                if (hidePrecision)
-                    $(fieldClass(fields[i])).hide();
-                else
-                    $(fieldClass(fields[i])).show();
-            }
-        }, 500);
     }
 
     self.cancelChanges = function() {
@@ -257,17 +256,11 @@ app.controller('SRWBeamlineController', function (activeSection, appState, fileU
                 $('#srw-upload-mirror-file').modal('hide');
             });
     };
-
-    if (appState.isLoaded())
-        updateIntensityFields();
-    else {
-        $scope.$on('modelsLoaded', updateIntensityFields);
-    }
 });
 
-app.controller('SRWSourceController', function (activeSection, appState, $scope) {
-    activeSection.setActiveSection('source');
+app.controller('SRWSourceController', function (appState, srwService, $scope) {
     var self = this;
+    self.srwService = srwService;
 
     function isSelected(sourceType) {
         if (appState.isLoaded())
@@ -295,5 +288,37 @@ app.controller('SRWSourceController', function (activeSection, appState, $scope)
         if (appState.isLoaded())
             return appState.models.electronBeam.isReadOnly ? true : false;
         return false;
+    };
+});
+
+app.directive('appHeader', function(srwService) {
+    return {
+        restirct: 'A',
+        scope: {
+            nav: '=appHeader',
+        },
+        template: [
+            '<div class="navbar-header" data-ng-if="srwService.isApplicationMode(\'calculator\')">',
+              '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
+                '<span class="hidden-xs"> - </span>',
+                '<a class="hidden-xs" href="/sr#/calculator" class="hidden-xs">SR Calculator</a>',
+                '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
+                '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
+              '</div>',
+            '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
+              '<div data-app-logo="nav"></div>',
+              '<div data-app-header-left="nav"></div>',
+              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+                //'<li data-ng-class="{active: nav.isActive(\'notebook\')}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>',
+              '</ul>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.srwService = srwService;
+        },
     };
 });
