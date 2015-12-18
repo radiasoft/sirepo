@@ -11,11 +11,15 @@
             ["r", "Rectangular"],
             ["c", "Circular"]
         ],
+        "ApplicationMode": [
+            ["default", "Expert"],
+            ["calculator", "SR Calculator"],
+            ["light-sources", "Light Source Facilities"],
+            ["wavefront", "Wavefront Propagator"]
+        ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
             ["1", "Multi-Electron Intensity"],
-            ["2", "Single-Electron Flux"],
-            ["3", "Multi-Electron Flux"],
             ["4", "Single-Electron Radiation Phase"],
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"],
@@ -157,7 +161,7 @@
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
-        "gaussianBeamIntensityReport": {
+        "sourceIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -190,7 +194,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
-            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
@@ -200,7 +203,6 @@
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
-            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "lens": {
@@ -248,7 +250,8 @@
         "simulation": {
             "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType"],
-            "photonEnergy": ["Photon Energy [eV]", "Float"]
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "applicationMode": ["Mode", "ApplicationMode"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -270,7 +273,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
-            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         }
@@ -375,7 +377,7 @@
                 "verticalOffset"
             ]
         },
-        "gaussianBeamIntensityReport": {
+        "sourceIntensityReport": {
             "title": "Intensity Report",
             "basic": [],
             "advanced": [
@@ -400,7 +402,6 @@
                 "verticalPosition",
                 "verticalRange",
                 "sampleFactor",
-                "precision",
                 "polarization",
                 "characteristic"
             ]
@@ -414,7 +415,6 @@
                 "finalEnergy",
                 "horizontalPosition",
                 "verticalPosition",
-                "precision",
                 "polarization"
             ]
         },
@@ -579,7 +579,6 @@
                 "verticalPosition",
                 "verticalRange",
                 "sampleFactor",
-                "precision",
                 "polarization",
                 "characteristic"
             ]

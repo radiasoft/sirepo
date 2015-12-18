@@ -221,6 +221,19 @@ def app_download_file(simulation_type, simulation_id, filename):
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p))
 
+@app.route(_SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
+def app_find_by_name(simulation_type, simulation_name):
+    rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
+        'simulation.name': simulation_name,
+    })
+    for row in rows:
+        # redirect using javascript for safari browser which doesn't support hash redirects
+        return flask.render_template(
+            'html/javascript-redirect.html',
+            redirect_uri='/{}#/source/{}'.format(simulation_type, row['simulationId'])
+        )
+    werkzeug.exceptions.abort(404)
+
 
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
@@ -372,10 +385,12 @@ def app_file_list(simulation_type, simulation_id):
 
 @app.route(_SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list():
-    simulation_type = _json_input()['simulationType']
+    input = _json_input()
+    simulation_type = input['simulationType']
+    search = input['search'] if 'search' in input else None
     return json.dumps(
         sorted(
-            _iterate_simulation_datafiles(simulation_type, _process_simulation_list),
+            _iterate_simulation_datafiles(simulation_type, _process_simulation_list, search),
             key=lambda row: row['last_modified'],
             reverse=True
         )
@@ -469,11 +484,6 @@ def _examples(app):
     return [_open_json_file(app, str(f)) for f in files]
 
 
-def _find_simulation_data(res, path, data, params):
-    if str(_sid(data)) == params['simulationId']:
-        res.append(data)
-
-
 def _fixup_old_data(simulation_type, data):
     if 'version' in data and data['version'] == _SCHEMA_COMMON['version']:
         return data
@@ -482,14 +492,17 @@ def _fixup_old_data(simulation_type, data):
     return data
 
 
-def _iterate_simulation_datafiles(simulation_type, op, params=None):
+def _iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
     for path in glob.glob(
         str(_simulation_dir(simulation_type).join('*', _SIMULATION_DATA_FILE)),
     ):
         path = py.path.local(path)
         try:
-            op(res, path, _open_json_file(simulation_type, path), params)
+            data = _open_json_file(simulation_type, path)
+            if search and not _search_data(data, search):
+                continue
+            op(res, path, data)
         except ValueError:
             pkdp('unparseable json file: {}', path)
     return res
@@ -508,7 +521,7 @@ def _open_json_file(simulation_type, path=None, sid=None):
         return _fixup_old_data(simulation_type, json.load(f))
 
 
-def _process_simulation_list(res, path, data, params):
+def _process_simulation_list(res, path, data):
     res.append({
         'simulationId': _sid(data),
         'name': data['models']['simulation']['name'],
@@ -588,6 +601,19 @@ def _schema_cache(sim_type):
     return schema
 
 
+def _search_data(data, search):
+    for field in search:
+        path = field.split('.')
+        path.insert(0, 'models')
+        v = data
+        for key in path:
+            if key in v:
+                v = v[key]
+        if v != search[field]:
+            return False
+    return True
+
+
 def _sid(data):
     """Extract id from data file
 
@@ -634,14 +660,13 @@ def _simulation_lib_dir(simulation_type):
     return _simulation_dir(simulation_type).join(_LIB_DIR)
 
 
-def _simulation_name(res, path, data, params):
+def _simulation_name(res, path, data):
     """Extract name of simulation from data file
 
     Args:
         res (list): results of iteration
         path (py.path): full path to file
         data (dict): parsed json
-        params (object): additional params
 
     Returns:
         str: Human readable name for simulation
