@@ -5,6 +5,7 @@
   div.navbar-brand {
     font-size: 12pt;
     padding-left: 5px;
+    padding-right: 5px;
   }
   .btn-group .btn {
     font-size: 7pt;
