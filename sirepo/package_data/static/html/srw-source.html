@@ -1,4 +1,10 @@
 <div class="container-fluid">
+  <div data-ng-if="source.srwService.isApplicationMode('calculator')" class="row visible-xs">
+    <div class="col-xs-12 lead text-center">
+      <a href="/sr#/calculator">SR Calculator</a>
+      - {{ nav.sectionTitle() }}
+    </div>
+  </div>
   <div class="row">
     <div class="col-md-6 col-xl-4">
       <div class="row">
@@ -22,11 +28,11 @@
     <div data-ng-if="source.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="2d" data-model-name="intensityReport"></div>
     </div>
-    <div data-ng-if="source.isGaussianBeam()" class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="gaussianBeamIntensityReport"></div>
-    </div>
     <div data-ng-if="source.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="powerDensityReport"></div>
+    </div>
+    <div data-ng-if="source.isGaussianBeam() || source.srwService.isApplicationMode('calculator')" class="col-md-6 col-xl-4">
+      <div data-report-panel="3d" data-model-name="sourceIntensityReport"></div>
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
@@ -36,7 +42,7 @@
 <div data-modal-editor="undulator"></div>
 <div data-modal-editor="multipole"></div>
 <div data-modal-editor="gaussianBeam"></div>
-<div data-modal-editor="gaussianBeamIntensityReport"></div>
+<div data-modal-editor="sourceIntensityReport"></div>
 <div data-modal-editor="intensityReport"></div>
 <div data-modal-editor="fluxReport"></div>
 <div data-modal-editor="powerDensityReport"></div>
