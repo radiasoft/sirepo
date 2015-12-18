@@ -39,18 +39,12 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/srw.js',
         'tests/helpers/angular/*.js',
         'tests/**/*.js',
-        {pattern: 'tests/json/*.json', included: false, served: true},
     ],
 
 
     // list of files to exclude
     exclude: [
     ],
-
-    proxies: {
-        '/static/json/': '/base/tests/json/',
-    },
-
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
