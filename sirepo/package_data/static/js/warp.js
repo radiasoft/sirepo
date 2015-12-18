@@ -1,6 +1,6 @@
 'use strict';
 
-APP_LOCAL_ROUTES.dynamics = '/dynamics/:simulationId';
+app_local_routes.dynamics = '/dynamics/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -15,8 +15,7 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('WARPDynamicsController', function(activeSection, appState, panelState, requestSender, frameCache, $timeout, $scope) {
-    activeSection.setActiveSection('dynamics');
+app.controller('WARPDynamicsController', function(appState, panelState, requestSender, frameCache, $timeout, $scope) {
     var self = this;
     self.panelState = panelState;
     self.percentComplete = 0;
@@ -128,8 +127,7 @@ app.controller('WARPDynamicsController', function(activeSection, appState, panel
     }
 });
 
-app.controller('WARPSourceController', function($scope, activeSection, appState, frameCache, $timeout) {
-    activeSection.setActiveSection('source');
+app.controller('WARPSourceController', function($scope, appState, frameCache, $timeout) {
     var self = this;
     $scope.appState = appState;
     var constants = {
@@ -283,4 +281,21 @@ app.controller('WARPSourceController', function($scope, activeSection, appState,
             appState.saveQuietly('simulationGrid');
         });
 
+});
+
+app.directive('appHeader', function() {
+    return {
+        restirct: 'A',
+        scope: {
+            nav: '=appHeader',
+        },
+        template: [
+            '<div data-app-logo="nav"></div>',
+            '<div data-app-header-left="nav"></div>',
+            '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',
+            '</ul>',
+        ].join(''),
+    };
 });
