@@ -126,7 +126,7 @@ def _run_srw():
     elif data['report'] == 'powerDensityReport':
         v.pw = True
         outfile = v.pw_fn
-    elif data['report'] == 'initialIntensityReport' or data['report'] == 'gaussianBeamIntensityReport':
+    elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
         v.si = True
         outfile = v.si_fn
     elif data['report'] == 'mirrorReport':
