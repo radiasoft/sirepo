@@ -32,13 +32,6 @@ describe('Controller: NavController', function() {
         expect(controller.pageTitle()).toBe('SRW - Radiasoft');
     }));
 
-    it('should track the active section', inject(function(activeSection) {
-        var section = 'hello';
-        var controller = $controller('NavController', {});
-        activeSection.setActiveSection(section);
-        expect(controller.activeSection()).toBe(section);
-    }));
-
     if('should show the simulation name in title', inject(function(activeSection) {
         isLoaded = true;
         var controller = $controller('NavController', {});
