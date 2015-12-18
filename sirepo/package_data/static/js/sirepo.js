@@ -1,36 +1,34 @@
 'use strict';
 
-var APP_SCHEMA;
-
-// Load the application schema synchronously, before creating app module
-//TODO(pjm): deprecated, change this to a requires/callback
-$.ajax({
-    url: typeof KARMA_TEST_MODE == 'undefined'
-        ? ('/simulation-schema?' + SIREPO_APP_VERSION)
-        : '/static/json/test-schema.json',
-    data: {
-        simulationType: SIREPO_APP_NAME,
-    },
-    success: function(result) {
-        APP_SCHEMA = result;
-    },
-    error: function(xhr, status, err) {
-        console.log("schema load failed: ", err);
-    },
-    async: false,
-    method: typeof KARMA_TEST_MODE == 'undefined' ? 'POST' : 'GET',
-    dataType: 'json',
+// start the angular app after the app's json schema file has been loaded
+angular.element(document).ready(function() {
+    $.ajax({
+        url: '/simulation-schema?' + SIREPO_APP_VERSION,
+        data: {
+            simulationType: SIREPO_APP_NAME,
+        },
+        success: function(result) {
+            APP_SCHEMA = result;
+            angular.bootstrap(document, ['SirepoApp']);
+        },
+        error: function(xhr, status, err) {
+            if (! APP_SCHEMA)
+                console.log("schema load failed: ", err);
+        },
+        method: 'POST',
+        dataType: 'json',
+    });
 });
 
-var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
-
-var APP_LOCAL_ROUTES = {
+var app_local_routes = {
     simulations: '/simulations',
     source: '/source/:simulationId',
     notFound: '/not-found',
 };
 
-app.value('localRoutes', APP_LOCAL_ROUTES);
+var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
+
+app.value('localRoutes', app_local_routes);
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -47,19 +45,20 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.factory('activeSection', function($route, appState) {
+app.factory('activeSection', function($route, $rootScope, $location, appState) {
     var self = this;
-    var activeSection = null;
 
     self.getActiveSection = function() {
-        return activeSection;
+        var match = ($location.path() || '').match(/^\/([^\/]+)/);
+        return match
+            ? match[1]
+            : null;
     };
 
-    self.setActiveSection = function(name) {
-        activeSection = name;
+    $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId)
             appState.loadModels($route.current.params.simulationId);
-    };
+    });
 
     return self;
 });
@@ -628,8 +627,8 @@ app.factory('requestQueue', function($rootScope, requestSender) {
 app.controller('NavController', function (activeSection, appState, requestSender) {
     var self = this;
 
-    self.activeSection = function() {
-        return activeSection.getActiveSection();
+    self.isActive = function(name) {
+        return activeSection.getActiveSection() == name;
     };
 
     self.openSection = function(name) {
@@ -656,18 +655,9 @@ app.controller('NavController', function (activeSection, appState, requestSender
             return appState.models.simulation.name;
         return null;
     };
-
-    self.showBeamline = function() {
-        return SIREPO_APP_NAME == 'srw';
-    };
-
-    self.showDynamics = function() {
-        return SIREPO_APP_NAME == 'warp';
-    };
 });
 
-app.controller('SimulationsController', function ($scope, $window, activeSection, appState, requestSender) {
-    activeSection.setActiveSection('simulations');
+app.controller('SimulationsController', function ($scope, $window, $location, appState, requestSender) {
     var self = this;
     self.list = [];
     self.selected = null;
@@ -701,6 +691,7 @@ app.controller('SimulationsController', function ($scope, $window, activeSection
             },
             {
                 simulationType: APP_SCHEMA.simulationType,
+                search: $location.search(),
             });
     }
 
