@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-ng-app="SirepoApp" data-ng-controller="NavController as nav">
+<html data-xng-app="SirepoApp" data-ng-controller="NavController as nav">
   <head lang="en">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -20,20 +20,7 @@
   <body>
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
-        <div class="navbar-header">
-          <a class="navbar-brand" href data-ng-click="nav.openSection('simulations')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>
-          <ul class="nav navbar-nav" data-app-navigator=""></ul>
-        </div>
-        <ul class="nav navbar-nav">
-          <li data-ng-class="{active: nav.activeSection() == 'simulations'}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>
-        </ul>
-        <div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>
-        <ul class="nav navbar-nav navbar-right" data-ng-hide="nav.activeSection() == 'simulations'">
-          <li data-ng-class="{active: nav.activeSection() == 'source'}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
-          <li data-ng-if="nav.showBeamline()" data-ng-class="{active: nav.activeSection() == 'beamline'}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
-          <li data-ng-if="nav.showDynamics()" data-ng-class="{active: nav.activeSection() == 'dynamics'}"><a href data-ng-click="nav.openSection('dynamics')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>
-          <!--<li data-ng-class="{active: nav.activeSection() == 'notebook'}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>-->
-        </ul>
+        <div data-app-header="nav"></div>
       </div>
     </nav>
     <div data-ng-view></div>
@@ -48,7 +35,7 @@
     <script src="/static/js/ngDraggable.js"></script>
     <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
-    <script src="/static/js/angular-d3.js"></script>
+    <script src="/static/js/angular-d3.js?20151215"></script>
     <script src="/static/js/colorbar.js"></script>
     <script src="/static/js/Blob.js"></script>
     <script src="/static/js/canvas-toBlob.js"></script>
@@ -57,6 +44,7 @@
     <script src="/static/js/StackBlur.js"></script>
     <script src="/static/js/canvg.js"></script>
     <script>
+      var APP_SCHEMA;
       var SIREPO_APP_NAME = '{{ app_name }}';
       var SIREPO_APP_VERSION = '{{ version }}';
     </script>
