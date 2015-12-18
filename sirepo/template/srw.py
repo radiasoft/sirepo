@@ -112,22 +112,26 @@ def fixup_old_data(data):
             'rmsSizeY': '9.78723',
             'rmsPulseDuration': 0.1,
         }
-    if 'gaussianBeamIntensityReport' not in data['models']:
-        data['models']['gaussianBeamIntensityReport'] = {
-            'distanceFromSource': 300,
-            'verticalRange': 0.5,
-            'verticalPosition': 0,
-            'horizontalRange': 0.5,
-            'characteristic': 0,
-            'sampleFactor': 0,
-            'polarization': 6,
-            'horizontalPosition': 0,
+    if 'sourceIntensityReport' not in data['models']:
+        if 'gaussianBeamIntensityReport' in data['models']:
+            data['models']['sourceIntensityReport'] = data['models']['gaussianBeamIntensityReport']
+            del data['models']['gaussianBeamIntensityReport']
+        else:
+            data['models']['sourceIntensityReport'] = {
+                'distanceFromSource': 20,
+                'verticalRange': 0.5,
+                'verticalPosition': 0,
+                'horizontalRange': 0.5,
+                'characteristic': 0,
+                'sampleFactor': 0,
+                'polarization': 6,
+                'horizontalPosition': 0,
         }
     # move gaussianBeam.sampleFactor into reports
     if 'sampleFactor' in data['models']['gaussianBeam']:
         sampleFactor = data['models']['gaussianBeam'].pop('sampleFactor')
         for k in data['models']:
-            if k == 'gaussianBeamIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                 data['models'][k]['sampleFactor'] = sampleFactor
     if 'distanceFromSource' not in data['models']['intensityReport']:
         position = _get_first_element_position(data)
@@ -141,14 +145,13 @@ def fixup_old_data(data):
                 if 'photonEnergy' in data['models'][k]:
                     del data['models'][k]['photonEnergy']
         data['models']['simulation']['photonEnergy'] = photonEnergy
+    if 'applicationMode' not in data['models']['simulation']:
+        data['models']['simulation']['applicationMode'] = 'default'
 
 def generate_parameters_file(data, schema, run_dir=None):
-    if 'report' in data and re.search('watchpointReport|gaussianBeamIntensityReport', data['report']):
+    if 'report' in data and re.search('watchpointReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-        # gaussian report doesn't use precision
-        if not 'precision' in data['models']['initialIntensityReport']:
-            data['models']['initialIntensityReport']['precision'] = 1
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
