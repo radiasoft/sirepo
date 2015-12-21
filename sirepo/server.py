@@ -222,15 +222,24 @@ def app_download_file(simulation_type, simulation_id, filename):
     return flask.send_file(str(p))
 
 @app.route(_SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
-def app_find_by_name(simulation_type, simulation_name):
+def app_find_by_name(simulation_type, application_mode, simulation_name):
     rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
         'simulation.name': simulation_name,
     })
+    if len(rows) == 0:
+        for s in _examples(simulation_type):
+            if s['models']['simulation']['name'] == simulation_name:
+                _save_new_simulation(simulation_type, s, is_response=False)
+                rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
+                    'simulation.name': simulation_name,
+                })
+                break
+
     for row in rows:
         # redirect using javascript for safari browser which doesn't support hash redirects
         return flask.render_template(
             'html/javascript-redirect.html',
-            redirect_uri='/{}#/source/{}'.format(simulation_type, row['simulationId'])
+            redirect_uri='/{}#/source/{}?application_mode={}'.format(simulation_type, row['simulationId'], application_mode)
         )
     werkzeug.exceptions.abort(404)
 

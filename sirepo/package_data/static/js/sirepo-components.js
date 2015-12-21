@@ -85,7 +85,7 @@ app.directive('beamlineItem', function($timeout) {
         },
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
-            '<span data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
+            '<span data-ng-if="showDeleteButton()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
@@ -94,6 +94,9 @@ app.directive('beamlineItem', function($timeout) {
         controller: function($scope) {
             $scope.removeElement = function(item) {
                 $scope.$parent.beamline.removeElement(item);
+            };
+            $scope.showDeleteButton = function() {
+                return $scope.$parent.beamline.isDefaultMode();
             };
         },
         link: function(scope, element) {
@@ -194,7 +197,7 @@ app.directive('beamlineItemEditor', function(appState) {
                     '<button ng-click="beamline.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
                   '</div>',
                 '</div>',
-                '<div class="form-group" data-ng-show="beamline.isTouchscreen()">',
+                '<div class="form-group" data-ng-show="beamline.isTouchscreen() && beamline.isDefaultMode()">',
                   '<div class="col-sm-offset-6 col-sm-3">',
                     '<button ng-click="removeActiveItem()" style="width: 100%" type="submit" class="btn btn-danger">Delete</button>',
                   '</div>',

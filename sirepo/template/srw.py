@@ -145,8 +145,6 @@ def fixup_old_data(data):
                 if 'photonEnergy' in data['models'][k]:
                     del data['models'][k]['photonEnergy']
         data['models']['simulation']['photonEnergy'] = photonEnergy
-    if 'applicationMode' not in data['models']['simulation']:
-        data['models']['simulation']['applicationMode'] = 'default'
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):

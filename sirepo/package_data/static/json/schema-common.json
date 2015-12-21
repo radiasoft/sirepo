@@ -1,12 +1,12 @@
 {
-    "version": "20151218",
+    "version": "20151221",
     "route": {
         "clearFrames": "/clear-frames",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model_or_frame>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
-        "findByName": "/find-by-name/<simulation_type>/<simulation_name>",
+        "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "listSimulations": "/simulation-list",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>",
         "newSimulation": "/new-simulation",

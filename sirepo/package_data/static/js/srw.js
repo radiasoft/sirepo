@@ -15,21 +15,29 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.factory('srwService', function(appState, activeSection) {
+app.factory('srwService', function(appState, activeSection, $rootScope, $route, $location) {
     var self = {};
+    var applicationMode = 'default';
 
     self.isApplicationMode = function(name) {
-        if (appState.isLoaded())
-            return appState.models.simulation.applicationMode == name;
-        if (activeSection.getActiveSection() == 'simulations')
-            return name == 'default';
-        return false;
+        return name == applicationMode;
     };
+
+    self.setApplicationMode = function(name) {
+        applicationMode = name;
+    };
+
+    $rootScope.$on('$routeChangeSuccess', function() {
+        var search = $location.search();
+        if (search && search.application_mode)
+            self.setApplicationMode(search.application_mode);
+    });
+
     return self;
 });
 
 
-app.controller('SRWBeamlineController', function (appState, fileUpload, requestSender, $scope, $timeout) {
+app.controller('SRWBeamlineController', function (appState, fileUpload, requestSender, srwService, $scope, $timeout) {
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
@@ -184,6 +192,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         return appState.getWatchItems();
     };
 
+    self.isDefaultMode = function() {
+        return srwService.isApplicationMode('default');
+    };
+
+    self.isPropagationReadOnly = function() {
+        return ! self.isDefaultMode();
+    };
+
     self.isTouchscreen = function() {
         return Modernizr.touch;
     };
@@ -258,7 +274,7 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
     };
 });
 
-app.controller('SRWSourceController', function (appState, srwService, $scope) {
+app.controller('SRWSourceController', function (appState, srwService) {
     var self = this;
     self.srwService = srwService;
 
@@ -307,6 +323,36 @@ app.directive('appHeader', function(srwService) {
                 '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
               '</div>',
             '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
+              '<div class="navbar-header">',
+                '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+                '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
+                  '<span class="hidden-xs"> - </span>',
+                  '<a class="hidden-xs" href="/sr#/wavefront" class="hidden-xs">Wavefront Propagator</a>',
+                  '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
+                  '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
+                '</div>',
+              '</div>',
+              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+              '</ul>',
+            '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')">',
+              '<div class="navbar-header">',
+                '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+                '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
+                  '<span class="hidden-xs"> - </span>',
+                  '<a class="hidden-xs" href="/sr#/light-sources" class="hidden-xs">Light Source Facilities</a>',
+                  '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
+                  '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
+                '</div>',
+              '</div>',
+              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+              '</ul>',
+            '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
               '<div data-app-logo="nav"></div>',
               '<div data-app-header-left="nav"></div>',
@@ -315,6 +361,38 @@ app.directive('appHeader', function(srwService) {
                 '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
                 //'<li data-ng-class="{active: nav.isActive(\'notebook\')}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>',
               '</ul>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.srwService = srwService;
+        },
+    };
+});
+
+app.directive('mobileAppTitle', function(srwService) {
+    return {
+        restirct: 'A',
+        scope: {
+            nav: '=mobileAppTitle',
+        },
+        template: [
+            '<div data-ng-if="srwService.isApplicationMode(\'calculator\')" class="row visible-xs">',
+              '<div class="col-xs-12 lead text-center">',
+                '<a href="/sr#/calculator">SR Calculator</a>',
+                ' - {{ nav.sectionTitle() }}',
+              '</div>',
+            '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')" class="row visible-xs">',
+              '<div class="col-xs-12 lead text-center">',
+                '<a href="/sr#/wavefront">Wavefront Propagator</a>',
+                ' - {{ nav.sectionTitle() }}',
+              '</div>',
+            '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')" class="row visible-xs">',
+              '<div class="col-xs-12 lead text-center">',
+                '<a href="/sr#/light-sources">Light Source Facilities</a>',
+                ' - {{ nav.sectionTitle() }}',
+              '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {

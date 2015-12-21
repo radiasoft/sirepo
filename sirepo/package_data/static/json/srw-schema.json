@@ -250,8 +250,7 @@
         "simulation": {
             "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType"],
-            "photonEnergy": ["Photon Energy [eV]", "Float"],
-            "applicationMode": ["Mode", "ApplicationMode"]
+            "photonEnergy": ["Photon Energy [eV]", "Float"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
