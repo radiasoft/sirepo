@@ -251,6 +251,46 @@ app.directive('buttons', function(appState) {
     };
 });
 
+app.directive('confirmationModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            id: '@',
+            title: '@',
+            text: '@',
+            okText: '@',
+            okClicked: '&',
+        },
+        template: [
+            '<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<div class="col-sm-6 col-sm-offset-3">',
+                          '<p>{{ text }}</p>',
+                        '</div>',
+                      '</div>',
+                      '<div class="row">',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-dismiss="modal" data-ng-click="okClicked()" class="btn btn-default">{{ okText }}</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '</div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+    };
+});
+
 app.directive('fieldEditor', function(appState, requestSender) {
     return {
         restirct: 'A',
