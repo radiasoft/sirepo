@@ -17,20 +17,16 @@ app.config(function($routeProvider, localRoutesProvider) {
 
 app.factory('srwService', function(appState, activeSection, $rootScope, $route, $location) {
     var self = {};
-    var applicationMode = 'default';
+    self.applicationMode = 'default';
 
     self.isApplicationMode = function(name) {
-        return name == applicationMode;
-    };
-
-    self.setApplicationMode = function(name) {
-        applicationMode = name;
+        return name == self.applicationMode;
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if (search && search.application_mode)
-            self.setApplicationMode(search.application_mode);
+            self.applicationMode = search.application_mode;
     });
 
     return self;
@@ -307,60 +303,79 @@ app.controller('SRWSourceController', function (appState, srwService) {
     };
 });
 
-app.directive('appHeader', function(srwService) {
+app.directive('resetSimulationModal', function(appState, srwService) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=resetSimulationModal',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="srw-reset-confirmation" data-title="Reset Simulation?" data-text="Discard changes to &quot;{{ simulationName() }}&quot;?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.revertToOriginal = function() {
+                $scope.nav.revertToOriginal(srwService.applicationMode);
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.name;
+                return '';
+            };
+        },
+    };
+});
+
+app.directive('appHeader', function(appState, srwService) {
+
+    var rightNav = [
+        '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+          '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+          '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+        '</ul>',
+    ].join('');
+
+    function navHeader(mode, modeTitle) {
+        return [
+            '<div class="navbar-header">',
+              '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
+                '<span class="hidden-xs"> - </span>',
+                '<a class="hidden-xs" href="/sr#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
+                '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
+                '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
+              '</div>',
+            '</div>',
+            '<ul class="nav navbar-nav navbar-right hidden-xs">',
+              '<li class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span></a>',
+                '<ul class="dropdown-menu">',
+                  '<li><a href data-target="#srw-reset-confirmation" data-toggle="modal">Discard Changes</a></li>',
+                '</ul>',
+              '</li>',
+            '</ul>',
+        ].join('');
+    }
+
     return {
         restirct: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header" data-ng-if="srwService.isApplicationMode(\'calculator\')">',
-              '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
-                '<span class="hidden-xs"> - </span>',
-                '<a class="hidden-xs" href="/sr#/calculator" class="hidden-xs">SR Calculator</a>',
-                '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
-                '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
-              '</div>',
+            '<div data-ng-if="srwService.isApplicationMode(\'calculator\')">',
+              navHeader('calculator', 'SR Calculator'),
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
-              '<div class="navbar-header">',
-                '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-                '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
-                  '<span class="hidden-xs"> - </span>',
-                  '<a class="hidden-xs" href="/sr#/wavefront" class="hidden-xs">Wavefront Propagator</a>',
-                  '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
-                  '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
-                '</div>',
-              '</div>',
-              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
-                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-              '</ul>',
+              navHeader('wavefront', 'Wavefront Propagator'),
+              rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')">',
-              '<div class="navbar-header">',
-                '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-                '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
-                  '<span class="hidden-xs"> - </span>',
-                  '<a class="hidden-xs" href="/sr#/light-sources" class="hidden-xs">Light Source Facilities</a>',
-                  '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
-                  '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
-                '</div>',
-              '</div>',
-              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
-                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-              '</ul>',
+              navHeader('light-sources', 'Light Source Facilities'),
+              rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
               '<div data-app-logo="nav"></div>',
               '<div data-app-header-left="nav"></div>',
-              '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
-                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-                //'<li data-ng-class="{active: nav.isActive(\'notebook\')}"><a href><span class="glyphicon glyphicon-book"></span> Notebook</a></li>',
-              '</ul>',
+              rightNav,
             '</div>',
         ].join(''),
         controller: function($scope) {

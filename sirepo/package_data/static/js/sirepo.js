@@ -154,6 +154,16 @@ app.factory('appState', function($rootScope, requestSender) {
         return v1 == v2;
     };
 
+    self.deleteSimulation = function(simulationId, op) {
+        requestSender.sendRequest(
+            'deleteSimulation',
+            op,
+            {
+                simulationId: simulationId,
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
     self.getWatchItems = function() {
         if (self.isLoaded()) {
             var beamline = savedModelValues.beamline;
@@ -624,7 +634,7 @@ app.factory('requestQueue', function($rootScope, requestSender) {
     return self;
 });
 
-app.controller('NavController', function (activeSection, appState, requestSender) {
+app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
     self.isActive = function(name) {
@@ -648,6 +658,23 @@ app.controller('NavController', function (activeSection, appState, requestSender
             ],
             function(n){ return n })
             .join(' - ');
+    };
+
+    self.revertToOriginal = function(applicationMode) {
+        if (! appState.isLoaded())
+            return;
+        var url = requestSender.formatUrl(
+            'findByName',
+            {
+                '<simulation_name>': encodeURIComponent(appState.models.simulation.name),
+                '<simulation_type>': APP_SCHEMA.simulationType,
+                '<application_mode>': applicationMode,
+            });
+        appState.deleteSimulation(
+            appState.models.simulation.simulationId,
+            function() {
+                $window.location.href = url;
+            });
     };
 
     self.sectionTitle = function() {
@@ -708,15 +735,7 @@ app.controller('SimulationsController', function ($scope, $window, $location, ap
     };
 
     self.deleteSelected = function() {
-        requestSender.sendRequest(
-            'deleteSimulation',
-            function() {
-                loadList();
-            },
-            {
-                simulationId: self.selected.simulationId,
-                simulationType: APP_SCHEMA.simulationType,
-            });
+        appState.deleteSimulation(self.selected.simulationId, loadList);
         self.selected = null;
     };
 
