@@ -30,30 +30,4 @@
     </div>
 
     <div data-modal-editor="simulation"></div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="srw-delete-confirmation" tabindex="-1" role="dialog">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header bg-warning">
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            <span class="lead modal-title text-info">Delete Simulation?</span>
-          </div>
-          <div class="modal-body">
-            <div class="container-fluid">
-              <div class="row">
-                <div class="col-sm-6 col-sm-offset-3">
-                  <p>Delete simulation "{{ simulations.selected.name }}"?</p>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-sm-6 pull-right">
-                  <button data-dismiss="modal" data-ng-click="simulations.deleteSelected()" class="btn btn-default">Delete</button>
-                  <button data-dismiss="modal" class="btn btn-default">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div data-confirmation-modal="" data-id="srw-delete-confirmation" data-title="Delete Simulation?" data-text="Delete simulation &quot;{{ simulations.selected.name }}&quot;?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()"></div>
