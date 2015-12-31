@@ -75,6 +75,8 @@ def fixup_old_data(data):
         del data['models']['simulation']['magneticField']
     if 'sourceType' not in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = 'u'
+    if 'facility' not in data['models']['simulation']:
+        data['models']['simulation']['facility'] = ''
     if 'mirrorFiles' in data['models']['simulation']:
         del data['models']['simulation']['mirrorFiles']
     if 'multipole' not in data['models']:
