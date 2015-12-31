@@ -236,10 +236,16 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
                 break
 
     for row in rows:
+        if application_mode == 'light-sources':
+            redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
+                simulation_type, flask.escape(row['simulation']['facility']), application_mode)
+        else:
+            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
+                simulation_type, row['simulationId'], application_mode)
         # redirect using javascript for safari browser which doesn't support hash redirects
         return flask.render_template(
             'html/javascript-redirect.html',
-            redirect_uri='/{}#/source/{}?application_mode={}'.format(simulation_type, row['simulationId'], application_mode)
+            redirect_uri=redirect_uri
         )
     werkzeug.exceptions.abort(404)
 
@@ -412,12 +418,17 @@ def app_simulation_schema():
     return flask.jsonify(_schema_cache(sim_type))
 
 
-@app.route('/sr')
-def sr_landing_page():
+@app.route('/light')
+def light_landing_page():
     return flask.render_template(
         'html/sr-landing-page.html',
         version=_SCHEMA_COMMON['version'],
     )
+
+
+@app.route('/sr')
+def sr_landing_page():
+    return flask.redirect('/light')
 
 
 def _cfg_daemonizer(value):
@@ -537,6 +548,7 @@ def _process_simulation_list(res, path, data):
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
+        'simulation': data['models']['simulation'],
     })
 
 
@@ -613,6 +625,8 @@ def _schema_cache(sim_type):
 def _search_data(data, search):
     for field in search:
         path = field.split('.')
+        if len(path) == 1:
+            continue
         path.insert(0, 'models')
         v = data
         for key in path:
