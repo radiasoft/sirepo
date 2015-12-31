@@ -130,6 +130,16 @@ app.factory('appState', function($rootScope, requestSender) {
         return self.clone(val);
     };
 
+    self.copySimulation = function(simulationId, op) {
+        requestSender.sendRequest(
+            'copySimulation',
+            op,
+            {
+                simulationId: simulationId,
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
     self.deepEquals = function(v1, v2) {
         if (angular.isArray(v1) && angular.isArray(v2)) {
             if (v1.length != v2.length)
@@ -212,6 +222,16 @@ app.factory('appState', function($rootScope, requestSender) {
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
+    self.listSimulations = function(search, op) {
+        requestSender.sendRequest(
+            'listSimulations',
+            op,
+            {
+                simulationType: APP_SCHEMA.simulationType,
+                search: search,
+            });
+    };
+
     self.loadModels = function(simulationId) {
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId)
             return;
@@ -242,6 +262,17 @@ app.factory('appState', function($rootScope, requestSender) {
 
     self.modelInfo = function(name) {
         return APP_SCHEMA.model[name];
+    };
+
+    self.newSimulation = function(model, op) {
+        requestSender.sendRequest(
+            'newSimulation',
+            op,
+            {
+                name: model.name,
+                sourceType: model.sourceType,
+                simulationType: APP_SCHEMA.simulationType,
+            });
     };
 
     self.saveBeamline = function() {
@@ -694,43 +725,25 @@ app.controller('SimulationsController', function ($scope, $window, $location, ap
         },
     });
     $scope.$on('simulation.changed', function() {
-        newSimulation(appState.models.simulation);
-    });
-
-    function newSimulation(model) {
-        requestSender.sendRequest(
-            'newSimulation',
+        appState.newSimulation(
+            appState.models.simulation,
             function(data) {
                 self.open(data.models.simulation);
-            },
-            {
-                name: model.name,
-                sourceType: model.sourceType,
-                simulationType: APP_SCHEMA.simulationType,
             });
-    }
-
+    });
     function loadList() {
-        requestSender.sendRequest(
-            'listSimulations',
+        appState.listSimulations(
+            $location.search(),
             function(data) {
                 self.list = data;
-            },
-            {
-                simulationType: APP_SCHEMA.simulationType,
-                search: $location.search(),
             });
     }
 
-    self.copy = function(item) {
-        requestSender.sendRequest(
-            'copySimulation',
+    self.copy = function() {
+        appState.copySimulation(
+            self.selected.simulationId,
             function(data) {
                 self.open(data.models.simulation);
-            },
-            {
-                simulationId: self.selected.simulationId,
-                simulationType: APP_SCHEMA.simulationType,
             });
     };
 
