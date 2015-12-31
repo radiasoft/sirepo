@@ -15,7 +15,7 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.factory('srwService', function(appState, activeSection, $rootScope, $route, $location) {
+app.factory('srwService', function($rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
 
@@ -337,21 +337,25 @@ app.directive('appHeader', function(appState, srwService) {
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/sr"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/sr">Synchrotron Radiation Workshop</a>',
+              '<a class="navbar-brand" href="/light"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand"><a href="/light">Synchrotron Radiation Workshop</a>',
                 '<span class="hidden-xs"> - </span>',
-                '<a class="hidden-xs" href="/sr#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
+                '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
                 '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
               '</div>',
             '</div>',
-            '<ul class="nav navbar-nav navbar-right hidden-xs">',
-              '<li class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span></a>',
-                '<ul class="dropdown-menu">',
-                  '<li><a href data-target="#srw-reset-confirmation" data-toggle="modal">Discard Changes</a></li>',
-                '</ul>',
-              '</li>',
-            '</ul>',
+            mode == 'light-sources'
+                ? ''
+                : [
+                    '<ul class="nav navbar-nav navbar-right hidden-xs">',
+                      '<li class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span></a>',
+                        '<ul class="dropdown-menu">',
+                          '<li><a href data-target="#srw-reset-confirmation" data-toggle="modal">Discard Changes</a></li>',
+                        '</ul>',
+                      '</li>',
+                    '</ul>',
+                ].join(''),
         ].join('');
     }
 
@@ -373,8 +377,11 @@ app.directive('appHeader', function(appState, srwService) {
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-logo="nav"></div>',
-              '<div data-app-header-left="nav"></div>',
+              '<div class="navbar-header">',
+                '<a class="navbar-brand" href="/light"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+                '<div class="navbar-brand"><a href="/light">Synchrotron Radiation Workshop</a></div>',
+              '</div>',
+              '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
         ].join(''),
@@ -384,31 +391,213 @@ app.directive('appHeader', function(appState, srwService) {
     };
 });
 
+app.directive('beamlineIcon', function() {
+    return {
+        scope: {
+            item: '=',
+        },
+        template: [
+            '<svg class="srw-beamline-item-icon" viewbox="0 0 50 60" data-ng-switch="item.type">',
+              '<g data-ng-switch-when="lens">',
+                '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
+                '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
+              '</g>',
+              '<g data-ng-switch-when="aperture">',
+                '<rect x="23", y="0", width="5", height="24" class="srw-aperture" />',
+                '<rect x="23", y="36", width="5", height="24" class="srw-aperture" />',
+              '</g>',
+              '<g data-ng-switch-when="ellipsoidMirror">',
+                '<path d="M20 0 C30 10 30 50 20 60" class="srw-mirror" />',
+              '</g>',
+              '<g data-ng-switch-when="grating">',
+                '<polygon points="24,0 20,15, 24,17 20,30 24,32 20,45 24,47 20,60 24,60 28,60 28,0" class="srw-mirror" />',
+              '</g>',
+              '<g data-ng-switch-when="mirror">',
+                '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
+              '</g>',
+              '<g data-ng-switch-when="obstacle">',
+                '<rect x="15" y="20" width="20", height="20" class="srw-obstacle" />',
+              '</g>',
+              '<g data-ng-switch-when="crl">',
+                '<rect x="15", y="0", width="20", height="60" class="srw-crl" />',
+                '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
+                '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
+                '<path d="M15 0 C20 10 20 50 15 60" class="srw-lens" />',
+                '<path d="M15 60 C10 50 10 10 15 0" class="srw-lens" />',
+                '<path d="M35 0 C40 10 40 50 35 60" class="srw-lens" />',
+                '<path d="M35 60 C30 50 30 10 35 0" class="srw-lens" />',
+              '</g>',
+              '<g data-ng-switch-when="watch">',
+                '<path d="M5 30 C 15 45 35 45 45 30" class="srw-watch" />',
+                '<path d="M45 30 C 35 15 15 15 5 30" class="srw-watch" />',
+                '<circle cx="25" cy="30" r="10" class="srw-watch" />',
+                '<circle cx="25" cy="30" r="4" class="srw-watch-pupil" />',
+              '</g>',
+            '</svg>',
+        ].join(''),
+    };
+});
+
+app.directive('beamlineItem', function($timeout) {
+    return {
+        scope: {
+            item: '=',
+        },
+        template: [
+            '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
+            '<span data-ng-if="showDeleteButton()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
+            '<div class="srw-beamline-image">',
+              '<span data-beamline-icon="", data-item="item"></span>',
+            '</div>',
+            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.removeElement = function(item) {
+                $scope.$parent.beamline.removeElement(item);
+            };
+            $scope.showDeleteButton = function() {
+                return $scope.$parent.beamline.isDefaultMode();
+            };
+        },
+        link: function(scope, element) {
+            var el = $(element).find('.srw-beamline-element-label');
+            el.popover({
+                html: true,
+                placement: 'bottom',
+                container: '.srw-popup-container-lg',
+                viewport: { selector: '.srw-beamline'},
+                content: $('#srw-' + scope.item.type + '-editor'),
+                trigger: 'manual',
+            }).on('show.bs.popover', function() {
+                scope.$parent.beamline.activeItem = scope.item;
+            }).on('shown.bs.popover', function() {
+                $('.popover-content .form-control').first().select();
+            }).on('hide.bs.popover', function() {
+                scope.$parent.beamline.activeItem = null;
+                var editor = el.data('bs.popover').getContent();
+                // return the editor to the editor-holder so it will be available for the
+                // next element of this type
+                if (editor)
+                    $('.srw-editor-holder').append(editor);
+            });
+
+            function togglePopover() {
+                $('.srw-beamline-element-label').not(el).popover('hide');
+                el.popover('toggle');
+                scope.$apply();
+            }
+            if (scope.$parent.beamline.isTouchscreen()) {
+                var hasTouchMove = false;
+                $(element).bind('touchstart', function() {
+                    hasTouchMove = false;
+                });
+                $(element).bind('touchend', function() {
+                    if (! hasTouchMove)
+                        togglePopover();
+                    hasTouchMove = false;
+                });
+                $(element).bind('touchmove', function() {
+                    hasTouchMove = true;
+                });
+            }
+            else {
+                $(element).click(function() {
+                    togglePopover();
+                });
+            }
+            if (scope.item.showPopover) {
+                delete scope.item.showPopover;
+                // when the item is added, it may have been dropped between items
+                // don't show the popover until the position has been determined
+                $timeout(function() {
+                    var position = el.parent().position().left;
+                    var width = $('.srw-beamline-container').width();
+                    var itemWidth = el.width();
+                    if (position + itemWidth > width) {
+                        var scrollPoint = $('.srw-beamline-container').scrollLeft();
+                        $('.srw-beamline-container').scrollLeft(position - width + scrollPoint + itemWidth);
+                    }
+                    el.popover('show');
+                }, 500);
+            }
+            scope.$on('$destroy', function() {
+                if (scope.$parent.beamline.isTouchscreen()) {
+                    $(element).bind('touchstart', null);
+                    $(element).bind('touchend', null);
+                    $(element).bind('touchmove', null);
+                }
+                else {
+                    $(element).off();
+                }
+                var el = $(element).find('.srw-beamline-element-label');
+                el.off();
+                var popover = el.data('bs.popover');
+                // popover has a memory leak with $tip user_data which needs to be cleaned up manually
+                if (popover && popover.$tip)
+                    popover.$tip.removeData('bs.popover');
+                el.popover('destroy');
+            });
+        },
+    };
+});
+
+app.directive('beamlineItemEditor', function(appState) {
+    return {
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div>',
+              '<form name="form" class="form-horizontal" novalidate>',
+                '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
+                  '<div data-field-editor="f" data-model-name="modelName" data-model="beamline.activeItem"></div>',
+                '</div>',
+                '<div class="form-group">',
+                  '<div class="col-sm-offset-6 col-sm-3">',
+                    '<button ng-click="beamline.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
+                  '</div>',
+                '</div>',
+                '<div class="form-group" data-ng-show="beamline.isTouchscreen() && beamline.isDefaultMode()">',
+                  '<div class="col-sm-offset-6 col-sm-3">',
+                    '<button ng-click="removeActiveItem()" style="width: 100%" type="submit" class="btn btn-danger">Delete</button>',
+                  '</div>',
+                '</div>',
+              '</form>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.beamline = $scope.$parent.beamline;
+            $scope.advancedFields = appState.viewInfo($scope.modelName).advanced;
+            $scope.removeActiveItem = function() {
+                $scope.beamline.removeElement($scope.beamline.activeItem);
+            }
+            //TODO(pjm): investigate why id needs to be set in html for revisiting the beamline page
+            //$scope.editorId = 'srw-' + $scope.modelName + '-editor';
+        },
+    };
+});
+
 app.directive('mobileAppTitle', function(srwService) {
+    function mobileTitle(mode, modeTitle) {
+        return [
+            '<div data-ng-if="srwService.isApplicationMode(\'' + mode + '\')" class="row visible-xs">',
+              '<div class="col-xs-12 lead text-center">',
+                '<a href="/light#/calculator">' + modeTitle + '</a>',
+                ' - {{ nav.sectionTitle() }}',
+              '</div>',
+            '</div>',
+        ].join('');
+    }
+
     return {
         restirct: 'A',
         scope: {
             nav: '=mobileAppTitle',
         },
         template: [
-            '<div data-ng-if="srwService.isApplicationMode(\'calculator\')" class="row visible-xs">',
-              '<div class="col-xs-12 lead text-center">',
-                '<a href="/sr#/calculator">SR Calculator</a>',
-                ' - {{ nav.sectionTitle() }}',
-              '</div>',
-            '</div>',
-            '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')" class="row visible-xs">',
-              '<div class="col-xs-12 lead text-center">',
-                '<a href="/sr#/wavefront">Wavefront Propagator</a>',
-                ' - {{ nav.sectionTitle() }}',
-              '</div>',
-            '</div>',
-            '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')" class="row visible-xs">',
-              '<div class="col-xs-12 lead text-center">',
-                '<a href="/sr#/light-sources">Light Source Facilities</a>',
-                ' - {{ nav.sectionTitle() }}',
-              '</div>',
-            '</div>',
+            mobileTitle('calculator', 'SR Calculator'),
+            mobileTitle('wavefront', 'Wavefront Propagator'),
+            mobileTitle('light-sources', 'Light Source Facilities'),
         ].join(''),
         controller: function($scope) {
             $scope.srwService = srwService;
