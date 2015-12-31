@@ -3,7 +3,7 @@
 <html>
   <body>
     <script>
-      window.location = "{{ redirect_uri }}";
+      window.location = "{{ redirect_uri | safe }}";
     </script>
   </body>
 </html>
