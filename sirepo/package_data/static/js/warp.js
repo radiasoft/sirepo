@@ -290,7 +290,10 @@ app.directive('appHeader', function() {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-logo="nav"></div>',
+            '<div class="navbar-header">',
+              '<a class="navbar-brand" href data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand"><a href="/warp">WARP</a></div>',
+            '</div>',
             '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
