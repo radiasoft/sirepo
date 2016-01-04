@@ -14,7 +14,7 @@
 
   <!-- Beamline -->
   <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.dropComplete($data, $event)">
-    <div class="lead pull-right"><a href data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-cog"></span></a></div>
+    <div class="pull-right btn btn-default" data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small>PP</small></div>
     <p class="lead text-center">beamline definition area<br>
       <small data-ng-if="beamline.isDefaultMode()"><em>drag and drop optical elements here to define the beamline</em></small></p>
     <div class="srw-beamline-container">
@@ -29,7 +29,6 @@
       <form>
         <div class="col-md-6 col-sm-8 pull-right cssFade" data-ng-show="beamline.checkIfDirty()">
           <button data-ng-click="beamline.saveChanges()" class="btn btn-primary">Save Changes</button>
-          <a href class="btn btn-default" data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()"><span class="glyphicon glyphicon-cog"></span> Propagation Parameters</a>
           <button data-ng-click="beamline.cancelChanges()" class="btn btn-default">Cancel</button>
         </div>
       </form>
