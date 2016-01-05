@@ -385,6 +385,13 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                 '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
               '</div>',
             '</div>',
+            mode == 'light-sources'
+                ? [
+                    '<ul class="nav navbar-nav">',
+                      '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
+                    '</ul>',
+                ].join('')
+                : '',
         ].join('');
     }
 
