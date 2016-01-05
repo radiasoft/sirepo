@@ -176,6 +176,7 @@ def app_copy_simulation():
             continue
         break
     data['models']['simulation']['name'] = name
+    data['models']['simulation']['isExample'] = ''
     return _save_new_simulation(simulation_type, data)
 
 
