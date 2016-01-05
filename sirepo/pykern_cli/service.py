@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 
+import json
 import os
 import socket
 import subprocess
@@ -19,6 +20,8 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
 
+import sirepo.template.srw
+import sirepo.template.warp
 
 _DEFAULT_DB_SUBDIR = 'run'
 _CFG = {
@@ -33,6 +36,36 @@ _CFG = {
     'threads': [10, 1, 128],
     'ip': '0.0.0.0',
 }
+
+
+def fixup_json_datafile(app_name, path):
+    template = None
+    if app_name == 'srw':
+        template = sirepo.template.srw
+    elif app_name == 'warp':
+        template = sirepo.template.warp
+    else:
+        return 'invalid app_name: {}'.format(app_name)
+    with open(str(path)) as f:
+        data = json.load(f)
+    template.fixup_old_data(data)
+    with open(str(path), 'w') as f:
+        json.dump(data, f)
+
+
+def fixup_json_datafiles(app_name):
+    """Apply schema fixups for application datafiles. app_name: (srw|warp)"""
+    files = pkio.walk_tree('.', '/' + app_name + '/[^\/]+/sirepo-data.json')
+    if not len(files):
+        return 'no files found for {}'.format(app_name)
+    ask = raw_input('apply fixups to {} files? (y|n) '.format(len(files)))
+    if not (ask and ask == 'y'):
+        return '** aborting data fixup **'
+    for path in files:
+        res = fixup_json_datafile(app_name, str(path))
+        if res:
+            print('{}: {}'.format(path, res))
+    return 'applied fixups to {} files.'.format(len(files))
 
 
 def http():
@@ -101,7 +134,7 @@ def _int(name):
 
 def _ip():
     try:
-        value = _env('ip');
+        value = _env('ip')
         socket.inet_aton(value)
         return value
     except socket.error:
