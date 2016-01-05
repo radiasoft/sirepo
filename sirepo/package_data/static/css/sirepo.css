@@ -311,3 +311,19 @@ svg.srw-beamline-item-icon {
   width: 30px;
   height: 35px;
 }
+
+.srw-panel-icon {
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.4;
+  color: #777;
+}
+@media (min-width: 768px) {
+  .srw-panel-icon {
+    font-size: 21px;
+  }
+}
+
+.navbar-nav > li > a.srw-settings-menu {
+  padding: 11px 15px;
+}
