@@ -752,6 +752,10 @@ app.controller('SimulationsController', function ($scope, $window, $location, ap
         self.selected = null;
     };
 
+    self.isApp = function(name) {
+        return name == SIREPO_APP_NAME;
+    };
+
     self.isSelected = function(item) {
         return self.selected && self.selected == item ? true : false;
     };
