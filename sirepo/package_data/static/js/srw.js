@@ -303,6 +303,30 @@ app.controller('SRWSourceController', function (appState, srwService) {
     };
 });
 
+app.directive('deleteSimulationModal', function(appState, $location) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-confirmation-modal="" data-id="srw-delete-confirmation" data-title="Delete Simulation?" data-text="Delete simulation &quot;{{ simulationName() }}&quot;?" data-ok-text="Delete" data-ok-clicked="deleteSimulation()"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.deleteSimulation = function() {
+                appState.deleteSimulation(
+                    appState.models.simulation.simulationId,
+                    function() {
+                        $location.path('/simulations');
+                    });
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.name;
+                return '';
+            };
+        },
+    };
+});
+
 app.directive('resetSimulationModal', function(appState, srwService) {
     return {
         restrict: 'A',
@@ -325,12 +349,28 @@ app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
-app.directive('appHeader', function(appState, srwService) {
+app.directive('appHeader', function(appState, srwService, requestSender, $location, $window) {
+
+    var settingsIcon = [
+        '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="srw-panel-icon glyphicon glyphicon-cog"></span></a>',
+          '<ul class="dropdown-menu">',
+            '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
+            '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
+            '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
+            '<li data-ng-if="! isExample()"><a href data-target="#srw-delete-confirmation" data-toggle="modal""><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
+          '</ul>',
+        '</li>',
+    ].join('');
 
     var rightNav = [
+        '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
+          '<li><a href data-target="#srw-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+        '</ul>',
+
         '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+          settingsIcon,
         '</ul>',
     ].join('');
 
@@ -345,17 +385,6 @@ app.directive('appHeader', function(appState, srwService) {
                 '<span class="hidden-xs" data-ng-bind="nav.sectionTitle()"></span>',
               '</div>',
             '</div>',
-            mode == 'light-sources'
-                ? ''
-                : [
-                    '<ul class="nav navbar-nav navbar-right hidden-xs">',
-                      '<li class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span></a>',
-                        '<ul class="dropdown-menu">',
-                          '<li><a href data-target="#srw-reset-confirmation" data-toggle="modal">Discard Changes</a></li>',
-                        '</ul>',
-                      '</li>',
-                    '</ul>',
-                ].join(''),
         ].join('');
     }
 
@@ -367,6 +396,9 @@ app.directive('appHeader', function(appState, srwService) {
         template: [
             '<div data-ng-if="srwService.isApplicationMode(\'calculator\')">',
               navHeader('calculator', 'SR Calculator'),
+              '<ul data-ng-if="isLoaded()" class="nav navbar-nav navbar-right">',
+                settingsIcon,
+              '</ul>',
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
               navHeader('wavefront', 'Wavefront Propagator'),
@@ -386,7 +418,44 @@ app.directive('appHeader', function(appState, srwService) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            function simulationId() {
+                return appState.models.simulation.simulationId;
+            }
+
             $scope.srwService = srwService;
+
+            $scope.canCopy = function() {
+                if (srwService.applicationMode == 'calculator' || srwService.applicationMode == 'wavefront')
+                    return false;
+                return true;
+            };
+
+            $scope.copy = function() {
+                appState.copySimulation(
+                    simulationId(),
+                    function(data) {
+                        requestSender.localRedirect('source', {
+                            ':simulationId': data.models.simulation.simulationId,
+                        });
+                    });
+            };
+
+            $scope.isExample = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.isExample;
+                return false;
+            };
+
+            $scope.isLoaded = function() {
+                return appState.isLoaded();
+            };
+
+            $scope.pythonSource = function(item) {
+                $window.open(requestSender.formatUrl('pythonSource', {
+                    '<simulation_id>': simulationId(),
+                    '<simulation_type>': APP_SCHEMA.simulationType,
+                }), '_blank');
+            };
         },
     };
 });
