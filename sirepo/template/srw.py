@@ -23,6 +23,21 @@ from sirepo.template import template_common
 #: How long before killing SRW process
 MAX_SECONDS = 60
 
+_EXAMPLE_SIMULATIONS = [
+    'Bending Magnet Radiation',
+    'Circular Aperture',
+    'Ellipsoidal Undulator Example',
+    'Idealized Free Electron Laser Pulse',
+    'Focusing Bending Magnet Radiation',
+    'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors',
+    'Gaussian X-ray Beam Through Perfect CRL',
+    'NSLS-II CHX beamline',
+    'Polarization of Bending Magnet Radiation',
+    'Young\'s Double Slit Experiment',
+    'Undulator Radiation',
+    'Soft X-Ray Undulator Radiation Containing VLS Grating',
+]
+
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -76,7 +91,14 @@ def fixup_old_data(data):
     if 'sourceType' not in data['models']['simulation']:
         data['models']['simulation']['sourceType'] = 'u'
     if 'facility' not in data['models']['simulation']:
-        data['models']['simulation']['facility'] = ''
+        facility = ''
+        if data['models']['simulation']['name'] == 'NSLS-II CHX beamline':
+            facility = 'NSLS-II'
+        data['models']['simulation']['facility'] = facility
+    if 'isExample' not in data['models']['simulation']:
+        data['models']['simulation']['isExample'] = ''
+        if data['models']['simulation']['name'] in _EXAMPLE_SIMULATIONS:
+            data['models']['simulation']['isExample'] = '1'
     if 'mirrorFiles' in data['models']['simulation']:
         del data['models']['simulation']['mirrorFiles']
     if 'multipole' not in data['models']:
