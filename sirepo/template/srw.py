@@ -92,12 +92,12 @@ def fixup_old_data(data):
         data['models']['simulation']['sourceType'] = 'u'
     if 'facility' not in data['models']['simulation']:
         facility = ''
-        if data['models']['simulation']['name'] == 'NSLS-II CHX beamline':
+        if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] == 'NSLS-II CHX beamline':
             facility = 'NSLS-II'
         data['models']['simulation']['facility'] = facility
     if 'isExample' not in data['models']['simulation']:
         data['models']['simulation']['isExample'] = ''
-        if data['models']['simulation']['name'] in _EXAMPLE_SIMULATIONS:
+        if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] in _EXAMPLE_SIMULATIONS:
             data['models']['simulation']['isExample'] = '1'
     if 'mirrorFiles' in data['models']['simulation']:
         del data['models']['simulation']['mirrorFiles']
