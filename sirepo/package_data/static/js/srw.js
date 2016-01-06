@@ -658,7 +658,7 @@ app.directive('mobileAppTitle', function(srwService) {
         return [
             '<div data-ng-if="srwService.isApplicationMode(\'' + mode + '\')" class="row visible-xs">',
               '<div class="col-xs-12 lead text-center">',
-                '<a href="/light#/calculator">' + modeTitle + '</a>',
+                '<a href="/light#/' + mode + '">' + modeTitle + '</a>',
                 ' - {{ nav.sectionTitle() }}',
               '</div>',
             '</div>',
