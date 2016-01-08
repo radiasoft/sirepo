@@ -611,8 +611,8 @@ app.directive('plot3d', function(plotting) {
                 xIndexScale.domain([xValueMin, xValueMax]);
                 yAxisScale.domain([yValueMin, yValueMax]);
                 yIndexScale.domain([yValueMin, yValueMax]);
-                var zmin = json.z_matrix[0][0]
-                var zmax = json.z_matrix[0][0]
+                var zmin = json.z_matrix[0][0];
+                var zmax = json.z_matrix[0][0];
 
                 for (var yi = 0; yi <= ymax; ++yi) {
                     // flip to match the canvas coordinate system (origin: top left)
@@ -627,6 +627,9 @@ app.directive('plot3d', function(plotting) {
                             zmin = zi;
                     }
                 }
+                //TODO(pjm): for now, we always want the lower range to be 0
+                if (zmin > 0)
+                    zmin = 0;
                 bottomPanelYScale.domain([zmin, zmax]);
                 rightPanelXScale.domain([zmax, zmin]);
                 initDraw(zmin, zmax);
