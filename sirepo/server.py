@@ -240,6 +240,9 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
         if application_mode == 'light-sources':
             redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
                 simulation_type, flask.escape(row['simulation']['facility']), application_mode)
+        elif application_mode == 'wavefront':
+            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
+                simulation_type, row['simulationId'], application_mode)
         else:
             redirect_uri = '/{}#/source/{}?application_mode={}'.format(
                 simulation_type, row['simulationId'], application_mode)
