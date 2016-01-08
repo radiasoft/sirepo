@@ -193,7 +193,9 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
     };
 
     self.isPropagationReadOnly = function() {
-        return ! self.isDefaultMode();
+        //TODO(pjm): may want to disable this for novice users
+        //return ! self.isDefaultMode();
+        return false
     };
 
     self.isTouchscreen = function() {
