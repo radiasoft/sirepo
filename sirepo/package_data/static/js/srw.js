@@ -356,6 +356,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
     var settingsIcon = [
         '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="srw-panel-icon glyphicon glyphicon-cog"></span></a>',
           '<ul class="dropdown-menu">',
+            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Wavefront Simulation Grid</a></li>',
             '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
             '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
@@ -464,6 +465,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                     '<simulation_id>': simulationId(),
                     '<simulation_type>': APP_SCHEMA.simulationType,
                 }), '_blank');
+            };
+
+            $scope.showSimulationGrid = function() {
+                $('#srw-simulationGrid-editor').modal('show');
             };
         },
     };

@@ -54,7 +54,7 @@ app.directive('buttons', function(appState) {
                 changeDone();
             });
             $scope.saveChanges = function() {
-                if ($scope.form.$valid)
+                if ($scope.form.$valid && appState.modelInfo($scope.modelName))
                     appState.saveChanges($scope.modelName);
             };
             $scope.cancelChanges = function() {
@@ -296,15 +296,15 @@ app.directive('modalEditor', function(appState) {
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-	            '<span class="lead modal-title text-info">{{ appState.getReportTitle(fullModelName) }}</span>',
+	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
                         '<form name="form" class="form-horizontal" novalidate>',
                           '<div data-ng-repeat="f in advancedFields">',
-                            '<div class="form-group form-group-sm model-{{modalEditor}}-{{f}}" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modalEditor" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
-                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modalEditor" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
+                            '<div class="form-group form-group-sm model-{{modalEditor}}-{{f}}" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
+                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
                           '</div>',
                           '<div data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
@@ -317,12 +317,16 @@ app.directive('modalEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            $scope.advancedFields = appState.viewInfo($scope.modalEditor).advanced;
-            $scope.fullModelName = $scope.modalEditor + ($scope.itemId || '');
-            $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
+            var viewInfo = appState.viewInfo($scope.modalEditor);
+            $scope.advancedFields = viewInfo.advanced;
+            //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
+            $scope.modelName = viewInfo.model || $scope.modalEditor;
+            $scope.fullModelName = $scope.modelName + ($scope.itemId || '');
+            $scope.editorId = 'srw-' + (viewInfo.model ? $scope.modalEditor : $scope.fullModelName) + '-editor';
             $scope.isStringField = function(f) {
                 return typeof(f) == 'string' ? true : false;
             };
+            $scope.modalTitle = appState.getReportTitle(viewInfo.model ? $scope.modalEditor : $scope.fullModelName);
         },
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {

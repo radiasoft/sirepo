@@ -145,7 +145,8 @@
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "fluxType": ["Flux Calculation", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -165,7 +166,6 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "sampleFactor": ["Sampling Factor", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
@@ -191,7 +191,6 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "sampleFactor": ["Sampling Factor", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
@@ -201,7 +200,8 @@
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
         },
         "lens": {
             "title": ["Element Name", "String"],
@@ -243,14 +243,19 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
-            "method": ["Power Density Computation Method", "PowerDensityMethod"]
+            "method": ["Power Density Computation Method", "PowerDensityMethod"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"]
         },
         "simulation": {
             "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "facility": ["Facility", "String"],
-            "isExample": ["Is Example Simulation", "String"]
+            "isExample": ["Is Example Simulation", "String"],
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -271,7 +276,6 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "sampleFactor": ["Sampling Factor", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         }
@@ -386,7 +390,6 @@
                 "horizontalRange",
                 "verticalPosition",
                 "verticalRange",
-                "sampleFactor",
                 "polarization",
                 "characteristic"
             ]
@@ -400,7 +403,6 @@
                 "horizontalRange",
                 "verticalPosition",
                 "verticalRange",
-                "sampleFactor",
                 "polarization",
                 "characteristic"
             ]
@@ -414,7 +416,8 @@
                 "finalEnergy",
                 "horizontalPosition",
                 "verticalPosition",
-                "polarization"
+                "polarization",
+                "photonEnergyPointCount"
             ]
         },
         "ellipsoidMirror": {
@@ -451,7 +454,8 @@
                 "longitudinalPrecision",
                 "azimuthalPrecision",
                 "fluxType",
-                "polarization"
+                "polarization",
+                "photonEnergyPointCount"
             ]
         },
         "grating": {
@@ -526,7 +530,9 @@
                 "verticalPosition",
                 "verticalRange",
                 "precision",
-                "method"
+                "method",
+                "horizontalPointCount",
+                "verticalPointCount"
             ]
         },
         "simulation": {
@@ -534,6 +540,15 @@
             "advanced": [
                 "name",
                 "sourceType"
+            ]
+        },
+        "simulationGrid": {
+            "model": "simulation",
+            "title": "Wavefront Simulation Grid",
+            "advanced": [
+                "sampleFactor",
+                "horizontalPointCount",
+                "verticalPointCount"
             ]
         },
         "undulator": {
@@ -577,7 +592,6 @@
                 "horizontalRange",
                 "verticalPosition",
                 "verticalRange",
-                "sampleFactor",
                 "polarization",
                 "characteristic"
             ]

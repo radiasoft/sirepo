@@ -53,6 +53,23 @@ def fixup_old_data(data):
     if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] == 'Undulator Radiation':
         data['models']['sourceIntensityReport']['distanceFromSource'] = 20
 
+    # add point count to reports and move sampleFactor to simulation model
+    if data['models']['fluxReport'] and 'photonEnergyPointCount' not in data['models']['fluxReport']:
+        data['models']['fluxReport']['photonEnergyPointCount'] = 10000
+        data['models']['powerDensityReport']['horizontalPointCount'] = 100
+        data['models']['powerDensityReport']['verticalPointCount'] = 100
+        data['models']['intensityReport']['photonEnergyPointCount'] = 10000
+
+        # move sampleFactor to simulation model
+        if 'sampleFactor' in data['models']['initialIntensityReport']:
+            data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
+            data['models']['simulation']['horizontalPointCount'] = 100
+            data['models']['simulation']['verticalPointCount'] = 100
+            for k in data['models']:
+                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                    del data['models'][k]['sampleFactor']
+
+
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
