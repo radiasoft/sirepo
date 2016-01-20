@@ -54,7 +54,7 @@ app.directive('buttons', function(appState) {
                 changeDone();
             });
             $scope.saveChanges = function() {
-                if ($scope.form.$valid && appState.modelInfo($scope.modelName))
+                if ($scope.form.$valid && $scope.modelName)
                     appState.saveChanges($scope.modelName);
             };
             $scope.cancelChanges = function() {
