@@ -324,6 +324,11 @@ svg.srw-beamline-item-icon {
   }
 }
 
+.srw-propagation-button {
+  position: absolute;
+  right: 21px;
+}
+
 .navbar-nav > li > a.srw-settings-menu {
   padding: 11px 15px;
 }
