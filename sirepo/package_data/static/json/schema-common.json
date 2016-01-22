@@ -1,7 +1,8 @@
 {
-    "version": "20160120",
+    "version": "20160122",
     "route": {
         "clearFrames": "/clear-frames",
+        "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model_or_frame>",

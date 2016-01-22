@@ -65,9 +65,6 @@ _SIMULATION_DATA_FILE = 'sirepo-data' + _JSON_SUFFIX
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
-#: Subdir shere to run the simulation
-_SIMULATION_RUN_DIR = 'run'
-
 #: Attribute in session object
 _UID_ATTR = 'uid'
 
@@ -160,6 +157,19 @@ def app_clear_frames():
     return '{}'
 
 
+@app.route(_SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
+def app_copy_nonsession_simulation():
+    req = _json_input()
+    simulation_type = req['simulationType']
+    global_path = _find_global_simulation(simulation_type, req['simulationId'])
+    if global_path:
+        data = _open_json_file(simulation_type, os.path.join(global_path, _SIMULATION_DATA_FILE))
+        data['models']['simulation']['isExample'] = ''
+        data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+        return _save_new_simulation(simulation_type, data)
+    werkzeug.exceptions.abort(404)
+
+
 @app.route(_SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
 def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
@@ -177,6 +187,7 @@ def app_copy_simulation():
         break
     data['models']['simulation']['name'] = name
     data['models']['simulation']['isExample'] = ''
+    data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_simulation(simulation_type, data)
 
 
@@ -221,6 +232,7 @@ def app_download_file(simulation_type, simulation_id, filename):
     lib = _simulation_lib_dir(simulation_type)
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p))
+
 
 @app.route(_SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
@@ -508,6 +520,29 @@ def _examples(app):
     return [_open_json_file(app, str(f)) for f in files]
 
 
+def _find_user_simulation_copy(simulation_type, sid):
+    rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
+        'simulation.outOfSessionSimulationId': sid,
+    })
+    if len(rows):
+        return rows[0]['simulationId']
+    return None
+
+
+def _find_global_simulation(simulation_type, sid):
+    global_path = None
+    for path in glob.glob(
+        str(_user_dir_name().join('*', simulation_type, sid))
+    ):
+        if global_path:
+            raise RuntimeError('{}: duplicate value for global sid'.format(sid))
+        global_path = path
+
+    if global_path:
+        return global_path
+    return None
+
+
 def _fixup_old_data(simulation_type, data):
     if 'version' in data and data['version'] == _SCHEMA_COMMON['version']:
         return data
@@ -540,14 +575,29 @@ def _open_json_file(simulation_type, path=None, sid=None):
     if not path:
         path = _simulation_data_file(simulation_type, sid)
     if not os.path.isfile(str(path)):
+        if sid:
+            user_copy_sid = _find_user_simulation_copy(simulation_type, sid)
+            if _find_global_simulation(simulation_type, sid):
+                global_sid = sid
+        if global_sid:
+            return {
+                'redirect': {
+                    'simulationId': global_sid,
+                    'userCopySimulationId': user_copy_sid,
+                },
+            }
         werkzeug.exceptions.abort(404)
     with open(str(path)) as f:
-        return _fixup_old_data(simulation_type, json.load(f))
+        data = json.load(f)
+        # ensure the simulationId matches the path
+        if sid:
+            data['models']['simulation']['simulationId'] = _sid_from_path(path)
+        return _fixup_old_data(simulation_type, data)
 
 
 def _process_simulation_list(res, path, data):
     res.append({
-        'simulationId': _sid(data),
+        'simulationId': _sid_from_path(path),
         'name': data['models']['simulation']['name'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
@@ -556,7 +606,7 @@ def _process_simulation_list(res, path, data):
     })
 
 
-def _random_id(parent_dir):
+def _random_id(parent_dir, simulation_type=None):
     """Create a random id in parent_dir
 
     Args:
@@ -564,12 +614,14 @@ def _random_id(parent_dir):
     Returns:
         str: id (not directory)
     """
-    #TODO(pjm): use database sequence for Id
     pkio.mkdir_parent(parent_dir)
     r = random.SystemRandom()
     # Generate cryptographically secure random string
     for _ in range(5):
         i = ''.join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        if simulation_type:
+            if _find_global_simulation(simulation_type, i):
+                continue
         d = parent_dir.join(i)
         try:
             os.mkdir(str(d))
@@ -602,7 +654,7 @@ def _report_name(data):
 
 
 def _save_new_simulation(simulation_type, data, is_response=True):
-    sid = _random_id(_simulation_dir(simulation_type))
+    sid = _random_id(_simulation_dir(simulation_type), simulation_type)
     data['models']['simulation']['simulationId'] = sid
     _save_simulation_json(simulation_type, data)
     if is_response:
@@ -654,6 +706,13 @@ def _sid(data):
         return str(data['simulationId'])
     except KeyError:
         return str(data['models']['simulation']['simulationId'])
+
+
+def _sid_from_path(path):
+    sid = os.path.split(os.path.split(str(path))[0])[1]
+    if not _ID_RE.search(sid):
+        raise RuntimeError('{}: invalid simulation id'.format(sid))
+    return sid
 
 
 def _simulation_data_file(simulation_type, sid):

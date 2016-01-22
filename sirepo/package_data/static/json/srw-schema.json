@@ -255,7 +255,8 @@
             "isExample": ["Is Example Simulation", "String"],
             "sampleFactor": ["Sampling Factor", "Float"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"]
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
