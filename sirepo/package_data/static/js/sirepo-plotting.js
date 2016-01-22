@@ -942,8 +942,10 @@ app.directive('heatmap', function(plotting) {
                 scope.element = null;
                 $(window).off('resize', scope.windowResize);
                 $('.mouse-rect').off();
-                scope.zoom.on('zoom', null);
-                scope.imageObj.onload = null;
+                if (scope.zoom)
+                    scope.zoom.on('zoom', null);
+                if (scope.imageObj)
+                    scope.imageObj.onload = null;
             });
         },
     };
