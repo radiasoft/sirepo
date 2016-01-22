@@ -283,7 +283,7 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
 
 });
 
-app.directive('appHeader', function() {
+app.directive('appHeader', function(appState) {
     return {
         restirct: 'A',
         scope: {
@@ -292,13 +292,18 @@ app.directive('appHeader', function() {
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/warp">WARP</a></div>',
+              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">WARP</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',
             '</ul>',
         ].join(''),
+        controller: function($scope) {
+            $scope.isLoaded = function() {
+                return appState.isLoaded();
+            };
+        },
     };
 });
