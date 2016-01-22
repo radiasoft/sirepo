@@ -370,7 +370,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
           '<li><a href data-target="#srw-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
         '</ul>',
 
-        '<ul class="nav navbar-nav navbar-right" data-ng-hide="nav.isActive(\'simulations\')">',
+        '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
           settingsIcon,
