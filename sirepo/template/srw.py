@@ -69,6 +69,8 @@ def fixup_old_data(data):
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
 
+    if 'outOfSessionSimulationId' not in data['models']['simulation']:
+        data['models']['simulation']['outOfSessionSimulationId'] = ''
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):

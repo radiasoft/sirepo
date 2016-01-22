@@ -24,6 +24,7 @@ var app_local_routes = {
     simulations: '/simulations',
     source: '/source/:simulationId',
     notFound: '/not-found',
+    notFoundCopy: '/copy-session/:simulationIds',
 };
 
 var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
@@ -39,6 +40,10 @@ app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.notFound, {
             templateUrl: '/static/html/not-found.html?' + SIREPO_APP_VERSION,
+        })
+        .when(localRoutes.notFoundCopy, {
+            controller: 'NotFoundCopyController as notFoundCopy',
+            templateUrl: '/static/html/copy-session.html?' + SIREPO_APP_VERSION,
         })
         .otherwise({
             redirectTo: localRoutes.simulations,
@@ -244,6 +249,15 @@ app.factory('appState', function($rootScope, requestSender) {
                     '<simulation_type>': APP_SCHEMA.simulationType,
                 }),
             function(data, status) {
+                if (data.redirect) {
+                    requestSender.localRedirect('notFoundCopy', {
+                        ':simulationIds': data.redirect.simulationId
+                            + (data.redirect.userCopySimulationId
+                               ? ('-' + data.redirect.userCopySimulationId)
+                               : ''),
+                    });
+                    return;
+                }
                 self.models = data.models;
                 savedModelValues = self.cloneModel();
                 updateReports();
@@ -712,6 +726,41 @@ app.controller('NavController', function (activeSection, appState, requestSender
         if (appState.isLoaded())
             return appState.models.simulation.name;
         return null;
+    };
+});
+
+app.controller('NotFoundCopyController', function (requestSender, $route) {
+    var self = this;
+    var ids = $route.current.params.simulationIds.split('-');
+    self.simulationId = ids[0];
+    self.userCopySimulationId = ids[1];
+
+    self.cancelButton = function() {
+        requestSender.localRedirect('simulations');
+    };
+
+    self.copyButton = function() {
+        requestSender.sendRequest(
+            'copyNonSessionSimulation',
+            function(data) {
+                requestSender.localRedirect('source', {
+                    ':simulationId': data.models.simulation.simulationId,
+                });
+            },
+            {
+                simulationId: self.simulationId,
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    self.hasUserCopy = function() {
+        return self.userCopySimulationId;
+    };
+
+    self.openButton = function() {
+        requestSender.localRedirect('source', {
+            ':simulationId': self.userCopySimulationId,
+        });
     };
 });
 
