@@ -237,6 +237,9 @@
     .srw-plot-loading {
       opacity: 0.2;
     }
+    .srw-plot-cleared {
+      opacity: 0;
+    }
 
     @media (max-width: 767px) {
       div.srw-plot .z-axis-label,
