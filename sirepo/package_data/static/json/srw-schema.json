@@ -18,10 +18,11 @@
             ["wavefront", "Wavefront Propagator"]
         ],
         "Characteristic": [
-            ["0", "Intensity"],
-            ["4", "Radiation Phase"],
-            ["5", "Re(E): Real part of Electric Field"],
-            ["6", "Im(E): Imaginary part of Electric Field"]
+            ["0", "Single-Electron Intensity"],
+            ["1", "Multi-Electron Intensity"],
+            ["4", "Single-Electron Radiation Phase"],
+            ["5", "Re(E): Real part of Single-Electron Electric Field"],
+            ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
         "CRLShape": [
             ["1", "Parabolic"],
@@ -69,6 +70,16 @@
         "PowerDensityMethod": [
             ["1", "Near Field"],
             ["2", "Far Field"]
+        ],
+        "SimulationState": [
+            ["initial", "Initial State"],
+            ["running", "Running"],
+            ["completed", "Completed"],
+            ["canceled", "Canceled"]
+        ],
+        "StokesParameter": [
+            ["0", "Coordinate"],
+            ["1", "Angular"]
         ],
         "Symmetry": [
             ["1", "Symmetrical"],
@@ -222,6 +233,14 @@
             "verticalTransverseSize": ["Vertical Transverse Size [mm]", "Float"]
         },
         "mirrorReport": {},
+        "multiElectronAnimation": {
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"]
+
+        },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
             "distribution": ["Orientation", "MultipoleOrientation"],
@@ -257,6 +276,8 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"]
+        },
+        "simulationStatus": {
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -521,6 +542,18 @@
                 "verticalOffset"
             ]
         },
+        "multiElectronAnimation": {
+            "title": "Partially Coherent Intensity Report",
+            "basic": [],
+            "advanced": [
+                "simulation.photonEnergy",
+                "horizontalPosition",
+                "horizontalRange",
+                "verticalPosition",
+                "verticalRange",
+                "stokesParameter"
+            ]
+        },
         "powerDensityReport": {
             "title": "Power Density Report",
             "basic": [],
@@ -551,6 +584,11 @@
                 "horizontalPointCount",
                 "verticalPointCount"
             ]
+        },
+        "simulationStatus": {
+            "model": "simulation",
+            "title": "Simulation Status",
+            "advanced": []
         },
         "undulator": {
             "title": "Undulator",
