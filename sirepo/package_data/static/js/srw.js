@@ -1,6 +1,7 @@
 'use strict';
 
 app_local_routes.beamline = '/beamline/:simulationId';
+app_local_routes.multielectron = '/multi-electron/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -12,6 +13,10 @@ app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html?' + SIREPO_APP_VERSION,
+        })
+        .when(localRoutes.multielectron, {
+            controller: 'SRWMultiElectronController as multielectron',
+            templateUrl: '/static/html/srw-multi-electron.html?' + SIREPO_APP_VERSION,
         });
 });
 
@@ -272,6 +277,132 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
     };
 });
 
+//TODO(pjm): refactor and combine common code with WARP controller
+app.controller('SRWMultiElectronController', function (appState, frameCache, panelState, requestSender, $scope, $timeout) {
+    var self = this;
+    self.panelState = panelState;
+    self.isAborting = false;
+    self.isDestroyed = false;
+    self.dots = '.';
+    self.frameId = '-1';
+    self.frameCount = 1;
+    self.isReadyForModelChanges = false;
+    self.elapsedDays = null;
+    self.elapsedTime = null;
+
+    frameCache.setAnimationArgs({
+        multiElectronAnimation: [],
+    });
+    frameCache.setFrameCount(0);
+
+    $scope.$on('$destroy', function () {
+        self.isDestroyed = true;
+    });
+
+    function refreshStatus() {
+        self.isReadyForModelChanges = true;
+        requestSender.sendRequest(
+            'runStatus',
+            function(data) {
+                //frameCache.setFrameCount(data.frameCount);
+                if (self.isAborting)
+                    return;
+
+                if (data.frameId && (data.frameId != self.frameId)) {
+                    self.frameId = data.frameId;
+                    self.frameCount++;
+                    frameCache.setFrameCount(self.frameCount);
+                    frameCache.setCurrentFrame('multiElectronAnimation', self.frameCount - 1);
+                }
+                if (data.elapsedTime) {
+                    self.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                    self.elapsedTime = new Date(1970, 0, 1);
+                    self.elapsedTime.setSeconds(data.elapsedTime);
+                }
+
+                if (data.state != 'running') {
+                    if (data.state != appState.models.simulationStatus.state)
+                        appState.saveChanges('simulationStatus');
+                }
+                else {
+                    if (! self.isDestroyed) {
+                        self.dots += '.';
+                        if (self.dots.length > 3)
+                            self.dots = '.';
+                        $timeout(refreshStatus, 4000);
+                    }
+                }
+                appState.models.simulationStatus.state = data.state;
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    }
+
+    self.cancelSimulation = function() {
+        if (appState.models.simulationStatus.state != 'running')
+            return;
+        appState.models.simulationStatus.state = 'canceled';
+        self.isAborting = true;
+        requestSender.sendRequest(
+            'runCancel',
+            function(data) {
+                self.isAborting = false;
+                appState.saveChanges('simulationStatus');
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    self.isInitializing = function() {
+        if (self.isState('running'))
+            return frameCache.frameCount < 1;
+        return false;
+    };
+
+    self.isState = function(state) {
+        if (appState.isLoaded())
+            return appState.models.simulationStatus.state == state;
+        return false;
+    };
+
+    self.runSimulation = function() {
+        if (appState.models.simulationStatus.state == 'running')
+            return;
+        frameCache.setFrameCount(0);
+        self.elapsedTime = null;
+        self.elapsedDays = null;
+        appState.models.simulationStatus.state = 'running';
+        requestSender.sendRequest(
+            'runBackground',
+            function(data) {
+                appState.models.simulationStatus.startTime = data['startTime'];
+                appState.saveChanges('simulationStatus');
+                refreshStatus();
+            },
+            {
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    $scope.$on('multiElectronAnimation.changed', function() {
+        if (self.isReadyForModelChanges) {
+            frameCache.setFrameCount(0);
+            frameCache.clearFrames();
+        }
+    });
+
+    if (appState.isLoaded())
+        refreshStatus();
+    else {
+        $scope.$on('modelsLoaded', refreshStatus);
+    }
+});
+
 app.controller('SRWSourceController', function (appState, srwService) {
     var self = this;
     self.srwService = srwService;
@@ -302,6 +433,20 @@ app.controller('SRWSourceController', function (appState, srwService) {
         if (appState.isLoaded())
             return appState.models.electronBeam.isReadOnly ? true : false;
         return false;
+    };
+});
+
+app.directive('simulationStatusTimer', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '=simulationStatusTimer',
+        },
+        template: [
+            '<div data-ng-if="controller.elapsedTime">',
+              '<br />Elapsed time: {{ controller.elapsedDays }} {{ controller.elapsedTime | date:\'HH:mm:ss\' }}',
+            '</div>',
+        ].join(''),
     };
 });
 
@@ -373,6 +518,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+          '<li data-ng-if="hasWatchpoints()" data-ng-class="{active: nav.isActive(\'multi-electron\')}"><a href data-ng-click="nav.openSection(\'multielectron\')"><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</a></li>',
           settingsIcon,
         '</ul>',
     ].join('');
@@ -448,6 +594,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                             ':simulationId': data.models.simulation.simulationId,
                         });
                     });
+            };
+
+            $scope.hasWatchpoints = function() {
+                return appState.getWatchItems().length > 0;
             };
 
             $scope.isExample = function() {
