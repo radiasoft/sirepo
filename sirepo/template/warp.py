@@ -17,6 +17,8 @@ import re
 #: How long before killing WARP process
 MAX_SECONDS = 60 * 60
 
+WANT_BROWSER_FRAME_CACHE = True
+
 _MODE_TEXT = {
     '0': '0',
     '1': '1 (real part)',
@@ -65,6 +67,10 @@ def background_percent_complete(data, run_dir, is_running):
         #TODO(pjm): this isn't a great calculation ...
         'total_frames': int((file_index + 1) / percent_complete + 0.3),
     }
+
+
+def copy_animation_file(source_path, target_path):
+    pass
 
 
 def extract_field_report(field, coordinate, mode, dfile, iteration):
