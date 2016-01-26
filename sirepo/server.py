@@ -166,7 +166,9 @@ def app_copy_nonsession_simulation():
         data = _open_json_file(simulation_type, os.path.join(global_path, _SIMULATION_DATA_FILE))
         data['models']['simulation']['isExample'] = ''
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
-        return _save_new_simulation(simulation_type, data)
+        res = _save_new_simulation(simulation_type, data)
+        _template_for_simulation_type(simulation_type).copy_animation_file(global_path, _simulation_dir(simulation_type, _sid(data)))
+        return res
     werkzeug.exceptions.abort(404)
 
 
@@ -329,8 +331,7 @@ def app_run_background():
         return '{}'
     status = data['models']['simulationStatus']
     status['state'] = 'running'
-    #TODO: Javascript weirdness. Should normalize time as UTC
-    status['startTime'] = int(time.time() * 1000)
+    status['startTime'] = int(time.time())
     _start_simulation(data, run_async=True)
     return flask.jsonify({
         'state': status['state'],
@@ -372,19 +373,27 @@ def app_run_status():
                 state = 'canceled'
             data['models']['simulationStatus']['state'] = state
             _save_simulation_json(data['simulationType'], data)
+
+    frame_id = ''
+    elapsed_time = ''
+    if 'last_update_time' in completion:
+        frame_id = completion['last_update_time']
+        elapsed_time = int(frame_id) - int(data['models']['simulationStatus']['startTime'])
+
     return flask.jsonify({
         'state': state,
         'percentComplete': completion['percent_complete'],
         'frameCount': completion['frame_count'],
         'totalFrames': completion['total_frames'],
+        'frameId': frame_id,
+        'elapsedTime': elapsed_time,
     })
 
 
 @app.route(_SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
     response = flask.jsonify(_open_json_file(simulation_type, sid=simulation_id))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
+    _no_cache(response)
     return response
 
 
@@ -393,13 +402,17 @@ def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('-')))
     run_dir = _simulation_run_dir(data)
-    response = flask.jsonify(_template_for_simulation_type(
-        data['simulationType']).get_simulation_frame(run_dir, data))
-    now = datetime.datetime.utcnow()
-    expires = now + datetime.timedelta(365)
-    response.headers['Cache-Control'] = 'public, max-age=31536000'
-    response.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
-    response.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    template = _template_for_simulation_type(data['simulationType'])
+    response = flask.jsonify(template.get_simulation_frame(run_dir, data))
+
+    if template.WANT_BROWSER_FRAME_CACHE:
+        now = datetime.datetime.utcnow()
+        expires = now + datetime.timedelta(365)
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        response.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        response.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    else:
+        _no_cache(response)
     return response
 
 
@@ -569,6 +582,11 @@ def _iterate_simulation_datafiles(simulation_type, op, search=None):
 
 def _json_input():
     return json.loads(_read_http_input())
+
+
+def _no_cache(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
 
 
 def _open_json_file(simulation_type, path=None, sid=None):
