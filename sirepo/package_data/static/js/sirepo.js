@@ -461,7 +461,13 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
     };
 
     self.setFrameCount = function(frameCount) {
-        if ((frameCount > 0) && (frameCount != self.frameCount)) {
+        if (frameCount == self.frameCount)
+            return;
+        if (frameCount == 0) {
+            self.frameCount = frameCount;
+            $rootScope.$broadcast('framesCleared');
+        }
+        else if (frameCount > 0) {
             var oldFrameCount = self.frameCount;
             self.frameCount = frameCount;
             $rootScope.$broadcast('framesLoaded', oldFrameCount);
