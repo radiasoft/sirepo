@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function
 
 import glob
 import json
+import numpy as np
 import os
-import py
 import py.path
 import re
 import shutil
@@ -17,11 +17,13 @@ import shutil
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
-
 from sirepo.template import template_common
+import uti_plot_com
 
 #: How long before killing SRW process
 MAX_SECONDS = 60
+
+WANT_BROWSER_FRAME_CACHE = False
 
 _EXAMPLE_SIMULATIONS = [
     'Bending Magnet Radiation',
@@ -38,6 +40,8 @@ _EXAMPLE_SIMULATIONS = [
     'Soft X-Ray Undulator Radiation Containing VLS Grating',
 ]
 
+_MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
+
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -48,18 +52,76 @@ with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
     _PREDEFINED_MIRRORS = json.load(f)
 
 
+def background_percent_complete(data, run_dir, is_running):
+    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME))
+    if os.path.isfile(filename):
+        return {
+            'percent_complete': 100,
+            'frame_count': 1,
+            'total_frames': 1,
+            'last_update_time': os.path.getmtime(filename),
+        }
+    return {
+        'percent_complete': 0,
+        'frame_count': 0,
+        'total_frames': 0,
+    }
+
+
+def copy_animation_file(source_path, target_path):
+    source_file = str(py.path.local(source_path).join('animation', _MULTI_ELECTRON_FILENAME))
+    if os.path.isfile(source_file):
+        pkio.mkdir_parent(str(py.path.local(target_path).join('animation')))
+        target_file = str(py.path.local(target_path).join('animation', _MULTI_ELECTRON_FILENAME))
+        shutil.copyfile(source_file, target_file)
+
+
+def extract_report_data(filename, model_data):
+    sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
+    if 'models' in model_data and model_data['models']['fluxReport']['fluxType'] == 2:
+        sValShort = 'Intensity'
+        sValUnit = 'ph/s/.1%bw/mm^2'
+    files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', _MULTI_ELECTRON_FILENAME]
+    file_info = {
+        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', 'ph/s/.1%bw/mm^2']],
+        'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
+        'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        #TODO(pjm): improve multi-electron label
+        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
+    }
+
+    data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
+    filename = os.path.basename(filename)
+
+    title = file_info[filename][0][2]
+    if '{photonEnergy}' in title:
+        title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
+    info = {
+        'title': title,
+        'x_range': [allrange[0], allrange[1]],
+        'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
+        'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
+        'x_units': file_info[filename][1][0],
+        'points': data.tolist(),
+    }
+    if filename in files_3d:
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2])
+    return info
+
+
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
     if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] == 'Undulator Radiation':
         data['models']['sourceIntensityReport']['distanceFromSource'] = 20
-
     # add point count to reports and move sampleFactor to simulation model
     if data['models']['fluxReport'] and 'photonEnergyPointCount' not in data['models']['fluxReport']:
         data['models']['fluxReport']['photonEnergyPointCount'] = 10000
         data['models']['powerDensityReport']['horizontalPointCount'] = 100
         data['models']['powerDensityReport']['verticalPointCount'] = 100
         data['models']['intensityReport']['photonEnergyPointCount'] = 10000
-
         # move sampleFactor to simulation model
         if 'sampleFactor' in data['models']['initialIntensityReport']:
             data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
@@ -68,14 +130,32 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
-
+    if 'simulationStatus' not in data['models']:
+        data['models']['simulationStatus'] = {
+            'startTime': 0,
+            'state': 'initial',
+        }
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
         data['models']['simulation']['outOfSessionSimulationId'] = ''
+    if 'multiElectronAnimation' not in data['models']:
+        m = data['models']['initialIntensityReport']
+        data['models']['multiElectronAnimation'] = {
+            'horizontalPosition': m['horizontalPosition'],
+            'horizontalRange': m['horizontalRange'],
+            'verticalPosition': m['verticalPosition'],
+            'verticalRange': m['verticalRange'],
+            'stokesParameter': '0',
+        }
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+    if 'report' not in data and 'multiElectronAnimation' in data['models']:
+        # copy animation args into initialIntensityReport
+        for k in data['models']['multiElectronAnimation']:
+            if k in data['models']['initialIntensityReport']:
+                data['models']['initialIntensityReport'][k] = data['models']['multiElectronAnimation'][k]
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
@@ -115,12 +195,20 @@ def get_data_file(run_dir, frame_index):
     raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
 
 
+def get_simulation_frame(run_dir, data):
+    return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME)), data)
+
+
 def new_simulation(data, new_simulation_data):
     source = new_simulation_data['sourceType']
     data['models']['simulation']['sourceType'] = source
     if source == 'g':
         intensityReport = data['models']['initialIntensityReport']
         intensityReport['sampleFactor'] = 0
+
+
+def remove_last_frame(run_dir):
+    pass
 
 
 def run_all_text():
@@ -288,6 +376,33 @@ def _propagation_params(prop):
             res += ', '
     res += '])\n'
     return res
+
+def _remap_3d(info, allrange, z_label, z_units):
+    x_range = [allrange[3], allrange[4], allrange[5]]
+    y_range = [allrange[6], allrange[7], allrange[8]]
+    ar2d = info['points']
+
+    totLen = int(x_range[2]*y_range[2])
+    lenAr2d = len(ar2d)
+    if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
+    elif lenAr2d < totLen:
+        auxAr = np.array('d', [0]*lenAr2d)
+        for i in range(lenAr2d): auxAr[i] = ar2d[i]
+        ar2d = np.array(auxAr)
+    if isinstance(ar2d,(list,np.array)): ar2d = np.array(ar2d)
+    ar2d = ar2d.reshape(y_range[2],x_range[2])
+    return {
+        'x_range': x_range,
+        'y_range': y_range,
+        'x_label': info['x_label'],
+        'y_label': info['y_label'],
+        'z_label': _superscript(z_label + ' [' + z_units + ']'),
+        'title': info['title'],
+        'z_matrix': ar2d.tolist(),
+    }
+
+def _superscript(val):
+    return re.sub(r'\^2', u'\u00B2', val)
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
