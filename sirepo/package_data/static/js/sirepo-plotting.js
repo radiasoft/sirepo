@@ -127,6 +127,8 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                         if (scope.isPlaying)
                             scope.advanceFrame(1);
                     };
+                    if (scope.clearData)
+                        scope.$on('framesCleared', scope.clearData);
                     scope.$on('modelsLoaded', requestData);
                     scope.$on('framesLoaded', function(event, oldFrameCount) {
                         if (scope.prevFrameIndex < 0)
@@ -355,6 +357,7 @@ app.directive('plot3d', function(plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
+            $scope.dataCleared = false;
 
             var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange, xyUnits;
 
@@ -543,6 +546,10 @@ app.directive('plot3d', function(plotting) {
                 return selector ? e.select(selector) : e;
             }
 
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+            };
+
             $scope.init = function() {
                 select('svg').attr('height', plotting.INITIAL_HEIGHT);
                 xAxisScale = d3.scale.linear();
@@ -590,6 +597,7 @@ app.directive('plot3d', function(plotting) {
             };
 
             $scope.load = function(json) {
+                $scope.dataCleared = false;
                 heatmap = [];
                 xValueMin = json.x_range[0];
                 xValueMax = json.x_range[1];
