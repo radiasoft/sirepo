@@ -189,6 +189,7 @@ def setup_source(v):
         GsnBm.mx = 0 #Transverse Gauss-Hermite Mode Orders
         GsnBm.my = 0
         srwl_bl._GAUSSIAN_BEAM = GsnBm
+        mag = GsnBm
     else:
         mag = srwlib.SRWLMagFldC()
         mag.arXc.append(0)
