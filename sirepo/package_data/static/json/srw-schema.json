@@ -132,7 +132,8 @@
         "ellipsoidMirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "focalLength": ["Focal Length [m]", "Float"],
+            "firstFocusLength": ["Distance from Source to Mirror Center (q) [m]", "Float"],
+            "focalLength": ["Distance from Mirror Center to Second Focus (p) [m]", "Float"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
@@ -448,6 +449,7 @@
             "advanced": [
                 "title",
                 "position",
+                "firstFocusLength",
                 "focalLength",
                 "grazingAngle",
                 "tangentialSize",

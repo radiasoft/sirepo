@@ -25,21 +25,6 @@ MAX_SECONDS = 60
 
 WANT_BROWSER_FRAME_CACHE = False
 
-_EXAMPLE_SIMULATIONS = [
-    'Bending Magnet Radiation',
-    'Circular Aperture',
-    'Ellipsoidal Undulator Example',
-    'Idealized Free Electron Laser Pulse',
-    'Focusing Bending Magnet Radiation',
-    'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors',
-    'Gaussian X-ray Beam Through Perfect CRL',
-    'NSLS-II CHX beamline',
-    'Polarization of Bending Magnet Radiation',
-    'Young\'s Double Slit Experiment',
-    'Undulator Radiation',
-    'Soft X-Ray Undulator Radiation Containing VLS Grating',
-]
-
 _MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
 
 #: Where server files and static files are found
@@ -146,6 +131,11 @@ def fixup_old_data(data):
             'verticalRange': m['verticalRange'],
             'stokesParameter': '0',
         }
+    for item in data['models']['beamline']:
+        if item['type'] == 'ellipsoidMirror':
+            if 'firstFocusLength' not in item:
+                item['firstFocusLength'] = item['position']
+
 
 def generate_parameters_file(data, schema, run_dir=None):
     if 'report' in data and re.search('watchpointReport', data['report']):
@@ -308,7 +298,7 @@ def _generate_beamline_optics(models, last_id):
             res += _beamline_element(
                 'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
                 item,
-                ['position', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+                ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
             if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
                 res += '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])

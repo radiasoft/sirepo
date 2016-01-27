@@ -67,6 +67,8 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         else {
             newItem.position = 20;
         }
+        if (newItem.type == 'ellipsoidMirror')
+            newItem.firstFocusLength = newItem.position;
         if (newItem.type == 'watch')
             appState.models[appState.watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
         appState.models.beamline.push(newItem);
