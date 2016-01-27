@@ -64,7 +64,7 @@ def fixup_json_datafiles(app_name):
     for path in files:
         res = fixup_json_datafile(app_name, str(path))
         if res:
-            print('{}: {}'.format(path, res))
+            pkdp('{}: {}', path, res)
     return 'applied fixups to {} files.'.format(len(files))
 
 
