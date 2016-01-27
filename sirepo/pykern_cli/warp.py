@@ -14,13 +14,6 @@ import time
 from pykern import pkio
 from sirepo.template.warp import extract_field_report
 
-_MODE_TEXT = {
-    '0': '0',
-    '1': '1 (real part)',
-    '2': '1 (imaginary part)',
-}
-
-
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
 
