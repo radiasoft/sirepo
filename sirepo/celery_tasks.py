@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdp
 
 import importlib
 import os
+import sys
 
 from celery import Celery
 
@@ -36,5 +37,8 @@ def start_simulation(simulation_type, run_dir):
         simulation_type (str): currently must be warp
         run_dir (py.path.local): directory
     """
+    # [2016-01-27 13:59:54,133: WARNING/Worker-1] celery: error: no such option: -A
+    # srw_bl.py assumes it can parse sys.argv so we have to clear sys.argv
+    sys.argv[:] = ['simulation_type']
     importlib.import_module('sirepo.pykern_cli.' + simulation_type).run_background(run_dir)
     # Doesn't return anything
