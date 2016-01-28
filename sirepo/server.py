@@ -23,6 +23,7 @@ import time
 import werkzeug
 import werkzeug.exceptions
 
+from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
@@ -105,7 +106,7 @@ class BeakerSession(flask.sessions.SessionInterface):
             self.init_app(app)
 
     def sirepo_init_app(self, app, db_dir):
-        """Initialize _cfg with db_dir and register self with Flask
+        """Initialize cfg with db_dir and register self with Flask
 
         Args:
             app (flask): Flask application object
@@ -123,8 +124,8 @@ class BeakerSession(flask.sessions.SessionInterface):
             'session.lock_dir': str(lock_dir),
         }
         #TODO(robnagler) Generalize? seems like we'll be shadowing lots of config
-        for k in _cfg.session:
-            sc['session.' + k] = _cfg.session[k]
+        for k in cfg.beaker_session:
+            sc['session.' + k] = cfg.beaker_session[k]
         app.wsgi_app = beaker.middleware.SessionMiddleware(app.wsgi_app, sc)
         app.session_interface = self
 
@@ -325,7 +326,7 @@ def app_run_background():
     data = _json_input()
     sid = _sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if _cfg.daemonizer.is_running(sid):
+    if cfg.job_queue.is_running(sid):
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
@@ -345,7 +346,7 @@ def app_run_cancel():
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
     _save_simulation_json(simulation_type, data)
-    _cfg.daemonizer.kill(_sid(data))
+    cfg.job_queue.kill(_sid(data))
     # the last frame file may not be finished, remove it
     t = _template_for_simulation_type(simulation_type)
     t.remove_last_frame(_simulation_run_dir(data))
@@ -359,7 +360,7 @@ def app_run_status():
     simulation_type = data['simulationType']
     template = _template_for_simulation_type(simulation_type)
     run_dir = _simulation_run_dir(data)
-    if _cfg.daemonizer.is_running(sid):
+    if cfg.job_queue.is_running(sid):
         completion = template.background_percent_complete(data, run_dir, True)
         state = 'running'
     else:
@@ -460,7 +461,7 @@ def sr_landing_page():
     return flask.redirect('/light')
 
 
-def _cfg_daemonizer(value):
+def _cfg_job_queue(value):
     """Converts string to class"""
     if isinstance(value, (_Celery, _Background)):
         # Already initialized but may call initializer with original object
@@ -480,11 +481,12 @@ def _cfg_daemonizer(value):
         signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
         return _Background
     else:
-        raise AssertionError('{}: unknown daemonizer'.format(value))
+        raise AssertionError('{}: unknown job_queue'.format(value))
 
 
+@pkconfig.parse_none
 def _cfg_session_secret(value):
-    """Converts file to binary"""
+    """Reads file specified as config value"""
     if not value:
         return 'dev dummy secret'
     with open(value) as f:
@@ -830,7 +832,7 @@ def _start_simulation(data, run_async=False):
     cmd = [_ROOT_CMD, simulation_type] \
         + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:
-        return _cfg.daemonizer(sid, run_dir, cmd)
+        return cfg.job_queue(sid, run_dir, cmd)
     return _Command(cmd, template.MAX_SECONDS)
 
 
@@ -1144,17 +1146,11 @@ class _Command(threading.Thread):
         return None
 
 
-#: Replace with pkconfig
-_cfg = pkcollections.OrderedMapping(
-    session=pkcollections.OrderedMapping(
-        secure=os.getenv('SIREPO_SERVER_SESSION_SECURE', False),
-        secret=os.getenv('SIREPO_SERVER_SESSION_SECRET', None),
-        # Eventually {{ root_pkg }}_{{ channel }}
-        key=os.getenv('SIREPO_SERVER_SESSION_KEY', 'sirepo_dev'),
+cfg = pkconfig.init(
+    beaker_session=dict(
+        key=('sirepo_{PYKERN_PKCONFIG_CHANNEL}', str, 'Beaker: Name of the cookie key used to save the session under'),
+        secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
+        secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
-    daemonizer=os.getenv('SIREPO_SERVER_JOB_QUEUE', 'Background'),
+    job_queue=('Background', _cfg_job_queue, 'how to run long tasks: Celery or Background'),
 )
-
-# This would a be a parser
-_cfg.daemonizer = _cfg_daemonizer(_cfg.daemonizer)
-_cfg.session.secret = _cfg_session_secret(_cfg.session.secret)
