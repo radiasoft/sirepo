@@ -5,13 +5,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp, pkdc
 
 import json
 import os
 import re
+import signal
 import srwl_bl
 import srwlib
-
+import subprocess
+import sys
+from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkio
 from sirepo.template.srw import extract_report_data
 
@@ -29,17 +34,58 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text('srw_parameters.py'), locals(), locals())
-        v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-        source_type, mag = setup_source(v)
-        v.wm = True
-        v.wm_ns = 1
-        op = get_beamline_optics()
-        bl = srwl_bl.SRWLBeamline(_name=v.name)
-        #TODO(pjm): hack in the mag_approx - not allow in constructor for Gaussian Beams
-        if mag:
-            bl.mag_approx = mag
-        bl.calc_all(v, op)
+        fn = 'run_background.py'
+        cmd = [sys.executable or 'python', fn]
+        script = pkio.read_text('srw_parameters.py')
+        p = dict(pkcollections.map_items(cfg))
+        if cfg.slave_processes > 1:
+            cmd[0:0] = [
+                'mpiexec',
+                '-n',
+                # SRW includes a master process so 2 really needs 3 processes
+                str(cfg.slave_processes + 1),
+            ]
+            script += '''
+from mpi4py import MPI
+if MPI.COMM_WORLD.Get_rank():
+    import signal
+    signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
+'''
+        else:
+            # In interactive (dev) mode, output as frequently as possible
+            p.particles_per_slave = 1
+        script += '''
+import srwl_bl
+v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+source_type, mag = setup_source(v)
+v.wm = True
+v.wm_nm = {total_particles}
+v.wm_na = {particles_per_slave}
+# Number of "iterations" per save is best set to num processes
+v.wm_ns = {slave_processes}
+op = get_beamline_optics()
+bl = srwl_bl.SRWLBeamline(_name=v.name)
+#TODO(pjm): hack in the mag_approx - not allow in constructor for Gaussian Beams
+if mag:
+    bl.mag_approx = mag
+bl.calc_all(v, op)
+'''.format(**p)
+        pkio.write_text(fn, script)
+        try:
+            p = subprocess.Popen(
+                cmd,
+                stdin=open(os.devnull),
+                stdout=open('run_background.out', 'w'),
+                stderr=subprocess.STDOUT,
+            )
+            signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
+            rc = p.wait()
+            if rc != 0:
+                p = None
+                raise RuntimeError('child terminated: retcode={}'.format(rc))
+        finally:
+            if not p is None:
+                p.terminate()
 
 
 def _mirror_plot(model_data):
@@ -57,10 +103,12 @@ def _mirror_plot(model_data):
         ['', 'Horizontal Position', 'Vertical Position', 'Optical Path Difference'], _arUnits=['', 'm', 'm', ''])
     return 'res_mirror.dat'
 
+
 def _process_output(filename, model_data):
     info = extract_report_data(filename, model_data)
     with open('out.json', 'w') as outfile:
         json.dump(info, outfile)
+
 
 def _run_srw():
     run_dir = os.getcwd()
@@ -97,3 +145,19 @@ def _run_srw():
         mag = None
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
     _process_output(outfile, data)
+
+
+def _cfg_int(lower, upper):
+    def wrapper(value):
+        v = int(value)
+        assert lower <= v <= upper, \
+            'value must be from {} to {}'.format(lower, upper)
+        return v
+    return wrapper
+
+
+cfg = pkconfig.init(
+    slave_processes=(1, int, 'cores to use for run_background slaves'),
+    particles_per_slave=(5, int, 'particles for each core to process'),
+    total_particles=(50000, int, 'total number of particles to process'),
+)
