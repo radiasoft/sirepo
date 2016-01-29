@@ -5,14 +5,14 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdc, pkdp
+from pykern import pkconfig
+pkconfig.append_load_path('sirepo')
 
 import importlib
 import os
 import sys
-from pykern import pkconfig
-pkconfig.append_load_path('sirepo')
 
+from pykern.pkdebug import pkdc, pkdp
 from pykern import pkcollections
 
 from celery import Celery
@@ -33,8 +33,7 @@ celery.conf.update(
     CELERYD_LOG_COLOR=False,
     CELERYD_MAX_TASKS_PER_CHILD=1,
     CELERYD_PREFETCH_MULTIPLIER=1,
-    CELERYD_TASK_TIME_LIMIT=3600,
-    CELERYD_TASK_SOFT_TIME_LIMIT=3600 - 10,
+    CELERYD_TASK_SOFT_TIME_LIMIT=celery.conf['CELERYD_TASK_TIME_LIMIT'] - 10,
     CELERY_ACKS_LATE=True,
     CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
