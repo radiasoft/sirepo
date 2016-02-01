@@ -237,6 +237,12 @@ def app_download_file(simulation_type, simulation_id, filename):
     return flask.send_file(str(p))
 
 
+@app.route(_SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
+def app_error_logging():
+    print('javascript error: {}'.format(_json_input()))
+    return '{}'
+
+
 @app.route(_SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {

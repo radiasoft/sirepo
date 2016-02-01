@@ -26,16 +26,16 @@
     <div data-ng-view></div>
     <div data-modal-editor="simulation"></div>
     <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/angular-1.4.2.js"></script>
+    <script src="/static/js/angular-1.4.2.min.js"></script>
     <script src="/static/js/angular-animate-1.4.2.min.js"></script>
     <script src="/static/js/angular-route-1.4.2.min.js"></script>
     <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
     <script src="/static/js/jquery-2.1.4.min.js"></script>
-    <script src="/static/js/bootstrap-3.3.4.js"></script>
+    <script src="/static/js/bootstrap-3.3.4.min.js"></script>
     <script src="/static/js/ngDraggable.js"></script>
     <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
     <script src="/static/js/bootstrap-slider-2.0.0.js"></script>
-    <script src="/static/js/angular-d3.js?20151215"></script>
+    <script src="/static/js/angular-d3.js?{{ version }}"></script>
     <script src="/static/js/colorbar.js"></script>
     <script src="/static/js/Blob.js"></script>
     <script src="/static/js/canvas-toBlob.js"></script>
@@ -43,6 +43,7 @@
     <script src="/static/js/rgbcolor.js"></script>
     <script src="/static/js/StackBlur.js"></script>
     <script src="/static/js/canvg.js"></script>
+    <script src="/static/js/stacktrace-0.6.4.js"></script>
     <script>
       var APP_SCHEMA;
       var SIREPO_APP_NAME = '{{ app_name }}';

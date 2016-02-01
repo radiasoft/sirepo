@@ -1,5 +1,5 @@
 {
-    "version": "20160128",
+    "version": "20160201",
     "route": {
         "clearFrames": "/clear-frames",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
@@ -7,6 +7,7 @@
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model_or_frame>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
+        "errorLogging": "/error-logging",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "listSimulations": "/simulation-list",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>",
