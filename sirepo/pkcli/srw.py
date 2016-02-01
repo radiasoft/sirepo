@@ -53,7 +53,7 @@ if MPI.COMM_WORLD.Get_rank():
 '''
         else:
             # In interactive (dev) mode, output as frequently as possible
-            p.particles_per_slave = 1
+            p['particles_per_slave'] = 1
         script += '''
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(get_srw_params())
