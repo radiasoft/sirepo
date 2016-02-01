@@ -12,7 +12,7 @@
           <form name="form" class="form-horizontal" novalidate data-ng-show="multielectron.isState('running')">
             <div class="col-sm-12">
               <div data-ng-show="multielectron.isInitializing()">
-                Initializing Wavefront {{ multielectron.dots }}
+                <span class="glyphicon glyphicon-hourglass"></span> Initializing Wavefront {{ multielectron.dots }}
               </div>
               <div data-ng-hide="multielectron.isInitializing()">
                 Simulation Running {{ multielectron.dots }}
