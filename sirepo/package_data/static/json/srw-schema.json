@@ -431,7 +431,7 @@
             ]
         },
         "intensityReport": {
-            "title": "Intensity Report",
+            "title": "Single-Electron Intensity Report",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
