@@ -138,7 +138,7 @@ def fixup_old_data(data):
 
 
 def generate_parameters_file(data, schema, run_dir=None):
-    if 'report' in data and re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
+    if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
     if 'report' not in data and 'multiElectronAnimation' in data['models']:
