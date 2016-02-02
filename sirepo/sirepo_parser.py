@@ -564,7 +564,13 @@ def main(py_file, debug=False):
 
     save_file = 'parsed_sirepo.json'
     with open(save_file, 'w') as f:
-        json.dump(python_dict, f)
+        json.dump(
+            python_dict,
+            f,
+            sort_keys=True,
+            indent=4,
+            separators=(',', ': '),
+        )
         print '\n\tJSON output is saved in <%s>.' % save_file
 
     return
