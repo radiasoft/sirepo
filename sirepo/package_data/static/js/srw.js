@@ -438,63 +438,18 @@ app.controller('SRWSourceController', function (appState, srwService) {
     };
 });
 
-app.directive('simulationStatusTimer', function() {
+app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
-            controller: '=simulationStatusTimer',
+            nav: '=appFooter',
         },
         template: [
-            '<div data-ng-if="controller.elapsedTime">',
-              '<br />Elapsed time: {{ controller.elapsedDays }} {{ controller.elapsedTime | date:\'HH:mm:ss\' }}',
-            '</div>',
+            '<div data-delete-simulation-modal="nav"></div>',
+            '<div data-reset-simulation-modal="nav"></div>',
+            '<div data-modal-editor="simulationGrid"></div>',
+            '<div data-import-python=""></div>',
         ].join(''),
-    };
-});
-
-app.directive('deleteSimulationModal', function(appState, $location) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: [
-            '<div data-confirmation-modal="" data-id="srw-delete-confirmation" data-title="Delete Simulation?" data-text="Delete simulation &quot;{{ simulationName() }}&quot;?" data-ok-text="Delete" data-ok-clicked="deleteSimulation()"></div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.deleteSimulation = function() {
-                appState.deleteSimulation(
-                    appState.models.simulation.simulationId,
-                    function() {
-                        $location.path('/simulations');
-                    });
-            };
-            $scope.simulationName = function() {
-                if (appState.isLoaded())
-                    return appState.models.simulation.name;
-                return '';
-            };
-        },
-    };
-});
-
-app.directive('resetSimulationModal', function(appState, srwService) {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=resetSimulationModal',
-        },
-        template: [
-            '<div data-confirmation-modal="" data-id="srw-reset-confirmation" data-title="Reset Simulation?" data-text="Discard changes to &quot;{{ simulationName() }}&quot;?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()"></div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.revertToOriginal = function() {
-                $scope.nav.revertToOriginal(srwService.applicationMode);
-            };
-            $scope.simulationName = function() {
-                if (appState.isLoaded())
-                    return appState.models.simulation.name;
-                return '';
-            };
-        },
     };
 });
 
@@ -515,6 +470,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
     var rightNav = [
         '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
           '<li><a href data-target="#srw-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+          '<li><a href data-ng-click="openImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
         '</ul>',
 
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -610,6 +566,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
 
             $scope.isLoaded = function() {
                 return appState.isLoaded();
+            };
+
+            $scope.openImportModal = function() {
+                $('#srw-simulation-import').modal('show');
             };
 
             $scope.pythonSource = function(item) {
@@ -812,6 +772,97 @@ app.directive('beamlineItemEditor', function(appState) {
     };
 });
 
+app.directive('deleteSimulationModal', function(appState, $location) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-confirmation-modal="" data-id="srw-delete-confirmation" data-title="Delete Simulation?" data-text="Delete simulation &quot;{{ simulationName() }}&quot;?" data-ok-text="Delete" data-ok-clicked="deleteSimulation()"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.deleteSimulation = function() {
+                appState.deleteSimulation(
+                    appState.models.simulation.simulationId,
+                    function() {
+                        $location.path('/simulations');
+                    });
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.name;
+                return '';
+            };
+        },
+    };
+});
+
+//TODO(pjm): refactor and generalize with mirrorUpload
+app.directive('importPython', function(fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="modal fade" id="srw-simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">Import Python Beamline File</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="importForm">',
+                        '<div class="form-group">',
+                          '<label>Select File</label>',
+                          '<input id="srw-python-file-import" type="file" data-file-model="pythonFile">',
+                          '<br />',
+                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                        '</div>',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-ng-click="importPythonFile(pythonFile)" class="btn btn-primary">Import File</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileUploadError = '';
+
+            $scope.importPythonFile = function(pythonFile) {
+                if (! pythonFile)
+                    return;
+                fileUpload.uploadFileToUrl(
+                    pythonFile,
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': APP_SCHEMA.simulationType,
+                        }),
+                    function(data) {
+                        if (data.error) {
+                            $scope.fileUploadError = data.error;
+                        }
+                        else {
+                            requestSender.localRedirect('source', {
+                                ':simulationId': data.models.simulation.simulationId,
+                            });
+                        }
+                    });
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#srw-python-file-import').val(null);
+                scope.fileUploadError = ''
+            });
+        },
+    };
+});
+
 app.directive('mobileAppTitle', function(srwService) {
     function mobileTitle(mode, modeTitle) {
         return [
@@ -837,5 +888,41 @@ app.directive('mobileAppTitle', function(srwService) {
         controller: function($scope) {
             $scope.srwService = srwService;
         },
+    };
+});
+
+app.directive('resetSimulationModal', function(appState, srwService) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=resetSimulationModal',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="srw-reset-confirmation" data-title="Reset Simulation?" data-text="Discard changes to &quot;{{ simulationName() }}&quot;?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.revertToOriginal = function() {
+                $scope.nav.revertToOriginal(srwService.applicationMode);
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.name;
+                return '';
+            };
+        },
+    };
+});
+
+app.directive('simulationStatusTimer', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '=simulationStatusTimer',
+        },
+        template: [
+            '<div data-ng-if="controller.elapsedTime">',
+              '<br />Elapsed time: {{ controller.elapsedDays }} {{ controller.elapsedTime | date:\'HH:mm:ss\' }}',
+            '</div>',
+        ].join(''),
     };
 });
