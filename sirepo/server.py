@@ -33,6 +33,7 @@ import flask
 import flask.sessions
 import numconv
 import py
+import sirepo.sirepo_parser
 import sirepo.template.srw
 import sirepo.template.warp
 
@@ -275,6 +276,23 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
     werkzeug.exceptions.abort(404)
 
 
+@app.route(_SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
+def app_import_file(simulation_type):
+    f = flask.request.files['file']
+    try:
+        srwblParam, appParam, el, pp = sirepo.sirepo_parser.sirepo_parser(f.read())
+        args = sirepo.sirepo_parser.list2dict(srwblParam)
+        v = sirepo.sirepo_parser.Struct(**args)
+        args = sirepo.sirepo_parser.list2dict(appParam)
+        app = sirepo.sirepo_parser.Struct(**args)
+        data = sirepo.sirepo_parser.parsed_dict(v, app, el, pp)
+    except Exception as e:
+        return flask.jsonify({
+            'error': 'File import failed: {}'.format(e)
+        })
+    return _save_new_simulation(simulation_type, data)
+
+
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
     new_simulation_data = _json_input()
@@ -292,7 +310,7 @@ def app_new_simulation():
 def app_python_source(simulation_type, simulation_id):
     data = _open_json_file(simulation_type, sid=simulation_id)
     template = _template_for_simulation_type(simulation_type)
-    # ensure the whole source gets generated, not up to the last breakout report
+    # ensure the whole source gets generated, not up to the last watchpoint report
     if 'report' in data:
         del data['report']
     return flask.Response(
