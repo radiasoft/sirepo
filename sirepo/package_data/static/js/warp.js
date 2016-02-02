@@ -283,6 +283,17 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
 
 });
 
+app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+        ].join(''),
+    };
+});
+
 app.directive('appHeader', function(appState) {
     return {
         restirct: 'A',
