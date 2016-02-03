@@ -64,11 +64,7 @@ v.wm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes
 v.wm_ns = {slave_processes}
 op = get_beamline_optics()
-bl = srwl_bl.SRWLBeamline(_name=v.name)
-#TODO(pjm): hack in the mag_approx - not allow in constructor for Gaussian Beams
-if mag:
-    bl.mag_approx = mag
-bl.calc_all(v, op)
+srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
         pkio.write_text(fn, script)
         try:

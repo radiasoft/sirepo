@@ -145,7 +145,7 @@ def fixup_old_data(data):
         laserPreview['mode'] = '1'
 
 
-def generate_parameters_file(data, schema, run_dir=None):
+def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None

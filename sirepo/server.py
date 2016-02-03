@@ -315,7 +315,7 @@ def app_python_source(simulation_type, simulation_id):
         del data['report']
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type), None),
+            template.generate_parameters_file(data, _schema_cache(simulation_type)),
             template.run_all_text()),
         mimetype='text/plain',
     )
@@ -851,6 +851,7 @@ def _start_simulation(data, run_async=False):
             data,
             _schema_cache(simulation_type),
             run_dir=run_dir,
+            run_async=run_async,
         )
     )
     cmd = [_ROOT_CMD, simulation_type] \

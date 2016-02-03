@@ -90,7 +90,7 @@ def extract_report_data(filename, model_data):
         'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
         'x_units': file_info[filename][1][0],
-        'points': data.tolist(),
+        'points': data,
     }
     if filename in files_3d:
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2])
@@ -137,11 +137,11 @@ def fixup_old_data(data):
                 item['firstFocusLength'] = item['position']
 
 
-def generate_parameters_file(data, schema, run_dir=None):
+def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-    if 'report' not in data and 'multiElectronAnimation' in data['models']:
+    if run_async:
         # copy animation args into initialIntensityReport
         for k in data['models']['multiElectronAnimation']:
             if k in data['models']['initialIntensityReport']:
@@ -174,6 +174,9 @@ def generate_parameters_file(data, schema, run_dir=None):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
+    v['require_patched_set_gsn_beam'] = False
+    if run_async and source_type == 'g':
+        v['require_patched_set_gsn_beam'] = True
     return pkjinja.render_resource('srw.py', v)
 
 
