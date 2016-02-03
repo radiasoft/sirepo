@@ -424,9 +424,30 @@ def parsed_dict(v, app, el, pp):
 
         return source_type
 
+    beamlines_list = get_beamline(el, v.op_r)
+
+    try:
+        idx = beamlines_list[-1]['id']
+    except:
+        idx = ''
+
+    # Format the key name to be consistent with Sirepo:
+    watchpointReport_name = u'watchpointReport{}'.format(idx)
+
+    # This dictionary will is used for both initial intensity report and for watch point:
+    initialIntensityReport = {
+        u'characteristic': v.si_type,  # 0,
+        u'horizontalPosition': v.w_x,  # 0,
+        u'horizontalRange': v.w_rx * 1e3,  # u'0.4',
+        u'polarization': v.si_pol,  # 6,
+        u'precision': v.w_prec,  # Static values in .py template: 0.01,
+        u'verticalPosition': v.w_y,  # 0,
+        u'verticalRange': v.w_ry * 1e3,  # u'0.6',
+    }
+
     python_dict = {
         u'models': {
-            u'beamline': get_beamline(el, v.op_r),
+            u'beamline': beamlines_list,
             u'electronBeam': {
                 u'beamSelector': unicode(v.ebm_nm),  # u'NSLS-II Low Beta Day 1',
                 u'current': v.ebm_i,  # 0.5,
@@ -464,15 +485,7 @@ def parsed_dict(v, app, el, pp):
                 u'verticalPosition': v.sm_y,  # 0,
             },
             u'gaussianBeam': _get_gb(app),
-            u'initialIntensityReport': {
-                u'characteristic': v.si_type,  # 0,
-                u'horizontalPosition': v.w_x,  # 0,
-                u'horizontalRange': v.w_rx * 1e3,  # u'0.4',
-                u'polarization': v.si_pol,  # 6,
-                u'precision': v.w_prec,  # Static values in .py template: 0.01,
-                u'verticalPosition': v.w_y,  # 0,
-                u'verticalRange': v.w_ry * 1e3,  # u'0.6',
-            },
+            u'initialIntensityReport': initialIntensityReport,
             u'intensityReport': {
                 u'distanceFromSource': v.op_r,  # 20.5,
                 u'finalEnergy': v.ss_ef,  # u'20000',
@@ -513,7 +526,6 @@ def parsed_dict(v, app, el, pp):
                 u'sourceType': unicode(_get_source_type(app)),  # u'u',
                 u'verticalPointCount': v.w_ny,  # 100
             },
-            # TODO: Ask RadiaSoft if it's correct to take everything from defaults for this report:
             u'sourceIntensityReport': get_json(static_json_url + '/srw-default.json')['models'][
                 'sourceIntensityReport'],
             u'undulator': {
@@ -527,16 +539,8 @@ def parsed_dict(v, app, el, pp):
                 u'verticalInitialPhase': v.und_phy,  # 0,
                 u'verticalSymmetry': v.und_sy,  # -1
             },
-            # TODO: Ask RadiaSoft how to process it:
-            u'watchpointReport11': {
-                u'characteristic': None,  # 0,
-                u'horizontalPosition': None,  # 0,
-                u'horizontalRange': None,  # u'0.4',
-                u'polarization': None,  # 6,
-                u'precision': None,  # 0.01,
-                u'verticalPosition': None,  # 0,
-                u'verticalRange': None,  # u'0.6',
-            },
+            # Copy of initialIntensityReport:
+            watchpointReport_name: initialIntensityReport,
         },
         u'report': u'',  # u'powerDensityReport',
         u'simulationType': u'srw',
@@ -547,7 +551,6 @@ def parsed_dict(v, app, el, pp):
 
 
 def main(py_file, debug=False):
-
     with open(py_file, 'r') as f:
         srwblParam, appParam, el, pp = sirepo_parser(f.read())
 
