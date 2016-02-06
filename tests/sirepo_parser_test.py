@@ -6,18 +6,15 @@ u"""PyTest for :mod:`sirepo.sirepo_parser`
 """
 from __future__ import absolute_import, division, print_function
 
-import pytest
-
-import py
-
-from pykern import pkunit
 from pykern import pkio
+from pykern import pkunit
 
 from sirepo.sirepo_parser import main
 
+
 def test_sirepo_parser():
     with pkunit.save_chdir_work():
-        for b in ('t1',):
+        for b in ('t1', ): # 't2', 't3',):
             in_py = str(pkunit.data_dir().join('{}.py'.format(b)))
             main(in_py, debug=False)
             actual_fn = 'parsed_sirepo.json'

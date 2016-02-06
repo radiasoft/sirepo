@@ -3,31 +3,31 @@
         "beamline": [
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 1,
+                "horizontalSize": 0.2,
                 "id": 2,
-                "position": 0.5,
-                "shape": "r",
+                "position": 20,
+                "shape": "c",
                 "title": "Aperture",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 1
+                "verticalSize": 0.2
             },
             {
                 "id": 4,
-                "position": 0.5,
-                "title": "W1",
+                "position": 30,
+                "title": "W30",
                 "type": "watch"
             },
             {
                 "id": 5,
-                "position": 0.52,
-                "title": "W2",
+                "position": 40,
+                "title": "W40",
                 "type": "watch"
             },
             {
                 "id": 6,
-                "position": 5,
-                "title": "W3",
+                "position": 100,
+                "title": "W100",
                 "type": "watch"
             }
         ],
@@ -71,8 +71,8 @@
             "energyPerPulse": "0.001",
             "polarization": 1,
             "rmsPulseDuration": 0.1,
-            "rmsSizeX": 1000,
-            "rmsSizeY": 1000,
+            "rmsSizeX": "9.78723",
+            "rmsSizeY": "9.78723",
             "waistAngleX": 0,
             "waistAngleY": 0,
             "waistX": 0,
@@ -82,11 +82,11 @@
         "initialIntensityReport": {
             "characteristic": 0,
             "horizontalPosition": 0,
-            "horizontalRange": 10,
+            "horizontalRange": "0.4",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0,
-            "verticalRange": 10
+            "verticalRange": "0.6"
         },
         "intensityReport": {
             "distanceFromSource": 20,
@@ -136,8 +136,8 @@
         "propagation": {
             "2": [
                 [
-                    1,
-                    1,
+                    0,
+                    0,
                     1,
                     0,
                     0,
@@ -234,15 +234,15 @@
         "simulation": {
             "applicationMode": "default",
             "facility": "",
-            "horizontalPointCount": 200,
+            "horizontalPointCount": 100,
             "isExample": "1",
             "name": "Circular Aperture",
             "outOfSessionSimulationId": "",
-            "photonEnergy": 1.95251,
+            "photonEnergy": "9000",
             "sampleFactor": 1,
-            "simulationId": "eTpSy2vf",
-            "sourceType": "g",
-            "verticalPointCount": 200
+            "simulationId": "UI5MteZ5",
+            "sourceType": "u",
+            "verticalPointCount": 100
         },
         "simulationStatus": {
             "startTime": 0,
@@ -250,12 +250,12 @@
         },
         "sourceIntensityReport": {
             "characteristic": 0,
-            "distanceFromSource": 0.5,
+            "distanceFromSource": 300,
             "horizontalPosition": 0,
-            "horizontalRange": 10,
+            "horizontalRange": 0.5,
             "polarization": 6,
             "verticalPosition": 0,
-            "verticalRange": 10
+            "verticalRange": 0.5
         },
         "undulator": {
             "horizontalAmplitude": "0",
@@ -271,32 +271,32 @@
         "watchpointReport4": {
             "characteristic": 0,
             "horizontalPosition": 0,
-            "horizontalRange": 5,
+            "horizontalRange": "0.4",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0,
-            "verticalRange": 5
+            "verticalRange": "0.6"
         },
         "watchpointReport5": {
             "characteristic": "0",
             "horizontalPosition": 0,
-            "horizontalRange": 5,
+            "horizontalRange": "0.4",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0,
-            "verticalRange": 5
+            "verticalRange": "0.6"
         },
         "watchpointReport6": {
             "characteristic": 0,
             "horizontalPosition": 0,
-            "horizontalRange": 5,
+            "horizontalRange": 1,
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0,
-            "verticalRange": 5
+            "verticalRange": 1
         }
     },
-    "report": "watchpointReport6",
+    "report": "watchpointReport5",
     "simulationType": "srw",
     "version": "20160202"
 }

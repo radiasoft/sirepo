@@ -4,13 +4,13 @@ import srwlpy
 
 srwblParam = [
 
-    ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
+    ['name', 's', 'Undulator Radiation', 'simulation name'],
 
 #---Data Folder
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
-    ['ebm_nm', 's', 'NSLS-II Low Beta Day 1', 'standard electron beam name'],
+    ['ebm_nm', 's', 'NSLS-II Low Beta Final', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', 0.5, 'electron beam current [A]'],
     ['ebm_de', 'f', 0.0, 'electron beam average energy deviation [GeV]'],
@@ -124,7 +124,7 @@ srwblParam = [
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
     #to add options
-    ['op_r', 'f', 20.5, 'longitudinal position of the first optical element [m]'],
+    ['op_r', 'f', 20, 'longitudinal position of the first optical element [m]'],
 ]
 
 appParam = [
@@ -139,7 +139,7 @@ appParam = [
     ['ueb', 'i', 0, 'Use user defined beam'],
     ['ueb_e', 'f', 3.0, 'energy [GeV]'],
     ['ueb_sig_e', 'f', 0.00089, 'RMS energy spread'],
-    ['ueb_emit_x', 'f', 9e-10, 'horizontal emittance [m]'],
+    ['ueb_emit_x', 'f', 5.5e-10, 'horizontal emittance [m]'],
     ['ueb_beta_x', 'f', 2.02, 'horizontal beta-function [m]'],
     ['ueb_alpha_x', 'f', 0.0, 'horizontal alpha-function [rad]'],
     ['ueb_eta_x', 'f', 0.0, 'horizontal dispersion function [m]'],
@@ -189,7 +189,6 @@ def setup_source(v):
         GsnBm.mx = 0 #Transverse Gauss-Hermite Mode Orders
         GsnBm.my = 0
         srwl_bl._GAUSSIAN_BEAM = GsnBm
-        mag = GsnBm
     else:
         mag = srwlib.SRWLMagFldC()
         mag.arXc.append(0)
@@ -208,51 +207,7 @@ def get_beamline_optics():
     
     el = []
     pp = []
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 2.5, 5.0, 1.5, 2.5])
-
-    el.append(srwlib.SRWLOptD(6.9))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    ifnHDM = "mirror_1d.dat"
-    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\t", 0, 1)
-    el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="x", _ang=0.0031415926, _amp_coef=1.0, _size_x=0.00094, _size_y=0.001))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(2.5))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(4.4))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(1.1))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0, 0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0, 0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(9.1))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 0.0014, 0.0002, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptL(3.24479, 1e+23, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(3.5))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 1e-05, 1e-05, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(0.7))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    pp.append([0, 0, 1.0, 0, 0, 0.3, 2.0, 0.5, 1.0])
+    pp.append([])
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -324,4 +279,5 @@ def run_all_reports():
     op = get_beamline_optics()
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
-run_all_reports()
+if __name__ == '__main__':
+    run_all_reports()
