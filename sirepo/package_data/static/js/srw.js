@@ -20,18 +20,55 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.factory('srwService', function($rootScope, $location) {
+app.factory('srwService', function(appState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
+
+    function isSelected(sourceType) {
+        if (appState.isLoaded())
+            return appState.applicationState().simulation.sourceType == sourceType;
+        return false;
+    }
 
     self.isApplicationMode = function(name) {
         return name == self.applicationMode;
     };
 
+    self.isElectronBeam = function() {
+        return self.isUndulator() || self.isMultipole();
+    };
+
+    self.isGaussianBeam = function() {
+        return isSelected('g');
+    };
+
+    self.isMultipole = function() {
+        return isSelected('m');
+    };
+
+    self.isUndulator = function() {
+        return isSelected('u');
+    };
+
+    self.isPredefinedBeam = function() {
+        if (appState.isLoaded())
+            return appState.models.electronBeam.isReadOnly ? true : false;
+        return false;
+    };
+
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
-        if (search && search.application_mode)
+        if (search && search.application_mode) {
             self.applicationMode = search.application_mode;
+            if (self.isApplicationMode('wavefront') || self.isApplicationMode('calculator')) {
+                // no multi-electron
+                var characteristic = APP_SCHEMA.enum['Characteristic'];
+                if (characteristic[1][0] == "1")
+                    characteristic.splice(1, 1);
+                for (var i = 0; i < characteristic.length; i++)
+                    characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
+            }
+        }
     });
 
     return self;
@@ -49,6 +86,7 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
+        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'grazingAngle':13.9626000172, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
@@ -130,6 +168,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         return str;
     }
 
+    function preserveSign(item, field, newValue) {
+        var oldValue = item[field];
+        var wasNegative = isFinite(oldValue) && parseFloat(oldValue) < 0;
+        item[field] = newValue;
+        if ((wasNegative && item[field] > 0) || item[field] < 0)
+            item[field] = - item[field];
+    }
+
     self.cancelChanges = function() {
         self.dismissPopup();
         appState.cancelChanges('beamline');
@@ -195,6 +241,19 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         return appState.getWatchItems();
     };
 
+    self.handleModalShown = function(name, el) {
+        if (appState.isLoaded()) {
+            if (srwService.isGaussianBeam()) {
+                $('.model-watchpointReport-fieldUnits').show();
+                $('.model-initialIntensityReport-fieldUnits').show();
+            }
+            else {
+                $('.model-watchpointReport-fieldUnits').hide();
+                $('.model-initialIntensityReport-fieldUnits').hide();
+            }
+        }
+    };
+
     self.isDefaultMode = function() {
         return srwService.isApplicationMode('default');
     };
@@ -227,6 +286,10 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         });
         calculatePropagation();
         appState.saveBeamline();
+    };
+
+    self.setActiveItem = function(item) {
+        self.activeItem = item;
     };
 
     self.showMirrorFileUpload = function() {
@@ -277,6 +340,34 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
                 $('#srw-upload-mirror-file').modal('hide');
             });
     };
+
+    //TODO(pjm): coupled with controller named "beamline"
+    $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
+        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
+            var item = self.activeItem;
+            var grazingAngle = parseFloat(newValue) / 1000.0;
+            preserveSign(item, 'normalVectorZ', Math.sin(grazingAngle));
+
+            if (isFinite(item.normalVectorY) && parseFloat(item.normalVectorY) == 0) {
+                preserveSign(item, 'normalVectorX', Math.cos(grazingAngle));
+                preserveSign(item, 'tangentialVectorX', Math.sin(grazingAngle));
+                item.tangentialVectorY = 0;
+            }
+            if (isFinite(item.normalVectorX) && parseFloat(item.normalVectorX) == 0) {
+                preserveSign(item, 'normalVectorY', Math.cos(grazingAngle));
+                item.tangentialVectorX = 0
+                preserveSign(item, 'tangentialVectorY', Math.sin(grazingAngle));
+            }
+        }
+    });
+
+    $scope.$watch('beamline.activeItem.position', function(newValue, oldValue) {
+        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
+            var item = self.activeItem;
+            if (item.firstFocusLength)
+                item.firstFocusLength = newValue;
+        }
+    });
 });
 
 //TODO(pjm): refactor and combine common code with WARP controller
@@ -408,34 +499,6 @@ app.controller('SRWMultiElectronController', function (appState, frameCache, pan
 app.controller('SRWSourceController', function (appState, srwService) {
     var self = this;
     self.srwService = srwService;
-
-    function isSelected(sourceType) {
-        if (appState.isLoaded())
-            return appState.applicationState().simulation.sourceType == sourceType;
-        return false;
-    }
-
-    self.isElectronBeam = function() {
-        return self.isUndulator() || self.isMultipole();
-    };
-
-    self.isGaussianBeam = function() {
-        return isSelected('g');
-    };
-
-    self.isMultipole = function() {
-        return isSelected('m');
-    };
-
-    self.isUndulator = function() {
-        return isSelected('u');
-    };
-
-    self.isPredefinedBeam = function() {
-        if (appState.isLoaded())
-            return appState.models.electronBeam.isReadOnly ? true : false;
-        return false;
-    };
 });
 
 app.directive('appFooter', function() {
@@ -476,7 +539,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-          '<li data-ng-if="hasWatchpoints()" data-ng-class="{active: nav.isActive(\'multi-electron\')}"><a href data-ng-click="nav.openSection(\'multielectron\')"><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</a></li>',
+          '<li data-ng-if="hasWatchpoints() && ! srwService.isApplicationMode(\'wavefront\')" data-ng-class="{active: nav.isActive(\'multi-electron\')}"><a href data-ng-click="nav.openSection(\'multielectron\')"><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</a></li>',
           settingsIcon,
         '</ul>',
     ].join('');
@@ -515,7 +578,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
               '</ul>',
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
-              navHeader('wavefront', 'Wavefront Propagator'),
+              navHeader('wavefront', 'Wavefront Propagation'),
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')">',
@@ -610,6 +673,9 @@ app.directive('beamlineIcon', function() {
               '<g data-ng-switch-when="mirror">',
                 '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
               '</g>',
+              '<g data-ng-switch-when="sphericalMirror">',
+                '<path d="M20 0 C30 10 30 50 20 60 L33 60 L33 0 L20 0" class="srw-mirror" />',
+              '</g>',
               '<g data-ng-switch-when="obstacle">',
                 '<rect x="15" y="20" width="20", height="20" class="srw-obstacle" />',
               '</g>',
@@ -664,11 +730,11 @@ app.directive('beamlineItem', function($timeout) {
                 content: $('#srw-' + scope.item.type + '-editor'),
                 trigger: 'manual',
             }).on('show.bs.popover', function() {
-                scope.$parent.beamline.activeItem = scope.item;
+                scope.$parent.beamline.setActiveItem(scope.item);
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
             }).on('hide.bs.popover', function() {
-                scope.$parent.beamline.activeItem = null;
+                scope.$parent.beamline.setActiveItem(null);
                 var editor = el.data('bs.popover').getContent();
                 // return the editor to the editor-holder so it will be available for the
                 // next element of this type
@@ -882,7 +948,7 @@ app.directive('mobileAppTitle', function(srwService) {
         },
         template: [
             mobileTitle('calculator', 'SR Calculator'),
-            mobileTitle('wavefront', 'Wavefront Propagator'),
+            mobileTitle('wavefront', 'Wavefront Propagation'),
             mobileTitle('light-sources', 'Light Source Facilities'),
         ].join(''),
         controller: function($scope) {

@@ -3,41 +3,41 @@
   <div class="row">
     <div class="col-md-6 col-xl-4">
       <div class="row">
-        <div data-ng-if="source.isElectronBeam()" class="col-sm-12">
+        <div data-ng-if="source.srwService.isElectronBeam()" class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="electronBeam"></div>
         </div>
-        <div data-ng-if="source.isUndulator()" class="col-sm-12">
+        <div data-ng-if="source.srwService.isUndulator()" class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="undulator"></div>
         </div>
-        <div data-ng-if="source.isMultipole()" class="col-sm-12">
+        <div data-ng-if="source.srwService.isMultipole()" class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="multipole"></div>
         </div>
-        <div data-ng-if="source.isGaussianBeam()" class="col-sm-12">
+        <div data-ng-if="source.srwService.isGaussianBeam()" class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="gaussianBeam"></div>
         </div>
-        <div data-ng-if="source.isUndulator()" class="col-sm-12">
+        <div data-ng-if="source.srwService.isUndulator()" class="col-sm-12">
           <div data-report-panel="2d" data-model-name="fluxReport"></div>
         </div>
       </div>
     </div>
-    <div data-ng-if="source.isElectronBeam()" class="col-md-6 col-xl-4">
+    <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="2d" data-model-name="intensityReport"></div>
     </div>
-    <div data-ng-if="source.isElectronBeam()" class="col-md-6 col-xl-4">
+    <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="powerDensityReport"></div>
     </div>
-    <div data-ng-if="source.isGaussianBeam() || source.srwService.isApplicationMode('calculator')" class="col-md-6 col-xl-4">
+    <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isApplicationMode('calculator')" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="sourceIntensityReport"></div>
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
-<div data-modal-editor="electronBeam" data-is-read-only="source.isPredefinedBeam()"></div>
-<div data-modal-editor="undulator"></div>
-<div data-modal-editor="multipole"></div>
-<div data-modal-editor="gaussianBeam"></div>
-<div data-modal-editor="sourceIntensityReport"></div>
-<div data-modal-editor="intensityReport"></div>
-<div data-modal-editor="fluxReport"></div>
-<div data-modal-editor="powerDensityReport"></div>
+<div data-modal-editor="electronBeam" data-parent-controller="source" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
+<div data-modal-editor="undulator" data-parent-controller="source"></div>
+<div data-modal-editor="multipole" data-parent-controller="source"></div>
+<div data-modal-editor="gaussianBeam" data-parent-controller="source"></div>
+<div data-modal-editor="sourceIntensityReport" data-parent-controller="source"></div>
+<div data-modal-editor="intensityReport" data-parent-controller="source"></div>
+<div data-modal-editor="fluxReport" data-parent-controller="source"></div>
+<div data-modal-editor="powerDensityReport" data-parent-controller="source"></div>

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 import glob
 import json
+import math
 import numpy as np
 import os
 import py.path
@@ -135,6 +136,20 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
+        elif item['type'] == 'grating':
+            if 'grazingAngle' not in item:
+                angle = 0
+                if item['normalVectorX']:
+                    angle = math.acos(abs(float(item['normalVectorX']))) * 1000
+                elif item['normalVectorY']:
+                    angle = math.acos(abs(float(item['normalVectorY']))) * 1000
+                item['grazingAngle'] = angle
+
+    for k in data['models']:
+        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+            if 'fieldUnits' not in data['models'][k]:
+                data['models'][k]['fieldUnits'] = 1
+
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -339,6 +354,12 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+        elif item['type'] == 'sphericalMirror':
+            res += _beamline_element(
+                'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+                item,
+                ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ','tangentialVectorX', 'tangentialVectorY'],
                 propagation)
         elif item['type'] == 'watch':
             if not has_item:
