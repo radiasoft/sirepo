@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 import glob
 import json
+import math
 import numpy as np
 import os
 import py.path
@@ -90,7 +91,7 @@ def extract_report_data(filename, model_data):
         'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
         'x_units': file_info[filename][1][0],
-        'points': data.tolist(),
+        'points': data,
     }
     if filename in files_3d:
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2])
@@ -135,13 +136,27 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
+        elif item['type'] == 'grating':
+            if 'grazingAngle' not in item:
+                angle = 0
+                if item['normalVectorX']:
+                    angle = math.acos(abs(float(item['normalVectorX']))) * 1000
+                elif item['normalVectorY']:
+                    angle = math.acos(abs(float(item['normalVectorY']))) * 1000
+                item['grazingAngle'] = angle
+
+    for k in data['models']:
+        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+            if 'fieldUnits' not in data['models'][k]:
+                data['models'][k]['fieldUnits'] = 1
 
 
-def generate_parameters_file(data, schema, run_dir=None):
+
+def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-    if 'report' not in data and 'multiElectronAnimation' in data['models']:
+    if run_async:
         # copy animation args into initialIntensityReport
         for k in data['models']['multiElectronAnimation']:
             if k in data['models']['initialIntensityReport']:
@@ -174,6 +189,9 @@ def generate_parameters_file(data, schema, run_dir=None):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
+    v['require_patched_set_gsn_beam'] = False
+    if run_async and source_type == 'g':
+        v['require_patched_set_gsn_beam'] = True
     return pkjinja.render_resource('srw.py', v)
 
 
@@ -336,6 +354,12 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+        elif item['type'] == 'sphericalMirror':
+            res += _beamline_element(
+                'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+                item,
+                ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ','tangentialVectorX', 'tangentialVectorY'],
                 propagation)
         elif item['type'] == 'watch':
             if not has_item:

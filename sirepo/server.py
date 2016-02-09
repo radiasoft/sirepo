@@ -311,11 +311,16 @@ def app_python_source(simulation_type, simulation_id):
     data = _open_json_file(simulation_type, sid=simulation_id)
     template = _template_for_simulation_type(simulation_type)
     # ensure the whole source gets generated, not up to the last watchpoint report
-    if 'report' in data:
-        del data['report']
+    last_watchpoint = None
+    for item in reversed(data['models']['beamline']):
+        if item['type'] == 'watch':
+            last_watchpoint = 'watchpointReport{}'.format(item['id'])
+            break
+    if last_watchpoint:
+        data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type), None),
+            template.generate_parameters_file(data, _schema_cache(simulation_type)),
             template.run_all_text()),
         mimetype='text/plain',
     )
@@ -851,6 +856,7 @@ def _start_simulation(data, run_async=False):
             data,
             _schema_cache(simulation_type),
             run_dir=run_dir,
+            run_async=run_async,
         )
     )
     cmd = [_ROOT_CMD, simulation_type] \

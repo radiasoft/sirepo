@@ -43,6 +43,7 @@
     <div id="srw-lens-editor" data-beamline-item-editor="" data-model-name="lens"></div>
     <div id="srw-mirror-editor" data-beamline-item-editor="" data-model-name="mirror"></div>
     <div id="srw-obstacle-editor" data-beamline-item-editor="" data-model-name="obstacle"></div>
+    <div id="srw-sphericalMirror-editor" data-beamline-item-editor="" data-model-name="sphericalMirror"></div>
     <div id="srw-watch-editor" data-beamline-item-editor="" data-model-name="watch"></div>
   </div>
 
@@ -60,8 +61,8 @@
 </div>
 
 <!-- modal dialogs -->
-<div data-modal-editor="initialIntensityReport"></div>
-<div data-modal-editor="watchpointReport" data-ng-repeat="item in beamline.getWatchItems() track by item.id" data-item-id="{{ item.id }}"></div>
+<div data-modal-editor="initialIntensityReport" data-parent-controller="beamline"></div>
+<div data-modal-editor="watchpointReport" data-parent-controller="beamline" data-ng-repeat="item in beamline.getWatchItems() track by item.id" data-item-id="{{ item.id }}"></div>
 
 <div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg">

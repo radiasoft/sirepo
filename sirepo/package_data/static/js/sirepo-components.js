@@ -289,6 +289,7 @@ app.directive('modalEditor', function(appState) {
             // optional, for watch reports
             itemId: '@',
             isReadOnly: '=',
+            parentController: '=',
         },
         template: [
             '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
@@ -332,6 +333,8 @@ app.directive('modalEditor', function(appState) {
             $(element).on('shown.bs.modal', function() {
                 if (! scope.isReadOnly)
                     $('#' + scope.editorId + ' .form-control').first().select();
+                if (scope.parentController && scope.parentController.handleModalShown)
+                    scope.parentController.handleModalShown(scope.modelName, $(element));
             });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes

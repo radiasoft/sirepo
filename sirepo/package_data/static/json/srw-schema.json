@@ -15,7 +15,7 @@
             ["default", "Expert"],
             ["calculator", "SR Calculator"],
             ["light-sources", "Light Source Facilities"],
-            ["wavefront", "Wavefront Propagator"]
+            ["wavefront", "Wavefront Propagation"]
         ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
@@ -27,6 +27,10 @@
         "CRLShape": [
             ["1", "Parabolic"],
             ["2", "Circular"]
+        ],
+        "FieldUnits": [
+            ["1", "sqrt(Phot/s/0.1%bw/mm^2)"],
+            ["2", "sqrt(J/eV/mm^2) [frequency] or sqrt(W/mm^2) [time]"]
         ],
         "FocalPlane": [
             ["1", "Horizontal"],
@@ -50,13 +54,17 @@
             ["m", "Electron Beam with Dipole"],
             ["g", "Gaussian Beam"]
         ],
+        "MirrorApertureShape": [
+            ["r", "Rectangular"],
+            ["e", "Elliptical"]
+        ],
         "MultipoleOrientation": [
             ["n", "Horizontal"],
             ["s", "Vertical"]
         ],
         "MirrorOrientation": [
-            ["x", "X"],
-            ["y", "Y"]
+            ["x", "Horizontal"],
+            ["y", "Vertical"]
         ],
         "Polarization": [
             ["0", "Linear Horizontal"],
@@ -132,11 +140,11 @@
         "ellipsoidMirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "firstFocusLength": ["Distance from Source to Mirror Center (q) [m]", "Float"],
-            "focalLength": ["Distance from Mirror Center to Second Focus (p) [m]", "Float"],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
+            "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float"],
+            "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
             "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
@@ -179,13 +187,15 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "fieldUnits": ["Electric Field Units", "FieldUnits"]
         },
         "grating": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
             "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
@@ -204,7 +214,8 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "fieldUnits": ["Electric Field Units", "FieldUnits"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -280,6 +291,22 @@
         },
         "simulationStatus": {
         },
+        "sphericalMirror": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "radius": ["Radius of Surface Curvature [m]", "Float"],
+            "tangentialSize": ["Tangential Size [m]", "Float"],
+            "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
+            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
+            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
+            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float"]
+        },
         "undulator": {
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
@@ -300,7 +327,8 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "fieldUnits": ["Electric Field Units", "FieldUnits"]
         }
     },
     "view": {
@@ -414,7 +442,8 @@
                 "verticalPosition",
                 "verticalRange",
                 "polarization",
-                "characteristic"
+                "characteristic",
+                "fieldUnits"
             ]
         },
         "initialIntensityReport": {
@@ -427,7 +456,8 @@
                 "verticalPosition",
                 "verticalRange",
                 "polarization",
-                "characteristic"
+                "characteristic",
+                "fieldUnits"
             ]
         },
         "intensityReport": {
@@ -451,9 +481,9 @@
                 "position",
                 "firstFocusLength",
                 "focalLength",
-                "grazingAngle",
                 "tangentialSize",
                 "sagittalSize",
+                "grazingAngle",
                 "normalVectorX",
                 "normalVectorY",
                 "normalVectorZ",
@@ -490,6 +520,7 @@
                 "position",
                 "tangentialSize",
                 "sagittalSize",
+                "grazingAngle",
                 "normalVectorX",
                 "normalVectorY",
                 "normalVectorZ",
@@ -592,6 +623,27 @@
             "title": "Simulation Status",
             "advanced": []
         },
+        "sphericalMirror": {
+            "model": "sphericalMirror",
+            "title": "Spherical Mirror",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "radius",
+                "tangentialSize",
+                "sagittalSize",
+                "grazingAngle",
+                "normalVectorX",
+                "normalVectorY",
+                "normalVectorZ",
+                "tangentialVectorX",
+                "tangentialVectorY",
+                "heightProfileFile",
+                "orientation",
+                "heightAmplification"
+            ]
+        },
         "undulator": {
             "title": "Undulator",
             "basic": [
@@ -634,7 +686,8 @@
                 "verticalPosition",
                 "verticalRange",
                 "polarization",
-                "characteristic"
+                "characteristic",
+                "fieldUnits"
             ]
         }
     }
