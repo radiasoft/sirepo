@@ -6,7 +6,7 @@ app.value('appRoutes', {
     'home': '',
     'calculator': 'SR Calculator',
     'light-sources': 'Light Source Facilities',
-    'wavefront': 'Wavefront Propagator',
+    'wavefront': 'Wavefront Propagation',
 });
 
 app.config(function($routeProvider, appRoutesProvider) {
