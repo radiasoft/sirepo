@@ -209,6 +209,8 @@ app.factory('appState', function($rootScope, requestSender) {
         var distance = '';
         if (model && model.distanceFromSource != null)
             distance = ', ' + model.distanceFromSource + 'm';
+        else if (self.isAnimationModelName(name))
+            distance = '';
         else if (self.isReportModelName(name) && savedModelValues.beamline && savedModelValues.beamline.length)
             distance = ', ' + savedModelValues.beamline[0].position + 'm';
         return self.viewInfo(name).title + distance;
@@ -706,7 +708,8 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try{
-            var errorMessage = exception.toString();
+            // escaped quotes confuse flask json parser
+            var errorMessage = exception.toString().replace(/"/g, '');
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
