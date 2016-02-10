@@ -26,7 +26,7 @@
             },
             {
                 "id": 6,
-                "position": 5,
+                "position": 2,
                 "title": "W3",
                 "type": "watch"
             }
@@ -81,6 +81,7 @@
         },
         "initialIntensityReport": {
             "characteristic": 0,
+            "fieldUnits": 1,
             "horizontalPosition": 0,
             "horizontalRange": 10,
             "polarization": 6,
@@ -117,9 +118,9 @@
             1,
             0,
             0,
+            "0.1",
             1,
-            1,
-            1,
+            "0.1",
             1
         ],
         "powerDensityReport": {
@@ -136,15 +137,15 @@
         "propagation": {
             "2": [
                 [
-                    1,
-                    1,
+                    0,
+                    0,
                     1,
                     0,
                     0,
                     1,
+                    "5",
                     1,
-                    1,
-                    1
+                    "5"
                 ],
                 [
                     0,
@@ -174,7 +175,7 @@
                     0,
                     0,
                     1,
-                    1,
+                    "0",
                     0,
                     1,
                     1,
@@ -198,11 +199,11 @@
                     0,
                     0,
                     1,
-                    1,
+                    "3",
                     0,
+                    "2",
                     1,
-                    1,
-                    1,
+                    "2",
                     1
                 ]
             ],
@@ -240,7 +241,7 @@
             "outOfSessionSimulationId": "",
             "photonEnergy": 1.95251,
             "sampleFactor": 1,
-            "simulationId": "eTpSy2vf",
+            "simulationId": "pELbCSU4",
             "sourceType": "g",
             "verticalPointCount": 200
         },
@@ -251,6 +252,7 @@
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 0.5,
+            "fieldUnits": 1,
             "horizontalPosition": 0,
             "horizontalRange": 10,
             "polarization": 6,
@@ -270,6 +272,7 @@
         },
         "watchpointReport4": {
             "characteristic": 0,
+            "fieldUnits": 1,
             "horizontalPosition": 0,
             "horizontalRange": 5,
             "polarization": 6,
@@ -279,6 +282,7 @@
         },
         "watchpointReport5": {
             "characteristic": "0",
+            "fieldUnits": 1,
             "horizontalPosition": 0,
             "horizontalRange": 5,
             "polarization": 6,
@@ -288,6 +292,7 @@
         },
         "watchpointReport6": {
             "characteristic": 0,
+            "fieldUnits": 1,
             "horizontalPosition": 0,
             "horizontalRange": 5,
             "polarization": 6,
@@ -296,7 +301,7 @@
             "verticalRange": 5
         }
     },
-    "report": "watchpointReport6",
+    "report": "watchpointReport4",
     "simulationType": "srw",
-    "version": "20160202"
+    "version": "20160209"
 }
