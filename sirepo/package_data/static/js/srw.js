@@ -992,3 +992,14 @@ app.directive('simulationStatusTimer', function() {
         ].join(''),
     };
 });
+
+app.directive('tooltipEnabler', function() {
+    return {
+        link: function(scope, element) {
+            $('[data-toggle="tooltip"]').tooltip({
+                html: true,
+                placement: 'bottom',
+            });
+        },
+    };
+});

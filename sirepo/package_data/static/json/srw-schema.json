@@ -1,7 +1,7 @@
 {
     "enum": {
         "AnalyticalTreatment": [
-            ["0", "None"],
+            ["0", "Standard"],
             ["1", "Linear Term"],
             ["2", "Quadratic Term"],
             ["3", "From Waist"],
