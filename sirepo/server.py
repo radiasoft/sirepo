@@ -33,7 +33,7 @@ import flask
 import flask.sessions
 import numconv
 import py
-import sirepo.sirepo_parser
+import sirepo.sirepo_parser_dep
 import sirepo.template.srw
 import sirepo.template.warp
 
@@ -279,16 +279,15 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 @app.route(_SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
     f = flask.request.files['file']
+    print('\n=== File: %s, %s ===\n' % (f, os.path.abspath(f.filename)))
     try:
-        srwblParam, appParam, el, pp = sirepo.sirepo_parser.sirepo_parser(f.read())
-        args = sirepo.sirepo_parser.list2dict(srwblParam)
-        v = sirepo.sirepo_parser.Struct(**args)
-        args = sirepo.sirepo_parser.list2dict(appParam)
-        app = sirepo.sirepo_parser.Struct(**args)
-        data = sirepo.sirepo_parser.parsed_dict(v, app, el, pp)
+        v, op = sirepo.sirepo_parser_dep.sirepo_parser(f.read())
+        import pprint
+        pprint.pprint(v)
+        data = sirepo.sirepo_parser_dep.parsed_dict(v, op)
     except Exception as e:
         return flask.jsonify({
-            'error': 'File import failed: {}'.format(e)
+            'error': 'File import failed: {}, {}'.format(e, os.getcwd())
         })
     return _save_new_simulation(simulation_type, data)
 

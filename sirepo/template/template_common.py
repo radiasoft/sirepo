@@ -39,8 +39,9 @@ def validate_model(model_data, model_schema, enum_info):
         field_type = model_schema[k][1]
         value = model_data[k]
         if field_type in enum_info:
+            print('invalid enum value: {}, {}'.format(value, field_type))
             if not enum_info[field_type][str(value)]:
-                raise Exception('invalid enum value: {}'.format(value))
+                raise Exception('invalid enum value: {}, {}'.format(value, field_type))
         elif field_type == 'Float':
             if not value:
                 value = 0
