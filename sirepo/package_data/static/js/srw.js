@@ -728,8 +728,8 @@ app.directive('beamlineItem', function($timeout) {
                 container: '.srw-popup-container-lg',
                 viewport: { selector: '.srw-beamline'},
                 content: $('#srw-' + scope.item.type + '-editor'),
-                trigger: 'manual',
             }).on('show.bs.popover', function() {
+                $('.srw-beamline-element-label').not(el).popover('hide');
                 scope.$parent.beamline.setActiveItem(scope.item);
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
@@ -743,7 +743,6 @@ app.directive('beamlineItem', function($timeout) {
             });
 
             function togglePopover() {
-                $('.srw-beamline-element-label').not(el).popover('hide');
                 el.popover('toggle');
                 scope.$apply();
             }
@@ -762,7 +761,7 @@ app.directive('beamlineItem', function($timeout) {
                 });
             }
             else {
-                $(element).click(function() {
+                $(element).find('.srw-beamline-image').click(function() {
                     togglePopover();
                 });
             }
