@@ -318,16 +318,7 @@ def _generate_beamline_optics(models, last_id):
                 item,
                 ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
-            if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
-                res += '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
-                res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
-                # overwrite propagation
-                propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
-                res += _beamline_element(
-                    'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})',
-                    item,
-                    ['orientation', 'grazingAngle', 'heightAmplification'],
-                    propagation)
+            res += _height_profile_element(item, propagation, overwrite_propagation=True)
         elif item['type'] == 'grating':
             res += _beamline_element(
                 'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
@@ -341,14 +332,7 @@ def _generate_beamline_optics(models, last_id):
                 ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
                 propagation)
         elif item['type'] == 'mirror':
-            res += '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
-            res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
-            res += _beamline_element(
-                # 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, "{}", _ang={}, _amp_coef={}, _nx=1000, _ny=200, _size_x={}, _size_y={})',
-                'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})',
-                item,
-                ['orientation', 'grazingAngle', 'heightAmplification', 'horizontalTransverseSize', 'verticalTransverseSize'],
-                propagation)
+            res += _height_profile_element(item, propagation)
         elif item['type'] == 'obstacle':
             res += _beamline_element(
                 'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
@@ -361,6 +345,7 @@ def _generate_beamline_optics(models, last_id):
                 item,
                 ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ','tangentialVectorX', 'tangentialVectorY'],
                 propagation)
+            res += _height_profile_element(item, propagation, overwrite_propagation=True)
         elif item['type'] == 'watch':
             if not has_item:
                 res += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
@@ -381,6 +366,23 @@ def _get_first_element_position(data):
     if len(beamline):
         return beamline[0]['position']
     return 20
+
+def _height_profile_element(item, propagation, overwrite_propagation=False):
+    if overwrite_propagation:
+        if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
+            propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
+        else:
+            return ''
+    res = '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
+    res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
+    fields = ['orientation', 'grazingAngle', 'heightAmplification']
+    if 'horizontalTransverseSize' in item:
+        template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
+        fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))
+    else:
+        template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})'
+    res += _beamline_element(template, item, fields, propagation)
+    return res
 
 def _propagation_params(prop):
     res = '    pp.append(['
