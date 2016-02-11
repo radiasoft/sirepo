@@ -279,7 +279,6 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 @app.route(_SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
     f = flask.request.files['file']
-    print('\n=== File: %s, %s ===\n' % (f, os.path.abspath(f.filename)))
     try:
         v, op = sirepo.sirepo_parser_dep.sirepo_parser(f.read())
         import pprint
