@@ -675,13 +675,9 @@ app.factory('requestQueue', function($rootScope, requestSender) {
             id: queueId,
             item: item,
         };
-        if (runQueue.length > 0)
-            // give this item priority over others
-            runQueue.splice(1, 0, queueItem);
-        else {
-            runQueue.push(queueItem);
+        runQueue.push(queueItem);
+        if (runQueue.length == 1)
             executeQueue();
-        }
     };
 
     return self;

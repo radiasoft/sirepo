@@ -246,28 +246,41 @@ def app_error_logging():
 
 @app.route(_SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
-    rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
-        'simulation.name': simulation_name,
-    })
-    if len(rows) == 0:
+    redirect_uri = None
+    if application_mode == 'light-sources':
+        # for light-sources application mode, the simulation_name is the facility
+        # copy all new examples into the session
         for s in _examples(simulation_type):
-            if s['models']['simulation']['name'] == simulation_name:
-                _save_new_simulation(simulation_type, s, is_response=False)
+            if s['models']['simulation']['facility'] == simulation_name:
                 rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
-                    'simulation.name': simulation_name,
+                    'simulation.name': s['models']['simulation']['name'],
                 })
-                break
+                if len(rows) == 0:
+                    _save_new_example(simulation_type, s)
+        redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
+            simulation_type, flask.escape(simulation_name), application_mode)
+    else:
+        # otherwise use the existing named simulation, or copy it from the examples
+        rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
+            'simulation.name': simulation_name,
+        })
+        if len(rows) == 0:
+            for s in _examples(simulation_type):
+                if s['models']['simulation']['name'] == simulation_name:
+                    _save_new_example(simulation_type, s)
+                    rows = _iterate_simulation_datafiles(simulation_type, _process_simulation_list, {
+                        'simulation.name': simulation_name,
+                    })
+                    break
+        if len(rows):
+            if application_mode == 'wavefront':
+                redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
+                    simulation_type, rows[0]['simulationId'], application_mode)
+            else:
+                redirect_uri = '/{}#/source/{}?application_mode={}'.format(
+                    simulation_type, rows[0]['simulationId'], application_mode)
 
-    for row in rows:
-        if application_mode == 'light-sources':
-            redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
-                simulation_type, flask.escape(row['simulation']['facility']), application_mode)
-        elif application_mode == 'wavefront':
-            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
-                simulation_type, row['simulationId'], application_mode)
-        else:
-            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
-                simulation_type, row['simulationId'], application_mode)
+    if redirect_uri:
         # redirect using javascript for safari browser which doesn't support hash redirects
         return flask.render_template(
             'html/javascript-redirect.html',
@@ -700,6 +713,11 @@ def _report_name(data):
         return 'animation'
 
 
+def _save_new_example(simulation_type, data):
+    data['models']['simulation']['isExample'] = '1'
+    _save_new_simulation(simulation_type, data, is_response=False)
+
+
 def _save_new_simulation(simulation_type, data, is_response=True):
     sid = _random_id(_simulation_dir(simulation_type), simulation_type)
     data['models']['simulation']['simulationId'] = sid
@@ -897,7 +915,7 @@ def _user_dir_create():
         d = _simulation_dir(app_name)
         pkio.mkdir_parent(d)
         for s in _examples(app_name):
-            _save_new_simulation(app_name, s, is_response=False)
+            _save_new_example(simulation_type, s)
         d = _simulation_lib_dir(app_name)
         pkio.mkdir_parent(d)
         for f in _template_for_simulation_type(app_name).static_lib_files():

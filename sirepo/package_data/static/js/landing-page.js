@@ -1,9 +1,26 @@
 'use strict';
 
+var SRW_EXAMPLES;
+
+angular.element(document).ready(function() {
+    $.ajax({
+        url: '/static/json/srw-examples.json?' + LANDING_PAGE_APP_VERSION,
+        success: function(result) {
+            SRW_EXAMPLES = result;
+            angular.bootstrap(document, ['LandingPageApp']);
+        },
+        error: function(xhr, status, err) {
+            if (! SRW_EXAMPLES)
+                console.log("srw examples load failed: ", err);
+        },
+        method: 'GET',
+        dataType: 'json',
+    });
+});
+
 var app = angular.module('LandingPageApp', ['ngRoute']);
 
 app.value('appRoutes', {
-    'home': '',
     'calculator': 'SR Calculator',
     'light-sources': 'Light Source Facilities',
     'wavefront': 'Wavefront Propagation',
@@ -11,9 +28,12 @@ app.value('appRoutes', {
 
 app.config(function($routeProvider, appRoutesProvider) {
     var appRoutes = appRoutesProvider.$get();
+    $routeProvider.when('/home', {
+        templateUrl: '/static/html/landing-page-home.html?' + LANDING_PAGE_APP_VERSION,
+    });
     Object.keys(appRoutes).forEach(function(key) {
         $routeProvider.when('/' + key, {
-            templateUrl: '/static/html/landing-page-' + key + '.html?' + LANDING_PAGE_APP_VERSION,
+            template: '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-big-button="{{ item.name }}" data-image="{{ item.image }}" data-href="{{ landingPage.itemUrl(item) }}"></div>',
         });
     });
     $routeProvider.otherwise({
@@ -23,9 +43,25 @@ app.config(function($routeProvider, appRoutesProvider) {
 
 app.controller('LandingPageController', function ($location, appRoutes) {
     var self = this;
+    self.srwExamples = SRW_EXAMPLES;
+
+    function pageCategory() {
+        return $location.path().substring(1);
+    }
+
+    self.itemsForCategory = function() {
+        for (var i = 0; i < self.srwExamples.length; i++) {
+            if (self.srwExamples[i].category == pageCategory())
+                return self.srwExamples[i].examples;
+        }
+    };
+
+    self.itemUrl = function(item) {
+        return '/find-by-name/srw/' + pageCategory() + '/' + encodeURIComponent(item.name);
+    };
 
     self.pageName = function() {
-        return appRoutes[$location.path().substring(1)];
+        return appRoutes[pageCategory()];
     };
 
     self.pageTitle = function() {
