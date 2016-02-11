@@ -728,7 +728,7 @@ app.directive('beamlineItem', function($timeout) {
                 container: '.srw-popup-container-lg',
                 viewport: { selector: '.srw-beamline'},
                 content: $('#srw-' + scope.item.type + '-editor'),
-                trigger: 'manual',
+                // trigger: 'manual',
             }).on('show.bs.popover', function() {
                 scope.$parent.beamline.setActiveItem(scope.item);
             }).on('shown.bs.popover', function() {
