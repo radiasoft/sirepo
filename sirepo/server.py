@@ -917,7 +917,7 @@ def _user_dir_create():
         d = _simulation_dir(app_name)
         pkio.mkdir_parent(d)
         for s in _examples(app_name):
-            _save_new_example(simulation_type, s)
+            _save_new_example(app_name, s)
         d = _simulation_lib_dir(app_name)
         pkio.mkdir_parent(d)
         for f in _template_for_simulation_type(app_name).static_lib_files():
