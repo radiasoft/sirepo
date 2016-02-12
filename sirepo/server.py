@@ -293,10 +293,20 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 def app_import_file(simulation_type):
     f = flask.request.files['file']
     try:
-        v, op = sirepo.sirepo_parser_dep.sirepo_parser(f.read())
-        import pprint
-        pprint.pprint(v)
-        data = sirepo.sirepo_parser_dep.parsed_dict(v, op)
+        from werkzeug import secure_filename
+        filename = secure_filename(f.filename)
+        print('=== filename: %s ===' % filename)
+        path = os.path.join('./', filename)
+        f.save(path)
+        o = sirepo.sirepo_parser_dep.SRWParser(path)
+
+        # Here we may process .dat files:
+        print('List of .dat files:', o.list_of_files)
+
+        # Main SRW calculation and conversion to JSON:
+        o.to_json()
+        data = o.json_content
+
     except Exception as e:
         return flask.jsonify({
             'error': 'File import failed: {}, {}'.format(e, os.getcwd())
