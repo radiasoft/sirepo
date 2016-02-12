@@ -1188,6 +1188,7 @@ class _Command(threading.Thread):
         except OSError as e:
             if e.errno != errno.ESRCH:
                 raise
+        pkdp(self.out)
         if self.process.returncode != 0:
             pkdp('Error: cmd={}, returncode={}', self.cmd, self.process.returncode)
             return self.out + '\nError: simulation failed'

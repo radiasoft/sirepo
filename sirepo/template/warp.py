@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern.pkdebug import pkdc, pkdp
 from pykern import pkio
 from pykern import pkjinja
 from sirepo.template import template_common
@@ -54,8 +55,8 @@ def background_percent_complete(data, run_dir, is_running):
     zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
     dfile = h5py.File(str(files[file_index]), 'r')
     dset = dfile['fields/{}/{}'.format(field, coordinate)]
-    dz = dset.attrs['dx']
-    zmin = dset.attrs['xmin']
+    dz = fields[field].attrs['gridSpacing'][1]
+    zmin = fields[field].attrs['gridGlobalOffset'][1]
     percent_complete = (zmin - zmmin) / (Lplasma_lab - zmmin)
     if percent_complete < 0:
         percent_complete = 0.0
@@ -74,16 +75,18 @@ def copy_animation_file(source_path, target_path):
 
 
 def extract_field_report(field, coordinate, mode, dfile, iteration):
+    pkdp([field, coordinate, mode, iteration])
+    fields = dfile['data/{}/fields'.format(iteration)]
     if field == 'rho' :
-        dset = dfile['fields/rho']
+        dset = fields['rho']
         coordinate = ''
     else:
-        dset = dfile['fields/{}/{}'.format(field, coordinate)]
+        dset = fields['{}/{}'.format(field, coordinate)]
     F = np.flipud(np.array(dset[mode,:,:]).T)
     Nr, Nz = F.shape[0], F.shape[1]
-    dz = dset.attrs['dx']
-    dr = dset.attrs['dy']
-    zmin = dset.attrs['xmin']
+    dr = fields[field].attrs['gridSpacing'][0]
+    dz = fields[field].attrs['gridSpacing'][1]
+    zmin = fields[field].attrs['gridGlobalOffset'][1]
     extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
     return {
         'x_range': [extent[0], extent[1], len(F[0])],
@@ -218,22 +221,24 @@ def _field_animation(args, dfile, iteration, frame_count):
 
 def _h5_file_list(run_dir):
     return pkio.walk_tree(
-        run_dir.join('diags', 'hdf5'),
+        run_dir.join('hdf5'),
         r'\.h5$',
     )
 
 
 def _iteration_title(dfile, iteration):
+    # 1e15 *
     return '{:.1f} fs (iteration {})'.format(
-        iteration * 1e15 * float(dfile.attrs['timeStepUnitSI']), iteration)
+        iteration * float(dfile['data'][str(iteration)].attrs['timeUnitSI']), iteration)
 
 
 def _particle_animation(args, dfile, iteration, frame_count):
     xarg = args[0]
     yarg = args[1]
     histogramBins = args[2]
-    x = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
-    y = dfile['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
+    dset = dfile['data/{}'.format(iteration)]
+    x = dset['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
+    y = dset['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
     hist, edges = np.histogramdd([x, y], int(histogramBins))
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
