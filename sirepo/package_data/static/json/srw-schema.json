@@ -2,8 +2,8 @@
     "enum": {
         "AnalyticalTreatment": [
             ["0", "Standard"],
-            ["1", "Linear Term"],
-            ["2", "Quadratic Term"],
+            ["1", "Quadratic Term"],
+            ["2", "Quadratic Term - Special"],
             ["3", "From Waist"],
             ["4", "To Waist"]
         ],
@@ -29,8 +29,8 @@
             ["2", "Circular"]
         ],
         "FieldUnits": [
-            ["1", "sqrt(Phot/s/0.1%bw/mm^2)"],
-            ["2", "sqrt(J/eV/mm^2) [frequency] or sqrt(W/mm^2) [time]"]
+            ["1", "ph/s/.1%bw/mm²"],
+            ["2", "J/eV/mm²"]
         ],
         "FocalPlane": [
             ["1", "Horizontal"],

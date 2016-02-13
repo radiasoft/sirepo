@@ -37,6 +37,9 @@ with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
 with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
     _PREDEFINED_MIRRORS = json.load(f)
 
+with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
+    _SCHEMA = json.load(f)
+
 
 def background_percent_complete(data, run_dir, is_running):
     filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME))
@@ -62,20 +65,32 @@ def copy_animation_file(source_path, target_path):
         shutil.copyfile(source_file, target_file)
 
 
+def _intensity_units(is_gaussian, model_data):
+    if is_gaussian:
+        if 'report' in model_data:
+            i = model_data['models'][model_data['report']]['fieldUnits']
+        else:
+            i = model_data['models']['initialIntensityReport']['fieldUnits']
+        return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
+    return 'ph/s/.1%bw/mm^2'
+
 def extract_report_data(filename, model_data):
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
     if 'models' in model_data and model_data['models']['fluxReport']['fluxType'] == 2:
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
+    is_gaussian = False
+    if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
+        is_gaussian = True
     files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', _MULTI_ELECTRON_FILENAME]
     file_info = {
-        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', 'ph/s/.1%bw/mm^2']],
+        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
-        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
-        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
-        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     }
 
