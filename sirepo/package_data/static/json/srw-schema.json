@@ -29,8 +29,8 @@
             ["2", "Circular"]
         ],
         "FieldUnits": [
-            ["1", "sqrt(Phot/s/0.1%bw/mm^2)"],
-            ["2", "sqrt(J/eV/mm^2) [frequency] or sqrt(W/mm^2) [time]"]
+            ["1", "ph/s/.1%bw/mm²"],
+            ["2", "J/eV/mm²"]
         ],
         "FocalPlane": [
             ["1", "Horizontal"],
