@@ -244,12 +244,12 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
     self.handleModalShown = function(name, el) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
-                $('.model-watchpointReport-fieldUnits').show();
-                $('.model-initialIntensityReport-fieldUnits').show();
+                $('.model-watchpointReport-fieldUnits').show(0);
+                $('.model-initialIntensityReport-fieldUnits').show(0);
             }
             else {
-                $('.model-watchpointReport-fieldUnits').hide();
-                $('.model-initialIntensityReport-fieldUnits').hide();
+                $('.model-watchpointReport-fieldUnits').hide(0);
+                $('.model-initialIntensityReport-fieldUnits').hide(0);
             }
         }
     };
@@ -496,12 +496,12 @@ app.controller('SRWMultiElectronController', function (appState, frameCache, pan
     }
 });
 
-app.controller('SRWSourceController', function (appState, srwService) {
+app.controller('SRWSourceController', function (srwService) {
     var self = this;
     self.srwService = srwService;
 });
 
-app.directive('appFooter', function() {
+app.directive('appFooter', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -510,9 +510,36 @@ app.directive('appFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="simulationGrid"></div>',
+            '<div data-modal-editor="simulationGrid" data-parent-controller="nav"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+
+            function updateSimulationGridFields(delay) {
+                if (! appState.isLoaded())
+                    return;
+                var method = appState.models['simulation']['samplingMethod'];
+                if (parseInt(method) == 1) {
+                    $('.model-simulationGrid-sampleFactor').show(delay);
+                    $('.model-simulation-horizontalPointCount').hide(delay);
+                    $('.model-simulation-verticalPointCount').hide(delay);
+                }
+                else {
+                    $('.model-simulationGrid-sampleFactor').hide(delay);
+                    $('.model-simulation-horizontalPointCount').show(delay);
+                    $('.model-simulation-verticalPointCount').show(delay);
+                }
+            }
+
+            // hook for sampling method changes
+            $scope.nav.handleModalShown = function(name, el) {
+                updateSimulationGridFields(0);
+            };
+            $scope.$watch('appState.models.simulation.samplingMethod', function (newValue, oldValue) {
+                updateSimulationGridFields(400);
+            });
+        },
     };
 });
 
