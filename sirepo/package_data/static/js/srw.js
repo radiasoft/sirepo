@@ -1,7 +1,6 @@
 'use strict';
 
 app_local_routes.beamline = '/beamline/:simulationId';
-app_local_routes.multielectron = '/multi-electron/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -14,10 +13,6 @@ app.config(function($routeProvider, localRoutesProvider) {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html?' + SIREPO_APP_VERSION,
         })
-        .when(localRoutes.multielectron, {
-            controller: 'SRWMultiElectronController as multielectron',
-            templateUrl: '/static/html/srw-multi-electron.html?' + SIREPO_APP_VERSION,
-        });
 });
 
 app.factory('srwService', function(appState, $rootScope, $location) {
@@ -74,15 +69,14 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-
-app.controller('SRWBeamlineController', function (appState, fileUpload, requestSender, srwService, $scope, $timeout) {
+app.controller('SRWBeamlineController', function (appState, fileUpload, frameCache, panelState, requestSender, srwService, $scope, $timeout) {
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
-        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
+        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
@@ -90,10 +84,12 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
+    self.panelState = panelState;
     self.activeItem = null;
     self.postPropagation = [];
     self.propagations = [];
     self.analyticalTreatmentEnum = APP_SCHEMA.enum['AnalyticalTreatment'];
+    self.singleElectron = true;
 
     function addItem(item) {
         var newItem = appState.clone(item);
@@ -264,6 +260,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         return false
     };
 
+    self.isSingleElectron = function() {
+        return self.singleElectron;
+    };
+
+    self.isMultiElectron = function() {
+        return ! self.isSingleElectron();
+    };
+
     self.isTouchscreen = function() {
         return Modernizr.touch;
     };
@@ -292,6 +296,10 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         self.activeItem = item;
     };
 
+    self.setSingleElectron = function(value) {
+        self.singleElectron = value;
+    };
+
     self.showMirrorFileUpload = function() {
         self.fileUploadError = '';
         $('#srw-upload-mirror-file').modal('show');
@@ -315,6 +323,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         calculatePropagation();
         self.dismissPopup();
         $('#srw-propagation-parameters').modal('show');
+    };
+
+    self.showTabs = function() {
+        if (appState.getWatchItems().length == 0)
+            return false;
+        if (srwService.isApplicationMode('wavefront'))
+            return false;
+        return true;
     };
 
     self.uploadMirrorFile = function(mirrorFile) {
@@ -368,12 +384,9 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
                 item.firstFocusLength = newValue;
         }
     });
-});
 
-//TODO(pjm): refactor and combine common code with WARP controller
-app.controller('SRWMultiElectronController', function (appState, frameCache, panelState, requestSender, $scope, $timeout) {
-    var self = this;
-    self.panelState = panelState;
+    //TODO(pjm): refactor and combine common code with WARP controller
+    //TODO(pjm): merged from SRWMultiElectronController, separate into modules
     self.isAborting = false;
     self.isDestroyed = false;
     self.dots = '.';
@@ -566,7 +579,6 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-          '<li data-ng-if="hasWatchpoints() && ! srwService.isApplicationMode(\'wavefront\')" data-ng-class="{active: nav.isActive(\'multi-electron\')}"><a href data-ng-click="nav.openSection(\'multielectron\')"><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</a></li>',
           settingsIcon,
         '</ul>',
     ].join('');
@@ -642,10 +654,6 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                             ':simulationId': data.models.simulation.simulationId,
                         });
                     });
-            };
-
-            $scope.hasWatchpoints = function() {
-                return appState.getWatchItems().length > 0;
             };
 
             $scope.isExample = function() {
