@@ -243,7 +243,7 @@ app.directive('fieldEditor', function(appState, requestSender) {
         },
         link: function link(scope) {
             scope.enum = APP_SCHEMA.enum;
-            if (scope.info[1] == 'BeamList')
+            if (scope.info && scope.info[1] == 'BeamList')
                 requestSender.getAuxiliaryData('beams', '/static/json/beams.json');
         },
     };

@@ -79,6 +79,10 @@
             ["1", "Near Field"],
             ["2", "Far Field"]
         ],
+        "SamplingMethod": [
+            ["1", "Automatic"],
+            ["2", "Manual"]
+        ],
         "SimulationState": [
             ["initial", "Initial State"],
             ["running", "Running"],
@@ -182,10 +186,6 @@
         },
         "sourceIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Electric Field Units", "FieldUnits"]
@@ -209,10 +209,6 @@
             "grooveDensity4": ["Groove Density a4y⁴", "Float"]
         },
         "initialIntensityReport": {
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Electric Field Units", "FieldUnits"]
@@ -246,12 +242,7 @@
         },
         "mirrorReport": {},
         "multiElectronAnimation": {
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"]
-
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -287,7 +278,12 @@
             "sampleFactor": ["Sampling Factor", "Float"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
-            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"]
+            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
+            "samplingMethod": ["Sampling Method", "SamplingMethod"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "simulationStatus": {
         },
@@ -322,10 +318,6 @@
             "position": ["Nominal Position [m]", "Float"]
         },
         "watchpointReport": {
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Electric Field Units", "FieldUnits"]
@@ -437,10 +429,6 @@
             "advanced": [
                 "distanceFromSource",
                 "simulation.photonEnergy",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "polarization",
                 "characteristic",
                 "fieldUnits"
@@ -451,10 +439,6 @@
             "basic": [],
             "advanced": [
                 "simulation.photonEnergy",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "polarization",
                 "characteristic",
                 "fieldUnits"
@@ -580,10 +564,6 @@
             "basic": [],
             "advanced": [
                 "simulation.photonEnergy",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "stokesParameter"
             ]
         },
@@ -613,9 +593,21 @@
             "model": "simulation",
             "title": "Wavefront Simulation Grid",
             "advanced": [
+                "photonEnergy",
+                "samplingMethod",
                 "sampleFactor",
-                "horizontalPointCount",
-                "verticalPointCount"
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalRange",
+                        "horizontalPointCount"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalRange",
+                        "verticalPointCount"
+                    ]]
+                ]
             ]
         },
         "simulationStatus": {
@@ -681,10 +673,6 @@
             "basic": [],
             "advanced": [
                 "simulation.photonEnergy",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "polarization",
                 "characteristic",
                 "fieldUnits"

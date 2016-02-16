@@ -159,29 +159,34 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
-
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
             if 'fieldUnits' not in data['models'][k]:
                 data['models'][k]['fieldUnits'] = 1
-
+    if 'samplingMethod' not in data['models']['simulation']:
+        simulation = data['models']['simulation']
+        simulation['samplingMethod'] = 1 if simulation['sampleFactor'] > 0 else 2
+        for k in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
+            simulation[k] = data['models']['initialIntensityReport'][k]
+    if 'horizontalPosition' in data['models']['initialIntensityReport']:
+        for k in data['models']:
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
+                    del data['models'][k][f]
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-    if run_async:
-        # copy animation args into initialIntensityReport
-        for k in data['models']['multiElectronAnimation']:
-            if k in data['models']['initialIntensityReport']:
-                data['models']['initialIntensityReport'][k] = data['models']['multiElectronAnimation'][k]
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
         m = re.search('watchpointReport(\d+)', data['report'])
         if m:
             last_id = int(m.group(1))
+    if int(data['models']['simulation']['samplingMethod']) == 2:
+        data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
 
