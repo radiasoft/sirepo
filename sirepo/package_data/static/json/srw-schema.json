@@ -283,7 +283,8 @@
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "documentationUrl": ["Documentation URL", "OptionalString"]
         },
         "simulationStatus": {
         },
@@ -587,6 +588,13 @@
             "advanced": [
                 "name",
                 "sourceType"
+            ]
+        },
+        "simulationDocumentation": {
+            "model": "simulation",
+            "title": "Simulation Documentation",
+            "advanced": [
+                "documentationUrl"
             ]
         },
         "simulationGrid": {
