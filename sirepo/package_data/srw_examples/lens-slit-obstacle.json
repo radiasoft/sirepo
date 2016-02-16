@@ -361,18 +361,18 @@
             "facility": "",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 10,
-            "isExample": "",
+            "horizontalRange": 5,
+            "isExample": "1",
             "name": "Young's Double Slit Experiment (with lens)",
             "outOfSessionSimulationId": "",
             "photonEnergy": 2.31746,
             "sampleFactor": 1,
             "samplingMethod": 1,
-            "simulationId": "Nz2zkXLD",
+            "simulationId": "",
             "sourceType": "g",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 10
+            "verticalRange": 5
         },
         "simulationStatus": {
             "startTime": 0,
@@ -426,7 +426,7 @@
             "precision": 0.01
         }
     },
-    "report": "watchpointReport9",
+    "report": "",
     "simulationType": "srw",
     "version": "20160215"
 }
