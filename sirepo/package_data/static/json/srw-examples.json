@@ -28,7 +28,11 @@
                 "image": "circular-aperture.png"
             },
             {
-                "name": "Young's Double Slit Experiment",
+                "name": "Young's Double Slit Experiment (without lens)",
+                "image": "young-double-slit.png"
+            },
+            {
+                "name": "Young's Double Slit Experiment (with lens)",
                 "image": "young-double-slit.png"
             }
         ]
