@@ -345,6 +345,6 @@ svg.srw-beamline-item-icon {
   padding: 11px 15px;
 }
 
-a.srw-tab:focus {
+a:focus, a.srw-tab:focus {
   outline: none;
 }
