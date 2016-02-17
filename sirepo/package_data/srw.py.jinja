@@ -218,14 +218,3 @@ def patched_srwl_bl_set_e_beam(self, **kwargs):
     return original_set_e_beam(self, **kwargs)
 
 srwl_bl.SRWLBeamline.set_e_beam = patched_srwl_bl_set_e_beam
-
-original_set_gsn_beam = srwl_bl.SRWLBeamline.set_gsn_beam
-
-def patched_set_gsn_beam(self, **kwargs):
-    original_set_gsn_beam(self, **kwargs)
-    # need to set this for multi-electron gaussian simulations to work correctly
-    self.mag_approx = self.gsnBeam
-    return self.gsnBeam
-
-if {{require_patched_set_gsn_beam}}:
-    srwl_bl.SRWLBeamline.set_gsn_beam = patched_set_gsn_beam
