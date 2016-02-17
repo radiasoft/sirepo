@@ -295,13 +295,18 @@ def app_import_file(simulation_type):
     try:
         from werkzeug import secure_filename
         filename = secure_filename(f.filename)
-        print('=== filename: %s ===' % filename)
-        path = os.path.join('./', filename)
-        f.save(path)
-        o = sirepo.sirepo_parser_dep.SRWParser(path)
+        imported_file_path = os.path.join('./', filename)
+        f.save(imported_file_path)
 
-        # Here we may process .dat files:
+        # Here we provide path to mirror_1d.dat .dat file and use it for each element requiring profile as placeholder:
+        lib_dir = str(_simulation_lib_dir('srw'))
+
+        # Perform initialization of the object and get "v" parameters:
+        o = sirepo.sirepo_parser_dep.SRWParser(imported_file_path, lib_dir=lib_dir)
+
+        print('Input lib dir     :', lib_dir)
         print('List of .dat files:', o.list_of_files)
+        print('Lib dir           :', o.lib_dir)
 
         # Main SRW calculation and conversion to JSON:
         o.to_json()
