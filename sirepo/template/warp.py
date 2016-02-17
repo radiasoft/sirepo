@@ -15,9 +15,6 @@ import numpy as np
 import os
 import re
 
-#: How long before killing WARP process
-MAX_SECONDS = 60 * 60
-
 WANT_BROWSER_FRAME_CACHE = True
 
 _MODE_TEXT = {
