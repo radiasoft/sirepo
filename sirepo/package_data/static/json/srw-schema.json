@@ -1,11 +1,11 @@
 {
     "enum": {
         "AnalyticalTreatment": [
-            ["0", "Standard"],
-            ["1", "Quadratic Term"],
-            ["2", "Quadratic Term - Special"],
-            ["3", "From Waist"],
-            ["4", "To Waist"]
+            ["0", "0 - Standard"],
+            ["1", "1 - Quadratic Term"],
+            ["2", "2 - Quadratic Term - Special"],
+            ["3", "3 - From Waist"],
+            ["4", "4 - To Waist"]
         ],
         "ApertureShape": [
             ["r", "Rectangular"],
@@ -599,7 +599,7 @@
         },
         "simulationGrid": {
             "model": "simulation",
-            "title": "Wavefront Simulation Grid",
+            "title": "Initial Wavefront Simulation Grid",
             "advanced": [
                 "photonEnergy",
                 "samplingMethod",

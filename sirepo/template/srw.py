@@ -21,9 +21,6 @@ from pykern import pkresource
 from sirepo.template import template_common
 import uti_plot_com
 
-#: How long before killing SRW process
-MAX_SECONDS = 60
-
 WANT_BROWSER_FRAME_CACHE = False
 
 _MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
@@ -211,9 +208,6 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
-    v['require_patched_set_gsn_beam'] = False
-    if run_async and source_type == 'g':
-        v['require_patched_set_gsn_beam'] = True
     return pkjinja.render_resource('srw.py', v)
 
 

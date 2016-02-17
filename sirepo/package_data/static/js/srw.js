@@ -18,6 +18,19 @@ app.config(function($routeProvider, localRoutesProvider) {
 app.factory('srwService', function(appState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
+    self.originalCharacteristicEnum = null;
+    self.singleElectronCharacteristicEnum = null;
+
+    function initCharacteristic() {
+        if (self.originalCharacteristicEnum)
+            return;
+        self.originalCharacteristicEnum = APP_SCHEMA.enum['Characteristic'];
+        var characteristic = appState.clone(APP_SCHEMA.enum['Characteristic']);
+        characteristic.splice(1, 1);
+        for (var i = 0; i < characteristic.length; i++)
+            characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
+        self.singleElectronCharacteristicEnum = characteristic;
+    }
 
     function isSelected(sourceType) {
         if (appState.isLoaded())
@@ -53,17 +66,16 @@ app.factory('srwService', function(appState, $rootScope, $location) {
 
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
-        if (search && search.application_mode) {
+        if (search && search.application_mode)
             self.applicationMode = search.application_mode;
-            if (self.isApplicationMode('wavefront') || self.isApplicationMode('calculator')) {
-                // no multi-electron
-                var characteristic = APP_SCHEMA.enum['Characteristic'];
-                if (characteristic[1][0] == "1")
-                    characteristic.splice(1, 1);
-                for (var i = 0; i < characteristic.length; i++)
-                    characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
-            }
-        }
+    });
+
+    $rootScope.$on('modelsLoaded', function() {
+        initCharacteristic();
+        // don't show multi-electron values in certain cases
+        APP_SCHEMA.enum['Characteristic'] = (self.isApplicationMode('wavefront') || self.isApplicationMode('calculator') || self.isGaussianBeam())
+            ? self.singleElectronCharacteristicEnum
+            : self.originalCharacteristicEnum;
     });
 
     return self;
@@ -330,6 +342,8 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
             return false;
         if (srwService.isApplicationMode('wavefront'))
             return false;
+        if (srwService.isGaussianBeam())
+            return false;
         return true;
     };
 
@@ -562,7 +576,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
     var settingsIcon = [
         '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="srw-panel-icon glyphicon glyphicon-cog"></span></a>',
           '<ul class="dropdown-menu">',
-            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Wavefront Simulation Grid</a></li>',
+            '<li><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
             '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
             '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
