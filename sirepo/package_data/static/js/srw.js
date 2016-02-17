@@ -1,7 +1,6 @@
 'use strict';
 
 app_local_routes.beamline = '/beamline/:simulationId';
-app_local_routes.multielectron = '/multi-electron/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -14,10 +13,6 @@ app.config(function($routeProvider, localRoutesProvider) {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html?' + SIREPO_APP_VERSION,
         })
-        .when(localRoutes.multielectron, {
-            controller: 'SRWMultiElectronController as multielectron',
-            templateUrl: '/static/html/srw-multi-electron.html?' + SIREPO_APP_VERSION,
-        });
 });
 
 app.factory('srwService', function(appState, $rootScope, $location) {
@@ -74,15 +69,14 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-
-app.controller('SRWBeamlineController', function (appState, fileUpload, requestSender, srwService, $scope, $timeout) {
+app.controller('SRWBeamlineController', function (appState, fileUpload, frameCache, panelState, requestSender, srwService, $scope, $timeout) {
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
-        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
+        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
@@ -90,10 +84,12 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'watch', title:'Watchpoint'},
     ];
+    self.panelState = panelState;
     self.activeItem = null;
     self.postPropagation = [];
     self.propagations = [];
     self.analyticalTreatmentEnum = APP_SCHEMA.enum['AnalyticalTreatment'];
+    self.singleElectron = true;
 
     function addItem(item) {
         var newItem = appState.clone(item);
@@ -244,12 +240,12 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
     self.handleModalShown = function(name, el) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
-                $('.model-watchpointReport-fieldUnits').show();
-                $('.model-initialIntensityReport-fieldUnits').show();
+                $('.model-watchpointReport-fieldUnits').show(0);
+                $('.model-initialIntensityReport-fieldUnits').show(0);
             }
             else {
-                $('.model-watchpointReport-fieldUnits').hide();
-                $('.model-initialIntensityReport-fieldUnits').hide();
+                $('.model-watchpointReport-fieldUnits').hide(0);
+                $('.model-initialIntensityReport-fieldUnits').hide(0);
             }
         }
     };
@@ -262,6 +258,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         //TODO(pjm): may want to disable this for novice users
         //return ! self.isDefaultMode();
         return false
+    };
+
+    self.isSingleElectron = function() {
+        return self.singleElectron;
+    };
+
+    self.isMultiElectron = function() {
+        return ! self.isSingleElectron();
     };
 
     self.isTouchscreen = function() {
@@ -292,6 +296,10 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         self.activeItem = item;
     };
 
+    self.setSingleElectron = function(value) {
+        self.singleElectron = value;
+    };
+
     self.showMirrorFileUpload = function() {
         self.fileUploadError = '';
         $('#srw-upload-mirror-file').modal('show');
@@ -315,6 +323,14 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
         calculatePropagation();
         self.dismissPopup();
         $('#srw-propagation-parameters').modal('show');
+    };
+
+    self.showTabs = function() {
+        if (appState.getWatchItems().length == 0)
+            return false;
+        if (srwService.isApplicationMode('wavefront'))
+            return false;
+        return true;
     };
 
     self.uploadMirrorFile = function(mirrorFile) {
@@ -368,12 +384,9 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, requestS
                 item.firstFocusLength = newValue;
         }
     });
-});
 
-//TODO(pjm): refactor and combine common code with WARP controller
-app.controller('SRWMultiElectronController', function (appState, frameCache, panelState, requestSender, $scope, $timeout) {
-    var self = this;
-    self.panelState = panelState;
+    //TODO(pjm): refactor and combine common code with WARP controller
+    //TODO(pjm): merged from SRWMultiElectronController, separate into modules
     self.isAborting = false;
     self.isDestroyed = false;
     self.dots = '.';
@@ -496,12 +509,12 @@ app.controller('SRWMultiElectronController', function (appState, frameCache, pan
     }
 });
 
-app.controller('SRWSourceController', function (appState, srwService) {
+app.controller('SRWSourceController', function (srwService) {
     var self = this;
     self.srwService = srwService;
 });
 
-app.directive('appFooter', function() {
+app.directive('appFooter', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -510,9 +523,37 @@ app.directive('appFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="simulationGrid"></div>',
+            '<div data-modal-editor="simulationGrid" data-parent-controller="nav"></div>',
+            '<div data-modal-editor="simulationDocumentation"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+
+            function updateSimulationGridFields(delay) {
+                if (! appState.isLoaded())
+                    return;
+                var method = appState.models['simulation']['samplingMethod'];
+                if (parseInt(method) == 1) {
+                    $('.model-simulationGrid-sampleFactor').show(delay);
+                    $('.model-simulation-horizontalPointCount').hide(delay);
+                    $('.model-simulation-verticalPointCount').hide(delay);
+                }
+                else {
+                    $('.model-simulationGrid-sampleFactor').hide(delay);
+                    $('.model-simulation-horizontalPointCount').show(delay);
+                    $('.model-simulation-verticalPointCount').show(delay);
+                }
+            }
+
+            // hook for sampling method changes
+            $scope.nav.handleModalShown = function(name, el) {
+                updateSimulationGridFields(0);
+            };
+            $scope.$watch('appState.models.simulation.samplingMethod', function (newValue, oldValue) {
+                updateSimulationGridFields(400);
+            });
+        },
     };
 });
 
@@ -522,6 +563,7 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
         '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="srw-panel-icon glyphicon glyphicon-cog"></span></a>',
           '<ul class="dropdown-menu">',
             '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Wavefront Simulation Grid</a></li>',
+            '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
             '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
             '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
@@ -539,12 +581,12 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-          '<li data-ng-if="hasWatchpoints() && ! srwService.isApplicationMode(\'wavefront\')" data-ng-class="{active: nav.isActive(\'multi-electron\')}"><a href data-ng-click="nav.openSection(\'multielectron\')"><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</a></li>',
+          '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
           settingsIcon,
         '</ul>',
     ].join('');
 
-    function navHeader(mode, modeTitle) {
+    function navHeader(mode, modeTitle, $window) {
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/light"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
@@ -575,6 +617,9 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
               navHeader('calculator', 'SR Calculator'),
               '<ul data-ng-if="isLoaded()" class="nav navbar-nav navbar-right">',
                 settingsIcon,
+              '</ul>',
+              '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
+                '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
               '</ul>',
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
@@ -617,8 +662,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                     });
             };
 
-            $scope.hasWatchpoints = function() {
-                return appState.getWatchItems().length > 0;
+            $scope.hasDocumentationUrl = function() {
+                if (appState.isLoaded())
+                    return appState.models.simulation.documentationUrl;
+                return false;
             };
 
             $scope.isExample = function() {
@@ -631,6 +678,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                 return appState.isLoaded();
             };
 
+            $scope.openDocumentation = function() {
+                $window.open(appState.models.simulation.documentationUrl, '_blank');
+            };
+
             $scope.openImportModal = function() {
                 $('#srw-simulation-import').modal('show');
             };
@@ -640,6 +691,10 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                     '<simulation_id>': simulationId(),
                     '<simulation_type>': APP_SCHEMA.simulationType,
                 }), '_blank');
+            };
+
+            $scope.showDocumentationUrl = function() {
+                $('#srw-simulationDocumentation-editor').modal('show');
             };
 
             $scope.showSimulationGrid = function() {

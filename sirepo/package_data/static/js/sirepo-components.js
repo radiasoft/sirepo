@@ -139,10 +139,10 @@ app.directive('fieldEditor', function(appState, requestSender) {
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
+                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="integer" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" data-ng-readonly="isReadOnly">',
+                '<input string-to-number="integer" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-5">',
                 '<div class="btn-group" role="group">',
@@ -164,6 +164,10 @@ app.directive('fieldEditor', function(appState, requestSender) {
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
                 '<input data-ng-model="model[fieldEditor]" class="form-control" required data-ng-readonly="isReadOnly">',
+              '</div>',
+              //TODO(pjm): need a way to specify whether a field is option/required
+              '<div data-ng-switch-when="OptionalString" class="col-sm-5">',
+                '<input data-ng-model="model[fieldEditor]" class="form-control" data-ng-readonly="isReadOnly">',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
@@ -243,7 +247,7 @@ app.directive('fieldEditor', function(appState, requestSender) {
         },
         link: function link(scope) {
             scope.enum = APP_SCHEMA.enum;
-            if (scope.info[1] == 'BeamList')
+            if (scope.info && scope.info[1] == 'BeamList')
                 requestSender.getAuxiliaryData('beams', '/static/json/beams.json');
         },
     };

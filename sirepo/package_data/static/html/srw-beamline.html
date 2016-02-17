@@ -50,7 +50,16 @@
 </div> <!-- /container -->
 
 <div class="container-fluid">
-  <div class="row">
+  <div data-ng-if="beamline.showTabs()" class="row">
+    <div class="col-sm-12">
+      <ul class="nav nav-tabs">
+        <li role="presentation" data-ng-class="{active: beamline.isSingleElectron()}"><a class="srw-tab" href data-ng-click="beamline.setSingleElectron(true)"><strong>Single-Electron</strong></a></li>
+        <li role="presentation" data-ng-class="{active: beamline.isMultiElectron()}"><a class="srw-tab" href data-ng-click="beamline.setSingleElectron(false)"><strong><span class="glyphicon glyphicon-option-vertical"></span> Multi-Electron</strong></a></li>
+      </ul>
+      <br />
+    </div>
+  </div>
+  <div data-ng-if="beamline.isSingleElectron()" class="row">
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
     </div>
@@ -58,10 +67,55 @@
       <div data-report-panel="3d" data-model-name="watchpointReport" data-item="item"></div>
     </div>
   </div>
+  <div data-ng-if="beamline.isMultiElectron()" class="row">
+    <div class="col-md-6 col-xl-4">
+      <div class="panel panel-info">
+        <div class="panel-heading" data-panel-heading="Simulation Status" data-model-name="simulationStatus"></div>
+        <div class="panel-body cssFade" data-ng-hide="beamline.panelState.isHidden('simulationStatus')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('initial')">
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-primary" data-ng-click="beamline.runSimulation()">Start Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('running')">
+            <div class="col-sm-12">
+              <div data-ng-show="beamline.isInitializing()">
+                <span class="glyphicon glyphicon-hourglass"></span> Initializing Wavefront {{ beamline.dots }}
+              </div>
+              <div data-ng-hide="beamline.isInitializing()">
+                Simulation Running {{ beamline.dots }}
+                <div data-simulation-status-timer="beamline"></div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="beamline.cancelSimulation()">End Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('completed') || beamline.isState('canceled')">
+            <div class="col-sm-12">
+              Simulation
+              <span data-ng-show="beamline.isState('completed')">Completed</span><span data-ng-show="beamline.isState('canceled')">Stopped</span><span data-ng-show="beamline.getFrameCount()"></span>
+              <div>
+                <div data-simulation-status-timer="beamline"></div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="beamline.runSimulation()">Start New Simulation</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="3d" data-model-name="multiElectronAnimation"></div>
+    </div>
+  </div>
+  <div class="clearfix"></div>
 </div>
 
 <!-- modal dialogs -->
 <div data-modal-editor="initialIntensityReport" data-parent-controller="beamline"></div>
+<div data-modal-editor="multiElectronAnimation"></div>
 <div data-modal-editor="watchpointReport" data-parent-controller="beamline" data-ng-repeat="item in beamline.getWatchItems() track by item.id" data-item-id="{{ item.id }}"></div>
 
 <div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
@@ -81,7 +135,7 @@
                   <th class="srw-tiny-heading">Auto-resize before propagation</th>
                   <th class="srw-tiny-heading">Auto-resize after propagation</th>
                   <th class="srw-tiny-heading">Relative precision for propagation with auto-resizing <span data-toggle="tooltip" title="1. is nominal" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></th>
-                  <th class="srw-tiny-heading">Propagator <span data-toggle="tooltip" title="<div style='text-align: left'><strong>Standard</strong> - Fresnel (it uses two FFTs) <br> <strong>Linear Term</strong> - with semi-analytical treatment of the quadratic (leading) phase terms (it uses two FFTs) <br> <strong>From Waist</strong> - good for propagation from &quot;waist&quot over a large distance (it uses one FFT) <br> <strong>To Waist</strong> - good for propagation to a &quot;waist&quot; (e.g. some 2D focus of an optical system) over some distance (it uses one FFT)</div>" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></th>
+                  <th class="srw-tiny-heading">Propagator <span data-toggle="tooltip" title="<div style='text-align: left'><strong>Standard</strong> - Fresnel (it uses two FFTs) <br> <strong>Quadratic Term</strong> - with semi-analytical treatment of the quadratic (leading) phase terms (it uses two FFTs) <br> <strong>From Waist</strong> - good for propagation from &quot;waist&quot over a large distance (it uses one FFT) <br> <strong>To Waist</strong> - good for propagation to a &quot;waist&quot; (e.g. some 2D focus of an optical system) over some distance (it uses one FFT)</div>" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></th>
                   <th class="srw-tiny-heading">Do any resizing on fourier side, using FFT</th>
                   <th class="srw-tiny-heading">Horizontal range modification factor at resizing <span data-toggle="tooltip" title="1. means no modification" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></th>
                   <th class="srw-tiny-heading">Horizontal resolution modification factor at resizing</th>

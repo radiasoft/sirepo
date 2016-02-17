@@ -37,6 +37,9 @@ with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
 with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
     _PREDEFINED_MIRRORS = json.load(f)
 
+with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
+    _SCHEMA = json.load(f)
+
 
 def background_percent_complete(data, run_dir, is_running):
     filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME))
@@ -62,20 +65,32 @@ def copy_animation_file(source_path, target_path):
         shutil.copyfile(source_file, target_file)
 
 
+def _intensity_units(is_gaussian, model_data):
+    if is_gaussian:
+        if 'report' in model_data:
+            i = model_data['models'][model_data['report']]['fieldUnits']
+        else:
+            i = model_data['models']['initialIntensityReport']['fieldUnits']
+        return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
+    return 'ph/s/.1%bw/mm^2'
+
 def extract_report_data(filename, model_data):
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
     if 'models' in model_data and model_data['models']['fluxReport']['fluxType'] == 2:
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
+    is_gaussian = False
+    if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
+        is_gaussian = True
     files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', _MULTI_ELECTRON_FILENAME]
     file_info = {
-        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', 'ph/s/.1%bw/mm^2']],
+        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
-        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
-        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
-        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', 'ph/s/.1%bw/mm^2']],
+        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     }
 
@@ -144,29 +159,36 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
-
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
             if 'fieldUnits' not in data['models'][k]:
                 data['models'][k]['fieldUnits'] = 1
-
+    if 'samplingMethod' not in data['models']['simulation']:
+        simulation = data['models']['simulation']
+        simulation['samplingMethod'] = 1 if simulation['sampleFactor'] > 0 else 2
+        for k in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
+            simulation[k] = data['models']['initialIntensityReport'][k]
+    if 'horizontalPosition' in data['models']['initialIntensityReport']:
+        for k in data['models']:
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
+                    del data['models'][k][f]
+    if 'documentationUrl' not in data['models']['simulation']:
+        data['models']['simulation']['documentationUrl'] = ''
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-    if run_async:
-        # copy animation args into initialIntensityReport
-        for k in data['models']['multiElectronAnimation']:
-            if k in data['models']['initialIntensityReport']:
-                data['models']['initialIntensityReport'][k] = data['models']['multiElectronAnimation'][k]
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
         m = re.search('watchpointReport(\d+)', data['report'])
         if m:
             last_id = int(m.group(1))
+    if int(data['models']['simulation']['samplingMethod']) == 2:
+        data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
 

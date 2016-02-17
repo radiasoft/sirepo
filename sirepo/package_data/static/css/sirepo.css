@@ -15,7 +15,7 @@
     }
     @media (min-width: 992px) {
       .modal-lg {
-        width: 900px;
+        width: 930px;
       }
     }
     @media(max-width: 480px) {
@@ -28,6 +28,15 @@
         margin-left: -15px;
         margin-right: -15px;
       }
+    }
+    .tooltip-inner {
+      max-width: 350px;
+      background-color: #f9f9f9;
+      color: black;
+      border: 1px solid black;
+    }
+    .tooltip.in {
+      opacity: 1;
     }
 
     body {
@@ -334,4 +343,8 @@ svg.srw-beamline-item-icon {
 
 .navbar-nav > li > a.srw-settings-menu {
   padding: 11px 15px;
+}
+
+a:focus, a.srw-tab:focus {
+  outline: none;
 }

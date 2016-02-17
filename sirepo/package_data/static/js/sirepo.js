@@ -118,6 +118,11 @@ app.factory('appState', function($rootScope, requestSender) {
     self.cancelChanges = function(name) {
         if (savedModelValues[name])
             self.models[name] = self.clone(savedModelValues[name]);
+        //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
+        if (name != 'simulation' && self.models.simulation.photonEnergy
+            && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
+            self.cancelChanges('simulation');
+        }
     };
 
     self.clearModels = function(emptyValues) {
