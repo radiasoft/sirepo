@@ -536,6 +536,13 @@ def _cfg_session_secret(value):
         return f.read()
 
 
+def _cfg_time_limit(value):
+    """Sets timeout in seconds"""
+    v = int(value)
+    assert v > 0
+    return v
+
+
 @app.route(_SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
 def app_upload_file(simulation_type, simulation_id):
     f = flask.request.files['file']
@@ -882,7 +889,7 @@ def _start_simulation(data, run_async=False):
         + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:
         return cfg.job_queue(sid, run_dir, cmd)
-    return _Command(cmd, template.MAX_SECONDS)
+    return _Command(cmd, cfg.foreground_time_limit)
 
 
 def _template_for_simulation_type(simulation_type):
@@ -1189,6 +1196,7 @@ class _Command(threading.Thread):
         except OSError as e:
             if e.errno != errno.ESRCH:
                 raise
+        pkdp(self.out)
         if self.process.returncode != 0:
             pkdp('Error: cmd={}, returncode={}', self.cmd, self.process.returncode)
             return self.out + '\nError: simulation failed'
@@ -1202,4 +1210,5 @@ cfg = pkconfig.init(
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
     job_queue=('Background', _cfg_job_queue, 'how to run long tasks: Celery or Background'),
+    foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
 )

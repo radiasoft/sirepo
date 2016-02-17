@@ -5,772 +5,342 @@ from __future__ import absolute_import, division, print_function
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
 
-from warp import *
-from em3dsolver import *
-from boosted_frame import *
-import PRpickle as PR
-import PWpickle as PW
-from openpmd_diag import FieldDiagnostic, ParticleDiagnostic
-# set a few shortcuts
-pg = top.pgroup
+"""
+This is a typical input script that runs a simulation of
+laser-wakefield acceleration using Warp 2D / Circ.
 
-# --- flags turning off unnecessary diagnostics (ignore for now)
-top.ifzmmnt = 0
-top.itmomnts = 0
-top.itplps = 0
-top.itplfreq = 0
-top.zzmomnts = 0
-top.zzplps = 0
-top.zzplfreq = 0
-top.nhist = top.nt
-top.iflabwn = 0
-w3d.lrhodia3d = false
-w3d.lgetese3d = false
-w3d.lgtlchg3d = false
+Usage
+-----
+- Modify the parameters below to suit your needs
+- Type "python -i warp_script.py" in a terminal
+- When the simulation finishes, the python session will *not* quit.
+    Therefore the simulation can be continued by running step()
+    Otherwise, one can just type exit()
+"""
+# Import warp-specific packages
+from warp_init_tools import *
 
-#-------------------------------------------------------------------------------
-# main parameters
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Parameters (Modify the values below to suit your needs)
+# -----------------------------------------------------------------------------
 
-# Identification of the simulation
-top.runid          = "lpa_basic"         # run name
-top.pline1         = "basic lpa"         # comment line on plots
-top.runmaker       = "Remi Lehe"         # run makers
+# General parameters
+# ------------------
+# Dimension of simulation ("3d", "circ", "2d", "1d")
+dim = "circ"
+# Number of azimuthal modes beyond m=0, for "circ" (not used for "2d" and "3d")
+circ_m = 1
+# Total number of timesteps in the simulation
+N_steps = 500
+# Whether to run the simulation interactively (0:off, 1:on)
+interactive = 0
 
-# Dimensionality
-#dim = "3d"                # 3D calculation
-dim = "2d"                 # 2D calculation
-#dim = "1d"                # 1D calculation
-l_circ = 1                 # Cylindrical geometry
-circ_m = 1                 # Number of azimuthal modes different than m=0
-                           # If circ_m=0, the code will run in axisymmetric mode
+# Simulation box
+# --------------
+# Number of grid cells in the longitudinal direction
+Nz = 200
+# Number of grid cells in transverse direction (represents Nr in "circ")
+Nx = 50
+# Number of grid cells in the 3rd dimension (not used for "2d" and "circ")
+Ny = 50
+# Dimension of the box in longitudinal direction (meters)
+zmin = -15.e-6
+zmax = 5.e-6
+# Dimension of the box in transverse direction (box ranges from -xmax to xmax)
+xmax = 15.e-6
+# Dimension of the box in 3rd direction (not used for "2d" and "circ")
+ymax = 15.e-6
 
-# I/O parameters
-l_test             = 0
-                            # and stop before entering main loop.
-l_gist             = 1      # Turns gist plotting on/off
-l_restart          = false  # To restart simulation from an old run (works?)
-restart_dump       = ""     # dump file to restart from (works?)
-svstride           = 100    # loads only every svstride particles from dump
-l_pdump            = 0      # on/off regular dump of beam data
-l_pselect          = 0      # on/off selection of particles for diagnostics
-l_verbose          = 0      # verbosity level (0=off; 1=on)
-nzstations         = 50     # number of beam diag z-stations
-nzfieldstations    = 0     # number of field diag z-stations
-hist_freq          = 100     # frequency (in time steps) of beam history saving
-live_plot_freq     = 100    # frequency (in time steps) of live plots
-                            # (off if l_test is off)
+# Field boundary conditions (longitudinal and transverse respectively)
+f_boundz  = openbc
+f_boundxy = absorb
+# Particles boundary conditions (longitudinal and transverse respectively)
+p_boundz  = absorb
+p_boundxy = reflect
 
-# Physical components of the simulation
-l_moving_window    = 1      # on/off (Galilean) moving window
-l_laser            = 1      # on/off laser
-l_plasma           = {{enablePlasma}} # on/off plasma
-l_ions             = 0      # on/off plasma ions
-l_beam             = 0      # on/off electron beam
-l_injectplane      = 1      # on/off beam injection through plane
-l_usesavedist      = 0      # if on, uses dump of beam particles distribution
-savedist           = ""     # path to the beam initial distribution file
-l_theta_rand       = 1      # In the Circ version, whether to use partially
-                            # random distribution in theta when loading
-                            # the particles.
+# Moving window (0:off, 1:on)
+use_moving_window = 1
+# Speed of the moving window (ignored if use_moving_window = 0)
+v_moving_window = clight
+
+# Diagnostics
+# -----------
+# Period of diagnostics (in number of timesteps)
+diag_period = 20
+# Whether to write the fields
+write_fields = 1
+# Whether to write the particles
+write_particles = 1
+# Whether to write the diagnostics in parallel
+parallel_output = False
 
 # Numerical parameters
-dtcoef      = 1.       # coefficient to multiply default time step that
-                       # is set at the EM solver CFL
-top.depos_order  = 2   # particles deposition order
-                       # (1=linear, 2=quadratic, 3=cubic)
-top.efetch       = 1   # field gather type (1=from nodes "momentum conserving";
-                       # 4=from Yee mesh "energy conserving")
-stencil          = 0   # 0 = Yee; 1 = Yee-enlarged (Karkkainen) on EF,B;
-                       # 2 = Yee-enlarged (Karkkainen) on E,F
-                       # use 0 or 1; 2 does not verify Gauss Law
-if dim=="1d":stencil=0
-l_smooth           = 1              # on/off smoothing of current density
-type_rz_depose     = 1 # Deposition of currents in rz geometry
-                       # 0 : Standard, 1 : Verboncoeur, 2 : Davoine
-l_getrho = True        # Wether to calculate the density
-l_pushf = False        # Use a Marder-type correction for charge conservation
-top.lrelativ       = true           # on/off relativity (for particles push)
-top.pgroup.lebcancel_pusher=true    # flag for particle pusher
+# --------------------
+# Field solver (0:Yee, 1:Karkkainen on EF,B, 3:Lehe)
+stencil = 0
+# Particle shape (1:linear, 2:quadratic, 3:cubic)
+depos_order = 1
+# Gathering mode (1:from cell centers, 4:from Yee mesh)
+efetch = 1
+# Particle pusher (0:Boris, 1:Vay)
+particle_pusher = 1
 
-# Boosted frame
-gammafrm           = 1.
-betafrm            = sqrt(1.-1./gammafrm**2)
-if gammafrm>1.: # turns ON plasma ions if in boosted frame
-    l_ions = 1
-    l_moving_window = 1
+# Current smoothing parameters
+# ----------------------------
+# Turn current smoothing on or off (0:off; 1:on)
+use_smooth = 1
+# Number of passes of smoother and compensator in each direction (x, y, z)
+npass_smooth = array([[ 0 , 0 ], [ 0 , 0 ], [ 1 , 1 ]])
+# Smoothing coefficients in each direction (x, y, z)
+alpha_smooth = array([[ 0.5, 3.], [ 0.5, 3.], [0.5, 3./2]])
+# Stride in each direction (x, y, z)
+stride_smooth = array([[ 1 , 1 ], [ 1 , 1 ], [ 1 , 1 ]])
 
-#-------------------------------------------------------------------------------
-# Main laser and parameters parameters
-# (The laser and plasma profile come later.)
-#-------------------------------------------------------------------------------
+# Laser parameters
+# ----------------
+# Initialize laser (0:off, 1:on)
+use_laser = 1
+# Position of the antenna (meters)
+laser_source_z = 0.e-6
+# Polarization angle with respect to the x axis (rad)
+laser_polangle = pi/2
 
-# Plasma
-dfact             = 1.             # Very low density ; almost vacuum
-dens0lab          = {{electronPlasma_density}} # plasma density (in m^-3)
-length_pramp_lab  = {{electronPlasma_entranceRampLength}} # plasma entrance ramp length
-length_pramp_exit_lab = {{electronPlasma_exitRampLength}} # plasma exit ramp length
-Lplasma_lab       = {{electronPlasma_length}} # plasma length (in m)
+# Laser file:
+# When using a laser profile that was experimentally
+# measured, provide a string with the path to an HDF5 laser file,
+# otherwise provide None and a Gaussian pulse will be initialized
+laser_file = None
+laser_file_energy = 2. # When using a laser file, energy in Joule of the pulse
 
-# Laser
-lambda_laser_lab   = {{laserPulse_wavelength}}     # wavelength
-a0                 = {{laserPulse_amplitude}}      # normalized potential vector (amplitude)
-laser_polangle     = {{laserPulse_polarizationAngle}} # polarization (0=aligned with x;
-                                # pi/2=aligned with y)
-KP_L               = {{laserPulse_length}}        # normalized length -
-                                # standard gaussian form P=P0*exp(-2xi^2/L^2)
-KP_SIGMA           = {{laserPulse_spotSize}}      # normalized transverse spot size -
-                                # standard gaussian form I=I0*exp(-2r^2/SIGMA^2)
-#-------------------------------------------------------------------------------
-# Laser and plasma properties, derived from the input parameters
-# ****** nothing to change : derived quantities *******
-#-------------------------------------------------------------------------------
+# Gaussian pulse:
+# Laser amplitude at focus
+laser_a0 = 1.
+# Waist at focus (meters)
+laser_w0 = 4.e-6
+# Length of the pulse (length from the peak to 1/e of the amplitude ; meters)
+laser_ctau = 3.e-6
+# Initial position of the centroid (meters)
+laser_z0 = -2 * laser_ctau
+# Focal position
+laser_zfoc = 4.5e-05
 
-# -- in lab frame
-# Plasma properties
-wplab             = sqrt(dens0lab*echarge**2/(eps0*emass)) # plasma frequency
-kplab             = wplab/clight                           # plasma wavenumber
-lambda_plasma_lab = 2.*pi/kplab                            # plasma wavelength
-# Laser properties
-laser_waist        = {{laserPulse_waist}}    # Waist
-laser_duration_lab = {{laserPulse_duration}} # Temporal waist
-laser_total_duration_lab = 4*laser_duration_lab
-laser_total_length_lab = laser_total_duration_lab*clight
-k0lab              = 2.*pi/lambda_laser_lab
-w0lab              = k0lab*clight
-ZR                 = 0.5*k0lab*(laser_waist**2)   # Rayleigh length
-# Propagation properties
-K                   = k0lab/kplab
-Ld=LINEAR_DEPHASING = 0.5*lambda_plasma_lab**3/lambda_laser_lab**2
-BETAG_LINEAR_LAB    = sqrt(1-(1./K)*(1./K))
-GAMMAG_LINEAR_LAB   = 1./sqrt(1-BETAG_LINEAR_LAB*BETAG_LINEAR_LAB)
-densc               = emass*eps0*w0lab**2/echarge**2  # critical density
+# Plasma macroparticles
+# ---------------------
+# Initialize some preexisting plasmas electrons (0:off, 1:on)
+# (Can be used in order to neutralize pre-ionized ions, if any,
+# or in order to simulate a plasma without having to initialize ions)
+use_preexisting_electrons = 1
+# Initialize plasma ions (0:off, 1:on)
+use_ions = 1
+# Number of macroparticles per cell in each direction
+# In Circ, nppcelly is the number of particles along the
+# azimuthal direction. Use a multiple of 4*circ_m
+plasma_nx = 2
+plasma_ny = 4
+plasma_nz = 2
 
-# --- in boosted frame
-# Plasma properties
-dens0             = dens0lab*gammafrm                      # plasma density
-length_pramp      = length_pramp_lab/gammafrm              # plasma ramp length
-length_pramp_exit = length_pramp_exit_lab/gammafrm         # plasma ramp length
-Lplasma           = Lplasma_lab/gammafrm                   # plasma length
-kp                  = kplab*(gammafrm*(1.-BETAG_LINEAR_LAB*betafrm))
-lambda_plasma       = 2.*pi/kp
-# Laser properties
-lambda_laser       = lambda_laser_lab*gammafrm*(1.+betafrm)   # wavelength
-laser_duration     = laser_duration_lab*gammafrm*(1.+betafrm)
-laser_total_duration=4.*laser_duration
-k0                 = 2.*pi/lambda_laser
-w0                 = k0*clight
-Eamp               = a0*w0*emass*clight/echarge
-Bamp               = Eamp/clight
-if l_laser==0:Eamp=Bamp=0.
-# Propagation properties
-BETAG_LINEAR        = (BETAG_LINEAR_LAB-betafrm)/(1.-BETAG_LINEAR_LAB*betafrm)
-GAMMAG_LINEAR       = 1./sqrt(1-BETAG_LINEAR*BETAG_LINEAR)
+# Plasma content and profile
+# --------------------------
+# Reference plasma density (in number of particles per m^3)
+n_plasma = 2.5e25
+# Relative density of the preexisting electrons (relative to n_plasma)
+rel_dens_preexisting_electrons = 1.
+# The different elements used. (Only used if use_ions is different than 0.)
+# relative_density is the density relative to n_plasma.
+# q_start is the ionization state of the ions at the beginning of the simulation
+# q_max is the maximum ionization state
+# If q_start is not equal to q_max, ionization between states will be computed.
+ion_states = { 'Hydrogen': {'relative_density':1., 'q_start':1, 'q_max':1 },
+                 'Helium': {'relative_density':0.25, 'q_start':0, 'q_max':2 } }
+# Positions between which the plasma is initialized
+# (Transversally, the plasma is initialized between -plasma_xmax and
+# plasma_xmax, along x, and -plasma_ymax and plasma_ymax along y)
+plasma_zmin = 1.e-6
+plasma_zmax = 1500.e-6
+plasma_xmax = xmax
+plasma_ymax = ymax
 
-# print some plasma parameters to the screen
-print("the laser group velocity is: ")
-print( BETAG_LINEAR*clight)
-print("the laser spot size is: ")
-print( laser_waist)
-print("the Rayleigh length is: ")
-print( ZR)
-print("the laser wavelength is: ")
-print( lambda_laser)
-print("the plasma wavelength is: ")
-print( lambda_plasma)
-print("the plasma length is: ")
-print( Lplasma)
-
-#-------------------------------------------------------------------------------
-# Time and dump/plot_intervals
-#-------------------------------------------------------------------------------
-tmax = Lplasma / clight
-
-# Dumps/plots
-dump_intervals = tmax/20
-beamdump_intervals = tmax/10
-plot_intervals = tmax/10
-
-#-------------------------------------------------------------------------------
-# Grid and macroparticles
-#-------------------------------------------------------------------------------
-
-# Grid dimensions
-w3d.xmmax = {{simulationGrid_rMax}}
-w3d.xmmin = {{simulationGrid_rMin}}
-w3d.ymmax = w3d.xmmax
-w3d.ymmin = -w3d.ymmax
-w3d.zmmin = {{simulationGrid_zMin}}
-w3d.zmmax = {{simulationGrid_zMax}}
-# Verification of the input parameters
-if dim == "1d" :
-    w3d.xmmin = -1.
-    w3d.xmmax = 1.
-if dim in [ "1d", "2d" ] :
-    w3d.ymmin = -1.
-    w3d.ymmax = 1.
-if dim == "2d" and l_circ == 1 :
-    # In the azimuthal decomposition, fix the lower bound to 0
-    w3d.xmmin = 0.
-
-# Number of grid points
-w3d.nx = {{simulationGrid_rCount}} # transverse
-w3d.ny = 300            # transverse
-w3d.nz = {{simulationGrid_zCount}} # total
-# Verification of the input parameters
-if dim == "1d" : w3d.nx = w3d.ny = 2
-if dim == "2d" : w3d.ny = 2
-
-# Number of plasma macro-particles/cell
-nppcellx = {{simulationGrid_rParticlesPerCell}}
-nppcelly = 1
-nppcellz = {{simulationGrid_zParticlesPerCell}}
-# Vefification of the input parameters
-if dim=="2d" and circ_m > 0 : nppcelly = 4*circ_m
-  #  In the case with azimuthal decomposition, nppcelly represents the
-  #  number values of theta that are sampled.
-if dim=="2d" and circ_m == 0 : nppcelly = 1
-if dim=="1d": nppcellx = nppcelly = 1
-
-# Grid spacing : derived quantities, nothing to change
-w3d.dx = (w3d.xmmax-w3d.xmmin)/w3d.nx
-w3d.dy = (w3d.ymmax-w3d.ymmin)/w3d.ny
-w3d.dz = (w3d.zmmax-w3d.zmmin)/w3d.nz
-
-#-------------------------------------------------------------------------------
-# Boundary conditions
-#-------------------------------------------------------------------------------
-
-# Boundary conditions for the fields
-w3d.bound0  = w3d.boundnz = -1 # reflective
-w3d.boundxy = -1   # reflective transverse BC
-
-# Boundary conditions for the particles
-top.pboundxy = reflect
-top.pbound0  = absorb
-top.pboundnz = absorb
-# Verification of the input parameters
-if dim=="1d":
-    w3d.boundxy = periodic
-    top.pboundxy = periodic
-
-#-------------------------------------------------------------------------------
-# Set smoothing of current density
-#-------------------------------------------------------------------------------
-if l_smooth:
-    # --- 1 time nilinear (0.25,0.5,0.25) + 1 time relocalization (-1, 3/2,-1.)
-    npass_smooth = [[ 0 , 0 ],[ 0 , 0 ],[ 0 , 0 ]]
-    alpha_smooth = [[ 0.5, 3.],[ 0.5, 3.],[0.5, 3./2]]
-    stride_smooth = [[ 1 , 1 ],[ 1 , 1 ],[ 1 , 1 ]]
-    if dim=='1d':
-        for i in range(len(npass_smooth[0])):
-            npass_smooth[0][i]=0
-    if dim in ['1d','2d']:
-        for i in range(len(npass_smooth[0])):
-            npass_smooth[1][i]=0
-else:
-    npass_smooth = [[ 0 ],[ 0 ],[ 0 ]]
-    alpha_smooth = [[ 1.],[ 1.],[ 1.]]
-    stride_smooth = [[ 1 ],[ 1 ],[ 1 ]]
-
-#-------------------------------------------------------------------------------
-# Plasma profile
-#-------------------------------------------------------------------------------
-
-def plasma_trans_profile(r):
+# Define your own profile and profile parameters below
+ramp_start = 0.e-6
+ramp_length = 20.e-6
+ramp_plateau = 20.e-6
+def plasma_dens_func( x, y, z ):
     """
-    Calculate the density corresponding to the transverse plasma profile.
-    Here : uniform transverse profile.
+    User-defined function: density profile of the plasma
 
-    Parameter :
-    -----------
-    r : ndarray
-    An array contains the values of the radii at which to calculate the density
+    It should return the relative density with respect to n_plasma,
+    at the position x, y, z (i.e. return a number between 0 and 1)
 
-    Returns :
-    ---------
-    An ndarray with the same shape as r, which contains the normalized density.
-    (A value of 1 corresponds to the nominal density dens0.)
+    Parameters
+    ----------
+    x, y, z: 1darrays of floats
+        Arrays with one element per macroparticle
+    Returns
+    -------
+    n : 1d array of floats
+        Array of relative density, with one element per macroparticles
     """
-    wp = ones(shape(r)[0])
-    return wp
+    # Allocate relative density
+    n = ones_like(z)
+    # Make linear ramp
+    n = where( z<ramp_start+ramp_length, (z-ramp_start)/ramp_length, n )
+    # Supress density before the ramp
+    n = where( z<ramp_start, 0., n )
+    # Reduce density by half after the ramp
+    n = where( z> ramp_start+ramp_length+ramp_plateau, 0.5*n, n )
+    # Put the density to 0 later
+    n = where( z> ramp_start+ramp_length+2*ramp_plateau, 0., n )
 
-def plasma_long_profile(wp0,z):
+    return(n)
+
+# Relativistic beam
+# -----------------
+# Initialize beam electrons (0:off, 1:on)
+# (Please be aware that initializing a beam in 2D geometry makes very little
+# physical sense, because of the long range of its space-charge fields)
+use_beam = 0
+# Longitudinal momentum of the beam
+beam_uz = 100.
+# Beam density
+n_beam = 1.e26
+# Number of macroparticles per cell in each direction
+beam_nx = 2*plasma_nx
+beam_ny = 2*plasma_ny
+beam_nz = 2*plasma_nz
+# Positions between which the beam is initialized
+# (Transversally, the plasma is initialized between -plasma_xmax and
+# plasma_xmax, along x, and -plasma_ymax and plasma_ymax along y)
+beam_zmin = -12.e-6
+beam_zmax = -10.e-6
+beam_xmax = 3.e-6
+beam_ymax = 3.e-6
+
+# Define your own profile and profile parameters below
+beam_rmax = beam_xmax
+def beam_dens_func(x, y, z):
     """
-    Modulates the values of wp0, according to the longitudinal plasma profile.
-    Here : Upramp followed by a plateau, followed by a downramp
+    User-defined function: density profile of the beam
 
-    Parameters :
-    -----------
-    wp0 : ndarray
-    An array containing the normalized density calculated from the transverse
-    profile (typically returned by plasma_trans_profile).
+    It should return the relative density with respect to n_beam,
+    at the position x, y, z (i.e. return a number between 0 and 1)
 
-    z : ndarray
-    An array with the same shape as wp0, which contains the longitudinal
-    positions at which to calculate the normalized density.
-
-    Returns :
-    ---------
-    An ndarray with the same shape as wp0, which contains the normalized density
-    (A value of 1 corresponds to the nominal density dens0.)
+    Parameters
+    ----------
+    x, y, z: 1darrays of floats
+        Arrays with one element per macroparticle
+    Returns
+    -------
+    n : 1d array of floats
+        Array of relative density, with one element per macroparticles
     """
-    # The plasma density rises as half sin.
-    wp = where(z<length_pramp,0.,wp0)
-    # The plasma density falls as half sin
-    wp = where(z>Lplasma-length_pramp_exit,
-               sin(0.5*pi*(Lplasma-z)/length_pramp_exit)*wp,wp)
-    return wp
+    # Allocate relative density
+    n = ones_like(z)
+    # Longitudinal profile: parabolic
+    n = n*(z - beam_zmin)*(beam_zmax - z) * 4/(beam_zmax - beam_zmin)**2
+    # Transverse profile: parabolic
+    r = sqrt( x**2 + y**2)
+    n = n*(1 - (r/beam_rmax)**2 )
+    # Put the density above rmax to 0
+    n[r > beam_rmax] = 0.
 
-#-------------------------------------------------------------------------------
-# Laser profile
-#-------------------------------------------------------------------------------
+    return(n)
 
-def laser_amplitude(time):
-    """
-    Longitudinal profile of the laser
-    Here : defined as a Gaussian I=I0*exp(-2*t^2/tau^2)
-    """
-    global laser_total_length,Eamp,laser_duration
-    t0 = 0.5*laser_total_duration
-    tau = laser_duration
-    return Eamp*exp(-((time-t0)/tau)**2)
+# -----------------------------------------------------------------------------
+# Initialization of the simulation (Normal users should not modify this part.)
+# -----------------------------------------------------------------------------
 
-def laser_profile(x,y):
-    """
-    Transverse profile of the laser
-    Here : defined as a Gaussian P=P0*exp(-2*r^2/w^2)
-    """
-    global laser_waist
-    r2 = x**2 + y**2
-    w = laser_waist
-    return exp(-r2/w**2)
+# Set some general options for warp
+set_diagnostics( interactive )
+set_boundary_conditions( f_boundz, f_boundxy, p_boundz, p_boundxy )
+set_simulation_box( Nz, Nx, Ny, zmin, zmax, xmax, ymax, dim )
+set_moving_window( use_moving_window, v_moving_window )
 
-# Combine the above information to form the laser profile
-if l_laser :
-    laser_source_z=0.
-    def laser_func(x,y,t):
-        """
-        Set laser amplitude by combining the pulse shape,
-        laser profile, and laser phase.
-        """
-        global laser_amplitude,laser_phase,laser_profile
-        return laser_amplitude(t)*cos(k0*clight*t)*laser_profile(x,y)
-else:
-    laser_func=laser_source_z=Eamp=None
+# See smoothing.py
+set_smoothing_parameters( use_smooth, dim, npass_smooth,
+                         alpha_smooth, stride_smooth )
 
-#-------------------------------------------------------------------------------
-# E-beam
-#-------------------------------------------------------------------------------
-# --- in lab frame
-E_BEAM_GAMMA      = GAMMAG_LINEAR_LAB*1.5
-E_BEAM_ENERGY_MEV = 0.511*(E_BEAM_GAMMA-1.)
-E_BEAM_BETA       = sqrt(1.- 1./(E_BEAM_GAMMA*E_BEAM_GAMMA))
-E_BEAM_U          = E_BEAM_GAMMA * E_BEAM_BETA
-E_BEAM_RADIUS     = 0.825e-6/sqrt(dfact)
-E_BEAM_LENGTH     = 0.85e-6/sqrt(dfact)
+# Creation of the species
+# -----------------------
 
-# --- transverse spread (RMS Gaussian)
-GAMMAVXSIGMA = 0.
-GAMMAVYSIGMA = 0.
-# --- longitudinal spread (RMS Gaussian)
-GAMMAVZSIGMA = 0.
+elec = None
+ions = None
+elec_from_ions = None
+beam = None
+# Create the plasma species
+# Reference weight for plasma species
+plasma_weight = prepare_weights( n_plasma, plasma_nx, plasma_ny,
+                            plasma_nz, dim, circ_m )
+if use_preexisting_electrons:
+    elec_weight = rel_dens_preexisting_electrons * plasma_weight
+    elec = Species(type=Electron, weight=elec_weight, name='electrons')
+if use_ions:
+    ions, elec_from_ions = initialize_ion_dict( ion_states, plasma_weight,
+                                                group_elec_by_element=True )
+# Create the beam
+if use_beam:
+    beam_weight = prepare_weights( n_beam, beam_nx, beam_ny,
+                                   beam_nz, dim, circ_m )
+    beam = Species(type=Electron, weight=beam_weight, name='beam')
+# Set the numerical parameters only now: they affect the newly created species
+set_numerics( depos_order, efetch, particle_pusher, dim)
 
-E_BEAM_DENSITY_PEAK = 1.0e10
-E_BEAM_PHASE        = 5.*pi/4.
-E_BEAM_DISTANCE_BEHIND_LASER = E_BEAM_PHASE/kplab
-
-################################################################################
-######################### END OF THE INPUT PARAMETERS ##########################
-##########################     NOW INITIALIZE WARP   ###########################
-################################################################################
-
-#-------------------------------------------------------------------------------
-# Initialize the diagnostics
-# ------------------------------------------------------------------------------
-if l_gist and l_test:
-    setup()
-    winon(0)
-else:
-    setup()
-
-# --- load diagnostics
-#execfile('generic_diags.py')
-#installafterstep(write_fields)
-#installafterstep(write_ptcl)
-#if nzfieldstations>0:installafterstep(updateebstations)
-
-def pldens():
-    """
-    Plot the longitudinal and transverse plasma profile, as given
-    by plasma_long_profile and plasma_trans_profile.
-    """
-    nz = 1000
-    za = arange(-0.,Lplasma,(Lplasma)/nz)
-    wp = ones(shape(za)[0])
-    for i,z in enumerate(za.tolist()):
-        wp[i] = plasma_long_profile(1.,z)
-    plsys(9)
-    pla(wp,za*gammafrm*1000,width=3,color=red)
-    limits(0,za[-1]*gammafrm*1000,0,1.1)
-    ptitles('longitudinal density profile','z (mm)','')
-    plsys(10)
-    r = arange(0,w3d.xmmax,w3d.xmmax/nz)
-    wp = plasma_trans_profile(r)
-    pla(wp,r*1.e6,width=3,color=red)
-    limits(0,w3d.xmmax*1.e6,0,1.1*max(wp))
-    ptitles('radial density profile','r (microns)','')
-
-def liveplots():
-    """
-    Plot snapshots of different quantities in the simulation every
-    live_plot_freq, and shows them in a pygist window, as the simulation runs.
-    This function can be plugged in Warp through installafterstep.
-    """
-    # Refresh the plots at every live_plot_freq
-    if top.it%live_plot_freq==0 :
-        fma()
-
-        if dim=="1d": # 1D simulation
-
-            # Plot Ex (upper left : view=3)
-            pzxex( view=3, msize=2, titles=0, gridscale=1.e-12 )
-            ptitles('Ex [TV/m]','z [um]')
-            # Plot n/n0 (upper right : plsys(4))
-            density=elec.get_density()
-            plsys(4)
-            pla(density)
-            ptitles('n/n0','z [um]','X [um]')
-            # Plot Ez (lower left : view=5)
-            pzxez( view=5, msize=2, titles=0, gridscale=1.e-9 )
-            ptitles('Ez [V/m]','z [um]')
-            # Plot the energy distribution of the beam (lower right : view=6)
-            plke(view=6)
-
-        elif l_circ == 0 : # 2D and 3D without azimuthal decomposition
-
-            # Plot Ex (upper left : view=3)
-            pzxex( view=3, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12)
-            ptitles('Ex [TV/m]','z [um]','X [um]')
-            # Plot n/n0 (upper right : view=4)
-            density=elec.get_density()
-            if density.ndim == 3 :  # In 3D case, take a 2D slice of the array
-                density = density[ :, density.shape[1]/2, : ] # Central slice
-            ppg( transpose(density), view=4, titles=0,
-                xmin=w3d.zmmin+top.zgrid,xmax=w3d.zmmax+top.zgrid,
-                ymin=w3d.xmmin,ymax=w3d.xmmax,
-                xscale=1e6,yscale=1.e6,gridscale=1./dens0)
-            ptitles('n/n0','z [um]','X [um]')
-            # Plot Ez (lower left : view=5)
-            pzxez( view=5, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12)
-            ptitles('Ez [TV/m]','z [um]','X [um]')
-            # Plot the energy distribution of the beam (lower right : view=6)
-            plke(view=6)
-
-        elif l_circ == 1 : # 2D with azimuthal decomposition
-
-            # Plot Ex (upper left : view=3)
-            em.pfjx( view=3, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12, direction=-1,
-                   theta_plot=0.7)
-            ptitles('Jx','z [um]','X [um]')
-            # Plot n/n0 (upper right : view=4)
-            em.pfrho( view=4, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12, direction=-1,
-                   theta_plot=0.7)
-            ptitles('Rho','z [um]','X [um]')
-            # Plot Ez (lower left : view=5)
-            em.pfez( view=5, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12, direction=-1,
-                   theta_plot=0.7)
-            ptitles('Ez [TV/m]','z [um]','X [um]')
-            # Plot Ex (lower right : view=6)
-            em.pfex( view=6, msize=2, titles=0, xscale=1e6,
-                   yscale=1.e6, gridscale=1.e-12, direction=-1,
-                   theta_plot=0.7)
-            ptitles('Ex [TV/m]','z [um]','X [um]')
-
-        refresh()
-
-installafterstep(liveplots)
-
-# ------------------------------------------------------------------------------
-# Initialize solver
-# ------------------------------------------------------------------------------
-
-# Modify geometry if needed
-if l_circ == 1 : w3d.solvergeom=w3d.RZgeom
-
-# Sets field solver to None (desactivates electrostatic solver)
-top.fstype = -1
-package('w3d');generate()
-
-# Define the new solver
-em = EM3D(       laser_func=laser_func,
-                 laser_source_z=laser_source_z,
-                 laser_source_v=-betafrm*clight,
-                 laser_polangle=laser_polangle,
-                 laser_mode=2,
-                 laser_emax=Eamp,
-                 stencil=stencil,
-                 l_pushf = l_pushf,
-                 npass_smooth=npass_smooth,
-                 alpha_smooth=alpha_smooth,
-                 stride_smooth=stride_smooth,
-                 l_2dxz= (dim=="2d"),
-                 l_2drz= ( dim=="2d" and l_circ==1),
-                 l_1dz= ( dim=="1d" ),
-                 l_getrho = l_getrho,
-                 type_rz_depose = type_rz_depose,
-                 laser_depos_order_x = 1,
-                 laser_depos_order_y = 1,
-                 laser_depos_order_z = 1,
-                 circ_m = circ_m,
-                 dtcoef=dtcoef,
-                 l_verbose=l_verbose)
-# register solver
-print( 'register solver')
+# Setup the field solver object
+# -----------------------------
+em = EM3D(
+    stencil=stencil,
+    npass_smooth=npass_smooth,
+    alpha_smooth=alpha_smooth,
+    stride_smooth=stride_smooth,
+    l_2dxz= (dim in ["2d", "circ"]),
+    l_2drz= (dim in ["circ"]),
+    l_1dz = (dim =="1d" ),
+    l_getrho=True,
+    circ_m = (dim =="circ")*circ_m,
+    type_rz_depose=1 )
 registersolver(em)
-print( 'done')
 
-#-------------------------------------------------------------------------------
-# Set moving window velocity
-#-------------------------------------------------------------------------------
-if l_moving_window:
-    # Numerical dispersion formula
-    top.vbeamfrm = clight*( 1 - 1./(1+w3d.dx**2/w3d.dz**2)*(pi*w3d.dz/lambda_laser)**2 )
-    # BETAG_LINEAR*clight
+# Introduce the laser
+# -------------------
+if use_laser==1:
+    add_laser( em, dim, laser_a0, laser_w0, laser_ctau, laser_z0,
+        zf=laser_zfoc, theta_pol=laser_polangle, source_z=laser_source_z,
+        laser_file=laser_file, laser_file_energy=laser_file_energy )
 
-#-------------------------------------------------------------------------------
-# Initialize the particles
-#-------------------------------------------------------------------------------
+# Introduce the beam
+# ------------------
+# Load the beam
+if use_beam:
+    PlasmaInjector( beam, None, w3d, top, dim, beam_nx, beam_ny, beam_nz,
+                beam_zmin, beam_zmax, beam_xmax, beam_ymax,
+                dens_func = beam_dens_func, uz_m=beam_uz )
+    initialize_beam_fields( em, dim, beam, w3d, top )
 
-# Determine the nominal weight of the macroparticles
-if l_circ == 1 : # Azimuthal decomposition
-    # Weight at maximum radius ; nppcelly represents the number of theta values
-    # The actual weight of the macroparticles is later determined by their radii
-    weight     = dens0*2*pi*w3d.xmmax*w3d.dx*w3d.dz/(nppcellx*nppcelly*nppcellz)
-else :
-    weight     = dens0*w3d.dx*w3d.dy*w3d.dz/(nppcellx*nppcelly*nppcellz)
-top.wpid = nextpid() # Activate variable weights in the method addpart
+# Introduce the plasma
+# --------------------
+# Create an object to store the information about plasma injection
+plasma_injector = PlasmaInjector( elec, ions, w3d, top, dim,
+        plasma_nx, plasma_ny, plasma_nz, plasma_zmin,
+        plasma_zmax, plasma_xmax, plasma_ymax, plasma_dens_func )
+# Continuously inject the plasma, if the moving window is on
+if use_moving_window :
+    installuserinjection( plasma_injector.continuous_injection )
 
-# Create species
-elec = Species(type=Electron,weight=weight)
-if l_ions : ions = Species(type=Proton,charge_state=1,weight=weight)
-
-# Order of deposition and gathering
-# Set deposition order of all species = those of species 0
-top.depos_order[...] = top.depos_order[0,0]
-top.efetch[...] = top.efetch[0] # same for field gathering
-if dim in ["1d","2d"]:
-    top.depos_order[1,:]=1
-if dim=="1d":
-    top.depos_order[0,:]=1
-
-# Set initial positions and weights (here for a slice of particles)
-zpos = zstart0 = 0.
-dx = w3d.dx/nppcellx
-dy = w3d.dy/nppcelly
-dz = w3d.dz/nppcellz
-nx = nppcellx*w3d.nx
-ny = nppcelly*w3d.ny
-nz = nppcellz
-
-# Create particle position array
-if dim == "1d" : # 1D
-    xp0,zp0 = getmesh2d(0.,dx,0,dz/2,dz,nz-1)
-    yp0 = xp0*0.
-elif (dim == "2d" and l_circ==0 ) : # 2D without azimuthal decomposition
-    xp0, zp0 = getmesh2d(w3d.xmmin+dx/2,dx,nx-1,-w3d.dz+dz/2,dz,nz-1)
-    yp0 = xp0*0.
-elif (dim == "2d" and l_circ==1 ) : # 2D with azimuthal decomposition
-    rp0, zp0, thetap0 = getmesh3d( w3d.xmmin+dx/2, dx, nx-1,
-                                  -w3d.dz+dz/2, dz, nz-1,
-                                   0., 2*pi/nppcelly, nppcelly-1 )
-    # The particles are distributed only at certain values of theta
-    # If this can lead to artifacts, add a random shit in theta, but keep the
-    # same shift for all the nppcelly particles that are located at the same r
-    # and z and are equally spaced in theta (this ensures zero contribution
-    # to the azimuthal modes, initially)
-    if l_theta_rand == 1 :
-        for ix in range(nx) :
-            for iz in range(nz) :
-                theta_shift = 2*pi*random.rand()
-                thetap0[ix,iz,:] = thetap0[ix,iz,:] + theta_shift
-    xp0 = rp0*cos( thetap0 )
-    yp0 = rp0*sin( thetap0 )
-else :   # 3D
-    xp0,yp0,zp0 = getmesh3d(w3d.xmmin+dx/2,dx,nx-1,
-                         w3d.ymmin+dy/2,dy,ny-1,
-                         -w3d.dz+dz/2,dz,nz-1)
-# Transform to 1D arrays
-xp0=xp0.flatten()
-yp0=yp0.flatten()
-zp0=zp0.flatten()
-zp0-=minnd(zp0) # ensures that zp0 starts at 0
-
-# --- select particles within computational box of local processor
-if l_circ == 0 : # Cartesian
-    rp0=sqrt(xp0**2+yp0**2)
-    ii=compress( (xp0>=w3d.xmminlocal) & (xp0<w3d.xmmaxlocal) & \
-                (yp0>=w3d.ymminlocal) & (yp0<w3d.ymmaxlocal), arange(len(xp0)) )
-else :           # Cylindrical
-    rp0 = rp0.flatten()
-    ii=compress((rp0>=w3d.xmminlocal) & (rp0<w3d.xmmaxlocal), arange(len(rp0)) )
-xp0=take(xp0,ii)
-yp0=take(yp0,ii)
-zp0=take(zp0,ii)
-rp0=take(rp0,ii)
-
-# Shape the weight of the particles proportionally to the transverse density
-wp0 = plasma_trans_profile(rp0)
-
-if l_circ != 0 :
-# In the cylindrical case, modulate the weight according to the radius
-# (The macroparticles that are far from the axis represent more electrons)
-    wp0 = wp0*rp0 / w3d.xmmax
-    # (Here, the radius is divided by the maximal radius w3d.xmmax, since the
-    # nominal weight corresponds to that maximal radius.)
-
-# --- defines subroutine injecting plasma
-def loadelec():
-    """
-    Add new macroparticles in the simulation.
-
-    The macroparticles are added along a transverse slice, which moves at
-    the speed of the moving window. For moving-window simulations, this
-    function can be plugged in Warp, with installuserinjection, in order to
-    continuously inject electrons into the box.
-    """
-    global zstart0,zpos,xp0,yp0,zp0,wp0,l_moving_window
-    while(zpos>=zstart0 and (zpos+betafrm*clight*top.time<Lplasma)):
-        z0 = zstart0+zp0
-        zi = z0+betafrm*clight*top.time
-        # Imprint the longitudinal profile on wp0
-        wp = plasma_long_profile(wp0,zi)
-        # --- sets velocity
-        vx = 0.
-        vy = 0.
-        vz = -betafrm*clight
-        # --- sets positions
-        x = xp0.copy()
-        y = yp0.copy()
-        z = z0.copy()
-        # --- inject electrons
-        if allclose(wp,0.) == False :
-            elec.addpart(x=x,y=y,z=z,vx=vx,vy=vy,vz=vz,w=wp,lallindomain=false)
-            # --- inject ions at same locations
-            if l_ions:
-                ions.addpart(x=x,y=y,z=z,vx=vx,vy=vy,vz=vz,w=wp,lallindomain=false)
-        ladd=1
-        zstart0 += w3d.dz
-    if l_moving_window:
-        zpos += top.vbeamfrm*top.dt
-    zstart0-=betafrm*clight*top.dt
-
-if l_plasma: installuserinjection(loadelec)
-
-#-------------------------------------------------------------------------------
-# Restart from dump file
-#-------------------------------------------------------------------------------
-if l_restart:
-    restore(dump_file)
-
-#-------------------------------------------------------------------------------
-# Initialize e- beam
-#-------------------------------------------------------------------------------
-weightbeam = 0. # needs to be fixed
-if l_beam:
-    beam = Species(type=Electron,weight=weightbeam)
-    # --- add beam particles
-    np_beam = 4000
-    top.vbeam = E_BEAM_BETA*clight
-    if me==0: # --- do only if processor 0
-        if np_beam==1:
-        # --- loads single test electron
-            beam.addpart(x=array([0.]),
-                         y=array([0.]),
-                         z=array([0.]),
-                         vx=array([0.]),
-                         vy=array([0.]),
-                         vz=array([E_BEAM_GAMMA*E_BEAM_BETA*clight]),
-                         gi=array([1./E_BEAM_GAMMA]),
-                                 lmomentum=True,
-                                 lallindomain=True)
-        else:
-            # --- loads e- beam
-            if l_usesavedist:
-                # --- loads distribution from file
-                try:
-                    ff=PR.PR(savedist+'.pdb')
-                except:
-                    ff=PR.PR(savedist+'.pyp')
-                ux = ff.xp[::svstride]*GAMMAVXSIGMA
-                uy = ff.yp[::svstride]*GAMMAVYSIGMA
-                uz = ff.dp[::svstride]*GAMMAVZSIGMA+E_BEAM_GAMMA*E_BEAM_BETA*clight
-                gi = 1./sqrt(1.+(ux**2+uy**2+uz**2)/clight**2)
-                beam.addpart(ff.x[::svstride]*E_BEAM_RADIUS*2,
-                             ff.y[::svstride]*E_BEAM_RADIUS*2,
-                             ff.z[::svstride]*E_BEAM_LENGTH,
-                             ux,uy,uz,gi=gi,
-                             lmomentum=True,
-                             lallindomain=True)
-            else:
-                # --- loads gaussian electron beam
-                beam.add_gaussian_dist(np=np_beam,
-                                       deltax=E_BEAM_RADIUS*2*1,
-                                       deltay=E_BEAM_RADIUS*2*1,
-                                       deltaz=E_BEAM_LENGTH,
-                                       vthx=GAMMAVXSIGMA*1,
-                                       vthy=GAMMAVYSIGMA*1,
-                                       vthz=GAMMAVZSIGMA,
-                                       zmean=0.,
-                                       vzmean=E_BEAM_GAMMA*E_BEAM_BETA*clight,
-                                       lmomentum=True,
-                                       lallindomain=True,
-                                       zdist='regular')
-    np_beam = beam.getn()
-    # --- sets e- beam macro-particles weight
-    if dim=="1d":
-        beam.sw = (E_BEAM_DENSITY_PEAK*((E_BEAM_RADIUS*2)*w3d.dx*w3d.dy*E_BEAM_LENGTH*(2.*pi)))/np_beam
-    if dim=="2d":
-        beam.sw = (E_BEAM_DENSITY_PEAK*((E_BEAM_RADIUS*2)*w3d.dy*E_BEAM_LENGTH*(2.*pi)))/np_beam
-    if dim=="3d":
-        beam.sw = (E_BEAM_DENSITY_PEAK*((E_BEAM_RADIUS*2)**2*E_BEAM_LENGTH*(2.*pi)*1.5))/np_beam
-    # --- install e- beam diagnostic routine
-    if sum(pg.nps)>0:
-        # --- set beam position in lab frame
-        pg.zp += zstart0-E_BEAM_DISTANCE_BEHIND_LASER-0.5*laser_total_length_lab
-    # --- transform particle positions and velocity to boosted frame
-    bf=Boosted_Frame(gammafrm,l_setselfb=0)
-    zinit = getz().copy()
-    bf.boost(beam,l_inject_plane=l_injectplane,lallindomain=1,l_rmzmean=0,zinject=-5.*w3d.dz)
-    particleboundaries3d(top.pgroup,-1,False)
-
-
-# Load additional OpenPMD diagnostic
-lparallel_openpmd = True
-if lparallel == True :
-    diag_f = FieldDiagnostic( period=50, top=top, w3d=w3d, em=em,
-            comm_world=comm_world, lparallel_output=lparallel_openpmd,
+# Setup the diagnostics
+# ---------------------
+if write_fields == 1:
+    diag1 = FieldDiagnostic( period=diag_period, top=top, w3d=w3d, em=em,
+                comm_world=comm_world, lparallel_output=parallel_output,
+                write_dir={{ outputDir }})
+    installafterstep( diag1.write )
+if write_particles == 1:
+    diag2 = ParticleDiagnostic( period=diag_period, top=top, w3d=w3d,
+            species={ species.name : species for species in listofallspecies },
+            comm_world=comm_world, lparallel_output=parallel_output,
             write_dir={{ outputDir }})
-    diag_p = ParticleDiagnostic( period=50, top=top, w3d=w3d,
-            species = {"electrons" : elec},
-            comm_world=comm_world, lparallel_output=lparallel_openpmd,
-            write_dir={{ outputDir }})
-else :
-    diag_f = FieldDiagnostic( period=50, top=top, w3d=w3d, em=em,
-            write_dir={{ outputDir }})
-    diag_p = ParticleDiagnostic( period=50, top=top, w3d=w3d,
-            species = {"electrons" : elec},
-            write_dir={{ outputDir }})
-installafterstep( diag_f.write )
-installafterstep( diag_p.write )
+    installafterstep( diag2.write )
 
-print( '\nInitialization complete\n')
+print('\nInitialization complete\n')
 
-################################################################################
-###########################  END OF INITIALIZATION   ###########################
-################################################################################
+# -----------------------------------------------------------------------------
+# Simulation loop (Normal users should not modify this part either.)
+# -----------------------------------------------------------------------------

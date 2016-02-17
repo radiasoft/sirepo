@@ -21,9 +21,6 @@ from pykern import pkresource
 from sirepo.template import template_common
 import uti_plot_com
 
-#: How long before killing SRW process
-MAX_SECONDS = 60
-
 WANT_BROWSER_FRAME_CACHE = False
 
 _MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
