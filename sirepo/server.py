@@ -338,12 +338,13 @@ def app_python_source(simulation_type, simulation_id):
     template = _template_for_simulation_type(simulation_type)
     # ensure the whole source gets generated, not up to the last watchpoint report
     last_watchpoint = None
-    for item in reversed(data['models']['beamline']):
-        if item['type'] == 'watch':
-            last_watchpoint = 'watchpointReport{}'.format(item['id'])
-            break
-    if last_watchpoint:
-        data['report'] = last_watchpoint
+    if 'beamline' in data['models']:
+        for item in reversed(data['models']['beamline']):
+            if item['type'] == 'watch':
+                last_watchpoint = 'watchpointReport{}'.format(item['id'])
+                break
+            if last_watchpoint:
+                data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
             template.generate_parameters_file(data, _schema_cache(simulation_type)),

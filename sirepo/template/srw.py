@@ -173,6 +173,8 @@ def fixup_old_data(data):
             if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                 for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
                     del data['models'][k][f]
+    if 'documentationUrl' not in data['models']['simulation']:
+        data['models']['simulation']['documentationUrl'] = ''
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
