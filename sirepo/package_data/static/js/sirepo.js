@@ -329,11 +329,11 @@ app.factory('appState', function($rootScope, requestSender) {
 
     self.saveChanges = function(name) {
         //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
+        var simulationChanged = false;
         if (name != 'simulation' && self.models.simulation.photonEnergy
             && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
-            self.saveQuietly(name);
-            self.saveChanges('simulation');
-            return;
+            self.saveQuietly('simulation');
+            simulationChanged = true;
         }
 
         if (name == 'electronBeam') {
@@ -362,7 +362,7 @@ app.factory('appState', function($rootScope, requestSender) {
             return;
         }
         broadcastChanged(name);
-        if (! self.isReportModelName(name))
+        if (! self.isReportModelName(name) || simulationChanged)
             updateReports();
     };
 
