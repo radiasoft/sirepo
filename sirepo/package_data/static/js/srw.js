@@ -1036,7 +1036,11 @@ app.directive('resetSimulationModal', function(appState, srwService) {
         ].join(''),
         controller: function($scope) {
             $scope.revertToOriginal = function() {
-                $scope.nav.revertToOriginal(srwService.applicationMode);
+                $scope.nav.revertToOriginal(
+                    srwService.applicationMode,
+                    srwService.isApplicationMode('light-sources')
+                        ? appState.models.simulation.facility
+                        : appState.models.simulation.name);
             };
             $scope.simulationName = function() {
                 if (appState.isLoaded())

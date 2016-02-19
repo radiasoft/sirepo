@@ -763,13 +763,13 @@ app.controller('NavController', function (activeSection, appState, requestSender
             .join(' - ');
     };
 
-    self.revertToOriginal = function(applicationMode) {
+    self.revertToOriginal = function(applicationMode, name) {
         if (! appState.isLoaded())
             return;
         var url = requestSender.formatUrl(
             'findByName',
             {
-                '<simulation_name>': encodeURIComponent(appState.models.simulation.name),
+                '<simulation_name>': encodeURIComponent(name),
                 '<simulation_type>': APP_SCHEMA.simulationType,
                 '<application_mode>': applicationMode,
             });
