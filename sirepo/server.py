@@ -296,7 +296,10 @@ def app_import_file(simulation_type):
         from werkzeug import secure_filename
         filename = secure_filename(f.filename)
         imported_file_path = os.path.join('./', filename)
-        f.save(imported_file_path)
+        try:
+            f.save(imported_file_path)
+        except:
+            raise Exception('File <{}> cannot be saved.'.format(filename))
 
         # Here we provide path to mirror_1d.dat .dat file and use it for each element requiring profile as placeholder:
         lib_dir = str(_simulation_lib_dir('srw'))
@@ -314,7 +317,7 @@ def app_import_file(simulation_type):
 
     except Exception as e:
         return flask.jsonify({
-            'error': 'File import failed: {}, {}'.format(e, os.getcwd())
+            'error': 'File import failed: {}'.format(e)
         })
     return _save_new_simulation(simulation_type, data)
 
