@@ -2,15 +2,15 @@ import srwl_bl
 import srwlib
 import srwlpy
 
-srwblParam = srwl_bl.srwl_uti_ext_options([
+srwblParam = [
 
-    ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
+    ['name', 's', 'Undulator Radiation', 'simulation name'],
 
 #---Data Folder
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
-    ['ebm_nm', 's', 'NSLS-II Low Beta Day 1', 'standard electron beam name'],
+    ['ebm_nm', 's', 'NSLS-II Low Beta Final', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', 0.5, 'electron beam current [A]'],
     ['ebm_de', 'f', 0.0, 'electron beam average energy deviation [GeV]'],
@@ -18,11 +18,6 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_y', 'f', 0.0, 'electron beam initial average vertical position [m]'],
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', -1.54, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
-    ['ebm_ens', 'f', -1, ''],
-    ['ebm_emx', 'f', -1, ''],
-    ['ebm_emy', 'f', -1, ''],
-    ['ebm_xp', 'f', 0, ''],
-    ['ebm_yp', 'f', 0, ''],
 
 #---Undulator
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
@@ -36,23 +31,6 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['und_zc', 'f', 0., 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-
-    ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
-    ['gbm_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
-    ['gbm_z', 'f', 0.0, 'average longitudinal coordinate of waist [m]'],
-    ['gbm_xp', 'f', 0.0, 'average horizontal angle at waist [rad]'],
-    ['gbm_yp', 'f', 0.0, 'average verical angle at waist [rad]'],
-    ['gbm_ave', 'f', 9000.0, 'average photon energy [eV]'],
-    ['gbm_pen', 'f', 0.001, 'energy per pulse [J]'],
-    ['gbm_rep', 'f', 1, 'rep. rate [Hz]'],
-    ['gbm_pol', 'f', 1, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
-    ['gbm_sx', 'f', 9.78723e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
-    ['gbm_sy', 'f', 9.78723e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
-    ['gbm_st', 'f', 1e-13, 'rms pulse duration [s] (for intensity)'],
-    ['gbm_mx', 'f', 0, 'transverse Gauss-Hermite mode order in horizontal direction'],
-    ['gbm_my', 'f', 0, 'transverse Gauss-Hermite mode order in vertical direction'],
-    ['gbm_ca', 's', 'c', 'treat _sigX, _sigY as sizes in [m] in coordinate representation (_presCA="c") or as angular divergences in [rad] in angular representation (_presCA="a")'],
-    ['gbm_ft', 's', 't', 'treat _sigT as pulse duration in [s] in time domain/representation (_presFT="t") or as bandwidth in [eV] in frequency domain/representation (_presFT="f")'],
 
 #---Calculation Types
     #Single-Electron Spectrum vs Photon Energy
@@ -90,7 +68,6 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
     ['sm_pl', 's', '', 'plot the resulting spectrum-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
     #to add options for the multi-e calculation from "accurate" magnetic field
-    ['sm_meth', 'i', -1, 'method to use for spectrum vs photon energy calculation in case of arbitrary input magnetic field: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler", -1- dont use this accurate integration method (rather use approximate if possible)'],
 
     #Power Density Distribution vs horizontal and vertical position
     ['pw', '', '', 'calculate SR power density distribution', 'store_true'],
@@ -132,7 +109,6 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
 
     ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
-    ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
     ['ws_fni', 's', 'res_int_pr_se.dat', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
     ['ws_pl', 's', '', 'plot the resulting intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
@@ -148,8 +124,8 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
     #to add options
-    ['op_r', 'f', 20.5, 'longitudinal position of the first optical element [m]'],
-])
+    ['op_r', 'f', 20, 'longitudinal position of the first optical element [m]'],
+]
 
 appParam = [
     ['source_type', 's', 'u', 'source type, (u) undulator, (m) multipole, (g) gaussian beam'],
@@ -163,7 +139,7 @@ appParam = [
     ['ueb', 'i', 0, 'Use user defined beam'],
     ['ueb_e', 'f', 3.0, 'energy [GeV]'],
     ['ueb_sig_e', 'f', 0.00089, 'RMS energy spread'],
-    ['ueb_emit_x', 'f', 9e-10, 'horizontal emittance [m]'],
+    ['ueb_emit_x', 'f', 5.5e-10, 'horizontal emittance [m]'],
     ['ueb_beta_x', 'f', 2.02, 'horizontal beta-function [m]'],
     ['ueb_alpha_x', 'f', 0.0, 'horizontal alpha-function [rad]'],
     ['ueb_eta_x', 'f', 0.0, 'horizontal dispersion function [m]'],
@@ -173,6 +149,18 @@ appParam = [
     ['ueb_alpha_y', 'f', 0.0, 'vertical alpha-function [rad]'],
     ['ueb_eta_y', 'f', 0.0, 'vertical dispersion function [m]'],
     ['ueb_eta_y_pr', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
+#---Gaussian Beam
+    ['gb_waist_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
+    ['gb_waist_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
+    ['gb_waist_z', 'f', 0.0, 'average longitudinal coordinate of waist [m]'],
+    ['gb_waist_angle_x', 'f', 0.0, 'average horizontal angle at waist [rad]'],
+    ['gb_waist_angle_y', 'f', 0.0, 'average verical angle at waist [rad]'],
+    ['gb_photon_energy', 'f', 9000.0, 'average photon energy [eV]'],
+    ['gb_energy_per_pulse', 'f', 0.001, 'energy per pulse [J]'],
+    ['gb_polarization', 'f', 1, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
+    ['gb_rms_size_x', 'f', 9.78723e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
+    ['gb_rms_size_y', 'f', 9.78723e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
+    ['gb_rms_pulse_duration', 'f', 1e-13, 'rms pulse duration [s] (for intensity)'],
 ]
 
 def setup_source(v):
@@ -185,16 +173,28 @@ def setup_source(v):
     mag = None
     if appV.source_type == 'u':
         v.und_b = 1
-        del v.gbm_pen
     elif appV.source_type == 'g':
-        pass
+        GsnBm = srwlib.SRWLGsnBm()
+        GsnBm.x = appV.gb_waist_x
+        GsnBm.y = appV.gb_waist_y
+        GsnBm.z = appV.gb_waist_z
+        GsnBm.xp = appV.gb_waist_angle_x
+        GsnBm.yp = appV.gb_waist_angle_y
+        GsnBm.avgPhotEn = appV.gb_photon_energy
+        GsnBm.pulseEn = appV.gb_energy_per_pulse
+        GsnBm.polar = appV.gb_polarization
+        GsnBm.sigX = appV.gb_rms_size_x
+        GsnBm.sigY = appV.gb_rms_size_y
+        GsnBm.sigT = appV.gb_rms_pulse_duration
+        GsnBm.mx = 0 #Transverse Gauss-Hermite Mode Orders
+        GsnBm.my = 0
+        srwl_bl._GAUSSIAN_BEAM = GsnBm
     else:
         mag = srwlib.SRWLMagFldC()
         mag.arXc.append(0)
         mag.arYc.append(0)
         mag.arMagFld.append(srwlib.SRWLMagFldM(appV.mp_field, appV.mp_order, appV.mp_distribution, appV.mp_len))
         mag.arZc.append(appV.mp_zc)
-        del v.gbm_pen
     return appV.source_type, mag
 
 def get_srw_params():
@@ -207,51 +207,7 @@ def get_beamline_optics():
     
     el = []
     pp = []
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 2.5, 5.0, 1.5, 2.5])
-
-    el.append(srwlib.SRWLOptD(6.9))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    ifnHDM = "mirror_1d.dat"
-    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\t", 0, 1)
-    el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="x", _ang=0.0031415926, _amp_coef=1.0, _size_x=0.00094, _size_y=0.001))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(2.5))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(4.4))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.001, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(1.1))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0, 0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0, 0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(9.1))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 0.0014, 0.0002, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptL(3.24479, 1e+23, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(3.5))
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-    el.append(srwlib.SRWLOptA("r", "a", 1e-05, 1e-05, 0.0, 0.0))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    el.append(srwlib.SRWLOptD(0.7))
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
-    pp.append([0, 0, 1.0, 0, 0, 0.3, 2.0, 0.5, 1.0])
+    pp.append([])
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -266,16 +222,45 @@ def patched_srwl_bl_set_e_beam(self, **kwargs):
 
 srwl_bl.SRWLBeamline.set_e_beam = patched_srwl_bl_set_e_beam
 
-original_set_gsn_beam = srwl_bl.SRWLBeamline.set_gsn_beam
+original_calc_sr_se = srwl_bl.SRWLBeamline.calc_sr_se
 
-def patched_set_gsn_beam(self, **kwargs):
-    original_set_gsn_beam(self, **kwargs)
-    # need to set this for multi-electron gaussian simulations to work correctly
-    self.mag_approx = self.gsnBeam
-    return self.gsnBeam
+def patched_srwl_bl_calc_sr_se(self, _mesh, **kwargs):
+    if hasattr(srwl_bl, '_GAUSSIAN_BEAM'):
+        return _gaussian_beam_intensity(srwl_bl._GAUSSIAN_BEAM, _mesh, **kwargs)
+    return original_calc_sr_se(self, _mesh, **kwargs)
 
-if False:
-    srwl_bl.SRWLBeamline.set_gsn_beam = patched_set_gsn_beam
+srwl_bl.SRWLBeamline.calc_sr_se = patched_srwl_bl_calc_sr_se
+
+def _gaussian_beam_intensity(GsnBm, _mesh, **kwargs):
+    wfr = srwlib.SRWLWfr()
+    wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
+    wfr.mesh = srwlib.deepcopy(_mesh)
+    wfr.partBeam.partStatMom1.x = GsnBm.x #Some information about the source in the Wavefront structure
+    wfr.partBeam.partStatMom1.y = GsnBm.y
+    wfr.partBeam.partStatMom1.z = GsnBm.z
+    wfr.partBeam.partStatMom1.xp = GsnBm.xp
+    wfr.partBeam.partStatMom1.yp = GsnBm.yp
+    arPrecPar = [kwargs['_samp_fact']]
+
+    srwlpy.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
+
+    depType = -1
+    if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
+    elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
+    elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
+    elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
+    elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
+    elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
+    elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
+    if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+
+    sNumTypeInt = 'f'
+    if(kwargs['_int_type'] == 4): sNumTypeInt = 'd'
+    arI = srwlib.array(sNumTypeInt, [0]*wfr.mesh.ne*wfr.mesh.nx*wfr.mesh.ny)
+    srwlpy.CalcIntFromElecField(arI, wfr, kwargs['_pol'], kwargs['_int_type'], depType, wfr.mesh.eStart, wfr.mesh.xStart, wfr.mesh.yStart) #extracts intensity
+    _fname = kwargs['_fname']
+    if(len(_fname) > 0): srwlib.srwl_uti_save_intens_ascii(arI, wfr.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+    return wfr, arI
 
 def run_all_reports():
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
