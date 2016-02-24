@@ -33,12 +33,13 @@ import flask
 import flask.sessions
 import numconv
 import py
-import sirepo.sirepo_parser_dep
+import sirepo.importer
+import sirepo.template.elegant
 import sirepo.template.srw
 import sirepo.template.warp
 
 #: Implemented apps
-_APP_NAMES = ['srw', 'warp']
+_APP_NAMES = ['srw', 'warp', 'elegant']
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
@@ -305,11 +306,7 @@ def app_import_file(simulation_type):
         lib_dir = str(_simulation_lib_dir('srw'))
 
         # Perform initialization of the object and get "v" parameters:
-        o = sirepo.sirepo_parser_dep.SRWParser(imported_file_path, lib_dir=lib_dir)
-
-        print('Input lib dir     :', lib_dir)
-        print('List of .dat files:', o.list_of_files)
-        print('Lib dir           :', o.lib_dir)
+        o = sirepo.importer.SRWParser(imported_file_path, lib_dir=lib_dir)
 
         # Main SRW calculation and conversion to JSON:
         o.to_json()
@@ -814,7 +811,7 @@ def _simulation_dir(simulation_type, sid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
-        simulation_type (str): srw or warp
+        simulation_type (str): srw, warp, ...
         sid (str): simulation id (optional)
     """
     d = _user_dir().join(simulation_type)
@@ -913,6 +910,8 @@ def _template_for_simulation_type(simulation_type):
         return sirepo.template.srw
     if simulation_type == 'warp':
         return sirepo.template.warp
+    if simulation_type == 'elegant':
+        return sirepo.template.elegant
     raise RuntimeError('{}: invalid simulation_type'.format(simulation_type))
 
 

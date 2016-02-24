@@ -1,0 +1,1 @@
+{"models": {"simulation": {"name": "simulation name"}, "bunch": {"p_central_mev": 107.6, "n_particles_per_bunch": 50000, "sigma_dp": 0.001, "sigma_s": 650e-6, "emit_x": 4.6e-8, "beta_x": 10, "alpha_x": 1, "eta_x": 0, "etap_x": 0, "emit_y": 4.6e-8, "beta_y": 10, "alpha_y": 1, "eta_y": 0, "etap_y": 0}}, "simulationType": "elegant", "version": "20151029"}

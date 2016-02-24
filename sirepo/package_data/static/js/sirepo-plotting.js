@@ -11,8 +11,6 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
     return {
         INITIAL_HEIGHT: 400,
 
-        cleanNumber: cleanNumber,
-
         computePeaks: function(json, dimensions, xPoints, xAxisScale, yAxisScale) {
             var peakSpacing = dimensions[0] / 20;
             var minPixelHeight = dimensions[1] * .995;
@@ -51,6 +49,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                     return value;
                 });
         },
+
         // Returns a function, that, as long as it continues to be invoked, will not
         // be triggered. The function will be called after it stops being called for
         // N milliseconds. If `immediate` is passed, trigger the function on the
@@ -67,6 +66,28 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
             };
+        },
+
+        extractUnits: function(scope, axis, label) {
+            var match = label.match(/\[(.*?)\]/);
+            if (match) {
+                scope[axis + 'units'] = match[1];
+                label = label.replace(/\[.*?\]/, '');
+            }
+            return label;
+        },
+
+        fixFormat: function(scope, axis) {
+            var format = d3.format('.3s');
+            // amounts near zero may appear as NNNz, change them to 0
+            return function(n) {
+                var v = format(n);
+                if ((v && v.indexOf('z') > 0) || v == '0.00')
+                    return '0';
+                v = cleanNumber(v);
+                var units = scope[axis + 'units'] || '';
+                return v + units;
+            }
         },
 
         linkPlot: function(scope, element) {
@@ -359,7 +380,7 @@ app.directive('plot3d', function(plotting) {
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = false;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange, xyUnits;
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
             function drawBottomPanelCut() {
                 var bBottom = yIndexScale(yAxisScale.domain()[0]);
@@ -391,17 +412,6 @@ app.directive('plot3d', function(plotting) {
                 select('.right-panel path')
                     .datum(data)
                     .attr('d', rightPanelCutLine);
-            }
-
-            function extractUnits(label) {
-                var match = label.match(/\[(.*?)\]/);
-                if (match) {
-                    if (xyUnits && xyUnits != match[1])
-                        console.log('mismatched x/y axis units: ', xyUnits, ' != ', match[1]);
-                    xyUnits = match[1];
-                    label = label.replace(/\[.*?\]/, '');
-                }
-                return label;
             }
 
             function initDraw(zmin, zmax) {
@@ -561,21 +571,11 @@ app.directive('plot3d', function(plotting) {
                 mainXAxis = plotting.createAxis(xAxisScale, 'bottom');
                 mainYAxis = plotting.createAxis(yAxisScale, 'left');
                 bottomPanelXAxis = plotting.createAxis(xAxisScale, 'bottom');
-
-                // amounts near zero may appear as NNNz, change them to 0
-                var format = d3.format('.3s');
-                function fixFormat(n) {
-                    var v = format(n);
-                    if ((v && v.indexOf('z') > 0) || v == '0.00')
-                        return '0';
-                    v = plotting.cleanNumber(v);
-                    return v + (xyUnits || '');
-                }
-                bottomPanelXAxis.tickFormat(fixFormat);
+                bottomPanelXAxis.tickFormat(plotting.fixFormat($scope, 'x'));
                 bottomPanelYAxis = plotting.createExponentialAxis(bottomPanelYScale, 'left');
                 rightPanelXAxis = plotting.createExponentialAxis(rightPanelXScale, 'bottom');
                 rightPanelYAxis = plotting.createAxis(yAxisScale, 'right');
-                rightPanelYAxis.tickFormat(fixFormat);
+                rightPanelYAxis.tickFormat(plotting.fixFormat($scope, 'y'));
                 $scope.zoom = d3.behavior.zoom()
                     .scaleExtent([1, 10])
                     .on('zoom', refresh);
@@ -612,8 +612,8 @@ app.directive('plot3d', function(plotting) {
                 canvas.attr('width', xValueRange.length)
                     .attr('height', yValueRange.length);
                 select('.main-title').text(json.title);
-                select('.x-axis-label').text(extractUnits(json.x_label));
-                select('.y-axis-label').text(extractUnits(json.y_label));
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.z-axis-label').text(json.z_label);
                 xAxisScale.domain([xValueMin, xValueMax]);
                 xIndexScale.domain([xValueMin, xValueMax]);
@@ -756,6 +756,8 @@ app.directive('heatmap', function(plotting) {
             }
 
             function mouseMove() {
+                if (! heatmap)
+                    return;
                 var point = d3.mouse(this);
                 var x0 = xAxisScale.invert(point[0] - 1);
                 var y0 = yAxisScale.invert(point[1] - 1);
@@ -869,18 +871,9 @@ app.directive('heatmap', function(plotting) {
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
-
-                // amounts near zero may appear as NNNz, change them to 0
-                var format = d3.format('.3s');
-                function fixFormat(n) {
-                    var v = format(n);
-                    if (v && v.indexOf('z') > 0)
-                        return '0.00';
-                    return v;
-                }
-                xAxis.tickFormat(fixFormat);
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
                 yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(fixFormat);
+                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
                 $scope.zoom = d3.behavior.zoom()
                     .scaleExtent([1, 10])
                     .on('zoom', refresh);
@@ -909,8 +902,8 @@ app.directive('heatmap', function(plotting) {
                 canvas.attr('width', xValueRange.length)
                     .attr('height', yValueRange.length);
                 select('.main-title').text(json.title);
-                select('.x-axis-label').text(json.x_label);
-                select('.y-axis-label').text(json.y_label);
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.z-axis-label').text(json.z_label);
                 xAxisScale.domain([xValueMin, xValueMax]);
                 yAxisScale.domain([yValueMin, yValueMax]);

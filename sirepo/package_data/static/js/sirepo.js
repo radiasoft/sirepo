@@ -199,17 +199,22 @@ app.factory('appState', function($rootScope, requestSender) {
 
     self.getReportTitle = function(name) {
         //TODO(pjm): generalize this
-        var match = name.match(/.*?(\d+)/);
+        var match = name.match(/(.*?)(\d+)/);
         if (match) {
-            var id = match[1];
-            for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
-                if (savedModelValues.beamline[i].id == id) {
-                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
-                        + savedModelValues.beamline[i].position + 'm';
-
+            if (savedModelValues.beamline) {
+                var id = match[2];
+                for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
+                    if (savedModelValues.beamline[i].id == id) {
+                        return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                            + savedModelValues.beamline[i].position + 'm';
+                    }
                 }
             }
+            else {
+                name = match[1];
+            }
         }
+
         var model = savedModelValues[name];
         var distance = '';
         if (model && model.distanceFromSource != null)

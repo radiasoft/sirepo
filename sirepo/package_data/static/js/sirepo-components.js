@@ -515,7 +515,7 @@ app.directive('reportPanel', function(appState, panelState) {
             reportPanel: '@',
             modelName: '@',
             // optional, for watch reports
-            item: '=',
+            itemId: '@',
         },
         template: [
             '<div class="panel panel-info">',
@@ -524,7 +524,7 @@ app.directive('reportPanel', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var itemId = $scope.item ? $scope.item.id : '';
+            var itemId = $scope.itemId ? $scope.itemId : '';
             $scope.appState = appState;
             $scope.panelState = panelState;
             $scope.fullModelName = $scope.modelName + itemId;
