@@ -348,3 +348,7 @@ svg.srw-beamline-item-icon {
 a:focus, a.srw-tab:focus {
   outline: none;
 }
+
+.s-clearfix-pad {
+  height: 15px;
+}
