@@ -286,6 +286,25 @@ app.directive('columnEditor', function(appState) {
     };
 });
 
+app.directive('helpButton', function($window) {
+    var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO_APP_NAME.toUpperCase() + '-';
+    return {
+        scope: {
+            helpTopic: '@helpButton',
+        },
+        template: [
+            '<button class="close s-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.openHelp = function() {
+                $window.open(
+                    HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
+                    '_blank');
+            };
+        },
+    };
+});
+
 app.directive('modalEditor', function(appState) {
     return {
         scope: {
@@ -301,6 +320,7 @@ app.directive('modalEditor', function(appState) {
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ helpTopic }}"></div>',
 	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
@@ -324,6 +344,7 @@ app.directive('modalEditor', function(appState) {
             $scope.appState = appState;
             var viewInfo = appState.viewInfo($scope.modalEditor);
             $scope.advancedFields = viewInfo.advanced;
+            $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.modalEditor;
             $scope.fullModelName = $scope.modelName + ($scope.itemId || '');
