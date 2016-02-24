@@ -877,6 +877,7 @@ app.directive('beamlineItemEditor', function(appState) {
         },
         template: [
             '<div>',
+              '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" novalidate>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
                   '<div data-field-editor="f" data-model-name="modelName" data-model="beamline.activeItem"></div>',
@@ -896,6 +897,7 @@ app.directive('beamlineItemEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.beamline = $scope.$parent.beamline;
+            $scope.title = appState.viewInfo($scope.modelName).title;
             $scope.advancedFields = appState.viewInfo($scope.modelName).advanced;
             $scope.removeActiveItem = function() {
                 $scope.beamline.removeElement($scope.beamline.activeItem);
@@ -941,7 +943,8 @@ app.directive('importPython', function(fileUpload, requestSender) {
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
                     '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">Import Python Beamline File</span>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
@@ -965,6 +968,7 @@ app.directive('importPython', function(fileUpload, requestSender) {
         ].join(''),
         controller: function($scope) {
             $scope.fileUploadError = '';
+            $scope.title = 'Import Python Beamline File';
 
             $scope.importPythonFile = function(pythonFile) {
                 if (! pythonFile)

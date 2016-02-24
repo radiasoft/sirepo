@@ -352,3 +352,12 @@ a:focus, a.srw-tab:focus {
 .s-clearfix-pad {
   height: 15px;
 }
+.s-help-icon {
+  margin-right: 15px;
+  color: #337ab7;
+  opacity: 1;
+}
+.s-help-icon:hover {
+  color: #286090;
+  opacity: 1;
+}
