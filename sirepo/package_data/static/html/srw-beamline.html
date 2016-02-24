@@ -64,7 +64,7 @@
       <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.getWatchItems() track by item.id">
-      <div data-report-panel="3d" data-model-name="watchpointReport" data-item="item"></div>
+      <div data-report-panel="3d" data-model-name="watchpointReport" data-item-id="{{ item.id }}"></div>
     </div>
   </div>
   <div data-ng-if="beamline.isMultiElectron()" class="row">
