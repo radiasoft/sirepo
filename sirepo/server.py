@@ -34,11 +34,12 @@ import flask.sessions
 import numconv
 import py
 import sirepo.sirepo_parser
+import sirepo.template.elegant
 import sirepo.template.srw
 import sirepo.template.warp
 
 #: Implemented apps
-_APP_NAMES = ['srw', 'warp']
+_APP_NAMES = ['srw', 'warp', 'elegant']
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
@@ -798,7 +799,7 @@ def _simulation_dir(simulation_type, sid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
-        simulation_type (str): srw or warp
+        simulation_type (str): srw, warp, ...
         sid (str): simulation id (optional)
     """
     d = _user_dir().join(simulation_type)
@@ -897,6 +898,8 @@ def _template_for_simulation_type(simulation_type):
         return sirepo.template.srw
     if simulation_type == 'warp':
         return sirepo.template.warp
+    if simulation_type == 'elegant':
+        return sirepo.template.elegant
     raise RuntimeError('{}: invalid simulation_type'.format(simulation_type))
 
 

@@ -1,0 +1,83 @@
+{
+    "enum": {
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["xp", "x'"],
+            ["y", "y"],
+            ["yp", "y'"],
+            ["t", "t"],
+            ["p", "p"]
+        ]
+    },
+    "model": {
+        "bunch": {
+            "p_central_mev": ["Central momentum [MeV]", "Float"],
+            "n_particles_per_bunch": ["Particles Per Bunch", "Integer"],
+            "sigma_dp": ["Fractional Momentum Spread", "Float"],
+            "sigma_s": ["Bunch Length", "Float"],
+            "emit_x": ["Horizontal Emittance [nm]", "Float"],
+            "beta_x": ["Horizontal Beta [m]", "Float"],
+            "alpha_x": ["Horizontal Alpha [rad]", "Float"],
+            "eta_x": ["Horizontal Dispersion [m]", "Float"],
+            "etap_x": ["Horizontal Dispersion Derivative [rad]", "Float"],
+            "emit_y": ["Vertical Emittance [nm]", "Float"],
+            "beta_y": ["Vertical Beta [m]", "Float"],
+            "alpha_y": ["Vertical Alpha [rad]", "Float"],
+            "eta_y": ["Vertical Dispersion [m]", "Float"],
+            "etap_y": ["Vertical Dispersion Derivative [rad]", "Float"]
+        },
+        "bunchReport": {
+            "x": ["X Value", "PhaseSpaceCoordinate"],
+            "y": ["Y Value", "PhaseSpaceCoordinate"],
+            "histogramBins": ["Histogram Bins", "Integer"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        }
+    },
+    "view": {
+        "bunch": {
+            "title": "Bunch",
+            "basic": [
+                "p_central_mev",
+                "n_particles_per_bunch"
+            ],
+            "advanced": [
+                "p_central_mev",
+                "n_particles_per_bunch",
+                "sigma_dp",
+                "sigma_s",
+                [
+                    ["Horizontal", [
+                        "emit_x",
+                        "beta_x",
+                        "alpha_x",
+                        "eta_x",
+                        "etap_x"
+                    ]],
+                    ["Vertical", [
+                        "emit_y",
+                        "beta_y",
+                        "alpha_y",
+                        "eta_y",
+                        "etap_y"
+                    ]]
+                ]
+            ]
+        },
+        "bunchReport": {
+            "title": "Bunch Report",
+            "advanced": [
+                "x",
+                "y",
+                "histogramBins"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        }
+    }
+}
