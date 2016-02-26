@@ -1,1 +1,488 @@
-{"report": "intensityReport", "models": {"fluxReport": {"verticalApertureSize": "1", "azimuthalPrecision": 1, "longitudinalPrecision": 1, "verticalPosition": 0, "horizontalApertureSize": "1", "finalEnergy": 10000, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 20, "initialEnergy": "100", "fluxType": 1}, "watchpointReport10": {"verticalRange": 20, "verticalPosition": 0, "horizontalRange": 6.76, "characteristic": 0, "sampleFactor": 0.07, "precision": 0.01, "polarization": 6, "horizontalPosition": 0}, "electronBeam": {"horizontalEmittance": 0.54999797944, "horizontalAlpha": 0, "verticalBeta": 3.39999869616, "name": "Custom Beam", "beamSelector": "Custom Beam", "verticalPosition": 0, "horizontalBeta": 20.8499154991, "energy": 3, "verticalAlpha": 0, "horizontalPosition": 0, "verticalEmittance": 0.0079999971648, "horizontalDispersionDerivative": 0, "current": 0.5, "energyDeviation": 0, "verticalDispersionDerivative": 0, "verticalDispersion": 0, "rmsSpread": 0.00089, "id": 2, "horizontalDispersion": 0}, "multipole": {"field": 0.4, "distribution": "n", "length": 3, "order": 1}, "postPropagation": [0, 0, 1, 1, 1, 1, "1.5", "0.3", "2"], "initialIntensityReport": {"verticalRange": 20, "verticalPosition": 0, "horizontalRange": 6.76, "characteristic": 0, "sampleFactor": 0.07, "precision": 0.01, "polarization": 6, "horizontalPosition": 0}, "undulator": {"verticalAmplitude": 0.187782, "horizontalAmplitude": "0", "horizontalSymmetry": 1, "period": 57, "horizontalInitialPhase": 0, "length": 3.5055, "verticalInitialPhase": 0, "verticalSymmetry": -1, "longitudinalPosition": 0}, "propagation": {"11": [[0, 0, 1, 1, 0, 1, 1, 1, 1], [0, 0, "1", "2", 0, 1, 1, 1, 1]], "10": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "3": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "2": [[0, 0, 1, "1", 0, "1.3", "3.5", "1.2", "3"], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "5": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "7": [[0, 0, 1, 0, 0, "0.4", 1, "0.1", 1], [0, 0, 1, "3", 0, 1, 1, 1, 1]], "6": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, "4", 0, 1, 1, "3", 1]], "9": [[0, 0, 1, "0", 0, 1, 1, 1, 1], [0, 0, 1, "4", 0, "2", 1, 1, 1]], "8": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]]}, "powerDensityReport": {"verticalRange": "15", "verticalPosition": 0, "horizontalRange": "15", "precision": "1", "horizontalPosition": "0", "distanceFromSource": 20, "method": 1}, "beamline": [{"verticalOffset": 0, "horizontalSize": 20, "title": "M2A", "id": 2, "horizontalOffset": 0, "shape": "r", "position": 54.8, "type": "aperture", "verticalSize": 17.4148957678}, {"verticalOffset": 0, "horizontalSize": 15, "title": "GA", "id": 3, "horizontalOffset": 0, "shape": "r", "position": 55, "type": "aperture", "verticalSize": 2.59104332294}, {"normalVectorY": 0.99991607766, "normalVectorX": 0, "title": "G", "normalVectorZ": -0.0129552166147, "tangentialSize": 0.2, "diffractionOrder": 1, "grooveDensity4": 0, "tangentialVectorY": 0.0129552166147, "tangentialVectorX": 0, "grooveDensity0": 1800, "grooveDensity1": 0.08997, "grooveDensity2": 3.004e-06, "grooveDensity3": 9.73e-11, "position": 55, "sagittalSize": 0.015, "type": "grating", "id": 11}, {"verticalOffset": 0, "horizontalSize": 9.16225171452, "title": "M3A", "id": 5, "horizontalOffset": 0, "shape": "r", "position": 89.63, "type": "aperture", "verticalSize": 20}, {"normalVectorY": 0, "normalVectorX": 0.99976202708, "title": "M3", "focalLength": 8.006, "heightAmplification": 1, "normalVectorZ": -0.0218148850346, "tangentialSize": 0.42, "tangentialVectorY": 0, "tangentialVectorX": -0.0218148850346, "sagittalSize": 0.02, "heightProfileFile": null, "position": 89.63, "grazingAngle": 21.8166156499, "type": "ellipsoidMirror", "id": 6, "orientation": "x"}, {"verticalOffset": 0, "horizontalSize": 10, "title": "SA", "id": 7, "horizontalOffset": 0, "shape": "r", "position": 97.636, "type": "aperture", "verticalSize": 10}, {"verticalOffset": 0, "horizontalSize": 6.54446551037, "title": "M4A", "id": 8, "horizontalOffset": 0, "shape": "r", "position": 103.646, "type": "aperture", "verticalSize": 50}, {"verticalOffset": 0, "horizontalFocalLength": 0.850722753892, "title": "M4", "horizontalOffset": 0, "verticalFocalLength": 0.850722753892, "position": 103.646, "type": "lens", "id": 9}, {"position": 104.637, "type": "watch", "id": 10, "title": "Sample"}], "gaussianBeam": {"rmsPulseDuration": 0.1, "waistAngleY": 0, "polarization": 1, "waistAngleX": 0, "energyPerPulse": "0.001", "rmsSizeY": "9.78723", "rmsSizeX": "9.78723", "waistZ": 0, "waistX": 0, "waistY": 0}, "intensityReport": {"initialEnergy": "100", "verticalPosition": 0, "precision": 0.01, "finalEnergy": 10000, "polarization": 6, "horizontalPosition": "0", "distanceFromSource": 20}, "simulation": {"name": "Soft X-Ray Undulator Radiation Containing VLS Grating", "facility": "", "isExample": "1", "photonEnergy": 1000, "simulationId": "vls-grating", "sourceType": "u"}, "sourceIntensityReport": {"verticalRange": 0.5, "verticalPosition": 0, "horizontalRange": 0.5, "characteristic": 0, "sampleFactor": 0, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 300}, "electronBeams": [{"horizontalEmittance": 0.54999797944, "horizontalAlpha": 0, "verticalBeta": 3.39999869616, "name": "Custom Beam", "beamSelector": "Custom Beam", "verticalPosition": 0, "horizontalBeta": 20.8499154991, "energy": 3, "verticalAlpha": 0, "horizontalPosition": 0, "verticalEmittance": 0.0079999971648, "horizontalDispersionDerivative": 0, "current": 0.5, "energyDeviation": 0, "verticalDispersionDerivative": 0, "verticalDispersion": 0, "rmsSpread": 0.00089, "id": 2, "horizontalDispersion": 0}]}, "simulationType": "srw", "version": "20151209"}
+{
+  "models": {
+    "beamline": [
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 20, 
+        "id": 2, 
+        "position": 54.8, 
+        "shape": "r", 
+        "title": "M2A", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 17.4148957678
+      }, 
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 15, 
+        "id": 3, 
+        "position": 55, 
+        "shape": "r", 
+        "title": "GA", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 2.59104332294
+      }, 
+      {
+        "diffractionOrder": 1, 
+        "grooveDensity0": 1800, 
+        "grooveDensity1": 0.08997, 
+        "grooveDensity2": 3.004e-06, 
+        "grooveDensity3": 9.73e-11, 
+        "grooveDensity4": 0, 
+        "id": 11, 
+        "normalVectorX": 0, 
+        "normalVectorY": 0.99991607766, 
+        "normalVectorZ": -0.0129552166147, 
+        "position": 55, 
+        "sagittalSize": 0.015, 
+        "tangentialSize": 0.2, 
+        "tangentialVectorX": 0, 
+        "tangentialVectorY": 0.0129552166147, 
+        "title": "G", 
+        "type": "grating"
+      }, 
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 9.16225171452, 
+        "id": 5, 
+        "position": 89.63, 
+        "shape": "r", 
+        "title": "M3A", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 20
+      }, 
+      {
+        "focalLength": 8.006, 
+        "grazingAngle": 21.8166156499, 
+        "heightAmplification": 1, 
+        "heightProfileFile": null, 
+        "id": 6, 
+        "normalVectorX": 0.99976202708, 
+        "normalVectorY": 0, 
+        "normalVectorZ": -0.0218148850346, 
+        "orientation": "x", 
+        "position": 89.63, 
+        "sagittalSize": 0.02, 
+        "tangentialSize": 0.42, 
+        "tangentialVectorX": -0.0218148850346, 
+        "tangentialVectorY": 0, 
+        "title": "M3", 
+        "type": "ellipsoidMirror"
+      }, 
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 10, 
+        "id": 7, 
+        "position": 97.636, 
+        "shape": "r", 
+        "title": "SA", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 10
+      }, 
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 6.54446551037, 
+        "id": 8, 
+        "position": 103.646, 
+        "shape": "r", 
+        "title": "M4A", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 50
+      }, 
+      {
+        "horizontalFocalLength": 0.850722753892, 
+        "horizontalOffset": 0, 
+        "id": 9, 
+        "position": 103.646, 
+        "title": "M4", 
+        "type": "lens", 
+        "verticalFocalLength": 0.850722753892, 
+        "verticalOffset": 0
+      }, 
+      {
+        "id": 10, 
+        "position": 104.637, 
+        "title": "Sample", 
+        "type": "watch"
+      }
+    ], 
+    "electronBeam": {
+      "beamSelector": "Custom Beam", 
+      "current": 0.5, 
+      "energy": 3, 
+      "energyDeviation": 0, 
+      "horizontalAlpha": 0, 
+      "horizontalBeta": 20.8499154991, 
+      "horizontalDispersion": 0, 
+      "horizontalDispersionDerivative": 0, 
+      "horizontalEmittance": 0.54999797944, 
+      "horizontalPosition": 0, 
+      "id": 2, 
+      "name": "Custom Beam", 
+      "rmsSpread": 0.00089, 
+      "verticalAlpha": 0, 
+      "verticalBeta": 3.39999869616, 
+      "verticalDispersion": 0, 
+      "verticalDispersionDerivative": 0, 
+      "verticalEmittance": 0.0079999971648, 
+      "verticalPosition": 0
+    }, 
+    "electronBeams": [
+      {
+        "beamSelector": "Custom Beam", 
+        "current": 0.5, 
+        "energy": 3, 
+        "energyDeviation": 0, 
+        "horizontalAlpha": 0, 
+        "horizontalBeta": 20.8499154991, 
+        "horizontalDispersion": 0, 
+        "horizontalDispersionDerivative": 0, 
+        "horizontalEmittance": 0.54999797944, 
+        "horizontalPosition": 0, 
+        "id": 2, 
+        "name": "Custom Beam", 
+        "rmsSpread": 0.00089, 
+        "verticalAlpha": 0, 
+        "verticalBeta": 3.39999869616, 
+        "verticalDispersion": 0, 
+        "verticalDispersionDerivative": 0, 
+        "verticalEmittance": 0.0079999971648, 
+        "verticalPosition": 0
+      }
+    ], 
+    "fluxReport": {
+      "azimuthalPrecision": 1, 
+      "distanceFromSource": 20, 
+      "finalEnergy": 10000, 
+      "fluxType": 1, 
+      "horizontalApertureSize": "1", 
+      "horizontalPosition": 0, 
+      "initialEnergy": "100", 
+      "longitudinalPrecision": 1, 
+      "polarization": 6, 
+      "verticalApertureSize": "1", 
+      "verticalPosition": 0
+    }, 
+    "gaussianBeam": {
+      "energyPerPulse": "0.001", 
+      "polarization": 1, 
+      "rmsPulseDuration": 0.1, 
+      "rmsSizeX": "9.78723", 
+      "rmsSizeY": "9.78723", 
+      "waistAngleX": 0, 
+      "waistAngleY": 0, 
+      "waistX": 0, 
+      "waistY": 0, 
+      "waistZ": 0
+    }, 
+    "initialIntensityReport": {
+      "characteristic": 0, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 6.76, 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "sampleFactor": 0.07, 
+      "verticalPosition": 0, 
+      "verticalRange": 20
+    }, 
+    "intensityReport": {
+      "distanceFromSource": 20, 
+      "finalEnergy": 10000, 
+      "horizontalPosition": "0", 
+      "initialEnergy": "100", 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "verticalPosition": 0
+    }, 
+    "multipole": {
+      "distribution": "n", 
+      "field": 0.4, 
+      "length": 3, 
+      "order": 1
+    }, 
+    "postPropagation": [
+      0, 
+      0, 
+      1, 
+      1, 
+      1, 
+      1, 
+      "1.5", 
+      "0.3", 
+      "2"
+    ], 
+    "powerDensityReport": {
+      "distanceFromSource": 20, 
+      "horizontalPosition": "0", 
+      "horizontalRange": "15", 
+      "method": 1, 
+      "precision": "1", 
+      "verticalPosition": 0, 
+      "verticalRange": "15"
+    }, 
+    "propagation": {
+      "10": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "11": [
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          "1", 
+          "2", 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "2": [
+        [
+          0, 
+          0, 
+          1, 
+          "1", 
+          0, 
+          "1.3", 
+          "3.5", 
+          "1.2", 
+          "3"
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "3": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "5": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "6": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          "4", 
+          0, 
+          1, 
+          1, 
+          "3", 
+          1
+        ]
+      ], 
+      "7": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          "0.4", 
+          1, 
+          "0.1", 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          "3", 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "8": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "9": [
+        [
+          0, 
+          0, 
+          1, 
+          "0", 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          "4", 
+          0, 
+          "2", 
+          1, 
+          1, 
+          1
+        ]
+      ]
+    }, 
+    "simulation": {
+      "facility": "", 
+      "isExample": "1", 
+      "name": "Soft X-Ray Undulator Radiation Containing VLS Grating", 
+      "photonEnergy": 1000, 
+      "simulationId": "vls-grating", 
+      "sourceType": "u"
+    }, 
+    "sourceIntensityReport": {
+      "characteristic": 0, 
+      "distanceFromSource": 300, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 0.5, 
+      "polarization": 6, 
+      "sampleFactor": 0, 
+      "verticalPosition": 0, 
+      "verticalRange": 0.5
+    }, 
+    "undulator": {
+      "horizontalAmplitude": "0", 
+      "horizontalInitialPhase": 0, 
+      "horizontalSymmetry": 1, 
+      "length": 3.5055, 
+      "longitudinalPosition": 0, 
+      "period": 57, 
+      "verticalAmplitude": 0.187782, 
+      "verticalInitialPhase": 0, 
+      "verticalSymmetry": -1
+    }, 
+    "watchpointReport10": {
+      "characteristic": 0, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 6.76, 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "sampleFactor": 0.07, 
+      "verticalPosition": 0, 
+      "verticalRange": 20
+    }
+  }, 
+  "report": "intensityReport", 
+  "simulationType": "srw", 
+  "version": "20151209"
+}

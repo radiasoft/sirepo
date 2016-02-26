@@ -1,1 +1,268 @@
-{"report": "powerDensityReport", "models": {"fluxReport": {"fluxType": 1, "azimuthalPrecision": 1, "longitudinalPrecision": 1, "verticalPosition": 0, "horizontalApertureSize": "1", "finalEnergy": 20000, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 20, "initialEnergy": "100", "verticalApertureSize": "1"}, "sourceIntensityReport": {"verticalRange": 0.5, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 20, "verticalPosition": 0, "horizontalRange": 0.5, "characteristic": 0, "sampleFactor": 0}, "electronBeam": {"horizontalEmittance": 4, "horizontalAlpha": 1.77, "verticalBeta": 35, "name": "User Defined", "verticalDispersionDerivative": 0, "verticalPosition": 0, "horizontalBeta": 3, "energy": 6, "verticalAlpha": -0.022, "verticalEmittance": 0.1, "horizontalDispersionDerivative": -0.0262, "current": 0.2, "energyDeviation": 0, "horizontalPosition": 0, "verticalDispersion": 0, "rmsSpread": 0.001, "id": 1, "beamSelector": "User Defined", "horizontalDispersion": 0.0349}, "multipole": {"field": 0.85, "distribution": "n", "length": 1, "longitudinalPosition": 0, "order": 1}, "postPropagation": [0, 0, 1, 0, 0, "0.3", 1, "0.6", 1], "initialIntensityReport": {"verticalRange": 30, "verticalPosition": 0, "horizontalRange": 10, "characteristic": "0", "sampleFactor": 1, "precision": 0.01, "polarization": "0", "horizontalPosition": 0}, "undulator": {"verticalAmplitude": "0.88770981", "verticalSymmetry": -1, "horizontalSymmetry": 1, "period": "20", "horizontalInitialPhase": 0, "length": 3, "verticalInitialPhase": 0, "horizontalAmplitude": "0", "longitudinalPosition": 0}, "gaussianBeam": {"waistAngleX": 0, "waistAngleY": 0, "energyPerPulse": "0.001", "polarization": 1, "rmsSizeY": "9.78723", "rmsSizeX": "9.78723", "rmsPulseDuration": 0.1, "waistZ": 0, "waistX": 0, "waistY": 0}, "propagation": {"3": [[0, 0, 1, 0, 0, 1, "1.3", 1, "1.3"], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "5": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "4": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]]}, "powerDensityReport": {"verticalRange": "15", "verticalPosition": 0, "horizontalRange": "15", "precision": "1", "horizontalPosition": "0", "distanceFromSource": 20, "method": 1}, "beamline": [{"verticalOffset": -0.05, "horizontalFocalLength": 1.81818181818, "title": "Lens", "horizontalOffset": 0, "verticalFocalLength": 1.81818181818, "position": 20, "type": "lens", "id": 3}, {"position": 22, "type": "watch", "id": 4, "title": "Vertical Polarization"}, {"position": 22, "type": "watch", "id": 5, "title": "Horizontal Polarization"}], "watchpointReport4": {"verticalRange": 30, "verticalPosition": 0, "horizontalRange": 10, "characteristic": "0", "sampleFactor": 1, "precision": 0.01, "polarization": "1", "horizontalPosition": 0}, "watchpointReport5": {"verticalRange": 30, "verticalPosition": 0, "horizontalRange": 10, "characteristic": "0", "sampleFactor": 1, "precision": 0.01, "polarization": "0", "horizontalPosition": 0}, "intensityReport": {"initialEnergy": 100, "verticalPosition": 0, "precision": 0.01, "finalEnergy": 100000, "polarization": 6, "horizontalPosition": "0", "distanceFromSource": 20}, "simulation": {"name": "Focusing Bending Magnet Radiation", "facility": "", "isExample": "1", "photonEnergy": 3, "simulationId": "pzRP7ALb", "sourceType": "m"}, "electronBeams": [{"horizontalEmittance": 4, "horizontalAlpha": 1.77, "verticalBeta": 35, "name": "User Defined", "verticalDispersionDerivative": 0, "verticalPosition": 0, "horizontalBeta": 3, "energy": 6, "verticalAlpha": -0.022, "verticalEmittance": 0.1, "horizontalDispersionDerivative": -0.0262, "current": 0.2, "energyDeviation": 0, "horizontalPosition": 0, "verticalDispersion": 0, "rmsSpread": 0.001, "id": 1, "beamSelector": "User Defined", "horizontalDispersion": 0.0349}]}, "version": "20150805"}
+{
+  "models": {
+    "beamline": [
+      {
+        "horizontalFocalLength": 1.81818181818, 
+        "horizontalOffset": 0, 
+        "id": 3, 
+        "position": 20, 
+        "title": "Lens", 
+        "type": "lens", 
+        "verticalFocalLength": 1.81818181818, 
+        "verticalOffset": -0.05
+      }, 
+      {
+        "id": 4, 
+        "position": 22, 
+        "title": "Vertical Polarization", 
+        "type": "watch"
+      }, 
+      {
+        "id": 5, 
+        "position": 22, 
+        "title": "Horizontal Polarization", 
+        "type": "watch"
+      }
+    ], 
+    "electronBeam": {
+      "beamSelector": "User Defined", 
+      "current": 0.2, 
+      "energy": 6, 
+      "energyDeviation": 0, 
+      "horizontalAlpha": 1.77, 
+      "horizontalBeta": 3, 
+      "horizontalDispersion": 0.0349, 
+      "horizontalDispersionDerivative": -0.0262, 
+      "horizontalEmittance": 4, 
+      "horizontalPosition": 0, 
+      "id": 1, 
+      "name": "User Defined", 
+      "rmsSpread": 0.001, 
+      "verticalAlpha": -0.022, 
+      "verticalBeta": 35, 
+      "verticalDispersion": 0, 
+      "verticalDispersionDerivative": 0, 
+      "verticalEmittance": 0.1, 
+      "verticalPosition": 0
+    }, 
+    "electronBeams": [
+      {
+        "beamSelector": "User Defined", 
+        "current": 0.2, 
+        "energy": 6, 
+        "energyDeviation": 0, 
+        "horizontalAlpha": 1.77, 
+        "horizontalBeta": 3, 
+        "horizontalDispersion": 0.0349, 
+        "horizontalDispersionDerivative": -0.0262, 
+        "horizontalEmittance": 4, 
+        "horizontalPosition": 0, 
+        "id": 1, 
+        "name": "User Defined", 
+        "rmsSpread": 0.001, 
+        "verticalAlpha": -0.022, 
+        "verticalBeta": 35, 
+        "verticalDispersion": 0, 
+        "verticalDispersionDerivative": 0, 
+        "verticalEmittance": 0.1, 
+        "verticalPosition": 0
+      }
+    ], 
+    "fluxReport": {
+      "azimuthalPrecision": 1, 
+      "distanceFromSource": 20, 
+      "finalEnergy": 20000, 
+      "fluxType": 1, 
+      "horizontalApertureSize": "1", 
+      "horizontalPosition": 0, 
+      "initialEnergy": "100", 
+      "longitudinalPrecision": 1, 
+      "polarization": 6, 
+      "verticalApertureSize": "1", 
+      "verticalPosition": 0
+    }, 
+    "gaussianBeam": {
+      "energyPerPulse": "0.001", 
+      "polarization": 1, 
+      "rmsPulseDuration": 0.1, 
+      "rmsSizeX": "9.78723", 
+      "rmsSizeY": "9.78723", 
+      "waistAngleX": 0, 
+      "waistAngleY": 0, 
+      "waistX": 0, 
+      "waistY": 0, 
+      "waistZ": 0
+    }, 
+    "initialIntensityReport": {
+      "characteristic": "0", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 10, 
+      "polarization": "0", 
+      "precision": 0.01, 
+      "sampleFactor": 1, 
+      "verticalPosition": 0, 
+      "verticalRange": 30
+    }, 
+    "intensityReport": {
+      "distanceFromSource": 20, 
+      "finalEnergy": 100000, 
+      "horizontalPosition": "0", 
+      "initialEnergy": 100, 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "verticalPosition": 0
+    }, 
+    "multipole": {
+      "distribution": "n", 
+      "field": 0.85, 
+      "length": 1, 
+      "longitudinalPosition": 0, 
+      "order": 1
+    }, 
+    "postPropagation": [
+      0, 
+      0, 
+      1, 
+      0, 
+      0, 
+      "0.3", 
+      1, 
+      "0.6", 
+      1
+    ], 
+    "powerDensityReport": {
+      "distanceFromSource": 20, 
+      "horizontalPosition": "0", 
+      "horizontalRange": "15", 
+      "method": 1, 
+      "precision": "1", 
+      "verticalPosition": 0, 
+      "verticalRange": "15"
+    }, 
+    "propagation": {
+      "3": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          "1.3", 
+          1, 
+          "1.3"
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "4": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "5": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ]
+    }, 
+    "simulation": {
+      "facility": "", 
+      "isExample": "1", 
+      "name": "Focusing Bending Magnet Radiation", 
+      "photonEnergy": 3, 
+      "simulationId": "pzRP7ALb", 
+      "sourceType": "m"
+    }, 
+    "sourceIntensityReport": {
+      "characteristic": 0, 
+      "distanceFromSource": 20, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 0.5, 
+      "polarization": 6, 
+      "sampleFactor": 0, 
+      "verticalPosition": 0, 
+      "verticalRange": 0.5
+    }, 
+    "undulator": {
+      "horizontalAmplitude": "0", 
+      "horizontalInitialPhase": 0, 
+      "horizontalSymmetry": 1, 
+      "length": 3, 
+      "longitudinalPosition": 0, 
+      "period": "20", 
+      "verticalAmplitude": "0.88770981", 
+      "verticalInitialPhase": 0, 
+      "verticalSymmetry": -1
+    }, 
+    "watchpointReport4": {
+      "characteristic": "0", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 10, 
+      "polarization": "1", 
+      "precision": 0.01, 
+      "sampleFactor": 1, 
+      "verticalPosition": 0, 
+      "verticalRange": 30
+    }, 
+    "watchpointReport5": {
+      "characteristic": "0", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 10, 
+      "polarization": "0", 
+      "precision": 0.01, 
+      "sampleFactor": 1, 
+      "verticalPosition": 0, 
+      "verticalRange": 30
+    }
+  }, 
+  "report": "powerDensityReport", 
+  "version": "20150805"
+}
