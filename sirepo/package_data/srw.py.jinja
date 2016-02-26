@@ -178,7 +178,7 @@ appParam = [
 ]
 
 def setup_source(v):
-    appV = srwl_bl.srwl_uti_parse_options(appParam)
+    appV = srwl_bl.srwl_uti_parse_options(appParam, use_sys_argv=False)
 
     if appV.ueb:
         srwl_bl._USER_DEFINED_EBEAM = srwl_bl.SRWLPartBeam()

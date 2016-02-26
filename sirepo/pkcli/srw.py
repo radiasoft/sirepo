@@ -56,7 +56,7 @@ if MPI.COMM_WORLD.Get_rank():
             p['particles_per_slave'] = 1
         script += '''
 import srwl_bl
-v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
 source_type, mag = setup_source(v)
 v.wm = True
 v.wm_nm = {total_particles}
@@ -113,7 +113,7 @@ def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     # this defines the get_srw_params() and get_beamline_optics() functions
     exec(pkio.read_text('srw_parameters.py'), locals(), locals())
-    v = srwl_bl.srwl_uti_parse_options(get_srw_params())
+    v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
     source_type, mag = setup_source(v)
     op = None
     if data['report'] == 'intensityReport':
