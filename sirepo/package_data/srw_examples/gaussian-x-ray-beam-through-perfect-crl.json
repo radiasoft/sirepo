@@ -1,1 +1,328 @@
-{"report": "gaussianBeamIntensityReport", "models": {"fluxReport": {"verticalApertureSize": "1", "azimuthalPrecision": 1, "longitudinalPrecision": 1, "verticalPosition": 0, "horizontalApertureSize": "1", "finalEnergy": 20000, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 300, "initialEnergy": "100", "fluxType": 1}, "watchpointReport5": {"verticalRange": 1, "verticalPosition": 0, "horizontalRange": 1, "characteristic": "4", "sampleFactor": 5, "precision": 0.01, "polarization": "0", "horizontalPosition": 0}, "electronBeam": {"horizontalEmittance": 0.55, "horizontalAlpha": 0, "verticalBeta": 1.06, "name": "NSLS-II Low Beta Final", "beamSelector": "NSLS-II Low Beta Final", "verticalPosition": 0, "horizontalBeta": 2.02, "energy": 3, "verticalAlpha": 0, "horizontalPosition": 0, "verticalEmittance": 0.008, "horizontalDispersionDerivative": 0, "current": 0.5, "isReadOnly": true, "energyDeviation": 0, "verticalDispersionDerivative": 0, "verticalDispersion": 0, "rmsSpread": 0.00089, "horizontalDispersion": 0}, "multipole": {"field": 0.4, "distribution": "n", "length": 3, "order": 1}, "postPropagation": [0, 0, 1, 0, 0, 1, 1, 1, 1], "initialIntensityReport": {"verticalRange": 1, "verticalPosition": 0, "horizontalRange": 1, "characteristic": "0", "sampleFactor": 5, "precision": 0.01, "polarization": "6", "horizontalPosition": 0}, "undulator": {"verticalAmplitude": "0.88770981", "horizontalAmplitude": "0", "horizontalSymmetry": 1, "period": "20", "horizontalInitialPhase": 0, "length": 3, "verticalInitialPhase": 0, "verticalSymmetry": -1, "longitudinalPosition": 0}, "propagation": {"3": [[0, 0, 1, 1, 0, "1.1", "8", "1.1", "8"], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "2": [[0, 0, 1, 1, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "5": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "4": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "6": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]]}, "powerDensityReport": {"verticalRange": "15", "verticalPosition": 0, "horizontalRange": "15", "precision": "1", "horizontalPosition": "0", "distanceFromSource": 300, "method": 1}, "beamline": [{"position": 300, "type": "watch", "id": 6, "title": "Initial Phase"}, {"verticalOffset": 0, "horizontalSize": 1, "title": "Aperture", "id": 3, "horizontalOffset": 0, "shape": "r", "position": 300, "type": "aperture", "verticalSize": 1}, {"verticalApertureSize": 1, "title": "CRL", "horizontalApertureSize": 1, "id": 2, "refractiveIndex": 2.21555115e-06, "focalPlane": "3", "shape": 1, "radius": 0.00025, "position": 300, "numberOfLenses": 6, "type": "crl", "attenuationLength": 0.0154537, "wallThickness": 5e-05}, {"position": 309.7075, "type": "watch", "id": 4, "title": "Waist"}, {"position": 309.7075, "type": "watch", "id": 5, "title": "Phase at Waist"}], "watchpointReport4": {"verticalRange": 1, "verticalPosition": 0, "horizontalRange": 1, "characteristic": 0, "sampleFactor": 5, "precision": 0.01, "polarization": 6, "horizontalPosition": 0}, "gaussianBeam": {"rmsPulseDuration": 0.1, "waistAngleY": 0, "polarization": 1, "waistAngleX": 0, "energyPerPulse": "0.001", "rmsSizeY": 9.78723, "rmsSizeX": 9.78723, "repititionRate": 1, "waistZ": 0, "waistX": 0, "waistY": 0}, "intensityReport": {"initialEnergy": "100", "verticalPosition": 0, "precision": 0.01, "finalEnergy": "20000", "polarization": 6, "horizontalPosition": "0", "distanceFromSource": 300}, "simulation": {"name": "Gaussian X-ray Beam Through Perfect CRL", "facility": "", "isExample": "1", "photonEnergy": 12400, "simulationId": "gaussian-x-ray-beam-through-perfect-crl", "sourceType": "g"}, "sourceIntensityReport": {"verticalRange": 0.5, "verticalPosition": 0, "horizontalRange": 0.5, "characteristic": 0, "sampleFactor": 5, "precision": 0.01, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 300}, "watchpointReport6": {"verticalRange": 1, "verticalPosition": 0, "horizontalRange": 1, "characteristic": "4", "sampleFactor": 5, "precision": 0.01, "polarization": "0", "horizontalPosition": 0}, "electronBeams": []}, "simulationType": "srw", "version": "20151105"}
+{
+  "models": {
+    "beamline": [
+      {
+        "id": 6, 
+        "position": 300, 
+        "title": "Initial Phase", 
+        "type": "watch"
+      }, 
+      {
+        "horizontalOffset": 0, 
+        "horizontalSize": 1, 
+        "id": 3, 
+        "position": 300, 
+        "shape": "r", 
+        "title": "Aperture", 
+        "type": "aperture", 
+        "verticalOffset": 0, 
+        "verticalSize": 1
+      }, 
+      {
+        "attenuationLength": 0.0154537, 
+        "focalPlane": "3", 
+        "horizontalApertureSize": 1, 
+        "id": 2, 
+        "numberOfLenses": 6, 
+        "position": 300, 
+        "radius": 0.00025, 
+        "refractiveIndex": 2.21555115e-06, 
+        "shape": 1, 
+        "title": "CRL", 
+        "type": "crl", 
+        "verticalApertureSize": 1, 
+        "wallThickness": 5e-05
+      }, 
+      {
+        "id": 4, 
+        "position": 309.7075, 
+        "title": "Waist", 
+        "type": "watch"
+      }, 
+      {
+        "id": 5, 
+        "position": 309.7075, 
+        "title": "Phase at Waist", 
+        "type": "watch"
+      }
+    ], 
+    "electronBeam": {
+      "beamSelector": "NSLS-II Low Beta Final", 
+      "current": 0.5, 
+      "energy": 3, 
+      "energyDeviation": 0, 
+      "horizontalAlpha": 0, 
+      "horizontalBeta": 2.02, 
+      "horizontalDispersion": 0, 
+      "horizontalDispersionDerivative": 0, 
+      "horizontalEmittance": 0.55, 
+      "horizontalPosition": 0, 
+      "isReadOnly": true, 
+      "name": "NSLS-II Low Beta Final", 
+      "rmsSpread": 0.00089, 
+      "verticalAlpha": 0, 
+      "verticalBeta": 1.06, 
+      "verticalDispersion": 0, 
+      "verticalDispersionDerivative": 0, 
+      "verticalEmittance": 0.008, 
+      "verticalPosition": 0
+    }, 
+    "electronBeams": [], 
+    "fluxReport": {
+      "azimuthalPrecision": 1, 
+      "distanceFromSource": 300, 
+      "finalEnergy": 20000, 
+      "fluxType": 1, 
+      "horizontalApertureSize": "1", 
+      "horizontalPosition": 0, 
+      "initialEnergy": "100", 
+      "longitudinalPrecision": 1, 
+      "polarization": 6, 
+      "verticalApertureSize": "1", 
+      "verticalPosition": 0
+    }, 
+    "gaussianBeam": {
+      "energyPerPulse": "0.001", 
+      "polarization": 1, 
+      "repititionRate": 1, 
+      "rmsPulseDuration": 0.1, 
+      "rmsSizeX": 9.78723, 
+      "rmsSizeY": 9.78723, 
+      "waistAngleX": 0, 
+      "waistAngleY": 0, 
+      "waistX": 0, 
+      "waistY": 0, 
+      "waistZ": 0
+    }, 
+    "initialIntensityReport": {
+      "characteristic": "0", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 1, 
+      "polarization": "6", 
+      "precision": 0.01, 
+      "sampleFactor": 5, 
+      "verticalPosition": 0, 
+      "verticalRange": 1
+    }, 
+    "intensityReport": {
+      "distanceFromSource": 300, 
+      "finalEnergy": "20000", 
+      "horizontalPosition": "0", 
+      "initialEnergy": "100", 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "verticalPosition": 0
+    }, 
+    "multipole": {
+      "distribution": "n", 
+      "field": 0.4, 
+      "length": 3, 
+      "order": 1
+    }, 
+    "postPropagation": [
+      0, 
+      0, 
+      1, 
+      0, 
+      0, 
+      1, 
+      1, 
+      1, 
+      1
+    ], 
+    "powerDensityReport": {
+      "distanceFromSource": 300, 
+      "horizontalPosition": "0", 
+      "horizontalRange": "15", 
+      "method": 1, 
+      "precision": "1", 
+      "verticalPosition": 0, 
+      "verticalRange": "15"
+    }, 
+    "propagation": {
+      "2": [
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "3": [
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          "1.1", 
+          "8", 
+          "1.1", 
+          "8"
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "4": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "5": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ], 
+      "6": [
+        [
+          0, 
+          0, 
+          1, 
+          0, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ], 
+        [
+          0, 
+          0, 
+          1, 
+          1, 
+          0, 
+          1, 
+          1, 
+          1, 
+          1
+        ]
+      ]
+    }, 
+    "simulation": {
+      "facility": "", 
+      "isExample": "1", 
+      "name": "Gaussian X-ray Beam Through Perfect CRL", 
+      "photonEnergy": 12400, 
+      "simulationId": "gaussian-x-ray-beam-through-perfect-crl", 
+      "sourceType": "g"
+    }, 
+    "sourceIntensityReport": {
+      "characteristic": 0, 
+      "distanceFromSource": 300, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 0.5, 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "sampleFactor": 5, 
+      "verticalPosition": 0, 
+      "verticalRange": 0.5
+    }, 
+    "undulator": {
+      "horizontalAmplitude": "0", 
+      "horizontalInitialPhase": 0, 
+      "horizontalSymmetry": 1, 
+      "length": 3, 
+      "longitudinalPosition": 0, 
+      "period": "20", 
+      "verticalAmplitude": "0.88770981", 
+      "verticalInitialPhase": 0, 
+      "verticalSymmetry": -1
+    }, 
+    "watchpointReport4": {
+      "characteristic": 0, 
+      "horizontalPosition": 0, 
+      "horizontalRange": 1, 
+      "polarization": 6, 
+      "precision": 0.01, 
+      "sampleFactor": 5, 
+      "verticalPosition": 0, 
+      "verticalRange": 1
+    }, 
+    "watchpointReport5": {
+      "characteristic": "4", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 1, 
+      "polarization": "0", 
+      "precision": 0.01, 
+      "sampleFactor": 5, 
+      "verticalPosition": 0, 
+      "verticalRange": 1
+    }, 
+    "watchpointReport6": {
+      "characteristic": "4", 
+      "horizontalPosition": 0, 
+      "horizontalRange": 1, 
+      "polarization": "0", 
+      "precision": 0.01, 
+      "sampleFactor": 5, 
+      "verticalPosition": 0, 
+      "verticalRange": 1
+    }
+  }, 
+  "report": "gaussianBeamIntensityReport", 
+  "simulationType": "srw", 
+  "version": "20151105"
+}
