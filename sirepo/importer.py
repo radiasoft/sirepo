@@ -8,7 +8,6 @@ import ast
 import datetime
 import json
 import os
-import pprint
 import sys
 
 import requests
@@ -655,10 +654,13 @@ def parsed_dict(v, op, fname=None):
 
 
 class SRWParser:
-    def __init__(self, data, lib_dir=None, isFile=True, save_vars=False, save_file='parsed_sirepo.json', clean=True):
+    def __init__(self, data, lib_dir=None, isFile=True, save_vars=False, save_file='parsed_sirepo.json', clean=True,
+                 original_script_name='imported_srw_file.py'):
 
         self.initial_lib_dir = lib_dir  # initial directory with mirror .dat files
         self.lib_dir = lib_dir  # changeable directory with mirror .dat files
+
+        self.original_script_name = original_script_name
 
         self.content = None
 
@@ -667,7 +669,7 @@ class SRWParser:
             self.infile = data
         else:
             self.content = data
-            self.infile = 'imported_srw_file.py'
+            self.infile = self.original_script_name
             with open(self.infile, 'w') as f:
                 f.write(self.content)
 
@@ -698,6 +700,7 @@ class SRWParser:
 
         # JSON content for Sirepo:
         self.json_content = None
+        self.python_content = None
 
         # Define the names of the function and the list to read:
         self.set_optics_func = 'set_optics'
@@ -718,12 +721,9 @@ class SRWParser:
             dir_with_script = os.getcwd()
 
         sys.path.append(os.path.abspath(dir_with_script))
-        try:
-            self.imported_srw_file = __import__(self.module_name, fromlist=[self.set_optics_func, self.varParam_parm])
-        except:
-            # Remove temporary .py and .pyc files, we don't need them anymore:
-            self.clean_tmp_files()
-            raise Exception('Module <{}> cannot be imported.'.format(self.module_name))
+        # self.imported_srw_file = __import__(self.module_name, fromlist=[self.set_optics_func, self.varParam_parm])
+        import importlib
+        self.imported_srw_file = importlib.import_module(self.module_name)
 
         # Remove temporary .py and .pyc files, we don't need them anymore:
         self.clean_tmp_files()
@@ -753,7 +753,7 @@ class SRWParser:
         for key in self.v.__dict__.keys():
             if key.find('_ifn') >= 0:
                 if getattr(self.v, key) != '':
-                    self.v.__dict__[key] = 'mirror_1d.dat'
+                    self.v.__dict__[key] = ''  # 'mirror_1d.dat'
             if key.find('fdir') >= 0:
                 self.v.__dict__[key] = self.initial_lib_dir
         self.get_files()
@@ -783,7 +783,8 @@ class SRWParser:
         else:
             self.read_op()
 
-        self.json_content = parsed_dict(self.v, self.op, os.path.basename(self.infile))
+        self.python_content = parsed_dict(self.v, self.op, os.path.basename(self.original_script_name))
+        self.json_content = json.dumps(self.python_content)
 
     def save(self):
         with open(self.save_file, 'w') as f:
@@ -807,7 +808,7 @@ def main(py_file, debug=False):
     o.to_json()
 
     if debug:
-        pprint.pprint(o.json_content)
+        print(o.json_content)
         print '\n\tJSON output is saved in <%s>.' % o.save_file
 
     # Save the resulted file:

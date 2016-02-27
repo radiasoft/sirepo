@@ -294,29 +294,65 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 def app_import_file(simulation_type):
     f = flask.request.files['file']
     try:
-        from werkzeug import secure_filename
-        filename = secure_filename(f.filename)
-        imported_file_path = os.path.join('./', filename)
+        import uuid
+        import traceback
+        import inspect
+
+        real_name = f.filename
+        secret_script = str(uuid.uuid4()) + '.py'
+        secret_script_pyc = secret_script + 'c'
+        lib = _simulation_lib_dir(simulation_type)
+        p = lib.join(secret_script)
+        p_pyc = lib.join(secret_script_pyc)
+        f.save(str(p))
+
+        data = None
+
         try:
-            f.save(imported_file_path)
-        except:
-            raise Exception('File <{}> cannot be saved.'.format(filename))
+            # Perform initialization of the object and get "v" parameters:
+            o = sirepo.importer.SRWParser(str(p), lib_dir=str(lib), original_script_name=real_name)
 
-        # Here we provide path to mirror_1d.dat .dat file and use it for each element requiring profile as placeholder:
-        lib_dir = str(_simulation_lib_dir('srw'))
+            # Main SRW calculation and conversion to JSON:
+            o.to_json()
 
-        # Perform initialization of the object and get "v" parameters:
-        o = sirepo.importer.SRWParser(imported_file_path, lib_dir=lib_dir)
+            data = o.json_content
 
-        # Main SRW calculation and conversion to JSON:
-        o.to_json()
-        data = o.json_content
+            return _save_new_simulation(simulation_type, json.loads(data))
+
+        except Exception as e:
+            # traceback.print_exc()
+            user_info = ''
+            for item in reversed(inspect.trace()):
+                if re.search(secret_script, item[1]):
+                    line_num = item[2]
+                    if item[4]:
+                        line_content = item[4][0]
+                    else:
+                        line_content = ''
+                    user_info += 'Error on line {}: "{}" || '.format(line_num, line_content)
+            user_info += 'File did not work properly.\n'
+
+            print(
+                'Error in script <{}>, exception="{}", file={}:\n\n{}\n'.format(real_name, e, secret_script, data),
+                file=sys.stderr,
+            )
+
+            pkio.unchecked_remove(p, p_pyc)
+
+            return flask.jsonify({
+                'error': 'File import failed: {}'.format(user_info)
+            })
 
     except Exception as e:
+        # traceback.print_exc()
+        print(
+            'Error during processing of script <{}>, exception="{}", file={}:\n'.format(real_name, e, secret_script),
+            file=sys.stderr,
+        )
+
         return flask.jsonify({
-            'error': 'File import failed: {}'.format(e)
+            'error': 'General import error occurred.'
         })
-    return _save_new_simulation(simulation_type, data)
 
 
 @app.route(_SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
