@@ -305,20 +305,12 @@ def app_import_file(simulation_type):
         p = lib.join(secret_script)
         p_pyc = lib.join(secret_script_pyc)
         f.save(str(p))
-
         data = None
-
         try:
-            # Perform initialization of the object and get "v" parameters:
-            o = sirepo.importer.SRWParser(str(p), lib_dir=str(lib), original_script_name=real_name)
-
-            # Main SRW calculation and conversion to JSON:
-            o.to_json()
-
-            data = o.json_content
-
+            o = sirepo.importer.SRWParser(
+                p, lib_dir=lib, original_script_name=real_name)
+            data = o.to_json()
             return _save_new_simulation(simulation_type, json.loads(data))
-
         except Exception as e:
             # traceback.print_exc()
             user_info = ''

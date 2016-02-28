@@ -20,6 +20,23 @@ from pykern import pkconfig
 from pykern import pkio
 from sirepo.template.srw import extract_report_data
 
+
+def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
+    """Run importer in run_dir trying to import py_file
+
+    Args:
+        run_dir (str): clean directory except for in_py
+        in_py (str): name of the python file in run_dir
+        out_json (str): valid json matching SRW schema
+    """
+    import sirepo.importer
+    with pkio.save_chdir(run_dir):
+        out = sirepo.importer.python_to_json(in_py)
+        with open(out_json, 'w') as f:
+            f.write(out)
+    return 'Created: {}'.format(out_json)
+
+
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
 

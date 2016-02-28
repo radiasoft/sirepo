@@ -3,6 +3,9 @@ This script is to parse Sirepo-generated .py file and to produce JSON-file with 
 It's highly dependent on the external Sirepo/SRW libraries and is written to allow parsing of the .py files using
 SRW objects. Can be used in the future for parsing of complicated scripts.
 """
+from __future__ import absolute_import, division, print_function
+
+from pykern.pkdebug import pkdc, pkdp
 
 import ast
 import datetime
@@ -17,6 +20,13 @@ try:
     import cPickle as pickle
 except:
     import pickle
+
+
+def python_to_json(in_py):
+    o = SRWParser(in_py, clean=False)
+    pkdc('list_of_files={}; lib_dir={}', o.list_of_files, o.lib_dir)
+    pkdc(o.json_content)
+    return o.to_json()
 
 
 def get_json(json_url):
@@ -654,7 +664,7 @@ def parsed_dict(v, op, fname=None):
 
 
 class SRWParser:
-    def __init__(self, data, lib_dir=None, isFile=True, save_vars=False, save_file='parsed_sirepo.json', clean=True,
+    def __init__(self, data, lib_dir=None, isFile=True, save_vars=False, clean=True,
                  original_script_name='imported_srw_file.py'):
 
         self.initial_lib_dir = lib_dir  # initial directory with mirror .dat files
@@ -676,14 +686,11 @@ class SRWParser:
         # If it's set to True, save variables in *.pickle files:
         self.save_vars = save_vars
 
-        # The resulted JSON contents will be saved in this file:
-        self.save_file = save_file
-
         # If we need to clean used *.py/*.pyc files:
         self.clean = clean
 
         # Module name is used for __import__:
-        self.module_name, self.extension = os.path.splitext(os.path.basename(self.infile))
+        self.module_name, self.extension = os.path.splitext(self.infile.basename)
         if self.extension != '.py':
             self.clean_tmp_files()
             raise Exception('File extension must be <.py>, found extension <{}>.'.format(self.extension))
@@ -716,7 +723,7 @@ class SRWParser:
 
     def perform_import(self):
         if self.isFile:
-            dir_with_script = os.path.dirname(os.path.abspath(self.infile))
+            dir_with_script = self.infile.dirname
         else:
             dir_with_script = os.getcwd()
 
@@ -724,18 +731,6 @@ class SRWParser:
         # self.imported_srw_file = __import__(self.module_name, fromlist=[self.set_optics_func, self.varParam_parm])
         import importlib
         self.imported_srw_file = importlib.import_module(self.module_name)
-
-        # Remove temporary .py and .pyc files, we don't need them anymore:
-        self.clean_tmp_files()
-
-    def clean_tmp_files(self):
-        """Removes temporary .py and .pyc files."""
-        if self.clean:
-            for f in [self.infile, self.infile + 'c']:
-                try:
-                    os.remove(f)
-                except:
-                    pass
 
     def read_v(self):
         varParam = getattr(self.imported_srw_file, self.varParam_parm)
@@ -746,8 +741,10 @@ class SRWParser:
         for key in self.v.__dict__.keys():
             if key.find('_ifn') >= 0:
                 self.list_of_files.append(self.v.__dict__[key])
+            #TODO(robnagler) this directory has to be a constant; imports
+            #   don't have control of their environment
             if key.find('fdir') >= 0:
-                self.lib_dir = self.v.__dict__[key]
+                self.lib_dir = py.path.local(self.v.__dict__[key])
 
     def replace_files(self):
         for key in self.v.__dict__.keys():
@@ -755,7 +752,7 @@ class SRWParser:
                 if getattr(self.v, key) != '':
                     self.v.__dict__[key] = ''  # 'mirror_1d.dat'
             if key.find('fdir') >= 0:
-                self.v.__dict__[key] = self.initial_lib_dir
+                self.v.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
 
     # Since it's a long procedure, it's done separately:
@@ -765,6 +762,7 @@ class SRWParser:
 
     def to_json(self):
         if self.save_vars:
+            #TODO(robnagler) What is this feature for? Why pickle file and not JSON?
             pickle_file_v = 'pickle_v.txt'
             pickle_file_op = 'pickle_op.txt'
 
@@ -784,49 +782,9 @@ class SRWParser:
             self.read_op()
 
         self.python_content = parsed_dict(self.v, self.op, os.path.basename(self.original_script_name))
-        self.json_content = json.dumps(self.python_content)
-
-    def save(self):
-        with open(self.save_file, 'w') as f:
-            json.dump(
-                self.json_content,
-                f,
-                sort_keys=True,
-                indent=4,
-                separators=(',', ': '),
-            )
-
-
-def main(py_file, debug=False):
-    o = SRWParser(py_file, clean=False)  # , lib_dir='./')
-    # Here we may process .dat files:
-    # ...
-    print 'List of .dat files:', o.list_of_files
-    print 'Lib dir           :', o.lib_dir
-
-    # Main SRW calculation and conversion to JSON:
-    o.to_json()
-
-    if debug:
-        print(o.json_content)
-        print '\n\tJSON output is saved in <%s>.' % o.save_file
-
-    # Save the resulted file:
-    o.save()
-
-    return
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Parse Sirepo-generated .py file.')
-    parser.add_argument('-p', '--py_file', dest='py_file', help='input Python file.')
-    parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='enable debug information.')
-
-    args = parser.parse_args()
-    py_file = args.py_file
-    debug = args.debug
-
-    if py_file and os.path.isfile(py_file):
-        sys.exit(main(py_file, debug))
+        return json.dumps(
+            self.python_content,
+            sort_keys=True,
+            indent=4,
+            separators=(',', ': '),
+        ) + '\n'
