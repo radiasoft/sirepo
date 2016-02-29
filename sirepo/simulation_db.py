@@ -36,6 +36,9 @@ STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 #: Implemented apps
 _APP_NAMES = ['srw', 'warp', 'elegant']
 
+#: How to find examples in resources
+_EXAMPLE_DIR_FORMAT = '{}_examples'
+
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
 
@@ -59,6 +62,14 @@ _app = None
 
 with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
     SCHEMA_COMMON = json.load(f)
+
+def examples(app):
+    files = pkio.walk_tree(
+        pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
+        re.escape(JSON_SUFFIX) + '$',
+    )
+    return [open_json_file(app, str(f)) for f in files]
+
 
 def find_global_simulation(simulation_type, sid):
     global_path = None
@@ -321,7 +332,7 @@ def _user_dir_create():
     for app_name in _APP_NAMES:
         d = simulation_dir(app_name)
         pkio.mkdir_parent(d)
-        for s in _examples(app_name):
+        for s in examples(app_name):
             save_new_example(app_name, s)
         d = simulation_lib_dir(app_name)
         pkio.mkdir_parent(d)

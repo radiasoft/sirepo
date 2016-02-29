@@ -34,9 +34,6 @@ import werkzeug.exceptions
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
-#: How to find examples in resources
-_EXAMPLE_DIR_FORMAT = '{}_examples'
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
@@ -210,7 +207,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
     if application_mode == 'light-sources':
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
-        for s in _examples(simulation_type):
+        for s in sdb.examples(simulation_type):
             if s['models']['simulation']['facility'] == simulation_name:
                 rows = sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, {
                     'simulation.name': s['models']['simulation']['name'],
@@ -225,7 +222,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
             'simulation.name': simulation_name,
         })
         if len(rows) == 0:
-            for s in _examples(simulation_type):
+            for s in sdb.examples(simulation_type):
                 if s['models']['simulation']['name'] == simulation_name:
                     sdb.save_new_example(simulation_type, s)
                     rows = sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, {
@@ -576,14 +573,6 @@ def _error_text(err):
     if m:
         return m.group(1)
     return 'a system error occurred'
-
-
-def _examples(app):
-    files = pkio.walk_tree(
-        pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
-        re.escape(sdb.JSON_SUFFIX) + '$',
-    )
-    return [sdb.open_json_file(app, str(f)) for f in files]
 
 
 def _json_input():
