@@ -73,7 +73,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     $rootScope.$on('modelsLoaded', function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
-        APP_SCHEMA.enum['Characteristic'] = (self.isApplicationMode('wavefront') || self.isApplicationMode('calculator') || self.isGaussianBeam())
+        APP_SCHEMA.enum['Characteristic'] = (self.isApplicationMode('wavefront') || self.isGaussianBeam())
             ? self.singleElectronCharacteristicEnum
             : self.originalCharacteristicEnum;
     });
@@ -523,9 +523,20 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
     }
 });
 
-app.controller('SRWSourceController', function (srwService) {
+app.controller('SRWSourceController', function (appState, srwService) {
     var self = this;
     self.srwService = srwService;
+
+    self.handleModalShown = function(name, el) {
+        if (appState.isLoaded()) {
+            if (srwService.isGaussianBeam()) {
+                $('.model-sourceIntensityReport-fieldUnits').show(0);
+            }
+            else {
+                $('.model-sourceIntensityReport-fieldUnits').hide(0);
+            }
+        }
+    };
 });
 
 app.directive('appFooter', function(appState) {
