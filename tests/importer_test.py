@@ -21,7 +21,7 @@ def test_sirepo_parser():
             base_py = '{}.py'.format(b)
             in_py = py.path.local(base_py)
             pkunit.data_dir().join(base_py).copy(in_py)
-            actual = python_to_json(in_py)
+            actual =  python_to_json(in_py)
             actual = re.sub(r'Imported file[^"]+', 'IGNORE-VALUE', actual)
             actual_json = pkio.write_text('out.json', actual)
             expect_json = pkunit.data_dir().join('{}.json'.format(b))

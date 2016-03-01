@@ -21,6 +21,9 @@ import re
 import sirepo.template
 import werkzeug.exceptions
 
+#: Implemented apps
+APP_NAMES = ['srw', 'warp', 'elegant']
+
 #: Json files
 JSON_SUFFIX = '.json'
 
@@ -32,9 +35,6 @@ SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
 #: Where server files and static files are found
 STATIC_FOLDER = py.path.local(pkresource.filename('static'))
-
-#: Implemented apps
-_APP_NAMES = ['srw', 'warp', 'elegant']
 
 #: How to find examples in resources
 _EXAMPLE_DIR_FORMAT = '{}_examples'
@@ -50,6 +50,9 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
+
+#: created under dir
+_TMP_DIR = 'tmp'
 
 #: Attribute in session object
 _UID_ATTR = 'uid'
@@ -230,6 +233,15 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
+def tmp_dir():
+    """Generates tmp directory for the user
+
+    Returns:
+        py.path: directory to use for temporary work
+    """
+    return _random_id(_user_dir().join(_TMP_DIR))
+
+
 def _find_user_simulation_copy(simulation_type, sid):
     rows = iterate_simulation_datafiles(simulation_type, process_simulation_list, {
         'simulation.outOfSessionSimulationId': sid,
@@ -329,7 +341,7 @@ def _user_dir_create():
     uid = _random_id(_user_dir_name())
     # Must set before calling simulation_dir
     flask.session[_UID_ATTR] = uid
-    for app_name in _APP_NAMES:
+    for app_name in APP_NAMES:
         d = simulation_dir(app_name)
         pkio.mkdir_parent(d)
         for s in examples(app_name):

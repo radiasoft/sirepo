@@ -9,6 +9,7 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
+from sirepo import simulation_db
 import beaker.middleware
 import datetime
 import errno
@@ -21,7 +22,6 @@ import py
 import re
 import signal
 import sirepo.importer
-import sirepo.simulation_db as sdb
 import sirepo.template
 import subprocess
 import sys
@@ -97,48 +97,48 @@ class _BeakerSession(flask.sessions.SessionInterface):
 
 app = flask.Flask(
     __name__,
-    static_folder=str(sdb.STATIC_FOLDER),
-    template_folder=str(sdb.STATIC_FOLDER),
+    static_folder=str(simulation_db.STATIC_FOLDER),
+    template_folder=str(simulation_db.STATIC_FOLDER),
 )
 
 
 def init(db_dir):
     """Initialize globals and populate simulation dir"""
     _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
-    sdb.init(app)
+    simulation_db.init(app)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
 def app_clear_frames():
     """Clear animation frames for the simulation."""
     data = _json_input()
-    sdb.simulation_run_dir(data, remove_dir=True)
+    simulation_db.simulation_run_dir(data, remove_dir=True)
     return '{}'
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
 def app_copy_nonsession_simulation():
     req = _json_input()
     simulation_type = req['simulationType']
-    global_path = sdb.find_global_simulation(simulation_type, req['simulationId'])
+    global_path = simulation_db.find_global_simulation(simulation_type, req['simulationId'])
     if global_path:
-        data = sdb.open_json_file(simulation_type, os.path.join(global_path, sdb.SIMULATION_DATA_FILE))
+        data = simulation_db.open_json_file(simulation_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
         data['models']['simulation']['isExample'] = ''
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(simulation_type, data)
-        sirepo.template.import_module(simulation_type).copy_animation_file(global_path, sdb.simulation_dir(simulation_type, sdb.parse_sid(data)))
+        sirepo.template.import_module(simulation_type).copy_animation_file(global_path, simulation_db.simulation_dir(simulation_type, simulation_db.parse_sid(data)))
         return res
     werkzeug.exceptions.abort(404)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
 def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = _json_input()
     simulation_type = req['simulationType']
-    data = sdb.open_json_file(simulation_type, sid=req['simulationId'])
+    data = simulation_db.open_json_file(simulation_type, sid=req['simulationId'])
     base_name = data['models']['simulation']['name']
-    names = sdb.iterate_simulation_datafiles(simulation_type, _simulation_name)
+    names = simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_name)
     count = 0
     while True:
         count += 1
@@ -156,19 +156,19 @@ def app_copy_simulation():
 def app_route_favicon():
     """Routes to favicon.ico file."""
     return flask.send_from_directory(
-        str(sdb.STATIC_FOLDER.join('img')),
+        str(simulation_db.STATIC_FOLDER.join('img')),
         'favicon.ico', mimetype='image/vnd.microsoft.icon'
     )
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
     data = _json_input()
-    pkio.unchecked_remove(sdb.simulation_dir(data['simulationType'], data['simulationId']))
+    pkio.unchecked_remove(simulation_db.simulation_dir(data['simulationType'], data['simulationId']))
     return '{}'
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
 def app_download_data_file(simulation_type, simulation_id, model_or_frame):
     data = {
         'simulationType': simulation_type,
@@ -179,7 +179,7 @@ def app_download_data_file(simulation_type, simulation_id, model_or_frame):
         frame_index = int(model_or_frame)
     else:
         data['report'] = model_or_frame
-    run_dir = sdb.simulation_run_dir(data)
+    run_dir = simulation_db.simulation_run_dir(data)
     template = sirepo.template.import_module(simulation_type)
     filename, content, content_type = template.get_data_file(run_dir, frame_index)
     response = flask.make_response(content)
@@ -188,44 +188,44 @@ def app_download_data_file(simulation_type, simulation_id, model_or_frame):
     return response
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
 def app_download_file(simulation_type, simulation_id, filename):
-    lib = sdb.simulation_lib_dir(simulation_type)
+    lib = simulation_db.simulation_lib_dir(simulation_type)
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p))
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
 def app_error_logging():
     print('javascript error: {}'.format(_json_input()))
     return '{}'
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     redirect_uri = None
     if application_mode == 'light-sources':
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
-        for s in sdb.examples(simulation_type):
+        for s in simulation_db.examples(simulation_type):
             if s['models']['simulation']['facility'] == simulation_name:
-                rows = sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, {
+                rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': s['models']['simulation']['name'],
                 })
                 if len(rows) == 0:
-                    sdb.save_new_example(simulation_type, s)
+                    simulation_db.save_new_example(simulation_type, s)
         redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
             simulation_type, flask.escape(simulation_name), application_mode)
     else:
         # otherwise use the existing named simulation, or copy it from the examples
-        rows = sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, {
+        rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
             'simulation.name': simulation_name,
         })
         if len(rows) == 0:
-            for s in sdb.examples(simulation_type):
+            for s in simulation_db.examples(simulation_type):
                 if s['models']['simulation']['name'] == simulation_name:
-                    sdb.save_new_example(simulation_type, s)
-                    rows = sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, {
+                    simulation_db.save_new_example(simulation_type, s)
+                    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                         'simulation.name': simulation_name,
                     })
                     break
@@ -246,79 +246,36 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
     werkzeug.exceptions.abort(404)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
     f = flask.request.files['file']
-    try:
-        import uuid
-        import traceback
-        import inspect
-
-        real_name = f.filename
-        secret_script = str(uuid.uuid4()) + '.py'
-        secret_script_pyc = secret_script + 'c'
-        lib = sdb.simulation_lib_dir(simulation_type)
-        p = lib.join(secret_script)
-        p_pyc = lib.join(secret_script_pyc)
-        f.save(str(p))
-        data = None
-        try:
-            o = sirepo.importer.SRWParser(
-                p, lib_dir=lib, original_script_name=real_name)
-            data = o.to_json()
-            return _save_new_and_reply(simulation_type, json.loads(data))
-        except Exception as e:
-            # traceback.print_exc()
-            user_info = ''
-            for item in reversed(inspect.trace()):
-                if re.search(secret_script, item[1]):
-                    line_num = item[2]
-                    if item[4]:
-                        line_content = item[4][0]
-                    else:
-                        line_content = ''
-                    user_info += 'Error on line {}: "{}" || '.format(line_num, line_content)
-            user_info += 'File did not work properly.\n'
-
-            print(
-                'Error in script <{}>, exception="{}", file={}:\n\n{}\n'.format(real_name, e, secret_script, data),
-                file=sys.stderr,
-            )
-
-            pkio.unchecked_remove(p, p_pyc)
-
-            return flask.jsonify({
-                'error': 'File import failed: {}'.format(user_info)
-            })
-
-    except Exception as e:
-        # traceback.print_exc()
-        print(
-            'Error during processing of script <{}>, exception="{}", file={}:\n'.format(real_name, e, secret_script),
-            file=sys.stderr,
-        )
-
-        return flask.jsonify({
-            'error': 'General import error occurred.'
-        })
+    error, data = sireop.importer.import_python(
+        f.read(),
+        lib_dir=simulation_db.simulation_lib_dir(simulation_type),
+        tmp_dir=simulation_db.tmp_dir(),
+        filename=f.filename,
+    )
+    if error:
+        return flask.jsonify({'error': error})
+    return _save_new_and_reply(simulation_type, data)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
     new_simulation_data = _json_input()
     simulation_type = new_simulation_data['simulationType']
-    data = sdb.open_json_file(
+    data = simulation_db.open_json_file(
         simulation_type,
-        sdb.STATIC_FOLDER.join('json', '{}-default{}'.format(simulation_type, sdb.JSON_SUFFIX)),
+        simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(simulation_type, simulation_db.JSON_SUFFIX)),
     )
     data['models']['simulation']['name'] = new_simulation_data['name']
     sirepo.template.import_module(simulation_type).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(simulation_type, data)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['pythonSource'])
+@app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
 def app_python_source(simulation_type, simulation_id):
-    data = sdb.open_json_file(simulation_type, sid=simulation_id)
+    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(simulation_type)
     # ensure the whole source gets generated, not up to the last watchpoint report
     last_watchpoint = None
@@ -337,34 +294,34 @@ def app_python_source(simulation_type, simulation_id):
     )
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['root'])
+@app.route(simulation_db.SCHEMA_COMMON['route']['root'])
 def app_root(simulation_type):
     return flask.render_template(
         'html/index.html',
-        version=sdb.SCHEMA_COMMON['version'],
+        version=simulation_db.SCHEMA_COMMON['version'],
         app_name=simulation_type,
     )
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
     data = _json_input()
-    sid = sdb.parse_sid(data)
+    sid = simulation_db.parse_sid(data)
     err = _start_simulation(data).run_and_read()
-    run_dir = sdb.simulation_run_dir(data)
+    run_dir = simulation_db.simulation_run_dir(data)
     if err:
         pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
         return flask.jsonify({
             'error': _error_text(err),
             'simulationId': sid,
         })
-    return pkio.read_text(run_dir.join('out{}'.format(sdb.JSON_SUFFIX)))
+    return pkio.read_text(run_dir.join('out{}'.format(simulation_db.JSON_SUFFIX)))
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
     data = _json_input()
-    sid = sdb.parse_sid(data)
+    sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
     if cfg.job_queue.is_running(sid):
         #TODO(robnagler) return error to user if in different window
@@ -380,32 +337,32 @@ def app_run_background():
     })
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _json_input()
     data['models']['simulationStatus']['state'] = 'canceled'
     simulation_type = data['simulationType']
-    sdb.save_simulation_json(simulation_type, data)
-    cfg.job_queue.kill(sdb.parse_sid(data))
+    simulation_db.save_simulation_json(simulation_type, data)
+    cfg.job_queue.kill(simulation_db.parse_sid(data))
     # the last frame file may not be finished, remove it
     t = sirepo.template.import_module(simulation_type)
-    t.remove_last_frame(sdb.simulation_run_dir(data))
+    t.remove_last_frame(simulation_db.simulation_run_dir(data))
     return '{}'
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
     data = _json_input()
-    sid = sdb.parse_sid(data)
+    sid = simulation_db.parse_sid(data)
     simulation_type = data['simulationType']
     template = sirepo.template.import_module(simulation_type)
-    run_dir = sdb.simulation_run_dir(data)
+    run_dir = simulation_db.simulation_run_dir(data)
 
     if cfg.job_queue.is_running(sid):
         completion = template.background_percent_complete(data, run_dir, True)
         state = 'running'
     else:
-        data = sdb.open_json_file(simulation_type, sid=sid)
+        data = simulation_db.open_json_file(simulation_type, sid=sid)
         state = data['models']['simulationStatus']['state']
         completion = template.background_percent_complete(data, run_dir, False)
         if state == 'running':
@@ -414,7 +371,7 @@ def app_run_status():
             else:
                 state = 'canceled'
             data['models']['simulationStatus']['state'] = state
-            sdb.save_simulation_json(data['simulationType'], data)
+            simulation_db.save_simulation_json(data['simulationType'], data)
 
     frame_id = ''
     elapsed_time = ''
@@ -432,18 +389,18 @@ def app_run_status():
     })
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['simulationData'])
+@app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
-    response = flask.jsonify(sdb.open_json_file(simulation_type, sid=simulation_id))
+    response = flask.jsonify(simulation_db.open_json_file(simulation_type, sid=simulation_id))
     _no_cache(response)
     return response
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['simulationFrame'])
+@app.route(simulation_db.SCHEMA_COMMON['route']['simulationFrame'])
 def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('-')))
-    run_dir = sdb.simulation_run_dir(data)
+    run_dir = simulation_db.simulation_run_dir(data)
     template = sirepo.template.import_module(data['simulationType'])
     response = flask.jsonify(template.get_simulation_frame(run_dir, data))
 
@@ -458,10 +415,10 @@ def app_simulation_frame(frame_id):
     return response
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
 def app_file_list(simulation_type, simulation_id):
     res = []
-    d = sdb.simulation_lib_dir(simulation_type)
+    d = simulation_db.simulation_lib_dir(simulation_type)
     for f in glob.glob(str(d.join('*.*'))):
         if os.path.isfile(f):
             res.append(os.path.basename(f))
@@ -469,21 +426,21 @@ def app_file_list(simulation_type, simulation_id):
     return json.dumps(res)
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list():
     input = _json_input()
     simulation_type = input['simulationType']
     search = input['search'] if 'search' in input else None
     return json.dumps(
         sorted(
-            sdb.iterate_simulation_datafiles(simulation_type, sdb.process_simulation_list, search),
+            simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, search),
             key=lambda row: row['last_modified'],
             reverse=True
         )
     )
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['simulationSchema'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['simulationSchema'], methods=('GET', 'POST'))
 def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
     return flask.jsonify(_schema_cache(sim_type))
@@ -493,7 +450,7 @@ def app_simulation_schema():
 def light_landing_page():
     return flask.render_template(
         'html/sr-landing-page.html',
-        version=sdb.SCHEMA_COMMON['version'],
+        version=simulation_db.SCHEMA_COMMON['version'],
     )
 
 
@@ -541,10 +498,10 @@ def _cfg_time_limit(value):
     return v
 
 
-@app.route(sdb.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
+@app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
 def app_upload_file(simulation_type, simulation_id):
     f = flask.request.files['file']
-    lib = sdb.simulation_lib_dir(simulation_type)
+    lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(f.filename)
     p = lib.join(filename)
     err = None
@@ -589,16 +546,16 @@ def _read_http_input():
 
 
 def _save_new_and_reply(*args):
-    simulation_type, sid = sdb.save_new_simulation(*args)
+    simulation_type, sid = simulation_db.save_new_simulation(*args)
     return app_simulation_data(simulation_type, sid)
 
 
 def _schema_cache(sim_type):
     if sim_type in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[sim_type]
-    with open(str(sdb.STATIC_FOLDER.join('json/{}-schema{}'.format(sim_type, sdb.JSON_SUFFIX)))) as f:
+    with open(str(simulation_db.STATIC_FOLDER.join('json/{}-schema{}'.format(sim_type, simulation_db.JSON_SUFFIX)))) as f:
         schema = json.load(f)
-    schema.update(sdb.SCHEMA_COMMON)
+    schema.update(simulation_db.SCHEMA_COMMON)
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
     return schema
@@ -628,20 +585,22 @@ def _start_simulation(data, run_async=False):
     Returns:
         object: _Command or daemon instance
     """
-    run_dir = sdb.simulation_run_dir(data, remove_dir=True)
+    run_dir = simulation_db.simulation_run_dir(data, remove_dir=True)
     pkio.mkdir_parent(run_dir)
     #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
     #   probably can only do with celery.
     simulation_type = data['simulationType']
-    sid = sdb.parse_sid(data)
-    data = sdb.fixup_old_data(simulation_type, data)
+    sid = simulation_db.parse_sid(data)
+    data = simulation_db.fixup_old_data(simulation_type, data)
+    assert simulation_type in simulation_db.APP_NAMES, \
+        '{}: invalid simulation type'.format(simulation_type)
     template = sirepo.template.import_module(simulation_type)
-    sdb.save_simulation_json(simulation_type, data)
-    for d in sdb.simulation_dir(simulation_type, sid), sdb.simulation_lib_dir(simulation_type):
+    simulation_db.save_simulation_json(simulation_type, data)
+    for d in simulation_db.simulation_dir(simulation_type, sid), simulation_db.simulation_lib_dir(simulation_type):
         for f in glob.glob(str(d.join('*.*'))):
             if os.path.isfile(f):
                 py.path.local(f).copy(run_dir)
-    with open(str(run_dir.join('in{}'.format(sdb.JSON_SUFFIX))), 'w') as outfile:
+    with open(str(run_dir.join('in{}'.format(simulation_db.JSON_SUFFIX))), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
         run_dir.join(simulation_type + '_parameters.py'),

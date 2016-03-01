@@ -6,15 +6,18 @@ SRW objects. Can be used in the future for parsing of complicated scripts.
 from __future__ import absolute_import, division, print_function
 
 from pykern.pkdebug import pkdc, pkdp
-
+from pykern import pkrunpy
+from sirepo import simulation_db
+from srwl_bl import srwl_uti_std_options
 import ast
 import datetime
+import inspect
 import json
 import os
-import sys
-
 import requests
-from srwl_bl import srwl_uti_std_options
+import sys
+import traceback
+import uuid
 
 try:
     import cPickle as pickle
@@ -22,11 +25,43 @@ except:
     import pickle
 
 
-def python_to_json(in_py):
-    o = SRWParser(in_py, clean=False)
-    pkdc('list_of_files={}; lib_dir={}', o.list_of_files, o.lib_dir)
-    pkdc(o.json_content)
-    return o.to_json()
+def import_python(code, tmp_dir, lib_dir, user_filename=None):
+    """Converts script_text into json and stores as new simulation.
+
+    Avoids too much data back to the user in the event of an error.
+    This could be a potential security issue, because the script
+    could be used to probe the system.
+
+    Args:
+        simulation_type (str): always "srw", but used to find lib dir
+        code (str): Python code that runs SRW
+        user_filename (str): uploaded file name for log
+
+    Returns:
+        error: string containing error or None
+        dict: simulation data
+    """
+    error = 'Import failed: error unknown'
+    script = None
+    try:
+        with pkio.save_chdir(tmp_dir):
+            # This string won't show up anywhere
+            script = pkio.write_text('in.py', code)
+            o = SRWParser(script, lib_dir=lib_dir, user_filename=user_filename)
+            return None, o.data()
+    except Exception as e:
+        lineno = _find_line_in_trace(script) if script else None
+        # Avoid
+        pkdp(
+            'Error: {}; exception={}; script={}; filename={}; stack:\n{}',
+            error,
+            e,
+            script,
+            filename,
+            traceback.format_exc(),
+        )
+        error = 'Error on line {}: {}'.format(lineno or '?', str(e)[:50])
+    return error, None
 
 
 def get_json(json_url):
@@ -54,7 +89,7 @@ def list2dict(data_list):
     return out_dict
 
 
-class Struct:
+class Struct(object):
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
@@ -430,7 +465,7 @@ def get_propagation(op):
     return prop_dict
 
 
-def parsed_dict(v, op, fname=None):
+def parsed_dict(v, op):
     std_options = Struct(**list2dict(srwl_uti_std_options()))
 
     beamlines_list = get_beamline(op.arOpt, v.op_r)
@@ -560,12 +595,6 @@ def parsed_dict(v, op, fname=None):
             u'waistZ': _default_value('gbm_z', v, std_options),
         }
 
-    import_datetime = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-    if fname:
-        name = 'Imported file <{}> ({})'.format(fname, import_datetime)
-    else:
-        name = 'Imported file ({})'.format(import_datetime)
-
     python_dict = {
         u'models': {
             u'beamline': beamlines_list,
@@ -663,128 +692,63 @@ def parsed_dict(v, op, fname=None):
     return python_dict
 
 
-class SRWParser:
-    def __init__(self, data, lib_dir=None, isFile=True, save_vars=False, clean=True,
-                 original_script_name='imported_srw_file.py'):
-
-        self.initial_lib_dir = lib_dir  # initial directory with mirror .dat files
-        self.lib_dir = lib_dir  # changeable directory with mirror .dat files
-
-        self.original_script_name = original_script_name
-
-        self.content = None
-
-        self.isFile = isFile
-        if self.isFile:
-            self.infile = data
-        else:
-            self.content = data
-            self.infile = self.original_script_name
-            with open(self.infile, 'w') as f:
-                f.write(self.content)
-
-        # If it's set to True, save variables in *.pickle files:
-        self.save_vars = save_vars
-
-        # If we need to clean used *.py/*.pyc files:
-        self.clean = clean
-
-        # Module name is used for __import__:
-        self.module_name, self.extension = os.path.splitext(self.infile.basename)
-        if self.extension != '.py':
-            self.clean_tmp_files()
-            raise Exception('File extension must be <.py>, found extension <{}>.'.format(self.extension))
-
-        # Important objects from the parsed file:
-        self.v = None  # object containing parameters from varParam list
-        self.op = None  # object containing propagation parameters and beamline elements
-
-        # Reference to access imported values:
-        self.imported_srw_file = None
-
-        # List of mirror and other *.dat and *.pickle files:
+class SRWParser(object):
+    def __init__(self, script, lib_dir, user_filename):
+        self.lib_dir = py.path.local(lib_dir)
         self.list_of_files = None
-
-        # JSON content for Sirepo:
-        self.json_content = None
-        self.python_content = None
-
-        # Define the names of the function and the list to read:
-        self.set_optics_func = 'set_optics'
-        self.varParam_parm = 'varParam'
-
-        # Perform import, read 'v' variable and get *.dat/*.pickle files on creation of the object:
-        self.perform_import()
-        self.read_v()
+        m = pkrunpy.run_path_as_module(script)
+        self.var_param = Struct(**list2dict(getattr(m, 'varParam')))
+        self.optics = getattr(m, 'set_optics')(self.var_param)
         self.get_files()
-
         if self.initial_lib_dir:
             self.replace_files()
+        self.data = parsed_dict(self.var_param, self.optics)
+        self.data = _simulation_name(user_filename)
+        need to make name unique (see app_copy_simulation)
 
-    def perform_import(self):
-        if self.isFile:
-            dir_with_script = self.infile.dirname
-        else:
-            dir_with_script = os.getcwd()
+        name = 'Imported file <{}> ({})'.format(fname, import_datetime)
+    else:
+        name = 'Imported file ({})'.format(import_datetime)
 
-        sys.path.append(os.path.abspath(dir_with_script))
-        # self.imported_srw_file = __import__(self.module_name, fromlist=[self.set_optics_func, self.varParam_parm])
-        import importlib
-        self.imported_srw_file = importlib.import_module(self.module_name)
 
-    def read_v(self):
-        varParam = getattr(self.imported_srw_file, self.varParam_parm)
-        self.v = Struct(**list2dict(varParam))
 
     def get_files(self):
         self.list_of_files = []
-        for key in self.v.__dict__.keys():
+        for key in self.var_param.__dict__.keys():
             if key.find('_ifn') >= 0:
-                self.list_of_files.append(self.v.__dict__[key])
+                self.list_of_files.append(self.var_param.__dict__[key])
             #TODO(robnagler) this directory has to be a constant; imports
             #   don't have control of their environment
             if key.find('fdir') >= 0:
-                self.lib_dir = py.path.local(self.v.__dict__[key])
+                self.lib_dir = py.path.local(self.var_param.__dict__[key])
 
     def replace_files(self):
-        for key in self.v.__dict__.keys():
+        for key in self.var_param.__dict__.keys():
             if key.find('_ifn') >= 0:
-                if getattr(self.v, key) != '':
-                    self.v.__dict__[key] = ''  # 'mirror_1d.dat'
+                if getattr(self.var_param, key) != '':
+                    self.var_param.__dict__[key] = ''  # 'mirror_1d.dat'
             if key.find('fdir') >= 0:
-                self.v.__dict__[key] = str(self.initial_lib_dir)
+                self.var_param.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
 
-    # Since it's a long procedure, it's done separately:
-    def read_op(self):
-        set_optics = getattr(self.imported_srw_file, self.set_optics_func)
-        self.op = set_optics(self.v)
 
-    def to_json(self):
-        if self.save_vars:
-            #TODO(robnagler) What is this feature for? Why pickle file and not JSON?
-            pickle_file_v = 'pickle_v.txt'
-            pickle_file_op = 'pickle_op.txt'
+def _find_line_in_trace(script):
+    """Parse the stack trace for the most recent error message
 
-            if not os.path.isfile(pickle_file_v) or not os.path.isfile(pickle_file_op):
-                self.read_op()
-
-                with open(pickle_file_v, 'w') as f:
-                    pickle.dump(self.v, f)
-                with open(pickle_file_op, 'w') as f:
-                    pickle.dump(self.op, f)
-            else:
-                with open(pickle_file_v, 'r') as f:
-                    self.v = pickle.load(f)
-                with open(pickle_file_op, 'r') as f:
-                    self.op = pickle.load(f)
-        else:
-            self.read_op()
-
-        self.python_content = parsed_dict(self.v, self.op, os.path.basename(self.original_script_name))
-        return json.dumps(
-            self.python_content,
-            sort_keys=True,
-            indent=4,
-            separators=(',', ': '),
-        ) + '\n'
+    Returns:
+        int: first line number in trace that was called from the script
+    """
+    trace = None
+    t = None
+    f = None
+    try:
+        trace = inspect.trace()
+        for t in reversed(trace):
+            f = t[0]
+            if py.path.local(f.f_code.co_filename) == script_name:
+                return f.f_lineno
+    finally:
+        del trace
+        del f
+        del t
+    return None
