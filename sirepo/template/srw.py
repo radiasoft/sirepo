@@ -103,6 +103,7 @@ def extract_report_data(filename, model_data):
         'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
         'x_units': file_info[filename][1][0],
+        'y_units': file_info[filename][1][1],
         'points': data,
     }
     if filename in files_3d:
