@@ -226,7 +226,7 @@ app.directive('plot2d', function(plotting) {
             var ASPECT_RATIO = 4.0 / 7;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
-            var formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale;
+            var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale, yUnits;
 
             function mouseMove() {
                 if (! points)
@@ -245,7 +245,7 @@ app.directive('plot2d', function(plotting) {
                         return;
                     var focus = select('.focus');
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
-                    focus.select('text').text(formatter(localMax[0]) + ' ' + xUnits);
+                    focus.select('text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
                 }
             };
 
@@ -307,6 +307,7 @@ app.directive('plot2d', function(plotting) {
 
             $scope.init = function() {
                 formatter = d3.format(',.0f');
+                ordinate_formatter = d3.format('.1e');
                 select('svg').attr('height', plotting.INITIAL_HEIGHT);
                 $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
@@ -333,6 +334,7 @@ app.directive('plot2d', function(plotting) {
                 points = d3.zip(xPoints, json.points);
                 $scope.xRange = json.x_range;
                 xUnits = json.x_units;
+                yUnits = json.y_units;
                 xAxisScale.domain([json.x_range[0], json.x_range[1]]);
                 yAxisScale.domain([d3.min(json.points), d3.max(json.points)]);
                 select('.y-axis-label').text(json.y_label);
