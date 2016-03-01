@@ -246,6 +246,7 @@ app.directive('plot2d', function(plotting) {
                     var focus = select('.focus');
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
                     focus.select('text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
+                    select('.focus-text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
                 }
             };
 
@@ -323,9 +324,16 @@ app.directive('plot2d', function(plotting) {
                     .x(function(d) {return xAxisScale(d[0])})
                     .y(function(d) {return yAxisScale(d[1])});
                 var focus = select('.focus');
+                var focus_text = select('.focus-text');
                 select('.overlay')
-                    .on('mouseover', function() { focus.style('display', null); })
-                    .on('mouseout', function() { focus.style('display', 'none'); })
+                    .on('mouseover', function() {
+                        focus.style('display', null);
+                        focus_text.style('display', null);
+                    })
+                    .on('mouseout', function() {
+                        focus.style('display', 'none');
+                        focus_text.style('display', 'none');
+                    })
                     .on('mousemove', mouseMove);
             };
 

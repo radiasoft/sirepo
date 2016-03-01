@@ -231,6 +231,7 @@
     }
     .srw-plot .focus-text {
       font-size: 14px;
+      fill: steelblue;
     }
     .srw-plot rect.mouse-zoom {
       cursor: -webkit-zoom-in;
