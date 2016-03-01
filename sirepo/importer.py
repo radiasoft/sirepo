@@ -4,9 +4,9 @@ It's highly dependent on the external Sirepo/SRW libraries and is written to all
 SRW objects. Can be used in the future for parsing of complicated scripts.
 """
 from __future__ import absolute_import, division, print_function
-
-from pykern.pkdebug import pkdc, pkdp
+from pykern import pkio
 from pykern import pkrunpy
+from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from srwl_bl import srwl_uti_std_options
 import ast
@@ -14,6 +14,7 @@ import datetime
 import inspect
 import json
 import os
+import re
 import requests
 import sys
 import traceback
@@ -47,8 +48,12 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None):
         with pkio.save_chdir(tmp_dir):
             # This string won't show up anywhere
             script = pkio.write_text('in.py', code)
-            o = SRWParser(script, lib_dir=lib_dir, user_filename=user_filename)
-            return None, o.data()
+            o = SRWParser(
+                script,
+                lib_dir=py.path.local(lib_dir),
+                user_filename=user_filename,
+            )
+            return None, o.data
     except Exception as e:
         lineno = _find_line_in_trace(script) if script else None
         # Avoid
@@ -57,7 +62,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None):
             error,
             e,
             script,
-            filename,
+            user_filename,
             traceback.format_exc(),
         )
         error = 'Error on line {}: {}'.format(lineno or '?', str(e)[:50])
@@ -658,7 +663,7 @@ def parsed_dict(v, op):
                 u'horizontalPosition': v.w_x,
                 u'horizontalRange': v.w_rx * 1e3,
                 u'isExample': 0,
-                u'name': name,  # unicode(v.ebm_nm),  # unicode(v.name),
+                u'name': '',
                 u'photonEnergy': v.w_e,
                 u'sampleFactor': v.w_smpf,
                 u'samplingMethod': 1,
@@ -694,7 +699,8 @@ def parsed_dict(v, op):
 
 class SRWParser(object):
     def __init__(self, script, lib_dir, user_filename):
-        self.lib_dir = py.path.local(lib_dir)
+        self.lib_dir = lib_dir
+        self.initial_lib_dir = lib_dir
         self.list_of_files = None
         m = pkrunpy.run_path_as_module(script)
         self.var_param = Struct(**list2dict(getattr(m, 'varParam')))
@@ -703,14 +709,7 @@ class SRWParser(object):
         if self.initial_lib_dir:
             self.replace_files()
         self.data = parsed_dict(self.var_param, self.optics)
-        self.data = _simulation_name(user_filename)
-        need to make name unique (see app_copy_simulation)
-
-        name = 'Imported file <{}> ({})'.format(fname, import_datetime)
-    else:
-        name = 'Imported file ({})'.format(import_datetime)
-
-
+        self.data['models']['simulation']['name'] = _name(user_filename)
 
     def get_files(self):
         self.list_of_files = []
@@ -732,6 +731,28 @@ class SRWParser(object):
         self.get_files()
 
 
+def _name(user_filename):
+    """Parse base name from user_filename
+
+    Can't assume the file separators will be understood so have to
+    parse out the name manually.
+
+    Will need to be uniquely named by sirepo.server, but not done
+    yet.
+
+    Args:
+        user_filename (str): Passed in from browser
+
+    Returns:
+        str: suitable name
+    """
+    # crude but good enough for now.
+    m = re.search(r'([^:/\\]+)\.\w+$', user_filename)
+    res = m.group(1) if m else user_filename
+    # res could technically
+    return res + ' (imported)'
+
+
 def _find_line_in_trace(script):
     """Parse the stack trace for the most recent error message
 
@@ -745,7 +766,7 @@ def _find_line_in_trace(script):
         trace = inspect.trace()
         for t in reversed(trace):
             f = t[0]
-            if py.path.local(f.f_code.co_filename) == script_name:
+            if py.path.local(f.f_code.co_filename) == script:
                 return f.f_lineno
     finally:
         del trace

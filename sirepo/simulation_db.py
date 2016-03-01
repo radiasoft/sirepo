@@ -178,7 +178,7 @@ def save_new_example(simulation_type, data):
 
 
 def save_new_simulation(simulation_type, data):
-    sid = _random_id(simulation_dir(simulation_type), simulation_type)
+    sid = _random_id(simulation_dir(simulation_type), simulation_type)['id']
     data['models']['simulation']['simulationId'] = sid
     save_simulation_json(simulation_type, data)
     return simulation_type, sid
@@ -239,7 +239,7 @@ def tmp_dir():
     Returns:
         py.path: directory to use for temporary work
     """
-    return _random_id(_user_dir().join(_TMP_DIR))
+    return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
 
 
 def _find_user_simulation_copy(simulation_type, sid):
@@ -257,7 +257,7 @@ def _random_id(parent_dir, simulation_type=None):
     Args:
         parent_dir (py.path): where id should be unique
     Returns:
-        str: id (not directory)
+        dict: id (str) and path (py.path)
     """
     pkio.mkdir_parent(parent_dir)
     r = random.SystemRandom()
@@ -270,7 +270,7 @@ def _random_id(parent_dir, simulation_type=None):
         d = parent_dir.join(i)
         try:
             os.mkdir(str(d))
-            return i
+            return dict(id=i, path=d)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 pass
@@ -338,7 +338,7 @@ def _user_dir():
 
 def _user_dir_create():
     """Create a user and initialize the directory"""
-    uid = _random_id(_user_dir_name())
+    uid = _random_id(_user_dir_name())['id']
     # Must set before calling simulation_dir
     flask.session[_UID_ATTR] = uid
     for app_name in APP_NAMES:
