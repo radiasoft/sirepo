@@ -246,7 +246,7 @@ app.directive('plot2d', function(plotting) {
                     var focus = select('.focus');
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
                     focus.select('text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
-                    select('.focus-text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
+                    select('.focus-text').text('[' + formatter(localMax[0]) + ', ' + ordinate_formatter(localMax[1]) + ']');
                 }
             };
 
@@ -307,8 +307,8 @@ app.directive('plot2d', function(plotting) {
             }
 
             $scope.init = function() {
-                formatter = d3.format(',.0f');
-                ordinate_formatter = d3.format('.1e');
+                formatter = d3.format('.0f');
+                ordinate_formatter = d3.format('.3e');
                 select('svg').attr('height', plotting.INITIAL_HEIGHT);
                 $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
@@ -331,8 +331,8 @@ app.directive('plot2d', function(plotting) {
                         focus_text.style('display', null);
                     })
                     .on('mouseout', function() {
-                        focus.style('display', 'none');
-                        focus_text.style('display', 'none');
+                        focus.style('display', null);
+                        focus_text.style('display', null);
                     })
                     .on('mousemove', mouseMove);
             };
