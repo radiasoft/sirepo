@@ -1,6 +1,7 @@
   <div ng-class="{'srw-plot-loading': isLoading()}">
     <div><svg class="srw-plot">
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+        <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
         <text class="focus-text" text-anchor="end" x="{{ width }}" y="-10" dy=".35em"></text>
         <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
         <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
