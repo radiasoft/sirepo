@@ -704,10 +704,10 @@ class SRWParser(object):
         self.list_of_files = None
         m = pkrunpy.run_path_as_module(script)
         self.var_param = Struct(**list2dict(getattr(m, 'varParam')))
-        self.optics = getattr(m, 'set_optics')(self.var_param)
         self.get_files()
         if self.initial_lib_dir:
             self.replace_files()
+        self.optics = getattr(m, 'set_optics')(self.var_param)
         self.data = parsed_dict(self.var_param, self.optics)
         self.data['models']['simulation']['name'] = _name(user_filename)
 
