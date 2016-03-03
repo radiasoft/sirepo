@@ -245,8 +245,7 @@ app.directive('plot2d', function(plotting) {
                         return;
                     var focus = select('.focus');
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
-                    focus.select('text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
-                    select('.focus-text').text(formatter(localMax[0]) + ' ' + xUnits + ' / ' + ordinate_formatter(localMax[1]) + ' ' + yUnits);
+                    select('.focus-text').text('[' + formatter(localMax[0]) + ', ' + ordinate_formatter(localMax[1]) + ']');
                 }
             };
 
@@ -307,8 +306,8 @@ app.directive('plot2d', function(plotting) {
             }
 
             $scope.init = function() {
-                formatter = d3.format(',.0f');
-                ordinate_formatter = d3.format('.1e');
+                formatter = d3.format('.0f');
+                ordinate_formatter = d3.format('.3e');
                 select('svg').attr('height', plotting.INITIAL_HEIGHT);
                 $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
@@ -325,16 +324,41 @@ app.directive('plot2d', function(plotting) {
                     .y(function(d) {return yAxisScale(d[1])});
                 var focus = select('.focus');
                 var focus_text = select('.focus-text');
+                var focus_hint = select('.focus-hint');
                 select('.overlay')
                     .on('mouseover', function() {
                         focus.style('display', null);
                         focus_text.style('display', null);
+
+                        focus_hint.style('display', null);
+                        focus_hint.text('Double-click to copy the values');
                     })
                     .on('mouseout', function() {
-                        focus.style('display', 'none');
-                        focus_text.style('display', 'none');
+                        focus.style('display', null);
+                        focus_text.style('display', null);
+                        focus_hint.style('display', 'none');
                     })
-                    .on('mousemove', mouseMove);
+                    .on('mousemove', mouseMove)
+                    .on('dblclick', function copyToClipboard() {
+                        var coordinates = focus_text.text();
+                        var $temp = $('<input>');
+                        $('body').append($temp);
+                        $temp.val(coordinates).select();
+                        var succeed;
+                        try {
+                            succeed = document.execCommand('copy');
+
+                            var addition = 'Copied to clipboard';
+                            focus_hint.text(addition);
+                            console.log(addition + ': ' + coordinates);
+                            setTimeout(function () {
+                                focus_hint.style('display', 'none');
+                            }, 1000);
+                        } catch(e) {
+                            succeed = false;
+                        }
+                        $temp.remove();
+                    });
             };
 
             $scope.load = function(json) {

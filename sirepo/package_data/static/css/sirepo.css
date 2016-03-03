@@ -229,6 +229,10 @@
       stroke: steelblue;
       stroke-width: 2px;
     }
+    .srw-plot .focus-hint {
+      font-size: 10px;
+      fill: steelblue;
+    }
     .srw-plot .focus-text {
       font-size: 14px;
       fill: steelblue;
