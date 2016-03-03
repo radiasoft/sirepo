@@ -15,7 +15,7 @@ from sirepo.importer import import_python
 
 def test_sirepo_parser():
     with pkunit.save_chdir_work():
-        for b in ['SRWLIB_VirtBL_LCLS_SXR_01', 'chx']:
+        for b in ['SRWLIB_VirtBL_LCLS_SXR_01', 'chx', 'lcls_simplified']:
             base_py = '{}.py'.format(b)
             code = pkio.read_text(pkunit.data_dir().join(base_py))
             error, actual = import_python(
