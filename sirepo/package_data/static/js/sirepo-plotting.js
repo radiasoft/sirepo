@@ -328,35 +328,24 @@ app.directive('plot2d', function(plotting) {
                 select('.overlay')
                     .on('mouseover', function() {
                         focus.style('display', null);
-                        focus_text.style('display', null);
-
                         focus_hint.style('display', null);
                         focus_hint.text('Double-click to copy the values');
                     })
                     .on('mouseout', function() {
-                        focus.style('display', null);
-                        focus_text.style('display', null);
                         focus_hint.style('display', 'none');
                     })
                     .on('mousemove', mouseMove)
                     .on('dblclick', function copyToClipboard() {
-                        var coordinates = focus_text.text();
                         var $temp = $('<input>');
                         $('body').append($temp);
-                        $temp.val(coordinates).select();
-                        var succeed;
+                        $temp.val(focus_text.text()).select();
                         try {
-                            succeed = document.execCommand('copy');
-
-                            var addition = 'Copied to clipboard';
-                            focus_hint.text(addition);
-                            console.log(addition + ': ' + coordinates);
+                            document.execCommand('copy');
+                            focus_hint.text('Copied to clipboard');
                             setTimeout(function () {
                                 focus_hint.style('display', 'none');
                             }, 1000);
-                        } catch(e) {
-                            succeed = false;
-                        }
+                        } catch(e) {}
                         $temp.remove();
                     });
             };
