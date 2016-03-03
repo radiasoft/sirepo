@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
 import py
 import pytest
-import re
 from pykern import pkunit
 from pykern import pkio
 
@@ -25,6 +24,7 @@ def test_sirepo_parser():
                 lib_dir='.',
                 user_filename=r'c:\x\{}.y'.format('SRWLIB_VirtBL_LCLS_SXR_01'),
             )
+            actual['version'] = 'IGNORE-VALUE'
             assert not error, \
                 '{}: should be valid input'.format(base_py)
             pkunit.assert_object_with_json(b, actual)
