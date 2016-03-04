@@ -9,6 +9,7 @@ install:
   - pip install -U pip
   - pip uninstall --yes setuptools
   - pip install setuptools==20.1.1
+  - pip install -U pytest
   - pip install -r requirements.txt
 script:
   - python setup.py pkdeploy
