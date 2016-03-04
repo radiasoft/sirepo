@@ -1,24 +1,23 @@
 """
-This script is to parse Sirepo-generated .py file and to produce JSON-file with the parsed data.
+This script is to parse SRW Python scripts and to produce JSON-file with the parsed data.
 It's highly dependent on the external Sirepo/SRW libraries and is written to allow parsing of the .py files using
-SRW objects. Can be used in the future for parsing of complicated scripts.
+SRW objects.
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkrunpy
-from pykern.pkdebug import pkdc, pkdp
-from sirepo import simulation_db
-from srwl_bl import srwl_uti_std_options
+
 import ast
-import datetime
 import inspect
 import json
-import os
 import re
-import requests
-import sys
 import traceback
-import uuid
+
+import py
+import requests
+from pykern import pkio
+from pykern import pkrunpy
+from pykern.pkdebug import pkdp
+from srwl_bl import srwl_uti_parse_options
+from srwl_bl import srwl_uti_std_options
 
 try:
     import cPickle as pickle
@@ -26,7 +25,7 @@ except:
     import pickle
 
 
-def import_python(code, tmp_dir, lib_dir, user_filename=None):
+def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     """Converts script_text into json and stores as new simulation.
 
     Avoids too much data back to the user in the event of an error.
@@ -52,6 +51,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None):
                 script,
                 lib_dir=py.path.local(lib_dir),
                 user_filename=user_filename,
+                arguments=arguments,
             )
             return None, o.data
     except Exception as e:
@@ -698,12 +698,16 @@ def parsed_dict(v, op):
 
 
 class SRWParser(object):
-    def __init__(self, script, lib_dir, user_filename):
+    def __init__(self, script, lib_dir, user_filename, arguments):
         self.lib_dir = lib_dir
         self.initial_lib_dir = lib_dir
         self.list_of_files = None
         m = pkrunpy.run_path_as_module(script)
-        self.var_param = Struct(**list2dict(getattr(m, 'varParam')))
+        varParam = getattr(m, 'varParam')
+        if arguments:
+            import shlex
+            arguments = shlex.split(arguments)
+        self.var_param = srwl_uti_parse_options(varParam, arguments=arguments)
         self.get_files()
         if self.initial_lib_dir:
             self.replace_files()
@@ -716,7 +720,7 @@ class SRWParser(object):
         for key in self.var_param.__dict__.keys():
             if key.find('_ifn') >= 0:
                 self.list_of_files.append(self.var_param.__dict__[key])
-            #TODO(robnagler) this directory has to be a constant; imports
+            # TODO(robnagler) this directory has to be a constant; imports
             #   don't have control of their environment
             if key.find('fdir') >= 0:
                 self.lib_dir = py.path.local(self.var_param.__dict__[key])
