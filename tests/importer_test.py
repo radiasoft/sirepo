@@ -13,6 +13,8 @@ from pykern import pkio
 
 from sirepo.importer import import_python
 
+pytest.importorskip('srwl_bl')
+
 def test_sirepo_parser():
     with pkunit.save_chdir_work():
         for b in ['SRWLIB_VirtBL_LCLS_SXR_01', 'chx', 'lcls_simplified']:
