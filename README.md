@@ -5,6 +5,10 @@
 Sirepo is a scientific application framework, currently for particle accelator codes.
 The codes run inside a Python web server.
 
+Learn more at sireop.com.
+
+Documentation: http://rssynergia.readthedocs.org/en/latest/
+
 ### Vagrant Install
 
 You can start Sirepo with Vagrant. First create a Vagrantfile:
@@ -47,3 +51,9 @@ cd sirepo
 pip install -e .
 sirepo service http
 ```
+
+#### License
+
+License: http://www.apache.org/licenses/LICENSE-2.0.html
+
+Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
