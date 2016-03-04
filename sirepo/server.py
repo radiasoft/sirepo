@@ -249,11 +249,14 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
     f = flask.request.files['file']
+    arguments = str(flask.request.form['arguments'])
+    pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
     error, data = sirepo.importer.import_python(
         f.read(),
         lib_dir=simulation_db.simulation_lib_dir(simulation_type),
         tmp_dir=simulation_db.tmp_dir(),
         user_filename=f.filename,
+        arguments=arguments,
     )
     if error:
         return flask.jsonify({'error': error})

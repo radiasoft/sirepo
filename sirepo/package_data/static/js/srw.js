@@ -964,10 +964,11 @@ app.directive('importPython', function(fileUpload, requestSender) {
                           '<label>Select File</label>',
                           '<input id="srw-python-file-import" type="file" data-file-model="pythonFile">',
                           '<br />',
+                          'Optional arguments: <input id="srw-python-file-import-args" type="text" style="width: 100%" data-ng-model="importArgs"><br>',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importPythonFile(pythonFile)" class="btn btn-primary">Import File</button>',
+                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary">Import File</button>',
                           ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
                         '</div>',
                       '</form>',
@@ -980,12 +981,12 @@ app.directive('importPython', function(fileUpload, requestSender) {
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.title = 'Import Python Beamline File';
-
-            $scope.importPythonFile = function(pythonFile) {
+            $scope.importPythonFile = function(pythonFile, importArgs) {
                 if (! pythonFile)
                     return;
                 fileUpload.uploadFileToUrl(
                     pythonFile,
+                    importArgs,
                     requestSender.formatUrl(
                         'importFile',
                         {
