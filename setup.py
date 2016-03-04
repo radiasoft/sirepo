@@ -14,8 +14,8 @@ setup(
     url='http://sirepo.org',
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     classifiers=[
-        'Development Status :: 4 - Beta'
-        'Environment :: Web Environment'
+        'Development Status :: 4 - Beta',
+        'Environment :: Web Environment',
         'Framework :: Flask',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
