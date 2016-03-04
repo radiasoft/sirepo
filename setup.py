@@ -10,8 +10,8 @@ setup(
     name='sirepo',
     description='accelerator code gui',
     author='RadiaSoft LLC.',
-    author_email='pip@sirepo.org',
-    url='http://sirepo.org',
+    author_email='pip@sirepo.com',
+    url='http://sirepo.com',
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     classifiers=[
         'Development Status :: 4 - Beta',

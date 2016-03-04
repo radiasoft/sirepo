@@ -1,7 +1,8 @@
-Welcome to SiRep
+Welcome to Sirepo
 =================
 
-Something
+Sirepo is a scientific application framework, currently for particle accelator codes.
+The codes run inside a Python web server.
 
 .. toctree::
    :maxdepth: 2
