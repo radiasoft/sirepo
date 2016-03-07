@@ -23,7 +23,7 @@ def test_sirepo_parser():
                 code,
                 tmp_dir='.',
                 lib_dir='.',
-                user_filename=r'c:\x\{}.y'.format('SRWLIB_VirtBL_LCLS_SXR_01'),
+                user_filename=r'c:\anything\{}.anysuffix'.format(b),
             )
             assert not error, \
                 '{}: should import with an error: {}'.format(base_py, error)
