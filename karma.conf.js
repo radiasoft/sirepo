@@ -31,6 +31,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/modernizr-touch-2.8.3.min.js',
         'sirepo/package_data/static/js/bootstrap-slider-2.0.0.js',
         'sirepo/package_data/static/js/angular-d3.js',
+        'sirepo/package_data/static/js/stacktrace-0.6.4.js',
         'tests/helpers/globals.js',
         'sirepo/package_data/static/js/sirepo.js',
         'sirepo/package_data/static/js/sirepo-plotting.js',
