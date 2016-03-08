@@ -598,7 +598,11 @@ app.factory('requestSender', function($http, $location, localRoutes) {
         return formatUrl(APP_SCHEMA.route, routeName, params);
     };
 
-    self.getAuxiliaryData = function(name, path) {
+    self.getAuxiliaryData = function(name) {
+        return self[name];
+    };
+
+    self.loadAuxiliaryData = function(name, path) {
         if (self[name] || self[name + ".loading"])
             return;
         self[name + ".loading"] = true;
@@ -708,6 +712,17 @@ app.provider('$exceptionHandler', {
 });
 
 app.factory('exceptionLoggingService', function($log, $window, traceService) {
+
+    function cleanText(obj) {
+        if (obj) {
+            var text = obj.toString();
+            text = text.replace(/"/g, '');
+            text = text.replace(/\n+/g, ' ');
+            return text;
+        }
+        return '';
+    }
+
     function error(exception, cause) {
         // preserve the default behaviour which will log the error
         // to the console, and allow the application to continue running.
@@ -715,7 +730,7 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
         // now try to log the error to the server side.
         try{
             // escaped quotes confuse flask json parser
-            var errorMessage = exception.toString().replace(/"/g, '');
+            var errorMessage = cleanText(exception);
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
@@ -730,7 +745,7 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
                     message: errorMessage,
                     type: 'exception',
                     stackTrace: stackTrace,
-                    cause: ( cause || ''),
+                    cause: cleanText(cause),
                 })
             });
         }

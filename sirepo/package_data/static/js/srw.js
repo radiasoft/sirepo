@@ -43,25 +43,29 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     };
 
     self.isElectronBeam = function() {
-        return self.isUndulator() || self.isMultipole();
+        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole();
     };
 
     self.isGaussianBeam = function() {
         return isSelected('g');
     };
 
-    self.isMultipole = function() {
-        return isSelected('m');
+    self.isIdealizedUndulator = function() {
+        return isSelected('u');
     };
 
-    self.isUndulator = function() {
-        return isSelected('u');
+    self.isMultipole = function() {
+        return isSelected('m');
     };
 
     self.isPredefinedBeam = function() {
         if (appState.isLoaded())
             return appState.models.electronBeam.isReadOnly ? true : false;
         return false;
+    };
+
+    self.isTabulatedUndulator = function() {
+        return isSelected('t');
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
@@ -241,6 +245,10 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
         }
     };
 
+    self.fileUploadCompleted = function(filename) {
+        self.activeItem.heightProfileFile = filename;
+    }
+
     self.getBeamline = function() {
         return appState.models.beamline;
     };
@@ -312,12 +320,7 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
         self.singleElectron = value;
     };
 
-    self.showMirrorFileUpload = function() {
-        self.fileUploadError = '';
-        $('#srw-upload-mirror-file').modal('show');
-    };
-
-    self.showMirrorReport = function(model) {
+    self.showFileReport = function(type, model) {
         self.mirrorReportShown = true;
         appState.models.mirrorReport = model;
         var el = $('#srw-mirror-plot');
@@ -345,30 +348,6 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
         if (srwService.isGaussianBeam())
             return false;
         return true;
-    };
-
-    self.uploadMirrorFile = function(mirrorFile) {
-        if (! mirrorFile)
-            return;
-        fileUpload.uploadFileToUrl(
-            mirrorFile,
-            requestSender.formatUrl(
-                'uploadFile',
-                {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': APP_SCHEMA.simulationType,
-                }),
-            function(data) {
-                if (data.error) {
-                    self.fileUploadError = data.error;
-                    return;
-                }
-                else {
-                    requestSender.mirrors.push(data.filename);
-                    self.activeItem.heightProfileFile = data.filename;
-                }
-                $('#srw-upload-mirror-file').modal('hide');
-            });
     };
 
     //TODO(pjm): coupled with controller named "beamline"
@@ -526,6 +505,11 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
 app.controller('SRWSourceController', function (appState, srwService) {
     var self = this;
     self.srwService = srwService;
+
+    self.fileUploadCompleted = function(filename) {
+        if (appState.isLoaded())
+            appState.models.tabulatedUndulator.magneticFile = filename;
+    }
 
     self.handleModalShown = function(name, el) {
         if (appState.isLoaded()) {

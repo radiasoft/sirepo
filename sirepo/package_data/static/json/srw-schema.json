@@ -50,7 +50,8 @@
             ["6", "Circular Left"]
         ],
         "SourceType": [
-            ["u", "Electron Beam with Undulator"],
+            ["u", "Electron Beam with Idealized Undulator"],
+            ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
             ["g", "Gaussian Beam"]
         ],
@@ -302,6 +303,13 @@
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
+        },
+        "tabulatedUndulator": {
+            "gap": ["Magnetic Gap [mm]", "Float"],
+            "phase": ["Magnet Arrays Shift [mm]", "Float"],
+            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
+            "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -642,8 +650,21 @@
                 "heightAmplification"
             ]
         },
+        "tabulatedUndulator": {
+            "title": "Tabulated Undulator",
+            "basic": [
+                "gap",
+                "longitudinalPosition",
+                "magneticFile"
+            ],
+            "advanced": [
+                "gap",
+                "longitudinalPosition",
+                "phase"
+            ]
+        },
         "undulator": {
-            "title": "Undulator",
+            "title": "Idealized Undulator",
             "basic": [
                 "period",
                 "length",

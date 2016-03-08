@@ -14,6 +14,7 @@ import os
 import py.path
 import re
 import shutil
+import zipfile
 
 from pykern import pkio
 from pykern import pkjinja
@@ -24,6 +25,8 @@ import uti_plot_com
 WANT_BROWSER_FRAME_CACHE = False
 
 _MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
+
+_PREDEFINED_MAGNETIC_ZIP_FILE = 'magnetic_measurements.zip'
 
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
@@ -173,6 +176,14 @@ def fixup_old_data(data):
                     del data['models'][k][f]
     if 'documentationUrl' not in data['models']['simulation']:
         data['models']['simulation']['documentationUrl'] = ''
+    if 'tabulatedUndulator' not in data['models']:
+        data['models']['tabulatedUndulator'] = {
+            'gap': 6.72,
+            'phase': 0,
+            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILE,
+            'longitudinalPosition': 1.305,
+            'indexFile': '',
+        }
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -189,6 +200,9 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    # und_g and und_ph API units are mm rather than m
+    v['tabulatedUndulator_gap'] *= 1000
+    v['tabulatedUndulator_phase'] *= 1000
 
     if 'report' in data and 'distanceFromSource' in data['models'][data['report']]:
         position = data['models'][data['report']]['distanceFromSource']
@@ -200,12 +214,16 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     drift = 0
     if source_type == 'u':
         drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
+        # undulator longitudinal center only set with tabulatedUndulator
+        v['tabulatedUndulator_longitudinalPosition'] = 0
     else:
         #TODO(pjm): allow this to be set in UI?
         drift = 0
     v['electronBeamInitialDrift'] = drift
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if source_type == 'u' else 2
+    v['energyCalculationMethod'] = 2
+    if source_type == 'u' or source_type == 't':
+        v['energyCalculationMethod'] = 1
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
@@ -230,6 +248,21 @@ def new_simulation(data, new_simulation_data):
     if source == 'g':
         intensityReport = data['models']['initialIntensityReport']
         intensityReport['sampleFactor'] = 0
+
+
+def prepare_aux_files(run_dir, data):
+    if not data['models']['simulation']['sourceType'] == 't':
+        return
+    filename = data['models']['tabulatedUndulator']['magneticFile']
+    filepath = run_dir.join(filename)
+    if filename == _PREDEFINED_MAGNETIC_ZIP_FILE and not filepath.check():
+        _STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE).copy(run_dir)
+    zip_file = zipfile.ZipFile(str(filepath))
+    zip_file.extractall(str(run_dir))
+    for f in zip_file.namelist():
+        if re.search('\.txt', f):
+            data['models']['tabulatedUndulator']['indexFile'] = f
+            break
 
 
 def remove_last_frame(run_dir):
@@ -264,7 +297,9 @@ def static_lib_files():
     Returns:
         list: py.path.local objects
     """
-    return [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
+    res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
+    res.append(_STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE))
+    return res
 
 
 def _beamline_element(template, item, fields, propagation):
