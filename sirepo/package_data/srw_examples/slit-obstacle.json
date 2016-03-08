@@ -324,6 +324,7 @@
             ]
         },
         "simulation": {
+            "documentationUrl": "https://github.com/radiasoft/sirepo/wiki/Young's-Double-Slit-Experiment-examples",
             "facility": "",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,

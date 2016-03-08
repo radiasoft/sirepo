@@ -233,6 +233,7 @@
         },
         "simulation": {
             "applicationMode": "default",
+            "documentationUrl": "https://github.com/radiasoft/sirepo/wiki/Diffraction-by-an-aperture-example",
             "facility": "",
             "horizontalPointCount": 200,
             "isExample": "1",
