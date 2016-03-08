@@ -982,6 +982,9 @@ app.directive('importPython', function(fileUpload, requestSender) {
             $scope.fileUploadError = '';
             $scope.title = 'Import Python Beamline File';
             $scope.importPythonFile = function(pythonFile, importArgs) {
+                if (typeof importArgs === "undefined") {
+                    var importArgs = '';
+                }
                 if (! pythonFile)
                     return;
                 fileUpload.uploadFileToUrl(

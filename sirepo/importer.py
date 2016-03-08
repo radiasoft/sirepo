@@ -707,7 +707,7 @@ class SRWParser(object):
         if arguments:
             import shlex
             arguments = shlex.split(arguments)
-        self.var_param = srwl_uti_parse_options(varParam, arguments=arguments)
+        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, arguments=arguments)
         self.get_files()
         if self.initial_lib_dir:
             self.replace_files()
