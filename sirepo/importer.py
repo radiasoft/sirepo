@@ -685,7 +685,7 @@ def parsed_dict(v, op):
         },
         u'report': u'',
         u'simulationType': u'srw',
-        u'version': unicode(get_json(static_json_url + '/schema-common.json')['version']),
+        u'version': '',
     }
 
     # Format the key name to be consistent with Sirepo:
