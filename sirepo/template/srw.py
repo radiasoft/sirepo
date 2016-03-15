@@ -334,9 +334,10 @@ def _crystal_element(template, item, fields, propagation):
     """The function prepares the code for processing of the crystal element.
 
     Args:
-        name: name of the variable containing an instance of the crystal.
-        energy: average photon energy the crystal should be oriented for.
-        rotationAngle: rotation angle of the crystal.
+        template: template for SRWLOptCryst().
+        item: dictionary with parameters of the crystal.
+        fields: fields of the crystal.
+        propagation: propagation list for the crystal.
 
     Returns:
         res: the resulted block of text.
