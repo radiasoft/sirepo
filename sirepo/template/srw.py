@@ -330,6 +330,44 @@ def _fixup_beam(data, beam):
     beam['beamSelector'] = beam['name']
 
 
+def _crystal_element(template, item, fields, propagation):
+    """The function prepares the code for processing of the crystal element.
+
+    Args:
+        name: name of the variable containing an instance of the crystal.
+        energy: average photon energy the crystal should be oriented for.
+        rotationAngle: rotation angle of the crystal.
+
+    Returns:
+        res: the resulted block of text.
+    """
+
+    # Small rotation of DCM crystal
+    crystal_rotation = '''
+    import uti_math
+    rot = uti_math.trf_rotation([0, 1, 0], {}, [0, 0, 0])
+    tCr = uti_math.matr_prod(rot[0], tCr)
+    sCr = uti_math.matr_prod(rot[0], sCr)
+    nCr = uti_math.matr_prod(rot[0], nCr)\n'''.format(item['rotationAngle']) if item['rotationAngle'] != 0 else ''
+
+    res = '''
+    opCr = {}
+    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl=1.5707963)  # horizontally-deflecting
+    orientCr = orientDataCr[0]
+    tCr, sCr, nCr = orientCr[:3]  # tangential, sagittal and normal vectors to crystal surface
+    {}
+    # Set the crystal orientation:
+    opCr.set_orient(nCr[0], nCr[1], nCr[2], tCr[0], tCr[1])\n
+    el.append(opCr)
+    {}\n'''.format(
+        template.format(*map(lambda x: item[x], fields)),
+        item['energy'],
+        crystal_rotation,
+        _propagation_params(propagation[str(item['id'])][0]).strip()
+    )
+    return res
+
+
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     propagation = models['propagation']
@@ -363,6 +401,12 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
                 item,
                 ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
+                propagation)
+        elif item['type'] == 'crystal':
+            res += _crystal_element(
+                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
+                item,
+                ['dSpacing', 'psi0r', 'psi0i', 'psi_hr', 'psi_hi', 'psi_hbr', 'psi_hbi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(

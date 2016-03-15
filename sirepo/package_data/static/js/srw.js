@@ -98,6 +98,8 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
+        {type:'crystal', title:'Crystal', energy:8230, rotationAngle:0.0, dSpacing:3.13557135638, psi0r:-1.20784200542e-05, psi0i:2.26348275468e-07,
+        psi_hr:-6.38570337053e-06, psi_hi:1.58030401297e-07, psi_hbr:-6.38570337053e-06, psi_hbi:1.58030401297e-07, crystalThickness:0.01, asymmetryAngle:0.0},
         {type:'watch', title:'Watchpoint'},
     ];
     self.panelState = panelState;
@@ -628,6 +630,9 @@ app.directive('beamlineIcon', function() {
                 '<path d="M15 60 C10 50 10 10 15 0" class="srw-lens" />',
                 '<path d="M35 0 C40 10 40 50 35 60" class="srw-lens" />',
                 '<path d="M35 60 C30 50 30 10 35 0" class="srw-lens" />',
+              '</g>',
+              '<g data-ng-switch-when="crystal">',
+                '<rect x="8" y="25" width="50", height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
               '</g>',
               '<g data-ng-switch-when="watch">',
                 '<path d="M5 30 C 15 45 35 45 45 30" class="srw-watch" />',

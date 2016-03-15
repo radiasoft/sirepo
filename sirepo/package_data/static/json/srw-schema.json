@@ -122,6 +122,21 @@
             "numberOfLenses": ["Number of Lenses", "Integer"],
             "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]
         },
+        "crystal": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
+            "rotationAngle": ["Rotation angle [rad]", "Float"],
+            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float"],
+            "psi0r": ["Real part of 0-th Fourier component of crystal polarizability", "Float"],
+            "psi0i": ["Imaginary part of 0-th Fourier component of crystal polarizability", "Float"],
+            "psi_hr": ["Real part of H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hi": ["Imaginary part of H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hbr": ["Real part of -H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hbi": ["Imaginary part of -H-th Fourier component of crystal polarizability", "Float"],
+            "crystalThickness": ["Crystal thickness [m]", "Float"],
+            "asymmetryAngle": ["Asymmetry angle [rad]", "Float"]
+        },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
             "name": ["Beam Name", "String"],
@@ -360,6 +375,25 @@
                 "radius",
                 "numberOfLenses",
                 "wallThickness"
+            ]
+        },
+        "crystal": {
+            "title": "Crystal",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "energy",
+                "rotationAngle",
+                "dSpacing",
+                "psi0r",
+                "psi0i",
+                "psi_hr",
+                "psi_hi",
+                "psi_hbr",
+                "psi_hbi",
+                "crystalThickness",
+                "asymmetryAngle"
             ]
         },
         "electronBeam": {
