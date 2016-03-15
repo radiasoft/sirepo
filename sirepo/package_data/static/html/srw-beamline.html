@@ -69,42 +69,7 @@
   </div>
   <div data-ng-if="beamline.isMultiElectron()" class="row">
     <div class="col-md-6 col-xl-4">
-      <div class="panel panel-info">
-        <div class="panel-heading" data-panel-heading="Simulation Status" data-model-name="simulationStatus"></div>
-        <div class="panel-body cssFade" data-ng-hide="beamline.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('initial')">
-            <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-primary" data-ng-click="beamline.runSimulation()">Start Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('running')">
-            <div class="col-sm-12">
-              <div data-ng-show="beamline.isInitializing()">
-                <span class="glyphicon glyphicon-hourglass"></span> Initializing Wavefront {{ beamline.dots }}
-              </div>
-              <div data-ng-hide="beamline.isInitializing()">
-                Simulation Running {{ beamline.dots }}
-                <div data-simulation-status-timer="beamline"></div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-default" data-ng-click="beamline.cancelSimulation()">End Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="beamline.isState('completed') || beamline.isState('canceled')">
-            <div class="col-sm-12">
-              Simulation
-              <span data-ng-show="beamline.isState('completed')">Completed</span><span data-ng-show="beamline.isState('canceled')">Stopped</span><span data-ng-show="beamline.getFrameCount()"></span>
-              <div>
-                <div data-simulation-status-timer="beamline"></div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-default" data-ng-click="beamline.runSimulation()">Start New Simulation</button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <div data-simulation-status-panel="multiElectronAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="multiElectronAnimation"></div>

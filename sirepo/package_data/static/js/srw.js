@@ -377,129 +377,6 @@ app.controller('SRWBeamlineController', function (appState, fileUpload, frameCac
                 item.firstFocusLength = newValue;
         }
     });
-
-    //TODO(pjm): refactor and combine common code with WARP controller
-    //TODO(pjm): merged from SRWMultiElectronController, separate into modules
-    self.isAborting = false;
-    self.isDestroyed = false;
-    self.dots = '.';
-    self.frameId = '-1';
-    self.frameCount = 1;
-    self.isReadyForModelChanges = false;
-    self.elapsedDays = null;
-    self.elapsedTime = null;
-
-    frameCache.setAnimationArgs({
-        multiElectronAnimation: [],
-    });
-    frameCache.setFrameCount(0);
-
-    $scope.$on('$destroy', function () {
-        self.isDestroyed = true;
-    });
-
-    function refreshStatus() {
-        self.isReadyForModelChanges = true;
-        requestSender.sendRequest(
-            'runStatus',
-            function(data) {
-                //frameCache.setFrameCount(data.frameCount);
-                if (self.isAborting)
-                    return;
-
-                if (data.frameId && (data.frameId != self.frameId)) {
-                    self.frameId = data.frameId;
-                    self.frameCount++;
-                    frameCache.setFrameCount(self.frameCount);
-                    frameCache.setCurrentFrame('multiElectronAnimation', self.frameCount - 1);
-                }
-                if (data.elapsedTime) {
-                    self.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                    self.elapsedTime = new Date(1970, 0, 1);
-                    self.elapsedTime.setSeconds(data.elapsedTime);
-                }
-
-                if (data.state != 'running') {
-                    if (data.state != appState.models.simulationStatus.state)
-                        appState.saveChanges('simulationStatus');
-                }
-                else {
-                    if (! self.isDestroyed) {
-                        self.dots += '.';
-                        if (self.dots.length > 3)
-                            self.dots = '.';
-                        $timeout(refreshStatus, 4000);
-                    }
-                }
-                appState.models.simulationStatus.state = data.state;
-            },
-            {
-                models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
-            });
-    }
-
-    self.cancelSimulation = function() {
-        if (appState.models.simulationStatus.state != 'running')
-            return;
-        appState.models.simulationStatus.state = 'canceled';
-        self.isAborting = true;
-        requestSender.sendRequest(
-            'runCancel',
-            function(data) {
-                self.isAborting = false;
-                appState.saveChanges('simulationStatus');
-            },
-            {
-                models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
-            });
-    };
-
-    self.isInitializing = function() {
-        if (self.isState('running'))
-            return frameCache.frameCount < 1;
-        return false;
-    };
-
-    self.isState = function(state) {
-        if (appState.isLoaded())
-            return appState.models.simulationStatus.state == state;
-        return false;
-    };
-
-    self.runSimulation = function() {
-        if (appState.models.simulationStatus.state == 'running')
-            return;
-        frameCache.setFrameCount(0);
-        self.elapsedTime = null;
-        self.elapsedDays = null;
-        appState.models.simulationStatus.state = 'running';
-        requestSender.sendRequest(
-            'runBackground',
-            function(data) {
-                appState.models.simulationStatus.startTime = data['startTime'];
-                appState.saveChanges('simulationStatus');
-                refreshStatus();
-            },
-            {
-                models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
-            });
-    };
-
-    $scope.$on('multiElectronAnimation.changed', function() {
-        if (self.isReadyForModelChanges) {
-            frameCache.setFrameCount(0);
-            frameCache.clearFrames();
-        }
-    });
-
-    if (appState.isLoaded())
-        refreshStatus();
-    else {
-        $scope.$on('modelsLoaded', refreshStatus);
-    }
 });
 
 app.controller('SRWSourceController', function (appState, srwService) {
@@ -1054,15 +931,188 @@ app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
+app.directive('simulationStatusPanel', function(appState, frameCache, panelState, requestSender, $timeout) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '@simulationStatusPanel',
+            title: '@',
+        },
+        template: [
+            '<div class="panel panel-info">',
+              '<div class="panel-heading" data-panel-heading="{{ title || \'Simulation Status\' }}" data-model-name="simulationStatus"></div>',
+              '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(\'simulationStatus\')">',
+                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'initial\')">',
+                  '<div class="col-sm-6 pull-right cssFade">',
+                    '<button class="btn btn-primary" data-ng-click="runSimulation()">Start Simulation</button>',
+                  '</div>',
+                '</form>',
+                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'running\')">',
+                  '<div class="col-sm-12">',
+                    '<div data-ng-show="isInitializing()">',
+                      '<span class="glyphicon glyphicon-hourglass"></span> Initializing Wavefront {{ dots }}',
+                    '</div>',
+                    '<div data-ng-hide="isInitializing()">',
+                      'Simulation Running {{ dots }}',
+                      '<div data-simulation-status-timer="timeData"></div>',
+                    '</div>',
+                  '</div>',
+                  '<div class="col-sm-6 pull-right cssFade">',
+                    '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
+                  '</div>',
+                '</form>',
+                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'completed\') || isState(\'canceled\')">',
+                  '<div class="col-sm-12">',
+                    'Simulation ',
+                    '<span data-ng-show="isState(\'completed\')">Completed</span><span data-ng-show="isState(\'canceled\')">Stopped</span>',
+                    '<div>',
+                      '<div data-simulation-status-timer="timeData"></div>',
+                    '</div>',
+                  '</div>',
+                  '<div class="col-sm-6 pull-right cssFade">',
+                    '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
+                  '</div>',
+                '</form>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var isAborting = false;
+            var isDestroyed = false;
+            var frameId = '-1';
+            var frameCount = 1;
+            var isReadyForModelChanges = false;
+            $scope.dots = '.';
+            $scope.timeData = {
+                elapsedDays: null,
+                elapsedTime: null,
+            };
+            $scope.panelState = panelState;
+
+            var args = {};
+            args[$scope.model] = [];
+            frameCache.setAnimationArgs(args);
+            frameCache.setFrameCount(0);
+
+            $scope.$on('$destroy', function () {
+                isDestroyed = true;
+            });
+
+            function refreshStatus() {
+                isReadyForModelChanges = true;
+                requestSender.sendRequest(
+                    'runStatus',
+                    function(data) {
+                        if (isAborting)
+                            return;
+
+                        if (data.frameId && (data.frameId != frameId)) {
+                            frameId = data.frameId;
+                            frameCount++;
+                            frameCache.setFrameCount(frameCount);
+                            frameCache.setCurrentFrame($scope.model, frameCount - 1);
+                        }
+                        if (data.elapsedTime) {
+                            $scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                            $scope.timeData.elapsedTime = new Date(1970, 0, 1);
+                            $scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
+                        }
+
+                        if (data.state != 'running') {
+                            if (data.state != appState.models.simulationStatus.state)
+                                appState.saveChanges('simulationStatus');
+                        }
+                        else {
+                            if (! isDestroyed) {
+                                $scope.dots += '.';
+                                if ($scope.dots.length > 3)
+                                    $scope.dots = '.';
+                                $timeout(refreshStatus, 4000);
+                            }
+                        }
+                        appState.models.simulationStatus.state = data.state;
+                    },
+                    {
+                        models: appState.applicationState(),
+                        simulationType: APP_SCHEMA.simulationType,
+                    });
+            }
+
+            $scope.cancelSimulation = function() {
+                if (appState.models.simulationStatus.state != 'running')
+                    return;
+                appState.models.simulationStatus.state = 'canceled';
+                isAborting = true;
+                requestSender.sendRequest(
+                    'runCancel',
+                    function(data) {
+                        isAborting = false;
+                        appState.saveChanges('simulationStatus');
+                    },
+                    {
+                        models: appState.applicationState(),
+                        simulationType: APP_SCHEMA.simulationType,
+                    });
+            };
+
+            $scope.isInitializing = function() {
+                if ($scope.isState('running'))
+                    return frameCache.frameCount < 1;
+                return false;
+            };
+
+            $scope.isState = function(state) {
+                if (appState.isLoaded())
+                    return appState.models.simulationStatus.state == state;
+                return false;
+            };
+
+            $scope.runSimulation = function() {
+                if (appState.models.simulationStatus.state == 'running')
+                    return;
+                frameCache.setFrameCount(0);
+                $scope.timeData.elapsedTime = null;
+                $scope.timeData.elapsedDays = null;
+                appState.models.simulationStatus.state = 'running';
+                appState.models.simulationStatus.modelName = $scope.model;
+                requestSender.sendRequest(
+                    'runBackground',
+                    function(data) {
+                        appState.models.simulationStatus.startTime = data['startTime'];
+                        appState.saveChanges('simulationStatus');
+                        refreshStatus();
+                    },
+                    {
+                        models: appState.applicationState(),
+                        simulationType: APP_SCHEMA.simulationType,
+                    });
+            };
+
+            $scope.$on($scope.model + '.changed', function() {
+                if (isReadyForModelChanges) {
+                    frameCache.setFrameCount(0);
+                    frameCache.clearFrames();
+                }
+            });
+
+            if (appState.isLoaded())
+                refreshStatus();
+            else {
+                $scope.$on('modelsLoaded', refreshStatus);
+            }
+        },
+    };
+});
+
 app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',
         scope: {
-            controller: '=simulationStatusTimer',
+            timeData: '=simulationStatusTimer',
         },
         template: [
-            '<div data-ng-if="controller.elapsedTime">',
-              '<br />Elapsed time: {{ controller.elapsedDays }} {{ controller.elapsedTime | date:\'HH:mm:ss\' }}',
+            '<div data-ng-if="timeData.elapsedTime">',
+              '<br />Elapsed time: {{ timeData.elapsedDays }} {{ timeData.elapsedTime | date:\'HH:mm:ss\' }}',
             '</div>',
         ].join(''),
     };
