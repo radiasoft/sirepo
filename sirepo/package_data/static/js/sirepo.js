@@ -27,7 +27,7 @@ var app_local_routes = {
     notFoundCopy: '/copy-session/:simulationIds',
 };
 
-var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
+var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 app.value('localRoutes', app_local_routes);
 
