@@ -16,7 +16,7 @@ pytest.importorskip('srwl_bl')
 def test_sirepo_parser():
     from sirepo.importer import import_python
     with pkunit.save_chdir_work():
-        for b in ['SRWLIB_VirtBL_LCLS_SXR_01', 'chx', 'lcls_simplified']:
+        for b in ['SRWLIB_VirtBL_LCLS_SXR_01', 'chx', 'lcls_simplified', 'srx']:
             base_py = '{}.py'.format(b)
             code = pkio.read_text(pkunit.data_dir().join(base_py))
             error, actual = import_python(
