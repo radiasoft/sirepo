@@ -234,7 +234,7 @@ def beamline_element(obj, idx, title, elem_type, position):
         data['verticalFocalLength'] = obj.Fy
         data['verticalOffset'] = obj.y
 
-    elif elem_type == 'mirror':
+    elif elem_type in ['mirror', 'mirror2d']:
         keys = ['grazingAngle', 'heightAmplification', 'heightProfileFile', 'horizontalTransverseSize',
                 'orientation', 'verticalTransverseSize']
         for key in keys:
@@ -247,7 +247,9 @@ def beamline_element(obj, idx, title, elem_type, position):
         for key in ['horizontalTransverseSize', 'verticalTransverseSize']:
             data[key] *= 1000.0
 
-        data['heightProfileFile'] = 'mirror_1d.dat'
+        data['heightProfileFile'] = 'mirror_1d.dat' if elem_type == 'mirror' else 'mirror_2d.dat'
+        # TODO(mrakitin): currently 2D mirror profiles are not supported, need to add support later.
+        data['type'] = 'mirror'
 
     elif elem_type == 'sphericalMirror':
         # Fixed values in srw.js:
@@ -366,7 +368,7 @@ def get_beamline(obj_arOpt, init_distance=20.0):
                 else:
                     elem_type = obj_arOpt[i].input_parms['type']
 
-                if elem_type == 'mirror':  # mirror, no surface curvature
+                if elem_type in ['mirror', 'mirror2d']:
                     key = 'HDM'
 
                 elif elem_type == 'crl':  # CRL
@@ -705,7 +707,13 @@ class SRWParser(object):
         self.get_files()
         if self.initial_lib_dir:
             self.replace_files()
-        self.optics = getattr(m, 'set_optics')(self.var_param)
+        try:
+            self.optics = getattr(m, 'set_optics')(self.var_param)
+        except ValueError as e:
+            if re.search('could not convert string to float', e.message):
+                self.replace_files('mirror_2d.dat')
+                self.optics = getattr(m, 'set_optics')(self.var_param)
+
         self.data = parsed_dict(self.var_param, self.optics)
         self.data['models']['simulation']['name'] = _name(user_filename)
 
@@ -719,11 +727,11 @@ class SRWParser(object):
             if key.find('fdir') >= 0:
                 self.lib_dir = py.path.local(self.var_param.__dict__[key])
 
-    def replace_files(self):
+    def replace_files(self, mirror_file='mirror_1d.dat'):
         for key in self.var_param.__dict__.keys():
             if key.find('_ifn') >= 0:
                 if getattr(self.var_param, key) != '':
-                    self.var_param.__dict__[key] = ''  # 'mirror_1d.dat'
+                    self.var_param.__dict__[key] = mirror_file
             if key.find('fdir') >= 0:
                 self.var_param.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
