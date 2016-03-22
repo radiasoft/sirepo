@@ -3,23 +3,24 @@
 # THIS IS ALPHA SOFTWARE
 
 Sirepo is a scientific application framework, currently for particle accelator codes.
-The codes run inside a Python web server.
+Sirepo runs inside a Python web server.
 
-Learn more at sireop.com.
+Learn more at sireop.com(coming soon).
 
 Documentation: http://rssynergia.readthedocs.org/en/latest/
 
 ### Vagrant Install
 
-You can start Sirepo with Vagrant. First create a Vagrantfile:
+You can start Sirepo with [Vagrant](https://www.vagrantup.com/).
+
+First create a Vagrantfile:
 
 ```bash
-cat > Vagrantfile <<'EOF'
+//Vagrantfile
 Vagrant.configure(2) do |config|
 config.vm.box = "radiasoft/sirepo"
 config.vm.network "forwarded_port", guest: 8000, host: 8000
 end
-EOF
 ```
 
 Boot the machine:
@@ -29,6 +30,10 @@ vagrant up
 ```
 
 The images is 2.5GB so this will take some time.
+
+If it's your first time running Vagrant, it will ask to install VirtualBox. 
+
+Follow the prompts
 
 You can run Sirepo with a single command:
 
@@ -56,4 +61,4 @@ sirepo service http
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
