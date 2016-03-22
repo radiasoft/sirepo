@@ -244,6 +244,7 @@ app.directive('plot2d', function(plotting) {
                     if (xPixel < 0 || xPixel >= select('.plot-viewport').attr('width'))
                         return;
                     var focus = select('.focus');
+                    focus.style('display', null);
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
                     select('.focus-text').text('[' + formatter(localMax[0]) + ', ' + ordinate_formatter(localMax[1]) + ']');
                 }
@@ -327,20 +328,21 @@ app.directive('plot2d', function(plotting) {
                 var focus_hint = select('.focus-hint');
                 select('.overlay')
                     .on('mouseover', function() {
-                        focus.style('display', null);
-                        focus_hint.style('display', null);
+                        focus.style('display', focus.style('display'));
+                        focus_hint.style('display', 'none');
                         focus_hint.text('Double-click to copy the values');
                     })
                     .on('mouseout', function() {
                         focus_hint.style('display', 'none');
                     })
-                    .on('mousemove', mouseMove)
+                    .on('click', mouseMove)
                     .on('dblclick', function copyToClipboard() {
                         var $temp = $('<input>');
                         $('body').append($temp);
                         $temp.val(focus_text.text()).select();
                         try {
                             document.execCommand('copy');
+                            focus_hint.style('display', null);
                             focus_hint.text('Copied to clipboard');
                             setTimeout(function () {
                                 focus_hint.style('display', 'none');
