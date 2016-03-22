@@ -43,6 +43,8 @@ def fixup_old_data(data):
             'y': 'p',
             'histogramBins': 200,
         }
+    if 'latticeGraph' not in data['models']:
+        data['models']['latticeGraph'] = {}
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -64,6 +66,10 @@ def get_data_file(run_dir, frame_index):
 
 
 def new_simulation(data, new_simulation_data):
+    pass
+
+
+def prepare_aux_files(run_dir, data):
     pass
 
 

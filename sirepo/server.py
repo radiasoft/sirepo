@@ -29,6 +29,7 @@ import threading
 import time
 import werkzeug
 import werkzeug.exceptions
+import zipfile
 
 
 #: Cache of schemas keyed by app name
@@ -197,7 +198,10 @@ def app_download_file(simulation_type, simulation_id, filename):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
 def app_error_logging():
-    print('javascript error: {}'.format(_json_input()))
+    try:
+        print('javascript error: {}'.format(_json_input()))
+    except ValueError:
+        print('unparsable javascript error: {}'.format(_read_http_input()))
     return '{}'
 
 
@@ -419,10 +423,12 @@ def app_simulation_frame(frame_id):
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
-def app_file_list(simulation_type, simulation_id):
+def app_file_list(simulation_type, simulation_id, file_type):
     res = []
+    #TODO(pjm): keep files in folder by file_type instead of by extension
+    search = '*.dat' if file_type == 'mirror' else '*.zip'
     d = simulation_db.simulation_lib_dir(simulation_type)
-    for f in glob.glob(str(d.join('*.*'))):
+    for f in glob.glob(str(d.join(search))):
         if os.path.isfile(f):
             res.append(os.path.basename(f))
     res.sort()
@@ -598,11 +604,12 @@ def _start_simulation(data, run_async=False):
     assert simulation_type in simulation_db.APP_NAMES, \
         '{}: invalid simulation type'.format(simulation_type)
     template = sirepo.template.import_module(simulation_type)
-    simulation_db.save_simulation_json(simulation_type, data)
     for d in simulation_db.simulation_dir(simulation_type, sid), simulation_db.simulation_lib_dir(simulation_type):
         for f in glob.glob(str(d.join('*.*'))):
             if os.path.isfile(f):
                 py.path.local(f).copy(run_dir)
+    template.prepare_aux_files(run_dir, data)
+    simulation_db.save_simulation_json(simulation_type, data)
     with open(str(run_dir.join('in{}'.format(simulation_db.JSON_SUFFIX))), 'w') as outfile:
         json.dump(data, outfile)
     pkio.write_text(
@@ -624,20 +631,42 @@ def _start_simulation(data, run_async=False):
 
 def _validate_data_file(path):
     """Ensure the data file contains parseable rows data"""
-    try:
-        count = 0
-        with open(str(path)) as f:
-            for line in f.readlines():
-                parts = line.split("\t")
-                if len(parts) > 0:
-                    float(parts[0])
-                if len(parts) > 1:
-                    float(parts[1])
-                    count += 1
-        if count == 0:
-            return 'no data rows found in file'
-    except ValueError as e:
-        return 'invalid file format: {}'.format(e)
+    match = re.search(r'\.(\w+)$', str(path))
+    extension = None
+    if match:
+        extension = match.group(1).lower()
+    else:
+        return 'invalid file extension'
+
+    if extension == 'dat':
+        # mirror file
+        try:
+            count = 0
+            with open(str(path)) as f:
+                for line in f.readlines():
+                    parts = line.split("\t")
+                    if len(parts) > 0:
+                        float(parts[0])
+                    if len(parts) > 1:
+                       float(parts[1])
+                       count += 1
+            if count == 0:
+                return 'no data rows found in file'
+        except ValueError as e:
+            return 'invalid file format: {}'.format(e)
+    elif extension == 'zip':
+        # undulator magnetic data file
+        #TODO(pjm): add additional zip file validation
+        zip_file = zipfile.ZipFile(str(path))
+        is_valid = False
+        for f in zip_file.namelist():
+            if re.search('\.txt', f.lower()):
+                is_valid = True
+                break
+        if not is_valid:
+            return 'zip file missing txt index file'
+    else:
+        return 'invalid file type: {}'.format(extension)
     return None
 
 

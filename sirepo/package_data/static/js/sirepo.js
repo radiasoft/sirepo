@@ -27,7 +27,7 @@ var app_local_routes = {
     notFoundCopy: '/copy-session/:simulationIds',
 };
 
-var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3']);
+var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 app.value('localRoutes', app_local_routes);
 
@@ -492,7 +492,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
     return self;
 });
 
-app.factory('panelState', function($window, $rootScope, appState, requestQueue) {
+app.factory('panelState', function(appState, requestQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -559,6 +559,19 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
         requestQueue.addItem([name, appState.applicationState(), responseHandler]);
     };
 
+    self.showModalEditor = function(name) {
+        var editorId = '#srw-' + name + '-editor';
+        if ($(editorId).length)
+            $(editorId).modal('show');
+        else {
+            $('body').append($compile('<div data-modal-editor="' + name + '"></div>')($rootScope));
+            //TODO(pjm): timeout hack, other jquery can't find the element
+            $timeout(function() {
+                $(editorId).modal('show');
+            });
+        }
+    };
+
     self.toggleHidden = function(name) {
         setPanelValue(name, 'hidden', ! self.isHidden(name));
         if (! self.isHidden(name) && appState.isReportModelName(name)) {
@@ -598,7 +611,11 @@ app.factory('requestSender', function($http, $location, localRoutes) {
         return formatUrl(APP_SCHEMA.route, routeName, params);
     };
 
-    self.getAuxiliaryData = function(name, path) {
+    self.getAuxiliaryData = function(name) {
+        return self[name];
+    };
+
+    self.loadAuxiliaryData = function(name, path) {
         if (self[name] || self[name + ".loading"])
             return;
         self[name + ".loading"] = true;
@@ -708,6 +725,17 @@ app.provider('$exceptionHandler', {
 });
 
 app.factory('exceptionLoggingService', function($log, $window, traceService) {
+
+    function cleanText(obj) {
+        if (obj) {
+            var text = obj.toString();
+            text = text.replace(/"/g, '');
+            text = text.replace(/\n+/g, ' ');
+            return text;
+        }
+        return '';
+    }
+
     function error(exception, cause) {
         // preserve the default behaviour which will log the error
         // to the console, and allow the application to continue running.
@@ -715,7 +743,7 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
         // now try to log the error to the server side.
         try{
             // escaped quotes confuse flask json parser
-            var errorMessage = exception.toString().replace(/"/g, '');
+            var errorMessage = cleanText(exception);
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
@@ -730,7 +758,7 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
                     message: errorMessage,
                     type: 'exception',
                     stackTrace: stackTrace,
-                    cause: ( cause || ''),
+                    cause: cleanText(cause),
                 })
             });
         }

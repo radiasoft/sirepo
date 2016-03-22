@@ -2,65 +2,47 @@
     "models": {
         "beamline": [
             {
-                "horizontalFocalLength": 0.33333,
+                "horizontalFocalLength": 0.5,
                 "horizontalOffset": 0,
                 "id": 3,
                 "position": 1,
                 "title": "Lens",
                 "type": "lens",
-                "verticalFocalLength": 0.33333,
+                "verticalFocalLength": 0.5,
                 "verticalOffset": 0
             },
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 0.2,
+                "horizontalSize": "10",
                 "id": 4,
-                "position": 1.5,
+                "position": 1,
                 "shape": "r",
                 "title": "Aperture",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 10
-            },
-            {
-                "id": 6,
-                "position": 1.5,
-                "title": "At the aperture",
-                "type": "watch"
-            },
-            {
-                "id": 10,
-                "position": 1.51,
-                "title": "Near field, F=7.5",
-                "type": "watch"
-            },
-            {
-                "id": 8,
-                "position": 2,
-                "title": "Far field, F=0.15",
-                "type": "watch"
+                "verticalSize": 0.5
             },
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 0.2,
+                "horizontalSize": "10",
                 "id": 5,
-                "position": 2,
+                "position": 1,
                 "shape": "r",
                 "title": "Obstacle",
                 "type": "obstacle",
                 "verticalOffset": 0,
-                "verticalSize": 10
+                "verticalSize": 0.3
             },
             {
-                "id": 7,
-                "position": 2.01,
-                "title": "Near field, F=7.5",
+                "id": 6,
+                "position": 1,
+                "title": "W1",
                 "type": "watch"
             },
             {
-                "id": 9,
-                "position": 15,
-                "title": "Far field, F=0.006",
+                "id": 8,
+                "position": 4,
+                "title": "W2",
                 "type": "watch"
             }
         ],
@@ -104,8 +86,8 @@
             "energyPerPulse": "0.001",
             "polarization": 1,
             "rmsPulseDuration": 0.1,
-            "rmsSizeX": 500,
-            "rmsSizeY": 500,
+            "rmsSizeX": 50,
+            "rmsSizeY": 50,
             "waistAngleX": 0,
             "waistAngleY": 0,
             "waistX": 0,
@@ -145,12 +127,12 @@
             0,
             0,
             1,
-            0,
+            "0",
             0,
             "1",
-            1,
-            1,
-            1
+            "1",
+            "1",
+            "1"
         ],
         "powerDensityReport": {
             "distanceFromSource": "30",
@@ -164,47 +146,23 @@
             "verticalRange": "15"
         },
         "propagation": {
-            "10": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    "0",
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
             "3": [
                 [
-                    0,
-                    0,
                     1,
+                    1,
+                    1,
+                    "0",
                     0,
-                    0,
-                    "4",
-                    "5",
+                    "1",
                     "2",
-                    "4"
+                    "1",
+                    "2"
                 ],
                 [
                     0,
                     0,
                     1,
-                    "0",
+                    1,
                     0,
                     1,
                     1,
@@ -241,7 +199,7 @@
                     0,
                     0,
                     1,
-                    0,
+                    "0",
                     0,
                     1,
                     1,
@@ -252,12 +210,12 @@
                     0,
                     0,
                     1,
-                    "0",
+                    1,
                     0,
                     1,
-                    "1",
                     1,
-                    "1"
+                    1,
+                    1
                 ]
             ],
             "6": [
@@ -273,39 +231,15 @@
                     1
                 ],
                 [
+                    1,
+                    1,
+                    1,
+                    "0",
                     0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "7": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    1,
-                    1,
                     "1",
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
+                    "1",
+                    "1",
+                    "1"
                 ]
             ],
             "8": [
@@ -331,48 +265,25 @@
                     1,
                     1
                 ]
-            ],
-            "9": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
             ]
         },
         "simulation": {
+            "documentationUrl": "https://github.com/radiasoft/sirepo/wiki/Young's-Double-Slit-Experiment-examples",
             "facility": "",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 5,
+            "horizontalRange": 7,
             "isExample": "1",
-            "name": "Young's Double Slit Experiment (with lens)",
+            "name": "Young's Double Slit Experiment (green laser)",
             "outOfSessionSimulationId": "",
             "photonEnergy": 2.31746,
             "sampleFactor": 1,
             "samplingMethod": 1,
-            "simulationId": "",
+            "simulationId": "Y4CE2BrP",
             "sourceType": "g",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 5
+            "verticalRange": 7
         },
         "simulationStatus": {
             "startTime": 0,
@@ -383,6 +294,13 @@
             "distanceFromSource": 1,
             "fieldUnits": 1,
             "polarization": 6
+        },
+        "tabulatedUndulator": {
+            "gap": 6.72,
+            "indexFile": "",
+            "longitudinalPosition": 1.305,
+            "magneticFile": "magnetic_measurements.zip",
+            "phase": 0
         },
         "undulator": {
             "horizontalAmplitude": "0",
@@ -395,19 +313,7 @@
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
-        "watchpointReport10": {
-            "characteristic": 0,
-            "fieldUnits": 1,
-            "polarization": 6,
-            "precision": 0.01
-        },
         "watchpointReport6": {
-            "characteristic": 0,
-            "fieldUnits": 1,
-            "polarization": 6,
-            "precision": 0.01
-        },
-        "watchpointReport7": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
@@ -418,15 +324,9 @@
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01
-        },
-        "watchpointReport9": {
-            "characteristic": 0,
-            "fieldUnits": 1,
-            "polarization": 6,
-            "precision": 0.01
         }
     },
-    "report": "",
+    "report": "watchpointReport8",
     "simulationType": "srw",
-    "version": "20160215"
+    "version": "20160315"
 }

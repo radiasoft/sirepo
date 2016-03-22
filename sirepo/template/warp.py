@@ -183,6 +183,10 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
+def prepare_aux_files(run_dir, data):
+    pass
+
+
 def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:

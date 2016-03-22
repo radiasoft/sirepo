@@ -1,5 +1,5 @@
 {
-    "version": "20160301",
+    "version": "20160321",
     "route": {
         "clearFrames": "/clear-frames",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
@@ -11,7 +11,7 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "importFile": "/import-file/<simulation_type>",
         "listSimulations": "/simulation-list",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>",
+        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "newSimulation": "/new-simulation",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>",
         "root": "/<simulation_type>",

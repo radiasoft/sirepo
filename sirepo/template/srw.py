@@ -14,6 +14,7 @@ import os
 import py.path
 import re
 import shutil
+import zipfile
 
 from pykern import pkio
 from pykern import pkjinja
@@ -24,6 +25,8 @@ import uti_plot_com
 WANT_BROWSER_FRAME_CACHE = False
 
 _MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
+
+_PREDEFINED_MAGNETIC_ZIP_FILE = 'magnetic_measurements.zip'
 
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
@@ -173,6 +176,14 @@ def fixup_old_data(data):
                     del data['models'][k][f]
     if 'documentationUrl' not in data['models']['simulation']:
         data['models']['simulation']['documentationUrl'] = ''
+    if 'tabulatedUndulator' not in data['models']:
+        data['models']['tabulatedUndulator'] = {
+            'gap': 6.72,
+            'phase': 0,
+            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILE,
+            'longitudinalPosition': 1.305,
+            'indexFile': '',
+        }
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -189,6 +200,9 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    # und_g and und_ph API units are mm rather than m
+    v['tabulatedUndulator_gap'] *= 1000
+    v['tabulatedUndulator_phase'] *= 1000
 
     if 'report' in data and 'distanceFromSource' in data['models'][data['report']]:
         position = data['models'][data['report']]['distanceFromSource']
@@ -200,12 +214,16 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     drift = 0
     if source_type == 'u':
         drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
+        # undulator longitudinal center only set with tabulatedUndulator
+        v['tabulatedUndulator_longitudinalPosition'] = 0
     else:
         #TODO(pjm): allow this to be set in UI?
         drift = 0
     v['electronBeamInitialDrift'] = drift
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if source_type == 'u' else 2
+    v['energyCalculationMethod'] = 2
+    if source_type == 'u' or source_type == 't':
+        v['energyCalculationMethod'] = 1
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
@@ -230,6 +248,21 @@ def new_simulation(data, new_simulation_data):
     if source == 'g':
         intensityReport = data['models']['initialIntensityReport']
         intensityReport['sampleFactor'] = 0
+
+
+def prepare_aux_files(run_dir, data):
+    if not data['models']['simulation']['sourceType'] == 't':
+        return
+    filename = data['models']['tabulatedUndulator']['magneticFile']
+    filepath = run_dir.join(filename)
+    if filename == _PREDEFINED_MAGNETIC_ZIP_FILE and not filepath.check():
+        _STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE).copy(run_dir)
+    zip_file = zipfile.ZipFile(str(filepath))
+    zip_file.extractall(str(run_dir))
+    for f in zip_file.namelist():
+        if re.search('\.txt', f):
+            data['models']['tabulatedUndulator']['indexFile'] = f
+            break
 
 
 def remove_last_frame(run_dir):
@@ -264,7 +297,9 @@ def static_lib_files():
     Returns:
         list: py.path.local objects
     """
-    return [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
+    res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
+    res.append(_STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE))
+    return res
 
 
 def _beamline_element(template, item, fields, propagation):
@@ -293,6 +328,45 @@ def _fixup_beam(data, beam):
     # otherwise default to the first predefined beam
     beam.update(_PREDEFINED_BEAMS[0])
     beam['beamSelector'] = beam['name']
+
+
+def _crystal_element(template, item, fields, propagation):
+    """The function prepares the code for processing of the crystal element.
+
+    Args:
+        template: template for SRWLOptCryst().
+        item: dictionary with parameters of the crystal.
+        fields: fields of the crystal.
+        propagation: propagation list for the crystal.
+
+    Returns:
+        res: the resulted block of text.
+    """
+
+    # Small rotation of DCM crystal
+    crystal_rotation = '''
+    import uti_math
+    rot = uti_math.trf_rotation([0, 1, 0], {}, [0, 0, 0])
+    tCr = uti_math.matr_prod(rot[0], tCr)
+    sCr = uti_math.matr_prod(rot[0], sCr)
+    nCr = uti_math.matr_prod(rot[0], nCr)\n'''.format(item['rotationAngle']) if item['rotationAngle'] != 0 else ''
+
+    res = '''
+    opCr = {}
+    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl=1.5707963)  # horizontally-deflecting
+    orientCr = orientDataCr[0]
+    tCr, sCr, nCr = orientCr[:3]  # tangential, sagittal and normal vectors to crystal surface
+    {}
+    # Set the crystal orientation:
+    opCr.set_orient(nCr[0], nCr[1], nCr[2], tCr[0], tCr[1])\n
+    el.append(opCr)
+    {}\n'''.format(
+        template.format(*map(lambda x: item[x], fields)),
+        item['energy'],
+        crystal_rotation,
+        _propagation_params(propagation[str(item['id'])][0]).strip()
+    )
+    return res
 
 
 def _generate_beamline_optics(models, last_id):
@@ -328,6 +402,12 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
                 item,
                 ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
+                propagation)
+        elif item['type'] == 'crystal':
+            res += _crystal_element(
+                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
+                item,
+                ['dSpacing', 'psi0r', 'psi0i', 'psi_hr', 'psi_hi', 'psi_hbr', 'psi_hbi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(

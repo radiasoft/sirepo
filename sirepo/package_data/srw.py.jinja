@@ -33,9 +33,12 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
     ['und_per', 'f', {{undulator_period}}, 'undulator period [m]'],
     ['und_len', 'f', {{undulator_length}}, 'undulator length [m]'],
-    ['und_zc', 'f', 0., 'undulator center longitudinal position [m]'],
+    ['und_zc', 'f', {{tabulatedUndulator_longitudinalPosition}}, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+    ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+    ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
+    ['und_mfs', 's', '{{tabulatedUndulator_indexFile}}', 'name of magnetic measurements for different gaps summary file'],
 
     ['gbm_x', 'f', {{gaussianBeam_waistX}}, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', {{gaussianBeam_waistY}}, 'average vertical coordinates of waist [m]'],
@@ -154,7 +157,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
 ])
 
 appParam = [
-    ['source_type', 's', '{{simulation_sourceType}}', 'source type, (u) undulator, (m) multipole, (g) gaussian beam'],
+    ['source_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 #---Multipole
     ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
     ['mp_order', 'i', 1, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
@@ -188,15 +191,27 @@ def setup_source(v):
     if appV.source_type == 'u':
         v.und_b = 1
         del v.gbm_pen
+    elif appV.source_type == 't':
+        v.und_b = 1
+        del v.gbm_pen
+        v.und_mdir = '.'
+        v.ss_mag = 2
+        v.sm_mag = 2
+        v.pw_mag = 2
+        v.w_mag = 2
+
     elif appV.source_type == 'g':
         pass
-    else:
+    elif appV.source_type == 'm':
         mag = srwlib.SRWLMagFldC()
         mag.arXc.append(0)
         mag.arYc.append(0)
         mag.arMagFld.append(srwlib.SRWLMagFldM(appV.mp_field, appV.mp_order, appV.mp_distribution, appV.mp_len))
         mag.arZc.append(appV.mp_zc)
         del v.gbm_pen
+    else:
+        raise AssertionError('{}: unknown source_type'.format(appV.source_type))
+
     return appV.source_type, mag
 
 def get_srw_params():

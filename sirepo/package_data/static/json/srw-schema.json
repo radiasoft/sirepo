@@ -50,7 +50,8 @@
             ["6", "Circular Left"]
         ],
         "SourceType": [
-            ["u", "Electron Beam with Undulator"],
+            ["u", "Electron Beam with Idealized Undulator"],
+            ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
             ["g", "Gaussian Beam"]
         ],
@@ -120,6 +121,21 @@
             "radius": ["Radius on Tip of Parabola [m]", "Float"],
             "numberOfLenses": ["Number of Lenses", "Integer"],
             "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]
+        },
+        "crystal": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
+            "rotationAngle": ["Rotation angle [rad]", "Float"],
+            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float"],
+            "psi0r": ["Real part of 0-th Fourier component of crystal polarizability", "Float"],
+            "psi0i": ["Imaginary part of 0-th Fourier component of crystal polarizability", "Float"],
+            "psi_hr": ["Real part of H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hi": ["Imaginary part of H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hbr": ["Real part of -H-th Fourier component of crystal polarizability", "Float"],
+            "psi_hbi": ["Imaginary part of -H-th Fourier component of crystal polarizability", "Float"],
+            "crystalThickness": ["Crystal thickness [m]", "Float"],
+            "asymmetryAngle": ["Asymmetry angle [rad]", "Float"]
         },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
@@ -294,7 +310,6 @@
             "radius": ["Radius of Surface Curvature [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
             "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
@@ -303,6 +318,13 @@
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
+        },
+        "tabulatedUndulator": {
+            "gap": ["Magnetic Gap [mm]", "Float"],
+            "phase": ["Magnet Arrays Shift [mm]", "Float"],
+            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
+            "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
             "period": ["Period [mm]", "Float"],
@@ -353,6 +375,25 @@
                 "radius",
                 "numberOfLenses",
                 "wallThickness"
+            ]
+        },
+        "crystal": {
+            "title": "Crystal",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "energy",
+                "rotationAngle",
+                "dSpacing",
+                "psi0r",
+                "psi0i",
+                "psi_hr",
+                "psi_hi",
+                "psi_hbr",
+                "psi_hbi",
+                "crystalThickness",
+                "asymmetryAngle"
             ]
         },
         "electronBeam": {
@@ -633,7 +674,6 @@
                 "radius",
                 "tangentialSize",
                 "sagittalSize",
-                "grazingAngle",
                 "normalVectorX",
                 "normalVectorY",
                 "normalVectorZ",
@@ -644,8 +684,21 @@
                 "heightAmplification"
             ]
         },
+        "tabulatedUndulator": {
+            "title": "Tabulated Undulator",
+            "basic": [
+                "gap",
+                "longitudinalPosition",
+                "magneticFile"
+            ],
+            "advanced": [
+                "gap",
+                "longitudinalPosition",
+                "phase"
+            ]
+        },
         "undulator": {
-            "title": "Undulator",
+            "title": "Idealized Undulator",
             "basic": [
                 "period",
                 "length",
