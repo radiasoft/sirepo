@@ -26,7 +26,7 @@ You can start Sirepo with [Vagrant](https://www.vagrantup.com/).
 First create a Vagrantfile:
 
 ```bash
-//Vagrantfile
+# Vagrantfile
 Vagrant.configure(2) do |config|
   config.vm.box = "radiasoft/sirepo"
   config.vm.network "forwarded_port", guest: 8000, host: 8000
