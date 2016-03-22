@@ -85,7 +85,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-app.controller('SRWBeamlineController', function (appState, fileUpload, frameCache, panelState, requestSender, srwService, $scope, $timeout) {
+app.controller('SRWBeamlineController', function (appState, panelState, srwService, $scope) {
     var self = this;
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area

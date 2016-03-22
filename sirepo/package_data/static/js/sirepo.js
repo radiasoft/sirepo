@@ -492,7 +492,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
     return self;
 });
 
-app.factory('panelState', function($window, $rootScope, appState, requestQueue) {
+app.factory('panelState', function(appState, requestQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -557,6 +557,19 @@ app.factory('panelState', function($window, $rootScope, appState, requestQueue) 
         };
         //console.log('requesting: ', name);
         requestQueue.addItem([name, appState.applicationState(), responseHandler]);
+    };
+
+    self.showModalEditor = function(name) {
+        var editorId = '#srw-' + name + '-editor';
+        if ($(editorId).length)
+            $(editorId).modal('show');
+        else {
+            $('body').append($compile('<div data-modal-editor="' + name + '"></div>')($rootScope));
+            //TODO(pjm): timeout hack, other jquery can't find the element
+            $timeout(function() {
+                $(editorId).modal('show');
+            });
+        }
     };
 
     self.toggleHidden = function(name) {

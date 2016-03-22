@@ -7,7 +7,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}" data-editor-id="{{ editorId }}"></div>',
+              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}"></div>',
               '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
@@ -23,7 +23,6 @@ app.directive('basicEditorPanel', function(appState, panelState) {
             $scope.panelState = panelState;
             $scope.basicFields = appState.viewInfo($scope.modelName).basic;
             $scope.panelTitle = appState.viewInfo($scope.modelName).title;
-            $scope.editorId = 'srw-' + $scope.modelName + '-editor';
             $scope.isStringField = function(f) {
                 return typeof(f) == 'string' ? true : false;
             };
@@ -105,6 +104,27 @@ app.directive('confirmationModal', function() {
     };
 });
 
+app.directive('labelWithTooltip', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            'label': '@',
+            'tooltip': '@',
+        },
+        template: [
+            '<label control-label">{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></label>',
+        ],
+        link: function link(scope, element) {
+            if (scope.tooltip) {
+                $(element).find('span').tooltip({
+                    title: scope.tooltip,
+                    placement: 'bottom',
+                });
+            }
+        },
+    };
+});
+
 app.directive('fieldEditor', function(appState, requestSender) {
     return {
         restirct: 'A',
@@ -118,8 +138,7 @@ app.directive('fieldEditor', function(appState, requestSender) {
             isReadOnly: "=",
         },
         template: [
-            '<label data-ng-hide="customLabel" class="col-sm-{{ labelSize || \'5\' }} control-label">{{ info[0] }}</label>',
-            '<label data-ng-show="customLabel" class="col-sm-{{ labelSize || \'5\' }} control-label">{{ customLabel }}</label>',
+            '<div data-label-with-tooltip="" class="col-sm-{{ labelSize || \'5\' }} control-label" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
                 '<div class="dropdown">',
@@ -189,7 +208,7 @@ app.directive('fieldEditor', function(appState, requestSender) {
                 $('#srw-electronBeam-editor').modal('show');
             };
         },
-        link: function link(scope) {
+        link: function link(scope, element) {
             scope.enum = APP_SCHEMA.enum;
             if (scope.info && scope.info[1] == 'BeamList')
                 requestSender.loadAuxiliaryData('beams', '/static/json/beams.json');
@@ -426,12 +445,17 @@ app.directive('modalEditor', function(appState) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
+                        '<h5 data-ng-if="description">{{ description }}</h5>',
                         '<form name="form" class="form-horizontal" novalidate>',
-                          '<div data-ng-repeat="f in advancedFields">',
+                          '<ul data-ng-if="pages" class="nav nav-tabs">',
+                            '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">Page {{ page.index }}</a></li>',
+                          '</ul>',
+                          '<br />',
+                          '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
                             '<div class="form-group form-group-sm model-{{modalEditor}}-{{f}}" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
                             '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
                           '</div>',
-                          '<div data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
+                          '<div data-ng-if="editorId" data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
                         '</form>',
                       '</div>',
                     '</div>',
@@ -443,7 +467,31 @@ app.directive('modalEditor', function(appState) {
         controller: function($scope) {
             $scope.appState = appState;
             var viewInfo = appState.viewInfo($scope.modalEditor);
+            $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo.advanced;
+            if (viewInfo.fieldsPerTab && $scope.advancedFields.length > viewInfo.fieldsPerTab) {
+                $scope.pages = [];
+                var index = 0;
+                var items;
+                for (var i = 0; i < $scope.advancedFields.length; i++) {
+                    if (i % viewInfo.fieldsPerTab == 0) {
+                        index += 1;
+                        items = [];
+                        $scope.pages.push({
+                            index: index,
+                            isActive: index == 1,
+                            items: items,
+                        });
+                    }
+                    items.push($scope.advancedFields[i]);
+                }
+            }
+            $scope.setActivePage = function(page) {
+                if ($scope.activePage)
+                    $scope.activePage.isActive = false;
+                $scope.activePage = page;
+                page.isActive = true;
+            };
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.modalEditor;
@@ -455,6 +503,10 @@ app.directive('modalEditor', function(appState) {
             $scope.modalTitle = appState.getReportTitle(viewInfo.model ? $scope.modalEditor : $scope.fullModelName);
         },
         link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                if (scope.pages)
+                    scope.setActivePage(scope.pages[0]);
+            });
             $(element).on('shown.bs.modal', function() {
                 if (! scope.isReadOnly)
                     $('#' + scope.editorId + ' .form-control').first().select();
@@ -501,7 +553,6 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
         scope: {
             panelHeading: '@',
             modelName: '@',
-            editorId: '@',
             allowFullScreen: '@',
         },
         template: [
@@ -594,7 +645,7 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                 return false;
             };
             $scope.showEditor = function() {
-                $('#' + $scope.editorId).modal('show');
+                panelState.showModalEditor($scope.modelName);
             };
             $scope.showAdvancedEditor = appState.viewInfo($scope.modelName)
                 && appState.viewInfo($scope.modelName).advanced.length == 0 ? false : true;
@@ -641,7 +692,7 @@ app.directive('reportPanel', function(appState, panelState) {
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-editor-id="{{ editorId }}" data-allow-full-screen="1"></div>',
+              '<div class="panel-heading" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-allow-full-screen="1"></div>',
               '<div data-report-content="{{ reportPanel }}" data-full-model-name="{{ fullModelName }}"></div>',
             '</div>',
         ].join(''),
@@ -650,7 +701,6 @@ app.directive('reportPanel', function(appState, panelState) {
             $scope.appState = appState;
             $scope.panelState = panelState;
             $scope.fullModelName = $scope.modelName + itemId;
-            $scope.editorId = 'srw-' + $scope.fullModelName + '-editor';
         },
     };
 });

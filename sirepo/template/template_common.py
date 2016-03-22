@@ -37,7 +37,10 @@ def validate_model(model_data, model_schema, enum_info):
     for k in model_schema:
         label = model_schema[k][0]
         field_type = model_schema[k][1]
-        value = model_data[k]
+        if k in model_data:
+            value = model_data[k]
+        else:
+            value = model_schema[k][2]
         if field_type in enum_info:
             if not enum_info[field_type][str(value)]:
                 raise Exception('invalid enum value: {}'.format(value))

@@ -1,0 +1,194 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 col-lg-6">
+      <div class="row">
+        <div class="col-sm-12">
+          <div data-report-panel="lattice" data-model-name="latticeGraph"></div>
+        </div>
+        <div class="col-sm-12">
+
+              <div class="panel panel-info">
+                <div class="panel-heading" data-panel-heading="Beamline Editor" data-model-name="beamlineElementSettings" data-editor-id="srw-beamlineElementSettings-editor"></div>
+                <div class="panel-body cssFade">
+                  <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>
+                  <div class="bg-warning" style="padding: 1ex 0; overflow-x: scroll; white-space: nowrap">
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">L1</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">W1</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">B1</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">L1</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">W2</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">B2</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">L2</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">W3</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">B3</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">L1</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">W4</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">B4</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">W5</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                    <span class="badge">L3</span>
+                    <div class="s-drop-zone" data-ng-drop="true">&nbsp;</div>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12 col-lg-6" style="height: {{ lattice.splitPaneHeight() }}">
+      <div class="s-split-pane-frame">
+	<div data-split-pane>
+	  <div data-split-pane-component>
+	    <div class="s-split-pane-component-inner">
+
+              <div class="panel panel-info">
+                <div class="panel-heading" data-panel-heading="Beamlines" data-model-name="beamlineElementSettings" data-editor-id="srw-beamlineElementSettings-editor"></div>
+                <div class="panel-body cssFade">
+
+                  <button class="btn btn-info btn-xs pull-right" accesskey="b"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
+                  <table style="width: 100%; table-layout: fixed" class="table table-hover">
+                    <colgroup>
+                      <col style="width: 12ex">
+                      <col>
+                      <col style="width: 10ex">
+                      <col style="width: 12ex">
+                      <col style="width: 10ex">
+                      <col style="width: 0">
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Elements</th>
+                        <th>Length</th>
+                        <th>Bend</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr data-ng-repeat="beamline in lattice.beamlines">
+                        <td><div class="badge" style="cursor: move; -moz-user-select: none"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>
+                        <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ lattice.beamlineDescription(beamline) }}</span></td>
+                        <td style="text-align: right">{{ beamline.count }}</td>
+                        <td style="text-align: right">{{ lattice.itemLength(beamline) }}</td>
+                        <td style="text-align: right">{{ beamline.bend }}<span data-ng-if="lattice.bend">&deg;</span></td>
+                        <td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-click="lattice.editItem(item)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button class="btn btn-info btn-xs s-hover-button">Add to Beamline</button></div><div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+	    </div>
+	  </div>
+	  <div data-split-pane-divider data-height="15px"></div>
+	  <div data-split-pane-component data-height="70%">
+	    <div class="s-split-pane-component-inner">
+
+              <!-- TODO(pjm): refactor panels -->
+              <div class="panel panel-info">
+                <div class="panel-heading" data-panel-heading="Beamline Elements" data-model-name="beamlineElementSettings" data-editor-id="srw-beamlineElementSettings-editor"></div>
+                <div class="panel-body cssFade">
+
+                  <button class="btn btn-info btn-xs pull-right" data-ng-click="lattice.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                  <table style="width: 100%; table-layout: fixed" class="table table-hover">
+                    <colgroup>
+                      <col style="width: 12ex">
+                      <col>
+                      <col style="width: 12ex">
+                      <col style="width: 10ex">
+                      <col style="width: 0">
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Length</th>
+                        <th>Bend</th>
+                      </tr>
+                    </thead>
+
+                    <tbody data-ng-repeat="element in lattice.getElements()">
+                      <tr>
+                        <td style="cursor: pointer" colspan="4" data-ng-click="lattice.toggleElement(element)" ><span class="glyphicon" data-ng-class="{'glyphicon-collapse-up': element.expanded, 'glyphicon-collapse-down': ! element.expanded}"></span> <b>{{ element.type }}</b></td>
+                      </tr>
+                      <tr class="cssFade" data-ng-show="element.expanded" data-ng-repeat="item in element.items">
+                        <td style="padding-left: 1em"><div class="badge" style="cursor: move; -moz-user-select: none"><span data-ng-drag="true" data-ng-drag-data="item" >{{ item.name }}</span></div></td>
+                        <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ lattice.itemDescription(element.type, item) }}</span></td>
+                        <td style="text-align: right">{{ lattice.itemLength(item) }}</td>
+                        <td style="text-align: right">{{ lattice.itemBend(item) }}<span data-ng-if="lattice.itemBend(item)">&deg;</span></td>
+                        <td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-click="lattice.editItem(element.type, item)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button class="btn btn-info btn-xs s-hover-button">Add to Beamline</button></div><div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+
+	    </div>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </div> <!-- /row -->
+</div> <!-- /container -->
+
+<div data-ng-drag-clone=""><div class="badge" style="cursor: move; -moz-user-select: none"><span>{{ clonedData.name }}</span></div></div>
+
+<!-- New beamline element modal -->
+<div class="modal fade" id="srw-newBeamlineElement-editor" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <span class="lead modal-title text-info">New Beamline Element</span>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-sm-12">
+              <ul class="nav nav-tabs">
+                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'basic'}"><a href data-ng-click="lattice.activeTab = 'basic'">Basic</a></li>
+                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'advanced'}"><a href data-ng-click="lattice.activeTab = 'advanced'">Advanced</a></li>
+                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'all'}"><a href data-ng-click="lattice.activeTab = 'all'">All Elements</a></li>
+              </ul>
+            </div>
+          </div>
+          <br />
+          <div data-ng-if="lattice.activeTab == 'basic'" class="row">
+            <div data-ng-repeat="name in lattice.basicNames" class="col-sm-4">
+              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
+            </div>
+          </div>
+          <div data-ng-if="lattice.activeTab == 'advanced'" class="row">
+            <div data-ng-repeat="name in lattice.advancedNames" class="col-sm-2">
+              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
+            </div>
+          </div>
+          <div data-ng-if="lattice.activeTab == 'all'" class="row">
+            <div data-ng-repeat="name in lattice.allNames" class="col-sm-2">
+              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
+            </div>
+          </div>
+          <br />
+          <div class="row">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
