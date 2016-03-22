@@ -23,15 +23,16 @@ For this to work, you will need to [install the prerequisites](https://github.co
 
 You can start Sirepo with [Vagrant](https://www.vagrantup.com/).
 
-First create a Vagrantfile:
+First create a `Vagrantfile` by copy-and-pasting this into a shell:
 
 ```bash
-//Vagrantfile
+cat > Vagrantfile <<'EOF'
 Vagrant.configure(2) do |config|
   config.vm.box = "radiasoft/sirepo"
   config.vm.network "forwarded_port", guest: 8000, host: 8000
   config.vm.synced_folder ".", "/vagrant", disabled: true
 end
+EOF
 ```
 
 Boot the machine:
@@ -67,6 +68,8 @@ cd sirepo
 pip install -e .
 sirepo service http
 ```
+
+#### Sharing Folder with Vagrant VM
 
 Note that if you want to transfer files to the virtual machine,
 you'll need to install the
