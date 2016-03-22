@@ -32,11 +32,11 @@
                 "image": "young-double-slit.png"
             },
             {
-                "name": "Young's Double Slit Experiment (without lens)",
+                "name": "Young's Double Slit Experiment (green laser)",
                 "image": "young-double-slit.png"
             },
             {
-                "name": "Young's Double Slit Experiment (with lens)",
+                "name": "Young's Double Slit Experiment (green laser, no lens)",
                 "image": "young-double-slit.png"
             }
         ]
