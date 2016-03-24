@@ -191,7 +191,10 @@ def fixup_old_data(data):
             'indexFile': '',
         }
     if 'fluxAnimation' not in data['models']:
-        data['models']['fluxAnimation'] = data['models']['fluxReport']
+        data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
+        data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
+        data['models']['fluxAnimation']['initialEnergy'] = 10000
+        data['models']['fluxAnimation']['finalEnergy'] = 20000
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):

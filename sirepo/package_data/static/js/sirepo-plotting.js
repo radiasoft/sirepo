@@ -234,7 +234,7 @@ app.directive('plot2d', function(plotting) {
             var ASPECT_RATIO = 4.0 / 7;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
-            $scope.dataCleared = false;
+            $scope.dataCleared = true;
             var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale, yUnits;
 
             function mouseMove() {
@@ -417,7 +417,7 @@ app.directive('plot3d', function(plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
-            $scope.dataCleared = false;
+            $scope.dataCleared = true;
 
             var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
