@@ -186,8 +186,7 @@ def save_new_simulation(simulation_type, data):
 
 def save_simulation_json(simulation_type, data):
     sid = parse_sid(data)
-    with open(_simulation_data_file(simulation_type, sid), 'w') as outfile:
-        json.dump(data, outfile)
+    write_json(_simulation_data_file(simulation_type, sid), data)
 
 
 def simulation_dir(simulation_type, sid=None):
@@ -240,6 +239,19 @@ def tmp_dir():
         py.path: directory to use for temporary work
     """
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
+
+
+def write_json(filename, data):
+    """Write data as json to filename
+
+    Args:
+        filename (py.path or str): will append JSON_SUFFIX if necessary
+    """
+    filename = str(filename)
+    if not filename.endswith(JSON_SUFFIX):
+        filename += JSON_SUFFIX
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
 
 
 def _find_user_simulation_copy(simulation_type, sid):

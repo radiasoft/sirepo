@@ -1,4 +1,10 @@
-# {{simulation_name}}
+# WARP example laser preview report simulaiton
+# This simulation is based on the lpa simulation but produc
+#
+# Nathan Cook - 03/15/2016
+#
+#
+
 
 from __future__ import absolute_import, division, print_function
 
@@ -7,12 +13,16 @@ warpoptions.ignoreUnknownArgs = True
 
 """
 This is a typical input script that runs a simulation of
-laser-wakefield acceleration using Warp 2D / Circ.
+laser-wakefield acceleration using Warp 2D / Circ. The script
+has been modified for quicker and lower resolution runs.
 
 Usage
 -----
-- Modify the parameters below to suit your needs
-- Type "python -i warp_script.py" in a terminal
+- Modify the parameters below to suit your needs.
+- For serial run, type "python <script>.py"
+- For parallel, type "python <script>.py -p a 1 b" where a and b
+    represent the numbe of processors used along the r, z axes.
+- For interactive running, type "python -i <script>.py" in a terminal
 - When the simulation finishes, the python session will *not* quit.
     Therefore the simulation can be continued by running step()
     Otherwise, one can just type exit()
@@ -24,6 +34,45 @@ from warp_init_tools import *
 # Parameters (Modify the values below to suit your needs)
 # -----------------------------------------------------------------------------
 
+#Top level Physical Parameters - User editable
+#---------------------------------------------
+
+# Reference plasma density (in number of particles per m^3)
+n_plasma = 5.e24                                                #USER EDIT
+
+laser_lambda = 0.8 #wavelength in microns                       #USER EDIT
+
+# Laser amplitude at focus
+laser_a0 = 0.8                                                  #USER EDIT
+# Waist at focus (meters)
+laser_w0 = 12.e-6                                               #USER EDIT
+
+#laser
+laser_tau = 30.e-15                                             #USER EDIT -  Can be resonant with density
+
+
+#Derived parameters
+wp                  = sqrt(n_plasma*echarge**2/(eps0*emass))    # plasma frequency
+kp                  = wp/clight                                 # plasma wavenumber
+lambda_plasma       = 2.*pi/kp                                  # plasma wavelength
+lambda_laser        = laser_lambda*1.e-6
+k0                  = 2.*pi/lambda_laser                        # laser wavenumber
+w0                  = k0*clight                                 # laser frequency
+ZR                   = 0.5*k0*(laser_w0**2)                     # Rayleigh length
+densc                = emass*eps0*w0**2/echarge**2              # plasma critical density
+#Combined parameters
+K                   = k0/kp                                     # ratio of wavenumbers laser/plasma
+Ld                  = 0.5*lambda_plasma**3/lambda_laser**2      # linear dephasing length
+BETAG_LINEAR_LAB    = sqrt(1-(1./K)*(1./K))                     # linear beta of wake in lab
+
+
+#if "resonant with plasma density", use the following:
+    #laser_w0 = VALUE * lambda_laser
+    #
+    #laser_tau = VALUE * lambda_plasma /clight
+    #
+# where VALUE are user entered parameters, respectively
+
 # General parameters
 # ------------------
 # Dimension of simulation ("3d", "circ", "2d", "1d")
@@ -31,25 +80,34 @@ dim = "circ"
 # Number of azimuthal modes beyond m=0, for "circ" (not used for "2d" and "3d")
 circ_m = 1
 # Total number of timesteps in the simulation
-N_steps = 500
+N_steps = 1000 if {{isAnimationView}} else 640
 # Whether to run the simulation interactively (0:off, 1:on)
 interactive = 0
 
 # Simulation box
 # --------------
-# Number of grid cells in the longitudinal direction
-Nz = 200
-# Number of grid cells in transverse direction (represents Nr in "circ")
-Nx = 50
-# Number of grid cells in the 3rd dimension (not used for "2d" and "circ")
-Ny = 50
 # Dimension of the box in longitudinal direction (meters)
-zmin = -15.e-6
-zmax = 5.e-6
+zmin = -39.e-6
+zmax = 1.e-6
 # Dimension of the box in transverse direction (box ranges from -xmax to xmax)
-xmax = 15.e-6
+xmax = 30.e-6
 # Dimension of the box in 3rd direction (not used for "2d" and "circ")
-ymax = 15.e-6
+ymax = 30.e-6
+
+
+#These v alues are scaled to the laser parameters for reasonable resolution
+N_transverse = int(48/(laser_w0*1.e6)) #number of cells per micron in the transverse plane -> 48 per radius
+
+N_long = int(20*laser_lambda) #number of cells per micron in the longitudinal plane = 2x laser wavelength
+
+# Number of grid cells in the longitudinal direction
+Nz = int(N_long*(zmax-zmin)*1.e6)
+
+# Number of grid cells in transverse direction (represents Nr in "circ")
+Nx = int(N_transverse*xmax*1.e6)
+# Number of grid cells in the 3rd dimension (not used for "2d" and "circ")
+Ny = int(N_transverse*ymax*1.e6)
+
 
 # Field boundary conditions (longitudinal and transverse respectively)
 f_boundz  = openbc
@@ -68,9 +126,9 @@ v_moving_window = clight
 # Period of diagnostics (in number of timesteps)
 diag_period = 20
 # Whether to write the fields
-write_fields = 1
+write_fields = True
 # Whether to write the particles
-write_particles = 1
+write_particles = {{isAnimationView}}
 # Whether to write the diagnostics in parallel
 parallel_output = False
 
@@ -103,26 +161,22 @@ use_laser = 1
 # Position of the antenna (meters)
 laser_source_z = 0.e-6
 # Polarization angle with respect to the x axis (rad)
-laser_polangle = pi/2
+laser_polangle = pi/2 #y polarization
+# Length of the pulse (length from the peak to 1/e of the amplitude ; meters)
+laser_ctau = laser_tau *clight
+# Initial position of the centroid (meters) - for the purposes of computing laser position v time
+laser_z0 = -2*laser_ctau
+# Focal position
+laser_zfoc = 50.e-6 #laser focused at z=10 micron
+
 
 # Laser file:
 # When using a laser profile that was experimentally
 # measured, provide a string with the path to an HDF5 laser file,
 # otherwise provide None and a Gaussian pulse will be initialized
 laser_file = None
-laser_file_energy = 2. # When using a laser file, energy in Joule of the pulse
-
-# Gaussian pulse:
-# Laser amplitude at focus
-laser_a0 = 1.
-# Waist at focus (meters)
-laser_w0 = 4.e-6
-# Length of the pulse (length from the peak to 1/e of the amplitude ; meters)
-laser_ctau = 3.e-6
-# Initial position of the centroid (meters)
-laser_z0 = -2 * laser_ctau
-# Focal position
-laser_zfoc = 4.5e-05
+# When using a laser file, energy in Joule of the pulse
+laser_file_energy = 2.
 
 # Plasma macroparticles
 # ---------------------
@@ -131,7 +185,7 @@ laser_zfoc = 4.5e-05
 # or in order to simulate a plasma without having to initialize ions)
 use_preexisting_electrons = 1
 # Initialize plasma ions (0:off, 1:on)
-use_ions = 1
+use_ions = 0 #no plasma ions!
 # Number of macroparticles per cell in each direction
 # In Circ, nppcelly is the number of particles along the
 # azimuthal direction. Use a multiple of 4*circ_m
@@ -139,31 +193,32 @@ plasma_nx = 2
 plasma_ny = 4
 plasma_nz = 2
 
-# Plasma content and profile
-# --------------------------
-# Reference plasma density (in number of particles per m^3)
-n_plasma = 2.5e25
+
 # Relative density of the preexisting electrons (relative to n_plasma)
 rel_dens_preexisting_electrons = 1.
+
 # The different elements used. (Only used if use_ions is different than 0.)
 # relative_density is the density relative to n_plasma.
 # q_start is the ionization state of the ions at the beginning of the simulation
 # q_max is the maximum ionization state
 # If q_start is not equal to q_max, ionization between states will be computed.
+
 ion_states = { 'Hydrogen': {'relative_density':1., 'q_start':1, 'q_max':1 },
                  'Helium': {'relative_density':0.25, 'q_start':0, 'q_max':2 } }
 # Positions between which the plasma is initialized
 # (Transversally, the plasma is initialized between -plasma_xmax and
 # plasma_xmax, along x, and -plasma_ymax and plasma_ymax along y)
-plasma_zmin = 1.e-6
+plasma_zmin = 1.e-6 #zmin is -15.e-6 whereas plasma_zmin used to be 1.e-6
 plasma_zmax = 1500.e-6
 plasma_xmax = xmax
 plasma_ymax = ymax
 
 # Define your own profile and profile parameters below
 ramp_start = 0.e-6
-ramp_length = 20.e-6
-ramp_plateau = 20.e-6
+ramp_length = 1.e-8
+ramp_plateau = 300.e-6
+
+
 def plasma_dens_func( x, y, z ):
     """
     User-defined function: density profile of the plasma
@@ -193,57 +248,6 @@ def plasma_dens_func( x, y, z ):
 
     return(n)
 
-# Relativistic beam
-# -----------------
-# Initialize beam electrons (0:off, 1:on)
-# (Please be aware that initializing a beam in 2D geometry makes very little
-# physical sense, because of the long range of its space-charge fields)
-use_beam = 0
-# Longitudinal momentum of the beam
-beam_uz = 100.
-# Beam density
-n_beam = 1.e26
-# Number of macroparticles per cell in each direction
-beam_nx = 2*plasma_nx
-beam_ny = 2*plasma_ny
-beam_nz = 2*plasma_nz
-# Positions between which the beam is initialized
-# (Transversally, the plasma is initialized between -plasma_xmax and
-# plasma_xmax, along x, and -plasma_ymax and plasma_ymax along y)
-beam_zmin = -12.e-6
-beam_zmax = -10.e-6
-beam_xmax = 3.e-6
-beam_ymax = 3.e-6
-
-# Define your own profile and profile parameters below
-beam_rmax = beam_xmax
-def beam_dens_func(x, y, z):
-    """
-    User-defined function: density profile of the beam
-
-    It should return the relative density with respect to n_beam,
-    at the position x, y, z (i.e. return a number between 0 and 1)
-
-    Parameters
-    ----------
-    x, y, z: 1darrays of floats
-        Arrays with one element per macroparticle
-    Returns
-    -------
-    n : 1d array of floats
-        Array of relative density, with one element per macroparticles
-    """
-    # Allocate relative density
-    n = ones_like(z)
-    # Longitudinal profile: parabolic
-    n = n*(z - beam_zmin)*(beam_zmax - z) * 4/(beam_zmax - beam_zmin)**2
-    # Transverse profile: parabolic
-    r = sqrt( x**2 + y**2)
-    n = n*(1 - (r/beam_rmax)**2 )
-    # Put the density above rmax to 0
-    n[r > beam_rmax] = 0.
-
-    return(n)
 
 # -----------------------------------------------------------------------------
 # Initialization of the simulation (Normal users should not modify this part.)
@@ -276,11 +280,6 @@ if use_preexisting_electrons:
 if use_ions:
     ions, elec_from_ions = initialize_ion_dict( ion_states, plasma_weight,
                                                 group_elec_by_element=True )
-# Create the beam
-if use_beam:
-    beam_weight = prepare_weights( n_beam, beam_nx, beam_ny,
-                                   beam_nz, dim, circ_m )
-    beam = Species(type=Electron, weight=beam_weight, name='beam')
 # Set the numerical parameters only now: they affect the newly created species
 set_numerics( depos_order, efetch, particle_pusher, dim)
 
@@ -303,44 +302,37 @@ registersolver(em)
 # -------------------
 if use_laser==1:
     add_laser( em, dim, laser_a0, laser_w0, laser_ctau, laser_z0,
-        zf=laser_zfoc, theta_pol=laser_polangle, source_z=laser_source_z,
+        zf=laser_zfoc,lambda0=laser_lambda*1.e-6, theta_pol=laser_polangle, source_z=laser_source_z,
         laser_file=laser_file, laser_file_energy=laser_file_energy )
-
-# Introduce the beam
-# ------------------
-# Load the beam
-if use_beam:
-    PlasmaInjector( beam, None, w3d, top, dim, beam_nx, beam_ny, beam_nz,
-                beam_zmin, beam_zmax, beam_xmax, beam_ymax,
-                dens_func = beam_dens_func, uz_m=beam_uz )
-    initialize_beam_fields( em, dim, beam, w3d, top )
 
 # Introduce the plasma
 # --------------------
 # Create an object to store the information about plasma injection
-plasma_injector = PlasmaInjector( elec, ions, w3d, top, dim,
+# Continuously inject the plasma, if the moving window is on
+if {{isAnimationView}} and use_moving_window:
+    plasma_injector = PlasmaInjector( elec, ions, w3d, top, dim,
         plasma_nx, plasma_ny, plasma_nz, plasma_zmin,
         plasma_zmax, plasma_xmax, plasma_ymax, plasma_dens_func )
-# Continuously inject the plasma, if the moving window is on
-if use_moving_window :
     installuserinjection( plasma_injector.continuous_injection )
 
 # Setup the diagnostics
 # ---------------------
-if write_fields == 1:
+if write_fields:
     diag1 = FieldDiagnostic( period=diag_period, top=top, w3d=w3d, em=em,
                 comm_world=comm_world, lparallel_output=parallel_output,
-                write_dir={{ outputDir }})
+                write_dir={{outputDir}})
     installafterstep( diag1.write )
-if write_particles == 1:
+
+if write_particles:
     diag2 = ParticleDiagnostic( period=diag_period, top=top, w3d=w3d,
             species={ species.name : species for species in listofallspecies },
             comm_world=comm_world, lparallel_output=parallel_output,
-            write_dir={{ outputDir }})
+            write_dir={{outputDir}})
     installafterstep( diag2.write )
-
-print('\nInitialization complete\n')
-
 # -----------------------------------------------------------------------------
 # Simulation loop (Normal users should not modify this part either.)
 # -----------------------------------------------------------------------------
+
+step_inc = 10
+for _ in xrange(0, N_steps, step_inc):
+    step(step_inc)

@@ -295,7 +295,7 @@ def app_python_source(simulation_type, simulation_id):
                 data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type)),
+            template.generate_parameters_file(data, _schema_cache(simulation_type), run_async=True),
             template.run_all_text()),
         mimetype='text/plain',
     )
@@ -610,8 +610,7 @@ def _start_simulation(data, run_async=False):
                 py.path.local(f).copy(run_dir)
     template.prepare_aux_files(run_dir, data)
     simulation_db.save_simulation_json(simulation_type, data)
-    with open(str(run_dir.join('in{}'.format(simulation_db.JSON_SUFFIX))), 'w') as outfile:
-        json.dump(data, outfile)
+    simulation_db.write_json(run_dir.join('in{}'))
     pkio.write_text(
         run_dir.join(simulation_type + '_parameters.py'),
         template.generate_parameters_file(

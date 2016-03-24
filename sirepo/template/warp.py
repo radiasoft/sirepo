@@ -46,24 +46,12 @@ def background_percent_complete(data, run_dir, is_running):
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
-    field = 'E'
-    coordinate = 'r'
-    Lplasma_lab = float(data['models']['electronPlasma']['length']) / 1e3
-    zmmin = float(data['models']['simulationGrid']['zMin']) / 1e6
-    dfile = h5py.File(str(files[file_index]), 'r')
-    dset = dfile['fields/{}/{}'.format(field, coordinate)]
-    dz = fields[field].attrs['gridSpacing'][1]
-    zmin = fields[field].attrs['gridGlobalOffset'][1]
-    percent_complete = (zmin - zmmin) / (Lplasma_lab - zmmin)
-    if percent_complete < 0:
-        percent_complete = 0.0
-    elif percent_complete > 1.0:
-        percent_complete = 1.0
+    dfile, iteration, _ = open_data_file(run_dir, file_index, files)
+    percent_complete = 0
     return {
         'percent_complete': percent_complete * 100,
         'frame_count': file_index + 1,
-        #TODO(pjm): this isn't a great calculation ...
-        'total_frames': int((file_index + 1) / percent_complete + 0.3),
+        'total_frames': 1000,
     }
 
 
@@ -150,21 +138,18 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['enablePlasma'] = 1
+    v['isAnimationView'] = run_async
     return pkjinja.render_resource('warp.py', v)
 
 
 def get_simulation_frame(run_dir, data):
     frame_index = int(data['frameIndex'])
-    files = _h5_file_list(run_dir)
-    filename = str(files[frame_index])
-    iteration = int(re.search(r'data(\d+)', filename).group(1))
-    dfile = h5py.File(filename, "r")
+    dfile, iteration, num_frames = open_data_file(run_dir, frame_index)
     args = data['animationArgs'].split('_')
-
     if data['modelName'] == 'fieldAnimation':
-        return _field_animation(args, dfile, iteration, len(files))
+        return _field_animation(args, dfile, iteration, num_frames)
     if data['modelName'] == 'particleAnimation':
-        return _particle_animation(args, dfile, iteration, len(files))
+        return _particle_animation(args, dfile, iteration, num_frames)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -183,6 +168,17 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
+def open_data_file(run_dir, frame_index=None, files=None):
+    pkdp(run_dir)
+    if not files:
+        files = _h5_file_list(run_dir)
+    num_frames = len(files)
+    pkdp([frame_index, num_frames])
+    filename = str(files[(num_frames - 1) if frame_index is None else frame_index])
+    iteration = int(re.search(r'data(\d+)', filename).group(1))
+    return h5py.File(filename, 'r'), iteration, num_frames
+
+
 def prepare_aux_files(run_dir, data):
     pass
 
@@ -194,12 +190,7 @@ def remove_last_frame(run_dir):
 
 
 def run_all_text():
-    return '''
-doit = True
-while(doit):
-    step(10)
-    doit = ( w3d.zmmin + top.zgrid < Lplasma )
-'''
+    return ''
 
 
 def static_lib_files():
@@ -228,7 +219,6 @@ def _h5_file_list(run_dir):
 
 
 def _iteration_title(dfile, iteration):
-    # 1e15 *
     return '{:.1f} fs (iteration {})'.format(
         iteration * float(dfile['data'][str(iteration)].attrs['timeUnitSI']), iteration)
 
