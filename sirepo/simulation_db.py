@@ -288,10 +288,7 @@ def _report_name(data):
     Returns:
         str: name of the report requested in the data
     """
-    try:
-        return data['report']
-    except KeyError:
-        return 'animation'
+    return data['report']
 
 
 def _search_data(data, search):

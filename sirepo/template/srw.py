@@ -24,7 +24,10 @@ import uti_plot_com
 
 WANT_BROWSER_FRAME_CACHE = False
 
-_MULTI_ELECTRON_FILENAME = 'res_int_pr_me.dat'
+_MULTI_ELECTRON_FILENAME_FOR_MODEL = {
+    'fluxAnimation': 'res_spec_me.dat',
+    'multiElectronAnimation': 'res_int_pr_me.dat',
+}
 
 _PREDEFINED_MAGNETIC_ZIP_FILE = 'magnetic_measurements.zip'
 
@@ -42,7 +45,7 @@ with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
 
 
 def background_percent_complete(data, run_dir, is_running):
-    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME))
+    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']]))
     if os.path.isfile(filename):
         return {
             'percent_complete': 100,
@@ -58,11 +61,12 @@ def background_percent_complete(data, run_dir, is_running):
 
 
 def copy_animation_file(source_path, target_path):
-    source_file = str(py.path.local(source_path).join('animation', _MULTI_ELECTRON_FILENAME))
-    if os.path.isfile(source_file):
-        pkio.mkdir_parent(str(py.path.local(target_path).join('animation')))
-        target_file = str(py.path.local(target_path).join('animation', _MULTI_ELECTRON_FILENAME))
-        shutil.copyfile(source_file, target_file)
+    # source_file = str(py.path.local(source_path).join('animation', _MULTI_ELECTRON_FILENAME))
+    # if os.path.isfile(source_file):
+    #     pkio.mkdir_parent(str(py.path.local(target_path).join('animation')))
+    #     target_file = str(py.path.local(target_path).join('animation', _MULTI_ELECTRON_FILENAME))
+    #     shutil.copyfile(source_file, target_file)
+    pass
 
 
 def _intensity_units(is_gaussian, model_data):
@@ -75,21 +79,26 @@ def _intensity_units(is_gaussian, model_data):
     return 'ph/s/.1%bw/mm^2'
 
 def extract_report_data(filename, model_data):
+    flux_type = 1
+    if 'report' in model_data and model_data['report'] == 'fluxAnimation':
+        flux_type = int(model_data['animationArgs'])
+    elif 'models' in model_data:
+        flux_type = model_data['models']['fluxReport']['fluxType']
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
-    if 'models' in model_data and model_data['models']['fluxReport']['fluxType'] == 2:
+    if flux_type == 2:
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
     is_gaussian = False
     if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
         is_gaussian = True
-    files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', _MULTI_ELECTRON_FILENAME]
+    files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     file_info = {
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV Before Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
-        _MULTI_ELECTRON_FILENAME: [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', '{photonEnergy} eV After Propagation', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     }
@@ -132,11 +141,8 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
-    if 'simulationStatus' not in data['models']:
-        data['models']['simulationStatus'] = {
-            'startTime': 0,
-            'state': 'initial',
-        }
+    if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
+        data['models']['simulationStatus'] = {}
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
         data['models']['simulation']['outOfSessionSimulationId'] = ''
     if 'multiElectronAnimation' not in data['models']:
@@ -184,12 +190,17 @@ def fixup_old_data(data):
             'longitudinalPosition': 1.305,
             'indexFile': '',
         }
+    if 'fluxAnimation' not in data['models']:
+        data['models']['fluxAnimation'] = data['models']['fluxReport']
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
-    if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport'):
-        # render the watchpoint report settings in the initialIntensityReport template slot
-        data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+    if 'report' in data:
+        if data['report'] == 'fluxAnimation':
+            data['models']['fluxReport'] = data['models'][data['report']].copy()
+        elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
+            # render the watchpoint report settings in the initialIntensityReport template slot
+            data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
@@ -227,7 +238,16 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
+    v['fluxMethod'] = -1
+    if 'report' in data:
+        v[data['report']] = 1
+        if data['report'] == 'fluxAnimation':
+            v['fluxMethod'] = 1
     return pkjinja.render_resource('srw.py', v)
+
+
+def get_animation_name(data):
+    return data['modelName']
 
 
 def get_data_file(run_dir, frame_index):
@@ -239,7 +259,7 @@ def get_data_file(run_dir, frame_index):
 
 
 def get_simulation_frame(run_dir, data):
-    return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME)), data)
+    return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
 
 
 def new_simulation(data, new_simulation_data):

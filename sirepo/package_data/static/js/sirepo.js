@@ -396,7 +396,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
         return args.join('_');
     }
 
-    self.clearFrames = function() {
+    self.clearFrames = function(modelName) {
         if (! appState.isLoaded())
             return;
         requestSender.sendRequest(
@@ -408,11 +408,13 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
                         self.setFrameCount(0);
                     },
                     {
+                        report: modelName,
                         simulationId: appState.models.simulation.simulationId,
                         simulationType: APP_SCHEMA.simulationType,
                     });
             },
             {
+                report: modelName,
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -438,7 +440,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             modelName,
             animationArgs(modelName),
             index,
-            appState.models.simulationStatus.startTime,
+            appState.models.simulationStatus[modelName].startTime,
         ].join('-');
         requestSender.sendRequest(
             requestSender.formatUrl(

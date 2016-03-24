@@ -944,42 +944,39 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
             title: '@',
         },
         template: [
-            '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ title || \'Simulation Status\' }}" data-model-name="simulationStatus"></div>',
-              '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(\'simulationStatus\')">',
-                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'initial\')">',
-                  '<div class="col-sm-6 pull-right cssFade">',
-                    '<button class="btn btn-primary" data-ng-click="runSimulation()">Start Simulation</button>',
-                  '</div>',
-                '</form>',
-                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'running\')">',
-                  '<div class="col-sm-12">',
-                    '<div data-ng-show="isInitializing()">',
-                      '<span class="glyphicon glyphicon-hourglass"></span> Initializing Wavefront {{ dots }}',
-                    '</div>',
-                    '<div data-ng-hide="isInitializing()">',
-                      'Simulation Running {{ dots }}',
-                      '<div data-simulation-status-timer="timeData"></div>',
-                    '</div>',
-                  '</div>',
-                  '<div class="col-sm-6 pull-right cssFade">',
-                    '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
-                  '</div>',
-                '</form>',
-                '<form name="form" class="form-horizontal" novalidate data-ng-show="isState(\'completed\') || isState(\'canceled\')">',
-                  '<div class="col-sm-12">',
-                    'Simulation ',
-                    '<span data-ng-show="isState(\'completed\')">Completed</span><span data-ng-show="isState(\'canceled\')">Stopped</span>',
-                    '<div>',
-                      '<div data-simulation-status-timer="timeData"></div>',
-                    '</div>',
-                  '</div>',
-                  '<div class="col-sm-6 pull-right cssFade">',
-                    '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
-                  '</div>',
-                '</form>',
+            '<form name="form" class="form-horizontal" novalidate>',
+              '<div data-ng-if="isState(\'initial\')">',
+                '<div class="col-sm-6 pull-right">',
+                  '<button class="btn btn-primary" data-ng-click="runSimulation()">Start Simulation</button>',
+                '</div>',
               '</div>',
-            '</div>',
+              '<div data-ng-if="isState(\'running\')">',
+                '<div class="col-sm-6">',
+                  '<div data-ng-if="isInitializing()">',
+                    '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ dots }}',
+                  '</div>',
+                  '<div data-ng-hide="isInitializing()">',
+                    'Simulation Running {{ dots }}',
+                    '<div data-simulation-status-timer="timeData"></div>',
+                  '</div>',
+                '</div>',
+                '<div class="col-sm-6 pull-right">',
+                  '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
+                '</div>',
+              '</div>',
+              '<div data-ng-if="isState(\'completed\') || isState(\'canceled\')">',
+                '<div class="col-sm-6">',
+                  'Simulation ',
+                  '<span data-ng-if="isState(\'completed\')">Completed</span><span data-ng-if="isState(\'canceled\')">Stopped</span>',
+                  '<div>',
+                    '<div data-simulation-status-timer="timeData"></div>',
+                  '</div>',
+                '</div>',
+                '<div class="col-sm-6 pull-right">',
+                  '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
+                '</div>',
+              '</div>',
+            '</form>',
         ].join(''),
         controller: function($scope) {
             var isAborting = false;
@@ -994,9 +991,10 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
             };
             $scope.panelState = panelState;
 
-            var args = {};
-            args[$scope.model] = [];
-            frameCache.setAnimationArgs(args);
+            frameCache.setAnimationArgs({
+                multiElectronAnimation: [],
+                fluxAnimation: ['fluxType'],
+            });
             frameCache.setFrameCount(0);
 
             $scope.$on('$destroy', function () {
@@ -1004,6 +1002,8 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
             });
 
             function refreshStatus() {
+                if (! appState.isLoaded())
+                    return;
                 isReadyForModelChanges = true;
                 requestSender.sendRequest(
                     'runStatus',
@@ -1024,7 +1024,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                         }
 
                         if (data.state != 'running') {
-                            if (data.state != appState.models.simulationStatus.state)
+                            if (data.state != simulationState())
                                 appState.saveChanges('simulationStatus');
                         }
                         else {
@@ -1035,18 +1035,31 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                                 $timeout(refreshStatus, 4000);
                             }
                         }
-                        appState.models.simulationStatus.state = data.state;
+                        setSimulationState(data.state);
                     },
                     {
+                        report: $scope.model,
                         models: appState.applicationState(),
                         simulationType: APP_SCHEMA.simulationType,
                     });
             }
 
+            function setSimulationState(state) {
+                if (! appState.models.simulationStatus[$scope.model])
+                    appState.models.simulationStatus[$scope.model] = {}
+                appState.models.simulationStatus[$scope.model].state = state;
+            }
+
+            function simulationState() {
+                if (appState.models.simulationStatus[$scope.model])
+                    return appState.models.simulationStatus[$scope.model].state;
+                return 'initial';
+            }
+
             $scope.cancelSimulation = function() {
-                if (appState.models.simulationStatus.state != 'running')
+                if (simulationState() != 'running')
                     return;
-                appState.models.simulationStatus.state = 'canceled';
+                setSimulationState('canceled');
                 isAborting = true;
                 requestSender.sendRequest(
                     'runCancel',
@@ -1055,6 +1068,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                         appState.saveChanges('simulationStatus');
                     },
                     {
+                        report: $scope.model,
                         models: appState.applicationState(),
                         simulationType: APP_SCHEMA.simulationType,
                     });
@@ -1068,26 +1082,26 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
 
             $scope.isState = function(state) {
                 if (appState.isLoaded())
-                    return appState.models.simulationStatus.state == state;
+                    return simulationState() == state;
                 return false;
             };
 
             $scope.runSimulation = function() {
-                if (appState.models.simulationStatus.state == 'running')
+                if (simulationState() == 'running')
                     return;
                 frameCache.setFrameCount(0);
                 $scope.timeData.elapsedTime = null;
                 $scope.timeData.elapsedDays = null;
-                appState.models.simulationStatus.state = 'running';
-                appState.models.simulationStatus.modelName = $scope.model;
+                setSimulationState('running');
                 requestSender.sendRequest(
                     'runBackground',
                     function(data) {
-                        appState.models.simulationStatus.startTime = data['startTime'];
+                        appState.models.simulationStatus[$scope.model].startTime = data['startTime'];
                         appState.saveChanges('simulationStatus');
                         refreshStatus();
                     },
                     {
+                        report: $scope.model,
                         models: appState.applicationState(),
                         simulationType: APP_SCHEMA.simulationType,
                     });
@@ -1096,7 +1110,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
             $scope.$on($scope.model + '.changed', function() {
                 if (isReadyForModelChanges) {
                     frameCache.setFrameCount(0);
-                    frameCache.clearFrames();
+                    frameCache.clearFrames($scope.model);
                 }
             });
 

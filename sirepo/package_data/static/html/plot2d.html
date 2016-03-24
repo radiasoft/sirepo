@@ -1,4 +1,4 @@
-  <div ng-class="{'srw-plot-loading': isLoading()}">
+  <div ng-class="{'srw-plot-loading': isLoading(), 'srw-plot-cleared': dataCleared}">
     <div><svg class="srw-plot">
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>

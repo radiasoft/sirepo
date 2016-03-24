@@ -74,7 +74,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['ss_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
 
     #Multi-Electron Spectrum vs Photon Energy (taking into account e-beam emittance, energy spread and collection aperture size)
-    ['sm', '', '', 'calculate multi-e spectrum vs photon energy', 'store_true'],
+    ['sm', '', '{{fluxAnimation}}', 'calculate multi-e spectrum vs photon energy', 'store_true'],
     ['sm_ei', 'f', {{fluxReport_initialEnergy}}, 'initial photon energy [eV] for multi-e spectrum vs photon energy calculation'],
     ['sm_ef', 'f', {{fluxReport_finalEnergy}}, 'final photon energy [eV] for multi-e spectrum vs photon energy calculation'],
     ['sm_ne', 'i', {{fluxReport_photonEnergyPointCount}}, 'number of points vs photon energy for multi-e spectrum vs photon energy calculation'],
@@ -94,7 +94,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
     ['sm_pl', 's', '', 'plot the resulting spectrum-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
     #to add options for the multi-e calculation from "accurate" magnetic field
-    ['sm_meth', 'i', -1, 'method to use for spectrum vs photon energy calculation in case of arbitrary input magnetic field: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler", -1- dont use this accurate integration method (rather use approximate if possible)'],
+    ['sm_meth', 'i', {{fluxMethod}}, 'method to use for spectrum vs photon energy calculation in case of arbitrary input magnetic field: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler", -1- dont use this accurate integration method (rather use approximate if possible)'],
 
     #Power Density Distribution vs horizontal and vertical position
     ['pw', '', '', 'calculate SR power density distribution', 'store_true'],
@@ -117,7 +117,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     #Single-Electron Wavefront Propagation
     ['ws', '', '', 'calculate single-electron (/ fully coherent) wavefront propagation', 'store_true'],
     #Multi-Electron (partially-coherent) Wavefront Propagation
-    ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
+    ['wm', '', '{{multiElectronAnimation}}', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
     ['w_e', 'f', {{simulation_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],

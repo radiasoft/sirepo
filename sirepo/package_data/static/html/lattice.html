@@ -1,0 +1,19 @@
+<div ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
+  <div style="background-color: white"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
+      <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" style="pointer-events: all; fill: none;"></rect>
+      <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ margin / 2 }}">BL2</text>
+      <g ng-attr-transform="translate({{ margin }},{{ margin }})">
+        <g transform="translate(0,110) scale(1.0)">
+          <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ group.rotate }},{{ group.rotateX }},{{ group.rotateY }})">
+            <g ng-repeat="item in group.items" ng-switch="item.item.type">
+              <rect ng-switch-when="CSRDRIFT" ng-attr-title="{{ item.item.name }}" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: lightgrey" ng-click="itemClicked(item.item)" />
+              <circle ng-switch-when="CSRCSBEND" ng-attr-title="{{ item.item.name }}" ng-attr-cx="{{ item.cx }}" ng-attr-cy="{{ item.cy }}" ng-attr-r="{{ item.radius }}" style="fill: blue" ng-click="itemClicked(item.item)" />
+              <g ng-switch-when="WATCH" title="WATCH" ng-attr-transform="translate({{ item.x }},{{ item.y }})">
+                <path ng-attr-title="{{ item.item.name }}" d="M0 0 L 0 -60 L 20 -50 L 0 -40" style="stroke: black; fill: lightgreen" ng-click="itemClicked(item.item)" />
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+  </svg></div>
+</div>
