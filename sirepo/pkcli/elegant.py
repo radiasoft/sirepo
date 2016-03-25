@@ -45,7 +45,7 @@ def run(cfg_dir):
         _run_elegant()
 
 
-        def _plot_title(bunch):
+def _plot_title(bunch):
     key = '{}-{}'.format(bunch['x'], bunch['y'])
     if key in _PLOT_TITLE:
         return _PLOT_TITLE[key]
