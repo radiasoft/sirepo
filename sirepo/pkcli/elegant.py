@@ -13,6 +13,26 @@ import numpy as np
 import os
 import sdds
 
+_ELEGANT_ME_EV = 0.51099906e6
+
+#TODO(pjm): lookup in PhaseSpaceCoordinate
+_FIELD_LABEL = {
+    'x': 'x [m]',
+    'xp': "x' [rad]",
+    'y': 'y [m]',
+    'yp': "y' [rad]",
+    't': 't [s]',
+    'p': '(p - p₀)/p₀ [eV]',
+}
+
+_PLOT_TITLE = {
+    'x-xp': 'Horizontal',
+    'y-yp': 'Vertical',
+    'x-y': 'Cross-section',
+    't-p': 'Longitudinal',
+}
+
+
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
 
@@ -24,28 +44,18 @@ def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         _run_elegant()
 
-#TODO(pjm): lookup in PhaseSpaceCoordinate
-_FIELD_LABEL = {
-    'x': 'x [m]',
-    'xp': "x' [rad]",
-    'y': 'y [m]',
-    'yp': "y' [rad]",
-    't': 't [s]',
-    'p': 'p [mₑc]',
-}
 
-_PLOT_TITLE = {
-    'x-xp': 'Horizontal',
-    'y-yp': 'Vertical',
-    'x-y': 'Cross-section',
-    't-p': 'Longitudinal',
-}
-
-def _plot_title(bunch):
+        def _plot_title(bunch):
     key = '{}-{}'.format(bunch['x'], bunch['y'])
     if key in _PLOT_TITLE:
         return _PLOT_TITLE[key]
     return '{} / {}'.format(bunch['x'], bunch['y'])
+
+
+def _scale_p(points, data):
+    p_central_ev = float(data['models']['bunch']['p_central_mev']) * 1e6
+    return (np.array(points) * _ELEGANT_ME_EV - p_central_ev).tolist()
+
 
 def _run_elegant():
     run_dir = os.getcwd()
@@ -65,7 +75,11 @@ def _run_elegant():
         sdds.sddsdata.PrintErrors(1)
     bunch = data['models'][data['report']]
     x = sdds.sddsdata.GetColumn(index, column_names.index(bunch['x']))
+    if bunch['x'] == 'p':
+        x = _scale_p(x, data)
     y = sdds.sddsdata.GetColumn(index, column_names.index(bunch['y']))
+    if bunch['y'] == 'p':
+        y = _scale_p(y, data)
     nbins = int(bunch['histogramBins'])
     hist, edges = np.histogramdd([x, y], nbins)
 

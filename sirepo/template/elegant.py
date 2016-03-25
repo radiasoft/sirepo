@@ -45,11 +45,31 @@ def fixup_old_data(data):
         }
     if 'latticeGraph' not in data['models']:
         data['models']['latticeGraph'] = {}
+    if 'longitudinalMethod' not in data['models']['bunch']:
+        bunch = data['models']['bunch']
+        bunch['longitudinalMethod'] = '1'
+        bunch['dp_s_coupling'] = 0
+        bunch['alpha_z'] = 0
+        bunch['beta_z'] = 0
+        bunch['emit_z'] = 0
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
+    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
+    if longitudinal_method == 1:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_alpha_z'] = 0
+    elif longitudinal_method == 2:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_dp_s_coupling'] = 0
+    elif longitudinal_method == 3:
+        v['bunch_sigma_dp'] = 0
+        v['bunch_sigma_s'] = 0
+        v['bunch_dp_s_coupling'] = 0
     return pkjinja.render_resource('elegant.py', v)
 
 

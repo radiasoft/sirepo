@@ -11,19 +11,53 @@ app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            //TODO(pjm): remove random
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION + Math.random(),
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
         });
 });
 
-app.controller('ElegantSourceController', function() {
+app.controller('ElegantSourceController', function(appState, $scope) {
     var self = this;
+    var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
+
+    function showFields(fields, delay) {
+        for (var i = 0; i < longitudinalFields.length; i++) {
+            var f = longitudinalFields[i];
+            var selector = '.model-bunch-' + f;
+            if (fields.indexOf(f) >= 0)
+                $(selector).show(delay);
+            else
+                $(selector).hide(delay);
+        }
+    }
+
+    function updateLongitudinalFields(delay) {
+        if (! appState.isLoaded())
+            return;
+        var method = appState.models['bunch']['longitudinalMethod'];
+        if (parseInt(method) == 1)
+            showFields(['sigma_s', 'sigma_dp', 'dp_s_coupling'], delay);
+        else if (parseInt(method) == 2)
+            showFields(['sigma_s', 'sigma_dp', 'alpha_z'], delay);
+        else
+            showFields(['emit_z', 'beta_z', 'alpha_z'], delay);
+    }
+
     self.bunchReports = [
         {id: 1},
         {id: 2},
         {id: 3},
         {id: 4},
     ];
+
+    self.handleModalShown = function() {
+        updateLongitudinalFields(0);
+    };
+
+    // watch path depends on appState as an attribute of $scope
+    $scope.appState = appState;
+    $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
+        updateLongitudinalFields(400);
+    });
 });
 
 app.controller('LatticeController', function(appState, panelState, $window, $scope) {
