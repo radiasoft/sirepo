@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
+from sirepo.template import template_common
 import beaker.middleware
 import datetime
 import errno
@@ -322,7 +323,8 @@ def app_run():
             'error': _error_text(err),
             'simulationId': sid,
         })
-    return pkio.read_text(run_dir.join('out{}'.format(simulation_db.JSON_SUFFIX)))
+    bn = run_dir.join(template_common.OUTPUT_BASE_NAME)
+    return flask.jsonify(simulation_db.read_json(bn))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
@@ -610,17 +612,9 @@ def _start_simulation(data, run_async=False):
                 py.path.local(f).copy(run_dir)
     template.prepare_aux_files(run_dir, data)
     simulation_db.save_simulation_json(simulation_type, data)
-    simulation_db.write_json(run_dir.join('in{}'))
-    pkio.write_text(
-        run_dir.join(simulation_type + '_parameters.py'),
-        template.generate_parameters_file(
-            data,
-            _schema_cache(simulation_type),
-            run_dir=run_dir,
-            run_async=run_async,
-        )
-    )
-
+    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    template.write_parameters(
+        data, _schema_cache(simulation_type), run_dir=run_dir, run_async=run_async)
     cmd = [_ROOT_CMD, simulation_type] \
         + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:

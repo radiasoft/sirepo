@@ -172,6 +172,19 @@ def process_simulation_list(res, path, data):
     })
 
 
+def read_json(filename):
+    """Read data from json file
+
+    Args:
+        filename (py.path or str): will append JSON_SUFFIX if necessary
+
+    Returns:
+        object: json converted to python
+    """
+    with open(_json_filename(filename)) as f:
+        return json.load(f)
+
+
 def save_new_example(simulation_type, data):
     data['models']['simulation']['isExample'] = '1'
     save_new_simulation(simulation_type, data)
@@ -247,10 +260,7 @@ def write_json(filename, data):
     Args:
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
-    filename = str(filename)
-    if not filename.endswith(JSON_SUFFIX):
-        filename += JSON_SUFFIX
-    with open(filename, 'w') as f:
+    with open(_json_filename(filename), 'w') as f:
         json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
 
 
@@ -261,6 +271,20 @@ def _find_user_simulation_copy(simulation_type, sid):
     if len(rows):
         return rows[0]['simulationId']
     return None
+
+
+def _json_filename(filename):
+    """Append JSON_SUFFIX if necessary and convert to str
+
+    Args:
+        filename (py.path or str): to convert
+    Returns:
+        str: filename.json
+    """
+    filename = str(filename)
+    if not filename.endswith(JSON_SUFFIX):
+        filename += JSON_SUFFIX
+    return filename
 
 
 def _random_id(parent_dir, simulation_type=None):

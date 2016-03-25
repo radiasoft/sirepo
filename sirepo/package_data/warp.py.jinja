@@ -80,7 +80,7 @@ dim = "circ"
 # Number of azimuthal modes beyond m=0, for "circ" (not used for "2d" and "3d")
 circ_m = 1
 # Total number of timesteps in the simulation
-N_steps = 1000 if {{isAnimationView}} else 640
+N_steps = {{numSteps}}
 # Whether to run the simulation interactively (0:off, 1:on)
 interactive = 0
 
@@ -333,6 +333,6 @@ if write_particles:
 # Simulation loop (Normal users should not modify this part either.)
 # -----------------------------------------------------------------------------
 
-step_inc = 10
-for _ in xrange(0, N_steps, step_inc):
-    step(step_inc)
+inc_steps = {{incSteps}}
+for _ in xrange(0, N_steps, inc_steps):
+    step(inc_steps)

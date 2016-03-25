@@ -8,7 +8,9 @@
         ],
         "FieldCoordinate": [
             ["r", "r"],
-            ["z", "z"]
+            ["z", "z"],
+            ["y", "y"],
+            ["x", "x"]
         ],
         "FieldMode": [
             ["0", "mode 0"],

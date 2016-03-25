@@ -11,8 +11,9 @@ import h5py
 import json
 import numpy as np
 import py.path
-import sirepo.simulation_db as sdb
-import sirepo.template.warp as tw
+from sirepo import simulation_db
+import sirepo.template.warp as template
+from sirepo.template import template_common
 import time
 
 def run(cfg_dir):
@@ -25,20 +26,28 @@ def run(cfg_dir):
     """
     with pkio.save_chdir(cfg_dir):
         _run_warp()
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        field = data['models']['laserPreviewReport']['field']
+        coordinate = data['models']['laserPreviewReport']['coordinate']
+        mode = int(data['models']['laserPreviewReport']['mode'])
+        data_file = template.open_data_file(py.path.local())
+        res = template.extract_field_report(field, coordinate, mode, data_file)
+        simulation_db.write_json(template_common.OUTPUT_BASE_NAME, res)
 
 
 def run_background(cfg_dir):
+    """Run srw in ``cfg_dir``
+
+    The files in ``cfg_dir`` must be configured properly.
+
+    Args:
+        cfg_dir (str): directory to run warp in
+    """
     with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text('warp_parameters.py'), locals(), locals())
+        _run_warp()
 
 
 def _run_warp():
-    with open('in.json') as f:
-        data = json.load(f)
-    field = data['models']['laserPreviewReport']['field']
-    coordinate = data['models']['laserPreviewReport']['coordinate']
-    mode = int(data['models']['laserPreviewReport']['mode'])
-    exec(pkio.read_text('warp_parameters.py'), locals(), locals())
-    dfile, iteration, _ = tw.open_data_file(py.path.local())
-    res = tw.extract_field_report(field, coordinate, mode, dfile, iteration)
-    sdb.write_json('out', res)
+    """Run warp program with isolated locals()
+    """
+    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())

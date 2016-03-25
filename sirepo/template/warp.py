@@ -5,14 +5,16 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-from pykern.pkdebug import pkdc, pkdp
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkdebug import pkdc, pkdp
+from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
-import numpy as np
+import numpy
 import os
+import py.path
 import re
 
 WANT_BROWSER_FRAME_CACHE = True
@@ -46,12 +48,13 @@ def background_percent_complete(data, run_dir, is_running):
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
-    dfile, iteration, _ = open_data_file(run_dir, file_index, files)
-    percent_complete = 0
+    params = simulation_db.read_json(run_dir.join(template_common.PARAMETERS_BASE_NAME))
+    total_frames = int(params['numSteps'] / params['incSteps'])
+    percent_complete = (file_index + 1) / total_frames * 100
     return {
-        'percent_complete': percent_complete * 100,
+        'percent_complete': percent_complete,
         'frame_count': file_index + 1,
-        'total_frames': 1000,
+        'total_frames': total_frames,
     }
 
 
@@ -59,28 +62,33 @@ def copy_animation_file(source_path, target_path):
     pass
 
 
-def extract_field_report(field, coordinate, mode, dfile, iteration):
-    pkdp([field, coordinate, mode, iteration])
-    fields = dfile['data/{}/fields'.format(iteration)]
-    if field == 'rho' :
-        dset = fields['rho']
-        coordinate = ''
-    else:
-        dset = fields['{}/{}'.format(field, coordinate)]
-    F = np.flipud(np.array(dset[mode,:,:]).T)
-    Nr, Nz = F.shape[0], F.shape[1]
-    dr = fields[field].attrs['gridSpacing'][0]
-    dz = fields[field].attrs['gridSpacing'][1]
-    zmin = fields[field].attrs['gridGlobalOffset'][1]
-    extent = np.array([zmin-0.5*dz, zmin+0.5*dz+dz*Nz, 0., (Nr+1)*dr])
+def extract_field_report(field, coordinate, mode, data_file):
+    fields = data_file.h5['data/{}/fields'.format(data_file.iteration)]
+    from opmd_viewer import OpenPMDTimeSeries
+    o = OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+    F, info = o.get_field(
+        plot=False,
+        vmin=None,
+        m=mode,
+        coord=coordinate,
+        iteration=data_file.iteration,
+        slicing=0.0,
+        field=field,
+        theta=0.0,
+        vmax=None,
+        output=True,
+        slicing_dir='y',
+
+    )
+    extent = info.imshow_extent
     return {
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
-        'x_label': 'z [m]',
-        'y_label': 'r [m]',
+        'x_label': 'x [m]',
+        'y_label': 'y [m]',
         'title': "{} {} in the mode {} at {}".format(
-            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(dfile, iteration)),
-        'z_matrix': np.flipud(F).tolist(),
+            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(data_file)),
+        'z_matrix': numpy.flipud(F).tolist(),
     }
 
 
@@ -139,17 +147,21 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['enablePlasma'] = 1
     v['isAnimationView'] = run_async
+    v['numSteps'] = 1000 if run_async else 640
+    v['incSteps'] = 20
+    if run_dir:
+        simulation_db.write_json(run_dir.join(template_common.PARAMETERS_BASE_NAME), v)
     return pkjinja.render_resource('warp.py', v)
 
 
 def get_simulation_frame(run_dir, data):
     frame_index = int(data['frameIndex'])
-    dfile, iteration, num_frames = open_data_file(run_dir, frame_index)
+    data_file = open_data_file(run_dir, frame_index)
     args = data['animationArgs'].split('_')
     if data['modelName'] == 'fieldAnimation':
-        return _field_animation(args, dfile, iteration, num_frames)
+        return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
-        return _particle_animation(args, dfile, iteration, num_frames)
+        return _particle_animation(args, data_file)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -168,15 +180,29 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
-def open_data_file(run_dir, frame_index=None, files=None):
-    pkdp(run_dir)
+def open_data_file(run_dir, file_index=None, files=None):
+    """Opens data file_index'th in run_dir
+
+    Args:
+        run_dir (py.path): has subdir ``hdf5``
+        file_index (int): which file to open (default: last one)
+        files (list): list of files (default: load list)
+
+    Returns:
+        OrderedMapping: various parameters
+    """
     if not files:
         files = _h5_file_list(run_dir)
-    num_frames = len(files)
-    pkdp([frame_index, num_frames])
-    filename = str(files[(num_frames - 1) if frame_index is None else frame_index])
-    iteration = int(re.search(r'data(\d+)', filename).group(1))
-    return h5py.File(filename, 'r'), iteration, num_frames
+    res = pkcollections.OrderedMapping()
+    res.num_frames = len(files)
+    res.frame_index = res.num_frames - 1 if file_index is None else file_index
+    res.filename = str(files[res.frame_index])
+    res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
+    res.h5 = h5py.File(res.filename, 'r')
+    ds = res.h5['data'][str(res.iteration)]
+    res.data_set = ds
+    res.time = ds.attrs['time'] * ds.attrs['timeUnitSI']
+    return res
 
 
 def prepare_aux_files(run_dir, data):
@@ -193,6 +219,26 @@ def run_all_text():
     return ''
 
 
+def write_parameters(data, schema, run_dir, run_async):
+    """Write the parameters file
+
+    Args:
+        data (dict): input
+        schema (dict): to validate data
+        run_dir (py.path): where to write
+        run_async (bool): run in background?
+    """
+    pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        generate_parameters_file(
+            data,
+            schema,
+            run_dir,
+            run_async,
+        ),
+    )
+
+
 def static_lib_files():
     """Library shared between simulations of this type
 
@@ -202,12 +248,12 @@ def static_lib_files():
     return []
 
 
-def _field_animation(args, dfile, iteration, frame_count):
+def _field_animation(args, data_file):
     field = args[0]
     coordinate = args[1]
     mode = int(args[2])
-    res = extract_field_report(field, coordinate, mode, dfile, iteration)
-    res['frameCount'] = frame_count
+    res = extract_field_report(field, coordinate, mode, data_file)
+    res['frameCount'] = data_file.num_frames
     return res
 
 
@@ -218,19 +264,19 @@ def _h5_file_list(run_dir):
     )
 
 
-def _iteration_title(dfile, iteration):
-    return '{:.1f} fs (iteration {})'.format(
-        iteration * float(dfile['data'][str(iteration)].attrs['timeUnitSI']), iteration)
+def _iteration_title(data_file):
+    fs = data_file.time / 1e-15
+    return '{:.1f} fs (iteration {})'.format(fs, data_file.iteration)
 
 
-def _particle_animation(args, dfile, iteration, frame_count):
+def _particle_animation(args, data_file):
     xarg = args[0]
     yarg = args[1]
     histogramBins = args[2]
-    dset = dfile['data/{}'.format(iteration)]
-    x = dset['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
-    y = dset['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
-    hist, edges = np.histogramdd([x, y], int(histogramBins))
+    ds = data_file.data_set
+    x = ds['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
+    y = ds['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
+    hist, edges = numpy.histogramdd([x, y], int(histogramBins))
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
     return {
@@ -238,9 +284,9 @@ def _particle_animation(args, dfile, iteration, frame_count):
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         'x_label': '{}{}'.format(xarg, xunits),
         'y_label': '{}{}'.format(yarg, yunits),
-        'title': 't = {}'.format(_iteration_title(dfile, iteration)),
+        'title': 't = {}'.format(_iteration_title(data_file)),
         'z_matrix': hist.T.tolist(),
-        'frameCount': frame_count,
+        'frameCount': data_file.num_frames,
     }
 
 
