@@ -17,6 +17,7 @@ app.config(function($routeProvider, localRoutesProvider) {
 
 app.controller('WARPDynamicsController', function(appState, panelState, requestSender, frameCache, $timeout, $scope) {
     var self = this;
+    var simulationModel = 'animation';
     self.panelState = panelState;
     self.percentComplete = 0;
     self.totalFrames = 0;
@@ -24,10 +25,12 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
     self.isAborting = false;
     self.dots = '.';
 
-    frameCache.setAnimationArgs({
-        fieldAnimation: ['field', 'coordinate', 'mode'],
-        particleAnimation: ['x', 'y', 'histogramBins'],
-    });
+    frameCache.setAnimationArgs(
+        {
+            fieldAnimation: ['field', 'coordinate', 'mode'],
+            particleAnimation: ['x', 'y', 'histogramBins'],
+        },
+        simulationModel);
     frameCache.setFrameCount(0);
 
     $scope.$on('$destroy', function () {
@@ -43,7 +46,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                 if (self.isAborting)
                     return;
                 if (data.state != 'running') {
-                    if (data.state != appState.models.simulationStatus.state)
+                    if (data.state != simulationState())
                         appState.saveChanges('simulationStatus');
                 }
                 else {
@@ -55,19 +58,31 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                         $timeout(refreshStatus, 2000);
                     }
                 }
-                appState.models.simulationStatus.state = data.state;
+                setSimulationState(data.state);
             },
             {
-                report: 'animation',
+                report: simulationModel,
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
     }
 
+    function setSimulationState(state) {
+        if (! appState.models.simulationStatus[simulationModel])
+            appState.models.simulationStatus[simulationModel] = {}
+        appState.models.simulationStatus[simulationModel].state = state;
+    }
+
+    function simulationState() {
+        if (appState.models.simulationStatus[simulationModel])
+            return appState.models.simulationStatus[simulationModel].state;
+        return 'initial';
+    }
+
     self.cancelSimulation = function() {
-        if (appState.models.simulationStatus.state != 'running')
+        if (simulationState() != 'running')
             return;
-        appState.models.simulationStatus.state = 'canceled';
+        setSimulationState('canceled');
         self.isAborting = true;
         requestSender.sendRequest(
             'runCancel',
@@ -76,7 +91,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                 appState.saveChanges('simulationStatus');
             },
             {
-                report: 'animation',
+                report: simulationModel,
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -100,24 +115,24 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
 
     self.isState = function(state) {
         if (appState.isLoaded())
-            return appState.models.simulationStatus.state == state;
+            return simulationState() == state;
         return false;
     };
 
     self.runSimulation = function() {
-        if (appState.models.simulationStatus.state == 'running')
+        if (simulationState() == 'running')
             return;
         frameCache.setFrameCount(0);
-        appState.models.simulationStatus.state = 'running';
+        setSimulationState('running');
         requestSender.sendRequest(
             'runBackground',
             function(data) {
-                appState.models.simulationStatus.startTime = data['startTime'];
+                appState.models.simulationStatus[simulationModel].startTime = data['startTime'];
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
             {
-                report: 'animation',
+                report: simulationModel,
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -144,7 +159,7 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
 
     function clearFrames() {
         //TODO(pjm): show a warning dialog before saving model if frame count > 10
-        frameCache.clearFrames();
+        frameCache.clearFrames('animation');
     }
 
     function fieldClass(field) {
