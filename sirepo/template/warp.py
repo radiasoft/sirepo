@@ -105,12 +105,7 @@ def fixup_old_data(data):
             'histogramBins': 100,
         }
     if 'simulationStatus' not in data['models']:
-        data['models']['simulationStatus'] = {
-            'startTime': 0,
-            'state': 'initial',
-        }
-    if 'startTime' not in data['models']['simulationStatus']:
-        data['models']['simulationStatus']['startTime'] = 0
+        data['models']['simulationStatus'] = {}
     if 'histogramBins' not in data['models']['particleAnimation']:
         data['models']['particleAnimation']['histogramBins'] = 100
     if 'framesPerSecond' not in data['models']['fieldAnimation']:
