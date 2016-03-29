@@ -9,17 +9,14 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
+from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.srw import extract_report_data
-import json
 import os
 import re
-import signal
 import srwl_bl
 import srwlib
-import subprocess
-import sys
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
@@ -41,8 +38,6 @@ def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
 
-    The files in ``cfg_dir`` must be configured properly.
-
     Args:
         cfg_dir (str): directory to run srw in
     """
@@ -51,27 +46,17 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
+    """Run srw with mpi in ``cfg_dir``
+
+    Args:
+        cfg_dir (str): directory to run srw in
+    """
     with pkio.save_chdir(cfg_dir):
-        fn = 'run_background.py'
-        cmd = [sys.executable or 'python', fn]
         script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
         p = dict(pkcollections.map_items(cfg))
-        if cfg.slave_processes > 1:
-            cmd[0:0] = [
-                'mpiexec',
-                '-n',
-                # SRW includes a master process so 2 really needs 3 processes
-                str(cfg.slave_processes + 1),
-            ]
-            script += '''
-from mpi4py import MPI
-if MPI.COMM_WORLD.Get_rank():
-    import signal
-    signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
-'''
-        else:
-            # In interactive (dev) mode, output as frequently as possible
+        if pkconfig.channel_in('dev'):
             p['particles_per_slave'] = 1
+        p['slaves'] = mpi.cfg.slaves
         script += '''
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
@@ -79,26 +64,11 @@ source_type, mag = setup_source(v)
 v.wm_nm = {total_particles}
 v.wm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes
-v.wm_ns = {slave_processes}
+v.wm_ns = {slaves}
 op = get_beamline_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
-        pkio.write_text(fn, script)
-        try:
-            p = subprocess.Popen(
-                cmd,
-                stdin=open(os.devnull),
-                stdout=open('run_background.out', 'w'),
-                stderr=subprocess.STDOUT,
-            )
-            signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
-            rc = p.wait()
-            if rc != 0:
-                p = None
-                raise RuntimeError('child terminated: retcode={}'.format(rc))
-        finally:
-            if not p is None:
-                p.terminate()
+        mpi.run(script)
 
 
 def _mirror_plot(model_data):
@@ -168,7 +138,6 @@ def _cfg_int(lower, upper):
 
 
 cfg = pkconfig.init(
-    slave_processes=(1, int, 'cores to use for run_background slaves'),
     particles_per_slave=(5, int, 'particles for each core to process'),
     total_particles=(50000, int, 'total number of particles to process'),
 )

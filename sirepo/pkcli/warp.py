@@ -7,19 +7,20 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp
+from sirepo import celery_tasks
+from sirepo import mpi
+from sirepo import simulation_db
+from sirepo.template import template_common
 import h5py
 import json
 import numpy as np
 import py.path
-from sirepo import simulation_db
 import sirepo.template.warp as template
-from sirepo.template import template_common
 import time
 
-def run(cfg_dir):
-    """Run srw in ``cfg_dir``
 
-    The files in ``cfg_dir`` must be configured properly.
+def run(cfg_dir):
+    """Run warp in ``cfg_dir``
 
     Args:
         cfg_dir (str): directory to run warp in
@@ -36,18 +37,20 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    """Run srw in ``cfg_dir``
-
-    The files in ``cfg_dir`` must be configured properly.
+    """Run warp in ``cfg_dir`` with mpi
 
     Args:
         cfg_dir (str): directory to run warp in
     """
     with pkio.save_chdir(cfg_dir):
-        _run_warp()
+        mpi.run(_script())
 
 
 def _run_warp():
     """Run warp program with isolated locals()
     """
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+    exec(_script(), locals(), locals())
+
+
+def _script():
+    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
