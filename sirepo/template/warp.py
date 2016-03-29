@@ -22,12 +22,6 @@ import re
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_MODE_TEXT = {
-    '0': '0',
-    '1': '1 (real part)',
-    '2': '1 (imaginary part)',
-}
-
 _PARTICLE_ARG_PATH = {
     'x' : 'position/x',
     'y' : 'position/y',
@@ -84,13 +78,17 @@ def extract_field_report(field, coordinate, mode, data_file):
 
     )
     extent = info.imshow_extent
+    if field == 'rho':
+        field_label = field
+    else:
+        field_label = '{} {}'.format(field, coordinate)
     return {
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
-        'x_label': 'x [m]',
-        'y_label': 'y [m]',
-        'title': "{} {} in the mode {} at {}".format(
-            field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(data_file)),
+        'x_label': '{} [m]'.format(info.axes[1]),
+        'y_label': '{} [m]'.format(info.axes[0]),
+        'title': "{} in the mode {} at {}".format(
+            field_label, mode, _iteration_title(data_file)),
         'z_matrix': numpy.flipud(F).tolist(),
     }
 
@@ -145,7 +143,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['enablePlasma'] = 1
     v['isAnimationView'] = run_async
-    v['numSteps'] = 1000 if run_async else 640
+    v['numSteps'] = 1000 if run_async else 50
     v['incSteps'] = 20
     if run_dir:
         simulation_db.write_json(run_dir.join(template_common.PARAMETERS_BASE_NAME), v)
@@ -253,7 +251,9 @@ def static_lib_files():
 def _field_animation(args, data_file):
     field = args[0]
     coordinate = args[1]
-    mode = int(args[2])
+    mode = args[2]
+    if mode != 'all':
+        mode = int(mode)
     res = extract_field_report(field, coordinate, mode, data_file)
     res['frameCount'] = data_file.num_frames
     return res
