@@ -332,11 +332,11 @@ def app_run_background():
     data = _json_input()
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if cfg.job_queue.is_running(sid):
+    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}'.format(sid))
         return '{}'
-    status = data['models']['simulationStatus']
+    status = data['models']['simulationStatus'][data['report']] = {}
     status['state'] = 'running'
     status['startTime'] = int(time.time())
     _start_simulation(data, run_async=True)
@@ -349,10 +349,10 @@ def app_run_background():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _json_input()
-    data['models']['simulationStatus']['state'] = 'canceled'
+    data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
     simulation_type = data['simulationType']
     simulation_db.save_simulation_json(simulation_type, data)
-    cfg.job_queue.kill(simulation_db.parse_sid(data))
+    cfg.job_queue.kill(_job_id(simulation_db.parse_sid(data), data['report']))
     # the last frame file may not be finished, remove it
     t = sirepo.template.import_module(simulation_type)
     t.remove_last_frame(simulation_db.simulation_run_dir(data))
@@ -367,26 +367,32 @@ def app_run_status():
     template = sirepo.template.import_module(simulation_type)
     run_dir = simulation_db.simulation_run_dir(data)
 
-    if cfg.job_queue.is_running(sid):
+    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
         completion = template.background_percent_complete(data, run_dir, True)
         state = 'running'
     else:
+        report = data['report']
         data = simulation_db.open_json_file(simulation_type, sid=sid)
-        state = data['models']['simulationStatus']['state']
+        data['report'] = report
+        if report not in data['models']['simulationStatus']:
+            data['models']['simulationStatus'][report] = {
+                'state': 'initial',
+            }
+        state = data['models']['simulationStatus'][report]['state']
         completion = template.background_percent_complete(data, run_dir, False)
         if state == 'running':
             if completion['frame_count'] == completion['total_frames']:
                 state = 'completed'
             else:
                 state = 'canceled'
-            data['models']['simulationStatus']['state'] = state
+            data['models']['simulationStatus'][report]['state'] = state
             simulation_db.save_simulation_json(data['simulationType'], data)
 
     frame_id = ''
     elapsed_time = ''
-    if 'last_update_time' in completion:
+    if 'last_update_time' in completion and 'startTime' in data['models']['simulationStatus'][data['report']]:
         frame_id = completion['last_update_time']
-        elapsed_time = int(frame_id) - int(data['models']['simulationStatus']['startTime'])
+        elapsed_time = int(frame_id) - int(data['models']['simulationStatus'][data['report']]['startTime'])
 
     return flask.jsonify({
         'state': state,
@@ -409,8 +415,9 @@ def app_simulation_data(simulation_type, simulation_id):
 def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('-')))
-    run_dir = simulation_db.simulation_run_dir(data)
     template = sirepo.template.import_module(data['simulationType'])
+    data['report'] = template.get_animation_name(data)
+    run_dir = simulation_db.simulation_run_dir(data)
     response = flask.jsonify(template.get_simulation_frame(run_dir, data))
 
     if template.WANT_BROWSER_FRAME_CACHE:
@@ -543,6 +550,10 @@ def _error_text(err):
     return 'a system error occurred'
 
 
+def _job_id(sid, model_name):
+    return '{}-{}'.format(sid, model_name)
+
+
 def _json_input():
     return json.loads(_read_http_input())
 
@@ -618,7 +629,7 @@ def _start_simulation(data, run_async=False):
     cmd = [_ROOT_CMD, simulation_type] \
         + ['run-background' if run_async else 'run'] + [str(run_dir)]
     if run_async:
-        return cfg.job_queue(sid, run_dir, cmd)
+        return cfg.job_queue(_job_id(sid, data['report']), run_dir, cmd)
     return _Command(cmd, cfg.foreground_time_limit)
 
 

@@ -21,6 +21,9 @@
         <div data-ng-if="source.srwService.isIdealizedUndulator()" class="col-sm-12">
           <div data-report-panel="2d" data-model-name="fluxReport"></div>
         </div>
+        <div data-ng-if="source.srwService.isTabulatedUndulator()" class="col-sm-12">
+          <div data-report-panel="2d" data-model-name="fluxAnimation"><div data-simulation-status-panel="fluxAnimation"></div></div>
+        </div>
       </div>
     </div>
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
@@ -36,13 +39,6 @@
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
-<div data-modal-editor="electronBeam" data-parent-controller="source" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
-<div data-modal-editor="undulator" data-parent-controller="source"></div>
-<div data-modal-editor="tabulatedUndulator" data-parent-controller="source"></div>
-<div data-modal-editor="multipole" data-parent-controller="source"></div>
-<div data-modal-editor="gaussianBeam" data-parent-controller="source"></div>
+<div data-modal-editor="electronBeam" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
 <div data-modal-editor="sourceIntensityReport" data-parent-controller="source"></div>
-<div data-modal-editor="intensityReport" data-parent-controller="source"></div>
-<div data-modal-editor="fluxReport" data-parent-controller="source"></div>
-<div data-modal-editor="powerDensityReport" data-parent-controller="source"></div>
 <div data-file-upload-dialog="" data-dialog-title="Upload Magnetic Measurements Zip File" data-parent-controller="source" data-file-type="undulatorTable"></div>

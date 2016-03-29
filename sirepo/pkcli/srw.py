@@ -76,7 +76,6 @@ if MPI.COMM_WORLD.Get_rank():
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
 source_type, mag = setup_source(v)
-v.wm = True
 v.wm_nm = {total_particles}
 v.wm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes

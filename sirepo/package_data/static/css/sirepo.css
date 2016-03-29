@@ -148,6 +148,12 @@
       transition: all 0.5s ease 0s;
     }
 
+    .srw-panel-heading {
+      font-weight: 300;
+      line-height: 1.4;
+      font-size: 21px;
+      margin-bottom: 0;
+    }
     .srw-panel-options > a, .srw-panel-options > div {
       margin-left: 1em;
     }
@@ -186,6 +192,7 @@
 
     div.srw-slider-values {
       margin-left: 30px;
+      margin-bottom: 1em;
     }
     .srw-panel-loading div.srw-slider-values {
       display: none;

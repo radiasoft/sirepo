@@ -157,6 +157,10 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     return pkjinja.render_resource('warp.py', v)
 
 
+def get_animation_name(data):
+    return 'animation'
+
+
 def get_simulation_frame(run_dir, data):
     frame_index = int(data['frameIndex'])
     data_file = open_data_file(run_dir, frame_index)

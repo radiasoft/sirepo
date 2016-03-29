@@ -58,6 +58,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                 appState.models.simulationStatus.state = data.state;
             },
             {
+                report: 'animation',
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -75,6 +76,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                 appState.saveChanges('simulationStatus');
             },
             {
+                report: 'animation',
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -115,6 +117,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
                 refreshStatus();
             },
             {
+                report: 'animation',
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });

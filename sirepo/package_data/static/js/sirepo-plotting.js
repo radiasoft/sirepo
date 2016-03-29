@@ -2,6 +2,8 @@
 
 app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
 
+    var INITIAL_HEIGHT = 400;
+
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
@@ -9,7 +11,6 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
     }
 
     return {
-        INITIAL_HEIGHT: 400,
 
         computePeaks: function(json, dimensions, xPoints, xAxisScale, yAxisScale) {
             var peakSpacing = dimensions[0] / 20;
@@ -90,6 +91,10 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
             }
         },
 
+        initialHeight: function(scope) {
+            return scope.isAnimation ? 1 : INITIAL_HEIGHT;
+        },
+
         linkPlot: function(scope, element) {
             d3Service.d3().then(function(d3) {
                 scope.element = element[0];
@@ -163,6 +168,9 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                             scope.lastFrame();
                     });
                 }
+                else if (scope.isClientOnly) {
+                    requestData = function() {};
+                }
                 else {
                     requestData = function() {
                         //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
@@ -226,6 +234,7 @@ app.directive('plot2d', function(plotting) {
             var ASPECT_RATIO = 4.0 / 7;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
+            $scope.dataCleared = true;
             var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale, yUnits;
 
             function mouseMove() {
@@ -244,6 +253,7 @@ app.directive('plot2d', function(plotting) {
                     if (xPixel < 0 || xPixel >= select('.plot-viewport').attr('width'))
                         return;
                     var focus = select('.focus');
+                    focus.style('display', null);
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
                     select('.focus-text').text('[' + formatter(localMax[0]) + ', ' + ordinate_formatter(localMax[1]) + ']');
                 }
@@ -305,10 +315,14 @@ app.directive('plot2d', function(plotting) {
                 resize();
             }
 
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+            };
+
             $scope.init = function() {
                 formatter = d3.format('.0f');
                 ordinate_formatter = d3.format('.3e');
-                select('svg').attr('height', plotting.INITIAL_HEIGHT);
+                select('svg').attr('height', plotting.initialHeight($scope));
                 $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
                 $(window).resize($scope.windowResize);
@@ -327,20 +341,21 @@ app.directive('plot2d', function(plotting) {
                 var focus_hint = select('.focus-hint');
                 select('.overlay')
                     .on('mouseover', function() {
-                        focus.style('display', null);
-                        focus_hint.style('display', null);
+                        focus.style('display', focus.style('display'));
+                        focus_hint.style('display', 'none');
                         focus_hint.text('Double-click to copy the values');
                     })
                     .on('mouseout', function() {
                         focus_hint.style('display', 'none');
                     })
-                    .on('mousemove', mouseMove)
+                    .on('click', mouseMove)
                     .on('dblclick', function copyToClipboard() {
                         var $temp = $('<input>');
                         $('body').append($temp);
                         $temp.val(focus_text.text()).select();
                         try {
                             document.execCommand('copy');
+                            focus_hint.style('display', null);
                             focus_hint.text('Copied to clipboard');
                             setTimeout(function () {
                                 focus_hint.style('display', 'none');
@@ -351,6 +366,7 @@ app.directive('plot2d', function(plotting) {
             };
 
             $scope.load = function(json) {
+                $scope.dataCleared = false;
                 var xPoints = plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
                 points = d3.zip(xPoints, json.points);
                 $scope.xRange = json.x_range;
@@ -401,7 +417,7 @@ app.directive('plot3d', function(plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
-            $scope.dataCleared = false;
+            $scope.dataCleared = true;
 
             var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
 
@@ -584,7 +600,7 @@ app.directive('plot3d', function(plotting) {
             };
 
             $scope.init = function() {
-                select('svg').attr('height', plotting.INITIAL_HEIGHT);
+                select('svg').attr('height', plotting.initialHeight($scope));
                 xAxisScale = d3.scale.linear();
                 xIndexScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
@@ -890,7 +906,7 @@ app.directive('heatmap', function(plotting) {
             }
 
             $scope.init = function() {
-                select('svg').attr('height', plotting.INITIAL_HEIGHT);
+                select('svg').attr('height', plotting.initialHeight($scope));
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
@@ -970,6 +986,231 @@ app.directive('heatmap', function(plotting) {
                     scope.zoom.on('zoom', null);
                 if (scope.imageObj)
                     scope.imageObj.onload = null;
+            });
+        },
+    };
+});
+
+app.directive('lattice', function(plotting, appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        //TODO(pjm): remove random
+        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION + Math.random(),
+        controller: function($scope) {
+            $scope.isClientOnly = true;
+            $scope.margin = 50;
+            $scope.width = 1;
+            $scope.height = 1;
+            //TODO(pjm): demo data
+            $scope.items = [
+                {
+                    name: 'L1',
+                    type: 'CSRDRIFT',
+                    length: 0.758132998376353,
+                },
+                {
+                    name: 'W1',
+                    type: 'WATCH',
+                },
+                {
+                    name: 'B1',
+                    type: 'CSRCSBEND',
+                    length: 0.200718260855179,
+                    angle: 16.8,
+                },
+                {
+                    name: 'L1',
+                    type: 'CSRDRIFT',
+                    length: 0.758132998376353,
+                },
+                {
+                    name: 'W2',
+                    type: 'WATCH',
+                },
+                {
+                    name: 'B2',
+                    type: 'CSRCSBEND',
+                    length: 0.200718260855179,
+                    angle: -16.8,
+                },
+                {
+                    name: 'L2',
+                    type: 'CSRDRIFT',
+                    length: 0.5,
+                },
+                {
+                    name: 'W3',
+                    type: 'WATCH',
+                },
+                {
+                    name: 'B3',
+                    type: 'CSRCSBEND',
+                    length: 0.200718260855179,
+                    angle: -16.8,
+                },
+                {
+                    name: 'L1',
+                    type: 'CSRDRIFT',
+                    length: 0.758132998376353,
+                },
+                {
+                    name: 'W4',
+                    type: 'WATCH',
+                },
+                {
+                    name: 'B4',
+                    type: 'CSRCSBEND',
+                    length: 0.200718260855179,
+                    angle: 16.8,
+                },
+                {
+                    name: 'W5',
+                    type: 'WATCH',
+                },
+                {
+                    name: 'L3',
+                    type: 'CSRDRIFT',
+                    length: 1.0,
+                },
+            ];
+
+            $scope.svgGroups = [];
+
+            function applyGroup(items, pos) {
+                var group = {
+                    rotate: pos.angle,
+                    rotateX: pos.x,
+                    rotateY: pos.y,
+                    items: [],
+                };
+                $scope.svgGroups.push(group);
+                var x = 0;
+                var oldRadius = pos.radius;
+                var newAngle = 0;
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var length = (item.length || 0) * 100;
+                    if (item.type == 'CSRCSBEND') {
+                        var radius = length / 2;
+                        group.items.push({
+                            item: item,
+                            radius: radius,
+                            cx: pos.radius + pos.x + x + radius,
+                            cy: pos.y,
+                        });
+                        x += radius;
+                        newAngle = item.angle;
+                        pos.radius = radius;
+                    }
+                    else {
+                        var height = 10.0;
+                        if (item.type == 'WATCH')
+                            height = 0;
+                        group.items.push({
+                            item: item,
+                            x: pos.radius + pos.x + x,
+                            y: pos.y - height / 2,
+                            height: height,
+                            width: length,
+                        });
+                        x += length;
+                    }
+                }
+                if (pos.angle == 0) {
+                    pos.x += x + oldRadius;
+                }
+                else {
+                    pos.x += Math.sin((90 - pos.angle) * Math.PI / 180) * (x + oldRadius);
+                    pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
+                }
+                pos.angle += newAngle;
+            }
+
+            function computePositions() {
+                var pos = {
+                    x: 0,
+                    y: 0,
+                    angle: 0,
+                    radius: 0,
+                };
+                var group = [];
+                var groupDone = false;
+                for (var i = 0; i < $scope.items.length; i++) {
+                    if (groupDone) {
+                        applyGroup(group, pos);
+                        group = [];
+                        groupDone = false;
+                    }
+                    var item = $scope.items[i];
+                    if (item.type == 'CSRCSBEND')
+                        groupDone = true;
+                    group.push(item);
+                }
+                if (group.length)
+                    applyGroup(group, pos);
+            }
+            computePositions();
+
+            $scope.itemClicked = function(item) {
+                appState.models.CSRDRIFT = {
+                    name: item.name,
+                    l: item.l || 0.758132998376353,
+                    attenuation_length: 0,
+                    dz: item.dz || 0.01,
+                    n_kicks: 1,
+                    spread: 0,
+                    use_overtaking_length: 0,
+                    ol_multiplier: 1,
+                    use_saldin54: 0,
+                    saldin54points: 1000,
+                    csr: 1,
+                    saldin54norm_mode: 'peak',
+                    spread_mode: 'full',
+                    wavelength_mode: 'sigmaz',
+                    bunchlength_mode: '68-percentile',
+                    saldin54_output: null,
+                    use_stupakov: item.use_stupakov || 1,
+                    stupakov_output: null,
+                    stupakov_output_interval: 1,
+                    slice_analysis_interval: 0,
+                    linearize: 0,
+                    group: null,
+                };
+                $('#srw-CSRDRIFT-editor').modal('show');
+            }
+
+            function resize() {
+                var width = parseInt(select().style('width'));
+                if (isNaN(width))
+                    return;
+                $scope.width = width;
+                //TODO(pjm): determine aspect ratio of graph
+                $scope.height = $scope.width / 2;
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            $scope.init = function() {
+                $(window).resize($scope.windowResize);
+                resize();
+            };
+
+            $scope.windowResize = plotting.debounce(function() {
+                resize();
+                $scope.$apply();
+            }, 250);
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+            scope.$on('$destroy', function() {
+                scope.element = null;
+                $(window).off('resize', scope.windowResize);
             });
         },
     };

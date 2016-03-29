@@ -15,17 +15,7 @@ import numpy as np
 import os
 import sdds
 
-
-def run(cfg_dir):
-    """Run srw in ``cfg_dir``
-
-    The files in ``cfg_dir`` must be configured properly.
-
-    Args:
-        cfg_dir (str): directory to run srw in
-    """
-    with pkio.save_chdir(cfg_dir):
-        _run_elegant()
+_ELEGANT_ME_EV = 0.51099906e6
 
 #TODO(pjm): lookup in PhaseSpaceCoordinate
 _FIELD_LABEL = {
@@ -34,7 +24,7 @@ _FIELD_LABEL = {
     'y': 'y [m]',
     'yp': "y' [rad]",
     't': 't [s]',
-    'p': 'p [mₑc]',
+    'p': '(p - p₀)/p₀ [eV]',
 }
 
 _PLOT_TITLE = {
@@ -44,11 +34,30 @@ _PLOT_TITLE = {
     't-p': 'Longitudinal',
 }
 
+
+def run(cfg_dir):
+    """Run elegant in ``cfg_dir``
+
+    The files in ``cfg_dir`` must be configured properly.
+
+    Args:
+        cfg_dir (str): directory to run srw in
+    """
+    with pkio.save_chdir(cfg_dir):
+        _run_elegant()
+
+
 def _plot_title(bunch):
     key = '{}-{}'.format(bunch['x'], bunch['y'])
     if key in _PLOT_TITLE:
         return _PLOT_TITLE[key]
     return '{} / {}'.format(bunch['x'], bunch['y'])
+
+
+def _scale_p(points, data):
+    p_central_ev = float(data['models']['bunch']['p_central_mev']) * 1e6
+    return (np.array(points) * _ELEGANT_ME_EV - p_central_ev).tolist()
+
 
 def _run_elegant():
     run_dir = os.getcwd()
@@ -67,7 +76,11 @@ def _run_elegant():
         sdds.sddsdata.PrintErrors(1)
     bunch = data['models'][data['report']]
     x = sdds.sddsdata.GetColumn(index, column_names.index(bunch['x']))
+    if bunch['x'] == 'p':
+        x = _scale_p(x, data)
     y = sdds.sddsdata.GetColumn(index, column_names.index(bunch['y']))
+    if bunch['y'] == 'p':
+        y = _scale_p(y, data)
     nbins = int(bunch['histogramBins'])
     hist, edges = np.histogramdd([x, y], nbins)
 

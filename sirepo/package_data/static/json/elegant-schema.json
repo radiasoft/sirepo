@@ -4,6 +4,11 @@
             ["0", "No"],
             ["1", "Yes"]
         ],
+        "LongitudinalBunchMethod": [
+            ["1", "sigma s, sigma dp, dp s coupling"],
+            ["2", "sigma s, sigma dp, alpha z"],
+            ["3", "emit z, beta z, alpha z"]
+        ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
             ["xp", "x'"],
@@ -226,18 +231,19 @@
         "bunch": {
             "p_central_mev": ["Central momentum [MeV]", "Float"],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer"],
-            "sigma_dp": ["Fractional Momentum Spread", "Float"],
-            "sigma_s": ["Bunch Length [µm]", "Float"],
             "emit_x": ["Horizontal Emittance [nm]", "Float"],
             "beta_x": ["Horizontal Beta [m]", "Float"],
             "alpha_x": ["Horizontal Alpha", "Float"],
-            "eta_x": ["Horizontal Dispersion [m]", "Float"],
-            "etap_x": ["Horizontal Dispersion Derivative [rad]", "Float"],
             "emit_y": ["Vertical Emittance [nm]", "Float"],
             "beta_y": ["Vertical Beta [m]", "Float"],
             "alpha_y": ["Vertical Alpha", "Float"],
-            "eta_y": ["Vertical Dispersion [m]", "Float"],
-            "etap_y": ["Vertical Dispersion Derivative [rad]", "Float"]
+            "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
+            "sigma_s": ["Sigma s [µm]", "Float"],
+            "sigma_dp": ["Sigma dp", "Float"],
+            "dp_s_coupling": ["dp s Coupling", "Float"],
+            "emit_z": ["Longitudinal Emittance [nm]", "Float"],
+            "beta_z": ["Longitudinal Beta [m]", "Float"],
+            "alpha_z": ["Longitudinal Alpha", "Float"]
         },
         "bunchReport": {
             "x": ["X Value", "PhaseSpaceCoordinate"],
@@ -2501,8 +2507,6 @@
             "advanced": [
                 "p_central_mev",
                 "n_particles_per_bunch",
-                "sigma_dp",
-                "sigma_s",
                 [
                     ["Horizontal", [
                         "emit_x",
@@ -2514,7 +2518,14 @@
                         "beta_y",
                         "alpha_y"
                     ]]
-                ]
+                ],
+                "longitudinalMethod",
+                "sigma_s",
+                "sigma_dp",
+                "dp_s_coupling",
+                "emit_z",
+                "beta_z",
+                "alpha_z"
             ]
         },
         "bunchReport": {

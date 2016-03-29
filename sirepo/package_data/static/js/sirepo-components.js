@@ -7,7 +7,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}"></div>',
               '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
@@ -556,11 +556,11 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
             allowFullScreen: '@',
         },
         template: [
-            '<span class="lead">{{ panelHeading }}</span>',
+            '<span class="srw-panel-heading">{{ panelHeading }}</span>',
             '<div class="srw-panel-options pull-right">',
-              '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="lead glyphicon glyphicon-pencil"></span></a> ',
+              '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="srw-panel-heading glyphicon glyphicon-pencil"></span></a> ',
               '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
-                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="lead glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="srw-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
@@ -570,9 +570,9 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                   '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                 '</ul>',
               '</div>',
-              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="lead glyphicon glyphicon-fullscreen"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="lead glyphicon glyphicon-triangle-top"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="lead glyphicon glyphicon-triangle-bottom"></span></a>',
+              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="srw-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="srw-panel-heading glyphicon glyphicon-triangle-top"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="srw-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -659,6 +659,7 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
 app.directive('reportContent', function(panelState) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             reportContent: '@',
             fullModelName: '@',
@@ -673,6 +674,7 @@ app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="heatmap" data-heatmap="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
               '</div>',
+              '<div data-ng-transclude=""></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -684,6 +686,7 @@ app.directive('reportContent', function(panelState) {
 app.directive('reportPanel', function(appState, panelState) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             reportPanel: '@',
             modelName: '@',
@@ -692,8 +695,8 @@ app.directive('reportPanel', function(appState, panelState) {
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-allow-full-screen="1"></div>',
-              '<div data-report-content="{{ reportPanel }}" data-full-model-name="{{ fullModelName }}"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-allow-full-screen="1"></div>',
+              '<div data-report-content="{{ reportPanel }}" data-full-model-name="{{ fullModelName }}"><div data-ng-transclude=""></div></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
