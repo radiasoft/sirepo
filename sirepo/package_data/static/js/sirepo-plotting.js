@@ -236,7 +236,7 @@ app.directive('plot2d', function(plotting) {
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
             var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale, yUnits;
-
+            var defaultCircleSize = null;
             function mouseMove() {
                 if (! points)
                     return;
@@ -254,8 +254,58 @@ app.directive('plot2d', function(plotting) {
                         return;
                     var focus = select('.focus');
                     focus.style('display', null);
+                    var circle = select('circle');
+                    if (defaultCircleSize === null) {defaultCircleSize = circle.attr('r')};
+                    circle.attr('r', defaultCircleSize);
                     focus.attr('transform', 'translate(' + xPixel + ',' + yAxisScale(localMax[1]) + ')');
                     select('.focus-text').text('[' + formatter(localMax[0]) + ', ' + ordinate_formatter(localMax[1]) + ']');
+                }
+            };
+
+            function text2array(text) {
+                var arr = text.replace('translate(', '').replace(')', '').split(',')
+                for(var i=0; i<arr.length; i++) {
+                    arr[i] = +arr[i];
+                }
+                return arr;
+            };
+
+            function findY(data, X) {
+                var Y = null;
+                for (var i=0; i < data.length - 1; i++) {  // i < data.length - 1 because we don't need to include last element
+                    if (X >= data[i][0] && X < data[i+1][0]) {
+                        Y = data[i][1];
+                        break;
+                    }
+                };
+                return Y
+            };
+
+            function moveFocus(focus_arr, step) {
+                // 'step' in pixels - can be positive (move to the right) and negative (move to the left).
+                var xPixel = focus_arr[0] + step;  // move 'step' pixels left or right from the selected peak
+                var xValue = xAxisScale.invert(xPixel);  // real X value (in physical units)
+                var yValue = findY(points, xValue);  // find real Y value (in physical units)
+                var yPixel = yAxisScale(yValue);  // Y in pixels
+                if (xPixel < 0 || xPixel >= select('.plot-viewport').attr('width'))
+                    return;
+                var focus = select('.focus');
+                focus.style('display', null);
+                var circle = select('circle');
+                circle.attr('r', defaultCircleSize - 2);
+                focus.attr('transform', 'translate(' + xPixel + ',' + yPixel + ')');
+                select('.focus-text').text('[' + formatter(xValue) + ', ' + ordinate_formatter(yValue) + ']');
+            };
+
+            function keyboardMove(keyCode, focusString) {
+                if (! points)
+                    return;
+                var focusArray = text2array(focusString);
+                var stepPixels = 0.5;
+                if (keyCode == 37) { // left
+                    moveFocus(focusArray, -1 * stepPixels);
+                } else if (keyCode == 39) { // right
+                    moveFocus(focusArray, stepPixels);
                 }
             };
 
@@ -344,9 +394,18 @@ app.directive('plot2d', function(plotting) {
                         focus.style('display', focus.style('display'));
                         focus_hint.style('display', 'none');
                         focus_hint.text('Double-click to copy the values');
+                        d3.select('body')
+                            .on('keydown', function() {
+                                var focusString = $($scope.element).find('.focus').attr('transform');
+                                var keyCode = d3.event.keyCode;
+                                if (focusString !== undefined) {
+                                    keyboardMove(keyCode, focusString);
+                                }
+                            });
                     })
                     .on('mouseout', function() {
                         focus_hint.style('display', 'none');
+                        d3.select('body').on('keydown', null);
                     })
                     .on('click', mouseMove)
                     .on('dblclick', function copyToClipboard() {

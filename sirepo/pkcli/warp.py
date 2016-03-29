@@ -30,7 +30,9 @@ def run(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         field = data['models']['laserPreviewReport']['field']
         coordinate = data['models']['laserPreviewReport']['coordinate']
-        mode = int(data['models']['laserPreviewReport']['mode'])
+        mode = data['models']['laserPreviewReport']['mode']
+        if mode != 'all':
+            mode = int(mode)
         data_file = template.open_data_file(py.path.local())
         res = template.extract_field_report(field, coordinate, mode, data_file)
         simulation_db.write_json(template_common.OUTPUT_BASE_NAME, res)

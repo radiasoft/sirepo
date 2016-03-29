@@ -10,12 +10,13 @@
             ["r", "r"],
             ["z", "z"],
             ["y", "y"],
-            ["x", "x"]
+            ["x", "x"],
+            ["t", "t"]
         ],
         "FieldMode": [
-            ["0", "mode 0"],
-            ["1", "real part of mode 1"],
-            ["2", "imaginary part of mode 1"]
+            ["0", "0"],
+            ["1", "1"],
+            ["all", "all"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
