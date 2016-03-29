@@ -70,12 +70,6 @@
             ["31", "31"],
             ["32", "32"]
         ],
-        "SimulationState": [
-            ["initial", "Initial State"],
-            ["running", "Running"],
-            ["completed", "Completed"],
-            ["canceled", "Canceled"]
-        ],
         "XValue": [
             ["x", "x"],
             ["y", "y"],
@@ -147,10 +141,7 @@
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"]
         },
-        "simulationStatus": {
-            "state": ["State", "SimulationState"],
-            "startTime": ["Start Time [ms]", "String"]
-        }
+        "simulationStatus": {}
     },
     "view": {
         "electronPlasma": {
@@ -225,9 +216,6 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "basic": [
-                "percentComplete"
-            ],
             "advanced": []
         },
         "particleAnimation": {
