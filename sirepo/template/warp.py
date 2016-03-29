@@ -88,7 +88,7 @@ def extract_field_report(field, coordinate, mode, data_file):
         'x_range': [extent[0], extent[1], len(F[0])],
         'y_range': [extent[2], extent[3], len(F)],
         'x_label': 'x [m]',
-        'y_label': 'y [m]',
+        'y_label': 'z [m]',
         'title': "{} {} in the mode {} at {}".format(
             field, coordinate, _MODE_TEXT[str(mode)], _iteration_title(data_file)),
         'z_matrix': numpy.flipud(F).tolist(),
