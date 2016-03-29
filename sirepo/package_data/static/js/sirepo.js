@@ -116,8 +116,10 @@ app.factory('appState', function($rootScope, requestSender) {
     };
 
     self.cancelChanges = function(name) {
-        if (savedModelValues[name])
+        if (savedModelValues[name]) {
             self.models[name] = self.clone(savedModelValues[name]);
+            $rootScope.$broadcast('cancelChanges', name);
+        }
         //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
         if (name != 'simulation' && self.models.simulation.photonEnergy
             && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
@@ -408,13 +410,13 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
                         self.setFrameCount(0);
                     },
                     {
-                        report: modelName,
+                        report: self.animationModelName || modelName,
                         simulationId: appState.models.simulation.simulationId,
                         simulationType: APP_SCHEMA.simulationType,
                     });
             },
             {
-                report: modelName,
+                report: self.animationModelName || modelName,
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -440,7 +442,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             modelName,
             animationArgs(modelName),
             index,
-            appState.models.simulationStatus[modelName].startTime,
+            appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('-');
         requestSender.sendRequest(
             requestSender.formatUrl(
@@ -464,8 +466,10 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
         return appState.isLoaded();
     };
 
-    self.setAnimationArgs = function(argFields) {
+    self.setAnimationArgs = function(argFields, animationModelName) {
         self.animationArgFields = argFields;
+        if (animationModelName)
+            self.animationModelName = animationModelName;
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {
