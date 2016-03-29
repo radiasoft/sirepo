@@ -302,6 +302,26 @@ def static_lib_files():
     return res
 
 
+def write_parameters(data, schema, run_dir, run_async):
+    """Write the parameters file
+
+    Args:
+        data (dict): input
+        schema (dict): to validate data
+        run_dir (py.path): where to write
+        run_async (bool): run in background?
+    """
+    pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        generate_parameters_file(
+            data,
+            schema,
+            run_dir,
+            run_async,
+        ),
+    )
+
+
 def _beamline_element(template, item, fields, propagation):
     return '    el.append({})\n{}'.format(
         template.format(*map(lambda x: item[x], fields)),

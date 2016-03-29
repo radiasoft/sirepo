@@ -7,11 +7,14 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
+from sirepo import simulation_db
+from sirepo.template import template_common
 from subprocess import call
 import json
 import numpy as np
 import os
 import sdds
+
 
 def run(cfg_dir):
     """Run srw in ``cfg_dir``
@@ -49,9 +52,8 @@ def _plot_title(bunch):
 
 def _run_elegant():
     run_dir = os.getcwd()
-    with open('in.json') as f:
-        data = json.load(f)
-    exec(pkio.read_text('elegant_parameters.py'), locals(), locals())
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     pkio.write_text('elegant.lte', lattice_file)
     pkio.write_text('elegant.ele', elegant_file)
     call(['elegant', 'elegant.ele'])
@@ -77,5 +79,4 @@ def _run_elegant():
         'title': _plot_title(bunch),
         'z_matrix': hist.T.tolist(),
     }
-    with open('out.json', 'w') as outfile:
-        json.dump(info, outfile)
+    simulation_db.write_json(template_common.OUTPUT_BASE_NAME, info)

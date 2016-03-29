@@ -5,6 +5,7 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
 from pykern import pkjinja
 from sirepo.template import template_common
 import glob
@@ -89,6 +90,26 @@ def static_lib_files():
         list: py.path.local objects
     """
     return []
+
+
+def write_parameters(data, schema, run_dir, run_async):
+    """Write the parameters file
+
+    Args:
+        data (dict): input
+        schema (dict): to validate data
+        run_dir (py.path): where to write
+        run_async (bool): run in background?
+    """
+    pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        generate_parameters_file(
+            data,
+            schema,
+            run_dir,
+            run_async,
+        ),
+    )
 
 
 def _validate_data(data, schema):

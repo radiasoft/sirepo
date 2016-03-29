@@ -1,3 +1,6 @@
+#TODO(robnagler) fix up old data(?) probably just remove
+#TODO(robnagler) fix up other simulations to use template_common(?)
+
 # -*- coding: utf-8 -*-
 u"""SRW execution template.
 

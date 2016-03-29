@@ -5,8 +5,13 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-
+from sirepo import simulation_db
+from sirepo.template import template_common
+from sirepo.template.srw import extract_report_data
 import json
 import os
 import re
@@ -15,10 +20,6 @@ import srwl_bl
 import srwlib
 import subprocess
 import sys
-from pykern import pkcollections
-from pykern import pkconfig
-from pykern import pkio
-from sirepo.template.srw import extract_report_data
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
@@ -53,7 +54,7 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         fn = 'run_background.py'
         cmd = [sys.executable or 'python', fn]
-        script = pkio.read_text('srw_parameters.py')
+        script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
         p = dict(pkcollections.map_items(cfg))
         if cfg.slave_processes > 1:
             cmd[0:0] = [
@@ -119,17 +120,15 @@ def _mirror_plot(model_data):
 
 def _process_output(filename, model_data):
     info = extract_report_data(filename, model_data)
-    with open('out.json', 'w') as outfile:
-        json.dump(info, outfile)
+    simulation_db.write_json(template_common.OUTPUT_BASE_NAME, info)
 
 
 def _run_srw():
     run_dir = os.getcwd()
-    with open('in.json') as f:
-        data = json.load(f)
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     #TODO(pjm): need to properly escape data values, untrusted from client
     # this defines the get_srw_params() and get_beamline_optics() functions
-    exec(pkio.read_text('srw_parameters.py'), locals(), locals())
+    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
     source_type, mag = setup_source(v)
     op = None
