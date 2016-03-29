@@ -172,7 +172,7 @@ def match_beam_longitudinal(l_pe,fac=0.728583):
 n_steps = {{numSteps}}
 
 # Reference plasma density (in number of particles per m^3)
-N_PLASMA = 1.e23                                                #USER EDIT
+N_PLASMA = {{electronPlasma_density}} # plasma density (in m^-3)
 # Electron plasma wavelength for full ionization
 lambda_pe = 3.34e+07 / sqrt(N_PLASMA)
 
