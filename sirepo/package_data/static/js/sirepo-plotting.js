@@ -263,7 +263,7 @@ app.directive('plot2d', function(plotting) {
             };
 
             function text2array(text) {
-                var arr = text.replace('translate(', '').replace(')', '').split(',')
+                var arr = text.replace('translate(', '').replace(')', '').replace(',', ' ').split(' ');
                 for(var i=0; i<arr.length; i++) {
                     arr[i] = +arr[i];
                 }
@@ -301,7 +301,12 @@ app.directive('plot2d', function(plotting) {
                 if (! points)
                     return;
                 var focusArray = text2array(focusString);
-                var stepPixels = 0.5;
+                var xLimits = xAxisScale.range();
+                var totalPoints = points.length;
+                var realTotalRange = Math.round(points[totalPoints-1][0] - points[0][0]);
+                var realCurrentRange = Math.round(xAxisScale.invert(xLimits[1]) - xAxisScale.invert(xLimits[0]));
+                var pointsInFrame = totalPoints * (realCurrentRange / realTotalRange);
+                var stepPixels = (xLimits[1] - xLimits[0]) / pointsInFrame;
                 if (keyCode == 37) { // left
                     moveFocus(focusArray, -1 * stepPixels);
                 } else if (keyCode == 39) { // right
@@ -370,7 +375,7 @@ app.directive('plot2d', function(plotting) {
             };
 
             $scope.init = function() {
-                formatter = d3.format('.0f');
+                formatter = d3.format('.2f');
                 ordinate_formatter = d3.format('.3e');
                 select('svg').attr('height', plotting.initialHeight($scope));
                 $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
