@@ -7,13 +7,13 @@
             "length": 0.25
         },
         "fieldAnimation": {
-            "coordinate": "r",
+            "coordinate": "y",
             "field": "E",
             "framesPerSecond": 20,
             "mode": "1"
         },
         "laserPreviewReport": {
-            "coordinate": "r",
+            "coordinate": "y",
             "field": "E",
             "mode": "1"
         },
