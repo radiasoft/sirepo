@@ -133,7 +133,7 @@ def fixup_old_data(data):
     if 'field' not in data['models']['laserPreviewReport']:
         laserPreview = data['models']['laserPreviewReport']
         laserPreview['field'] = 'E'
-        laserPreview['coordinate'] = 'r'
+        laserPreview['coordinate'] = 'y'
         laserPreview['mode'] = '1'
 
 
@@ -141,9 +141,8 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
-    v['enablePlasma'] = 1
-    v['isAnimationView'] = run_async
-    v['numSteps'] = 1000 if run_async else 50
+    v['isAnimationView'] = 1 if run_async else 0
+    v['numSteps'] = 1000 if run_async else 400
     v['incSteps'] = 20
     if run_dir:
         simulation_db.write_json(run_dir.join(template_common.PARAMETERS_BASE_NAME), v)
