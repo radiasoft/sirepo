@@ -62,6 +62,8 @@ def copy_animation_file(source_path, target_path):
 def extract_field_report(field, coordinate, mode, data_file):
     fields = data_file.h5['data/{}/fields'.format(data_file.iteration)]
     from opmd_viewer import OpenPMDTimeSeries
+    from opmd_viewer.openpmd_timeseries import main
+    main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
     o = OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
     F, info = o.get_field(
         plot=False,
