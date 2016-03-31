@@ -169,7 +169,6 @@ def match_beam_longitudinal(l_pe,fac=0.728583):
 #---------------------------------------------
 
 # Reference plasma density (in number of particles per m^3)
-#N_PLASMA = 1.e23                                                #USER EDIT
 N_PLASMA = {{electronPlasma_density}} # plasma density (in m^-3)
 # Electron plasma wavelength for full ionization
 lambda_pe = 3.34e+07 / sqrt(N_PLASMA)
@@ -295,7 +294,22 @@ ly = lx
 
 
 #compute needed quantities for initialization
-nx, ny, nz, zmin, zmax, xmax, ymax = define_grid(lx,ly,lz,lambda_pe, D_CELL_X, D_CELL_Y, D_CELL_Z)
+if USE_BEAM:
+    nx, ny, nz, zmin, zmax, xmax, ymax = define_grid(lx,ly,lz,lambda_pe, D_CELL_X, D_CELL_Y, D_CELL_Z)
+    xmin = 0
+    ymin = 0
+    
+elif USE_LASER:
+    nx = {{simulationGrid_rCount}}
+    ny = 300
+    nz = {{simulationGrid_zCount}}
+    zmin = {{simulationGrid_zMin}}
+    zmax = {{simulationGrid_zMax}}
+    xmin = {{simulationGrid_zMin}}
+    xmax = {{simulationGrid_rMax}}
+    ymax = xmax
+    ymin = -ymax
+    
 
 # Specify the plasma parameters - these can be independent of the initial grid dimensions
 # ---------------------------------------------------------------------------------------
@@ -303,17 +317,16 @@ nx, ny, nz, zmin, zmax, xmax, ymax = define_grid(lx,ly,lz,lambda_pe, D_CELL_X, D
 # (Transversally, the plasma is initialized between -plasma_xmax and
 # plasma_xmax, along x, and -plasma_ymax and plasma_ymax along y)
 plasma_zmin = 1.e-6
-plasma_zmax = 1.
+plasma_zmax = {{electronPlasma_length}}
 plasma_xmax = xmax
 plasma_ymax = ymax
 
 # Define your own profile using these parameters, and passing them to plasma_dens_func()
 #The following values are in units of meters
 ramp_start = 0.e-6
-ramp_length = 20.e-6
-ramp_length = {{electronPlasma_entranceRampLength}} # plasma entrance ramp length
-#plateau_length = plasma_zmax - 2.*ramp_length
-ramp_plateau = plasma_zmax - 2.*ramp_length
+ramp_length = {{electronPlasma_entranceRampLength}}
+exit_ramp_length = {{electronPlasma_exitRampLength}}
+ramp_plateau = plasma_zmax - ramp_length - exit_ramp_length
 
 
 # ---------------------------------------------------------------------------------------
@@ -347,15 +360,17 @@ def plasma_dens_func(x, y, z):
     """
     # Allocate relative density
     n = ones_like(z)
-    # Make linear ramp
-    n = where( z<ramp_start+ramp_length, (z-ramp_start)/ramp_length, n )
-    # Supress density before the ramp
-    n = where( z<ramp_start, 0., n )
-    # Reduce density by half after the ramp
-    n = where( z> ramp_start+ramp_length+ramp_plateau, 0.5*n, n )
-    # Put the density to 0 later
-    n = where( z> ramp_start+ramp_length+2*ramp_plateau, 0., n )
+    # # Make linear ramp
+    # n = where( z<ramp_start+ramp_length, (z-ramp_start)/ramp_length, n )
+    # # Supress density before the ramp
+    # n = where( z<ramp_start, 0., n )
+    # # Reduce density by half after the ramp
+    # n = where( z> ramp_start+ramp_length+ramp_plateau, 0.5*n, n )
+    # # Put the density to 0 later
+    # n = where( z> ramp_start+ramp_length+2*ramp_plateau, 0., n )
 
+    n = where(z < ramp_length, 0., n)
+    n = where(z > plasma_zmax - exit_ramp_length, sin(0.5 * pi * (plasma_zmax - z) / exit_ramp_length) * n, n)
     return(n)
 
 
@@ -404,7 +419,7 @@ def beam_dens_func(x, y, z):
 # Set some general options for warp
 set_diagnostics( interactive )
 set_boundary_conditions( f_boundz, f_boundxy, p_boundz, p_boundxy )
-set_simulation_box( nz, nx, ny, zmin, zmax, xmax, ymax, dim )
+set_simulation_box( nz, nx, ny, zmin, zmax, xmax, ymax, dim, xmin=xmin, ymin=ymin )
 set_moving_window( USE_MOVING_WINDOW, v_moving_window )
 
 # See smoothing.py
@@ -450,15 +465,26 @@ registersolver(em)
 # Introduce the laser (only if required)
 # --------------------------------------
 if USE_LASER==1:
-    laser_a0 = 0.8                                                  #USER EDIT
-    laser_w0 = 12.e-6                                               #USER EDIT
-    laser_tau = 30.e-15                                             #USER EDIT -  Can be resonant with density
-    laser_ctau = laser_tau *clight
-    laser_z0 = -2*laser_ctau
-    laser_zfoc = 50.e-6 #laser focused at z=10 micron
-    laser_polangle = pi/2 #y polarization
-    laser_source_z = 0.e-6
+    # laser_a0 = 0.8                                                  #USER EDIT
+    # laser_w0 = 12.e-6                                               #USER EDIT
+    # laser_tau = 30.e-15                                             #USER EDIT -  Can be resonant with density
+    # laser_ctau = laser_tau *clight
+    # laser_z0 = -2*laser_ctau
+    # laser_zfoc = 50.e-6 #laser focused at z=10 micron
+    # laser_polangle = pi/2 #y polarization
+    # laser_source_z = 0.e-6
+
+    laser_a0 = {{laserPulse_amplitude}}
+    lambda_laser = {{laserPulse_wavelength}}
+    laser_w0 = {{laserPulse_waist}}
+    laser_ctau = {{laserPulse_duration}} * clight
+    laser_z0 = -2 * laser_ctau
+    laser_zfoc = 50.e-6
+    laser_polangle = {{laserPulse_polarizationAngle}}
+    laser_source_z = 0
+    
     add_laser( em, dim, laser_a0, laser_w0, laser_ctau, laser_z0,
+        lambda0=lambda_laser,
         zf=laser_zfoc, theta_pol=laser_polangle, source_z=laser_source_z )
 
 
