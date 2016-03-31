@@ -38,6 +38,8 @@ if MPI.COMM_WORLD.Get_rank():
     try:
         cmd = [
             'mpiexec',
+            '--bind-to',
+            'none',
             '-n',
             str(cfg.slaves),
             sys.executable or 'python',
