@@ -1,6 +1,11 @@
 'use strict';
 
 app_local_routes.dynamics = '/dynamics/:simulationId';
+appDefaultSimulationValues = {
+    simulation: {
+        sourceType: 'laserPulse',
+    },
+};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -15,7 +20,44 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('WARPDynamicsController', function(appState, panelState, requestSender, frameCache, $timeout, $scope) {
+app.factory('warpService', function(appState, $rootScope) {
+    var self = {};
+    self.laserGridDimensions = null;
+    self.beamGridDimensions = null;
+
+    function initGridDimensions() {
+        if (self.laserGridDimensions)
+            return;
+        self.laserGridDimensions = appState.clone(APP_SCHEMA.enum['GridDimensions']);
+        self.beamGridDimensions = appState.clone(self.laserGridDimensions);
+        self.laserGridDimensions.splice(2, 1);
+        self.beamGridDimensions.splice(1, 1);
+    }
+
+    function isSourceType(sourceType) {
+        if (appState.isLoaded())
+            return appState.applicationState().simulation.sourceType == sourceType;
+        return false;
+    }
+
+    self.isElectronBeam = function() {
+        return isSourceType('electronBeam');
+    };
+
+    self.isLaserPulse = function() {
+        return isSourceType('laserPulse');
+    }
+
+    $rootScope.$on('modelsLoaded', function() {
+        initGridDimensions();
+        APP_SCHEMA.enum['GridDimensions'] = self.isLaserPulse()
+            ? self.laserGridDimensions
+            : self.beamGridDimensions;
+    });
+    return self;
+});
+
+app.controller('WARPDynamicsController', function(appState, frameCache, panelState, requestSender, warpService, $scope, $timeout) {
     var self = this;
     var simulationModel = 'animation';
     self.panelState = panelState;
@@ -28,6 +70,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
         {
             fieldAnimation: ['field', 'coordinate', 'mode'],
             particleAnimation: ['x', 'y', 'histogramBins'],
+            beamAnimation: ['x', 'y', 'histogramBins'],
         },
         simulationModel);
     frameCache.setFrameCount(0);
@@ -111,6 +154,10 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
         return false;
     };
 
+    self.isElectronBeam = function() {
+        return warpService.isElectronBeam();
+    };
+
     self.isState = function(state) {
         if (appState.isLoaded())
             return simulationState() == state;
@@ -143,7 +190,7 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
     }
 });
 
-app.controller('WARPSourceController', function($scope, appState, frameCache, $timeout) {
+app.controller('WARPSourceController', function(appState, frameCache, warpService, $scope, $timeout) {
     var self = this;
     $scope.appState = appState;
     var constants = {
@@ -151,9 +198,7 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
         eps0: 8.85418781762e-12,
         emass: 9.10938291e-31,
         clight: 299792458.0,
-        gammafrm: 1.0,
     };
-    constants.betafrm = Math.sqrt(1.0 -1.0 / Math.pow(constants.gammafrm, 2));
 
     function clearFrames() {
         //TODO(pjm): show a warning dialog before saving model if frame count > 10
@@ -217,7 +262,7 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
         if (! appState.isLoaded())
             return;
         var laserPulse = appState.models.laserPulse;
-        var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
+        var lambdaLaser = laserPulse.wavelength / 1e6;
         var grid = appState.models.simulationGrid;
         grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zCellsPerWavelength / lambdaLaser);
         grid.rCount = Math.round((grid.rMax - grid.rMin) * grid.rCellsPerSpotSize / laserPulse.waist);
@@ -247,15 +292,24 @@ app.controller('WARPSourceController', function($scope, appState, frameCache, $t
         }
         var grid = appState.models.simulationGrid;
         grid.rMin = 0;
-        var lambdaLaser = laserPulse.wavelength / 1e6 * constants.gammafrm * (1.0 + constants.betafrm);
+        var lambdaLaser = laserPulse.wavelength / 1e6;
         grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
         // scale to laser pulse
         if (grid.gridDimensions == 's') {
             grid.rLength = (grid.rScale * laserPulse.waist).toFixed(12);
             grid.zLength = (grid.zScale * laserPulse.duration / 1e6 * 4 * constants.clight).toFixed(12);
         }
+        recalcLength();
         recalcCellCount();
     }
+
+    self.isLaserPulse = function() {
+        return warpService.isLaserPulse();
+    };
+
+    self.isElectronBeam = function() {
+        return warpService.isElectronBeam();
+    };
 
     $scope.$watch('appState.models.laserPulse.pulseDimensions', pulseDimensionsChanged);
     $scope.$watch('appState.models.laserPulse.length', recalcValues);

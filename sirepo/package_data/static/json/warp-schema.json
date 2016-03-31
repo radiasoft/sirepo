@@ -28,7 +28,8 @@
         ],
         "GridDimensions": [
             ["a", "Absolute"],
-            ["s", "Scale to Laser Pulse"]
+            ["s", "Scale to Laser Pulse"],
+            ["e", "Scale to Electron Beam"]
         ],
         "PulseDimensions": [
             ["a", "Absolute"],
@@ -71,6 +72,10 @@
             ["31", "31"],
             ["32", "32"]
         ],
+        "SourceType": [
+            ["laserPulse", "Laser Pulse"],
+            ["electronBeam", "Electron Beam"]
+        ],
         "XValue": [
             ["x", "x"],
             ["y", "y"],
@@ -89,6 +94,21 @@
         ]
     },
     "model": {
+        "beamAnimation": {
+            "x": ["X Value", "XValue"],
+            "y": ["Y Value", "YValue"],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "beamPreviewReport": {
+            "x": ["X Value", "XValue"],
+            "y": ["Y Value", "YValue"],
+            "histogramBins": ["Histogram Bins", "Integer"]
+        },
+        "electronBeam": {
+            "charge": ["Charge [C]", "Float"],
+            "energy": ["Energy [GeV]", "Float"]
+        },
         "electronPlasma": {
             "density": ["Density [m⁻³]", "Float"],
             "length": ["Length [mm]", "Float"],
@@ -123,7 +143,8 @@
             "zParticlesPerCell": ["Z Particles per Cell", "Range1to8"]
         },
         "simulation": {
-            "name": ["Name", "String"]
+            "name": ["Name", "String"],
+            "sourceType": ["Source Type", "SourceType"]
         },
         "particleAnimation": {
             "x": ["X Value", "XValue"],
@@ -145,6 +166,31 @@
         "simulationStatus": {}
     },
     "view": {
+        "beamAnimation": {
+            "title": "Electron Beam Animation",
+            "advanced": [
+                "x",
+                "y",
+                "histogramBins",
+                "framesPerSecond"
+            ]
+        },
+        "beamPreviewReport": {
+            "title": "Electron Beam Preview Report",
+            "advanced": [
+                "x",
+                "y",
+                "histogramBins"
+            ]
+        },
+        "electronBeam": {
+            "title": "Electron Beam",
+            "basic": [
+                "charge",
+                "energy"
+            ],
+            "advanced": []
+        },
         "electronPlasma": {
             "title": "Electron Plasma",
             "basic": [
@@ -212,7 +258,8 @@
         "simulation": {
             "title": "Simulation",
             "advanced": [
-                "name"
+                "name",
+                "sourceType"
             ]
         },
         "simulationStatus": {

@@ -349,7 +349,8 @@ def app_run_background():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _json_input()
-    data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
+    if data['report'] in data['models']['simulationStatus']:
+        data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
     simulation_type = data['simulationType']
     simulation_db.save_simulation_json(simulation_type, data)
     cfg.job_queue.kill(_job_id(simulation_db.parse_sid(data), data['report']))

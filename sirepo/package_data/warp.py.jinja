@@ -183,9 +183,9 @@ D_CELL_X = 40.
 D_CELL_Y = D_CELL_X
 D_CELL_Z = 40.
 
-USE_LASER = 1
+USE_LASER = {{useLaser}}
 
-USE_BEAM = 0
+USE_BEAM = {{useBeam}}
 
 
 # ---------------------------------------------------------------------------------------
@@ -242,7 +242,7 @@ diag_period = {{incSteps}}
 # Whether to write the fields
 write_fields = 1
 # Whether to write the particles
-write_particles = {{isAnimationView}}
+write_particles = {{isAnimationView}} or USE_BEAM
 # Whether to write the diagnostics in parallel
 parallel_output = False
 
@@ -284,18 +284,16 @@ ion_states = { 'Hydrogen': {'relative_density':1., 'q_start':1, 'q_max':1 },
 # Specify the grid parameters
 # --------------------------
 
-#specify grid dimensions
-lz = NUM_SIGMA_L * lambda_pe
-lx = NUM_SIGMA_R  * lambda_pe
-ly = lx
-
-
 #compute needed quantities for initialization
 if USE_BEAM:
+    #specify grid dimensions
+    lz = NUM_SIGMA_L * lambda_pe
+    lx = NUM_SIGMA_R  * lambda_pe
+    ly = lx
     nx, ny, nz, zmin, zmax, xmax, ymax = define_grid(lx,ly,lz,lambda_pe, D_CELL_X, D_CELL_Y, D_CELL_Z)
     xmin = 0
     ymin = 0
-    
+
 elif USE_LASER:
     nx = {{simulationGrid_rCount}}
     ny = 300
@@ -306,7 +304,7 @@ elif USE_LASER:
     xmax = {{simulationGrid_rMax}}
     ymax = xmax
     ymin = -ymax
-    
+
 
 # Specify the plasma parameters - these can be independent of the initial grid dimensions
 # ---------------------------------------------------------------------------------------
@@ -367,6 +365,7 @@ def plasma_dens_func(x, y, z):
     # n = where( z> ramp_start+ramp_length+2*ramp_plateau, 0., n )
 
     n = where(z < ramp_length, 0., n)
+    #TODO(pjm): taken from previous script, this could be completely wrong, need to review this
     n = where(z > plasma_zmax - exit_ramp_length, sin(0.5 * pi * (plasma_zmax - z) / exit_ramp_length) * n, n)
     return(n)
 
@@ -461,7 +460,7 @@ registersolver(em)
 
 # Introduce the laser (only if required)
 # --------------------------------------
-if USE_LASER==1:
+if USE_LASER:
     # laser_a0 = 0.8                                                  #USER EDIT
     # laser_w0 = 12.e-6                                               #USER EDIT
     # laser_tau = 30.e-15                                             #USER EDIT -  Can be resonant with density
@@ -479,7 +478,7 @@ if USE_LASER==1:
     laser_zfoc = 50.e-6
     laser_polangle = {{laserPulse_polarizationAngle}}
     laser_source_z = 0
-    
+
     add_laser( em, dim, laser_a0, laser_w0, laser_ctau, laser_z0,
         lambda0=lambda_laser,
         zf=laser_zfoc, theta_pol=laser_polangle, source_z=laser_source_z )
@@ -490,11 +489,13 @@ if USE_LASER==1:
 if USE_BEAM:
 
     # Specify the maximum density of the e- drive bunch
-    CHARGE  = 1.0e-08 # total beam charge [C]                       #USER EDIT
+    #CHARGE  = 1.0e-08 # total beam charge [C]                       #USER EDIT
+    CHARGE = {{electronBeam_charge}} # total beam charge [C]
     n_total = CHARGE / echarge  # number of electrons
 
     #Beam energy
-    beam_energy = 23. #beam energy in GeV                           #USER EDIT
+    #beam_energy = 23. #beam energy in GeV                           #USER EDIT
+    beam_energy = {{electronBeam_energy}} #beam energy in GeV
     GAMMA_BEAM = beam_energy*1.e3/0.510998910 #beam gamma
 
     #The relative RMS longitudinal energy spread
@@ -615,12 +616,12 @@ if {{isAnimationView}} and USE_MOVING_WINDOW :
 
 # Setup the diagnostics
 # ---------------------
-if write_fields == 1:
+if write_fields:
     diag1 = FieldDiagnostic( period=diag_period, top=top, w3d=w3d, em=em,
                 comm_world=comm_world, lparallel_output=parallel_output,
                 write_dir={{outputDir}})
     installafterstep( diag1.write )
-if write_particles == 1:
+if write_particles:
     diag2 = ParticleDiagnostic( period=diag_period, top=top, w3d=w3d,
             species={ species.name : species for species in listofallspecies },
             comm_world=comm_world, lparallel_output=parallel_output,
@@ -640,4 +641,3 @@ if {{isAnimationView}}:
     while doit:
         step(inc_steps)
         doit = w3d.zmmin + top.zgrid < plasma_zmax
-

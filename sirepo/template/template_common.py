@@ -17,9 +17,6 @@ OUTPUT_BASE_NAME = 'out'
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = 'parameters.py'
 
-#: Parameters json file
-PARAMETERS_BASE_NAME = 'parameters'
-
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""

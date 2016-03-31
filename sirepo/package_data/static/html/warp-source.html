@@ -3,7 +3,8 @@
     <div class="col-md-6 col-xl-4">
       <div class="row">
         <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="laserPulse"></div>
+          <div data-ng-if="source.isLaserPulse()" data-basic-editor-panel="" data-model-name="laserPulse"></div>
+          <div data-ng-if="source.isElectronBeam()" data-basic-editor-panel="" data-model-name="electronBeam"></div>
         </div>
         <div class="col-sm-12">
           <div data-basic-editor-panel="" data-model-name="electronPlasma"></div>
@@ -13,8 +14,11 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div data-ng-if="source.isLaserPulse()" class="col-md-6 col-xl-4">
       <div data-report-panel="heatmap" data-model-name="laserPreviewReport"></div>
+    </div>
+    <div data-ng-if="source.isElectronBeam()" class="col-md-6 col-xl-4">
+      <div data-report-panel="heatmap" data-model-name="beamPreviewReport"></div>
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->

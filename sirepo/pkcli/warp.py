@@ -28,13 +28,19 @@ def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         _run_warp()
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        field = data['models']['laserPreviewReport']['field']
-        coordinate = data['models']['laserPreviewReport']['coordinate']
-        mode = data['models']['laserPreviewReport']['mode']
-        if mode != 'all':
-            mode = int(mode)
         data_file = template.open_data_file(py.path.local())
-        res = template.extract_field_report(field, coordinate, mode, data_file)
+        model = data['models'][data['report']]
+
+        if data['report'] == 'laserPreviewReport':
+            field = model['field']
+            coordinate = model['coordinate']
+            mode = model['mode']
+            if mode != 'all':
+                mode = int(mode)
+            res = template.extract_field_report(field, coordinate, mode, data_file)
+        elif data['report'] == 'beamPreviewReport':
+            res = template.extract_particle_report(model['x'], model['y'], model['histogramBins'], 'beam', data_file)
+
         simulation_db.write_json(template_common.OUTPUT_BASE_NAME, res)
 
 
@@ -56,7 +62,10 @@ def _run_warp():
     doit = True
     while doit:
         step(inc_steps)
-        doit = w3d.zmmin + top.zgrid < 0
+        if USE_BEAM:
+            doit = False
+        else:
+            doit = w3d.zmmin + top.zgrid < 0
 
 def _script():
     return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)

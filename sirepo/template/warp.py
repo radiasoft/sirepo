@@ -47,7 +47,8 @@ def background_percent_complete(data, run_dir, is_running):
     from opmd_viewer.openpmd_timeseries.data_reader import field_reader
     Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
     plasma_length = float(data['models']['electronPlasma']['length']) / 1e3
-    percent_complete = (info.imshow_extent[0] / plasma_length)
+    zmin = float(data['models']['simulationGrid']['zMin']) / 1e6
+    percent_complete = (info.imshow_extent[1] / (plasma_length - zmin))
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
@@ -98,6 +99,24 @@ def extract_field_report(field, coordinate, mode, data_file):
     }
 
 
+def extract_particle_report(xarg, yarg, histogram_bins, particle_type, data_file):
+    ds = data_file.data_set
+    x = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[xarg])][:]
+    y = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[yarg])][:]
+    hist, edges = numpy.histogramdd([x, y], int(histogram_bins))
+    xunits = ' [m]' if len(xarg) == 1 else ''
+    yunits = ' [m]' if len(yarg) == 1 else ''
+    return {
+        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        'x_label': '{}{}'.format(xarg, xunits),
+        'y_label': '{}{}'.format(yarg, yunits),
+        'title': 't = {}'.format(_iteration_title(data_file)),
+        'z_matrix': hist.T.tolist(),
+        'frameCount': data_file.num_frames,
+    }
+
+
 def fixup_old_data(data):
     if 'laserPreviewReport' not in data['models']:
         data['models']['laserPreviewReport'] = {}
@@ -140,6 +159,21 @@ def fixup_old_data(data):
         laserPreview['field'] = 'E'
         laserPreview['coordinate'] = 'y'
         laserPreview['mode'] = '1'
+    if 'sourceType' not in data['models']['simulation']:
+        data['models']['simulation']['sourceType'] = 'laserPulse'
+    if 'electronBeam' not in data['models']:
+        data['models']['electronBeam'] = {
+            'charge': 1.0e-08,
+            'energy': 23,
+        }
+    if 'beamPreviewReport' not in data['models']:
+        data['models']['beamPreviewReport'] = {
+            'x': 'z',
+            'y': 'x',
+            'histogramBins': 100
+        }
+    if 'beamAnimation' not in data['models']:
+        data['models']['beamAnimation'] = data['models']['particleAnimation'].copy()
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -148,8 +182,12 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = 1 if run_async else 0
     v['incSteps'] = 20
-    if run_dir:
-        simulation_db.write_json(run_dir.join(template_common.PARAMETERS_BASE_NAME), v)
+    if data['models']['simulation']['sourceType'] == 'electronBeam':
+        v['useBeam'] = 1
+        v['useLaser'] = 0
+    else:
+        v['useBeam'] = 0
+        v['useLaser'] = 1
     return pkjinja.render_resource('warp.py', v)
 
 
@@ -164,7 +202,9 @@ def get_simulation_frame(run_dir, data):
     if data['modelName'] == 'fieldAnimation':
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
-        return _particle_animation(args, data_file)
+        return _particle_animation(args, data_file, 'electrons')
+    if data['modelName'] == 'beamAnimation':
+        return _particle_animation(args, data_file, 'beam')
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -180,7 +220,12 @@ def get_data_file(run_dir, frame_index):
 
 
 def new_simulation(data, new_simulation_data):
-    pass
+    source = new_simulation_data['sourceType']
+    if not source:
+        source = 'laserPulse'
+    data['models']['simulation']['sourceType'] = source
+    if source == 'electronBeam':
+        data['models']['simulationGrid']['gridDimensions'] = 'e';
 
 
 def open_data_file(run_dir, file_index=None, files=None):
@@ -274,25 +319,11 @@ def _iteration_title(data_file):
     return '{:.1f} fs (iteration {})'.format(fs, data_file.iteration)
 
 
-def _particle_animation(args, data_file):
+def _particle_animation(args, data_file, particle_type):
     xarg = args[0]
     yarg = args[1]
-    histogramBins = args[2]
-    ds = data_file.data_set
-    x = ds['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[xarg])][:]
-    y = ds['particles/electrons/{}'.format(_PARTICLE_ARG_PATH[yarg])][:]
-    hist, edges = numpy.histogramdd([x, y], int(histogramBins))
-    xunits = ' [m]' if len(xarg) == 1 else ''
-    yunits = ' [m]' if len(yarg) == 1 else ''
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': '{}{}'.format(xarg, xunits),
-        'y_label': '{}{}'.format(yarg, yunits),
-        'title': 't = {}'.format(_iteration_title(data_file)),
-        'z_matrix': hist.T.tolist(),
-        'frameCount': data_file.num_frames,
-    }
+    histogram_bins = args[2]
+    return extract_particle_report(xarg, yarg, histogram_bins, particle_type, data_file)
 
 
 def _validate_data(data, schema):
