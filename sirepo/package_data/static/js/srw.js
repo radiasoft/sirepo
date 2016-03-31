@@ -1,6 +1,11 @@
 'use strict';
 
 app_local_routes.beamline = '/beamline/:simulationId';
+appDefaultSimulationValues = {
+    simulation: {
+        sourceType: 'u',
+    },
+};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();

@@ -27,6 +27,8 @@ var app_local_routes = {
     notFoundCopy: '/copy-session/:simulationIds',
 };
 
+var appDefaultSimulationValues = {};
+
 var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 app.value('localRoutes', app_local_routes);
@@ -865,11 +867,7 @@ app.controller('SimulationsController', function ($scope, $window, $location, ap
     var self = this;
     self.list = [];
     self.selected = null;
-    appState.clearModels({
-        simulation: {
-            sourceType: 'u',
-        },
-    });
+    appState.clearModels(appState.clone(appDefaultSimulationValues));
     $scope.$on('simulation.changed', function() {
         appState.newSimulation(
             appState.models.simulation,
