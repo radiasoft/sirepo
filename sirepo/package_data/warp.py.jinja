@@ -196,9 +196,6 @@ dim = "circ"
 # Number of azimuthal modes beyond m=0, for "circ" (not used for "2d" and "3d")
 circ_m = 1
 
-# Whether to run the simulation interactively (0:off, 1:on)
-interactive = 0
-
 # Moving window (0:off, 1:on)
 USE_MOVING_WINDOW = 1
 # Speed of the moving window (ignored if use_moving_window = 0)
@@ -230,7 +227,7 @@ stride_smooth = array([[ 1 , 1 ], [ 1 , 1 ], [ 1 , 1 ]])
 # Field solver (0:Yee, 1:Karkkainen on EF,B, 3:Lehe)
 stencil = 0
 # Particle shape (1:linear, 2:quadratic, 3:cubic)
-depos_order = 1
+depos_order = 2
 # Gathering mode (1:from cell centers, 4:from Yee mesh)
 efetch = 1
 # Particle pusher (0:Boris, 1:Vay)
@@ -417,7 +414,7 @@ def beam_dens_func(x, y, z):
 # ---------------------------------------------------------------------------------------
 
 # Set some general options for warp
-set_diagnostics( interactive )
+set_diagnostics( 0 )
 set_boundary_conditions( f_boundz, f_boundxy, p_boundz, p_boundxy )
 set_simulation_box( nz, nx, ny, zmin, zmax, xmax, ymax, dim, xmin=xmin, ymin=ymin )
 set_moving_window( USE_MOVING_WINDOW, v_moving_window )
@@ -630,27 +627,17 @@ if write_particles == 1:
             write_dir={{outputDir}})
     installafterstep( diag2.write )
 
-print('\nInitialization complete\n')
+#print('\nInitialization complete\n')
 
 # ---------------------------------------------------------------------------------------
 # Simulation loop (Normal users should not modify this part either.)
 # ---------------------------------------------------------------------------------------
 
-#TODO(pjm): replace with comparison against plasma length
-# Total number of timesteps in the simulation
-n_steps = {{numSteps}}
+inc_steps = {{incSteps}}
 
-# Non-interactive mode
-if interactive==0:
-    # n_stepped=0
-    # while n_stepped < n_steps:
-    #     step(10)
-    #     n_stepped = n_stepped + 10
-    #     #print("zmmin: {}, zgrid: {}".format(w3d.zmmin, top.zgrid))
-    inc_steps = {{incSteps}}
-    for _ in xrange(0, n_steps, inc_steps):
+if {{isAnimationView}}:
+    doit = True
+    while doit:
         step(inc_steps)
+        doit = w3d.zmmin + top.zgrid < plasma_zmax
 
-# Interactive mode
-elif interactive==1:
-    print('<<< To execute n steps, type "step(n)" at the prompt >>>')

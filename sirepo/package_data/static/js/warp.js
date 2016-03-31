@@ -20,7 +20,6 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
     var simulationModel = 'animation';
     self.panelState = panelState;
     self.percentComplete = 0;
-    self.totalFrames = 0;
     self.isDestroyed = false;
     self.isAborting = false;
     self.dots = '.';
@@ -42,7 +41,6 @@ app.controller('WARPDynamicsController', function(appState, panelState, requestS
             'runStatus',
             function(data) {
                 frameCache.setFrameCount(data.frameCount);
-                self.totalFrames = data.totalFrames;
                 if (self.isAborting)
                     return;
                 if (data.state != 'running') {

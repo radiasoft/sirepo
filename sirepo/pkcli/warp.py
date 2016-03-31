@@ -52,7 +52,11 @@ def _run_warp():
     """Run warp program with isolated locals()
     """
     exec(_script(), locals(), locals())
-
+    # advance the window until zmin is >= 0 (avoids mirroring in output)
+    doit = True
+    while doit:
+        step(inc_steps)
+        doit = w3d.zmmin + top.zgrid < 0
 
 def _script():
     return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)

@@ -39,19 +39,22 @@ def background_percent_complete(data, run_dir, is_running):
         return {
             'percent_complete': 0,
             'frame_count': 0,
-            'total_frames': 0,
         }
     file_index = len(files) - 1
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
-    params = simulation_db.read_json(run_dir.join(template_common.PARAMETERS_BASE_NAME))
-    total_frames = int(params['numSteps'] / params['incSteps'])
-    percent_complete = (file_index + 1) / total_frames * 100
+    from opmd_viewer.openpmd_timeseries.data_reader import field_reader
+    Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
+    plasma_length = float(data['models']['electronPlasma']['length']) / 1e3
+    percent_complete = (info.imshow_extent[0] / plasma_length)
+    if percent_complete < 0:
+        percent_complete = 0
+    elif percent_complete > 1.0:
+        percent_complete = 1.0
     return {
-        'percent_complete': percent_complete,
+        'percent_complete': percent_complete * 100,
         'frame_count': file_index + 1,
-        'total_frames': total_frames,
     }
 
 
@@ -144,7 +147,6 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = 1 if run_async else 0
-    v['numSteps'] = 1000 if run_async else 400
     v['incSteps'] = 20
     if run_dir:
         simulation_db.write_json(run_dir.join(template_common.PARAMETERS_BASE_NAME), v)

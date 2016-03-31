@@ -381,7 +381,7 @@ def app_run_status():
         state = data['models']['simulationStatus'][report]['state']
         completion = template.background_percent_complete(data, run_dir, False)
         if state == 'running':
-            if completion['frame_count'] == completion['total_frames']:
+            if completion['percent_complete'] >= 100:
                 state = 'completed'
             else:
                 state = 'canceled'
@@ -398,7 +398,6 @@ def app_run_status():
         'state': state,
         'percentComplete': completion['percent_complete'],
         'frameCount': completion['frame_count'],
-        'totalFrames': completion['total_frames'],
         'frameId': frame_id,
         'elapsedTime': elapsed_time,
     })
