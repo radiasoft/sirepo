@@ -29,7 +29,7 @@
         "GridDimensions": [
             ["a", "Absolute"],
             ["s", "Scale to Laser Pulse"],
-            ["e", "Scale to Electron Beam"]
+            ["e", "Scale to Electron Plasma"]
         ],
         "PulseDimensions": [
             ["a", "Absolute"],
@@ -44,6 +44,15 @@
             ["6", "6"],
             ["7", "7"],
             ["8", "8"]
+        ],
+        "Range20to80": [
+            ["20", "20"],
+            ["30", "30"],
+            ["40", "40"],
+            ["50", "50"],
+            ["60", "60"],
+            ["70", "70"],
+            ["80", "80"]
         ],
         "Range8to32": [
             ["8", "8"],
@@ -127,20 +136,22 @@
         },
         "simulationGrid": {
             "gridDimensions": ["Grid Dimensions", "GridDimensions"],
-            "rScale": ["R Scale", "Float"],
+            "rScale": ["R Domain Size", "Float"],
             "rLength": ["R Length [µm]", "Float"],
             "rMin": ["R Min [µm]", "Float"],
             "rMax": ["R Max [µm]", "Float"],
             "rCellsPerSpotSize": ["R Cells per Spot Size", "Range8to32"],
             "rCount": ["R Number of Cells", "Integer"],
             "rParticlesPerCell": ["R Particles per Cell", "Range1to8"],
-            "zScale": ["Z Scale", "Float"],
+            "zScale": ["Z Domain Size", "Float"],
             "zLength": ["Z Length [µm]", "Float"],
             "zMin": ["Z Min [µm]", "Float"],
             "zMax": ["Z Max [µm]", "Float"],
             "zCellsPerWavelength": ["Z Cells per Laser Wavelength", "Range8to32"],
             "zCount": ["Z Number of Cells", "Integer"],
-            "zParticlesPerCell": ["Z Particles per Cell", "Range1to8"]
+            "zParticlesPerCell": ["Z Particles per Cell", "Range1to8"],
+            "rCellResolution": ["R Cells per Plasma Wavelength", "Range20to80"],
+            "zCellResolution": ["Z Cell per Plasma Wavelength", "Range20to80"]
         },
         "simulation": {
             "name": ["Name", "String"],
@@ -218,6 +229,7 @@
                         "rMin",
                         "rMax",
                         "rCellsPerSpotSize",
+                        "rCellResolution",
                         "rCount",
                         "rParticlesPerCell"
                     ]],
@@ -227,6 +239,7 @@
                         "zMin",
                         "zMax",
                         "zCellsPerWavelength",
+                        "zCellResolution",
                         "zCount",
                         "zParticlesPerCell"
                     ]]
@@ -267,7 +280,7 @@
             "advanced": []
         },
         "particleAnimation": {
-            "title": "Particle Animation",
+            "title": "Plasma Animation",
             "advanced": [
                 "x",
                 "y",

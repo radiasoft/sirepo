@@ -1,5 +1,20 @@
 {
     "models": {
+        "beamAnimation": {
+            "framesPerSecond": 20,
+            "histogramBins": 221,
+            "x": "z",
+            "y": "x"
+        },
+        "beamPreviewReport": {
+            "histogramBins": 221,
+            "x": "z",
+            "y": "x"
+        },
+        "electronBeam": {
+            "charge": 1e-08,
+            "energy": 23
+        },
         "electronPlasma": {
             "density": 1.75e+25,
             "entranceRampLength": 1e-05,
@@ -29,16 +44,18 @@
         },
         "particleAnimation": {
             "framesPerSecond": 20,
-            "histogramBins": 100,
+            "histogramBins": 221,
             "x": "z",
             "y": "x"
         },
         "simulation": {
-            "name": "WARP example simulation",
-            "simulationId": "RSXT4rzY"
+            "name": "test",
+            "simulationId": "bobtryQJ",
+            "sourceType": "laserPulse"
         },
         "simulationGrid": {
             "gridDimensions": "s",
+            "rCellResolution": 20,
             "rCellsPerSpotSize": 8,
             "rCount": 32,
             "rLength": "20.324980154380",
@@ -46,6 +63,7 @@
             "rMin": 0,
             "rParticlesPerCell": 1,
             "rScale": 4,
+            "zCellResolution": 20,
             "zCellsPerWavelength": 8,
             "zCount": 219,
             "zLength": "20.324980154631",
@@ -55,10 +73,15 @@
             "zScale": 2
         },
         "simulationStatus": {
+            "animation": {
+                "startTime": 1459545986,
+                "state": "completed"
+            },
             "startTime": 0,
             "state": "initial"
         }
     },
+    "report": "animation",
     "simulationType": "warp",
-    "version": "20151029"
+    "version": "20160331-9"
 }

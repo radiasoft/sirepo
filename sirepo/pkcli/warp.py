@@ -60,10 +60,12 @@ def _run_warp():
     exec(_script(), locals(), locals())
     # advance the window until zmin is >= 0 (avoids mirroring in output)
     doit = True
+    total_steps = 0
     while doit:
         step(inc_steps)
+        total_steps += inc_steps
         if USE_BEAM:
-            doit = False
+            doit = total_steps < diag_period
         else:
             doit = w3d.zmmin + top.zgrid < 0
 

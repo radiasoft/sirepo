@@ -59,46 +59,6 @@ import math
 # User defined functions
 # ---------------------------------------------------------------------------------------
 
-
-def define_grid(lx,ly,lz,l_pe, dx=40., dy=40., dz=40.):
-    """
-    Define the grid parameters, size and number of cells based on user inputs
-
-    Parameters
-    ----------
-    lx, ly, lz: physical dimensions of simulation domain
-    lp_e: plasma wavelength
-    (optional) dx, dy, dz: ratio representing the number of cells per plasma wavelength - default 40
-
-
-    Returns
-    -------
-    nx, ny, nz, zmin, zmax, xmax, ymax - a list specifying the following parameters
-
-    nx, ny, ny: number of grid cells in each dimension  - required for `set_simulation_box`
-    xmax, ymax, zmax: length of grid in each dimension - required for `set_simulation_box`
-
-
-    """
-
-    #Define number of grid cells in each dimension
-    nx = (lx*1.0/l_pe)*dx
-    ny = (ly*1.0/l_pe)*dy
-    nz = (lz*1.0/l_pe)*dz
-
-
-    #Dimension of the box in longitudinal direction (meters)
-    #For use with a moving window, the positive edge of the box must be very near zero.
-    zmax = 0.e-6
-    zmin = zmax - lz
-    #Dimension of the box in transverse directions - symmetric (-max, max)
-    xmax = 0.5 * lx
-    ymax = xmax
-
-    #return a list of the desired parameters
-    return nx, ny, nz, zmin, zmax, xmax, ymax
-
-
 def match_beam_transverse(eps_n,l_pe):
     """
     Define the beam radius that is matched to the defined plasma, for a given emittance.
@@ -175,13 +135,8 @@ lambda_pe = 3.34e+07 / sqrt(N_PLASMA)
 
 #Number of standard deviations to fill with particles in each direction (from center of bunch)
 #Also used to determine maximum grid dimensions by multiplying plasma wavelength
-NUM_SIGMA_R = 5.
-NUM_SIGMA_L = 3.
-
-#cell resolution e.g. dx =40
-D_CELL_X = 40.
-D_CELL_Y = D_CELL_X
-D_CELL_Z = 40.
+NUM_SIGMA_R = {{simulationGrid_rScale}}
+NUM_SIGMA_L = {{simulationGrid_zScale}}
 
 USE_LASER = {{useLaser}}
 
@@ -238,7 +193,7 @@ particle_pusher = 1
 # Diagnostics
 # -----------
 # Period of diagnostics (in number of timesteps)
-diag_period = {{incSteps}}
+diag_period = {{diagnosticPeriod}}
 # Whether to write the fields
 write_fields = 1
 # Whether to write the particles
@@ -257,9 +212,9 @@ parallel_output = False
 # Number of macroparticles per cell in each direction
 # In Circ, nppcelly is the number of particles along the
 # azimuthal direction. Use a multiple of 4*circ_m
-plasma_nx = 2
-plasma_ny = 4
-plasma_nz = 2
+plasma_nx = {{simulationGrid_rParticlesPerCell}}
+plasma_ny = 4 * circ_m
+plasma_nz = {{simulationGrid_zParticlesPerCell}}
 
 
 # Plasma content and profile
@@ -285,26 +240,15 @@ ion_states = { 'Hydrogen': {'relative_density':1., 'q_start':1, 'q_max':1 },
 # --------------------------
 
 #compute needed quantities for initialization
-if USE_BEAM:
-    #specify grid dimensions
-    lz = NUM_SIGMA_L * lambda_pe
-    lx = NUM_SIGMA_R  * lambda_pe
-    ly = lx
-    nx, ny, nz, zmin, zmax, xmax, ymax = define_grid(lx,ly,lz,lambda_pe, D_CELL_X, D_CELL_Y, D_CELL_Z)
-    xmin = 0
-    ymin = 0
-
-elif USE_LASER:
-    nx = {{simulationGrid_rCount}}
-    ny = 300
-    nz = {{simulationGrid_zCount}}
-    zmin = {{simulationGrid_zMin}}
-    zmax = {{simulationGrid_zMax}}
-    xmin = {{simulationGrid_zMin}}
-    xmax = {{simulationGrid_rMax}}
-    ymax = xmax
-    ymin = -ymax
-
+nx = {{simulationGrid_rCount}}
+ny = 300
+nz = {{simulationGrid_zCount}}
+zmin = {{simulationGrid_zMin}}
+zmax = {{simulationGrid_zMax}}
+xmin = {{simulationGrid_zMin}}
+xmax = {{simulationGrid_rMax}}
+ymax = xmax
+ymin = -ymax
 
 # Specify the plasma parameters - these can be independent of the initial grid dimensions
 # ---------------------------------------------------------------------------------------
@@ -461,15 +405,6 @@ registersolver(em)
 # Introduce the laser (only if required)
 # --------------------------------------
 if USE_LASER:
-    # laser_a0 = 0.8                                                  #USER EDIT
-    # laser_w0 = 12.e-6                                               #USER EDIT
-    # laser_tau = 30.e-15                                             #USER EDIT -  Can be resonant with density
-    # laser_ctau = laser_tau *clight
-    # laser_z0 = -2*laser_ctau
-    # laser_zfoc = 50.e-6 #laser focused at z=10 micron
-    # laser_polangle = pi/2 #y polarization
-    # laser_source_z = 0.e-6
-
     laser_a0 = {{laserPulse_amplitude}}
     lambda_laser = {{laserPulse_wavelength}}
     laser_w0 = {{laserPulse_waist}}
@@ -489,12 +424,10 @@ if USE_LASER:
 if USE_BEAM:
 
     # Specify the maximum density of the e- drive bunch
-    #CHARGE  = 1.0e-08 # total beam charge [C]                       #USER EDIT
     CHARGE = {{electronBeam_charge}} # total beam charge [C]
     n_total = CHARGE / echarge  # number of electrons
 
     #Beam energy
-    #beam_energy = 23. #beam energy in GeV                           #USER EDIT
     beam_energy = {{electronBeam_energy}} #beam energy in GeV
     GAMMA_BEAM = beam_energy*1.e3/0.510998910 #beam gamma
 

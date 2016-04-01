@@ -209,6 +209,14 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         return '.model-' + field.replace('.', '-');
     }
 
+    function lambdaLaser() {
+        return appState.models.laserPulse.wavelength / 1e6;
+    }
+
+    function lambdaPlasma() {
+        return 3.34e7 / Math.sqrt(appState.models.electronPlasma.density);
+    }
+
     function setVisibility(fields, isVisible, oldValue) {
         for (var i = 0; i < fields.length; i++) {
             var el = $(fieldClass(fields[i])).parent();
@@ -242,6 +250,12 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         setVisibility(fields.visible, ! isAbsolute, oldValue);
         setReadOnly(fields.editable, ! isAbsolute);
         setReadOnly(['simulationGrid.rMin', 'simulationGrid.rMax', 'simulationGrid.zMin', 'simulationGrid.zMax', 'simulationGrid.rCount', 'simulationGrid.zCount'], true);
+        var sourceFields = {
+            laserPulse: ['simulationGrid.rCellsPerSpotSize', 'simulationGrid.zCellsPerWavelength'],
+            electronBeam: ['simulationGrid.rCellResolution', 'simulationGrid.zCellResolution'],
+        };
+        setVisibility(sourceFields[self.isLaserPulse() ? 'laserPulse' : 'electronBeam'], true);
+        setVisibility(sourceFields[self.isLaserPulse() ? 'electronBeam' : 'laserPulse'], false);
         recalcValues();
     }
 
@@ -261,11 +275,17 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     function recalcCellCount() {
         if (! appState.isLoaded())
             return;
-        var laserPulse = appState.models.laserPulse;
-        var lambdaLaser = laserPulse.wavelength / 1e6;
         var grid = appState.models.simulationGrid;
-        grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zCellsPerWavelength / lambdaLaser);
-        grid.rCount = Math.round((grid.rMax - grid.rMin) * grid.rCellsPerSpotSize / laserPulse.waist);
+        if (self.isLaserPulse()) {
+            var laserPulse = appState.models.laserPulse;
+            var lambda = lambdaLaser();
+            grid.zCount = Math.round((grid.zMax - grid.zMin) / 1e6 * grid.zCellsPerWavelength / lambda);
+            grid.rCount = Math.round((grid.rMax - grid.rMin) * grid.rCellsPerSpotSize / laserPulse.waist);
+        }
+        else {
+            grid.zCount = Math.round(grid.zScale * grid.zCellResolution);
+            grid.rCount = Math.round(grid.rScale * grid.rCellResolution);
+        }
     }
 
     function recalcLength() {
@@ -279,25 +299,35 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     function recalcValues() {
         if (! appState.isLoaded())
             return;
-        var laserPulse = appState.models.laserPulse;
-        var wplab = Math.sqrt(
-            appState.models.electronPlasma.density
-                * Math.pow(constants.echarge, 2)
-                / (constants.eps0 * constants.emass));
-        var kplab = wplab / constants.clight;
-        // resonant wth plasma density
-        if (laserPulse.pulseDimensions == 'r') {
-            laserPulse.waist = (1e6 * laserPulse.spotSize / kplab).toFixed(12);
-            laserPulse.duration = (1e12 * laserPulse.length / kplab / constants.clight).toFixed(12);
-        }
         var grid = appState.models.simulationGrid;
-        grid.rMin = 0;
-        var lambdaLaser = laserPulse.wavelength / 1e6;
-        grid.zMax = (2.0 * lambdaLaser * 1e6).toFixed(12);
-        // scale to laser pulse
-        if (grid.gridDimensions == 's') {
-            grid.rLength = (grid.rScale * laserPulse.waist).toFixed(12);
-            grid.zLength = (grid.zScale * laserPulse.duration / 1e6 * 4 * constants.clight).toFixed(12);
+        if (self.isLaserPulse()) {
+            var laserPulse = appState.models.laserPulse;
+            var wplab = Math.sqrt(
+                appState.models.electronPlasma.density
+                    * Math.pow(constants.echarge, 2)
+                    / (constants.eps0 * constants.emass));
+            var kplab = wplab / constants.clight;
+            // resonant wth plasma density
+            if (laserPulse.pulseDimensions == 'r') {
+                laserPulse.waist = (1e6 * laserPulse.spotSize / kplab).toFixed(12);
+                laserPulse.duration = (1e12 * laserPulse.length / kplab / constants.clight).toFixed(12);
+            }
+            grid.rMin = 0;
+            var lambda = lambdaLaser();
+            grid.zMax = (2.0 * lambda * 1e6).toFixed(12);
+            // scale to laser pulse
+            if (grid.gridDimensions == 's') {
+                grid.rLength = (grid.rScale * laserPulse.waist).toFixed(12);
+                grid.zLength = (grid.zScale * laserPulse.duration / 1e6 * 4 * constants.clight).toFixed(12);
+            }
+        }
+        else {
+            var lambda = lambdaPlasma();
+            grid.zMax = 0;
+            if (grid.gridDimensions == 'e') {
+                grid.rLength = 0.5 * grid.rScale * lambda * 1e6;
+                grid.zLength = grid.zScale * lambda * 1e6;
+            }
         }
         recalcLength();
         recalcCellCount();
@@ -320,12 +350,15 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     $scope.$watch('appState.models.simulationGrid.zScale', recalcValues);
     $scope.$watch('appState.models.simulationGrid.rCellsPerSpotSize', recalcCellCount);
     $scope.$watch('appState.models.simulationGrid.zCellsPerWavelength', recalcCellCount);
+    $scope.$watch('appState.models.simulationGrid.rCellResolution', recalcCellCount);
+    $scope.$watch('appState.models.simulationGrid.zCellResolution', recalcCellCount);
     $scope.$watch('appState.models.simulationGrid.rLength', recalcLength);
     $scope.$watch('appState.models.simulationGrid.zLength', recalcLength);
     $scope.$watch('appState.models.laserPulse.duration', recalcValues);
     $scope.$watch('appState.models.laserPulse.wavelength', recalcValues);
 
     $scope.$on('laserPulse.changed', clearFrames);
+    $scope.$on('electronBeam.changed', clearFrames);
     $scope.$on('electronPlasma.changed', clearFrames);
     $scope.$on('simulationGrid.changed', clearFrames);
 

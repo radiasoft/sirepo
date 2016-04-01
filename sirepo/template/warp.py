@@ -174,6 +174,10 @@ def fixup_old_data(data):
         }
     if 'beamAnimation' not in data['models']:
         data['models']['beamAnimation'] = data['models']['particleAnimation'].copy()
+    if 'rCellResolution' not in data['models']['simulationGrid']:
+        grid = data['models']['simulationGrid']
+        grid['rCellResolution'] = 40
+        grid['zCellResolution'] = 40
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -182,6 +186,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = 1 if run_async else 0
     v['incSteps'] = 20
+    v['diagnosticPeriod'] = 50
     if data['models']['simulation']['sourceType'] == 'electronBeam':
         v['useBeam'] = 1
         v['useLaser'] = 0
@@ -225,7 +230,28 @@ def new_simulation(data, new_simulation_data):
         source = 'laserPulse'
     data['models']['simulation']['sourceType'] = source
     if source == 'electronBeam':
-        data['models']['simulationGrid']['gridDimensions'] = 'e';
+        grid = data['models']['simulationGrid']
+        grid['gridDimensions'] = 'e'
+        grid['rCellResolution'] = 20
+        grid['rCellsPerSpotSize'] = 8
+        grid['rCount'] = 100
+        grid['rLength'] = 264.0501846240597
+        grid['rMax'] = 264.0501846240597
+        grid['rMin'] = 0
+        grid['rParticlesPerCell'] = 2
+        grid['rScale'] = 5
+        grid['zCellResolution'] = 20
+        grid['zCellsPerWavelength'] = 8
+        grid['zCount'] = 60
+        grid['zLength'] = 316.86022154887166
+        grid['zMax'] = 0
+        grid['zMin'] = -316.86022154887166
+        grid['zParticlesPerCell'] = 2
+        grid['zScale'] = 3
+        data['models']['electronPlasma']['density'] = 1e23
+        data['models']['electronPlasma']['length'] = 1
+        data['models']['fieldAnimation']['coordinate'] = 'z'
+        data['models']['fieldAnimation']['mode'] = '0'
 
 
 def open_data_file(run_dir, file_index=None, files=None):
