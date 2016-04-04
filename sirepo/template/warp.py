@@ -103,7 +103,8 @@ def extract_particle_report(xarg, yarg, histogram_bins, particle_type, data_file
     ds = data_file.data_set
     x = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[xarg])][:]
     y = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[yarg])][:]
-    hist, edges = numpy.histogramdd([x, y], int(histogram_bins))
+    weights = ds['particles/{}/weighting'.format(particle_type)][:]
+    hist, edges = numpy.histogramdd([x, y], int(histogram_bins), weights=weights)
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
     return {
