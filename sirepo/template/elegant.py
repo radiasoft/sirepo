@@ -74,7 +74,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     return pkjinja.render_resource('elegant.py', v)
 
 
-def get_simulation_frame(run_dir, data):
+def get_simulation_frame(run_dir, data, model_data):
     pass
 
 

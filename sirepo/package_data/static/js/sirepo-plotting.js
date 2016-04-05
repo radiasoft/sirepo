@@ -776,6 +776,7 @@ app.directive('heatmap', function(plotting) {
             $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
+            $scope.dataCleared = true;
 
             var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange, pointer;
 
@@ -969,6 +970,10 @@ app.directive('heatmap', function(plotting) {
                 return selector ? e.select(selector) : e;
             }
 
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+            };
+
             $scope.init = function() {
                 select('svg').attr('height', plotting.initialHeight($scope));
                 xAxisScale = d3.scale.linear();
@@ -993,6 +998,7 @@ app.directive('heatmap', function(plotting) {
             };
 
             $scope.load = function(json) {
+                $scope.dataCleared = false;
                 heatmap = [];
                 xValueMin = json.x_range[0];
                 xValueMax = json.x_range[1];

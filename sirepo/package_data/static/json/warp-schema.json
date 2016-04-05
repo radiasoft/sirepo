@@ -116,7 +116,11 @@
         },
         "electronBeam": {
             "charge": ["Charge [C]", "Float"],
-            "energy": ["Energy [GeV]", "Float"]
+            "energy": ["Energy [GeV]", "Float"],
+            "rmsLength": ["RMS Length [µm]", "Float"],
+            "rmsRadius": ["RMS Radius [µm]", "Float"],
+            "bunchLength": ["Bunch Length [µm]", "Float"],
+            "transverseEmittance": ["Normalized Transverse Emmittance", "Float"]
         },
         "electronPlasma": {
             "density": ["Density [m⁻³]", "Float"],

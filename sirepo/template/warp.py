@@ -99,11 +99,30 @@ def extract_field_report(field, coordinate, mode, data_file):
     }
 
 
-def extract_particle_report(xarg, yarg, histogram_bins, particle_type, data_file):
+def extract_particle_report(xarg, yarg, histogram_bins, particle_type, run_dir, data_file, data):
     ds = data_file.data_set
     x = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[xarg])][:]
     y = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[yarg])][:]
     weights = ds['particles/{}/weighting'.format(particle_type)][:]
+
+    if xarg == 'z' and particle_type == 'electrons':
+        grid = data['models']['simulationGrid']
+        length = (float(grid['zMax']) - float(grid['zMin'])) / 1e6
+        dx = length / float(grid['zCount'])
+        x_min = x.min()
+        x_max = x.max()
+        x_range = x_max - x_min
+
+        diff = length - x_range
+        if diff > dx:
+            if x_min - length < 0:
+                adjust = x_min - diff
+            else:
+                adjust = x_max + diff
+            x = numpy.append(x, adjust)
+            y = numpy.append(y, y.min())
+            weights = numpy.append(weights, 0)
+
     hist, edges = numpy.histogramdd([x, y], int(histogram_bins), weights=weights)
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
@@ -179,6 +198,12 @@ def fixup_old_data(data):
         grid = data['models']['simulationGrid']
         grid['rCellResolution'] = 40
         grid['zCellResolution'] = 40
+    if 'rmsLength' not in data['models']['electronBeam']:
+        beam = data['models']['electronBeam']
+        beam['rmsLength'] = 0
+        beam['rmsRadius'] = 0
+        beam['bunchLength'] = 0
+        beam['transverseEmittance'] = 0
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -186,7 +211,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = 1 if run_async else 0
-    v['incSteps'] = 20
+    v['incSteps'] = 50
     v['diagnosticPeriod'] = 50
     if data['models']['simulation']['sourceType'] == 'electronBeam':
         v['useBeam'] = 1
@@ -201,16 +226,16 @@ def get_animation_name(data):
     return 'animation'
 
 
-def get_simulation_frame(run_dir, data):
+def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     data_file = open_data_file(run_dir, frame_index)
     args = data['animationArgs'].split('_')
     if data['modelName'] == 'fieldAnimation':
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
-        return _particle_animation(args, data_file, 'electrons')
+        return _particle_animation(args, run_dir, data_file, 'electrons', model_data)
     if data['modelName'] == 'beamAnimation':
-        return _particle_animation(args, data_file, 'beam')
+        return _particle_animation(args, run_dir, data_file, 'beam', model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -241,9 +266,9 @@ def new_simulation(data, new_simulation_data):
         grid['rMin'] = 0
         grid['rParticlesPerCell'] = 2
         grid['rScale'] = 5
-        grid['zCellResolution'] = 20
+        grid['zCellResolution'] = 30
         grid['zCellsPerWavelength'] = 8
-        grid['zCount'] = 60
+        grid['zCount'] = 90
         grid['zLength'] = 316.86022154887166
         grid['zMax'] = 0
         grid['zMin'] = -316.86022154887166
@@ -253,6 +278,8 @@ def new_simulation(data, new_simulation_data):
         data['models']['electronPlasma']['length'] = 1
         data['models']['fieldAnimation']['coordinate'] = 'z'
         data['models']['fieldAnimation']['mode'] = '0'
+        data['models']['particleAnimation']['histogramBins'] = 90
+        data['models']['beamAnimation']['histogramBins'] = 54
 
 
 def open_data_file(run_dir, file_index=None, files=None):
@@ -346,11 +373,11 @@ def _iteration_title(data_file):
     return '{:.1f} fs (iteration {})'.format(fs, data_file.iteration)
 
 
-def _particle_animation(args, data_file, particle_type):
+def _particle_animation(args, run_dir, data_file, particle_type, model_data):
     xarg = args[0]
     yarg = args[1]
     histogram_bins = args[2]
-    return extract_particle_report(xarg, yarg, histogram_bins, particle_type, data_file)
+    return extract_particle_report(xarg, yarg, histogram_bins, particle_type, run_dir, data_file, model_data)
 
 
 def _validate_data(data, schema):

@@ -7,9 +7,9 @@
             "y": "x"
         },
         "beamPreviewReport": {
-            "histogramBins": 221,
-            "x": "z",
-            "y": "x"
+            "histogramBins": 100,
+            "x": "x",
+            "y": "y"
         },
         "electronBeam": {
             "charge": 1e-08,
@@ -44,7 +44,7 @@
         },
         "particleAnimation": {
             "framesPerSecond": 20,
-            "histogramBins": 221,
+            "histogramBins": 219,
             "x": "z",
             "y": "x"
         },

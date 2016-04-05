@@ -261,7 +261,7 @@ def get_data_file(run_dir, frame_index):
     raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
 
 
-def get_simulation_frame(run_dir, data):
+def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
 
 

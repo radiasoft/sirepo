@@ -288,6 +288,17 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         }
     }
 
+    function recalcHistogramBins(newValue, oldValue) {
+        if (! appState.isLoaded())
+            return;
+        if (newValue && oldValue) {
+            appState.models.particleAnimation.histogramBins = newValue;
+            appState.models.beamAnimation.histogramBins = Math.round(newValue * 0.6);
+            appState.saveQuietly('particleAnimation');
+            appState.saveQuietly('beamAnimation');
+        }
+    }
+
     function recalcLength() {
         if (! appState.isLoaded())
             return;
@@ -356,6 +367,7 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     $scope.$watch('appState.models.simulationGrid.zLength', recalcLength);
     $scope.$watch('appState.models.laserPulse.duration', recalcValues);
     $scope.$watch('appState.models.laserPulse.wavelength', recalcValues);
+    $scope.$watch('appState.models.simulationGrid.zCount', recalcHistogramBins);
 
     $scope.$on('laserPulse.changed', clearFrames);
     $scope.$on('electronBeam.changed', clearFrames);
