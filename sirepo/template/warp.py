@@ -103,9 +103,28 @@ def extract_particle_report(xarg, yarg, histogram_bins, particle_type, run_dir, 
     ds = data_file.data_set
     x = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[xarg])][:]
     y = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[yarg])][:]
+    z = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH['y'])][:]
+
     weights = ds['particles/{}/weighting'.format(particle_type)][:]
 
     if xarg == 'z' and particle_type == 'electrons':
+        new_x = []
+        new_y = []
+        new_weights = []
+
+        source_type = data['models']['simulation']['sourceType']
+        cutoff = 5e-6 if source_type == 'laserPulse' else 50e-6
+
+        for idx, val in enumerate(z):
+            if abs(val) < cutoff:
+                new_x.append(x[idx])
+                new_y.append(y[idx])
+                new_weights.append(weights[idx])
+
+        x = numpy.array(new_x)
+        y = numpy.array(new_y)
+        weights = numpy.array(new_weights)
+
         grid = data['models']['simulationGrid']
         length = (float(grid['zMax']) - float(grid['zMin'])) / 1e6
         dx = length / float(grid['zCount'])
