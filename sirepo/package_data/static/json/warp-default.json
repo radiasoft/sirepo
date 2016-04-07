@@ -2,7 +2,7 @@
     "models": {
         "beamAnimation": {
             "framesPerSecond": 20,
-            "histogramBins": 221,
+            "histogramBins": 131,
             "x": "z",
             "y": "x"
         },
@@ -12,8 +12,12 @@
             "y": "y"
         },
         "electronBeam": {
+            "bunchLength": 0,
             "charge": 1e-08,
-            "energy": 23
+            "energy": 23,
+            "rmsLength": 0,
+            "rmsRadius": 0,
+            "transverseEmittance": 0
         },
         "electronPlasma": {
             "density": 1.75e+25,
@@ -45,12 +49,24 @@
         "particleAnimation": {
             "framesPerSecond": 20,
             "histogramBins": 219,
+            "uxMax": 0,
+            "uxMin": 0,
+            "uyMax": 0,
+            "uyMin": 0,
+            "uzMax": 0,
+            "uzMin": 0,
             "x": "z",
-            "y": "x"
+            "xMax": 0,
+            "xMin": 0,
+            "y": "x",
+            "yMax": 5,
+            "yMin": -5,
+            "zMax": 0,
+            "zMin": 0
         },
         "simulation": {
-            "name": "test",
-            "simulationId": "bobtryQJ",
+            "name": "basic laser",
+            "simulationId": "h3a5iMzC",
             "sourceType": "laserPulse"
         },
         "simulationGrid": {
@@ -74,14 +90,14 @@
         },
         "simulationStatus": {
             "animation": {
-                "startTime": 1459545986,
+                "startTime": 1459995878,
                 "state": "completed"
             },
             "startTime": 0,
             "state": "initial"
         }
     },
-    "report": "animation",
+    "report": "laserPreviewReport",
     "simulationType": "warp",
-    "version": "20160331-9"
+    "version": "20160406"
 }

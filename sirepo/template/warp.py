@@ -293,7 +293,9 @@ def new_simulation(data, new_simulation_data):
         data['models']['fieldAnimation']['coordinate'] = 'z'
         data['models']['fieldAnimation']['mode'] = '0'
         data['models']['particleAnimation']['histogramBins'] = 90
-        data['models']['beamAnimation']['histogramBins'] = 54
+        data['models']['particleAnimation']['yMin'] = -50
+        data['models']['particleAnimation']['yMax'] = 50
+        data['models']['beamAnimation']['histogramBins'] = 53
 
 
 def open_data_file(run_dir, file_index=None):
