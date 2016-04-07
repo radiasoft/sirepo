@@ -70,6 +70,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
         },
 
         extractUnits: function(scope, axis, label) {
+            scope[axis + 'units'] = '';
             var match = label.match(/\[(.*?)\]/);
             if (match) {
                 scope[axis + 'units'] = match[1];
@@ -860,7 +861,7 @@ app.directive('heatmap', function(plotting) {
             }
 
             function mouseMove() {
-                if (! heatmap)
+                if (! heatmap || heatmap[0].length <= 2)
                     return;
                 var point = d3.mouse(this);
                 var x0 = xAxisScale.invert(point[0] - 1);
