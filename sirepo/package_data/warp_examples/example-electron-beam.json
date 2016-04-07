@@ -2,7 +2,7 @@
     "models": {
         "beamAnimation": {
             "framesPerSecond": 20,
-            "histogramBins": 131,
+            "histogramBins": 53,
             "x": "z",
             "y": "x"
         },
@@ -20,16 +20,16 @@
             "transverseEmittance": 0
         },
         "electronPlasma": {
-            "density": 1.75e+25,
+            "density": 1e+23,
             "entranceRampLength": 1e-05,
             "exitRampLength": 1e-05,
-            "length": 0.25
+            "length": 1
         },
         "fieldAnimation": {
-            "coordinate": "x",
+            "coordinate": "z",
             "field": "E",
             "framesPerSecond": 20,
-            "mode": "1"
+            "mode": "0"
         },
         "laserPreviewReport": {
             "coordinate": "x",
@@ -48,7 +48,7 @@
         },
         "particleAnimation": {
             "framesPerSecond": 20,
-            "histogramBins": 219,
+            "histogramBins": 90,
             "uxMax": 0,
             "uxMin": 0,
             "uyMax": 0,
@@ -59,34 +59,34 @@
             "xMax": 0,
             "xMin": 0,
             "y": "x",
-            "yMax": 5,
-            "yMin": -5,
+            "yMax": 50,
+            "yMin": -50,
             "zMax": 0,
             "zMin": 0
         },
         "simulation": {
-            "name": "WARP example laser simulation",
-            "simulationId": "h3a5iMzC",
-            "sourceType": "laserPulse"
+            "name": "WARP example electron beam simulation",
+            "simulationId": "XH1MO4II",
+            "sourceType": "electronBeam"
         },
         "simulationGrid": {
-            "gridDimensions": "s",
+            "gridDimensions": "e",
             "rCellResolution": 20,
             "rCellsPerSpotSize": 8,
-            "rCount": 32,
-            "rLength": "20.324980154380",
-            "rMax": "20.324980154380",
+            "rCount": 100,
+            "rLength": 264.0501846240597,
+            "rMax": 264.0501846240597,
             "rMin": 0,
-            "rParticlesPerCell": 1,
-            "rScale": 4,
-            "zCellResolution": 20,
+            "rParticlesPerCell": 2,
+            "rScale": 5,
+            "zCellResolution": 30,
             "zCellsPerWavelength": 8,
-            "zCount": 219,
-            "zLength": "20.324980154631",
-            "zMax": "1.600000000000",
-            "zMin": -20.324980154631,
+            "zCount": 90,
+            "zLength": 316.86022154887166,
+            "zMax": 0,
+            "zMin": -316.86022154887166,
             "zParticlesPerCell": 2,
-            "zScale": 2
+            "zScale": 3
         },
         "simulationStatus": {
             "animation": {
@@ -97,7 +97,7 @@
             "state": "initial"
         }
     },
-    "report": "laserPreviewReport",
+    "report": "beamPreviewReport",
     "simulationType": "warp",
     "version": "20160406"
 }
