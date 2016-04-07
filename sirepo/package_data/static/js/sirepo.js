@@ -345,7 +345,8 @@ app.factory('appState', function($rootScope, requestSender) {
             simulationChanged = true;
         }
 
-        if (name == 'electronBeam') {
+        // TODO(pjm): move srw specific code to srw.js
+        if (SIREPO_APP_NAME == 'srw' && name == 'electronBeam') {
             // keep beamSelector in sync with name, sort beams by name
             self.models.electronBeam.beamSelector = self.models.electronBeam.name;
             if (! self.models.electronBeam.isReadOnly) {
@@ -364,7 +365,7 @@ app.factory('appState', function($rootScope, requestSender) {
         }
         self.saveQuietly(name);
 
-        if (name == 'electronBeam') {
+        if (SIREPO_APP_NAME == 'srw' && name == 'electronBeam') {
             broadcastChanged(name);
             self.saveChanges('electronBeams');
             // save electronBeam and electronBeams, but only repolot reports once
