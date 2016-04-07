@@ -125,17 +125,19 @@
         "crystal": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
-            "rotationAngle": ["Rotation angle [rad]", "Float"],
+            "energy": ["Average photon energy the crystal should be oriented for (find_orient(_en=_v.op_DCM_e0, ...)) [eV]", "Float"],
+            "diffractionPlaneAngle": ["Diffraction plane angle (find_orient(..., _ang_dif_pl=1.5707963)) [rad]", "Float"],
+            "asymmetryAngle": ["Asymmetry angle (SRWLOptCryst(..., _ang_as=angAs)) [rad]", "Float"],
+            "rotationAngle": ["Rotation angle (trf_rotation(..., _ang, ...)) [rad]", "Float"],
+            "crystalThickness": ["Crystal thickness [m]", "Float"],
             "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float"],
             "psi0r": ["Real part of 0-th Fourier component of crystal polarizability", "Float"],
             "psi0i": ["Imaginary part of 0-th Fourier component of crystal polarizability", "Float"],
-            "psi_hr": ["Real part of H-th Fourier component of crystal polarizability", "Float"],
-            "psi_hi": ["Imaginary part of H-th Fourier component of crystal polarizability", "Float"],
-            "psi_hbr": ["Real part of -H-th Fourier component of crystal polarizability", "Float"],
-            "psi_hbi": ["Imaginary part of -H-th Fourier component of crystal polarizability", "Float"],
-            "crystalThickness": ["Crystal thickness [m]", "Float"],
-            "asymmetryAngle": ["Asymmetry angle [rad]", "Float"]
+            "nvx": ["Horizontal coordinate of outward normal", "Float"],
+            "nvy": ["Vertical coordinate of outward normal", "Float"],
+            "nvz": ["Longitudinal coordinate of outward normal", "Float"],
+            "tvx": ["Horizontal coordinate of central tangential vector", "Float"],
+            "tvy": ["Vertical coordinate of central tangential vector", "Float"]
         },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
@@ -398,16 +400,18 @@
                 "title",
                 "position",
                 "energy",
+                "diffractionPlaneAngle",
+                "asymmetryAngle",
                 "rotationAngle",
+                "crystalThickness",
                 "dSpacing",
                 "psi0r",
                 "psi0i",
-                "psi_hr",
-                "psi_hi",
-                "psi_hbr",
-                "psi_hbi",
-                "crystalThickness",
-                "asymmetryAngle"
+                "nvx",
+                "nvy",
+                "nvz",
+                "tvx",
+                "tvy"
             ]
         },
         "electronBeam": {

@@ -103,8 +103,9 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crystal', title:'Crystal', energy:8230, rotationAngle:0.0, dSpacing:3.13557135638, psi0r:-1.20784200542e-05, psi0i:2.26348275468e-07,
-        psi_hr:-6.38570337053e-06, psi_hi:1.58030401297e-07, psi_hbr:-6.38570337053e-06, psi_hbi:1.58030401297e-07, crystalThickness:0.01, asymmetryAngle:0.0},
+        {type:'crystal', title:'Crystal', energy:8230, diffractionPlaneAngle:1.5707963, asymmetryAngle:0.0, rotationAngle:0.0,
+        crystalThickness:0.01, dSpacing:3.13557135638, psi0r:-1.20784200542e-05, psi0i:2.26348275468e-07,
+        nvx:0.0, nvy:0.0, nvz:-1.0, tvx:1.0, tvy:0.0},
         {type:'watch', title:'Watchpoint'},
     ];
     self.panelState = panelState;
@@ -166,6 +167,121 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         if (! appState.models.postPropagation || appState.models.postPropagation.length == 0)
             appState.models.postPropagation = defaultItemPropagationParams();
         self.postPropagation = appState.models.postPropagation;
+    }
+
+    function crystalFindOrient(en, ang_dif_pl, dSp, angAs,
+                                psi0r, psi0i) {
+        if (typeof(ang_dif_pl) === 'undefined') ang_dif_pl = 0;
+
+        var nvx, nvy, nvz, tvx, tvy;
+        var eV2wA = 12398.4193009;  // energy to wavelength conversion factor 12398.41930092394
+
+        var wA = eV2wA/en;
+        var kh = 1 / dSp;
+        var hv = [0, kh * Math.cos(angAs), -kh * Math.sin(angAs)];
+        var tBr = Math.asin(wA * kh / 2);
+        var tKin = tBr - angAs;
+        var tKou = tBr + angAs;
+        var abs_c0 = Math.sqrt(psi0r * psi0r + psi0i * psi0i);
+        var dTref = 0.5 * abs_c0 * (1 + Math.sin(tKou) / Math.sin(tKin)) / Math.sin(2 * tBr);
+        var tIn = tKin + dTref;
+
+        function prodV(a, b) {
+            return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+        }
+
+        function prodMV(m, v) {
+            return [m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
+                    m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2],
+                    m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2]];
+        }
+
+        function normV_square(a) {
+            var s = 0;
+            for (var i=0; i<a.length; i++) {
+                s = s + a[i] * a[i];
+            }
+            return s;
+        }
+
+        function normV(a) {
+            return Math.sqrt(normV_square(a));
+        }
+
+        function devideByNorm(a) {
+            var norm_a = normV(a);
+            for (var i=0; i<a.length; i++) {
+                a[i] = a[i] / norm_a;
+            }
+            return a;
+        }
+
+        var nv = [0, Math.cos(tIn), -Math.sin(tIn)];
+        var tv = [0, Math.sin(tIn), Math.cos(tIn)];
+        var sv = prodV(nv, tv);
+
+        var mc = [[sv[0], nv[0], tv[0]],
+                  [sv[1], nv[1], tv[1]],
+                  [sv[2], nv[2], tv[2]]];
+
+        var z1c = [sv[2], Math.sqrt(1 - Math.pow(sv[2], 2) - Math.pow(tv[2] + wA * hv[2], 2)), tv[2] + wA * hv[2]];
+
+        var rz = prodMV(mc, z1c);
+
+        var x1c = prodV(hv, z1c);
+
+        if (normV_square(x1c) === 0) {
+            x1c = prodV(nv, z1c);
+        }
+        if (normV_square(x1c) === 0) {
+            x1c = sv;
+        }
+
+        x1c = devideByNorm(x1c);
+
+        var rx = prodMV(mc, x1c);
+        var ry = prodV(rz, rx);
+
+        var tolAng = 1.e-06;
+        if (Math.abs(ang_dif_pl) < tolAng) {  // case of the vertical deflection plane
+            return [[tv, sv, nv], [rx, ry, rz]];
+        } else {  // case of a tilted deflection plane
+            var cosA = Math.cos(ang_dif_pl);
+            var sinA = Math.sin(ang_dif_pl);
+            var mr = [[cosA, -sinA, 0],
+                      [sinA,  cosA, 0],
+                      [0,        0, 1]];
+
+            var ez = prodMV(mr, rz);
+
+            // Selecting "Horizontal" and "Vertical" directions of the Output beam frame
+            // trying to use "minimum deviation" from the corresponding "Horizontal" and "Vertical"
+            // directions of the Input beam frame
+            var ezIn = [0, 0, 1];
+            var e1 = prodV(ez, ezIn);
+            var abs_e1x = Math.abs(e1[0]);
+            var abs_e1y = Math.abs(e1[1]);
+
+            var ex = null, ey = null;
+            if (abs_e1x >= abs_e1y) {
+                if (e1[0] > 0) {
+                    ex = e1;
+                } else {
+                    ex = [-e1[0], -e1[1], -e1[2]];
+                }
+                ex = devideByNorm(ex);
+                ey = prodV(ez, ex);
+            } else {
+                if (e1[1] > 0) {
+                    ey = e1;
+                } else {
+                    ey = [-e1[0], -e1[1], -e1[2]];
+                }
+                ey = devideByNorm(ey);
+                ex = prodV(ey, ez);
+            }
+            return [[prodMV(mr, tv), prodMV(mr, sv), prodMV(mr, nv)], [ex, ey, ez]];
+        }
     }
 
     function defaultItemPropagationParams() {
@@ -374,6 +490,27 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
                 item.tangentialVectorX = 0
                 preserveSign(item, 'tangentialVectorY', Math.sin(grazingAngle));
             }
+        }
+    });
+
+    $scope.$watch('beamline.activeItem.energy', function (newValue, oldValue) {
+        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
+            var item = self.activeItem;
+            var value = parseFloat(newValue);
+            var orientDataCr1 = crystalFindOrient(newValue, 1.5707963, item['dSpacing'], item['asymmetryAngle'],
+                                            item['psi0r'], item['psi0i']);
+            var orientCr1 = orientDataCr1[0];
+            var tCr1 = orientCr1[0];  // Tangential Vector to Crystal surface
+            var sCr1 = orientCr1[1];
+            var nCr1 = orientCr1[2];  // Normal Vector to Crystal surface
+            // DCM Crystal #1 Orientation (original):
+            // 't =', tCr1, 's =', orientCr1[1], 'n =', nCr1
+
+            item['nvx'] = nCr1[0];
+            item['nvy'] = nCr1[1];
+            item['nvz'] = nCr1[2];
+            item['tvx'] = tCr1[0];
+            item['tvy'] = tCr1[1];
         }
     });
 

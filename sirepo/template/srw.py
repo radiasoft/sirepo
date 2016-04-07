@@ -396,7 +396,7 @@ def _crystal_element(template, item, fields, propagation):
 
     res = '''
     opCr = {}
-    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl=1.5707963)  # horizontally-deflecting
+    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl={})  # horizontally-deflecting
     orientCr = orientDataCr[0]
     tCr, sCr, nCr = orientCr[:3]  # tangential, sagittal and normal vectors to crystal surface
     {}
@@ -406,6 +406,7 @@ def _crystal_element(template, item, fields, propagation):
     {}\n'''.format(
         template.format(*map(lambda x: item[x], fields)),
         item['energy'],
+        item['diffractionPlaneAngle'],
         crystal_rotation,
         _propagation_params(propagation[str(item['id'])][0]).strip()
     )
@@ -448,9 +449,9 @@ def _generate_beamline_optics(models, last_id):
                 propagation)
         elif item['type'] == 'crystal':
             res += _crystal_element(
-                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
+                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr=None, _psi_hi=None, _psi_hbr=None, _psi_hbi=None, _tc={}, _ang_as={})',
                 item,
-                ['dSpacing', 'psi0r', 'psi0i', 'psi_hr', 'psi_hi', 'psi_hbr', 'psi_hbi', 'crystalThickness', 'asymmetryAngle'],
+                ['dSpacing', 'psi0r', 'psi0i', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(
