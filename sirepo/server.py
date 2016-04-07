@@ -177,12 +177,13 @@ def app_download_data_file(simulation_type, simulation_id, model_or_frame):
         'simulationId': simulation_id,
     }
     frame_index = -1
+    template = sirepo.template.import_module(simulation_type)
     if re.match(r'^\d+$', model_or_frame):
         frame_index = int(model_or_frame)
+        data['report'] = template.get_animation_name(data)
     else:
         data['report'] = model_or_frame
     run_dir = simulation_db.simulation_run_dir(data)
-    template = sirepo.template.import_module(simulation_type)
     filename, content, content_type = template.get_data_file(run_dir, frame_index)
     response = flask.make_response(content)
     response.mimetype = content_type
@@ -414,7 +415,7 @@ def app_simulation_data(simulation_type, simulation_id):
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationFrame'])
 def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-    data = dict(zip(keys, frame_id.split('-')))
+    data = dict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data['simulationType'])
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
