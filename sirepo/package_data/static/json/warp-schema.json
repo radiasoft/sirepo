@@ -165,7 +165,19 @@
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"],
             "histogramBins": ["Histogram Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "xMin": ["Minimum X [µm]", "Float"],
+            "xMax": ["Maximum X [µm]", "Float"],
+            "yMin": ["Minimum Y [µm]", "Float"],
+            "yMax": ["Maximum Y [µm]", "Float"],
+            "zMin": ["Minimum Z [µm]", "Float"],
+            "zMax": ["Maximum Z [µm]", "Float"],
+            "uxMin": ["Minimum UX [mc]", "Float"],
+            "uxMax": ["Maximum UX [mc]", "Float"],
+            "uyMin": ["Minimum UY [mc]", "Float"],
+            "uyMax": ["Maximum UY [mc]", "Float"],
+            "uzMin": ["Minimum UZ [mc]", "Float"],
+            "uzMax": ["Maximum UZ [mc]", "Float"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
@@ -289,7 +301,25 @@
                 "x",
                 "y",
                 "histogramBins",
-                "framesPerSecond"
+                "framesPerSecond",
+                [
+                    ["Minimum Filter", [
+                        "xMin",
+                        "yMin",
+                        "zMin",
+                        "uxMin",
+                        "uyMin",
+                        "uzMin"
+                    ]],
+                    ["Maximum Filter", [
+                        "xMax",
+                        "yMax",
+                        "zMax",
+                        "uxMax",
+                        "uyMax",
+                        "uzMax"
+                    ]]
+                ]
             ]
         },
         "fieldAnimation": {

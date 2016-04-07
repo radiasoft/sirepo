@@ -445,7 +445,7 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             animationArgs(modelName),
             index,
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
-        ].join('-');
+        ].join('*');
         requestSender.sendRequest(
             requestSender.formatUrl(
                 'simulationFrame',

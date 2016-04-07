@@ -1,1 +1,103 @@
-{"models": {"laserPreviewReport": {"coordinate": "x", "field": "E", "mode": "1"}, "electronPlasma": {"entranceRampLength": 1e-05, "exitRampLength": 1e-05, "length": 0.25, "density": 1.75e+25}, "particleAnimation": {"y": "x", "histogramBins": 100, "framesPerSecond": 20, "x": "z"}, "laserPulse": {"pulseDimensions": "r", "polarizationAngle": 0, "waist": "5.081245038595", "spotSize": 4, "length": 2, "amplitude": 3, "duration": "0.008474604519", "wavelength": 0.8}, "simulationGrid": {"rMin": 0, "zMin": -20.324980154631, "zMax": "1.600000000000", "gridDimensions": "s", "zCount": 219, "rScale": 4, "rMax": "20.324980154380", "zCellsPerWavelength": 8, "rLength": "20.324980154380", "zScale": 2, "rParticlesPerCell": 1, "zLength": "20.324980154631", "rCount": 32, "rCellsPerSpotSize": 8, "zParticlesPerCell": 2}, "fieldAnimation": {"coordinate": "x", "field": "E", "framesPerSecond": 20, "mode": "1"}, "simulationStatus": {"state": "initial", "startTime": 0}, "simulation": {"simulationId": "RSXT4rzY", "name": "WARP example simulation"}}, "simulationType": "warp", "version": "20151029"}
+{
+    "models": {
+        "beamAnimation": {
+            "framesPerSecond": 20,
+            "histogramBins": 131,
+            "x": "z",
+            "y": "x"
+        },
+        "beamPreviewReport": {
+            "histogramBins": 100,
+            "x": "x",
+            "y": "y"
+        },
+        "electronBeam": {
+            "bunchLength": 0,
+            "charge": 1e-08,
+            "energy": 23,
+            "rmsLength": 0,
+            "rmsRadius": 0,
+            "transverseEmittance": 0
+        },
+        "electronPlasma": {
+            "density": 1.75e+25,
+            "entranceRampLength": 1e-05,
+            "exitRampLength": 1e-05,
+            "length": 0.25
+        },
+        "fieldAnimation": {
+            "coordinate": "x",
+            "field": "E",
+            "framesPerSecond": 20,
+            "mode": "1"
+        },
+        "laserPreviewReport": {
+            "coordinate": "x",
+            "field": "E",
+            "mode": "1"
+        },
+        "laserPulse": {
+            "amplitude": 3,
+            "duration": "0.008474604519",
+            "length": 2,
+            "polarizationAngle": 0,
+            "pulseDimensions": "r",
+            "spotSize": 4,
+            "waist": "5.081245038595",
+            "wavelength": 0.8
+        },
+        "particleAnimation": {
+            "framesPerSecond": 20,
+            "histogramBins": 219,
+            "uxMax": 0,
+            "uxMin": 0,
+            "uyMax": 0,
+            "uyMin": 0,
+            "uzMax": 0,
+            "uzMin": 0,
+            "x": "z",
+            "xMax": 0,
+            "xMin": 0,
+            "y": "x",
+            "yMax": 5,
+            "yMin": -5,
+            "zMax": 0,
+            "zMin": 0
+        },
+        "simulation": {
+            "name": "WARP example laser simulation",
+            "simulationId": "h3a5iMzC",
+            "sourceType": "laserPulse"
+        },
+        "simulationGrid": {
+            "gridDimensions": "s",
+            "rCellResolution": 20,
+            "rCellsPerSpotSize": 8,
+            "rCount": 32,
+            "rLength": "20.324980154380",
+            "rMax": "20.324980154380",
+            "rMin": 0,
+            "rParticlesPerCell": 1,
+            "rScale": 4,
+            "zCellResolution": 20,
+            "zCellsPerWavelength": 8,
+            "zCount": 219,
+            "zLength": "20.324980154631",
+            "zMax": "1.600000000000",
+            "zMin": -20.324980154631,
+            "zParticlesPerCell": 2,
+            "zScale": 2
+        },
+        "simulationStatus": {
+            "animation": {
+                "startTime": 1459995878,
+                "state": "completed"
+            },
+            "startTime": 0,
+            "state": "initial"
+        }
+    },
+    "report": "laserPreviewReport",
+    "simulationType": "warp",
+    "version": "20160406"
+}

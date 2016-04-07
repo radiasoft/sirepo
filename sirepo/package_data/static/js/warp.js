@@ -69,7 +69,7 @@ app.controller('WARPDynamicsController', function(appState, frameCache, panelSta
     frameCache.setAnimationArgs(
         {
             fieldAnimation: ['field', 'coordinate', 'mode'],
-            particleAnimation: ['x', 'y', 'histogramBins'],
+            particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax'],
             beamAnimation: ['x', 'y', 'histogramBins'],
         },
         simulationModel);

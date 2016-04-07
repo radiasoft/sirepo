@@ -8,13 +8,14 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from opmd_viewer import OpenPMDTimeSeries
+from opmd_viewer.openpmd_timeseries import main
+from opmd_viewer.openpmd_timeseries.data_reader import field_reader
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
-from sirepo import simulation_db
 from sirepo.template import template_common
-import h5py
 import numpy
 import os
 import py.path
@@ -22,13 +23,13 @@ import re
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_PARTICLE_ARG_PATH = {
-    'x' : 'position/x',
-    'y' : 'position/y',
-    'z' : 'position/z',
-    'ux' : 'momentum/x',
-    'uy' : 'momentum/y',
-    'uz' : 'momentum/z',
+_MIN_MAX_INDEX = {
+    'x': [3, 4],
+    'y': [5, 6],
+    'z': [7, 8],
+    'ux': [9, 10],
+    'uy': [11, 12],
+    'uz': [13, 14],
 }
 
 
@@ -44,7 +45,6 @@ def background_percent_complete(data, run_dir, is_running):
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
-    from opmd_viewer.openpmd_timeseries.data_reader import field_reader
     Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
     plasma_length = float(data['models']['electronPlasma']['length']) / 1e3
     zmin = float(data['models']['simulationGrid']['zMin']) / 1e6
@@ -64,12 +64,8 @@ def copy_animation_file(source_path, target_path):
 
 
 def extract_field_report(field, coordinate, mode, data_file):
-    fields = data_file.h5['data/{}/fields'.format(data_file.iteration)]
-    from opmd_viewer import OpenPMDTimeSeries
-    from opmd_viewer.openpmd_timeseries import main
-    main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-    o = OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
-    F, info = o.get_field(
+    opmd = _opmd_time_series(data_file)
+    F, info = opmd.get_field(
         plot=False,
         vmin=None,
         m=mode,
@@ -94,63 +90,55 @@ def extract_field_report(field, coordinate, mode, data_file):
         'x_label': '{} [m]'.format(info.axes[1]),
         'y_label': '{} [m]'.format(info.axes[0]),
         'title': "{} in the mode {} at {}".format(
-            field_label, mode, _iteration_title(data_file)),
+            field_label, mode, _iteration_title(opmd, data_file)),
         'z_matrix': numpy.flipud(F).tolist(),
     }
 
 
-def extract_particle_report(xarg, yarg, histogram_bins, particle_type, run_dir, data_file, data):
-    ds = data_file.data_set
-    x = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[xarg])][:]
-    y = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH[yarg])][:]
-    z = ds['particles/{}/{}'.format(particle_type, _PARTICLE_ARG_PATH['y'])][:]
-
-    weights = ds['particles/{}/weighting'.format(particle_type)][:]
-
-    if xarg == 'z' and particle_type == 'electrons':
-        new_x = []
-        new_y = []
-        new_weights = []
-
-        source_type = data['models']['simulation']['sourceType']
-        cutoff = 5e-6 if source_type == 'laserPulse' else 50e-6
-
-        for idx, val in enumerate(z):
-            if abs(val) < cutoff:
-                new_x.append(x[idx])
-                new_y.append(y[idx])
-                new_weights.append(weights[idx])
-
-        x = numpy.array(new_x)
-        y = numpy.array(new_y)
-        weights = numpy.array(new_weights)
-
-        grid = data['models']['simulationGrid']
-        length = (float(grid['zMax']) - float(grid['zMin'])) / 1e6
-        dx = length / float(grid['zCount'])
-        x_min = x.min()
-        x_max = x.max()
-        x_range = x_max - x_min
-
-        diff = length - x_range
-        if diff > dx:
-            if x_min - length < 0:
-                adjust = x_min - diff
-            else:
-                adjust = x_max + diff
-            x = numpy.append(x, adjust)
-            y = numpy.append(y, y.min())
-            weights = numpy.append(weights, 0)
-
-    hist, edges = numpy.histogramdd([x, y], int(histogram_bins), weights=weights)
+def extract_particle_report(args, particle_type, run_dir, data_file, data):
+    xarg = args[0]
+    yarg = args[1]
+    histogram_bins = args[2]
+    opmd = _opmd_time_series(data_file)
+    data_list = opmd.get_particle(
+        var_list=[xarg, yarg],
+        species=particle_type,
+        iteration=data_file.iteration,
+        select=None,
+        output=True,
+        plot=False,
+    )
+    data_list.append(main.read_particle(data_file.filename, particle_type, 'w'))
+    select = _particle_selection_args(args)
+    if select:
+        main.apply_selection(data_list, select, particle_type, data_file.filename)
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
+    if len(data_list[0]) < 2:
+        return {
+            'x_range': [0, 1e-6, 2],
+            'y_range': [0, 1e-6, 2],
+            'x_label': '{}{}'.format(xarg, xunits),
+            'y_label': '{}{}'.format(yarg, yunits),
+            'title': 't = {}'.format(_iteration_title(opmd, data_file)),
+            'z_matrix': [[0, 0], [0, 0]],
+            'frameCount': data_file.num_frames,
+        }
+    if len(xarg) == 1:
+        data_list[0] /= 1e6
+    if len(yarg) == 1:
+        data_list[1] /= 1e6
+
+    if particle_type == 'electrons' and xarg == 'z':
+        data_list = _adjust_z_width(data_list, data)
+
+    hist, edges = numpy.histogramdd([data_list[0], data_list[1]], int(histogram_bins), weights=data_list[2])
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         'x_label': '{}{}'.format(xarg, xunits),
         'y_label': '{}{}'.format(yarg, yunits),
-        'title': 't = {}'.format(_iteration_title(data_file)),
+        'title': 't = {}'.format(_iteration_title(opmd, data_file)),
         'z_matrix': hist.T.tolist(),
         'frameCount': data_file.num_frames,
     }
@@ -223,6 +211,13 @@ def fixup_old_data(data):
         beam['rmsRadius'] = 0
         beam['bunchLength'] = 0
         beam['transverseEmittance'] = 0
+    if 'xMin' not in data['models']['particleAnimation']:
+        animation = data['models']['particleAnimation']
+        for v in ('x', 'y', 'z'):
+            animation['{}Min'.format(v)] = 0
+            animation['{}Max'.format(v)] = 0
+            animation['u{}Min'.format(v)] = 0
+            animation['u{}Max'.format(v)] = 0
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -252,9 +247,9 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'fieldAnimation':
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
-        return _particle_animation(args, run_dir, data_file, 'electrons', model_data)
+        return extract_particle_report(args, 'electrons', run_dir, data_file, model_data)
     if data['modelName'] == 'beamAnimation':
-        return _particle_animation(args, run_dir, data_file, 'beam', model_data)
+        return extract_particle_report(args, 'beam', run_dir, data_file, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -298,10 +293,12 @@ def new_simulation(data, new_simulation_data):
         data['models']['fieldAnimation']['coordinate'] = 'z'
         data['models']['fieldAnimation']['mode'] = '0'
         data['models']['particleAnimation']['histogramBins'] = 90
-        data['models']['beamAnimation']['histogramBins'] = 54
+        data['models']['particleAnimation']['yMin'] = -50
+        data['models']['particleAnimation']['yMax'] = 50
+        data['models']['beamAnimation']['histogramBins'] = 53
 
 
-def open_data_file(run_dir, file_index=None, files=None):
+def open_data_file(run_dir, file_index=None):
     """Opens data file_index'th in run_dir
 
     Args:
@@ -312,17 +309,12 @@ def open_data_file(run_dir, file_index=None, files=None):
     Returns:
         OrderedMapping: various parameters
     """
-    if not files:
-        files = _h5_file_list(run_dir)
+    files = _h5_file_list(run_dir)
     res = pkcollections.OrderedMapping()
     res.num_frames = len(files)
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])
     res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
-    res.h5 = h5py.File(res.filename, 'r')
-    ds = res.h5['data'][str(res.iteration)]
-    res.data_set = ds
-    res.time = ds.attrs['time'] * ds.attrs['timeUnitSI']
     return res
 
 
@@ -369,6 +361,28 @@ def static_lib_files():
     return []
 
 
+def _adjust_z_width(data_list, data):
+    # adjust z width to match simulationGrid so the histogram aligns with warp columns
+    grid = data['models']['simulationGrid']
+    length = (float(grid['zMax']) - float(grid['zMin'])) / 1e6
+    dx = length / float(grid['zCount'])
+    x_min = data_list[0].min()
+    x_max = data_list[0].max()
+    x_range = x_max - x_min
+    diff = length - x_range
+    if diff > dx:
+        if x_min - length < 0:
+            adjust = x_min - diff
+        else:
+            adjust = x_max + diff
+        return [
+            numpy.append(data_list[0], adjust),
+            numpy.append(data_list[1], data_list[1].min()),
+            numpy.append(data_list[2], 0),
+        ]
+    return data_list
+
+
 def _field_animation(args, data_file):
     field = args[0]
     coordinate = args[1]
@@ -387,16 +401,30 @@ def _h5_file_list(run_dir):
     )
 
 
-def _iteration_title(data_file):
-    fs = data_file.time / 1e-15
+def _iteration_title(opmd, data_file):
+    fs = opmd.t[0] * 1e15
     return '{:.1f} fs (iteration {})'.format(fs, data_file.iteration)
 
 
-def _particle_animation(args, run_dir, data_file, particle_type, model_data):
-    xarg = args[0]
-    yarg = args[1]
-    histogram_bins = args[2]
-    return extract_particle_report(xarg, yarg, histogram_bins, particle_type, run_dir, data_file, model_data)
+def _opmd_time_series(data_file):
+    main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
+    return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+
+
+def _particle_selection_args(args):
+    if len(args) <= 3:
+        return None
+    res = {}
+    for f in ('', 'u'):
+        for f2 in ('x', 'y', 'z'):
+            field = '{}{}'.format(f, f2)
+            min_max_index = _MIN_MAX_INDEX[field]
+            min = float(args[min_max_index[0]])
+            max = float(args[min_max_index[1]])
+            if min == 0 and max == 0:
+                continue
+            res[field] = [min, max]
+    return res if len(res.keys()) else None
 
 
 def _validate_data(data, schema):
