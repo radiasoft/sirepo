@@ -95,7 +95,7 @@ def extract_field_report(field, coordinate, mode, data_file):
     }
 
 
-def extract_particle_report(args, particle_type, run_dir, data_file, data):
+def extract_particle_report(args, particle_type, run_dir, data_file):
     xarg = args[0]
     yarg = args[1]
     histogram_bins = args[2]
@@ -129,8 +129,8 @@ def extract_particle_report(args, particle_type, run_dir, data_file, data):
     if len(yarg) == 1:
         data_list[1] /= 1e6
 
-    if particle_type == 'electrons' and xarg == 'z':
-        data_list = _adjust_z_width(data_list, data)
+    if xarg == 'z':
+        data_list = _adjust_z_width(data_list, data_file)
 
     hist, edges = numpy.histogramdd([data_list[0], data_list[1]], int(histogram_bins), weights=data_list[2])
     return {
@@ -218,6 +218,12 @@ def fixup_old_data(data):
             animation['{}Max'.format(v)] = 0
             animation['u{}Min'.format(v)] = 0
             animation['u{}Max'.format(v)] = 0
+    if 'beamRadiusMethod' not in data['models']['electronBeam']:
+        beam = data['models']['electronBeam']
+        beam['beamRadiusMethod'] = 'a'
+        beam['transverseEmittance'] = 0.00001
+        beam['rmsRadius'] = 15
+        beam['beamBunchLengthMethod'] = 's'
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -233,6 +239,8 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     else:
         v['useBeam'] = 0
         v['useLaser'] = 1
+    if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
+        v['electronBeam_transverseEmittance'] = 0
     return pkjinja.render_resource('warp.py', v)
 
 
@@ -247,9 +255,9 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'fieldAnimation':
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
-        return extract_particle_report(args, 'electrons', run_dir, data_file, model_data)
+        return extract_particle_report(args, 'electrons', run_dir, data_file)
     if data['modelName'] == 'beamAnimation':
-        return extract_particle_report(args, 'beam', run_dir, data_file, model_data)
+        return extract_particle_report(args, 'beam', run_dir, data_file)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -295,7 +303,8 @@ def new_simulation(data, new_simulation_data):
         data['models']['particleAnimation']['histogramBins'] = 90
         data['models']['particleAnimation']['yMin'] = -50
         data['models']['particleAnimation']['yMax'] = 50
-        data['models']['beamAnimation']['histogramBins'] = 53
+        data['models']['beamAnimation']['histogramBins'] = 91
+        data['models']['beamPreviewReport']['histogramBins'] = 91
 
 
 def open_data_file(run_dir, file_index=None):
@@ -361,26 +370,15 @@ def static_lib_files():
     return []
 
 
-def _adjust_z_width(data_list, data):
-    # adjust z width to match simulationGrid so the histogram aligns with warp columns
-    grid = data['models']['simulationGrid']
-    length = (float(grid['zMax']) - float(grid['zMin'])) / 1e6
-    dx = length / float(grid['zCount'])
-    x_min = data_list[0].min()
-    x_max = data_list[0].max()
-    x_range = x_max - x_min
-    diff = length - x_range
-    if diff > dx:
-        if x_min - length < 0:
-            adjust = x_min - diff
-        else:
-            adjust = x_max + diff
-        return [
-            numpy.append(data_list[0], adjust),
-            numpy.append(data_list[1], data_list[1].min()),
-            numpy.append(data_list[2], 0),
-        ]
-    return data_list
+def _adjust_z_width(data_list, data_file):
+    # match boundaries with field report
+    Fr, info = field_reader.read_field_circ(data_file.filename, 'E/r')
+    extent = info.imshow_extent
+    return [
+        numpy.append(data_list[0], [extent[0], extent[1]]),
+        numpy.append(data_list[1], [extent[2], extent[3]]),
+        numpy.append(data_list[2], [0, 0]),
+    ]
 
 
 def _field_animation(args, data_file):
@@ -407,8 +405,14 @@ def _iteration_title(opmd, data_file):
 
 
 def _opmd_time_series(data_file):
-    main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-    return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+    prev = None
+    try:
+        prev = main.list_h5_files
+        main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
+        return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+    finally:
+        if prev:
+            main.list_h5_files = prev
 
 
 def _particle_selection_args(args):

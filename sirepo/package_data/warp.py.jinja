@@ -435,9 +435,9 @@ if USE_BEAM:
     DE_OVER_E_RMS = 0.0                                             #USER EDIT
 
     #beam matching parameters
-    EPS_N = 0.       #normalized transverse emittance
-    FIXED_R_RMS = 15.0e-6 #Specify this for a fixed radius bunch with 0 emittance. If EPS_N specified, this is ignored.
-    L_BUNCH = 0 #This is fixed to match the beam to the Facet beam
+    EPS_N = {{electronBeam_transverseEmittance}} #normalized transverse emittance
+    FIXED_R_RMS = {{electronBeam_rmsRadius}} #Specify this for a fixed radius bunch with 0 emittance. If EPS_N specified, this is ignored.
+    L_BUNCH = {{electronBeam_bunchLength}} #This is fixed to match the beam to the Facet beam
 
 
     # ---------------------------------------------------------------------------------------

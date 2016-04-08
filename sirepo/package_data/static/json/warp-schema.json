@@ -1,5 +1,13 @@
 {
     "enum": {
+        "BeamRadiusMethod": [
+            ["a", "Absolute"],
+            ["s", "Scale to Electron Plasma"]
+        ],
+        "BeamBunchLengthMethod": [
+            ["a", "Absolute"],
+            ["s", "Scale to Electron Plasma"]
+        ],
         "Field": [
             ["E", "E - Electron field [V/m]"],
             ["B", "B - Magnetic field [T]"],
@@ -117,10 +125,12 @@
         "electronBeam": {
             "charge": ["Charge [C]", "Float"],
             "energy": ["Energy [GeV]", "Float"],
-            "rmsLength": ["RMS Length [µm]", "Float"],
+            "beamRadiusMethod": ["Beam Radius Method", "BeamRadiusMethod"],
+            "transverseEmittance": ["Normalized Transverse Emittance", "Float"],
             "rmsRadius": ["RMS Radius [µm]", "Float"],
-            "bunchLength": ["Bunch Length [µm]", "Float"],
-            "transverseEmittance": ["Normalized Transverse Emmittance", "Float"]
+            "beamBunchLengthMethod": ["Beam Bunch Length Method", "BeamBunchLengthMethod"],
+            "rmsLength": ["RMS Length [µm]", "Float"],
+            "bunchLength": ["Bunch Length [µm]", "Float"]
         },
         "electronPlasma": {
             "density": ["Density [m⁻³]", "Float"],
@@ -216,7 +226,16 @@
                 "charge",
                 "energy"
             ],
-            "advanced": []
+            "advanced": [
+                "charge",
+                "energy",
+                "beamRadiusMethod",
+                "transverseEmittance",
+                "rmsRadius",
+                "beamBunchLengthMethod",
+                "rmsLength",
+                "bunchLength"
+            ]
         },
         "electronPlasma": {
             "title": "Electron Plasma",

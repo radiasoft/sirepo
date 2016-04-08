@@ -39,7 +39,7 @@ def run(cfg_dir):
                 mode = int(mode)
             res = template.extract_field_report(field, coordinate, mode, data_file)
         elif data['report'] == 'beamPreviewReport':
-            res = template.extract_particle_report([model['x'], model['y'], model['histogramBins']], 'beam', cfg_dir, data_file, data)
+            res = template.extract_particle_report([model['x'], model['y'], model['histogramBins']], 'beam', cfg_dir, data_file)
 
         simulation_db.write_json(template_common.OUTPUT_BASE_NAME, res)
 

@@ -194,11 +194,31 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     var self = this;
     $scope.appState = appState;
     var constants = {
-        echarge: 1.602176565e-19,
-        eps0: 8.85418781762e-12,
-        emass: 9.10938291e-31,
+        beamFactor: 0.728583,
         clight: 299792458.0,
+        echarge: 1.602176565e-19,
+        emass: 9.10938291e-31,
+        eps0: 8.85418781762e-12,
     };
+
+    function beamBunchLengthMethodChanged(newValue, oldValue) {
+        if (! appState.isLoaded())
+            return;
+        var isAbsolute = appState.models.electronBeam.beamBunchLengthMethod == 'a';
+        setVisibility(['electronBeam.rmsLength'], ! isAbsolute, oldValue);
+        setReadOnly(['electronBeam.rmsLength'], true);
+        setReadOnly(['electronBeam.bunchLength'], ! isAbsolute);
+        recalcBeamBunchLength();
+    }
+
+    function beamRadiusMethodChanged(newValue, oldValue) {
+        if (! appState.isLoaded())
+            return;
+        var isAbsolute = appState.models.electronBeam.beamRadiusMethod == 'a';
+        setVisibility(['electronBeam.transverseEmittance'], ! isAbsolute, oldValue);
+        setReadOnly(['electronBeam.rmsRadius'], ! isAbsolute);
+        recalcRMSRadius();
+    }
 
     function clearFrames() {
         //TODO(pjm): show a warning dialog before saving model if frame count > 10
@@ -207,36 +227,6 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
 
     function fieldClass(field) {
         return '.model-' + field.replace('.', '-');
-    }
-
-    function lambdaLaser() {
-        return appState.models.laserPulse.wavelength / 1e6;
-    }
-
-    function lambdaPlasma() {
-        return 3.34e7 / Math.sqrt(appState.models.electronPlasma.density);
-    }
-
-    function setVisibility(fields, isVisible, oldValue) {
-        for (var i = 0; i < fields.length; i++) {
-            var el = $(fieldClass(fields[i])).parent();
-            if (isVisible) {
-                if (oldValue)
-                    el.slideDown()
-            }
-            else {
-                if (oldValue)
-                    el.slideUp()
-                else
-                    el.hide();
-            }
-        }
-    }
-
-    function setReadOnly(fields, isReadOnly) {
-        for (var i = 0; i < fields.length; i++) {
-            $(fieldClass(fields[i]) + ' input').prop('readonly', isReadOnly);
-        }
     }
 
     function gridDimensionsChanged(newValue, oldValue) {
@@ -259,6 +249,14 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         recalcValues();
     }
 
+    function lambdaLaser() {
+        return appState.models.laserPulse.wavelength / 1e6;
+    }
+
+    function lambdaPlasma() {
+        return 3.34e7 / Math.sqrt(appState.models.electronPlasma.density);
+    }
+
     function pulseDimensionsChanged(newValue, oldValue) {
         if (! appState.isLoaded())
             return;
@@ -270,6 +268,22 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         setVisibility(fields.visible, ! isAbsolute, oldValue);
         setReadOnly(fields.editable, ! isAbsolute);
         recalcValues();
+    }
+
+    function recalcBeamBunchLength() {
+        if (! appState.isLoaded())
+            return;
+        var isAbsolute = appState.models.electronBeam.beamBunchLengthMethod == 'a';
+        if (isAbsolute)
+            return;
+
+        var fwMatched = 2 * lambdaPlasma();
+        var rmsMax = lambdaPlasma() / Math.PI;
+        var rmsLength = constants.beamFactor * rmsMax;
+        var longNorm = 1 / (Math.sqrt(2 * Math.PI) * rmsLength);
+        var xBunchHw = 3 * rmsLength;
+        appState.models.electronBeam.rmsLength = rmsLength * 1e6;
+        appState.models.electronBeam.bunchLength = 2 * xBunchHw * 1e6;
     }
 
     function recalcCellCount() {
@@ -293,7 +307,9 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
             return;
         if (newValue && oldValue) {
             appState.models.particleAnimation.histogramBins = newValue;
-            appState.models.beamAnimation.histogramBins = Math.round(newValue * 0.6);
+            //TODO(pjm): beam reports require a slight increase to match the grid
+            appState.models.beamAnimation.histogramBins = newValue + 1;
+            appState.models.beamPreviewReport.histogramBins = newValue + 1;
             appState.saveQuietly('particleAnimation');
             appState.saveQuietly('beamAnimation');
         }
@@ -305,6 +321,17 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         var grid = appState.models.simulationGrid;
         grid.rMax = grid.rLength;
         grid.zMin = - grid.zLength;
+    }
+
+    function recalcRMSRadius(newValue, oldValue) {
+        if (! appState.isLoaded())
+            return;
+        var isAbsolute = appState.models.electronBeam.beamRadiusMethod == 'a';
+        if (isAbsolute)
+            return;
+        var kPe = 2 * Math.PI / lambdaPlasma();
+        var twissBetaMatch = Math.sqrt(2) / kPe;
+        appState.models.electronBeam.rmsRadius = Math.sqrt(twissBetaMatch * parseFloat(appState.models.electronBeam.transverseEmittance)) * 1e6;
     }
 
     function recalcValues() {
@@ -342,6 +369,30 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
         }
         recalcLength();
         recalcCellCount();
+        recalcRMSRadius();
+        recalcBeamBunchLength();
+    }
+
+    function setReadOnly(fields, isReadOnly) {
+        for (var i = 0; i < fields.length; i++) {
+            $(fieldClass(fields[i]) + ' input').prop('readonly', isReadOnly);
+        }
+    }
+
+    function setVisibility(fields, isVisible, oldValue) {
+        for (var i = 0; i < fields.length; i++) {
+            var el = $(fieldClass(fields[i])).parent();
+            if (isVisible) {
+                if (oldValue)
+                    el.slideDown()
+            }
+            else {
+                if (oldValue)
+                    el.slideUp()
+                else
+                    el.hide();
+            }
+        }
     }
 
     self.isLaserPulse = function() {
@@ -369,6 +420,10 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     $scope.$watch('appState.models.laserPulse.wavelength', recalcValues);
     $scope.$watch('appState.models.simulationGrid.zCount', recalcHistogramBins);
 
+    $scope.$watch('appState.models.electronBeam.beamRadiusMethod', beamRadiusMethodChanged);
+    $scope.$watch('appState.models.electronBeam.beamBunchLengthMethod', beamBunchLengthMethodChanged);
+    $scope.$watch('appState.models.electronBeam.transverseEmittance', recalcRMSRadius);
+
     $scope.$on('laserPulse.changed', clearFrames);
     $scope.$on('electronBeam.changed', clearFrames);
     $scope.$on('electronPlasma.changed', clearFrames);
@@ -379,6 +434,8 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
             $timeout(function() {
                 gridDimensionsChanged();
                 pulseDimensionsChanged();
+                beamRadiusMethodChanged();
+                beamBunchLengthMethodChanged();
             }, 100);
         }
     }
