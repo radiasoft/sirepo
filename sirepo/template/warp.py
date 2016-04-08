@@ -405,8 +405,14 @@ def _iteration_title(opmd, data_file):
 
 
 def _opmd_time_series(data_file):
-    main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-    return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+    prev = None
+    try:
+        prev = main.list_h5_files
+        main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
+        return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+    finally:
+        if prev:
+            main.list_h5_files = prev
 
 
 def _particle_selection_args(args):
