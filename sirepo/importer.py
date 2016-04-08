@@ -182,16 +182,22 @@ def beamline_element(obj, idx, title, elem_type, position):
             data['energy'] = obj.energy
         except:
             data['energy'] = None
+        data['diffractionPlaneAngle'] = obj.ang_dif_pl
+        data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
+        data['crystalThickness'] = obj.tc
         data['dSpacing'] = obj.dSp
         data['psi0r'] = obj.psi0r
         data['psi0i'] = obj.psi0i
-        data['psi_hr'] = obj.psiHr
-        data['psi_hi'] = obj.psiHi
-        data['psi_hbr'] = obj.psiHbr
-        data['psi_hbi'] = obj.psiHbi
-        data['crystalThickness'] = obj.tc
-        data['asymmetryAngle'] = obj.angAs
+        data['psiHr'] = obj.psiHr
+        data['psiHi'] = obj.psiHi
+        data['psiHBr'] = obj.psiHbr
+        data['psiHBi'] = obj.psiHbi
+        data['nvx'] = obj.nvx
+        data['nvy'] = obj.nvy
+        data['nvz'] = obj.nvz
+        data['tvx'] = obj.tvx
+        data['tvy'] = obj.tvy
 
     elif elem_type == 'ellipsoidMirror':
         # Fixed values in srw.js:

@@ -92,6 +92,40 @@ app.factory('srwService', function(appState, $rootScope, $location) {
 
 app.controller('SRWBeamlineController', function (appState, panelState, srwService, $scope) {
     var self = this;
+
+    var crystalDefaults = {
+            type:'crystal',
+            title:'Crystal',
+            energy: 8999.0,
+            diffractionPlaneAngle: 1.5707963,
+            asymmetryAngle: 0.0,
+            rotationAngle: 0.0,
+            crystalThickness: 0.01,
+            dSpacing: 3.13557135638,
+            psi0r: -1.20811311251e-05,
+            psi0i: 2.26447987254e-07,
+            psiHr: -6.38714117487e-06,
+            psiHi: 1.58100017439e-07,
+            psiHBr: -6.38714117487e-06,
+            psiHBi: 1.58100017439e-07,
+            nvx: 0.0,
+            nvy: 0.0,
+            nvz: -1.0,
+            tvx: 1.0,
+            tvy: 0.0,
+    };
+    var crystalVectors = crystalFindOrient(
+                                            crystalDefaults.energy,
+                                            crystalDefaults.diffractionPlaneAngle,
+                                            crystalDefaults.dSpacing,
+                                            crystalDefaults.asymmetryAngle,
+                                            crystalDefaults.psi0r,
+                                            crystalDefaults.psi0i
+                                            );
+    for (var prop in crystalVectors) {
+        crystalDefaults[prop] = crystalVectors[prop];
+    }
+
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
@@ -103,9 +137,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crystal', title:'Crystal', energy:8230, diffractionPlaneAngle:1.5707963, asymmetryAngle:0.0, rotationAngle:0.0,
-        crystalThickness:0.01, dSpacing:3.13557135638, psi0r:-1.20784200542e-05, psi0i:2.26348275468e-07,
-        nvx:0.0, nvy:0.0, nvz:-1.0, tvx:1.0, tvy:0.0},
+        crystalDefaults,
         {type:'watch', title:'Watchpoint'},
     ];
     self.panelState = panelState;
@@ -169,11 +201,12 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         self.postPropagation = appState.models.postPropagation;
     }
 
-    function crystalFindOrient(en, ang_dif_pl, dSp, angAs,
-                                psi0r, psi0i) {
+    function crystalFindOrient(en, ang_dif_pl, dSp, angAs, psi0r, psi0i) {
+        // The function is a port from SRW Python code. See find_orient() method of SRWLOptCryst class
+        // in https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py#L2503.
+
         if (typeof(ang_dif_pl) === 'undefined') ang_dif_pl = 0;
 
-        var nvx, nvy, nvz, tvx, tvy;
         var eV2wA = 12398.4193009;  // energy to wavelength conversion factor 12398.41930092394
 
         var wA = eV2wA/en;
@@ -208,7 +241,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
             return Math.sqrt(normV_square(a));
         }
 
-        function devideByNorm(a) {
+        function divideByNorm(a) {
             var norm_a = normV(a);
             for (var i=0; i<a.length; i++) {
                 a[i] = a[i] / norm_a;
@@ -232,12 +265,12 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
 
         if (normV_square(x1c) === 0) {
             x1c = prodV(nv, z1c);
-        }
-        if (normV_square(x1c) === 0) {
-            x1c = sv;
+            if (normV_square(x1c) === 0) {
+                x1c = sv;
+            }
         }
 
-        x1c = devideByNorm(x1c);
+        x1c = divideByNorm(x1c);
 
         var rx = prodMV(mc, x1c);
         var ry = prodV(rz, rx);
@@ -269,7 +302,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
                 } else {
                     ex = [-e1[0], -e1[1], -e1[2]];
                 }
-                ex = devideByNorm(ex);
+                ex = divideByNorm(ex);
                 ey = prodV(ez, ex);
             } else {
                 if (e1[1] > 0) {
@@ -277,10 +310,19 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
                 } else {
                     ey = [-e1[0], -e1[1], -e1[2]];
                 }
-                ey = devideByNorm(ey);
+                ey = divideByNorm(ey);
                 ex = prodV(ey, ez);
             }
-            return [[prodMV(mr, tv), prodMV(mr, sv), prodMV(mr, nv)], [ex, ey, ez]];
+            var tCr = prodMV(mr, tv);
+            var sCr = prodMV(mr, sv);
+            var nCr = prodMV(mr, nv)
+            return {
+                    nvx: nCr[0],
+                    nvy: nCr[1],
+                    nvz: nCr[2],
+                    tvx: tCr[0],
+                    tvy: tCr[1],
+                    };
         }
     }
 
@@ -493,24 +535,23 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         }
     });
 
+    // TODO(mrakitin): add watch for diffractionPlaneAngle and rotationAngle (see SRX example: _ang_dif_pl and op_DCM_ac1).
+    // TODO(mrakitin): uti_math.trf_rotation() and uti_math.matr_prod() functions should be implemented for that.
     $scope.$watch('beamline.activeItem.energy', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
             var item = self.activeItem;
-            var value = parseFloat(newValue);
-            var orientDataCr1 = crystalFindOrient(newValue, 1.5707963, item['dSpacing'], item['asymmetryAngle'],
-                                            item['psi0r'], item['psi0i']);
-            var orientCr1 = orientDataCr1[0];
-            var tCr1 = orientCr1[0];  // Tangential Vector to Crystal surface
-            var sCr1 = orientCr1[1];
-            var nCr1 = orientCr1[2];  // Normal Vector to Crystal surface
-            // DCM Crystal #1 Orientation (original):
-            // 't =', tCr1, 's =', orientCr1[1], 'n =', nCr1
-
-            item['nvx'] = nCr1[0];
-            item['nvy'] = nCr1[1];
-            item['nvz'] = nCr1[2];
-            item['tvx'] = tCr1[0];
-            item['tvy'] = tCr1[1];
+            var energy = parseFloat(newValue);
+            var crystalVectors = crystalFindOrient(
+                                                   energy,
+                                                   item['diffractionPlaneAngle'],
+                                                   item['dSpacing'],
+                                                   item['asymmetryAngle'],
+                                                   item['psi0r'],
+                                                   item['psi0i']
+                                                   );
+            for (var prop in crystalVectors) {
+                item[prop] = crystalVectors[prop];
+            }
         }
     });
 

@@ -394,6 +394,9 @@ def _crystal_element(template, item, fields, propagation):
     sCr = uti_math.matr_prod(rot[0], sCr)
     nCr = uti_math.matr_prod(rot[0], nCr)\n'''.format(item['rotationAngle']) if item['rotationAngle'] != 0 else ''
 
+    # TODO(mrakitin): Temporary disable the code for rotation. Enable back once implemented in JS:
+    crystal_rotation = ''
+
     res = '''
     opCr = {}
     orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl={})  # horizontally-deflecting
@@ -449,9 +452,9 @@ def _generate_beamline_optics(models, last_id):
                 propagation)
         elif item['type'] == 'crystal':
             res += _crystal_element(
-                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr=None, _psi_hi=None, _psi_hbr=None, _psi_hbi=None, _tc={}, _ang_as={})',
+                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
                 item,
-                ['dSpacing', 'psi0r', 'psi0i', 'crystalThickness', 'asymmetryAngle'],
+                ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(
