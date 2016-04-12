@@ -120,7 +120,8 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
                                             crystalDefaults.dSpacing,
                                             crystalDefaults.asymmetryAngle,
                                             crystalDefaults.psi0r,
-                                            crystalDefaults.psi0i
+                                            crystalDefaults.psi0i,
+                                            crystalDefaults.rotationAngle
                                             );
     for (var prop in crystalVectors) {
         crystalDefaults[prop] = crystalVectors[prop];
@@ -201,7 +202,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         self.postPropagation = appState.models.postPropagation;
     }
 
-    function crystalFindOrient(en, ang_dif_pl, dSp, angAs, psi0r, psi0i) {
+    function crystalFindOrient(en, ang_dif_pl, dSp, angAs, psi0r, psi0i, rotationAngle) {
         // The function is a port from SRW Python code. See find_orient() method of SRWLOptCryst class
         // in https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py#L2503.
 
@@ -209,7 +210,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
 
         var eV2wA = 12398.4193009;  // energy to wavelength conversion factor 12398.41930092394
 
-        var wA = eV2wA/en;
+        var wA = eV2wA / en;
         var kh = 1 / dSp;
         var hv = [0, kh * Math.cos(angAs), -kh * Math.sin(angAs)];
         var tBr = Math.asin(wA * kh / 2);
@@ -277,7 +278,8 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
 
         var tolAng = 1.e-06;
         if (Math.abs(ang_dif_pl) < tolAng) {  // case of the vertical deflection plane
-            return [[tv, sv, nv], [rx, ry, rz]];
+            var nCr = nv;
+            var tCr = tv;
         } else {  // case of a tilted deflection plane
             var cosA = Math.cos(ang_dif_pl);
             var sinA = Math.sin(ang_dif_pl);
@@ -316,14 +318,62 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
             var tCr = prodMV(mr, tv);
             var sCr = prodMV(mr, sv);
             var nCr = prodMV(mr, nv)
-            return {
-                    nvx: nCr[0],
-                    nvy: nCr[1],
-                    nvz: nCr[2],
-                    tvx: tCr[0],
-                    tvy: tCr[1],
-                    };
         }
+        if (rotationAngle !== 0) {
+            var rot = crystalRotate([0, 1, 0], rotationAngle, [0, 0, 0]);
+            nCr = crystalMatricesProduct(rot, nCr);
+            tCr = crystalMatricesProduct(rot, tCr);
+        }
+        return {
+                nvx: nCr[0],
+                nvy: nCr[1],
+                nvz: nCr[2],
+                tvx: tCr[0],
+                tvy: tCr[1],
+                };
+    }
+
+    function crystalRotate(V, ang, P) {
+        // See trf_rotation() function in uti_math.py module for details of implementation.
+        var normFact = 1. / Math.sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        var axVect = [normFact * V[0], normFact * V[1], normFact * V[2]];
+        var VxVx = axVect[0] * axVect[0];
+        var VyVy = axVect[1] * axVect[1];
+        var VzVz = axVect[2] * axVect[2];
+        var cosAng = Math.cos(ang);
+        var sinAng = Math.sin(ang);
+        var one_m_cos = 1. - cosAng;
+        var one_m_cosVxVy = one_m_cos * axVect[0] * axVect[1];
+        var one_m_cosVxVz = one_m_cos * axVect[0] * axVect[2];
+        var one_m_cosVyVz = one_m_cos * axVect[1] * axVect[2];
+        var sinVx = sinAng * axVect[0];
+        var sinVy = sinAng * axVect[1];
+        var sinVz = sinAng * axVect[2];
+        var st0 = [VxVx + cosAng * (VyVy + VzVz), one_m_cosVxVy - sinVz, one_m_cosVxVz + sinVy];
+        var st1 = [one_m_cosVxVy + sinVz, VyVy + cosAng * (VxVx + VzVz), one_m_cosVyVz - sinVx];
+        var st2 = [one_m_cosVxVz - sinVy, one_m_cosVyVz + sinVx, VzVz + cosAng * (VxVx + VyVy)];
+        var M = [st0, st1, st2];
+
+        return M;
+    }
+
+    function crystalMatricesProduct(A, B) {
+        // See matr_prod() function from uti_math.py module for details of implementation.
+        var lenB = B.length;
+        var lenA = A.length;
+        if (A[0].length !== lenB) {  // Check matrix dimensions
+            return null;
+        }
+        var C = [];
+        for (var i=0; i<lenB; i++) {
+            C[i] = 0;
+        }
+        for (var i=0; i<lenA; i++) {
+            for (var j=0; j<lenB; j++) {
+                C[i] += A[i][j] * B[j];
+            }
+        }
+        return C;
     }
 
     function defaultItemPropagationParams() {
@@ -535,20 +585,37 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         }
     });
 
-    // TODO(mrakitin): add watch for diffractionPlaneAngle and rotationAngle (see SRX example: _ang_dif_pl and op_DCM_ac1).
-    // TODO(mrakitin): uti_math.trf_rotation() and uti_math.matr_prod() functions should be implemented for that.
-    $scope.$watch('beamline.activeItem.energy', function (newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
+    var fieldsToMonitor = [
+        'energy',
+        'diffractionPlaneAngle',
+        'dSpacing',
+        'asymmetryAngle',
+        'psi0r',
+        'psi0i',
+        'rotationAngle',
+    ];
+    var fieldsToMonitorStr = '[';
+    for (var i=0; i<fieldsToMonitor.length-1; i++) {
+        fieldsToMonitorStr += 'beamline.activeItem.' + fieldsToMonitor[i].toString() + ', '
+    }
+    fieldsToMonitorStr += 'beamline.activeItem.' + fieldsToMonitor[i].toString() + ']';
+
+    $scope.$watchCollection(fieldsToMonitorStr, function (newValues, oldValues) {
+        function checkChanged(newValues, oldValues) {
+            for (var i=0; i<newValues.length; i++) {
+                if (newValues[i] !== null && angular.isDefined(newValues[i]) && isFinite(newValues[i]) && angular.isDefined(oldValues[i]) && isFinite(oldValues[i])) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
-            var energy = parseFloat(newValue);
-            var crystalVectors = crystalFindOrient(
-                                                   energy,
-                                                   item['diffractionPlaneAngle'],
-                                                   item['dSpacing'],
-                                                   item['asymmetryAngle'],
-                                                   item['psi0r'],
-                                                   item['psi0i']
-                                                   );
+            var inputList = [];
+            for (var i=0; i<fieldsToMonitor.length; i++) {
+                inputList.push(item[fieldsToMonitor[i]]);
+            }
+            var crystalVectors = crystalFindOrient.apply(this, inputList);
             for (var prop in crystalVectors) {
                 item[prop] = crystalVectors[prop];
             }
@@ -862,6 +929,8 @@ app.directive('beamlineItem', function($timeout) {
                 scope.$parent.beamline.setActiveItem(scope.item);
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
+                console.log("DEBUG: ", $('.model-crystal-energy input'));
+                $('.model-crystal-energy input').prop('readonly', true);
             }).on('hide.bs.popover', function() {
                 scope.$parent.beamline.setActiveItem(null);
                 var editor = el.data('bs.popover').getContent();
