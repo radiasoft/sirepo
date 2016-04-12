@@ -96,7 +96,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     var crystalDefaults = {
             type:'crystal',
             title:'Crystal',
-            energy: 8999.0,
+            energy: 9000.0,
             diffractionPlaneAngle: 1.5707963,
             asymmetryAngle: 0.0,
             rotationAngle: 0.0,
@@ -929,8 +929,6 @@ app.directive('beamlineItem', function($timeout) {
                 scope.$parent.beamline.setActiveItem(scope.item);
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
-                console.log("DEBUG: ", $('.model-crystal-energy input'));
-                $('.model-crystal-energy input').prop('readonly', true);
             }).on('hide.bs.popover', function() {
                 scope.$parent.beamline.setActiveItem(null);
                 var editor = el.data('bs.popover').getContent();
