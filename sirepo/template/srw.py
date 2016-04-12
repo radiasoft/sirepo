@@ -386,31 +386,14 @@ def _crystal_element(template, item, fields, propagation):
         res: the resulted block of text.
     """
 
-    # Small rotation of DCM crystal
-    crystal_rotation = '''
-    import uti_math
-    rot = uti_math.trf_rotation([0, 1, 0], {}, [0, 0, 0])
-    tCr = uti_math.matr_prod(rot[0], tCr)
-    sCr = uti_math.matr_prod(rot[0], sCr)
-    nCr = uti_math.matr_prod(rot[0], nCr)\n'''.format(item['rotationAngle']) if item['rotationAngle'] != 0 else ''
-
-    # TODO(mrakitin): Temporary disable the code for rotation. Enable back once implemented in JS:
-    crystal_rotation = ''
-
     res = '''
     opCr = {}
-    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl={})  # horizontally-deflecting
-    orientCr = orientDataCr[0]
-    tCr, sCr, nCr = orientCr[:3]  # tangential, sagittal and normal vectors to crystal surface
-    {}
-    # Set the crystal orientation:
-    opCr.set_orient(nCr[0], nCr[1], nCr[2], tCr[0], tCr[1])\n
+    # Set crystal orientation:
+    opCr.set_orient({}, {}, {}, {}, {})
     el.append(opCr)
     {}\n'''.format(
         template.format(*map(lambda x: item[x], fields)),
-        item['energy'],
-        item['diffractionPlaneAngle'],
-        crystal_rotation,
+        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy'],
         _propagation_params(propagation[str(item['id'])][0]).strip()
     )
     return res
