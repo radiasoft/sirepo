@@ -88,14 +88,6 @@ app.factory('appState', function($rootScope, requestSender) {
         $rootScope.$broadcast('modelsLoaded');
     }
 
-    function isPropagationModelName(name) {
-        return name.toLowerCase().indexOf('propagation') >= 0;
-    }
-
-    function isWatchpointReportModelName(name) {
-        return name.indexOf('watchpointReport') >= 0;
-    }
-
     function updateReports() {
         broadcastClear();
         for (var key in self.models) {
@@ -104,28 +96,20 @@ app.factory('appState', function($rootScope, requestSender) {
         }
     }
 
-    self.addNewElectronBeam = function() {
-        var newBeam = self.clone(self.models.electronBeam);
-        delete newBeam.isReadOnly;
-        newBeam.name = 'Beam Name';
-        newBeam.id = self.maxId(self.models.electronBeams) + 1;
-        self.models.electronBeams.push(newBeam);
-        self.models.electronBeam = newBeam;
-    };
-
     self.applicationState = function() {
         return savedModelValues;
     };
 
     self.cancelChanges = function(name) {
-        if (savedModelValues[name]) {
-            self.models[name] = self.clone(savedModelValues[name]);
-            $rootScope.$broadcast('cancelChanges', name);
-        }
-        //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
-        if (name != 'simulation' && self.models.simulation.photonEnergy
-            && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
-            self.cancelChanges('simulation');
+        // cancel changes on a model by name, or by an array of names
+        if (typeof(name) == 'string')
+            name = [name];
+
+        for (var i = 0; i < name.length; i++) {
+            if (savedModelValues[name[i]]) {
+                self.models[name[i]] = self.clone(savedModelValues[name[i]]);
+                $rootScope.$broadcast('cancelChanges', name[i]);
+            }
         }
     };
 
@@ -186,48 +170,6 @@ app.factory('appState', function($rootScope, requestSender) {
                 simulationId: simulationId,
                 simulationType: APP_SCHEMA.simulationType,
             });
-    };
-
-    self.getWatchItems = function() {
-        if (self.isLoaded()) {
-            var beamline = savedModelValues.beamline;
-            var res = [];
-            for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i].type == 'watch')
-                    res.push(beamline[i]);
-            }
-            return res;
-        }
-        return [];
-    };
-
-    self.getReportTitle = function(name) {
-        //TODO(pjm): generalize this
-        var match = name.match(/(.*?)(\d+)/);
-        if (match) {
-            if (savedModelValues.beamline) {
-                var id = match[2];
-                for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
-                    if (savedModelValues.beamline[i].id == id) {
-                        return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
-                            + savedModelValues.beamline[i].position + 'm';
-                    }
-                }
-            }
-            else {
-                name = match[1];
-            }
-        }
-
-        var model = savedModelValues[name];
-        var distance = '';
-        if (model && model.distanceFromSource != null)
-            distance = ', ' + model.distanceFromSource + 'm';
-        else if (self.isAnimationModelName(name))
-            distance = '';
-        else if (self.isReportModelName(name) && savedModelValues.beamline && savedModelValues.beamline.length)
-            distance = ', ' + savedModelValues.beamline[0].position + 'm';
-        return self.viewInfo(name).title + distance;
     };
 
     self.isAnimationModelName = function(name) {
@@ -305,30 +247,12 @@ app.factory('appState', function($rootScope, requestSender) {
             });
     };
 
-    self.saveBeamline = function() {
-        // culls and saves propagation and watchpoint models
-        var propagations = {}
-        var watchpoints = {};
-        for (var i = 0; i < self.models.beamline.length; i++) {
-            var item = self.models.beamline[i];
-            propagations[item.id] = self.models.propagation[item.id];
-            if (item.type == 'watch')
-                watchpoints[self.watchpointReportName(item.id)] = true;
-        }
-        self.models.propagation = propagations;
-
-        // need to save all watchpointReports and propagations for beamline changes
-        for (var modelName in self.models) {
-            if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
-                // deleted watchpoint, remove the report model
-                delete self.models[modelName];
-                delete savedModelValues[modelName];
-                continue;
-            }
-            if (isWatchpointReportModelName(modelName) || isPropagationModelName(modelName))
-                savedModelValues[modelName] = self.cloneModel(modelName);
-        }
-        self.saveChanges('beamline');
+    self.parseModelField = function(name) {
+        // returns [model, field] from a "model.field" name
+        var match = name.match(/(.*?)\.(.*)/);
+        if (match)
+            return [match[1], match[2]];
+        return null;
     };
 
     self.saveQuietly = function(name) {
@@ -337,52 +261,39 @@ app.factory('appState', function($rootScope, requestSender) {
     }
 
     self.saveChanges = function(name) {
-        //TODO(pjm): remove specific model change code and replace with all-model save and single broadcast
-        var simulationChanged = false;
-        if (name != 'simulation' && self.models.simulation.photonEnergy
-            && (self.models.simulation.photonEnergy != savedModelValues.simulation.photonEnergy)) {
-            self.saveQuietly('simulation');
-            simulationChanged = true;
-        }
+        // save changes on a model by name, or by an array of names
+        if (typeof(name) == 'string')
+            name = [name]
+        var updatedModels = [];
+        var requireReportUpdate = false;
 
-        // TODO(pjm): move srw specific code to srw.js
-        if (SIREPO_APP_NAME == 'srw' && name == 'electronBeam') {
-            // keep beamSelector in sync with name, sort beams by name
-            self.models.electronBeam.beamSelector = self.models.electronBeam.name;
-            if (! self.models.electronBeam.isReadOnly) {
-                // update the user defined beam in the electronBeams list
-                for (var i = 0; i < self.models.electronBeams.length; i++) {
-                    var beam = self.models.electronBeams[i];
-                    if (beam.id == self.models.electronBeam.id) {
-                        self.models.electronBeams.splice(i, 1, self.models.electronBeam);
-                        break;
-                    }
-                }
+        for (var i = 0; i < name.length; i++) {
+            if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
+                // let the UI know the primary model has changed, even if it hasn't
+                if (i == 0)
+                    updatedModels.push(name[i]);
             }
-            self.models.electronBeams.sort(function(a, b) {
-                return a.name.localeCompare(b.name);
-            });
+            else {
+                self.saveQuietly(name[i]);
+                updatedModels.push(name[i]);
+                if (! self.isReportModelName(name[i]))
+                    requireReportUpdate = true;
+            }
         }
-        self.saveQuietly(name);
 
-        if (SIREPO_APP_NAME == 'srw' && name == 'electronBeam') {
-            broadcastChanged(name);
-            self.saveChanges('electronBeams');
-            // save electronBeam and electronBeams, but only repolot reports once
-            return;
+        for (var i = 0; i < updatedModels.length; i++) {
+            if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
+                continue;
+            broadcastChanged(updatedModels[i]);
         }
-        broadcastChanged(name);
-        if (! self.isReportModelName(name) || simulationChanged)
+
+        if (requireReportUpdate)
             updateReports();
     };
 
     self.viewInfo = function(name) {
         return APP_SCHEMA.view[name];
     };
-
-    self.watchpointReportName = function(id) {
-        return 'watchpointReport' + id;
-    }
 
     return self;
 });
@@ -568,12 +479,13 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
         requestQueue.addItem([name, appState.applicationState(), responseHandler]);
     };
 
-    self.showModalEditor = function(name) {
-        var editorId = '#srw-' + name + '-editor';
-        if ($(editorId).length)
+    self.showModalEditor = function(modelKey) {
+        var editorId = '#s-' + modelKey + '-editor';
+        if ($(editorId).length) {
             $(editorId).modal('show');
+        }
         else {
-            $('body').append($compile('<div data-modal-editor="' + name + '"></div>')($rootScope));
+            $('body').append($compile('<div data-modal-editor="" data-view-name="' + modelKey + '"></div>')($rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
             $timeout(function() {
                 $(editorId).modal('show');

@@ -379,7 +379,7 @@ app.directive('plot2d', function(plotting) {
                 formatter = d3.format('.2f');
                 ordinate_formatter = d3.format('.3e');
                 select('svg').attr('height', plotting.initialHeight($scope));
-                $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
+                $scope.slider = $(select('.s-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
                 $(window).resize($scope.windowResize);
                 xAxisScale = d3.scale.linear();
@@ -1068,8 +1068,7 @@ app.directive('lattice', function(plotting, appState) {
         scope: {
             modelName: '@',
         },
-        //TODO(pjm): remove random
-        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION + Math.random(),
+        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
             $scope.isClientOnly = true;
             $scope.margin = 50;
@@ -1250,7 +1249,7 @@ app.directive('lattice', function(plotting, appState) {
                     linearize: 0,
                     group: null,
                 };
-                $('#srw-CSRDRIFT-editor').modal('show');
+                $('#s-CSRDRIFT-editor').modal('show');
             }
 
             function resize() {

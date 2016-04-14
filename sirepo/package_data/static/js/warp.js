@@ -381,7 +381,7 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
 
     function setVisibility(fields, isVisible, oldValue) {
         for (var i = 0; i < fields.length; i++) {
-            var el = $(fieldClass(fields[i])).parent();
+            var el = $(fieldClass(fields[i])).closest('.form-group');
             if (isVisible) {
                 if (oldValue)
                     el.slideDown()
