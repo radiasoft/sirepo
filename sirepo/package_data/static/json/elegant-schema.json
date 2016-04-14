@@ -250,6 +250,9 @@
             "y": ["Y Value", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"]
         },
+        "elegantBeamline": {
+            "name": ["Name", "String"]
+        },
         "latticeGraph": {
         },
         "simulation": {
@@ -2534,6 +2537,12 @@
                 "x",
                 "y",
                 "histogramBins"
+            ]
+        },
+        "elegantBeamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
             ]
         },
         "latticeGraph": {
