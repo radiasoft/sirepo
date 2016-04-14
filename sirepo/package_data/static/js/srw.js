@@ -816,8 +816,8 @@ app.directive('appHeader', function(appState, panelState, requestSender, srwServ
 
     var rightNav = [
         '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
-          '<li><a href data-target="#s-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
-          '<li><a href data-ng-click="openImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+          '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+          '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
         '</ul>',
 
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -924,8 +924,12 @@ app.directive('appHeader', function(appState, panelState, requestSender, srwServ
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
 
-            $scope.openImportModal = function() {
+            $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
+            };
+
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
 
             $scope.pythonSource = function(item) {

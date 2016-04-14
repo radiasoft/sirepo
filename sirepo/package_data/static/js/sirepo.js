@@ -776,7 +776,7 @@ app.controller('NotFoundCopyController', function (requestSender, $route) {
     };
 });
 
-app.controller('SimulationsController', function ($scope, $window, $location, appState, requestSender) {
+app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
     var self = this;
     self.list = [];
     self.selected = null;
@@ -832,6 +832,10 @@ app.controller('SimulationsController', function ($scope, $window, $location, ap
 
     self.selectItem = function(item) {
         self.selected = item;
+    };
+
+    self.showSimulationModal = function() {
+        panelState.showModalEditor('simulation');
     };
 
     loadList();

@@ -349,7 +349,7 @@ app.controller('LatticeController', function(appState, panelState, $window, $sco
 
 });
 
-app.directive('appHeader', function(appState) {
+app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
         scope: {
@@ -366,12 +366,15 @@ app.directive('appHeader', function(appState) {
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-target="#s-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+              '<li><a href data-ng-click="showSimulationModal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
                 return appState.isLoaded();
+            };
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
         },
     };

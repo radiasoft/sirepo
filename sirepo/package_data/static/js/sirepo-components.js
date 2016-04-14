@@ -783,7 +783,7 @@ app.directive('reportPanel', function(appState) {
     };
 });
 
-app.directive('appHeaderLeft', function() {
+app.directive('appHeaderLeft', function(panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -793,8 +793,13 @@ app.directive('appHeaderLeft', function() {
             '<ul class="nav navbar-nav">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
-            '<div class="navbar-text"><a href data-target="#s-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
+            '<div class="navbar-text"><a href data-ng-click="showSimulationModal()"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
+            };
+        },
     };
 });
 
