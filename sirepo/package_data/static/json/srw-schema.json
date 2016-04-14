@@ -220,12 +220,6 @@
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
-        "sourceIntensityReport": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
-        },
         "grating": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
@@ -324,6 +318,12 @@
         },
         "simulationStatus": {
         },
+        "sourceIntensityReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+        },
         "sphericalMirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
@@ -374,10 +374,16 @@
                 "title",
                 "position",
                 "shape",
-                "horizontalSize",
-                "verticalSize",
-                "horizontalOffset",
-                "verticalOffset"
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "crl": {
@@ -453,80 +459,9 @@
                 ]
             ]
         },
-        "gaussianBeam": {
-            "title": "Gaussian Beam",
-            "basic": [
-                "simulation.photonEnergy",
-                "energyPerPulse"
-            ],
-            "advanced": [
-                "simulation.photonEnergy",
-                "energyPerPulse",
-                "polarization",
-                "rmsPulseDuration",
-                "waistZ",
-                [
-                    ["Horizontal", [
-                        "rmsSizeX",
-                        "waistX",
-                        "waistAngleX"
-                    ]],
-                    ["Vertical", [
-                        "rmsSizeY",
-                        "waistY",
-                        "waistAngleY"
-                    ]]
-                ]
-            ]
-        },
-        "lens": {
-            "title": "Lens",
-            "basic": [],
-            "advanced": [
-                "title",
-                "position",
-                "horizontalFocalLength",
-                "verticalFocalLength",
-                "horizontalOffset",
-                "verticalOffset"
-            ]
-        },
-        "sourceIntensityReport": {
-            "title": "Intensity Report",
-            "basic": [],
-            "advanced": [
-                "distanceFromSource",
-                "simulation.photonEnergy",
-                "polarization",
-                "characteristic",
-                "fieldUnits"
-            ]
-        },
-        "initialIntensityReport": {
-            "title": "Initial Intensity Report",
-            "basic": [],
-            "advanced": [
-                "simulation.photonEnergy",
-                "polarization",
-                "characteristic",
-                "fieldUnits"
-            ]
-        },
-        "intensityReport": {
-            "title": "Single-Electron Intensity Report",
-            "basic": [],
-            "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "horizontalPosition",
-                "verticalPosition",
-                "polarization",
-                "photonEnergyPointCount"
-            ]
-        },
         "ellipsoidMirror": {
             "title": "Ellipsoid Mirror",
+            "fieldsPerTab": 9,
             "basic": [],
             "advanced": [
                 "title",
@@ -536,11 +471,17 @@
                 "tangentialSize",
                 "sagittalSize",
                 "grazingAngle",
-                "normalVectorX",
-                "normalVectorY",
                 "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
                 "heightProfileFile",
                 "orientation",
                 "heightAmplification"
@@ -571,19 +512,52 @@
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
-                "horizontalPosition",
-                "horizontalApertureSize",
-                "verticalPosition",
-                "verticalApertureSize",
                 "longitudinalPrecision",
                 "azimuthalPrecision",
                 "fluxType",
                 "polarization",
-                "photonEnergyPointCount"
+                "photonEnergyPointCount",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalApertureSize"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalApertureSize"
+                    ]]
+                ]
+            ]
+        },
+        "gaussianBeam": {
+            "title": "Gaussian Beam",
+            "basic": [
+                "simulation.photonEnergy",
+                "energyPerPulse"
+            ],
+            "advanced": [
+                "simulation.photonEnergy",
+                "energyPerPulse",
+                "polarization",
+                "rmsPulseDuration",
+                "waistZ",
+                [
+                    ["Horizontal", [
+                        "rmsSizeX",
+                        "waistX",
+                        "waistAngleX"
+                    ]],
+                    ["Vertical", [
+                        "rmsSizeY",
+                        "waistY",
+                        "waistAngleY"
+                    ]]
+                ]
             ]
         },
         "grating": {
             "title": "Grating",
+            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
                 "title",
@@ -591,17 +565,70 @@
                 "tangentialSize",
                 "sagittalSize",
                 "grazingAngle",
-                "normalVectorX",
-                "normalVectorY",
                 "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
                 "diffractionOrder",
                 "grooveDensity0",
                 "grooveDensity1",
                 "grooveDensity2",
                 "grooveDensity3",
                 "grooveDensity4"
+            ]
+        },
+        "initialIntensityReport": {
+            "title": "Initial Intensity Report",
+            "basic": [],
+            "advanced": [
+                "simulation.photonEnergy",
+                "polarization",
+                "characteristic",
+                "fieldUnits"
+            ]
+        },
+        "intensityReport": {
+            "title": "Single-Electron Intensity Report",
+            "basic": [],
+            "advanced": [
+                "distanceFromSource",
+                "initialEnergy",
+                "finalEnergy",
+                "polarization",
+                "photonEnergyPointCount",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition"
+                    ]]
+                ]
+            ]
+        },
+        "lens": {
+            "title": "Lens",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                [
+                    ["Horizontal", [
+                        "horizontalFocalLength",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalFocalLength",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "mirror": {
@@ -632,19 +659,6 @@
             ],
             "advanced": []
         },
-        "obstacle": {
-            "title": "Obstacle",
-            "basic": [],
-            "advanced": [
-                "title",
-                "position",
-                "shape",
-                "horizontalSize",
-                "verticalSize",
-                "horizontalOffset",
-                "verticalOffset"
-            ]
-        },
         "multiElectronAnimation": {
             "title": "Partially Coherent Intensity Report",
             "basic": [],
@@ -653,19 +667,44 @@
                 "stokesParameter"
             ]
         },
+        "obstacle": {
+            "title": "Obstacle",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
+            ]
+        },
         "powerDensityReport": {
             "title": "Power Density Report",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "precision",
                 "method",
-                "horizontalPointCount",
-                "verticalPointCount"
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalRange",
+                        "horizontalPointCount"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalRange",
+                        "verticalPointCount"
+                    ]]
+                ]
             ]
         },
         "simulation": {
@@ -707,8 +746,34 @@
             "title": "Simulation Status",
             "advanced": []
         },
+        "sourceIntensityReport": {
+            "title": "Intensity Report",
+            "basic": [],
+            "advanced": [
+                "distanceFromSource",
+                "simulation.photonEnergy",
+                "polarization",
+                "characteristic",
+                "fieldUnits",
+                "simulation.samplingMethod",
+                "simulation.sampleFactor",
+                [
+                    ["Horizontal", [
+                        "simulation.horizontalPosition",
+                        "simulation.horizontalRange",
+                        "simulation.horizontalPointCount"
+                    ]],
+                    ["Vertical", [
+                        "simulation.verticalPosition",
+                        "simulation.verticalRange",
+                        "simulation.verticalPointCount"
+                    ]]
+                ]
+            ]
+        },
         "sphericalMirror": {
             "title": "Spherical Mirror",
+            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
                 "title",
@@ -716,11 +781,17 @@
                 "radius",
                 "tangentialSize",
                 "sagittalSize",
-                "normalVectorX",
-                "normalVectorY",
                 "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
                 "heightProfileFile",
                 "orientation",
                 "heightAmplification"
