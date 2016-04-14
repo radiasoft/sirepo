@@ -253,6 +253,12 @@ def get_animation_name(data):
     return data['modelName']
 
 
+def get_application_data(data):
+    if data['method'] == 'compute_grazing_angle':
+        return _compute_grazing_angle(data['optical_element'])
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
+
+
 def get_data_file(run_dir, frame_index):
     for path in glob.glob(str(run_dir.join('res_*.dat'))):
         path = str(py.path.local(path))
@@ -371,6 +377,30 @@ def _fixup_beam(data, beam):
     # otherwise default to the first predefined beam
     beam.update(_PREDEFINED_BEAMS[0])
     beam['beamSelector'] = beam['name']
+
+
+def _compute_grazing_angle(model):
+
+    def preserve_sign(item, field, new_value):
+        old_value = item[field] if field in item else 0
+        was_negative = float(old_value) < 0;
+        item[field] = float(new_value);
+        if (was_negative and item[field] > 0) or item[field] < 0:
+            item[field] = - item[field];
+
+    grazing_angle = float(model['grazingAngle']) / 1000.0;
+    preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle));
+
+    if 'normalVectorY' in model and float(model['normalVectorY']) == 0:
+        preserve_sign(model, 'normalVectorX', math.cos(grazing_angle));
+        preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle));
+        model['tangentialVectorY'] = 0;
+    if 'normalVectorX' in model and float(model['normalVectorX']) == 0:
+        preserve_sign(model, 'normalVectorY', math.cos(grazing_angle));
+        model['tangentialVectorX'] = 0
+        preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle));
+
+    return model
 
 
 def _crystal_element(template, item, fields, propagation):

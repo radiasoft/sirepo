@@ -125,7 +125,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-app.controller('SRWBeamlineController', function (appState, panelState, srwService, $scope) {
+app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
 
     var crystalDefaults = {
@@ -439,14 +439,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         return name.indexOf('watchpointReport') >= 0;
     }
 
-    function preserveSign(item, field, newValue) {
-        var oldValue = item[field];
-        var wasNegative = isFinite(oldValue) && parseFloat(oldValue) < 0;
-        item[field] = newValue;
-        if ((wasNegative && item[field] > 0) || item[field] < 0)
-            item[field] = - item[field];
-    }
-
     function saveBeamline() {
         // culls and saves propagation and watchpoint models
         var propagations = {}
@@ -653,19 +645,16 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
             var item = self.activeItem;
-            var grazingAngle = parseFloat(newValue) / 1000.0;
-            preserveSign(item, 'normalVectorZ', Math.sin(grazingAngle));
-
-            if (isFinite(item.normalVectorY) && parseFloat(item.normalVectorY) == 0) {
-                preserveSign(item, 'normalVectorX', Math.cos(grazingAngle));
-                preserveSign(item, 'tangentialVectorX', Math.sin(grazingAngle));
-                item.tangentialVectorY = 0;
-            }
-            if (isFinite(item.normalVectorX) && parseFloat(item.normalVectorX) == 0) {
-                preserveSign(item, 'normalVectorY', Math.cos(grazingAngle));
-                item.tangentialVectorX = 0
-                preserveSign(item, 'tangentialVectorY', Math.sin(grazingAngle));
-            }
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_grazing_angle',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
+                    for (var i = 0; i < fields.length; i++)
+                        item[fields[i]] = data[fields[i]];
+                });
         }
     });
 

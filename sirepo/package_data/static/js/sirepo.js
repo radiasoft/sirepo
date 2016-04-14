@@ -504,8 +504,9 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     return self;
 });
 
-app.factory('requestSender', function($http, $location, localRoutes) {
+app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
     var self = {};
+    var getApplicationDataTimeout;
 
     function logError(data, status) {
         console.log('request failed: ', data);
@@ -526,11 +527,22 @@ app.factory('requestSender', function($http, $location, localRoutes) {
 
     self.formatLocalUrl = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
-    }
+    };
 
     self.formatUrl = function(routeName, params) {
         return formatUrl(APP_SCHEMA.route, routeName, params);
     };
+
+    self.getApplicationData = function(data, callback) {
+        // debounce the method so server calls don't go on every keystroke
+        if (getApplicationDataTimeout)
+            $timeout.cancel(getApplicationDataTimeout);
+        getApplicationDataTimeout = $timeout(function() {
+            getApplicationDataTimeout = null;
+            data['simulationType'] = APP_SCHEMA.simulationType;
+            self.sendRequest('getApplicationData', callback, data);
+        }, 350);
+    }
 
     self.getAuxiliaryData = function(name) {
         return self[name];

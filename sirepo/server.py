@@ -252,6 +252,12 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
     werkzeug.exceptions.abort(404)
 
 
+@app.route(simulation_db.SCHEMA_COMMON['route']['getApplicationData'], methods=('GET', 'POST'))
+def app_get_application_data():
+    data = _json_input()
+    return flask.jsonify(sirepo.template.import_module(data['simulationType']).get_application_data(data))
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
     f = flask.request.files['file']
