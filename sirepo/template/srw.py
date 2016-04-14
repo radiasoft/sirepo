@@ -256,6 +256,8 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
+    elif data['method'] == 'compute_crystal_orientation':
+        return _compute_crystal_orientation(data['optical_element'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -378,27 +380,57 @@ def _fixup_beam(data, beam):
     beam.update(_PREDEFINED_BEAMS[0])
     beam['beamSelector'] = beam['name']
 
+def _compute_crystal_orientation(model):
+    import srwlib
+    opCr = srwlib.SRWLOptCryst(
+        _d_sp=model['dSpacing'],
+        _psi0r=model['psi0r'],
+        _psi0i=model['psi0i'],
+        _psi_hr=model['psiHr'],
+        _psi_hi=model['psiHi'],
+        _psi_hbr=model['psiHBr'],
+        _psi_hbi=model['psiHBi'],
+        _tc=model['crystalThickness'],
+        _ang_as=model['asymmetryAngle'],
+    )
+    orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['diffractionPlaneAngle'])[0]
+    tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
+    nCr = orientDataCr[2]  # Normal Vector to Crystal surface
+
+    if model['rotationAngle'] != 0:
+        import uti_math
+        rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
+        nCr = uti_math.matr_prod(rot, nCr)
+        tCr = uti_math.matr_prod(rot, tCr)
+
+    model['nvx'] = nCr[0]
+    model['nvy'] = nCr[1]
+    model['nvz'] = nCr[2]
+    model['tvx'] = tCr[0]
+    model['tvy'] = tCr[1]
+
+    return model
 
 def _compute_grazing_angle(model):
 
     def preserve_sign(item, field, new_value):
         old_value = item[field] if field in item else 0
-        was_negative = float(old_value) < 0;
-        item[field] = float(new_value);
+        was_negative = float(old_value) < 0
+        item[field] = float(new_value)
         if (was_negative and item[field] > 0) or item[field] < 0:
-            item[field] = - item[field];
+            item[field] = - item[field]
 
-    grazing_angle = float(model['grazingAngle']) / 1000.0;
-    preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle));
+    grazing_angle = float(model['grazingAngle']) / 1000.0
+    preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle))
 
     if 'normalVectorY' in model and float(model['normalVectorY']) == 0:
-        preserve_sign(model, 'normalVectorX', math.cos(grazing_angle));
-        preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle));
-        model['tangentialVectorY'] = 0;
+        preserve_sign(model, 'normalVectorX', math.cos(grazing_angle))
+        preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle))
+        model['tangentialVectorY'] = 0
     if 'normalVectorX' in model and float(model['normalVectorX']) == 0:
-        preserve_sign(model, 'normalVectorY', math.cos(grazing_angle));
+        preserve_sign(model, 'normalVectorY', math.cos(grazing_angle))
         model['tangentialVectorX'] = 0
-        preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle));
+        preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle))
 
     return model
 

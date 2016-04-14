@@ -652,9 +652,11 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                 },
                 function(data) {
                     var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
-                    for (var i = 0; i < fields.length; i++)
+                    for (var i = 0; i < fields.length; i++) {
                         item[fields[i]] = data[fields[i]];
-                });
+                    }
+                }
+            );
         }
     });
 
@@ -684,6 +686,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
+            /*
             var inputList = [];
             for (var i=0; i<fieldsToMonitor.length; i++) {
                 inputList.push(item[fieldsToMonitor[i]]);
@@ -692,6 +695,20 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
             for (var prop in crystalVectors) {
                 item[prop] = crystalVectors[prop];
             }
+            */
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crystal_orientation',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                        console.log('i=', i, ' fields[i]=', fields[i], ' item[fields[i]]=', item[fields[i]]);
+                    }
+                }
+            );
         }
     });
 
