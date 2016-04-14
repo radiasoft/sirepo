@@ -131,17 +131,17 @@
             "rotationAngle": ["Rotation angle [rad]", "Float"],
             "crystalThickness": ["Crystal thickness [m]", "Float"],
             "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float"],
-            "psi0r": ["Re(0-th Fourier component of crystal polarizability)", "Float"],
-            "psi0i": ["Im(0-th Fourier component of crystal polarizability)", "Float"],
-            "psiHr": ["Re(H-th Fourier component of crystal polarizability)", "Float"],
-            "psiHi": ["Im(H-th Fourier component of crystal polarizability)", "Float"],
-            "psiHBr": ["Re(-H-th Fourier component of crystal polarizability)", "Float"],
-            "psiHBi": ["Im(-H-th Fourier component of crystal polarizability)", "Float"],
-            "nvx": ["Horizontal coordinate of outward normal", "Float"],
-            "nvy": ["Vertical coordinate of outward normal", "Float"],
-            "nvz": ["Longitudinal coordinate of outward normal", "Float"],
-            "tvx": ["Horizontal coordinate of central tangential vector", "Float"],
-            "tvy": ["Vertical coordinate of central tangential vector", "Float"]
+            "psi0r": ["0-th Fourier component", "Float"],
+            "psi0i": ["0-th Fourier component", "Float"],
+            "psiHr": ["H-th Fourier component", "Float"],
+            "psiHi": ["H-th Fourier component", "Float"],
+            "psiHBr": ["-H-th Fourier component", "Float"],
+            "psiHBi": ["-H-th Fourier component", "Float"],
+            "nvx": ["Horizontal coordinate", "Float"],
+            "nvy": ["Vertical coordinate", "Float"],
+            "nvz": ["Longitudinal coordinate", "Float"],
+            "tvx": ["Horizontal coordinate", "Float"],
+            "tvy": ["Vertical coordinate", "Float"]
         },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
@@ -415,17 +415,29 @@
                 "rotationAngle",
                 "crystalThickness",
                 "dSpacing",
-                "psi0r",
-                "psi0i",
-                "psiHr",
-                "psiHi",
-                "psiHBr",
-                "psiHBi",
-                "nvx",
-                "nvy",
-                "nvz",
-                "tvx",
-                "tvy"
+                [
+                    ["Real part of crystal polarizability", [
+                        "psi0r",
+                        "psiHr",
+                        "psiHBr"
+                    ]],
+                    ["Imaginary part of crystal polarizability", [
+                        "psi0i",
+                        "psiHi",
+                        "psiHBi"
+                    ]]
+                ],
+                [
+                    ["Outward normal vector", [
+                        "nvx",
+                        "nvy",
+                        "nvz"
+                    ]],
+                    ["Central tangential vector", [
+                        "tvx",
+                        "tvy"
+                    ]]
+                ]
             ]
         },
         "electronBeam": {
