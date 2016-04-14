@@ -488,7 +488,7 @@
             ]
         },
         "fluxAnimation": {
-            "title": "Partially Coherent Flux Report",
+            "title": "Partially Coherent Finite Emittance Beam Report",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
