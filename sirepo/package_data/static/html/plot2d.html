@@ -1,5 +1,5 @@
-  <div ng-class="{'srw-plot-loading': isLoading(), 'srw-plot-cleared': dataCleared}">
-    <div><svg class="srw-plot">
+  <div ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
+    <div><svg class="s-plot">
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
         <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
@@ -19,9 +19,9 @@
         </svg>
       </g>
     </svg></div>
-    <div class="srw-slider-values text-center">
+    <div class="s-slider-values text-center">
       <strong>{{ xRange[0] | number:0 }}</strong>
-      <input type="text" class="srw-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
+      <input type="text" class="s-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
       <strong>{{ xRange[1] | number:0 }}</strong>
     </div>
   </div>
