@@ -14,9 +14,11 @@ import os
 import py.path
 import re
 import shutil
+import traceback
 import zipfile
 
 from pykern import pkio
+from pykern.pkdebug import pkdc, pkdp
 from pykern import pkjinja
 from pykern import pkresource
 from sirepo.template import template_common
@@ -410,7 +412,8 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
-    except:
+    except Exception as e:
+        pkdp('\n{}\n{}', traceback.format_exc(), e)
         for i in ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']:
             model[i] = None
 
