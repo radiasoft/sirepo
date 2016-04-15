@@ -149,18 +149,18 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
             tvx: 1.0,
             tvy: 0.0,
     };
-    var crystalVectors = crystalFindOrient(
-                                            crystalDefaults.energy,
-                                            crystalDefaults.diffractionPlaneAngle,
-                                            crystalDefaults.dSpacing,
-                                            crystalDefaults.asymmetryAngle,
-                                            crystalDefaults.psi0r,
-                                            crystalDefaults.psi0i,
-                                            crystalDefaults.rotationAngle
-                                            );
-    for (var prop in crystalVectors) {
-        crystalDefaults[prop] = crystalVectors[prop];
-    }
+    requestSender.getApplicationData(
+        {
+            method: 'compute_crystal_orientation',
+            optical_element: crystalDefaults,
+        },
+        function(data) {
+            var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
+            for (var i = 0; i < fields.length; i++) {
+                crystalDefaults[fields[i]] = data[fields[i]];
+            }
+        }
+    );
 
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
@@ -236,180 +236,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         if (! appState.models.postPropagation || appState.models.postPropagation.length == 0)
             appState.models.postPropagation = defaultItemPropagationParams();
         self.postPropagation = appState.models.postPropagation;
-    }
-
-    function crystalFindOrient(en, ang_dif_pl, dSp, angAs, psi0r, psi0i, rotationAngle) {
-        // The function is a port from SRW Python code. See find_orient() method of SRWLOptCryst class
-        // in https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py#L2503.
-
-        if (typeof(ang_dif_pl) === 'undefined') ang_dif_pl = 0;
-
-        var eV2wA = 12398.4193009;  // energy to wavelength conversion factor 12398.41930092394
-
-        var wA = eV2wA / en;
-        var kh = 1 / dSp;
-        var hv = [0, kh * Math.cos(angAs), -kh * Math.sin(angAs)];
-        var tBr = Math.asin(wA * kh / 2);
-        var tKin = tBr - angAs;
-        var tKou = tBr + angAs;
-        var abs_c0 = Math.sqrt(psi0r * psi0r + psi0i * psi0i);
-        var dTref = 0.5 * abs_c0 * (1 + Math.sin(tKou) / Math.sin(tKin)) / Math.sin(2 * tBr);
-        var tIn = tKin + dTref;
-
-        function prodV(a, b) {
-            return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-        }
-
-        function prodMV(m, v) {
-            return [m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
-                    m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2],
-                    m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2]];
-        }
-
-        function normV_square(a) {
-            var s = 0;
-            for (var i=0; i<a.length; i++) {
-                s = s + a[i] * a[i];
-            }
-            return s;
-        }
-
-        function normV(a) {
-            return Math.sqrt(normV_square(a));
-        }
-
-        function divideByNorm(a) {
-            var norm_a = normV(a);
-            for (var i=0; i<a.length; i++) {
-                a[i] = a[i] / norm_a;
-            }
-            return a;
-        }
-
-        var nv = [0, Math.cos(tIn), -Math.sin(tIn)];
-        var tv = [0, Math.sin(tIn), Math.cos(tIn)];
-        var sv = prodV(nv, tv);
-
-        var mc = [[sv[0], nv[0], tv[0]],
-                  [sv[1], nv[1], tv[1]],
-                  [sv[2], nv[2], tv[2]]];
-
-        var z1c = [sv[2], Math.sqrt(1 - Math.pow(sv[2], 2) - Math.pow(tv[2] + wA * hv[2], 2)), tv[2] + wA * hv[2]];
-
-        var rz = prodMV(mc, z1c);
-
-        var x1c = prodV(hv, z1c);
-
-        if (normV_square(x1c) === 0) {
-            x1c = prodV(nv, z1c);
-            if (normV_square(x1c) === 0) {
-                x1c = sv;
-            }
-        }
-
-        x1c = divideByNorm(x1c);
-
-        var rx = prodMV(mc, x1c);
-        var ry = prodV(rz, rx);
-
-        var tolAng = 1.e-06;
-        if (Math.abs(ang_dif_pl) < tolAng) {  // case of the vertical deflection plane
-            var nCr = nv;
-            var tCr = tv;
-        } else {  // case of a tilted deflection plane
-            var cosA = Math.cos(ang_dif_pl);
-            var sinA = Math.sin(ang_dif_pl);
-            var mr = [[cosA, -sinA, 0],
-                      [sinA,  cosA, 0],
-                      [0,        0, 1]];
-
-            var ez = prodMV(mr, rz);
-
-            // Selecting "Horizontal" and "Vertical" directions of the Output beam frame
-            // trying to use "minimum deviation" from the corresponding "Horizontal" and "Vertical"
-            // directions of the Input beam frame
-            var ezIn = [0, 0, 1];
-            var e1 = prodV(ez, ezIn);
-            var abs_e1x = Math.abs(e1[0]);
-            var abs_e1y = Math.abs(e1[1]);
-
-            var ex = null, ey = null;
-            if (abs_e1x >= abs_e1y) {
-                if (e1[0] > 0) {
-                    ex = e1;
-                } else {
-                    ex = [-e1[0], -e1[1], -e1[2]];
-                }
-                ex = divideByNorm(ex);
-                ey = prodV(ez, ex);
-            } else {
-                if (e1[1] > 0) {
-                    ey = e1;
-                } else {
-                    ey = [-e1[0], -e1[1], -e1[2]];
-                }
-                ey = divideByNorm(ey);
-                ex = prodV(ey, ez);
-            }
-            var tCr = prodMV(mr, tv);
-            var sCr = prodMV(mr, sv);
-            var nCr = prodMV(mr, nv)
-        }
-        if (rotationAngle !== 0) {
-            var rot = crystalRotate([0, 1, 0], rotationAngle, [0, 0, 0]);
-            nCr = crystalMatricesProduct(rot, nCr);
-            tCr = crystalMatricesProduct(rot, tCr);
-        }
-        return {
-                nvx: nCr[0],
-                nvy: nCr[1],
-                nvz: nCr[2],
-                tvx: tCr[0],
-                tvy: tCr[1],
-                };
-    }
-
-    function crystalRotate(V, ang, P) {
-        // See trf_rotation() function in uti_math.py module for details of implementation.
-        var normFact = 1. / Math.sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        var axVect = [normFact * V[0], normFact * V[1], normFact * V[2]];
-        var VxVx = axVect[0] * axVect[0];
-        var VyVy = axVect[1] * axVect[1];
-        var VzVz = axVect[2] * axVect[2];
-        var cosAng = Math.cos(ang);
-        var sinAng = Math.sin(ang);
-        var one_m_cos = 1. - cosAng;
-        var one_m_cosVxVy = one_m_cos * axVect[0] * axVect[1];
-        var one_m_cosVxVz = one_m_cos * axVect[0] * axVect[2];
-        var one_m_cosVyVz = one_m_cos * axVect[1] * axVect[2];
-        var sinVx = sinAng * axVect[0];
-        var sinVy = sinAng * axVect[1];
-        var sinVz = sinAng * axVect[2];
-        var st0 = [VxVx + cosAng * (VyVy + VzVz), one_m_cosVxVy - sinVz, one_m_cosVxVz + sinVy];
-        var st1 = [one_m_cosVxVy + sinVz, VyVy + cosAng * (VxVx + VzVz), one_m_cosVyVz - sinVx];
-        var st2 = [one_m_cosVxVz - sinVy, one_m_cosVyVz + sinVx, VzVz + cosAng * (VxVx + VyVy)];
-        var M = [st0, st1, st2];
-
-        return M;
-    }
-
-    function crystalMatricesProduct(A, B) {
-        // See matr_prod() function from uti_math.py module for details of implementation.
-        var lenB = B.length;
-        var lenA = A.length;
-        if (A[0].length !== lenB) {  // Check matrix dimensions
-            return null;
-        }
-        var C = [];
-        for (var i=0; i<lenB; i++) {
-            C[i] = 0;
-        }
-        for (var i=0; i<lenA; i++) {
-            for (var j=0; j<lenB; j++) {
-                C[i] += A[i][j] * B[j];
-            }
-        }
-        return C;
     }
 
     function defaultItemPropagationParams() {
@@ -686,16 +512,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
-            /*
-            var inputList = [];
-            for (var i=0; i<fieldsToMonitor.length; i++) {
-                inputList.push(item[fieldsToMonitor[i]]);
-            }
-            var crystalVectors = crystalFindOrient.apply(this, inputList);
-            for (var prop in crystalVectors) {
-                item[prop] = crystalVectors[prop];
-            }
-            */
             requestSender.getApplicationData(
                 {
                     method: 'compute_crystal_orientation',
@@ -705,7 +521,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                     var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
                     for (var i = 0; i < fields.length; i++) {
                         item[fields[i]] = data[fields[i]];
-                        console.log('i=', i, ' fields[i]=', fields[i], ' item[fields[i]]=', item[fields[i]]);
                     }
                 }
             );

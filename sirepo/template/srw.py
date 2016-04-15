@@ -380,36 +380,42 @@ def _fixup_beam(data, beam):
     beam.update(_PREDEFINED_BEAMS[0])
     beam['beamSelector'] = beam['name']
 
+
 def _compute_crystal_orientation(model):
-    import srwlib
-    opCr = srwlib.SRWLOptCryst(
-        _d_sp=model['dSpacing'],
-        _psi0r=model['psi0r'],
-        _psi0i=model['psi0i'],
-        _psi_hr=model['psiHr'],
-        _psi_hi=model['psiHi'],
-        _psi_hbr=model['psiHBr'],
-        _psi_hbi=model['psiHBi'],
-        _tc=model['crystalThickness'],
-        _ang_as=model['asymmetryAngle'],
-    )
-    orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['diffractionPlaneAngle'])[0]
-    tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
-    nCr = orientDataCr[2]  # Normal Vector to Crystal surface
+    try:
+        import srwlib
+        opCr = srwlib.SRWLOptCryst(
+            _d_sp=model['dSpacing'],
+            _psi0r=model['psi0r'],
+            _psi0i=model['psi0i'],
+            _psi_hr=model['psiHr'],
+            _psi_hi=model['psiHi'],
+            _psi_hbr=model['psiHBr'],
+            _psi_hbi=model['psiHBi'],
+            _tc=model['crystalThickness'],
+            _ang_as=model['asymmetryAngle'],
+        )
+        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['diffractionPlaneAngle'])[0]
+        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
+        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
-    if model['rotationAngle'] != 0:
-        import uti_math
-        rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
-        nCr = uti_math.matr_prod(rot, nCr)
-        tCr = uti_math.matr_prod(rot, tCr)
+        if model['rotationAngle'] != 0:
+            import uti_math
+            rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
+            nCr = uti_math.matr_prod(rot, nCr)
+            tCr = uti_math.matr_prod(rot, tCr)
 
-    model['nvx'] = nCr[0]
-    model['nvy'] = nCr[1]
-    model['nvz'] = nCr[2]
-    model['tvx'] = tCr[0]
-    model['tvy'] = tCr[1]
+        model['nvx'] = nCr[0]
+        model['nvy'] = nCr[1]
+        model['nvz'] = nCr[2]
+        model['tvx'] = tCr[0]
+        model['tvy'] = tCr[1]
+    except:
+        for i in ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']:
+            model[i] = None
 
     return model
+
 
 def _compute_grazing_angle(model):
 
