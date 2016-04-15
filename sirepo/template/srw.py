@@ -412,8 +412,8 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
-    except Exception as e:
-        pkdp('\n{}\n{}', traceback.format_exc(), e)
+    except Exception:
+        pkdp('\n{}', traceback.format_exc())
         for i in ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']:
             model[i] = None
 
