@@ -1051,6 +1051,7 @@ app.directive('importPython', function(fileUpload, requestSender) {
                             $scope.fileUploadError = data.error;
                         }
                         else {
+                            $('#srw-simulation-import').modal('hide');
                             requestSender.localRedirect('source', {
                                 ':simulationId': data.models.simulation.simulationId,
                             });
