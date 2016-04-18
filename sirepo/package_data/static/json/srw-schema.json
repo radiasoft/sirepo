@@ -28,6 +28,10 @@
             ["1", "Parabolic"],
             ["2", "Circular"]
         ],
+        "CrystalMaterial": [
+            ["Unknown", "Unknown"],
+            ["Si", "Si"]
+        ],
         "FieldUnits": [
             ["1", "ph/s/.1%bw/mm²"],
             ["2", "J/eV/mm²"]
@@ -125,6 +129,10 @@
         "crystal": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
+            "material": ["", "CrystalMaterial"],
+            "h": ["h", "Integer"],
+            "k": ["k", "Integer"],
+            "l": ["l", "Integer"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
             "diffractionPlaneAngle": ["Diffraction plane angle [rad]", "Float"],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float"],
@@ -409,6 +417,16 @@
             "advanced": [
                 "title",
                 "position",
+                [
+                    ["Material of the crystal", [
+                        "material"
+                    ]],
+                    ["Miller's indices", [
+                        "h",
+                        "k",
+                        "l"
+                    ]]
+                ],
                 "energy",
                 "diffractionPlaneAngle",
                 "asymmetryAngle",

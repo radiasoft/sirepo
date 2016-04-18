@@ -129,38 +129,30 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     var self = this;
 
     var crystalDefaults = {
-            type:'crystal',
-            title:'Crystal',
+            type: 'crystal',
+            title: 'Crystal',
+            material: 'Unknown',
+            h: 1,
+            k: 1,
+            l: 1,
             energy: 9000.0,
             diffractionPlaneAngle: 1.5707963,
             asymmetryAngle: 0.0,
             rotationAngle: 0.0,
             crystalThickness: 0.01,
-            dSpacing: 3.13557135638,
-            psi0r: -1.20811311251e-05,
-            psi0i: 2.26447987254e-07,
-            psiHr: -6.38714117487e-06,
-            psiHi: 1.58100017439e-07,
-            psiHBr: -6.38714117487e-06,
-            psiHBi: 1.58100017439e-07,
-            nvx: 0.0,
-            nvy: 0.0,
-            nvz: -1.0,
-            tvx: 1.0,
-            tvy: 0.0,
+            dSpacing: null,  // 3.13557135638,
+            psi0r: null,  // -1.20811311251e-05,
+            psi0i: null,  // 2.26447987254e-07,
+            psiHr: null,  // -6.38714117487e-06,
+            psiHi: null,  // 1.58100017439e-07,
+            psiHBr: null,  // -6.38714117487e-06,
+            psiHBi: null,  // 1.58100017439e-07,
+            nvx: null,  // 0.0,
+            nvy: null,  // 0.0,
+            nvz: null,  // -1.0,
+            tvx: null,  // 1.0,
+            tvy: null,  // 0.0,
     };
-    requestSender.getApplicationData(
-        {
-            method: 'compute_crystal_orientation',
-            optical_element: crystalDefaults,
-        },
-        function(data) {
-            var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
-            for (var i = 0; i < fields.length; i++) {
-                crystalDefaults[fields[i]] = data[fields[i]];
-            }
-        }
-    );
 
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
@@ -486,7 +478,49 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
     });
 
-    var fieldsToMonitor = [
+    function checkChanged(newValues, oldValues) {
+        for (var i=0; i<newValues.length; i++) {
+            if (! angular.isDefined(newValues[i]) || newValues[i] === null || newValues[i] === 'Unknown' || ! angular.isDefined(oldValues[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function wrapActiveItem(fields) {
+        var fieldsList = [];
+        for (var i=0; i<fields.length; i++) {
+            fieldsList.push('beamline.activeItem.' + fields[i].toString());
+        }
+        return '[' + fieldsList.toString() + ']';
+    }
+
+    var crystalInitFields = [
+        'material',
+        'h',
+        'k',
+        'l',
+    ];
+
+    $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
+        if (checkChanged(newValues, oldValues)) {
+            var item = self.activeItem;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crystal_init',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                    }
+                }
+            );
+        }
+    });
+
+    var crystalOrientationFields = [
         'energy',
         'diffractionPlaneAngle',
         'dSpacing',
@@ -495,21 +529,8 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         'psi0i',
         'rotationAngle',
     ];
-    var fieldsToMonitorStr = '[';
-    for (var i=0; i<fieldsToMonitor.length-1; i++) {
-        fieldsToMonitorStr += 'beamline.activeItem.' + fieldsToMonitor[i].toString() + ', '
-    }
-    fieldsToMonitorStr += 'beamline.activeItem.' + fieldsToMonitor[i].toString() + ']';
 
-    $scope.$watchCollection(fieldsToMonitorStr, function (newValues, oldValues) {
-        function checkChanged(newValues, oldValues) {
-            for (var i=0; i<newValues.length; i++) {
-                if (newValues[i] !== null && angular.isDefined(newValues[i]) && isFinite(newValues[i]) && angular.isDefined(oldValues[i]) && isFinite(oldValues[i])) {
-                    return true;
-                }
-            }
-            return false;
-        }
+    $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
             requestSender.getApplicationData(

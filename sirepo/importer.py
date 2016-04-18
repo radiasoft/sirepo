@@ -178,11 +178,18 @@ def beamline_element(obj, idx, title, elem_type, position):
             data[key] *= 1000.0
 
     elif elem_type == 'crystal':
+        data['material'] = 'Unknown'
+        data['h'] = 1
+        data['k'] = 1
+        data['l'] = 1
         try:
             data['energy'] = obj.energy
         except:
             data['energy'] = None
-        data['diffractionPlaneAngle'] = obj.ang_dif_pl
+        try:
+            data['diffractionPlaneAngle'] = obj.ang_dif_pl
+        except:
+            data['diffractionPlaneAngle'] = 0.0
         data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
         data['crystalThickness'] = obj.tc

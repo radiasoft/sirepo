@@ -258,6 +258,8 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
+    elif data['method'] == 'compute_crystal_init':
+        return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
         return _compute_crystal_orientation(data['optical_element'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -383,7 +385,32 @@ def _fixup_beam(data, beam):
     beam['beamSelector'] = beam['name']
 
 
+def _compute_crystal_init(model):
+    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
+    try:
+        from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
+        material = model['material']
+        millerIndices = [model['h'], model['k'], model['l']]
+        energy = model['energy']
+        dc = srwl_uti_cryst_pl_sp(millerIndices, material)
+        psi = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+        model['dSpacing'] = dc
+        model['psi0r'] = psi[0]
+        model['psi0i'] = psi[1]
+        model['psiHr'] = psi[2]
+        model['psiHi'] = psi[3]
+        model['psiHBr'] = psi[2]
+        model['psiHBi'] = psi[3]
+    except Exception:
+        pkdp('\n{}', traceback.format_exc())
+        for key in parms_list:
+            model[key] = None
+
+    return model
+
+
 def _compute_crystal_orientation(model):
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
     try:
         import srwlib
         opCr = srwlib.SRWLOptCryst(
@@ -414,8 +441,8 @@ def _compute_crystal_orientation(model):
         model['tvy'] = tCr[1]
     except Exception:
         pkdp('\n{}', traceback.format_exc())
-        for i in ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']:
-            model[i] = None
+        for key in parms_list:
+            model[key] = None
 
     return model
 
