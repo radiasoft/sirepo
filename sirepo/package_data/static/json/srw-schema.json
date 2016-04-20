@@ -30,7 +30,10 @@
         ],
         "CrystalMaterial": [
             ["Unknown", "Unknown"],
-            ["Si", "Si"]
+            ["Si (SRW)", "Silicon (SRW)"],
+            ["Silicon (X0h)", "Silicon (X0h server)"],
+            ["Germanium (X0h)", "Germanium (X0h server)"],
+            ["Diamond (X0h)", "Diamond (X0h server)"]
         ],
         "FieldUnits": [
             ["1", "ph/s/.1%bw/mm²"],

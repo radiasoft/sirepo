@@ -388,19 +388,27 @@ def _fixup_beam(data, beam):
 def _compute_crystal_init(model):
     parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
     try:
-        from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
-        material = model['material']
+        material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
+        material = material_raw.split()[0]  # short name for SRW (e.g., Si), long name for X0h (e.g., Silicon)
         millerIndices = [model['h'], model['k'], model['l']]
         energy = model['energy']
-        dc = srwl_uti_cryst_pl_sp(millerIndices, material)
-        psi = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+
+        if re.search('(X0h)', material_raw):
+            from sirepo.srw_crystal_x0h import srw_crystal_x0h
+            dc, xr0, xi0, xrh, xih = srw_crystal_x0h(material, energy, model['h'], model['k'], model['l'])
+        elif re.search('(SRW)', material_raw):
+            from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
+            dc = srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+        else:
+            dc = xr0 = xi0 = xrh = xih = None
         model['dSpacing'] = dc
-        model['psi0r'] = psi[0]
-        model['psi0i'] = psi[1]
-        model['psiHr'] = psi[2]
-        model['psiHi'] = psi[3]
-        model['psiHBr'] = psi[2]
-        model['psiHBi'] = psi[3]
+        model['psi0r'] = xr0
+        model['psi0i'] = xi0
+        model['psiHr'] = xrh
+        model['psiHi'] = xih
+        model['psiHBr'] = xrh
+        model['psiHBi'] = xih
     except Exception:
         pkdp('\n{}', traceback.format_exc())
         for key in parms_list:
