@@ -497,6 +497,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
 
     var crystalInitFields = [
         'material',
+        'energy',
         'h',
         'k',
         'l',
@@ -521,7 +522,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     });
 
     var crystalOrientationFields = [
-        'energy',
         'diffractionPlaneAngle',
         'dSpacing',
         'asymmetryAngle',
