@@ -106,10 +106,9 @@ app.factory('appState', function($rootScope, requestSender) {
             name = [name];
 
         for (var i = 0; i < name.length; i++) {
-            if (savedModelValues[name[i]]) {
+            if (savedModelValues[name[i]])
                 self.models[name[i]] = self.clone(savedModelValues[name[i]]);
-                $rootScope.$broadcast('cancelChanges', name[i]);
-            }
+            $rootScope.$broadcast('cancelChanges', name[i]);
         }
     };
 
@@ -223,11 +222,13 @@ app.factory('appState', function($rootScope, requestSender) {
             });
     };
 
-    self.maxId = function(items) {
+    self.maxId = function(items, idField) {
         var max = 1;
+        if (! idField)
+            idField = 'id';
         for (var i = 0; i < items.length; i++) {
-            if (items[i].id > max)
-                max = items[i].id;
+            if (items[i][idField] > max)
+                max = items[i][idField];
         }
         return max;
     };
@@ -254,6 +255,11 @@ app.factory('appState', function($rootScope, requestSender) {
             return [match[1], match[2]];
         return null;
     };
+
+    self.removeModel = function(name) {
+        delete self.models[name];
+        delete savedModelValues[name];
+    }
 
     self.saveQuietly = function(name) {
         // saves the model, but doesn't broadcast the change
