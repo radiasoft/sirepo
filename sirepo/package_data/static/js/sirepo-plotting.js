@@ -1070,84 +1070,38 @@ app.directive('lattice', function(plotting, appState) {
         },
         templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
+            //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
+            var p = $scope;
+            while (p.$parent) {
+                p = p.$parent;
+                if (p.lattice) {
+                    $scope.latticeController = p.lattice;
+                    break;
+                }
+            }
             $scope.isClientOnly = true;
             $scope.margin = 50;
             $scope.width = 1;
             $scope.height = 1;
-            //TODO(pjm): demo data
-            $scope.items = [
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W1',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B1',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: 16.8,
-                },
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W2',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B2',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: -16.8,
-                },
-                {
-                    name: 'L2',
-                    type: 'CSRDRIFT',
-                    length: 0.5,
-                },
-                {
-                    name: 'W3',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B3',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: -16.8,
-                },
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W4',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B4',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: 16.8,
-                },
-                {
-                    name: 'W5',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'L3',
-                    type: 'CSRDRIFT',
-                    length: 1.0,
-                },
-            ];
 
+            var emptyList = [];
+            $scope.items = [];
             $scope.svgGroups = [];
+
+            function loadItemsFromBeamline(forceUpdate) {
+                var id = $scope.latticeController.activeBeamlineId;
+                if (! id) {
+                    $scope.items = emptyList;
+                    return;
+                }
+                var beamline = $scope.latticeController.getActiveBeamline();
+                if (! forceUpdate && appState.deepEquals(beamline.items, $scope.items)) {
+                    return;
+                }
+                $scope.items = appState.clone(beamline.items);
+                $scope.svgGroups = [];
+                computePositions();
+            }
 
             function applyGroup(items, pos) {
                 var group = {
@@ -1162,8 +1116,8 @@ app.directive('lattice', function(plotting, appState) {
                 var newAngle = 0;
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
-                    var length = (item.length || 0) * 100;
-                    if (item.type == 'CSRCSBEND') {
+                    var length = (item.l || item.xmax || item.length || 0) * 100;
+                    if ('angle' in item) {
                         var radius = length / 2;
                         group.items.push({
                             item: item,
@@ -1172,7 +1126,8 @@ app.directive('lattice', function(plotting, appState) {
                             cy: pos.y,
                         });
                         x += radius;
-                        newAngle = item.angle;
+                        //newAngle = item.angle;
+                        newAngle = item.angle * 180 / Math.PI;
                         pos.radius = radius;
                     }
                     else {
@@ -1214,7 +1169,8 @@ app.directive('lattice', function(plotting, appState) {
                         group = [];
                         groupDone = false;
                     }
-                    var item = $scope.items[i];
+                    //var item = $scope.items[i];
+                    var item = $scope.latticeController.elementForId($scope.items[i]);
                     if (item.type == 'CSRCSBEND')
                         groupDone = true;
                     group.push(item);
@@ -1222,34 +1178,9 @@ app.directive('lattice', function(plotting, appState) {
                 if (group.length)
                     applyGroup(group, pos);
             }
-            computePositions();
 
             $scope.itemClicked = function(item) {
-                appState.models.CSRDRIFT = {
-                    name: item.name,
-                    l: item.l || 0.758132998376353,
-                    attenuation_length: 0,
-                    dz: item.dz || 0.01,
-                    n_kicks: 1,
-                    spread: 0,
-                    use_overtaking_length: 0,
-                    ol_multiplier: 1,
-                    use_saldin54: 0,
-                    saldin54points: 1000,
-                    csr: 1,
-                    saldin54norm_mode: 'peak',
-                    spread_mode: 'full',
-                    wavelength_mode: 'sigmaz',
-                    bunchlength_mode: '68-percentile',
-                    saldin54_output: null,
-                    use_stupakov: item.use_stupakov || 1,
-                    stupakov_output: null,
-                    stupakov_output_interval: 1,
-                    slice_analysis_interval: 0,
-                    linearize: 0,
-                    group: null,
-                };
-                $('#s-CSRDRIFT-editor').modal('show');
+                $scope.latticeController.editElement(item.type, item);
             }
 
             function resize() {
@@ -1275,6 +1206,28 @@ app.directive('lattice', function(plotting, appState) {
                 resize();
                 $scope.$apply();
             }, 250);
+
+            $scope.$on('modelChanged', function(e, name) {
+                if (name == 'beamlines') {
+                    loadItemsFromBeamline();
+                }
+                if (appState.models[name] && appState.models[name]._id) {
+                    if ($scope.items.indexOf(appState.models[name]._id) >= 0) {
+                        loadItemsFromBeamline(true);
+                    }
+                }
+            });
+
+            $scope.$on('cancelChanges', function(e, name) {
+                if (name == 'elements')
+                    loadItemsFromBeamline(true);
+            });
+
+            $scope.$on('activeBeamlineChanged', function() {
+                loadItemsFromBeamline();
+            });
+
+            loadItemsFromBeamline();
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
