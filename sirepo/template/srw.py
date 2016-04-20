@@ -390,12 +390,15 @@ def _compute_crystal_init(model):
     try:
         material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
         material = material_raw.split()[0]  # short name for SRW (e.g., Si), long name for X0h (e.g., Silicon)
-        millerIndices = [model['h'], model['k'], model['l']]
+        h = int(model['h'])
+        k = int(model['k'])
+        l = int(model['l'])
+        millerIndices = [h, k, l]
         energy = model['energy']
 
         if re.search('(X0h)', material_raw):
             from sirepo.srw_crystal_x0h import srw_crystal_x0h
-            dc, xr0, xi0, xrh, xih = srw_crystal_x0h(material, energy, model['h'], model['k'], model['l'])
+            dc, xr0, xi0, xrh, xih = srw_crystal_x0h(material, energy, h, k, l)
         elif re.search('(SRW)', material_raw):
             from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
             dc = srwl_uti_cryst_pl_sp(millerIndices, material)
@@ -432,7 +435,7 @@ def _compute_crystal_orientation(model):
             _tc=model['crystalThickness'],
             _ang_as=model['asymmetryAngle'],
         )
-        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['diffractionPlaneAngle'])[0]
+        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['grazingAngle'])[0]
         tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
@@ -545,6 +548,7 @@ def _generate_beamline_optics(models, last_id):
                 item,
                 ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
+            res += _height_profile_element(item, propagation, overwrite_propagation=True)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(
                 'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',

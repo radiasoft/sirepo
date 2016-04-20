@@ -156,8 +156,8 @@ def set_optics(_v):
         tCr1 = orientCr1[0] #Tangential Vector to Crystal surface
         sCr1 = orientCr1[1]        
         nCr1 = orientCr1[2] #Normal Vector to Crystal surface
-        print('DCM Crystal #1 Orientation (original):')
-        print('  t =', tCr1, 's =', orientCr1[1], 'n =', nCr1)
+        # print('DCM Crystal #1 Orientation (original):')
+        # print('  t =', tCr1, 's =', orientCr1[1], 'n =', nCr1)
         
         import uti_math
         if(_v.op_DCM_ac1 != 0): #Small rotation of DCM Crystal #1:
@@ -174,13 +174,13 @@ def set_optics(_v):
         rxCr1 = orientCr1OutFr[0] #Horizontal Base Vector of the Output Beam Frame
         ryCr1 = orientCr1OutFr[1] #Vertical Base Vector of the Output Beam Frame
         rzCr1 = orientCr1OutFr[2] #Longitudinal Base Vector of the Output Beam Frame
-        print('DCM Crystal #1 Outgoing Beam Frame:')
-        print('  ex =', rxCr1, 'ey =', ryCr1, 'ez =', rzCr1)
+        # print('DCM Crystal #1 Outgoing Beam Frame:')
+        # print('  ex =', rxCr1, 'ey =', ryCr1, 'ez =', rzCr1)
 
         #Incoming/Outgoing beam frame transformation matrix for the DCM Crystal #1
         TCr1 = [rxCr1, ryCr1, rzCr1]
-        print('Total transformation matrix after DCM Crystal #1:')
-        uti_math.matr_print(TCr1)
+        # print('Total transformation matrix after DCM Crystal #1:')
+        # uti_math.matr_print(TCr1)
         #print(' ')
 
         el.append(opCr1); pp.append(_v.op_DCMC1_pp)
@@ -195,8 +195,8 @@ def set_optics(_v):
         tCr2 = orientCr2[0] #Tangential Vector to Crystal surface
         sCr2 = orientCr2[1]
         nCr2 = orientCr2[2] #Normal Vector to Crystal surface
-        print('Crystal #2 Orientation (original):')
-        print('  t =', tCr2, 's =', sCr2, 'n =', nCr2)
+        # print('Crystal #2 Orientation (original):')
+        # print('  t =', tCr2, 's =', sCr2, 'n =', nCr2)
 
         if(_v.op_DCM_ac2 != 0): #Small rotation of DCM Crystal #2:
             rot = uti_math.trf_rotation([0,1,0], _v.op_DCM_ac2, [0,0,0])
@@ -212,14 +212,14 @@ def set_optics(_v):
         rxCr2 = orientCr2OutFr[0] #Horizontal Base Vector of the Output Beam Frame
         ryCr2 = orientCr2OutFr[1] #Vertical Base Vector of the Output Beam Frame
         rzCr2 = orientCr2OutFr[2] #Longitudinal Base Vector of the Output Beam Frame
-        print('DCM Crystal #2 Outgoing Beam Frame:')
-        print('  ex =', rxCr2, 'ey =', ryCr2, 'ez =',rzCr2)
+        # print('DCM Crystal #2 Outgoing Beam Frame:')
+        # print('  ex =', rxCr2, 'ey =', ryCr2, 'ez =',rzCr2)
 
         #Incoming/Outgoing beam transformation matrix for the DCM Crystal #2
         TCr2 = [rxCr2, ryCr2, rzCr2]
         Ttot = uti_math.matr_prod(TCr2, TCr1)
-        print('Total transformation matrix after DCM Crystal #2:')
-        uti_math.matr_print(Ttot)
+        # print('Total transformation matrix after DCM Crystal #2:')
+        # uti_math.matr_print(Ttot)
         #print(' ')
 
         el.append(opCr2); pp.append(_v.op_DCMC2_pp)

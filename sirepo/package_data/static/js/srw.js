@@ -136,7 +136,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
             k: 1,
             l: 1,
             energy: 9000.0,
-            diffractionPlaneAngle: 1.5707963,
+            grazingAngle: 1.5707963,
             asymmetryAngle: 0.0,
             rotationAngle: 0.0,
             crystalThickness: 0.01,
@@ -152,6 +152,9 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
             nvz: null,  // -1.0,
             tvx: null,  // 1.0,
             tvy: null,  // 0.0,
+            heightProfileFile: null,
+            orientation: 'x',
+            heightAmplification: 1,
     };
 
     self.toolbarItems = [
@@ -522,7 +525,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     });
 
     var crystalOrientationFields = [
-        'diffractionPlaneAngle',
+        'grazingAngle',
         'dSpacing',
         'asymmetryAngle',
         'psi0r',

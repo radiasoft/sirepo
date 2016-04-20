@@ -178,6 +178,11 @@ def beamline_element(obj, idx, title, elem_type, position):
             data[key] *= 1000.0
 
     elif elem_type == 'crystal':
+        # Fixed values in srw.js:
+        data['heightAmplification'] = 1
+        data['heightProfileFile'] = None
+        data['orientation'] = 'x'
+
         data['material'] = 'Unknown'
         data['h'] = 1
         data['k'] = 1
@@ -187,9 +192,9 @@ def beamline_element(obj, idx, title, elem_type, position):
         except:
             data['energy'] = None
         try:
-            data['diffractionPlaneAngle'] = obj.ang_dif_pl
+            data['grazingAngle'] = obj.ang_dif_pl
         except:
-            data['diffractionPlaneAngle'] = 0.0
+            data['grazingAngle'] = 0.0
         data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
         data['crystalThickness'] = obj.tc

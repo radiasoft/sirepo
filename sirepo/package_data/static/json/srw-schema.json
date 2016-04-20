@@ -87,6 +87,29 @@
             ["1", "Near Field"],
             ["2", "Far Field"]
         ],
+        "MillerIndicesRange": [
+            ["0", "0"],
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"],
+            ["-1", "-1"],
+            ["-2", "-2"],
+            ["-3", "-3"],
+            ["-4", "-4"],
+            ["-5", "-5"],
+            ["-6", "-6"],
+            ["-7", "-7"],
+            ["-8", "-8"],
+            ["-9", "-9"],
+            ["-10", "-10"]
+        ],
         "SamplingMethod": [
             ["1", "Automatic"],
             ["2", "Manual"]
@@ -133,11 +156,11 @@
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
             "material": ["", "CrystalMaterial"],
-            "h": ["h", "Integer"],
-            "k": ["k", "Integer"],
-            "l": ["l", "Integer"],
+            "h": ["h", "MillerIndicesRange"],
+            "k": ["k", "MillerIndicesRange"],
+            "l": ["l", "MillerIndicesRange"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
-            "diffractionPlaneAngle": ["Diffraction plane angle [rad]", "Float"],
+            "grazingAngle": ["Diffraction plane angle [rad]", "Float"],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float"],
             "rotationAngle": ["Rotation angle [rad]", "Float"],
             "crystalThickness": ["Crystal thickness [m]", "Float"],
@@ -152,7 +175,10 @@
             "nvy": ["Vertical coordinate", "Float"],
             "nvz": ["Longitudinal coordinate", "Float"],
             "tvx": ["Horizontal coordinate", "Float"],
-            "tvy": ["Vertical coordinate", "Float"]
+            "tvy": ["Vertical coordinate", "Float"],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
@@ -416,6 +442,7 @@
         },
         "crystal": {
             "title": "Crystal",
+            "fieldsPerTab": 11,
             "basic": [],
             "advanced": [
                 "title",
@@ -431,7 +458,7 @@
                     ]]
                 ],
                 "energy",
-                "diffractionPlaneAngle",
+                "grazingAngle",
                 "asymmetryAngle",
                 "rotationAngle",
                 "crystalThickness",
@@ -458,7 +485,10 @@
                         "tvx",
                         "tvy"
                     ]]
-                ]
+                ],
+                "heightProfileFile",
+                "orientation",
+                "heightAmplification"
             ]
         },
         "electronBeam": {
