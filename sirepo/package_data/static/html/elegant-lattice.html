@@ -2,16 +2,11 @@
   <div class="row">
     <div class="col-md-12 col-lg-6">
       <div class="row">
-        <!--
-        <div class="col-sm-12">
-          <div data-report-panel="lattice" data-model-name="latticeGraph"></div>
+        <div data-ng-if="lattice.activeBeamlineId" class="col-sm-12">
+          <div data-report-panel="lattice" data-model-name="latticeGraph" data-panel-title="Beamline Report - {{ lattice.getActiveBeamline().name }}"></div>
         </div>
-        -->
         <div class="col-sm-12">
-              <div data-ng-if="lattice.activeBeamline" class="panel panel-info">
-                <div class="panel-heading" data-panel-heading="lattice.panelTitle('Beamline Editor')" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>
-                <div data-beamline-editor="" data-controller="lattice" data-beamline="lattice.activeBeamline"></div>
-              </div>
+          <div data-beamline-editor="" data-controller="lattice"></div>
         </div>
       </div>
     </div>
@@ -22,39 +17,12 @@
 	    <div class="s-split-pane-component-inner">
 
               <div class="panel panel-info">
-                <div class="panel-heading" data-panel-heading="lattice.panelTitle('Beamlines')" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>
+                <div class="panel-heading" data-panel-heading="Beamlines" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>
                 <div class="panel-body cssFade">
 
                   <button class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="lattice.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
-                  <table style="width: 100%; table-layout: fixed" class="table table-hover">
-                    <colgroup>
-                      <col style="width: 12ex">
-                      <col>
-                      <col style="width: 10ex">
-                      <col style="width: 12ex">
-                      <col style="width: 10ex">
-                      <col style="width: 0">
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Elements</th>
-                        <th>Length</th>
-                        <th>Bend</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr data-ng-repeat="beamline in lattice.appState.models.beamlines">
-                        <td><div class="badge" style="cursor: move; -moz-user-select: none"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>
-                        <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ lattice.beamlineDescription(beamline) }}</span></td>
-                        <td style="text-align: right">{{ beamline.count }}</td>
-                        <td style="text-align: right">{{ lattice.itemLength(beamline) }}</td>
-                        <td style="text-align: right">{{ beamline.bend }}<span data-ng-if="lattice.bend">&deg;</span></td>
-                        <td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-click="lattice.editElement(item)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button class="btn btn-info btn-xs s-hover-button" data-ng-click="lattice.addToBeamline(item)">Add to Beamline</button></div><div></td>
-                      </tr>
-                    </tbody>
-                  </table>
+
+                  <div data-beamline-table="" data-controller="lattice"></div>
                 </div>
               </div>
 
@@ -66,40 +34,12 @@
 
               <!-- TODO(pjm): refactor panels -->
               <div class="panel panel-info">
-                <div class="panel-heading" data-panel-heading="lattice.panelTitle('Beamline Elements')" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>
+                <div class="panel-heading" data-panel-heading="Beamline Elements" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>
                 <div class="panel-body cssFade">
 
                   <button class="btn btn-info btn-xs pull-right" data-ng-click="lattice.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
-                  <table style="width: 100%; table-layout: fixed" class="table table-hover">
-                    <colgroup>
-                      <col style="width: 12ex">
-                      <col>
-                      <col style="width: 12ex">
-                      <col style="width: 10ex">
-                      <col style="width: 0">
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Length</th>
-                        <th>Bend</th>
-                      </tr>
-                    </thead>
 
-                    <tbody data-ng-repeat="element in lattice.getElements()">
-                      <tr>
-                        <td style="cursor: pointer" colspan="4" data-ng-click="lattice.toggleElement(element)" ><span class="glyphicon" data-ng-class="{'glyphicon-collapse-up': element.expanded, 'glyphicon-collapse-down': ! element.expanded}"></span> <b>{{ element.type }}</b></td>
-                      </tr>
-                      <tr class="cssFade" data-ng-show="element.expanded" data-ng-repeat="item in element.items">
-                        <td style="padding-left: 1em"><div class="badge" style="cursor: move; -moz-user-select: none"><span data-ng-drag="true" data-ng-drag-data="item" >{{ item.name }}</span></div></td>
-                        <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ lattice.elementDescription(element.type, item) }}</span></td>
-                        <td style="text-align: right">{{ lattice.elementLength(item) }}</td>
-                        <td style="text-align: right">{{ lattice.elementBend(item) }}<span data-ng-if="lattice.itemBend(item)">&deg;</span></td>
-                        <td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-click="lattice.editElement(element.type, item)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button class="btn btn-info btn-xs s-hover-button" data-ng-click="lattice.addToBeamline(item)">Add to Beamline</button></div><div></td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div data-element-table="" data-controller="lattice"></div>
                 </div>
               </div>
 
@@ -112,7 +52,7 @@
   </div> <!-- /row -->
 </div> <!-- /container -->
 
-<div data-ng-drag-clone=""><div class="badge elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>
+<div data-ng-drag-clone=""><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>
 
 <!-- New beamline element modal -->
 <div class="modal fade" id="s-newBeamlineElement-editor" tabindex="-1" role="dialog">

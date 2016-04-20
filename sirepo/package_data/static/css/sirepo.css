@@ -437,7 +437,7 @@ tr:hover .s-button-bar-parent {
 
 .elegant-beamline-element {
   float: left;
-  min-width: 6em;
+  min-width: 4em;
   line-height: 3em;
   text-align: center;
 }
@@ -476,4 +476,9 @@ tr:hover .s-button-bar-parent {
   box-shadow: 0 0 25px gray;
   cursor: move;
   -moz-user-select: none;
+}
+.elegant-icon {
+  cursor: move;
+  -moz-user-select: none;
+  min-width: 4em;
 }

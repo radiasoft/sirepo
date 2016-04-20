@@ -53,6 +53,10 @@ def fixup_old_data(data):
         bunch['alpha_z'] = 0
         bunch['beta_z'] = 0
         bunch['emit_z'] = 0
+    if 'beamlines' not in data['models']:
+        data['models']['beamlines'] = []
+    if 'elements' not in data['models']:
+        data['models']['elements'] = []
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
