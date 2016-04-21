@@ -557,6 +557,7 @@
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
+                "photonEnergyPointCount",
                 "horizontalPosition",
                 "horizontalApertureSize",
                 "verticalPosition",
@@ -564,8 +565,7 @@
                 "longitudinalPrecision",
                 "azimuthalPrecision",
                 "fluxType",
-                "polarization",
-                "photonEnergyPointCount"
+                "polarization"
             ]
         },
         "fluxReport": {
@@ -575,11 +575,11 @@
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
+                "photonEnergyPointCount",
                 "longitudinalPrecision",
                 "azimuthalPrecision",
                 "fluxType",
                 "polarization",
-                "photonEnergyPointCount",
                 [
                     ["Horizontal", [
                         "horizontalPosition",
@@ -664,8 +664,8 @@
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
-                "polarization",
                 "photonEnergyPointCount",
+                "polarization",
                 [
                     ["Horizontal", [
                         "horizontalPosition"
