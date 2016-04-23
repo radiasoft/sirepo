@@ -1,6 +1,7 @@
 'use strict';
 
 app_local_routes.lattice = '/lattice/:simulationId';
+app_local_routes.visualization = '/visualization/:simulationId';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -12,6 +13,10 @@ app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
             templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
+        })
+        .when(localRoutes.visualization, {
+            controller: 'VisualizationController as visualization',
+            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION,
         });
 });
 
@@ -125,11 +130,6 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
             appState.maxId(appState.models.beamlines)) + 1;
     }
 
-    function resize() {
-        //TODO(pjm): causes $digest already in progress
-        $scope.$apply();
-    }
-
     function sortBeamlines() {
         appState.models.beamlines.sort(function(a, b) {
             return a.name.localeCompare(b.name);
@@ -187,6 +187,8 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.editBeamline = function(beamline) {
         self.activeBeamlineId = beamline.id;
+        appState.models.simulation.activeBeamlineId = beamline.id;
+        appState.saveChanges('simulation');
         $rootScope.$broadcast('activeBeamlineChanged');
     };
 
@@ -282,10 +284,123 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         }
     });
 
-    $(window).resize(resize);
-    $scope.$on('$destroy', function() {
-        $(window).off('resize', resize);
+    if (appState.isLoaded()) {
+        self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+    }
+    else {
+        $scope.$on('modelsLoaded', function() {
+            self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+        });
+    }
+});
+
+app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
+    var self = this;
+    var simulationModel = 'elementAnimation';
+    self.panelState = panelState;
+    self.isAborting = false;
+    self.isDestroyed = false;
+    self.dots = '.';
+
+    frameCache.setAnimationArgs({
+        elementAnimation: [],
+    }, simulationModel);
+    frameCache.setFrameCount(0);
+
+    function refreshStatus() {
+        requestSender.sendRequest(
+            'runStatus',
+            function(data) {
+                //console.log('runStatus data: ', data);
+                if (self.isAborting)
+                    return;
+                if (data.frameCount) {
+                    //console.log('set frame id: ', data.frameCount);
+                    frameCache.setFrameCount(data.frameCount);
+                }
+                if (data.state != 'running') {
+                    if (data.state != simulationState())
+                        appState.saveChanges('simulationStatus');
+                }
+                else {
+                    if (! self.isDestroyed) {
+                        self.dots += '.';
+                        if (self.dots.length > 3)
+                            self.dots = '.';
+                        $timeout(refreshStatus, 2000);
+                    }
+                }
+                setSimulationState(data.state);
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    }
+
+    function setSimulationState(state) {
+        if (! appState.models.simulationStatus[simulationModel])
+            appState.models.simulationStatus[simulationModel] = {}
+        appState.models.simulationStatus[simulationModel].state = state;
+    }
+
+    function simulationState() {
+        return appState.models.simulationStatus[simulationModel].state;
+    }
+
+    self.cancelSimulation = function() {
+        if (simulationState() != 'running')
+            return;
+        setSimulationState('canceled');
+        self.isAborting = true;
+        requestSender.sendRequest(
+            'runCancel',
+            function(data) {
+                self.isAborting = false;
+                appState.saveChanges('simulationStatus');
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    self.isState = function(state) {
+        if (appState.isLoaded())
+            return simulationState() == state;
+        return false;
+    };
+
+    self.runSimulation = function() {
+        if (simulationState() == 'running')
+            return;
+        frameCache.setFrameCount(0);
+        setSimulationState('running');
+        requestSender.sendRequest(
+            'runBackground',
+            function(data) {
+                appState.models.simulationStatus[simulationModel].startTime = data['startTime'];
+                appState.saveChanges('simulationStatus');
+                refreshStatus();
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    $scope.$on('$destroy', function () {
+        self.isDestroyed = true;
     });
+
+    if (appState.isLoaded())
+        refreshStatus();
+    else {
+        $scope.$on('modelsLoaded', refreshStatus);
+    }
 });
 
 app.directive('appHeader', function(appState, panelState) {
@@ -303,6 +418,7 @@ app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
@@ -330,7 +446,7 @@ app.directive('beamlineEditor', function(appState) {
               '<div class="panel-heading" data-panel-heading="Beamline Editor - {{ beamlineName() }}" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>',
               '<div class="panel-body cssFade" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
-                '<div data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
+                '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="s-drop-left">&nbsp;</div>',
                   '<span data-ng-if="item.repeatCount" class="s-count">{{ item.repeatCount }}</span>',
                   '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId)}"><span>{{ itemName(item) }}</span></div>',
@@ -400,6 +516,11 @@ app.directive('beamlineEditor', function(appState) {
                 updateBeamline();
             };
 
+            $scope.editItem = function(item) {
+                var el = $scope.lattice.elementForId(item.id);
+                return $scope.lattice.editElement(el.type, el);
+            };
+
             $scope.isSelected = function(itemId) {
                 if (selectedItemId)
                     return itemId == selectedItemId;
@@ -453,7 +574,6 @@ app.directive('beamlineTable', function(appState) {
                 '<col style="width: 10ex">',
                 '<col style="width: 12ex">',
                 '<col style="width: 10ex">',
-                '<col style="width: 0">',
               '</colgroup>',
               '<thead>',
                 '<tr>',
@@ -465,13 +585,12 @@ app.directive('beamlineTable', function(appState) {
                 '</tr>',
               '</thead>',
               '<tbody>',
-                '<tr data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
+                '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
                   '<td><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td style="text-align: right">{{ beamline.count }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamline.bend }}<span data-ng-if="lattice.bend">&deg;</span></td>',
-                  '<td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="showAddToBeamlineButton(beamline)" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                  '<td style="text-align: right">{{ beamline.bend || \'&nbsp;\' }}<span data-ng-if="lattice.bend">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -504,9 +623,9 @@ app.directive('beamlineTable', function(appState) {
                 $scope.lattice.editBeamline(beamline);
             };
 
-            $scope.showAddToBeamlineButton = function(beamline) {
+            $scope.isActiveBeamline = function(beamline) {
                 if ($scope.lattice.activeBeamlineId)
-                    return $scope.lattice.activeBeamlineId == beamline.id ? false : true;
+                    return $scope.lattice.activeBeamlineId == beamline.id;
                 return false;
             };
         },
@@ -526,7 +645,6 @@ app.directive('elementTable', function(appState) {
                 '<col>',
                 '<col style="width: 12ex">',
                 '<col style="width: 10ex">',
-                '<col style="width: 0">',
               '</colgroup>',
               '<thead>',
                 '<tr>',
@@ -544,8 +662,7 @@ app.directive('elementTable', function(appState) {
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element) }}<span data-ng-if="elementBend(element)">&deg;</span></td>',
-                  '<td><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -592,10 +709,10 @@ app.directive('elementTable', function(appState) {
                 return $scope.lattice.editElement(type, item);
             };
 
-            $scope.elementBend = function(element) {
+            $scope.elementBend = function(element, defaultValue) {
                 if (angular.isDefined(element.angle))
                     return (element.angle * 180 / Math.PI).toFixed(1);
-                return '';
+                return defaultValue;
             };
 
             $scope.elementDescription = function(type, element) {

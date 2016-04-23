@@ -158,6 +158,7 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                         scope.$on('framesCleared', scope.clearData);
                     scope.$on('modelsLoaded', requestData);
                     scope.$on('framesLoaded', function(event, oldFrameCount) {
+                        //console.log('prevFrameIndex: ', scope.prevFrameIndex, ' oldFrameCount: ', oldFrameCount, ' frame count: ', frameCache.frameCount, ' currentFrame: ', frameCache.getCurrentFrame(scope.modelName));
                         if (scope.prevFrameIndex < 0)
                             scope.firstFrame();
                         else if (oldFrameCount == 0)
@@ -973,6 +974,7 @@ app.directive('heatmap', function(plotting) {
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
+                $scope.prevFrameIndex = -1;
             };
 
             $scope.init = function() {
@@ -1062,7 +1064,7 @@ app.directive('heatmap', function(plotting) {
     };
 });
 
-app.directive('lattice', function(plotting, appState) {
+app.directive('lattice', function(plotting, appState, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1080,13 +1082,17 @@ app.directive('lattice', function(plotting, appState) {
                 }
             }
             $scope.isClientOnly = true;
-            $scope.margin = 50;
+            $scope.margin = 3;
             $scope.width = 1;
             $scope.height = 1;
+            $scope.scale = 1;
+            $scope.xOffset = 0;
+            $scope.yOffset = 0;
 
             var emptyList = [];
             $scope.items = [];
             $scope.svgGroups = [];
+            $scope.svgBounds = null;
 
             function loadItemsFromBeamline(forceUpdate) {
                 var id = $scope.latticeController.activeBeamlineId;
@@ -1114,33 +1120,42 @@ app.directive('lattice', function(plotting, appState) {
                 var x = 0;
                 var oldRadius = pos.radius;
                 var newAngle = 0;
+                var maxHeight = 0;
+
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
-                    var length = (item.l || item.xmax || item.length || 0) * 100;
+                    var length = (item.l || item.xmax || item.length || 0);
                     if ('angle' in item) {
                         var radius = length / 2;
+                        maxHeight = Math.max(maxHeight, length);
                         group.items.push({
-                            item: item,
+                            element: item,
                             radius: radius,
                             cx: pos.radius + pos.x + x + radius,
                             cy: pos.y,
                         });
+                        //console.log(item.type, ' ', [radius, pos.radius + pos.x + x, pos.y]);
                         x += radius;
-                        //newAngle = item.angle;
                         newAngle = item.angle * 180 / Math.PI;
                         pos.radius = radius;
                     }
                     else {
-                        var height = 10.0;
-                        if (item.type == 'WATCH')
+                        var height = 0.1;
+                        if (item.type == 'WATCH') {
                             height = 0;
+                            //TODO(pjm): centralize the watch height between js and svg
+                            maxHeight = Math.max(maxHeight, 0.6);
+                        }
+                        else
+                            maxHeight = Math.max(maxHeight, height / 2);
                         group.items.push({
-                            item: item,
+                            element: item,
                             x: pos.radius + pos.x + x,
                             y: pos.y - height / 2,
                             height: height,
                             width: length,
                         });
+                        //console.log(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
                     }
                 }
@@ -1151,7 +1166,20 @@ app.directive('lattice', function(plotting, appState) {
                     pos.x += Math.sin((90 - pos.angle) * Math.PI / 180) * (x + oldRadius);
                     pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
                 }
+                updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
+                //console.log('bounds: ', pos.bounds);
                 pos.angle += newAngle;
+            }
+
+            function updateBounds(bounds, x, y, buffer) {
+                if (x - buffer < bounds[0])
+                    bounds[0] = x - buffer;
+                if (y - buffer < bounds[1])
+                    bounds[1] = y - buffer;
+                if (x + buffer > bounds[2])
+                    bounds[2] = x + buffer;
+                if (y + buffer > bounds[3])
+                    bounds[3] = y + buffer;
             }
 
             function computePositions() {
@@ -1160,6 +1188,7 @@ app.directive('lattice', function(plotting, appState) {
                     y: 0,
                     angle: 0,
                     radius: 0,
+                    bounds: [0, 0, 0, 0],
                 };
                 var group = [];
                 var groupDone = false;
@@ -1169,14 +1198,15 @@ app.directive('lattice', function(plotting, appState) {
                         group = [];
                         groupDone = false;
                     }
-                    //var item = $scope.items[i];
                     var item = $scope.latticeController.elementForId($scope.items[i]);
-                    if (item.type == 'CSRCSBEND')
+                    if ('angle' in item)
                         groupDone = true;
                     group.push(item);
                 }
                 if (group.length)
                     applyGroup(group, pos);
+                $scope.svgBounds = pos.bounds;
+                pos.x += pos.radius;
             }
 
             $scope.itemClicked = function(item) {
@@ -1188,8 +1218,33 @@ app.directive('lattice', function(plotting, appState) {
                 if (isNaN(width))
                     return;
                 $scope.width = width;
-                //TODO(pjm): determine aspect ratio of graph
-                $scope.height = $scope.width / 2;
+                $scope.height = $scope.width;
+                var windowHeight = $($window).height();
+                if ($scope.height > windowHeight / 2.5)
+                    $scope.height = windowHeight / 2.5;
+
+                if ($scope.svgBounds) {
+                    var w = $scope.svgBounds[2] - $scope.svgBounds[0];
+                    var h = $scope.svgBounds[3] - $scope.svgBounds[1];
+                    if (w == 0 || h == 0)
+                        return;
+                    var scaleWidth = $scope.width / w;
+                    var scaleHeight = $scope.height / h;
+                    var scale = 1;
+                    var xOffset = 0;
+                    var yOffset = 0;
+                    if (scaleWidth < scaleHeight) {
+                        scale = scaleWidth;
+                        yOffset = ($scope.height - h * scale) / 2;
+                    }
+                    else {
+                        scale = scaleHeight;
+                        xOffset = ($scope.width - w * scale) / 2;
+                    }
+                    $scope.scale = scale;
+                    $scope.xOffset = - $scope.svgBounds[0] * scale + xOffset;
+                    $scope.yOffset = - $scope.svgBounds[1] * scale + yOffset;
+                }
             }
 
             function select(selector) {
@@ -1210,21 +1265,26 @@ app.directive('lattice', function(plotting, appState) {
             $scope.$on('modelChanged', function(e, name) {
                 if (name == 'beamlines') {
                     loadItemsFromBeamline();
+                    resize();
                 }
                 if (appState.models[name] && appState.models[name]._id) {
                     if ($scope.items.indexOf(appState.models[name]._id) >= 0) {
                         loadItemsFromBeamline(true);
+                        resize();
                     }
                 }
             });
 
             $scope.$on('cancelChanges', function(e, name) {
-                if (name == 'elements')
+                if (name == 'elements') {
                     loadItemsFromBeamline(true);
+                    resize();
+                }
             });
 
             $scope.$on('activeBeamlineChanged', function() {
                 loadItemsFromBeamline();
+                resize();
             });
 
             loadItemsFromBeamline();
@@ -1235,6 +1295,28 @@ app.directive('lattice', function(plotting, appState) {
                 scope.element = null;
                 $(window).off('resize', scope.windowResize);
             });
+
+            var currentScale = 1;
+            var panzoom = $(element).find('.panzoom').panzoom({
+                increment: 0.5,
+                animate: false,
+                maxScale: 20,
+                minScale: 1,
+                onZoom: function(e, panzoom) {
+                    var scale = panzoom.getMatrix()[0];
+                    if (scale != currentScale)
+                        currentScale = scale;
+                },
+            });
+            panzoom.parent().on('mousewheel.focal', function( e ) {
+                e.preventDefault();
+                var delta = e.delta || e.originalEvent.wheelDelta;
+                var zoomOut = delta ? delta < 0 : e.originalEvent.deltaY > 0;
+                panzoom.panzoom('zoom', zoomOut, {
+                    focal: e,
+                });
+            });
+
         },
     };
 });

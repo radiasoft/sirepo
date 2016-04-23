@@ -393,15 +393,14 @@ tr:hover .s-button-bar-parent {
 }
 .s-button-bar {
   position: absolute;
-  top: 12px;
-  right: 15px;
+  top: -2px;
+  right: 0px;
   white-space: nowrap;
   background-color: #f5f5f5;
   padding-left: 15px;
 }
 .s-hover-button {
   display: inline-block;
-  padding: 2px 2ex;
 }
 
 .s-drop-zone {
@@ -456,7 +455,7 @@ tr:hover .s-button-bar-parent {
   background-color: lightcyan;
 }
 .s-drop-left {
-  background-color: blue;
+  background-color: #82caff;
   width: 0;
   display: inline-block;
   transition: width 0.5s;

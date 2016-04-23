@@ -1,14 +1,13 @@
 <div ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
-  <div style="background-color: white"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
-      <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" style="pointer-events: all; fill: none;"></rect>
+  <div class="panzoom" style="background-color: white"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
       <g ng-attr-transform="translate({{ margin }},{{ margin }})">
-        <g transform="translate(0,110) scale(1.0)">
+        <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ scale }})">
           <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ group.rotate }},{{ group.rotateX }},{{ group.rotateY }})">
-            <g ng-repeat="item in group.items" ng-switch="item.item.type" ng-click="itemClicked(item.item)">
-              <rect ng-switch-when="DRIF" ng-attr-title="{{ item.item.name }}" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: lightgrey" />
-              <circle ng-switch-when="CSRCSBEND" ng-attr-title="{{ item.item.name }}" ng-attr-cx="{{ item.cx }}" ng-attr-cy="{{ item.cy }}" ng-attr-r="{{ item.radius }}" style="fill: blue" />
-              <g ng-switch-when="WATCH" title="WATCH" ng-attr-transform="translate({{ item.x }},{{ item.y }})">
-                <path ng-attr-title="{{ item.item.name }}" d="M0 0 L 0 -60 L 20 -50 L 0 -40" style="stroke: black; fill: lightgreen" />
+            <g ng-repeat="item in group.items" ng-switch="item.element.type" ng-dblclick="itemClicked(item.element)" ng-attr-title="{{ item.element.name }}">
+              <rect ng-switch-when="DRIF" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: lightgrey" />
+              <circle ng-switch-when="CSRCSBEND" ng-attr-cx="{{ item.cx }}" ng-attr-cy="{{ item.cy }}" ng-attr-r="{{ item.radius }}" style="fill: blue" />
+              <g ng-switch-when="WATCH" ng-attr-transform="translate({{ item.x }},{{ item.y }})">
+                <path d="M0 0 L 0 -0.6 L 0.2 -0.5 L 0 -0.4" style="stroke: black; fill: lightgreen; stroke-width: 0.01" />
               </g>
             </g>
           </g>
