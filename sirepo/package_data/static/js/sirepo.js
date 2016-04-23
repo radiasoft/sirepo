@@ -422,14 +422,42 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
+    var pendingRequests = {};
     $rootScope.$on('clearCache', function() {
         self.clear();
     });
+
+    function clearPanel(name) {
+        // preserves the "hidden" panel value
+        if (panels[name]) {
+            panels[name] = {
+                hidden: panels[name].hidden,
+            };
+        }
+        delete pendingRequests[name];
+    }
 
     function getPanelValue(name, key) {
         if (panels[name] && panels[name][key])
             return panels[name][key];
         return null;
+    }
+
+    function sendRequest(name, callback) {
+        setPanelValue(name, 'loading', true);
+        setPanelValue(name, 'error', null);
+        var responseHandler = function(data, error) {
+            setPanelValue(name, 'loading', false);
+            if (error) {
+                setPanelValue(name, 'error', error);
+            }
+            else {
+                setPanelValue(name, 'data', data);
+                setPanelValue(name, 'error', null);
+                callback(data);
+            }
+        };
+        requestQueue.addItem([name, appState.applicationState(), responseHandler]);
     }
 
     function setPanelValue(name, key, value) {
@@ -442,9 +470,11 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
 
     self.clear = function(name) {
         if (name)
-            panels[name] = {}
-        else
-            panels = {};
+            clearPanel(name);
+        else {
+            for (name in panels)
+                clearPanel(name);
+        }
     };
 
     self.getError = function(name) {
@@ -468,21 +498,10 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
             //console.log('cached: ', name);
             return;
         }
-        setPanelValue(name, 'loading', true);
-        setPanelValue(name, 'error', null);
-        var responseHandler = function(data, error) {
-            setPanelValue(name, 'loading', false);
-            if (error) {
-                setPanelValue(name, 'error', error);
-            }
-            else {
-                setPanelValue(name, 'data', data);
-                setPanelValue(name, 'error', null);
-                callback(data);
-            }
-        };
-        //console.log('requesting: ', name);
-        requestQueue.addItem([name, appState.applicationState(), responseHandler]);
+        if (getPanelValue(name, 'hidden'))
+            pendingRequests[name] = callback;
+        else
+            sendRequest(name, callback);
     };
 
     self.showModalEditor = function(modelKey) {
@@ -501,9 +520,16 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
 
     self.toggleHidden = function(name) {
         setPanelValue(name, 'hidden', ! self.isHidden(name));
-        if (! self.isHidden(name) && appState.isReportModelName(name)) {
+        if (! self.isHidden(name)) {
+
+            if (pendingRequests[name]) {
+                var callback = pendingRequests[name];
+                delete pendingRequests[name];
+                sendRequest(name, callback);
+            }
             // needed to resize a hidden report
-            $($window).trigger('resize');
+            if (appState.isReportModelName(name))
+                $($window).trigger('resize');
         }
     };
 
