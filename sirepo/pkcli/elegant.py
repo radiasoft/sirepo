@@ -45,6 +45,17 @@ def run(cfg_dir):
     """
     with pkio.save_chdir(cfg_dir):
         _run_elegant()
+        _extract_bunch_report()
+
+
+def run_background(cfg_dir):
+    """Run warp in ``cfg_dir`` with mpi
+
+    Args:
+        cfg_dir (str): directory to run warp in
+    """
+    with pkio.save_chdir(cfg_dir):
+        _run_elegant();
 
 
 def _plot_title(bunch):
@@ -61,12 +72,14 @@ def _scale_p(points, data):
 
 def _run_elegant():
     run_dir = os.getcwd()
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     pkio.write_text('elegant.lte', lattice_file)
     pkio.write_text('elegant.ele', elegant_file)
     call(['elegant', 'elegant.ele'])
 
+
+def _extract_bunch_report():
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     index = 0
     if sdds.sddsdata.InitializeInput(index, 'elegant.bun') != 1:
         sdds.sddsdata.PrintErrors(1)

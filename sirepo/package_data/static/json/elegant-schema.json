@@ -226,7 +226,12 @@
         ]
     },
     "model": {
+        "beamline": {
+            "name": ["Name", "String"]
+        },
         "beamlineElementSettings": {
+        },
+        "beamlineReport": {
         },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV]", "Float"],
@@ -250,13 +255,15 @@
             "y": ["Y Value", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"]
         },
-        "beamline": {
-            "name": ["Name", "String"]
-        },
-        "latticeGraph": {
+        "elementAnimation": {
+            "x": ["X Value", "PhaseSpaceCoordinate"],
+            "y": ["Y Value", "PhaseSpaceCoordinate"],
+            "histogramBins": ["Histogram Bins", "Integer"]
         },
         "simulation": {
             "name": ["Name", "String"]
+        },
+        "simulationStatus": {
         },
         "ALPH": {
             "name": ["Name", "String"],
@@ -2544,10 +2551,6 @@
             "advanced": [
                 "name"
             ]
-        },
-        "latticeGraph": {
-            "title": "Beamline Report",
-            "advanced": []
         },
         "simulation": {
             "title": "Simulation",
