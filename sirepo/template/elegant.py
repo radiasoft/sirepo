@@ -177,6 +177,10 @@ def get_data_file(run_dir, frame_index):
     raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
 
 
+def is_cache_valid(data, old_data):
+    return False
+
+
 def new_simulation(data, new_simulation_data):
     pass
 

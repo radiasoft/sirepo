@@ -321,15 +321,16 @@ def app_root(simulation_type):
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
     data = _json_input()
-    sid = simulation_db.parse_sid(data)
-    err = _start_simulation(data).run_and_read()
     run_dir = simulation_db.simulation_run_dir(data)
-    if err:
-        pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
-        return flask.jsonify({
-            'error': _error_text(err),
-            'simulationId': sid,
-        })
+    if not _cached_simulation_available(run_dir, data):
+        err = _start_simulation(data).run_and_read()
+        if err:
+            sid = simulation_db.parse_sid(data)
+            pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
+            return flask.jsonify({
+                'error': _error_text(err),
+                'simulationId': sid,
+            })
     bn = run_dir.join(template_common.OUTPUT_BASE_NAME)
     return flask.jsonify(simulation_db.read_json(bn))
 
@@ -483,6 +484,22 @@ def light_landing_page():
 @app.route('/sr')
 def sr_landing_page():
     return flask.redirect('/light')
+
+
+def _cached_simulation_available(run_dir, data):
+    if not run_dir.check():
+        return False
+    try:
+        old_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        template = sirepo.template.import_module(data['simulationType'])
+        if template.is_cache_valid(data, old_data):
+            return True
+    except IOError as e:
+        pass
+    except Exception as e:
+        # log non-IOErrors
+        print('exception during _cached_simulation_available(): {}'.format(e))
+    return False
 
 
 def _cfg_job_queue(value):
