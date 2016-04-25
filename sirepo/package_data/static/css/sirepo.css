@@ -132,6 +132,23 @@
     .srw-hover .srw-beamline-close-icon:hover {
       color: black;
     }
+    .srw-beamline-disable-icon {
+      font-size: 20px;
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      cursor: default;
+      color: #aaa;
+    }
+    .srw-beamline-disable-icon {
+      visibility: hidden;
+    }
+    .srw-hover:hover .srw-beamline-disable-icon {
+      visibility: visible;
+    }
+    .srw-hover .srw-beamline-disable-icon:hover {
+      color: black;
+    }
     .srw-drop-between-zone {
       display: inline-block;
       padding: 5px;

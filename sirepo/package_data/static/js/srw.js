@@ -415,6 +415,11 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
     };
 
+    self.disableElement = function(item) {
+        self.dismissPopup();
+        // appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+    };
+
     self.saveBeamlineChanges = function() {
         // sort beamline based on position
         appState.models.beamline.sort(function(a, b) {
@@ -856,6 +861,7 @@ app.directive('beamlineItem', function($timeout) {
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
             '<span data-ng-if="showDeleteButton()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
+            '<span data-ng-if="showDisableButton()" data-ng-click="disableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
@@ -865,7 +871,13 @@ app.directive('beamlineItem', function($timeout) {
             $scope.removeElement = function(item) {
                 $scope.$parent.beamline.removeElement(item);
             };
+            $scope.disableElement = function(item) {
+                $scope.$parent.beamline.disableElement(item);
+            };
             $scope.showDeleteButton = function() {
+                return $scope.$parent.beamline.isDefaultMode();
+            };
+            $scope.showDisableButton = function() {
                 return $scope.$parent.beamline.isDefaultMode();
             };
         },
