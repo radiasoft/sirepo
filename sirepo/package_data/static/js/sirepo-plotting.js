@@ -1121,7 +1121,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
-                    var length = (item.l || item.xmax || item.length || 0);
+                    var length = parseFloat(item.l || item.xmax || item.length || 0);
                     if ('angle' in item) {
                         var radius = length / 2;
                         maxHeight = Math.max(maxHeight, length);
@@ -1284,7 +1284,6 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
 
-            var currentScale = 1;
             scope.panzoom = $(element).find('.panzoom').panzoom({
                 increment: 0.5,
                 animate: false,
@@ -1292,11 +1291,11 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 minScale: 1,
                 onZoom: function(e, panzoom) {
                     var scale = panzoom.getMatrix()[0];
-                    if (scale != currentScale)
-                        currentScale = scale;
+                    if (scale == 1)
+                        scope.panzoom.panzoom("reset");
                 },
             });
-            scope.panzoom.parent().on('mousewheel.focal', function( e ) {
+            scope.panzoom.parent().on('mousewheel.focal', function(e) {
                 e.preventDefault();
                 var delta = e.delta || e.originalEvent.wheelDelta;
                 var zoomOut = delta ? delta < 0 : e.originalEvent.deltaY > 0;

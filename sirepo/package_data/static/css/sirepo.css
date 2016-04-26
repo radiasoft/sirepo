@@ -433,6 +433,9 @@ tr:hover .s-button-bar-parent {
   height: 100%;
   overflow: auto;
 }
+.s-split-pane-frame div.panel {
+  margin-bottom: 0;
+}
 
 .elegant-beamline-element {
   float: left;
