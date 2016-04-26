@@ -27,9 +27,13 @@ _FIELD_LABEL = {
 
 
 def background_percent_complete(data, run_dir, is_running):
+    frame_count = 0
+    #TODO(pjm): use final output file as test
+    if run_dir.join('w1.sdds').exists():
+        frame_count = 1
     return {
         'percent_complete': 100,
-        'frame_count': 0 if is_running else 1,
+        'frame_count': 0 if is_running else frame_count,
     }
 
 
@@ -137,7 +141,6 @@ bl: line=(d)
 
 
 def get_animation_name(data):
-    print('here: {}'.format(data['modelName']))
     return data['modelName']
 
 
@@ -146,7 +149,6 @@ def get_simulation_frame(run_dir, data, model_data):
     if sdds.sddsdata.InitializeInput(index, str(run_dir.join('w1.sdds'))) != 1:
         sdds.sddsdata.PrintErrors(1)
     column_names = sdds.sddsdata.GetColumnNames(index)
-    print('column_names: {}'.format(column_names))
     errorCode = sdds.sddsdata.ReadPage(index)
     if errorCode != 1:
         sdds.sddsdata.PrintErrors(1)

@@ -2,6 +2,9 @@
 
 app_local_routes.lattice = '/lattice/:simulationId';
 app_local_routes.visualization = '/visualization/:simulationId';
+appDefaultSimulationValues = {
+    simulation: {},
+};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -437,7 +440,7 @@ app.directive('appHeader', function(appState, panelState) {
               '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
