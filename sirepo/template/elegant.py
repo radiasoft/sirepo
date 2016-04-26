@@ -178,6 +178,11 @@ def get_data_file(run_dir, frame_index):
 
 
 def is_cache_valid(data, old_data):
+    if 'bunchReport' in data['report']:
+        for name in [data['report'], 'bunch', 'simulation']:
+            if data['models'][name] != old_data['models'][name]:
+                return False
+        return True
     return False
 
 
