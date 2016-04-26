@@ -145,6 +145,21 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         });
     }
 
+    function uniqueNameForType(prefix) {
+        var names = {};
+        var containerNames = ['elements', 'beamlines'];
+        for (var i = 0; i < containerNames.length; i++) {
+            var containerName = containerNames[i];
+            for (var j = 0; j < appState.models[containerName].length; j++)
+                names[appState.models[containerName][j].name] = 1;
+        }
+        var name = prefix;
+        var index = 1;
+        while (names[name + index])
+            index++;
+        return name + index;
+    }
+
     function updateModels(name, idField, containerName, sortMethod) {
         // update element/elements or beamline/beamlines
         var m = appState.models[name];
@@ -173,7 +188,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         var model = {
             _id: nextId(),
             type: type,
-            //TODO(pjm): give it unique "name"?
+            name: uniqueNameForType(type.charAt(0)),
         };
         // set model defaults from schema
         var fields = Object.keys(schema);
@@ -237,6 +252,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.newBeamline = function() {
         appState.models['beamline'] = {
+            name: uniqueNameForType('BL'),
             id: nextId(),
             l: 0,
             count: 0,
