@@ -36,17 +36,24 @@
             ["Diamond (X0h)", "Diamond (X0h server)"]
         ],
         "FieldUnits": [
-            ["1", "ph/s/.1%bw/mm²"],
-            ["2", "J/eV/mm²"]
+            ["0", "Arbitrary Units"],
+            ["1", "(ph/s/.1%bw/mm²)½"],
+            ["2", "(J/eV/mm²)½"]
+        ],
+        "Flux": [
+            ["1", "Flux"],
+            ["2", "Flux per Unit Surface"]
+        ],
+        "FluxMethod": [
+            ["0", "Manual"],
+            ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"],
+            ["-1", "Use Approximate Method"]
         ],
         "FocalPlane": [
             ["1", "Horizontal"],
             ["2", "Vertical"],
             ["3", "Both"]
-        ],
-        "Flux": [
-            ["1", "Flux"],
-            ["2", "Flux per Unit Surface"]
         ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
@@ -56,36 +63,14 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
-        "SourceType": [
-            ["u", "Electron Beam with Idealized Undulator"],
-            ["t", "Electron Beam with Tabulated Undulator"],
-            ["m", "Electron Beam with Dipole"],
-            ["g", "Gaussian Beam"]
+        "IntensityMethod": [
+            ["0", "Manual"],
+            ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"]
         ],
-        "MirrorApertureShape": [
-            ["r", "Rectangular"],
-            ["e", "Elliptical"]
-        ],
-        "MultipoleOrientation": [
-            ["n", "Horizontal"],
-            ["s", "Vertical"]
-        ],
-        "MirrorOrientation": [
-            ["x", "Horizontal"],
-            ["y", "Vertical"]
-        ],
-        "Polarization": [
-            ["0", "Linear Horizontal"],
-            ["1", "Linear Vertical"],
-            ["2", "Linear 45 degrees"],
-            ["3", "Linear 135 degrees"],
-            ["4", "Circular Right"],
-            ["5", "Circular Left"],
-            ["6", "Total"]
-        ],
-        "PowerDensityMethod": [
-            ["1", "Near Field"],
-            ["2", "Far Field"]
+        "MagneticField": [
+            ["1", "Approximate"],
+            ["2", "Accurate"]
         ],
         "MillerIndicesRange": [
             ["0", "0"],
@@ -110,6 +95,36 @@
             ["-9", "-9"],
             ["-10", "-10"]
         ],
+        "MirrorApertureShape": [
+            ["r", "Rectangular"],
+            ["e", "Elliptical"]
+        ],
+        "MirrorOrientation": [
+            ["x", "Horizontal"],
+            ["y", "Vertical"]
+        ],
+        "MultipoleOrientation": [
+            ["n", "Horizontal"],
+            ["s", "Vertical"]
+        ],
+        "Polarization": [
+            ["0", "Linear Horizontal"],
+            ["1", "Linear Vertical"],
+            ["2", "Linear 45 degrees"],
+            ["3", "Linear 135 degrees"],
+            ["4", "Circular Right"],
+            ["5", "Circular Left"],
+            ["6", "Total"]
+        ],
+        "PowerDensityMethod": [
+            ["1", "Near Field"],
+            ["2", "Far Field"]
+        ],
+        "RandomGenerationMethod": [
+            ["1", "Standard Pseudo-Random Number Generator"],
+            ["2", "Halton Sequences"],
+            ["3", "LPtau sequences (to be implemented)"]
+        ],
         "SamplingMethod": [
             ["1", "Automatic"],
             ["2", "Manual"]
@@ -119,6 +134,12 @@
             ["running", "Running"],
             ["completed", "Completed"],
             ["canceled", "Canceled"]
+        ],
+        "SourceType": [
+            ["u", "Electron Beam with Idealized Undulator"],
+            ["t", "Electron Beam with Tabulated Undulator"],
+            ["m", "Electron Beam with Dipole"],
+            ["g", "Gaussian Beam"]
         ],
         "StokesParameter": [
             ["0", "Coordinate"],
@@ -221,29 +242,35 @@
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "magneticField": ["Magnetic Field", "MagneticField"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Flux Calculation", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "fluxReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "magneticField": ["Magnetic Field", "MagneticField"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Flux Calculation", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -278,16 +305,20 @@
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
+            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "magneticField": ["Magnetic Field", "MagneticField"],
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "lens": {
             "title": ["Element Name", "String"],
@@ -359,7 +390,7 @@
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String"],
@@ -400,7 +431,7 @@
         "watchpointReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         }
     },
     "view": {
@@ -551,19 +582,28 @@
             ]
         },
         "fluxAnimation": {
-            "title": "Partially Coherent Finite Emittance Beam Report",
+            "title": "Spectral Flux for Finite Emittance Electron Beam",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
                 "photonEnergyPointCount",
-                "horizontalPosition",
-                "horizontalApertureSize",
-                "verticalPosition",
-                "verticalApertureSize",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalApertureSize"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalApertureSize"
+                    ]]
+                ],
+                "magneticField",
                 "longitudinalPrecision",
                 "azimuthalPrecision",
+                "method",
+                "precision",
                 "fluxType",
                 "polarization"
             ]
@@ -576,10 +616,6 @@
                 "initialEnergy",
                 "finalEnergy",
                 "photonEnergyPointCount",
-                "longitudinalPrecision",
-                "azimuthalPrecision",
-                "fluxType",
-                "polarization",
                 [
                     ["Horizontal", [
                         "horizontalPosition",
@@ -589,7 +625,14 @@
                         "verticalPosition",
                         "verticalApertureSize"
                     ]]
-                ]
+                ],
+                "magneticField",
+                "longitudinalPrecision",
+                "azimuthalPrecision",
+                "method",
+                "precision",
+                "fluxType",
+                "polarization"
             ]
         },
         "gaussianBeam": {
@@ -658,14 +701,18 @@
             ]
         },
         "intensityReport": {
-            "title": "Single-Electron Intensity Report",
+            "title": "Single-Electron Spectrum Report",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
                 "photonEnergyPointCount",
+                "method",
+                "precision",
                 "polarization",
+                "magneticField",
+                "fieldUnits",
                 [
                     ["Horizontal", [
                         "horizontalPosition"

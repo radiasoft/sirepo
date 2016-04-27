@@ -143,6 +143,26 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
+    if data['models']['fluxReport'] and 'magneticField' not in data['models']['fluxReport']:
+        data['models']['fluxReport']['magneticField'] = 1
+        data['models']['fluxReport']['method'] = -1
+        data['models']['fluxReport']['precision'] = 0.01
+    if 'fluxAnimation' in data['models']:
+        if 'magneticField' not in data['models']['fluxAnimation']:
+            data['models']['fluxAnimation']['magneticField'] = 2
+            data['models']['fluxAnimation']['method'] = 1
+            data['models']['fluxAnimation']['precision'] = 0.01
+    if data['models']['intensityReport']:
+        if 'method' not in data['models']['intensityReport']:
+            if data['models']['simulation']['sourceType'] in ['u', 't']:
+                data['models']['intensityReport']['method'] = 1
+            elif data['models']['simulation']['sourceType'] in ['m']:
+                data['models']['intensityReport']['method'] = 2
+            else:
+                data['models']['intensityReport']['method'] = 0
+            data['models']['intensityReport']['precision'] = 0.01
+            data['models']['intensityReport']['magneticField'] = 1
+            data['models']['intensityReport']['fieldUnits'] = 1
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = {}
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
@@ -195,9 +215,11 @@ def fixup_old_data(data):
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
-        data['models']['fluxAnimation']['initialEnergy'] = 10000
-        data['models']['fluxAnimation']['finalEnergy'] = 20000
-
+        data['models']['fluxAnimation']['initialEnergy'] = 10000.0
+        data['models']['fluxAnimation']['finalEnergy'] = 20000.0
+        data['models']['fluxAnimation']['magneticField'] = 2
+        data['models']['fluxAnimation']['method'] = 1
+        data['models']['fluxAnimation']['precision'] = 0.01
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data:
@@ -243,11 +265,11 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
-    v['fluxMethod'] = -1
+    v['fluxNumberOfMacroElectrons'] = 1
     if 'report' in data:
         v[data['report']] = 1
         if data['report'] == 'fluxAnimation':
-            v['fluxMethod'] = 1
+            v['fluxNumberOfMacroElectrons'] = 1000000
     return pkjinja.render_resource('srw.py', v)
 
 
