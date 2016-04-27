@@ -283,6 +283,9 @@ def is_cache_valid(data, old_data):
 
     if data['report'] == 'mirrorReport' or 'watchpointReport' in data['report']:
         related_models.append('beamline')
+        if 'watchpointReport' in data['report']:
+            related_models.append('postPropagation')
+            related_models.append('propagation')
 
     if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport']:
         for name in related_models:
