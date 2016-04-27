@@ -2,6 +2,9 @@
 
 app_local_routes.lattice = '/lattice/:simulationId';
 app_local_routes.visualization = '/visualization/:simulationId';
+appDefaultSimulationValues = {
+    simulation: {},
+};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -145,6 +148,21 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         });
     }
 
+    function uniqueNameForType(prefix) {
+        var names = {};
+        var containerNames = ['elements', 'beamlines'];
+        for (var i = 0; i < containerNames.length; i++) {
+            var containerName = containerNames[i];
+            for (var j = 0; j < appState.models[containerName].length; j++)
+                names[appState.models[containerName][j].name] = 1;
+        }
+        var name = prefix;
+        var index = 1;
+        while (names[name + index])
+            index++;
+        return name + index;
+    }
+
     function updateModels(name, idField, containerName, sortMethod) {
         // update element/elements or beamline/beamlines
         var m = appState.models[name];
@@ -173,7 +191,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         var model = {
             _id: nextId(),
             type: type,
-            //TODO(pjm): give it unique "name"?
+            name: uniqueNameForType(type.charAt(0)),
         };
         // set model defaults from schema
         var fields = Object.keys(schema);
@@ -237,6 +255,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.newBeamline = function() {
         appState.models['beamline'] = {
+            name: uniqueNameForType('BL'),
             id: nextId(),
             l: 0,
             count: 0,
@@ -421,7 +440,7 @@ app.directive('appHeader', function(appState, panelState) {
               '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {

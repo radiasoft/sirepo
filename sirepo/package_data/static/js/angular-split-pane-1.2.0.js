@@ -9,7 +9,7 @@ https://raw.github.com/shagstrom/split-pane/master/LICENSE
 
 */
 angular.module('shagstrom.angular-split-pane', [])
-.directive('splitPane', function() {
+.directive('splitPane', function($timeout) {
 	return {
 		restrict: 'EA',
 		replace: true,
@@ -71,7 +71,11 @@ angular.module('shagstrom.angular-split-pane', [])
 				$divider.css({ bottom: $scope.components[1].height, height: $scope.divider.height });
 				$lastComponent.css({ height: $scope.components[1].height });
 			}
+                    // pjm: there is a timeout hack in split-pane init()
+                    // don't want it triggered until after angular has finished setting things up
+                    $timeout(function() {
 			element.splitPane();
+                    });
 		},
 		template: '<div class="split-pane" ng-transclude></div>'
 	};

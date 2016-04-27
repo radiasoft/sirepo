@@ -80,6 +80,7 @@ def _intensity_units(is_gaussian, model_data):
         return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
     return 'ph/s/.1%bw/mm^2'
 
+
 def extract_report_data(filename, model_data):
     flux_type = 1
     if 'report' in model_data and model_data['report'] == 'fluxAnimation':
@@ -297,6 +298,23 @@ def get_data_file(run_dir, frame_index):
 
 def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
+
+
+def is_cache_valid(data, old_data):
+    related_models = [data['report'], 'electronBeam', 'gaussianBeam', 'multipole', 'simulation', 'tabulatedUndulator', 'undulator']
+
+    if data['report'] == 'mirrorReport' or 'watchpointReport' in data['report']:
+        related_models.append('beamline')
+        if 'watchpointReport' in data['report']:
+            related_models.append('postPropagation')
+            related_models.append('propagation')
+
+    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport']:
+        for name in related_models:
+            if data['models'][name] != old_data['models'][name]:
+                return False
+        return True
+    return False
 
 
 def new_simulation(data, new_simulation_data):
