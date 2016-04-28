@@ -8,8 +8,9 @@ elegant_file = """
 &run_setup
         lattice = elegant.lte,
         default_order = 1,
-        use_beamline = bl,
+        use_beamline = {{use_beamline}},
         p_central_mev = {{bunch_p_central_mev}},
+        output = elegant.out,
 !        random_number_seed = 0,
 &end
 

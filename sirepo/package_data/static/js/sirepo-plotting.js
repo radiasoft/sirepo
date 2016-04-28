@@ -1143,7 +1143,8 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
-                        else if (picType == 'zeroLength') {
+                        else if (picType == 'zeroLength' || length == 0) {
+                            groupItem.picType = 'zeroLength';
                             groupItem.height = 0.3;
                             groupItem.y = pos.y;
                         }
@@ -1200,7 +1201,8 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 if (group.length)
                     applyGroup(group, pos);
                 $scope.svgBounds = pos.bounds;
-                pos.x += pos.radius;
+                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1])
+                    pos.x += pos.radius;
                 return pos;
             }
 

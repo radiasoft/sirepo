@@ -1,5 +1,5 @@
     <div class="container">
-      <div class="row" data-ng-if="simulations.isApp('warp')">
+      <div class="row" data-ng-if="! simulations.isApp('srw')">
         <div class="text-center col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
           <button data-ng-click="simulations.showSimulationModal()" class="btn btn-default" type="submit"><span class="glyphicon glyphicon-plus"></span> New</button>
           <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</button>
