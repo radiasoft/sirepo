@@ -127,6 +127,22 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
+    self.elementPic = {
+        alpha: ['ALPH'],
+        bend: ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        mirror: ['LMIRROR', 'REFLECT'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH', ],
+        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MATR', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    };
+
     function nextId() {
         return Math.max(
             appState.maxId(appState.models.elements, '_id'),
@@ -183,6 +199,13 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.addToBeamline = function(item) {
         self.getActiveBeamline().items.push(item.id || item._id);
         appState.saveChanges('beamlines');
+    };
+
+    self.angleFormat = function(angle) {
+        var degrees = angle * 180 / Math.PI;
+        degrees = Math.round(degrees * 10) / 10;
+        degrees %= 360;
+        return degrees.toFixed(1);
     };
 
     self.createElement = function(type) {
@@ -266,6 +289,23 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.newElement = function() {
         $('#s-newBeamlineElement-editor').modal('show');
+    };
+
+    //TODO(pjm): use library for this
+    self.numFormat = function(num, units) {
+        if (! angular.isDefined(num))
+            return '';
+        if (num < 1) {
+            num *= 1000;
+            units = 'm' + units;
+        }
+        if (Math.round(num * 100) == 0)
+            return '0';
+        if (num >= 100)
+            return num.toFixed(0) + units;
+        if (num >= 10)
+            return num.toFixed(1) + units;
+        return num.toFixed(2) + units;
     };
 
     self.setActiveTab = function(name) {
@@ -609,7 +649,7 @@ app.directive('beamlineTable', function(appState) {
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td style="text-align: right">{{ beamline.count }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamline.bend || \'&nbsp;\' }}<span data-ng-if="lattice.bend">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -634,8 +674,18 @@ app.directive('beamlineTable', function(appState) {
                 $scope.lattice.addToBeamline(beamline);
             };
 
+            $scope.beamlineBend = function(beamline, defaultValue) {
+                if (angular.isDefined(beamline.angle))
+                    return $scope.lattice.angleFormat(beamline.angle);
+                return defaultValue;
+            };
+
             $scope.beamlineDescription = function(beamline) {
                 return itemsToString(beamline.items);
+            };
+
+            $scope.beamlineLength = function(beamline) {
+                return $scope.lattice.numFormat(beamline.length, 'm');
             };
 
             $scope.editBeamline = function(beamline) {
@@ -709,17 +759,6 @@ app.directive('elementTable', function(appState) {
                 }
             }
 
-            //TODO(pjm): use library for this
-            function numFormat(num, units) {
-                if (num == 0)
-                    return '0';
-                if (num < 1) {
-                    num *= 1000;
-                    units = 'm' + units;
-                }
-                return num.toFixed(0) + units;
-            }
-
             $scope.addToBeamline = function(element) {
                 $scope.lattice.addToBeamline(element);
             };
@@ -730,7 +769,7 @@ app.directive('elementTable', function(appState) {
 
             $scope.elementBend = function(element, defaultValue) {
                 if (angular.isDefined(element.angle))
-                    return (element.angle * 180 / Math.PI).toFixed(1);
+                    return $scope.lattice.angleFormat(element.angle);
                 return defaultValue;
             };
 
@@ -752,9 +791,7 @@ app.directive('elementTable', function(appState) {
             };
 
             $scope.elementLength = function(element) {
-                if (angular.isDefined(element.l))
-                    return numFormat(element.l, 'm');
-                return '';
+                return $scope.lattice.numFormat(element.l, 'm');
             };
 
             $scope.isExpanded = function(category) {
