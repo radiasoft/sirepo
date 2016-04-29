@@ -1084,27 +1084,16 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
             $scope.scale = 1;
             $scope.xOffset = 0;
             $scope.yOffset = 0;
+            $scope.zoomScale = 1;
+            $scope.panTranslate = [0, 0];
+            $scope.markerWidth = 1;
+            $scope.markerUnits = '';
 
             var emptyList = [];
             $scope.items = [];
             $scope.svgGroups = [];
             $scope.svgBounds = null;
-
-            function loadItemsFromBeamline(forceUpdate) {
-                var id = $scope.latticeController.activeBeamlineId;
-                if (! id) {
-                    $scope.items = emptyList;
-                    return;
-                }
-                var beamline = $scope.latticeController.getActiveBeamline();
-                if (! forceUpdate && appState.deepEquals(beamline.items, $scope.items)) {
-                    return;
-                }
-                $scope.items = appState.clone(beamline.items);
-                $scope.svgGroups = [];
-                computePositions();
-                $scope.resize();
-            }
+            var picTypeCache = null;
 
             function applyGroup(items, pos) {
                 var group = {
@@ -1121,11 +1110,13 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
+                    var picType = $scope.getPicType(item.type);
                     var length = parseFloat(item.l || item.xmax || item.length || 0);
-                    if ('angle' in item) {
+                    if (picType == 'bend') {
                         var radius = length / 2;
                         maxHeight = Math.max(maxHeight, length);
                         group.items.push({
+                            picType: picType,
                             element: item,
                             radius: radius,
                             cx: pos.radius + pos.x + x + radius,
@@ -1137,21 +1128,33 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                         pos.radius = radius;
                     }
                     else {
-                        var height = 0.1;
-                        if (item.type == 'WATCH') {
-                            height = 0;
-                            //TODO(pjm): centralize the watch height between js and svg
-                            maxHeight = Math.max(maxHeight, 0.6);
-                        }
-                        else
-                            maxHeight = Math.max(maxHeight, height / 2);
-                        group.items.push({
+                        var groupItem = {
+                            picType: picType,
                             element: item,
                             x: pos.radius + pos.x + x,
-                            y: pos.y - height / 2,
-                            height: height,
+                            height: 0,
                             width: length,
-                        });
+                        };
+                        if (picType == 'watch') {
+                            groupItem.height = 0.6;
+                            groupItem.y = pos.y;
+                        }
+                        else if (picType == 'drift') {
+                            groupItem.height = 0.1;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                        }
+                        else if (picType == 'zeroLength' || length == 0) {
+                            groupItem.picType = 'zeroLength';
+                            groupItem.height = 0.3;
+                            groupItem.y = pos.y;
+                        }
+                        else {
+                            groupItem.height = 0.2;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                        }
+                        maxHeight = Math.max(maxHeight, groupItem.height);
+                        groupItem.x = pos.radius + pos.x + x;
+                        group.items.push(groupItem);
                         //console.log(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
                     }
@@ -1168,6 +1171,106 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 pos.angle += newAngle;
             }
 
+            function computePositions() {
+                var pos = {
+                    x: 0,
+                    y: 0,
+                    angle: 0,
+                    radius: 0,
+                    bounds: [0, 0, 0, 0],
+                    count: 0,
+                };
+                var explodedItems = explodeItems($scope.items);
+                var group = [];
+                var groupDone = false;
+                for (var i = 0; i < explodedItems.length; i++) {
+                    if (groupDone) {
+                        applyGroup(group, pos);
+                        group = [];
+                        groupDone = false;
+                    }
+                    //var item = $scope.latticeController.elementForId($scope.items[i]);
+                    var item = explodedItems[i];
+                    //TODO(pjm): identify drift types
+                    if ($scope.getPicType(item.type) != 'drift')
+                        pos.count++;
+                    if ('angle' in item)
+                        groupDone = true;
+                    group.push(item);
+                }
+                if (group.length)
+                    applyGroup(group, pos);
+                $scope.svgBounds = pos.bounds;
+                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1])
+                    pos.x += pos.radius;
+                return pos;
+            }
+
+            //TODO(pjm): will infinitely recurse if beamlines are self-referential
+            function explodeItems(items, res) {
+                if (! res)
+                    res = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = $scope.latticeController.elementForId(items[i]);
+                    if (item.type)
+                        res.push(item);
+                    else {
+                        explodeItems(item.items, res);
+                    }
+                }
+                return res;
+            }
+
+            function loadItemsFromBeamline(forceUpdate) {
+                var id = $scope.latticeController.activeBeamlineId;
+                if (! id) {
+                    $scope.items = emptyList;
+                    return;
+                }
+                var beamline = $scope.latticeController.getActiveBeamline();
+                if (! forceUpdate && appState.deepEquals(beamline.items, $scope.items)) {
+                    return;
+                }
+                $scope.items = appState.clone(beamline.items);
+                $scope.svgGroups = [];
+                var pos = computePositions();
+                beamline.length = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
+                beamline.angle = pos.angle * Math.PI / 180;
+                beamline.count = pos.count;
+                $scope.resize();
+            }
+
+            function recalcScaleMarker() {
+                //TODO(pjm): use library for this
+                $scope.markerUnits = '1 m';
+                $scope.markerWidth = $scope.scale * $scope.zoomScale;
+                if ($scope.markerWidth < 20) {
+                    $scope.markerUnits = '10 m';
+                    $scope.markerWidth *= 10;
+                }
+                else if ($scope.markerWidth > 200) {
+                    $scope.markerUnits = '10 cm';
+                    $scope.markerWidth /= 10;
+                    if ($scope.markerWidth > 200) {
+                        $scope.markerUnits = '1 cm';
+                        $scope.markerWidth /= 10;
+                    }
+                }
+            }
+
+            function resetZoomAndPan() {
+                $scope.zoomScale = 1;
+                $scope.zoom.scale($scope.zoomScale);
+                $scope.panTranslate = [0, 0];
+                $scope.zoom.translate($scope.panTranslate);
+                updateZoomAndPan();
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
             function updateBounds(bounds, x, y, buffer) {
                 if (x - buffer < bounds[0])
                     bounds[0] = x - buffer;
@@ -1179,31 +1282,37 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     bounds[3] = y + buffer;
             }
 
-            function computePositions() {
-                var pos = {
-                    x: 0,
-                    y: 0,
-                    angle: 0,
-                    radius: 0,
-                    bounds: [0, 0, 0, 0],
-                };
-                var group = [];
-                var groupDone = false;
-                for (var i = 0; i < $scope.items.length; i++) {
-                    if (groupDone) {
-                        applyGroup(group, pos);
-                        group = [];
-                        groupDone = false;
-                    }
-                    var item = $scope.latticeController.elementForId($scope.items[i]);
-                    if ('angle' in item)
-                        groupDone = true;
-                    group.push(item);
+            function updateZoomAndPan() {
+                recalcScaleMarker();
+                $scope.container.attr("transform", "translate(" + $scope.panTranslate + ")scale(" + $scope.zoomScale + ")");
+            }
+
+            function zoomed() {
+                $scope.zoomScale = d3.event.scale;
+
+                if ($scope.zoomScale == 1) {
+                    $scope.panTranslate = [0, 0];
+                    $scope.zoom.translate($scope.panTranslate);
                 }
-                if (group.length)
-                    applyGroup(group, pos);
-                $scope.svgBounds = pos.bounds;
-                pos.x += pos.radius;
+                else {
+                    //TODO(pjm): don't allow translation outside of image boundaries
+                    $scope.panTranslate = d3.event.translate;
+                }
+                updateZoomAndPan();
+                $scope.$apply();
+            }
+
+            $scope.getPicType = function(type) {
+                if (! picTypeCache) {
+                    picTypeCache = {};
+                    var elementPic = $scope.latticeController.elementPic
+                    for (var picType in elementPic) {
+                        var types = elementPic[picType];
+                        for (var i = 0; i < types.length; i++)
+                            picTypeCache[types[i]] = picType;
+                    }
+                }
+                return picTypeCache[type];
             }
 
             $scope.itemClicked = function(item) {
@@ -1241,26 +1350,22 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     $scope.scale = scale;
                     $scope.xOffset = - $scope.svgBounds[0] * scale + xOffset;
                     $scope.yOffset = - $scope.svgBounds[1] * scale + yOffset;
-                    $timeout(function() {
-                        $scope.panzoom.panzoom('resetDimensions');
-                    });
+                    recalcScaleMarker();
                 }
             };
 
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
             $scope.init = function() {
+                $scope.zoom = d3.behavior.zoom()
+                    .scaleExtent([1, 10])
+                    .on('zoom', zoomed);
+                select('svg').call($scope.zoom);
+                $scope.container = select('.s-zoom-plot');
                 loadItemsFromBeamline();
             };
 
             $scope.destroy = function() {
-                if ($scope.panzoom) {
-                    $scope.panzoom.parent().off();
-                    $scope.panzoom.panzoom('destroy');
-                }
+                if ($scope.zoom)
+                    $scope.zoom.on('zoom', null);
             };
 
             $scope.$on('modelChanged', function(e, name) {
@@ -1279,31 +1384,11 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
 
             $scope.$on('activeBeamlineChanged', function() {
                 loadItemsFromBeamline();
+                resetZoomAndPan();
             });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-
-            scope.panzoom = $(element).find('.panzoom').panzoom({
-                increment: 0.5,
-                animate: false,
-                maxScale: 20,
-                minScale: 1,
-                onZoom: function(e, panzoom) {
-                    var scale = panzoom.getMatrix()[0];
-                    if (scale == 1)
-                        scope.panzoom.panzoom("reset");
-                },
-            });
-            scope.panzoom.parent().on('mousewheel.focal', function(e) {
-                e.preventDefault();
-                var delta = e.delta || e.originalEvent.wheelDelta;
-                var zoomOut = delta ? delta < 0 : e.originalEvent.deltaY > 0;
-                scope.panzoom.panzoom('zoom', zoomOut, {
-                    focal: e,
-                });
-            });
-
         },
     };
 });

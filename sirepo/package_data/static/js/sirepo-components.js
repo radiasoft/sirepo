@@ -296,10 +296,8 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 delete newBeam.isReadOnly;
                 newBeam.name = 'Beam Name';
                 newBeam.id = appState.maxId(appState.models.electronBeams) + 1;
-                console.log('adding newBeam with id: ', newBeam.id);
                 appState.models.electronBeams.push(newBeam);
                 appState.models.electronBeam = newBeam;
-                console.log('set electronBeam, id: ', newBeam.id);
                 panelState.showModalEditor('electronBeam');
             };
         },

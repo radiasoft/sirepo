@@ -1,17 +1,26 @@
 <div ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
-  <div class="panzoom" style="background-color: white"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
+  <div style="background-color: white"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
       <g ng-attr-transform="translate({{ margin }},{{ margin }})">
-        <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ scale }})">
-          <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ group.rotate }},{{ group.rotateX }},{{ group.rotateY }})">
-            <g ng-repeat="item in group.items" ng-switch="item.element.type" ng-dblclick="itemClicked(item.element)">
-              <rect ng-switch-when="DRIF" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: lightgrey"><title>{{ item.element.name }}</title></rect>
-              <circle ng-switch-when="CSRCSBEND" ng-attr-cx="{{ item.cx }}" ng-attr-cy="{{ item.cy }}" ng-attr-r="{{ item.radius }}" style="fill: blue"><title>{{ item.element.name }}</title></circle>
-              <g ng-switch-when="WATCH" ng-attr-transform="translate({{ item.x }},{{ item.y }})">
-                <path d="M0 0 L 0 -0.6 L 0.2 -0.5 L 0 -0.4" style="stroke: black; fill: lightgreen; stroke-width: 0.01"><title>{{ item.element.name }}</title></path>
+        <g class="s-zoom-plot">
+          <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ scale }})">
+            <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ group.rotate }},{{ group.rotateX }},{{ group.rotateY }})">
+              <g ng-repeat="item in group.items" ng-switch="item.picType" ng-dblclick="itemClicked(item.element)">
+                <rect ng-switch-when="drift" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: lightgrey"><title>{{ item.element.name }}</title></rect>
+                <circle ng-switch-when="bend" ng-attr-cx="{{ item.cx }}" ng-attr-cy="{{ item.cy }}" ng-attr-r="{{ item.radius }}" style="fill: blue"><title>{{ item.element.name }}</title></circle>
+                <g ng-switch-when="watch" ng-attr-transform="translate({{ item.x }},{{ item.y }})">
+                  <path ng-attr-d="{{ 'M0 0 L 0 ' + -item.height + ' L 0.2 -0.5 L 0 -0.4' }}" style="stroke: black; fill: lightgreen; stroke-width: 0.01"><title>{{ item.element.name }}</title></path>
+                </g>
+                <line ng-switch-when="zeroLength" ng-attr-x1="{{ item.x }}" ng-attr-y1="{{ item.y - item.height }}" ng-attr-x2="{{ item.x }}" ng-attr-y2="{{ item.y + item.height }}" style="stroke: black; stroke-width: 0.05"><title>{{ item.element.name }}</title></line>
+                <rect ng-switch-when="magnet" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: red"><title>{{ item.element.name }}</title></rect>
+                <rect ng-switch-default="" ng-attr-x="{{ item.x }}" ng-attr-y="{{ item.y }}" ng-attr-width="{{ item.width }}" ng-attr-height="{{ item.height }}" style="fill: green"><title>{{ item.element.name }}</title></rect>
               </g>
             </g>
           </g>
         </g>
+      </g>
+      <g ng-attr-transform="translate({{ width - margin - 40 }},{{ height - margin - 15 }})">
+        <path ng-attr-d="{{ 'M-' + markerWidth + ' -26 L -' + markerWidth + ' 14 M-' + markerWidth + ' -6 L 0 -6 M 0 -26 L 0 14' }}" style="stroke: black; stroke-width: 1" />
+        <text dx="5" style="font-size: 12px">{{ markerUnits }}</text>
       </g>
   </svg></div>
 </div>

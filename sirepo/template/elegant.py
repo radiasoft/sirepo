@@ -107,32 +107,10 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['bunch_sigma_s'] = 0
         v['bunch_dp_s_coupling'] = 0
     if run_async:
-        v['lattice'] = '''
-q: charge,total=1e-9
-B1: csrcsbend,angle=0.146607657167524,l=0.200718260855179,e1=0,e2=0.146607657167524,&
- nonlinear=1,n_kicks=100,integration_order=4,&
- bins=500,sg_halfwidth=1
-B2: csrcsbend,angle=-0.146607657167524,l=0.200718260855179,e1=-0.146607657167524,e2=0,&
- nonlinear=1,n_kicks=100,integration_order=4,&
- bins=500,sg_halfwidth=1
-B3: csrcsbend,angle=-0.146607657167524,l=0.200718260855179,e1=0,e2=-0.146607657167524,&
- nonlinear=1,n_kicks=100,integration_order=4,&
- bins=500,sg_halfwidth=1
-B4: csrcsbend,angle=0.146607657167524,l=0.200718260855179,e1=0.146607657167524,e2=0,&
- nonlinear=1,n_kicks=100,integration_order=4,&
- bins=500,sg_halfwidth=1
-w1: watch,filename="w1.sdds",mode=coord
-w2: watch,filename="w2.sdds",mode=coord
-w3: watch,filename="w3.sdds",mode=coord
-w4: watch,filename="w4.sdds",mode=coord
-w5: watch,filename="w5.sdds",mode=coord
-l1: csrdrift,l=0.758132998376353,dz=0.01,use_stupakov=1
-l2: csrdrift,l=0.5,dz=0.01,use_stupakov=1
-l3: csrdrift,l=1.0,dz=0.01,use_stupakov=1
-pf: pfilter,deltalimit=0.005
-bl: line=(q,L1,w1,B1,L1,w2,B2,L2,w3,B3,L1,w4,B4,w5,l3,pf)
-'''
+        v['lattice'] = _generate_lattice(data, schema, v)
     else:
+        # use a dummy lattice with a 0 length drift for generating bunches
+        v['use_beamline'] = 'bl'
         v['lattice'] = '''
 d: drift,l=0
 bl: line=(d)
@@ -146,7 +124,7 @@ def get_animation_name(data):
 
 def get_simulation_frame(run_dir, data, model_data):
     index = 0
-    if sdds.sddsdata.InitializeInput(index, str(run_dir.join('w1.sdds'))) != 1:
+    if sdds.sddsdata.InitializeInput(index, str(run_dir.join('elegant.out'))) != 1:
         sdds.sddsdata.PrintErrors(1)
     column_names = sdds.sddsdata.GetColumnNames(index)
     errorCode = sdds.sddsdata.ReadPage(index)
@@ -232,6 +210,41 @@ def write_parameters(data, schema, run_dir, run_async):
             run_async,
         ),
     )
+
+
+def _generate_lattice(data, schema, v):
+    res = ''
+    names = {}
+
+    for el in data['models']['elements']:
+        res += el['name'] + ': ' + el['type'] + ','
+        names[el['_id']] = el['name']
+
+        for k in el:
+            if k in ['name', 'type', '_id']:
+                continue
+            value = el[k]
+            default_value = schema['model'][el['type']][k][2]
+            if value is not None and default_value is not None:
+                if str(value) != str(default_value):
+                    res += '{}={},'.format(k, value)
+        res = res[:-1]
+        res += "\n"
+
+    for bl in data['models']['beamlines']:
+        if 'use_beamline' not in v:
+            v['use_beamline'] = bl['name']
+        names[bl['id']] = bl['name']
+
+    for bl in reversed(data['models']['beamlines']):
+        res += bl['name'] + ': line=('
+        for id in bl['items']:
+            res += '{},'.format(names[id])
+        if len(bl['items']):
+            res = res[:-1]
+        res += ")\n"
+
+    return res
 
 
 def _validate_data(data, schema):

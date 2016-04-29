@@ -418,6 +418,7 @@ tr:hover .s-button-bar-parent {
 }
 .s-hover-button {
   display: inline-block;
+  min-width: 8em;
 }
 
 .s-drop-zone {
