@@ -4,41 +4,41 @@
     <div class="col-md-6 col-xl-4">
       <div class="row">
         <div data-ng-if="source.srwService.isElectronBeam()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="electronBeam"></div>
+          <div data-basic-editor-panel="" data-view-name="electronBeam"></div>
         </div>
         <div data-ng-if="source.srwService.isIdealizedUndulator()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="undulator"></div>
+          <div data-basic-editor-panel="" data-view-name="undulator"></div>
         </div>
         <div data-ng-if="source.srwService.isTabulatedUndulator()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="tabulatedUndulator"></div>
+          <div data-basic-editor-panel="" data-view-name="tabulatedUndulator"></div>
         </div>
         <div data-ng-if="source.srwService.isMultipole()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="multipole"></div>
+          <div data-basic-editor-panel="" data-view-name="multipole"></div>
         </div>
         <div data-ng-if="source.srwService.isGaussianBeam()" class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="gaussianBeam"></div>
+          <div data-basic-editor-panel="" data-view-name="gaussianBeam"></div>
         </div>
         <div data-ng-if="source.srwService.isIdealizedUndulator()" class="col-sm-12">
-          <div data-report-panel="2d" data-model-name="fluxReport"></div>
+          <div data-report-panel="2d" data-model-name="fluxReport" data-panel-title="{{ source.srwService.getReportTitle('fluxReport') }}"></div>
         </div>
         <div data-ng-if="source.srwService.isTabulatedUndulator()" class="col-sm-12">
-          <div data-report-panel="2d" data-model-name="fluxAnimation"><div data-simulation-status-panel="fluxAnimation"></div></div>
+          <div data-report-panel="2d" data-model-name="fluxAnimation" data-panel-title="{{ source.srwService.getReportTitle('fluxAnimation') }}"><div data-simulation-status-panel="fluxAnimation"></div></div>
         </div>
       </div>
     </div>
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
-      <div data-report-panel="2d" data-model-name="intensityReport"></div>
+      <div data-report-panel="2d" data-model-name="intensityReport" data-panel-title="{{ source.srwService.getReportTitle('intensityReport') }}"></div>
     </div>
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="powerDensityReport"></div>
+      <div data-report-panel="3d" data-model-name="powerDensityReport" data-panel-title="{{ source.srwService.getReportTitle('powerDensityReport') }}"></div>
     </div>
     <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isApplicationMode('calculator')" class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="sourceIntensityReport"></div>
+      <div data-report-panel="3d" data-model-name="sourceIntensityReport" data-panel-title="{{ source.srwService.getReportTitle('sourceIntensityReport') }}"></div>
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
-<div data-modal-editor="electronBeam" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
-<div data-modal-editor="sourceIntensityReport" data-parent-controller="source"></div>
+<div data-modal-editor="" view-name="electronBeam" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
+<div data-modal-editor="" view-name="sourceIntensityReport" data-parent-controller="source"></div>
 <div data-file-upload-dialog="" data-dialog-title="Upload Magnetic Measurements Zip File" data-parent-controller="source" data-file-type="undulatorTable"></div>

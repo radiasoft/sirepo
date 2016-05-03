@@ -1,0 +1,46 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+
+      <div class="panel panel-info">
+        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="simulationStatus"></div>
+        <div class="panel-body cssFade" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('initial')">
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-primary" data-ng-click="visualization.runSimulation()">Start Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('running')">
+            <div class="col-sm-12">
+              <div data-ng-show="visualization.isState('running')">
+                Running {{ visualization.dots }}
+              </div>
+              <div class="progress">
+                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="100" aria-valuemax="100" style="width: 100%">
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('completed') || visualization.isState('canceled')">
+            <div class="col-sm-12">
+              Simulation
+              <span data-ng-show="visualization.isState('completed')">Completed</span><span data-ng-show="visualization.isState('canceled')">Stopped</span>
+              <br><br>
+            </div>
+            <div class="col-sm-6 pull-right cssFade">
+              <button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+    <div class="clearfix"></div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="heatmap" data-model-name="elementAnimation" data-panel-title="W1 - Watch"><div data-simulation-status-panel="elementAnimation"></div></div>
+    </div>
+  </div> <!-- /row -->
+</div> <!-- /container -->

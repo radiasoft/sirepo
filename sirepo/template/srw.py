@@ -14,9 +14,11 @@ import os
 import py.path
 import re
 import shutil
+import traceback
 import zipfile
 
 from pykern import pkio
+from pykern.pkdebug import pkdc, pkdp
 from pykern import pkjinja
 from pykern import pkresource
 from sirepo.template import template_common
@@ -77,6 +79,7 @@ def _intensity_units(is_gaussian, model_data):
             i = model_data['models']['initialIntensityReport']['fieldUnits']
         return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
     return 'ph/s/.1%bw/mm^2'
+
 
 def extract_report_data(filename, model_data):
     flux_type = 1
@@ -141,6 +144,30 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
+    if data['models']['fluxReport'] and 'magneticField' not in data['models']['fluxReport']:
+        data['models']['fluxReport']['magneticField'] = 1
+        data['models']['fluxReport']['method'] = -1
+        data['models']['fluxReport']['precision'] = 0.01
+        data['models']['fluxReport']['initialHarmonic'] = 1
+        data['models']['fluxReport']['finalHarmonic'] = 15
+    if 'fluxAnimation' in data['models']:
+        if 'magneticField' not in data['models']['fluxAnimation']:
+            data['models']['fluxAnimation']['magneticField'] = 2
+            data['models']['fluxAnimation']['method'] = 1
+            data['models']['fluxAnimation']['precision'] = 0.01
+            data['models']['fluxAnimation']['initialHarmonic'] = 1
+            data['models']['fluxAnimation']['finalHarmonic'] = 15
+    if data['models']['intensityReport']:
+        if 'method' not in data['models']['intensityReport']:
+            if data['models']['simulation']['sourceType'] in ['u', 't']:
+                data['models']['intensityReport']['method'] = 1
+            elif data['models']['simulation']['sourceType'] in ['m']:
+                data['models']['intensityReport']['method'] = 2
+            else:
+                data['models']['intensityReport']['method'] = 0
+            data['models']['intensityReport']['precision'] = 0.01
+            data['models']['intensityReport']['magneticField'] = 1
+            data['models']['intensityReport']['fieldUnits'] = 1
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = {}
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
@@ -193,9 +220,13 @@ def fixup_old_data(data):
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
-        data['models']['fluxAnimation']['initialEnergy'] = 10000
-        data['models']['fluxAnimation']['finalEnergy'] = 20000
-
+        data['models']['fluxAnimation']['initialEnergy'] = 10000.0
+        data['models']['fluxAnimation']['finalEnergy'] = 20000.0
+        data['models']['fluxAnimation']['magneticField'] = 2
+        data['models']['fluxAnimation']['method'] = 1
+        data['models']['fluxAnimation']['precision'] = 0.01
+        data['models']['fluxAnimation']['initialHarmonic'] = 1
+        data['models']['fluxAnimation']['finalHarmonic'] = 15
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data:
@@ -241,16 +272,26 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
-    v['fluxMethod'] = -1
+    v['fluxNumberOfMacroElectrons'] = 1
     if 'report' in data:
         v[data['report']] = 1
         if data['report'] == 'fluxAnimation':
-            v['fluxMethod'] = 1
+            v['fluxNumberOfMacroElectrons'] = 1000000
     return pkjinja.render_resource('srw.py', v)
 
 
 def get_animation_name(data):
     return data['modelName']
+
+
+def get_application_data(data):
+    if data['method'] == 'compute_grazing_angle':
+        return _compute_grazing_angle(data['optical_element'])
+    elif data['method'] == 'compute_crystal_init':
+        return _compute_crystal_init(data['optical_element'])
+    elif data['method'] == 'compute_crystal_orientation':
+        return _compute_crystal_orientation(data['optical_element'])
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
 def get_data_file(run_dir, frame_index):
@@ -263,6 +304,23 @@ def get_data_file(run_dir, frame_index):
 
 def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
+
+
+def is_cache_valid(data, old_data):
+    related_models = [data['report'], 'electronBeam', 'gaussianBeam', 'multipole', 'simulation', 'tabulatedUndulator', 'undulator']
+
+    if data['report'] == 'mirrorReport' or 'watchpointReport' in data['report']:
+        related_models.append('beamline')
+        if 'watchpointReport' in data['report']:
+            related_models.append('postPropagation')
+            related_models.append('propagation')
+
+    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport']:
+        for name in related_models:
+            if data['models'][name] != old_data['models'][name]:
+                return False
+        return True
+    return False
 
 
 def new_simulation(data, new_simulation_data):
@@ -373,6 +431,103 @@ def _fixup_beam(data, beam):
     beam['beamSelector'] = beam['name']
 
 
+def _compute_crystal_init(model):
+    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
+    try:
+        material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
+        material = material_raw.split()[0]  # short name for SRW (e.g., Si), long name for X0h (e.g., Silicon)
+        h = int(model['h'])
+        k = int(model['k'])
+        l = int(model['l'])
+        millerIndices = [h, k, l]
+        energy = model['energy']
+
+        if re.search('(X0h)', material_raw):
+            from sirepo.srw_crystal_x0h import srw_crystal_x0h
+            dc, xr0, xi0, xrh, xih = srw_crystal_x0h(material, energy, h, k, l)
+        elif re.search('(SRW)', material_raw):
+            from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
+            dc = srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+        else:
+            dc = xr0 = xi0 = xrh = xih = None
+        model['dSpacing'] = dc
+        model['psi0r'] = xr0
+        model['psi0i'] = xi0
+        model['psiHr'] = xrh
+        model['psiHi'] = xih
+        model['psiHBr'] = xrh
+        model['psiHBi'] = xih
+    except Exception:
+        pkdp('\n{}', traceback.format_exc())
+        for key in parms_list:
+            model[key] = None
+
+    return model
+
+
+def _compute_crystal_orientation(model):
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
+    try:
+        import srwlib
+        opCr = srwlib.SRWLOptCryst(
+            _d_sp=model['dSpacing'],
+            _psi0r=model['psi0r'],
+            _psi0i=model['psi0i'],
+            _psi_hr=model['psiHr'],
+            _psi_hi=model['psiHi'],
+            _psi_hbr=model['psiHBr'],
+            _psi_hbi=model['psiHBi'],
+            _tc=model['crystalThickness'],
+            _ang_as=model['asymmetryAngle'],
+        )
+        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['grazingAngle'])[0]
+        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
+        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
+
+        if model['rotationAngle'] != 0:
+            import uti_math
+            rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
+            nCr = uti_math.matr_prod(rot, nCr)
+            tCr = uti_math.matr_prod(rot, tCr)
+
+        model['nvx'] = nCr[0]
+        model['nvy'] = nCr[1]
+        model['nvz'] = nCr[2]
+        model['tvx'] = tCr[0]
+        model['tvy'] = tCr[1]
+    except Exception:
+        pkdp('\n{}', traceback.format_exc())
+        for key in parms_list:
+            model[key] = None
+
+    return model
+
+
+def _compute_grazing_angle(model):
+
+    def preserve_sign(item, field, new_value):
+        old_value = item[field] if field in item else 0
+        was_negative = float(old_value) < 0
+        item[field] = float(new_value)
+        if (was_negative and item[field] > 0) or item[field] < 0:
+            item[field] = - item[field]
+
+    grazing_angle = float(model['grazingAngle']) / 1000.0
+    preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle))
+
+    if 'normalVectorY' in model and float(model['normalVectorY']) == 0:
+        preserve_sign(model, 'normalVectorX', math.cos(grazing_angle))
+        preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle))
+        model['tangentialVectorY'] = 0
+    if 'normalVectorX' in model and float(model['normalVectorX']) == 0:
+        preserve_sign(model, 'normalVectorY', math.cos(grazing_angle))
+        model['tangentialVectorX'] = 0
+        preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle))
+
+    return model
+
+
 def _crystal_element(template, item, fields, propagation):
     """The function prepares the code for processing of the crystal element.
 
@@ -386,28 +541,14 @@ def _crystal_element(template, item, fields, propagation):
         res: the resulted block of text.
     """
 
-    # Small rotation of DCM crystal
-    crystal_rotation = '''
-    import uti_math
-    rot = uti_math.trf_rotation([0, 1, 0], {}, [0, 0, 0])
-    tCr = uti_math.matr_prod(rot[0], tCr)
-    sCr = uti_math.matr_prod(rot[0], sCr)
-    nCr = uti_math.matr_prod(rot[0], nCr)\n'''.format(item['rotationAngle']) if item['rotationAngle'] != 0 else ''
-
     res = '''
     opCr = {}
-    orientDataCr = opCr.find_orient(_en={}, _ang_dif_pl={})  # horizontally-deflecting
-    orientCr = orientDataCr[0]
-    tCr, sCr, nCr = orientCr[:3]  # tangential, sagittal and normal vectors to crystal surface
-    {}
-    # Set the crystal orientation:
-    opCr.set_orient(nCr[0], nCr[1], nCr[2], tCr[0], tCr[1])\n
+    # Set crystal orientation:
+    opCr.set_orient({}, {}, {}, {}, {})
     el.append(opCr)
     {}\n'''.format(
         template.format(*map(lambda x: item[x], fields)),
-        item['energy'],
-        item['diffractionPlaneAngle'],
-        crystal_rotation,
+        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy'],
         _propagation_params(propagation[str(item['id'])][0]).strip()
     )
     return res
@@ -449,10 +590,11 @@ def _generate_beamline_optics(models, last_id):
                 propagation)
         elif item['type'] == 'crystal':
             res += _crystal_element(
-                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr=None, _psi_hi=None, _psi_hbr=None, _psi_hbi=None, _tc={}, _ang_as={})',
+                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
                 item,
-                ['dSpacing', 'psi0r', 'psi0i', 'crystalThickness', 'asymmetryAngle'],
+                ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
+            res += _height_profile_element(item, propagation, overwrite_propagation=True)
         elif item['type'] == 'ellipsoidMirror':
             res += _beamline_element(
                 'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',

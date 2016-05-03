@@ -28,18 +28,32 @@
             ["1", "Parabolic"],
             ["2", "Circular"]
         ],
+        "CrystalMaterial": [
+            ["Unknown", "Unknown"],
+            ["Si (SRW)", "Silicon (SRW)"],
+            ["Silicon (X0h)", "Silicon (X0h server)"],
+            ["Germanium (X0h)", "Germanium (X0h server)"],
+            ["Diamond (X0h)", "Diamond (X0h server)"]
+        ],
         "FieldUnits": [
-            ["1", "ph/s/.1%bw/mm²"],
-            ["2", "J/eV/mm²"]
+            ["0", "Arbitrary Units"],
+            ["1", "(ph/s/.1%bw/mm²)½"],
+            ["2", "(J/eV/mm²)½"]
+        ],
+        "Flux": [
+            ["1", "Flux"],
+            ["2", "Flux per Unit Surface"]
+        ],
+        "FluxMethod": [
+            ["0", "Manual"],
+            ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"],
+            ["-1", "Use Approximate Method"]
         ],
         "FocalPlane": [
             ["1", "Horizontal"],
             ["2", "Vertical"],
             ["3", "Both"]
-        ],
-        "Flux": [
-            ["1", "Flux"],
-            ["2", "Flux per Unit Surface"]
         ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
@@ -49,23 +63,59 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
-        "SourceType": [
-            ["u", "Electron Beam with Idealized Undulator"],
-            ["t", "Electron Beam with Tabulated Undulator"],
-            ["m", "Electron Beam with Dipole"],
-            ["g", "Gaussian Beam"]
+        "Harmonics": [
+            ["1", "1"],
+            ["3", "3"],
+            ["5", "5"],
+            ["7", "7"],
+            ["9", "9"],
+            ["11", "11"],
+            ["13", "13"],
+            ["15", "15"]
+        ],
+        "IntensityMethod": [
+            ["0", "Manual"],
+            ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"]
+        ],
+        "MagneticField": [
+            ["1", "Approximate"],
+            ["2", "Accurate"]
+        ],
+        "MillerIndicesRange": [
+            ["0", "0"],
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"],
+            ["-1", "-1"],
+            ["-2", "-2"],
+            ["-3", "-3"],
+            ["-4", "-4"],
+            ["-5", "-5"],
+            ["-6", "-6"],
+            ["-7", "-7"],
+            ["-8", "-8"],
+            ["-9", "-9"],
+            ["-10", "-10"]
         ],
         "MirrorApertureShape": [
             ["r", "Rectangular"],
             ["e", "Elliptical"]
         ],
-        "MultipoleOrientation": [
-            ["n", "Horizontal"],
-            ["s", "Vertical"]
-        ],
         "MirrorOrientation": [
             ["x", "Horizontal"],
             ["y", "Vertical"]
+        ],
+        "MultipoleOrientation": [
+            ["n", "Horizontal"],
+            ["s", "Vertical"]
         ],
         "Polarization": [
             ["0", "Linear Horizontal"],
@@ -80,6 +130,11 @@
             ["1", "Near Field"],
             ["2", "Far Field"]
         ],
+        "RandomGenerationMethod": [
+            ["1", "Standard Pseudo-Random Number Generator"],
+            ["2", "Halton Sequences"],
+            ["3", "LPtau sequences (to be implemented)"]
+        ],
         "SamplingMethod": [
             ["1", "Automatic"],
             ["2", "Manual"]
@@ -89,6 +144,12 @@
             ["running", "Running"],
             ["completed", "Completed"],
             ["canceled", "Canceled"]
+        ],
+        "SourceType": [
+            ["u", "Electron Beam with Idealized Undulator"],
+            ["t", "Electron Beam with Tabulated Undulator"],
+            ["m", "Electron Beam with Dipole"],
+            ["g", "Gaussian Beam"]
         ],
         "StokesParameter": [
             ["0", "Coordinate"],
@@ -125,19 +186,30 @@
         "crystal": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "energy": ["Average photon energy the crystal should be oriented for (find_orient(_en=_v.op_DCM_e0, ...)) [eV]", "Float"],
-            "diffractionPlaneAngle": ["Diffraction plane angle (find_orient(..., _ang_dif_pl=1.5707963)) [rad]", "Float"],
-            "asymmetryAngle": ["Asymmetry angle (SRWLOptCryst(..., _ang_as=angAs)) [rad]", "Float"],
-            "rotationAngle": ["Rotation angle (trf_rotation(..., _ang, ...)) [rad]", "Float"],
+            "material": ["", "CrystalMaterial"],
+            "h": ["h", "MillerIndicesRange"],
+            "k": ["k", "MillerIndicesRange"],
+            "l": ["l", "MillerIndicesRange"],
+            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float"],
+            "grazingAngle": ["Diffraction plane angle [rad]", "Float"],
+            "asymmetryAngle": ["Asymmetry angle [rad]", "Float"],
+            "rotationAngle": ["Rotation angle [rad]", "Float"],
             "crystalThickness": ["Crystal thickness [m]", "Float"],
             "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float"],
-            "psi0r": ["Real part of 0-th Fourier component of crystal polarizability", "Float"],
-            "psi0i": ["Imaginary part of 0-th Fourier component of crystal polarizability", "Float"],
-            "nvx": ["Horizontal coordinate of outward normal", "Float"],
-            "nvy": ["Vertical coordinate of outward normal", "Float"],
-            "nvz": ["Longitudinal coordinate of outward normal", "Float"],
-            "tvx": ["Horizontal coordinate of central tangential vector", "Float"],
-            "tvy": ["Vertical coordinate of central tangential vector", "Float"]
+            "psi0r": ["0-th Fourier component", "Float"],
+            "psi0i": ["0-th Fourier component", "Float"],
+            "psiHr": ["H-th Fourier component", "Float"],
+            "psiHi": ["H-th Fourier component", "Float"],
+            "psiHBr": ["-H-th Fourier component", "Float"],
+            "psiHBi": ["-H-th Fourier component", "Float"],
+            "nvx": ["Horizontal coordinate", "Float"],
+            "nvy": ["Vertical coordinate", "Float"],
+            "nvz": ["Longitudinal coordinate", "Float"],
+            "tvx": ["Horizontal coordinate", "Float"],
+            "tvy": ["Vertical coordinate", "Float"],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "electronBeam": {
             "beamSelector": ["Beam Name", "BeamList"],
@@ -180,29 +252,39 @@
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "magneticField": ["Magnetic Field", "MagneticField"],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Harmonics"],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Harmonics"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Flux Calculation", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "fluxReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
+            "magneticField": ["Magnetic Field", "MagneticField"],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Harmonics"],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Harmonics"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Flux Calculation", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -215,12 +297,6 @@
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
-        },
-        "sourceIntensityReport": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
         },
         "grating": {
             "title": ["Element Name", "String"],
@@ -243,16 +319,20 @@
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
+            "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"]
+            "magneticField": ["Magnetic Field", "MagneticField"],
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "lens": {
             "title": ["Element Name", "String"],
@@ -320,6 +400,12 @@
         },
         "simulationStatus": {
         },
+        "sourceIntensityReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
+        },
         "sphericalMirror": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
@@ -359,7 +445,7 @@
         "watchpointReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Electric Field Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         }
     },
     "view": {
@@ -370,10 +456,16 @@
                 "title",
                 "position",
                 "shape",
-                "horizontalSize",
-                "verticalSize",
-                "horizontalOffset",
-                "verticalOffset"
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "crl": {
@@ -395,23 +487,53 @@
         },
         "crystal": {
             "title": "Crystal",
+            "fieldsPerTab": 11,
             "basic": [],
             "advanced": [
                 "title",
                 "position",
+                [
+                    ["Material of the crystal", [
+                        "material"
+                    ]],
+                    ["Miller's indices", [
+                        "h",
+                        "k",
+                        "l"
+                    ]]
+                ],
                 "energy",
-                "diffractionPlaneAngle",
+                "grazingAngle",
                 "asymmetryAngle",
                 "rotationAngle",
                 "crystalThickness",
                 "dSpacing",
-                "psi0r",
-                "psi0i",
-                "nvx",
-                "nvy",
-                "nvz",
-                "tvx",
-                "tvy"
+                [
+                    ["Real part of crystal polarizability", [
+                        "psi0r",
+                        "psiHr",
+                        "psiHBr"
+                    ]],
+                    ["Imaginary part of crystal polarizability", [
+                        "psi0i",
+                        "psiHi",
+                        "psiHBi"
+                    ]]
+                ],
+                [
+                    ["Outward normal vector", [
+                        "nvx",
+                        "nvy",
+                        "nvz"
+                    ]],
+                    ["Central tangential vector", [
+                        "tvx",
+                        "tvy"
+                    ]]
+                ],
+                "heightProfileFile",
+                "orientation",
+                "heightAmplification"
             ]
         },
         "electronBeam": {
@@ -445,6 +567,94 @@
                 ]
             ]
         },
+        "ellipsoidMirror": {
+            "title": "Ellipsoid Mirror",
+            "fieldsPerTab": 9,
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "firstFocusLength",
+                "focalLength",
+                "tangentialSize",
+                "sagittalSize",
+                "grazingAngle",
+                "normalVectorZ",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
+                "heightProfileFile",
+                "orientation",
+                "heightAmplification"
+            ]
+        },
+        "fluxAnimation": {
+            "title": "Spectral Flux for Finite Emittance Electron Beam",
+            "fieldsPerTab": 11,
+            "basic": [],
+            "advanced": [
+                "distanceFromSource",
+                "initialEnergy",
+                "finalEnergy",
+                "photonEnergyPointCount",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalApertureSize"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalApertureSize"
+                    ]]
+                ],
+                "magneticField",
+                "initialHarmonic",
+                "finalHarmonic",
+                "method",
+                "fluxType",
+                "polarization",
+                "precision",
+                "longitudinalPrecision",
+                "azimuthalPrecision"
+            ]
+        },
+        "fluxReport": {
+            "title": "Flux Report",
+            "fieldsPerTab": 11,
+            "basic": [],
+            "advanced": [
+                "distanceFromSource",
+                "initialEnergy",
+                "finalEnergy",
+                "photonEnergyPointCount",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalApertureSize"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalApertureSize"
+                    ]]
+                ],
+                "magneticField",
+                "initialHarmonic",
+                "finalHarmonic",
+                "method",
+                "fluxType",
+                "polarization",
+                "precision",
+                "longitudinalPrecision",
+                "azimuthalPrecision"
+            ]
+        },
         "gaussianBeam": {
             "title": "Gaussian Beam",
             "basic": [
@@ -471,27 +681,33 @@
                 ]
             ]
         },
-        "lens": {
-            "title": "Lens",
+        "grating": {
+            "title": "Grating",
+            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
                 "title",
                 "position",
-                "horizontalFocalLength",
-                "verticalFocalLength",
-                "horizontalOffset",
-                "verticalOffset"
-            ]
-        },
-        "sourceIntensityReport": {
-            "title": "Intensity Report",
-            "basic": [],
-            "advanced": [
-                "distanceFromSource",
-                "simulation.photonEnergy",
-                "polarization",
-                "characteristic",
-                "fieldUnits"
+                "tangentialSize",
+                "sagittalSize",
+                "grazingAngle",
+                "normalVectorZ",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
+                "diffractionOrder",
+                "grooveDensity0",
+                "grooveDensity1",
+                "grooveDensity2",
+                "grooveDensity3",
+                "grooveDensity4"
             ]
         },
         "initialIntensityReport": {
@@ -505,95 +721,45 @@
             ]
         },
         "intensityReport": {
-            "title": "Single-Electron Intensity Report",
+            "title": "Single-Electron Spectrum Report",
+            "fieldsPerTab": 9,
             "basic": [],
             "advanced": [
                 "distanceFromSource",
                 "initialEnergy",
                 "finalEnergy",
-                "horizontalPosition",
-                "verticalPosition",
+                "photonEnergyPointCount",
+                "method",
                 "polarization",
-                "photonEnergyPointCount"
+                "magneticField",
+                "fieldUnits",
+                [
+                    ["Horizontal", [
+                        "horizontalPosition"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition"
+                    ]]
+                ],
+                "precision"
             ]
         },
-        "ellipsoidMirror": {
-            "title": "Ellipsoid Mirror",
+        "lens": {
+            "title": "Lens",
             "basic": [],
             "advanced": [
                 "title",
                 "position",
-                "firstFocusLength",
-                "focalLength",
-                "tangentialSize",
-                "sagittalSize",
-                "grazingAngle",
-                "normalVectorX",
-                "normalVectorY",
-                "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
-                "heightProfileFile",
-                "orientation",
-                "heightAmplification"
-            ]
-        },
-        "fluxAnimation": {
-            "title": "Partially Coherent Flux Report",
-            "basic": [],
-            "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "horizontalPosition",
-                "horizontalApertureSize",
-                "verticalPosition",
-                "verticalApertureSize",
-                "longitudinalPrecision",
-                "azimuthalPrecision",
-                "fluxType",
-                "polarization",
-                "photonEnergyPointCount"
-            ]
-        },
-        "fluxReport": {
-            "title": "Flux Report",
-            "basic": [],
-            "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "horizontalPosition",
-                "horizontalApertureSize",
-                "verticalPosition",
-                "verticalApertureSize",
-                "longitudinalPrecision",
-                "azimuthalPrecision",
-                "fluxType",
-                "polarization",
-                "photonEnergyPointCount"
-            ]
-        },
-        "grating": {
-            "title": "Grating",
-            "basic": [],
-            "advanced": [
-                "title",
-                "position",
-                "tangentialSize",
-                "sagittalSize",
-                "grazingAngle",
-                "normalVectorX",
-                "normalVectorY",
-                "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
-                "diffractionOrder",
-                "grooveDensity0",
-                "grooveDensity1",
-                "grooveDensity2",
-                "grooveDensity3",
-                "grooveDensity4"
+                [
+                    ["Horizontal", [
+                        "horizontalFocalLength",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalFocalLength",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "mirror": {
@@ -624,19 +790,6 @@
             ],
             "advanced": []
         },
-        "obstacle": {
-            "title": "Obstacle",
-            "basic": [],
-            "advanced": [
-                "title",
-                "position",
-                "shape",
-                "horizontalSize",
-                "verticalSize",
-                "horizontalOffset",
-                "verticalOffset"
-            ]
-        },
         "multiElectronAnimation": {
             "title": "Partially Coherent Intensity Report",
             "basic": [],
@@ -645,19 +798,44 @@
                 "stokesParameter"
             ]
         },
+        "obstacle": {
+            "title": "Obstacle",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
+            ]
+        },
         "powerDensityReport": {
             "title": "Power Density Report",
             "basic": [],
             "advanced": [
                 "distanceFromSource",
-                "horizontalPosition",
-                "horizontalRange",
-                "verticalPosition",
-                "verticalRange",
                 "precision",
                 "method",
-                "horizontalPointCount",
-                "verticalPointCount"
+                [
+                    ["Horizontal", [
+                        "horizontalPosition",
+                        "horizontalRange",
+                        "horizontalPointCount"
+                    ]],
+                    ["Vertical", [
+                        "verticalPosition",
+                        "verticalRange",
+                        "verticalPointCount"
+                    ]]
+                ]
             ]
         },
         "simulation": {
@@ -699,8 +877,34 @@
             "title": "Simulation Status",
             "advanced": []
         },
+        "sourceIntensityReport": {
+            "title": "Intensity Report",
+            "basic": [],
+            "advanced": [
+                "distanceFromSource",
+                "simulation.photonEnergy",
+                "polarization",
+                "characteristic",
+                "fieldUnits",
+                "simulation.samplingMethod",
+                "simulation.sampleFactor",
+                [
+                    ["Horizontal", [
+                        "simulation.horizontalPosition",
+                        "simulation.horizontalRange",
+                        "simulation.horizontalPointCount"
+                    ]],
+                    ["Vertical", [
+                        "simulation.verticalPosition",
+                        "simulation.verticalRange",
+                        "simulation.verticalPointCount"
+                    ]]
+                ]
+            ]
+        },
         "sphericalMirror": {
             "title": "Spherical Mirror",
+            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
                 "title",
@@ -708,11 +912,17 @@
                 "radius",
                 "tangentialSize",
                 "sagittalSize",
-                "normalVectorX",
-                "normalVectorY",
                 "normalVectorZ",
-                "tangentialVectorX",
-                "tangentialVectorY",
+                [
+                    ["Horizontal", [
+                        "normalVectorX",
+                        "tangentialVectorX"
+                    ]],
+                    ["Vertical", [
+                        "normalVectorY",
+                        "tangentialVectorY"
+                    ]]
+                ],
                 "heightProfileFile",
                 "orientation",
                 "heightAmplification"

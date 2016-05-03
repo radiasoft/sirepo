@@ -3,14 +3,14 @@
     <div class="col-md-6">
       <div class="row">
         <div class="col-sm-12">
-          <div data-ng-if="source.isLaserPulse()" data-basic-editor-panel="" data-model-name="laserPulse"></div>
-          <div data-ng-if="source.isElectronBeam()" data-basic-editor-panel="" data-model-name="electronBeam"></div>
+          <div data-ng-if="source.isLaserPulse()" data-basic-editor-panel="" data-view-name="laserPulse"></div>
+          <div data-ng-if="source.isElectronBeam()" data-basic-editor-panel="" data-view-name="electronBeam"></div>
         </div>
         <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="electronPlasma"></div>
+          <div data-basic-editor-panel="" data-view-name="electronPlasma"></div>
         </div>
         <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-model-name="simulationGrid"></div>
+          <div data-basic-editor-panel="" data-view-name="simulationGrid"></div>
         </div>
       </div>
     </div>
@@ -22,5 +22,6 @@
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
-<div data-modal-editor="simulationGrid"></div>
-<div data-modal-editor="electronBeam"></div>
+<!-- These modal editors need to be manually created - they are modified by the source controller. -->
+<div data-modal-editor="" view-name="simulationGrid"></div>
+<div data-modal-editor="" view-name="electronBeam"></div>

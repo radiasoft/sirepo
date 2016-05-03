@@ -1,6 +1,6 @@
 'use strict';
 
-app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
+app.factory('plotting', function(appState, d3Service, frameCache, panelState, $timeout, $window) {
 
     var INITIAL_HEIGHT = 400;
 
@@ -8,6 +8,94 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
         return v;
+    }
+
+    // Returns a function, that, as long as it continues to be invoked, will not
+    // be triggered. The function will be called after it stops being called for
+    // N milliseconds. If `immediate` is passed, trigger the function on the
+    // leading edge, instead of the trailing.
+    // taken from http://davidwalsh.name/javascript-debounce-function
+    function debounce(func, wait) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                func.apply(context, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function initAnimation(scope) {
+        scope.prevFrameIndex = -1;
+        scope.isPlaying = false;
+        var requestData = function() {
+            if (! scope.hasFrames())
+                return;
+            var index = frameCache.getCurrentFrame(scope.modelName);
+            if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex)
+                return;
+            scope.prevFrameIndex = index;
+            frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
+                if (scope.element)
+                    scope.load(data);
+                if (scope.isPlaying)
+                    scope.advanceFrame(1);
+            });
+        }
+        scope.advanceFrame = function(increment) {
+            var next = frameCache.getCurrentFrame(scope.modelName) + increment;
+            if (next < 0 || next > frameCache.frameCount - 1) {
+                scope.isPlaying = false;
+                return;
+            }
+            frameCache.setCurrentFrame(scope.modelName, next);
+            requestData();
+        };
+        scope.firstFrame = function() {
+            scope.isPlaying = false;
+            frameCache.setCurrentFrame(scope.modelName, 0);
+            if (scope.modelChanged)
+                scope.modelChanged();
+            requestData();
+        };
+        scope.hasFrames = function() {
+            return frameCache.isLoaded() && frameCache.frameCount > 0;
+        };
+        scope.isFirstFrame = function() {
+            return frameCache.getCurrentFrame(scope.modelName) == 0;
+        };
+        scope.isLastFrame = function() {
+            return frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 1;
+        };
+        scope.lastFrame = function() {
+            scope.isPlaying = false;
+            frameCache.setCurrentFrame(scope.modelName, frameCache.frameCount - 1);
+            requestData();
+        };
+        scope.togglePlay = function() {
+            scope.isPlaying = ! scope.isPlaying;
+            if (scope.isPlaying)
+                scope.advanceFrame(1);
+        };
+        if (scope.clearData)
+            scope.$on('framesCleared', scope.clearData);
+        scope.$on('modelsLoaded', requestData);
+        scope.$on('framesLoaded', function(event, oldFrameCount) {
+            //console.log('prevFrameIndex: ', scope.prevFrameIndex, ' oldFrameCount: ', oldFrameCount, ' frame count: ', frameCache.frameCount, ' currentFrame: ', frameCache.getCurrentFrame(scope.modelName));
+            if (scope.prevFrameIndex < 0)
+                scope.firstFrame();
+            else if (oldFrameCount == 0)
+                scope.lastFrame();
+            else if (scope.prevFrameIndex > frameCache.frameCount)
+                scope.firstFrame();
+            // go to the next last frame, if the current frame was the previous last frame
+            else if (frameCache.getCurrentFrame(scope.modelName) == oldFrameCount - 1)
+                scope.lastFrame();
+        });
+        return requestData;
     }
 
     return {
@@ -51,24 +139,6 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                 });
         },
 
-        // Returns a function, that, as long as it continues to be invoked, will not
-        // be triggered. The function will be called after it stops being called for
-        // N milliseconds. If `immediate` is passed, trigger the function on the
-        // leading edge, instead of the trailing.
-        // taken from http://davidwalsh.name/javascript-debounce-function
-        debounce: function(func, wait) {
-            var timeout;
-            return function() {
-                var context = this, args = arguments;
-                var later = function() {
-                    timeout = null;
-                    func.apply(context, args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        },
-
         extractUnits: function(scope, axis, label) {
             scope[axis + 'units'] = '';
             var match = label.match(/\[(.*?)\]/);
@@ -102,76 +172,10 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                 scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
                 var requestData;
 
-                if (scope.isAnimation) {
-                    scope.prevFrameIndex = -1;
-                    scope.isPlaying = false;
-                    requestData = function() {
-                        if (! scope.hasFrames())
-                            return;
-                        var index = frameCache.getCurrentFrame(scope.modelName);
-                        if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex)
-                            return;
-                        scope.prevFrameIndex = index;
-                        frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
-                            if (scope.element)
-                                scope.load(data);
-                            if (scope.isPlaying)
-                                scope.advanceFrame(1);
-                        });
-                    }
-                    scope.advanceFrame = function(increment) {
-                        var next = frameCache.getCurrentFrame(scope.modelName) + increment;
-                        if (next < 0 || next > frameCache.frameCount - 1) {
-                            scope.isPlaying = false;
-                            return;
-                        }
-                        frameCache.setCurrentFrame(scope.modelName, next);
-                        requestData();
-                    };
-                    scope.firstFrame = function() {
-                        scope.isPlaying = false;
-                        frameCache.setCurrentFrame(scope.modelName, 0);
-                        if (scope.modelChanged)
-                            scope.modelChanged();
-                        requestData();
-                    };
-                    scope.hasFrames = function() {
-                        return frameCache.isLoaded() && frameCache.frameCount > 0;
-                    };
-                    scope.isFirstFrame = function() {
-                        return frameCache.getCurrentFrame(scope.modelName) == 0;
-                    };
-                    scope.isLastFrame = function() {
-                        return frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 1;
-                    };
-                    scope.lastFrame = function() {
-                        scope.isPlaying = false;
-                        frameCache.setCurrentFrame(scope.modelName, frameCache.frameCount - 1);
-                        requestData();
-                    };
-                    scope.togglePlay = function() {
-                        scope.isPlaying = ! scope.isPlaying;
-                        if (scope.isPlaying)
-                            scope.advanceFrame(1);
-                    };
-                    if (scope.clearData)
-                        scope.$on('framesCleared', scope.clearData);
-                    scope.$on('modelsLoaded', requestData);
-                    scope.$on('framesLoaded', function(event, oldFrameCount) {
-                        if (scope.prevFrameIndex < 0)
-                            scope.firstFrame();
-                        else if (oldFrameCount == 0)
-                            scope.lastFrame();
-                        else if (scope.prevFrameIndex > frameCache.frameCount)
-                            scope.firstFrame();
-                        // go to the next last frame, if the current frame was the previous last frame
-                        else if (frameCache.getCurrentFrame(scope.modelName) == oldFrameCount - 1)
-                            scope.lastFrame();
-                    });
-                }
-                else if (scope.isClientOnly) {
+                if (scope.isAnimation)
+                    requestData = initAnimation(scope);
+                else if (scope.isClientOnly)
                     requestData = function() {};
-                }
                 else {
                     requestData = function() {
                         //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
@@ -185,6 +189,18 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                         }, 50);
                     }
                 }
+
+                scope.windowResize = debounce(function() {
+                    scope.resize();
+                    scope.$apply();
+                }, 250);
+
+                scope.$on('$destroy', function() {
+                    scope.destroy();
+                    scope.element = null;
+                    $($window).off('resize', scope.windowResize);
+                });
+
                 scope.$on(
                     scope.modelName + '.changed',
                     function() {
@@ -199,8 +215,10 @@ app.factory('plotting', function(d3Service, panelState, frameCache, $timeout) {
                         return false;
                     return panelState.isLoading(scope.modelName);
                 };
+                $($window).resize(scope.windowResize);
                 scope.init();
-                requestData();
+                if (appState.isLoaded())
+                    requestData();
             });
         },
 
@@ -315,7 +333,7 @@ app.directive('plot2d', function(plotting) {
                 }
             };
 
-            function resize() {
+            $scope.resize = function() {
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! points || isNaN(width))
                     return;
@@ -368,7 +386,7 @@ app.directive('plot2d', function(plotting) {
                         yMax = p[1];
                 }
                 yAxisScale.domain([yMin, yMax]);
-                resize();
+                $scope.resize();
             }
 
             $scope.clearData = function() {
@@ -379,9 +397,8 @@ app.directive('plot2d', function(plotting) {
                 formatter = d3.format('.2f');
                 ordinate_formatter = d3.format('.3e');
                 select('svg').attr('height', plotting.initialHeight($scope));
-                $scope.slider = $(select('.srw-plot2d-slider').node()).slider();
+                $scope.slider = $(select('.s-plot2d-slider').node()).slider();
                 $scope.slider.on('slide', sliderChanged);
-                $(window).resize($scope.windowResize);
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
@@ -443,26 +460,20 @@ app.directive('plot2d', function(plotting) {
                 select('.x-axis-label').text(json.x_label);
                 select('.main-title').text(json.title);
                 select('.line').datum(points);
-                var dimensions = resize();
+                var dimensions = $scope.resize();
                 if (dimensions)
                     xPeakValues = plotting.computePeaks(json, dimensions, xPoints, xAxisScale, yAxisScale);
             };
 
-            $scope.windowResize = plotting.debounce(function() {
-                resize();
-                $scope.$apply();
-            }, 250);
+            $scope.destroy = function() {
+                $('.overlay').off();
+                $scope.slider.off();
+                $scope.slider.data('slider').picker.off();
+                $scope.slider.remove();
+            };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-            scope.$on('$destroy', function() {
-                scope.element = null;
-                $(window).off('resize', scope.windowResize);
-                $('.overlay').off();
-                scope.slider.off();
-                scope.slider.data('slider').picker.off();
-                scope.slider.remove();
-            });
         },
     };
 });
@@ -628,7 +639,7 @@ app.directive('plot3d', function(plotting) {
                 select('.y.axis.grid').call(mainYAxis);
             }
 
-            function resize() {
+            $scope.resize = function() {
                 var width = parseInt(select().style('width')) - 2 * $scope.margin;
                 if (! heatmap || isNaN(width))
                     return;
@@ -697,7 +708,6 @@ app.directive('plot3d', function(plotting) {
                 rightPanelCutLine = d3.svg.line()
                     .y(function(d) { return yAxisScale(d[0])})
                     .x(function(d) { return rightPanelXScale(d[1])});
-                $(window).resize($scope.windowResize);
             };
 
             $scope.load = function(json) {
@@ -745,22 +755,16 @@ app.directive('plot3d', function(plotting) {
                 bottomPanelYScale.domain([zmin, zmax]);
                 rightPanelXScale.domain([zmax, zmin]);
                 initDraw(zmin, zmax);
-                resize();
+                $scope.resize();
             };
 
-            $scope.windowResize = plotting.debounce(function() {
-                resize();
-                $scope.$apply();
-            }, 250);
+            $scope.destroy = function() {
+                $scope.zoom.on('zoom', null);
+                $scope.imageObj.onload = null;
+            };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-            scope.$on('$destroy', function() {
-                scope.element = null;
-                $(window).off('resize', scope.windowResize);
-                scope.zoom.on('zoom', null);
-                scope.imageObj.onload = null;
-            });
         },
     };
 });
@@ -947,7 +951,7 @@ app.directive('heatmap', function(plotting) {
                 select('.y.axis').call(yAxis);
             }
 
-            function resize() {
+            $scope.resize = function() {
                 var canvasSize = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! heatmap || isNaN(canvasSize))
                     return;
@@ -973,6 +977,7 @@ app.directive('heatmap', function(plotting) {
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
+                $scope.prevFrameIndex = -1;
             };
 
             $scope.init = function() {
@@ -995,7 +1000,6 @@ app.directive('heatmap', function(plotting) {
                     // important - the image may not be ready initially
                     refresh();
                 };
-                $(window).resize($scope.windowResize);
             };
 
             $scope.load = function(json) {
@@ -1034,7 +1038,7 @@ app.directive('heatmap', function(plotting) {
                     }
                 }
                 initDraw(allFrameMin.compute(zmin), allFrameMax.compute(zmax));
-                resize();
+                $scope.resize();
             };
 
             $scope.modelChanged = function() {
@@ -1042,113 +1046,54 @@ app.directive('heatmap', function(plotting) {
                 allFrameMax = new EMA();
             };
 
-            $scope.windowResize = plotting.debounce(function() {
-                resize();
-                $scope.$apply();
-            }, 250);
+            $scope.destroy = function() {
+                $('.mouse-rect').off();
+                if ($scope.zoom)
+                    $scope.zoom.on('zoom', null);
+                if ($scope.imageObj)
+                    $scope.imageObj.onload = null;
+            };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-            scope.$on('$destroy', function() {
-                scope.element = null;
-                $(window).off('resize', scope.windowResize);
-                $('.mouse-rect').off();
-                if (scope.zoom)
-                    scope.zoom.on('zoom', null);
-                if (scope.imageObj)
-                    scope.imageObj.onload = null;
-            });
         },
     };
 });
 
-app.directive('lattice', function(plotting, appState) {
+app.directive('lattice', function(plotting, appState, $timeout, $window) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
-        //TODO(pjm): remove random
-        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION + Math.random(),
+        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION,
         controller: function($scope) {
+            //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
+            var p = $scope;
+            while (p.$parent) {
+                p = p.$parent;
+                if (p.lattice) {
+                    $scope.latticeController = p.lattice;
+                    break;
+                }
+            }
             $scope.isClientOnly = true;
-            $scope.margin = 50;
+            $scope.margin = 3;
             $scope.width = 1;
             $scope.height = 1;
-            //TODO(pjm): demo data
-            $scope.items = [
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W1',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B1',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: 16.8,
-                },
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W2',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B2',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: -16.8,
-                },
-                {
-                    name: 'L2',
-                    type: 'CSRDRIFT',
-                    length: 0.5,
-                },
-                {
-                    name: 'W3',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B3',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: -16.8,
-                },
-                {
-                    name: 'L1',
-                    type: 'CSRDRIFT',
-                    length: 0.758132998376353,
-                },
-                {
-                    name: 'W4',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'B4',
-                    type: 'CSRCSBEND',
-                    length: 0.200718260855179,
-                    angle: 16.8,
-                },
-                {
-                    name: 'W5',
-                    type: 'WATCH',
-                },
-                {
-                    name: 'L3',
-                    type: 'CSRDRIFT',
-                    length: 1.0,
-                },
-            ];
+            $scope.scale = 1;
+            $scope.xOffset = 0;
+            $scope.yOffset = 0;
+            $scope.zoomScale = 1;
+            $scope.panTranslate = [0, 0];
+            $scope.markerWidth = 1;
+            $scope.markerUnits = '';
 
+            var emptyList = [];
+            $scope.items = [];
             $scope.svgGroups = [];
+            $scope.svgBounds = null;
+            var picTypeCache = null;
 
             function applyGroup(items, pos) {
                 var group = {
@@ -1161,32 +1106,56 @@ app.directive('lattice', function(plotting, appState) {
                 var x = 0;
                 var oldRadius = pos.radius;
                 var newAngle = 0;
+                var maxHeight = 0;
+
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
-                    var length = (item.length || 0) * 100;
-                    if (item.type == 'CSRCSBEND') {
+                    var picType = $scope.getPicType(item.type);
+                    var length = parseFloat(item.l || item.xmax || item.length || 0);
+                    if (picType == 'bend') {
                         var radius = length / 2;
+                        maxHeight = Math.max(maxHeight, length);
                         group.items.push({
-                            item: item,
+                            picType: picType,
+                            element: item,
                             radius: radius,
                             cx: pos.radius + pos.x + x + radius,
                             cy: pos.y,
                         });
+                        //console.log(item.type, ' ', [radius, pos.radius + pos.x + x, pos.y]);
                         x += radius;
-                        newAngle = item.angle;
+                        newAngle = item.angle * 180 / Math.PI;
                         pos.radius = radius;
                     }
                     else {
-                        var height = 10.0;
-                        if (item.type == 'WATCH')
-                            height = 0;
-                        group.items.push({
-                            item: item,
+                        var groupItem = {
+                            picType: picType,
+                            element: item,
                             x: pos.radius + pos.x + x,
-                            y: pos.y - height / 2,
-                            height: height,
+                            height: 0,
                             width: length,
-                        });
+                        };
+                        if (picType == 'watch') {
+                            groupItem.height = 0.6;
+                            groupItem.y = pos.y;
+                        }
+                        else if (picType == 'drift') {
+                            groupItem.height = 0.1;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                        }
+                        else if (picType == 'zeroLength' || length == 0) {
+                            groupItem.picType = 'zeroLength';
+                            groupItem.height = 0.3;
+                            groupItem.y = pos.y;
+                        }
+                        else {
+                            groupItem.height = 0.2;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                        }
+                        maxHeight = Math.max(maxHeight, groupItem.height);
+                        groupItem.x = pos.radius + pos.x + x;
+                        group.items.push(groupItem);
+                        //console.log(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
                     }
                 }
@@ -1197,6 +1166,8 @@ app.directive('lattice', function(plotting, appState) {
                     pos.x += Math.sin((90 - pos.angle) * Math.PI / 180) * (x + oldRadius);
                     pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
                 }
+                updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
+                //console.log('bounds: ', pos.bounds);
                 pos.angle += newAngle;
             }
 
@@ -1206,60 +1177,93 @@ app.directive('lattice', function(plotting, appState) {
                     y: 0,
                     angle: 0,
                     radius: 0,
+                    bounds: [0, 0, 0, 0],
+                    count: 0,
                 };
+                var explodedItems = explodeItems($scope.items);
                 var group = [];
                 var groupDone = false;
-                for (var i = 0; i < $scope.items.length; i++) {
+                for (var i = 0; i < explodedItems.length; i++) {
                     if (groupDone) {
                         applyGroup(group, pos);
                         group = [];
                         groupDone = false;
                     }
-                    var item = $scope.items[i];
-                    if (item.type == 'CSRCSBEND')
+                    //var item = $scope.latticeController.elementForId($scope.items[i]);
+                    var item = explodedItems[i];
+                    //TODO(pjm): identify drift types
+                    if ($scope.getPicType(item.type) != 'drift')
+                        pos.count++;
+                    if ('angle' in item)
                         groupDone = true;
                     group.push(item);
                 }
                 if (group.length)
                     applyGroup(group, pos);
-            }
-            computePositions();
-
-            $scope.itemClicked = function(item) {
-                appState.models.CSRDRIFT = {
-                    name: item.name,
-                    l: item.l || 0.758132998376353,
-                    attenuation_length: 0,
-                    dz: item.dz || 0.01,
-                    n_kicks: 1,
-                    spread: 0,
-                    use_overtaking_length: 0,
-                    ol_multiplier: 1,
-                    use_saldin54: 0,
-                    saldin54points: 1000,
-                    csr: 1,
-                    saldin54norm_mode: 'peak',
-                    spread_mode: 'full',
-                    wavelength_mode: 'sigmaz',
-                    bunchlength_mode: '68-percentile',
-                    saldin54_output: null,
-                    use_stupakov: item.use_stupakov || 1,
-                    stupakov_output: null,
-                    stupakov_output_interval: 1,
-                    slice_analysis_interval: 0,
-                    linearize: 0,
-                    group: null,
-                };
-                $('#srw-CSRDRIFT-editor').modal('show');
+                $scope.svgBounds = pos.bounds;
+                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1])
+                    pos.x += pos.radius;
+                return pos;
             }
 
-            function resize() {
-                var width = parseInt(select().style('width'));
-                if (isNaN(width))
+            //TODO(pjm): will infinitely recurse if beamlines are self-referential
+            function explodeItems(items, res) {
+                if (! res)
+                    res = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = $scope.latticeController.elementForId(items[i]);
+                    if (item.type)
+                        res.push(item);
+                    else {
+                        explodeItems(item.items, res);
+                    }
+                }
+                return res;
+            }
+
+            function loadItemsFromBeamline(forceUpdate) {
+                var id = $scope.latticeController.activeBeamlineId;
+                if (! id) {
+                    $scope.items = emptyList;
                     return;
-                $scope.width = width;
-                //TODO(pjm): determine aspect ratio of graph
-                $scope.height = $scope.width / 2;
+                }
+                var beamline = $scope.latticeController.getActiveBeamline();
+                if (! forceUpdate && appState.deepEquals(beamline.items, $scope.items)) {
+                    return;
+                }
+                $scope.items = appState.clone(beamline.items);
+                $scope.svgGroups = [];
+                var pos = computePositions();
+                beamline.length = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
+                beamline.angle = pos.angle * Math.PI / 180;
+                beamline.count = pos.count;
+                $scope.resize();
+            }
+
+            function recalcScaleMarker() {
+                //TODO(pjm): use library for this
+                $scope.markerUnits = '1 m';
+                $scope.markerWidth = $scope.scale * $scope.zoomScale;
+                if ($scope.markerWidth < 20) {
+                    $scope.markerUnits = '10 m';
+                    $scope.markerWidth *= 10;
+                }
+                else if ($scope.markerWidth > 200) {
+                    $scope.markerUnits = '10 cm';
+                    $scope.markerWidth /= 10;
+                    if ($scope.markerWidth > 200) {
+                        $scope.markerUnits = '1 cm';
+                        $scope.markerWidth /= 10;
+                    }
+                }
+            }
+
+            function resetZoomAndPan() {
+                $scope.zoomScale = 1;
+                $scope.zoom.scale($scope.zoomScale);
+                $scope.panTranslate = [0, 0];
+                $scope.zoom.translate($scope.panTranslate);
+                updateZoomAndPan();
             }
 
             function select(selector) {
@@ -1267,22 +1271,124 @@ app.directive('lattice', function(plotting, appState) {
                 return selector ? e.select(selector) : e;
             }
 
-            $scope.init = function() {
-                $(window).resize($scope.windowResize);
-                resize();
+            function updateBounds(bounds, x, y, buffer) {
+                if (x - buffer < bounds[0])
+                    bounds[0] = x - buffer;
+                if (y - buffer < bounds[1])
+                    bounds[1] = y - buffer;
+                if (x + buffer > bounds[2])
+                    bounds[2] = x + buffer;
+                if (y + buffer > bounds[3])
+                    bounds[3] = y + buffer;
+            }
+
+            function updateZoomAndPan() {
+                recalcScaleMarker();
+                $scope.container.attr("transform", "translate(" + $scope.panTranslate + ")scale(" + $scope.zoomScale + ")");
+            }
+
+            function zoomed() {
+                $scope.zoomScale = d3.event.scale;
+
+                if ($scope.zoomScale == 1) {
+                    $scope.panTranslate = [0, 0];
+                    $scope.zoom.translate($scope.panTranslate);
+                }
+                else {
+                    //TODO(pjm): don't allow translation outside of image boundaries
+                    $scope.panTranslate = d3.event.translate;
+                }
+                updateZoomAndPan();
+                $scope.$apply();
+            }
+
+            $scope.getPicType = function(type) {
+                if (! picTypeCache) {
+                    picTypeCache = {};
+                    var elementPic = $scope.latticeController.elementPic
+                    for (var picType in elementPic) {
+                        var types = elementPic[picType];
+                        for (var i = 0; i < types.length; i++)
+                            picTypeCache[types[i]] = picType;
+                    }
+                }
+                return picTypeCache[type];
+            }
+
+            $scope.itemClicked = function(item) {
+                $scope.latticeController.editElement(item.type, item);
             };
 
-            $scope.windowResize = plotting.debounce(function() {
-                resize();
-                $scope.$apply();
-            }, 250);
+            $scope.resize = function() {
+                var width = parseInt(select().style('width'));
+                if (isNaN(width))
+                    return;
+                $scope.width = width;
+                $scope.height = $scope.width;
+                var windowHeight = $($window).height();
+                if ($scope.height > windowHeight / 2.5)
+                    $scope.height = windowHeight / 2.5;
+
+                if ($scope.svgBounds) {
+                    var w = $scope.svgBounds[2] - $scope.svgBounds[0];
+                    var h = $scope.svgBounds[3] - $scope.svgBounds[1];
+                    if (w == 0 || h == 0)
+                        return;
+                    var scaleWidth = $scope.width / w;
+                    var scaleHeight = $scope.height / h;
+                    var scale = 1;
+                    var xOffset = 0;
+                    var yOffset = 0;
+                    if (scaleWidth < scaleHeight) {
+                        scale = scaleWidth;
+                        yOffset = ($scope.height - h * scale) / 2;
+                    }
+                    else {
+                        scale = scaleHeight;
+                        xOffset = ($scope.width - w * scale) / 2;
+                    }
+                    $scope.scale = scale;
+                    $scope.xOffset = - $scope.svgBounds[0] * scale + xOffset;
+                    $scope.yOffset = - $scope.svgBounds[1] * scale + yOffset;
+                    recalcScaleMarker();
+                }
+            };
+
+            $scope.init = function() {
+                $scope.zoom = d3.behavior.zoom()
+                    .scaleExtent([1, 10])
+                    .on('zoom', zoomed);
+                select('svg').call($scope.zoom);
+                $scope.container = select('.s-zoom-plot');
+                loadItemsFromBeamline();
+            };
+
+            $scope.destroy = function() {
+                if ($scope.zoom)
+                    $scope.zoom.on('zoom', null);
+            };
+
+            $scope.$on('modelChanged', function(e, name) {
+                if (name == 'beamlines')
+                    loadItemsFromBeamline();
+                if (appState.models[name] && appState.models[name]._id) {
+                    if ($scope.items.indexOf(appState.models[name]._id) >= 0)
+                        loadItemsFromBeamline(true);
+                }
+            });
+
+            $scope.$on('cancelChanges', function(e, name) {
+                if (name == 'elements')
+                    loadItemsFromBeamline(true);
+            });
+
+            $scope.$on('activeBeamlineChanged', function() {
+                loadItemsFromBeamline();
+                resetZoomAndPan();
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-            scope.$on('$destroy', function() {
-                scope.element = null;
-                $(window).off('resize', scope.windowResize);
-            });
         },
     };
 });

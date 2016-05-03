@@ -43,6 +43,27 @@ app.factory('srwService', function(appState, $rootScope, $location) {
         return false;
     }
 
+    self.getReportTitle = function(modelName, itemId) {
+        var savedModelValues = appState.applicationState();
+        if (itemId && savedModelValues.beamline) {
+            for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
+                if (savedModelValues.beamline[i].id == itemId) {
+                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                        + savedModelValues.beamline[i].position + 'm';
+                }
+            }
+        }
+        var model = savedModelValues[modelName];
+        var distance = '';
+        if (model && model.distanceFromSource != null)
+            distance = ', ' + model.distanceFromSource + 'm';
+        else if (appState.isAnimationModelName(modelName))
+            distance = '';
+        else if (appState.isReportModelName(modelName) && savedModelValues.beamline && savedModelValues.beamline.length)
+            distance = ', ' + savedModelValues.beamline[0].position + 'm';
+        return appState.viewInfo(modelName).title + distance;
+    };
+
     self.isApplicationMode = function(name) {
         return name == self.applicationMode;
     };
@@ -73,6 +94,20 @@ app.factory('srwService', function(appState, $rootScope, $location) {
         return isSelected('t');
     };
 
+    self.setupWatchpointDirective = function($scope) {
+        var modelKey = 'watchpointReport' + $scope.itemId
+        $scope.modelAccess = {
+            modelKey: modelKey,
+            getData: function() {
+                return appState.models[modelKey];
+            },
+        };
+
+        $scope.reportTitle = function() {
+            return self.getReportTitle('watchpointReport', $scope.itemId);
+        };
+    };
+
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if (search && search.application_mode)
@@ -90,8 +125,38 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-app.controller('SRWBeamlineController', function (appState, panelState, srwService, $scope) {
+app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
+
+    var crystalDefaults = {
+            type: 'crystal',
+            title: 'Crystal',
+            material: 'Unknown',
+            h: 1,
+            k: 1,
+            l: 1,
+            energy: 9000.0,
+            grazingAngle: 1.5707963,
+            asymmetryAngle: 0.0,
+            rotationAngle: 0.0,
+            crystalThickness: 0.01,
+            dSpacing: null,  // 3.13557135638,
+            psi0r: null,  // -1.20811311251e-05,
+            psi0i: null,  // 2.26447987254e-07,
+            psiHr: null,  // -6.38714117487e-06,
+            psiHi: null,  // 1.58100017439e-07,
+            psiHBr: null,  // -6.38714117487e-06,
+            psiHBi: null,  // 1.58100017439e-07,
+            nvx: null,  // 0.0,
+            nvy: null,  // 0.0,
+            nvz: null,  // -1.0,
+            tvx: null,  // 1.0,
+            tvy: null,  // 0.0,
+            heightProfileFile: null,
+            orientation: 'x',
+            heightAmplification: 1,
+    };
+
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
@@ -103,12 +168,11 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crystal', title:'Crystal', energy:8230, diffractionPlaneAngle:1.5707963, asymmetryAngle:0.0, rotationAngle:0.0,
-        crystalThickness:0.01, dSpacing:3.13557135638, psi0r:-1.20784200542e-05, psi0i:2.26348275468e-07,
-        nvx:0.0, nvy:0.0, nvz:-1.0, tvx:1.0, tvy:0.0},
+        crystalDefaults,
         {type:'watch', title:'Watchpoint'},
     ];
     self.panelState = panelState;
+    self.srwService = srwService;
     self.activeItem = null;
     self.postPropagation = [];
     self.propagations = [];
@@ -128,7 +192,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         if (newItem.type == 'ellipsoidMirror')
             newItem.firstFocusLength = newItem.position;
         if (newItem.type == 'watch')
-            appState.models[appState.watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
+            appState.models[watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
         appState.models.beamline.push(newItem);
         self.dismissPopup();
     }
@@ -169,121 +233,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         self.postPropagation = appState.models.postPropagation;
     }
 
-    function crystalFindOrient(en, ang_dif_pl, dSp, angAs,
-                                psi0r, psi0i) {
-        if (typeof(ang_dif_pl) === 'undefined') ang_dif_pl = 0;
-
-        var nvx, nvy, nvz, tvx, tvy;
-        var eV2wA = 12398.4193009;  // energy to wavelength conversion factor 12398.41930092394
-
-        var wA = eV2wA/en;
-        var kh = 1 / dSp;
-        var hv = [0, kh * Math.cos(angAs), -kh * Math.sin(angAs)];
-        var tBr = Math.asin(wA * kh / 2);
-        var tKin = tBr - angAs;
-        var tKou = tBr + angAs;
-        var abs_c0 = Math.sqrt(psi0r * psi0r + psi0i * psi0i);
-        var dTref = 0.5 * abs_c0 * (1 + Math.sin(tKou) / Math.sin(tKin)) / Math.sin(2 * tBr);
-        var tIn = tKin + dTref;
-
-        function prodV(a, b) {
-            return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-        }
-
-        function prodMV(m, v) {
-            return [m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
-                    m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2],
-                    m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2]];
-        }
-
-        function normV_square(a) {
-            var s = 0;
-            for (var i=0; i<a.length; i++) {
-                s = s + a[i] * a[i];
-            }
-            return s;
-        }
-
-        function normV(a) {
-            return Math.sqrt(normV_square(a));
-        }
-
-        function devideByNorm(a) {
-            var norm_a = normV(a);
-            for (var i=0; i<a.length; i++) {
-                a[i] = a[i] / norm_a;
-            }
-            return a;
-        }
-
-        var nv = [0, Math.cos(tIn), -Math.sin(tIn)];
-        var tv = [0, Math.sin(tIn), Math.cos(tIn)];
-        var sv = prodV(nv, tv);
-
-        var mc = [[sv[0], nv[0], tv[0]],
-                  [sv[1], nv[1], tv[1]],
-                  [sv[2], nv[2], tv[2]]];
-
-        var z1c = [sv[2], Math.sqrt(1 - Math.pow(sv[2], 2) - Math.pow(tv[2] + wA * hv[2], 2)), tv[2] + wA * hv[2]];
-
-        var rz = prodMV(mc, z1c);
-
-        var x1c = prodV(hv, z1c);
-
-        if (normV_square(x1c) === 0) {
-            x1c = prodV(nv, z1c);
-        }
-        if (normV_square(x1c) === 0) {
-            x1c = sv;
-        }
-
-        x1c = devideByNorm(x1c);
-
-        var rx = prodMV(mc, x1c);
-        var ry = prodV(rz, rx);
-
-        var tolAng = 1.e-06;
-        if (Math.abs(ang_dif_pl) < tolAng) {  // case of the vertical deflection plane
-            return [[tv, sv, nv], [rx, ry, rz]];
-        } else {  // case of a tilted deflection plane
-            var cosA = Math.cos(ang_dif_pl);
-            var sinA = Math.sin(ang_dif_pl);
-            var mr = [[cosA, -sinA, 0],
-                      [sinA,  cosA, 0],
-                      [0,        0, 1]];
-
-            var ez = prodMV(mr, rz);
-
-            // Selecting "Horizontal" and "Vertical" directions of the Output beam frame
-            // trying to use "minimum deviation" from the corresponding "Horizontal" and "Vertical"
-            // directions of the Input beam frame
-            var ezIn = [0, 0, 1];
-            var e1 = prodV(ez, ezIn);
-            var abs_e1x = Math.abs(e1[0]);
-            var abs_e1y = Math.abs(e1[1]);
-
-            var ex = null, ey = null;
-            if (abs_e1x >= abs_e1y) {
-                if (e1[0] > 0) {
-                    ex = e1;
-                } else {
-                    ex = [-e1[0], -e1[1], -e1[2]];
-                }
-                ex = devideByNorm(ex);
-                ey = prodV(ez, ex);
-            } else {
-                if (e1[1] > 0) {
-                    ey = e1;
-                } else {
-                    ey = [-e1[0], -e1[1], -e1[2]];
-                }
-                ey = devideByNorm(ey);
-                ex = prodV(ey, ez);
-            }
-            return [[prodMV(mr, tv), prodMV(mr, sv), prodMV(mr, nv)], [ex, ey, ez]];
-        }
-    }
-
     function defaultItemPropagationParams() {
         return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];
     }
@@ -303,15 +252,46 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         return str;
     }
 
-    function preserveSign(item, field, newValue) {
-        var oldValue = item[field];
-        var wasNegative = isFinite(oldValue) && parseFloat(oldValue) < 0;
-        item[field] = newValue;
-        if ((wasNegative && item[field] > 0) || item[field] < 0)
-            item[field] = - item[field];
+    function isPropagationModelName(name) {
+        return name.toLowerCase().indexOf('propagation') >= 0;
     }
 
-    self.cancelChanges = function() {
+    function isWatchpointReportModelName(name) {
+        return name.indexOf('watchpointReport') >= 0;
+    }
+
+    function saveBeamline() {
+        // culls and saves propagation and watchpoint models
+        var propagations = {}
+        var watchpoints = {};
+        for (var i = 0; i < appState.models.beamline.length; i++) {
+            var item = appState.models.beamline[i];
+            propagations[item.id] = appState.models.propagation[item.id];
+            if (item.type == 'watch')
+                watchpoints[watchpointReportName(item.id)] = true;
+        }
+        appState.models.propagation = propagations;
+
+        // need to save all watchpointReports and propagations for beamline changes
+        var savedModelValues = appState.applicationState();
+        for (var modelName in appState.models) {
+            if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                // deleted watchpoint, remove the report model
+                delete appState.models[modelName];
+                delete savedModelValues[modelName];
+                continue;
+            }
+            if (isWatchpointReportModelName(modelName))
+                savedModelValues[modelName] = appState.cloneModel(modelName);
+        }
+        appState.saveChanges(['beamline', 'propagation', 'postPropagation']);
+    };
+
+    function watchpointReportName(id) {
+        return 'watchpointReport' + id;
+    }
+
+    self.cancelBeamlineChanges = function() {
         self.dismissPopup();
         appState.cancelChanges('beamline');
     };
@@ -377,7 +357,16 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     };
 
     self.getWatchItems = function() {
-        return appState.getWatchItems();
+        if (appState.isLoaded()) {
+            var beamline = appState.applicationState().beamline;
+            var res = [];
+            for (var i = 0; i < beamline.length; i++) {
+                if (beamline[i].type == 'watch')
+                    res.push(beamline[i]);
+            }
+            return res;
+        }
+        return [];
     };
 
     self.handleModalShown = function(name, el) {
@@ -426,13 +415,18 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
     };
 
-    self.saveChanges = function() {
+    self.disableElement = function(item) {
+        self.dismissPopup();
+        // appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
+    };
+
+    self.saveBeamlineChanges = function() {
         // sort beamline based on position
         appState.models.beamline.sort(function(a, b) {
             return parseFloat(a.position) - parseFloat(b.position);
         });
         calculatePropagation();
-        appState.saveBeamline();
+        saveBeamline();
     };
 
     self.setActiveItem = function(item) {
@@ -464,7 +458,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     };
 
     self.showTabs = function() {
-        if (appState.getWatchItems().length == 0)
+        if (self.getWatchItems().length == 0)
             return false;
         if (srwService.isApplicationMode('wavefront'))
             return false;
@@ -477,40 +471,88 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
             var item = self.activeItem;
-            var grazingAngle = parseFloat(newValue) / 1000.0;
-            preserveSign(item, 'normalVectorZ', Math.sin(grazingAngle));
-
-            if (isFinite(item.normalVectorY) && parseFloat(item.normalVectorY) == 0) {
-                preserveSign(item, 'normalVectorX', Math.cos(grazingAngle));
-                preserveSign(item, 'tangentialVectorX', Math.sin(grazingAngle));
-                item.tangentialVectorY = 0;
-            }
-            if (isFinite(item.normalVectorX) && parseFloat(item.normalVectorX) == 0) {
-                preserveSign(item, 'normalVectorY', Math.cos(grazingAngle));
-                item.tangentialVectorX = 0
-                preserveSign(item, 'tangentialVectorY', Math.sin(grazingAngle));
-            }
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_grazing_angle',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                    }
+                }
+            );
         }
     });
 
-    $scope.$watch('beamline.activeItem.energy', function (newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
-            var item = self.activeItem;
-            var value = parseFloat(newValue);
-            var orientDataCr1 = crystalFindOrient(newValue, 1.5707963, item['dSpacing'], item['asymmetryAngle'],
-                                            item['psi0r'], item['psi0i']);
-            var orientCr1 = orientDataCr1[0];
-            var tCr1 = orientCr1[0];  // Tangential Vector to Crystal surface
-            var sCr1 = orientCr1[1];
-            var nCr1 = orientCr1[2];  // Normal Vector to Crystal surface
-            // DCM Crystal #1 Orientation (original):
-            // 't =', tCr1, 's =', orientCr1[1], 'n =', nCr1
+    function checkChanged(newValues, oldValues) {
+        for (var i=0; i<newValues.length; i++) {
+            if (! angular.isDefined(newValues[i]) || newValues[i] === null || newValues[i] === 'Unknown' || ! angular.isDefined(oldValues[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-            item['nvx'] = nCr1[0];
-            item['nvy'] = nCr1[1];
-            item['nvz'] = nCr1[2];
-            item['tvx'] = tCr1[0];
-            item['tvy'] = tCr1[1];
+    function wrapActiveItem(fields) {
+        var fieldsList = [];
+        for (var i=0; i<fields.length; i++) {
+            fieldsList.push('beamline.activeItem.' + fields[i].toString());
+        }
+        return '[' + fieldsList.toString() + ']';
+    }
+
+    var crystalInitFields = [
+        'material',
+        'energy',
+        'h',
+        'k',
+        'l',
+    ];
+
+    $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
+        if (checkChanged(newValues, oldValues)) {
+            var item = self.activeItem;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crystal_init',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                    }
+                }
+            );
+        }
+    });
+
+    var crystalOrientationFields = [
+        'grazingAngle',
+        'dSpacing',
+        'asymmetryAngle',
+        'psi0r',
+        'psi0i',
+        'rotationAngle',
+    ];
+
+    $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
+        if (checkChanged(newValues, oldValues)) {
+            var item = self.activeItem;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crystal_orientation',
+                    optical_element: item,
+                },
+                function(data) {
+                    var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                    }
+                }
+            );
         }
     });
 
@@ -523,7 +565,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, srwServi
     });
 });
 
-app.controller('SRWSourceController', function (appState, srwService) {
+app.controller('SRWSourceController', function (appState, srwService, $scope) {
     var self = this;
     self.srwService = srwService;
 
@@ -542,6 +584,26 @@ app.controller('SRWSourceController', function (appState, srwService) {
             }
         }
     };
+
+    $scope.$on('electronBeam.changed', function() {
+        var beam = appState.models.electronBeam;
+        var beams = appState.models.electronBeams;
+        beam.beamSelector = beam.name;
+        if (! beam.isReadOnly) {
+            // update the user defined beam in the electronBeams list
+            for (var i = 0; i < beams.length; i++) {
+                if (beams[i].id == beam.id) {
+                    beams.splice(i, 1, beam);
+                    break;
+                }
+            }
+        }
+        beams.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+        appState.saveQuietly('electronBeam');
+        appState.saveQuietly('electronBeams');
+    });
 });
 
 app.directive('appFooter', function(appState) {
@@ -553,8 +615,8 @@ app.directive('appFooter', function(appState) {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="simulationGrid" data-parent-controller="nav"></div>',
-            '<div data-modal-editor="simulationDocumentation"></div>',
+            '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
+            '<div data-modal-editor="" view-name="simulationDocumentation"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
         controller: function($scope) {
@@ -565,12 +627,12 @@ app.directive('appFooter', function(appState) {
                     return;
                 var method = appState.models['simulation']['samplingMethod'];
                 if (parseInt(method) == 1) {
-                    $('.model-simulationGrid-sampleFactor').show(delay);
+                    $('.model-simulation-sampleFactor').show(delay);
                     $('.model-simulation-horizontalPointCount').hide(delay);
                     $('.model-simulation-verticalPointCount').hide(delay);
                 }
                 else {
-                    $('.model-simulationGrid-sampleFactor').hide(delay);
+                    $('.model-simulation-sampleFactor').hide(delay);
                     $('.model-simulation-horizontalPointCount').show(delay);
                     $('.model-simulation-verticalPointCount').show(delay);
                 }
@@ -587,12 +649,12 @@ app.directive('appFooter', function(appState) {
     };
 });
 
-app.directive('appHeader', function(appState, srwService, requestSender, $location, $window) {
+app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
 
     var settingsIcon = [
-        '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="srw-panel-icon glyphicon glyphicon-cog"></span></a>',
+        '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="s-panel-icon glyphicon glyphicon-cog"></span></a>',
           '<ul class="dropdown-menu">',
-            '<li><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
+            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
             '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
             '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
@@ -604,8 +666,8 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
 
     var rightNav = [
         '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
-          '<li><a href data-target="#srw-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
-          '<li><a href data-ng-click="openImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+          '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+          '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
         '</ul>',
 
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -712,8 +774,12 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
 
-            $scope.openImportModal = function() {
+            $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
+            };
+
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
 
             $scope.pythonSource = function(item) {
@@ -724,11 +790,11 @@ app.directive('appHeader', function(appState, srwService, requestSender, $locati
             };
 
             $scope.showDocumentationUrl = function() {
-                $('#srw-simulationDocumentation-editor').modal('show');
+                panelState.showModalEditor('simulationDocumentation');
             };
 
             $scope.showSimulationGrid = function() {
-                $('#srw-simulationGrid-editor').modal('show');
+                panelState.showModalEditor('simulationGrid');
             };
         },
     };
@@ -795,6 +861,7 @@ app.directive('beamlineItem', function($timeout) {
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
             '<span data-ng-if="showDeleteButton()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
+            '<span data-ng-if="showDisableButton()" data-ng-click="disableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
@@ -804,7 +871,13 @@ app.directive('beamlineItem', function($timeout) {
             $scope.removeElement = function(item) {
                 $scope.$parent.beamline.removeElement(item);
             };
+            $scope.disableElement = function(item) {
+                $scope.$parent.beamline.disableElement(item);
+            };
             $scope.showDeleteButton = function() {
+                return $scope.$parent.beamline.isDefaultMode();
+            };
+            $scope.showDisableButton = function() {
                 return $scope.$parent.beamline.isDefaultMode();
             };
         },
@@ -826,8 +899,10 @@ app.directive('beamlineItem', function($timeout) {
                 var editor = el.data('bs.popover').getContent();
                 // return the editor to the editor-holder so it will be available for the
                 // next element of this type
-                if (editor)
+                if (editor) {
+                    $('.srw-editor-holder').trigger('s.resetActivePage');
                     $('.srw-editor-holder').append(editor);
+                }
             });
 
             function togglePopover() {
@@ -898,9 +973,7 @@ app.directive('beamlineItemEditor', function(appState) {
             '<div>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" novalidate>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in advancedFields">',
-                  '<div data-field-editor="f" data-model-name="modelName" data-model="beamline.activeItem"></div>',
-                '</div>',
+                '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
                     '<button ng-click="beamline.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
@@ -921,6 +994,12 @@ app.directive('beamlineItemEditor', function(appState) {
             $scope.removeActiveItem = function() {
                 $scope.beamline.removeElement($scope.beamline.activeItem);
             }
+            $scope.modelAccess = {
+                modelKey: $scope.modelName,
+                getData: function() {
+                    return $scope.beamline.activeItem;
+                },
+            };
             //TODO(pjm): investigate why id needs to be set in html for revisiting the beamline page
             //$scope.editorId = 'srw-' + $scope.modelName + '-editor';
         },
@@ -1008,6 +1087,7 @@ app.directive('importPython', function(fileUpload, requestSender) {
                             $scope.fileUploadError = data.error;
                         }
                         else {
+                            $('#srw-simulation-import').modal('hide');
                             requestSender.localRedirect('source', {
                                 ':simulationId': data.models.simulation.simulationId,
                             });
@@ -1286,6 +1366,35 @@ app.directive('tooltipEnabler', function() {
                 html: true,
                 placement: 'bottom',
             });
+        },
+    };
+});
+
+app.directive('watchpointModalEditor', function(srwService) {
+    return {
+        scope: {
+            parentController: '=',
+            itemId: '=',
+        },
+        template: [
+            '<div data-modal-editor="" view-name="watchpointReport" data-parent-controller="parentController" data-model-data="modelAccess" data-modal-title="reportTitle()"></div>',
+        ].join(''),
+        controller: function($scope) {
+            srwService.setupWatchpointDirective($scope);
+        },
+    };
+});
+
+app.directive('watchpointReport', function(srwService) {
+    return {
+        scope: {
+            itemId: '=',
+        },
+        template: [
+            '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
+        ].join(''),
+        controller: function($scope) {
+            srwService.setupWatchpointDirective($scope);
         },
     };
 });

@@ -1,6 +1,10 @@
 'use strict';
 
 app_local_routes.lattice = '/lattice/:simulationId';
+app_local_routes.visualization = '/visualization/:simulationId';
+appDefaultSimulationValues = {
+    simulation: {},
+};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -12,6 +16,10 @@ app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
             templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
+        })
+        .when(localRoutes.visualization, {
+            controller: 'VisualizationController as visualization',
+            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION,
         });
 });
 
@@ -24,9 +32,9 @@ app.controller('ElegantSourceController', function(appState, $scope) {
             var f = longitudinalFields[i];
             var selector = '.model-bunch-' + f;
             if (fields.indexOf(f) >= 0)
-                $(selector).show(delay);
+                $(selector).closest('.form-group').show(delay);
             else
-                $(selector).hide(delay);
+                $(selector).closest('.form-group').hide(delay);
         }
     }
 
@@ -53,6 +61,21 @@ app.controller('ElegantSourceController', function(appState, $scope) {
         updateLongitudinalFields(0);
     };
 
+    var modelAccessByItemId = {};
+
+    self.modelAccess = function(itemId) {
+        if (modelAccessByItemId[itemId])
+            return modelAccessByItemId[itemId];
+        var modelKey = 'bunchReport' + itemId;
+        modelAccessByItemId[itemId] = {
+            modelKey: modelKey,
+            getData: function() {
+                return appState.models[modelKey];
+            },
+        };
+        return modelAccessByItemId[itemId];
+    };
+
     // watch path depends on appState as an attribute of $scope
     $scope.appState = appState;
     $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
@@ -60,134 +83,13 @@ app.controller('ElegantSourceController', function(appState, $scope) {
     });
 });
 
-app.controller('LatticeController', function(appState, panelState, $window, $scope) {
+app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
     var self = this;
-    self.appState = appState;
-    self.beamlines = [
-        {
-            name: 'LINACA',
-            items: [
-                30, 'LINA10', 'ZWAKE',
-            ],
-            l: 9.0,
-            count: 60,
-        },
-        {
-            name: 'LINACB',
-            items: [
-                80, 'LINB10', 'ZWAKE',
-            ],
-            l: 24.0,
-            count: 160,
-        },
-        {
-            name: 'BL',
-            items: [
-                 1, 'Q', 'LINACA', 'W1', 'B1', 'L1', 'W2', 'B2', 'L2', 'W3', 'B3', 'L1', 'W4', 'B4', 'W5', 'L3', 'LINACB', 'PF',
-            ],
-            l: 42.23,
-            count: 231,
-        },
-        {
-            name: 'BL2',
-            items: [
-                1, 'L1', 'W1', 'B1', 'L1', 'W2', 'B2', 'L2', 'W3', 'B3', 'L1',
-            ],
-            l: 9.23,
-            count: 10,
-        },
-    ];
-
-    //TODO(pjm): use library for this
-    function numFormat(num, units) {
-        if (num < 1) {
-            num *= 1000;
-            units = 'm' + units;
-        }
-        return num.toFixed(0) + units;
-    }
-
-    function resize() {
-        //TODO(pjm): causes $digest already in progress
-        $scope.$apply();
-    }
-
-    function itemsToString(items) {
-        var res = '(';
-        var count = items[0];
-        for (var i = 1; i < items.length; i++) {
-            var item = items[i];
-            if (Array.isArray(item)) {
-                res += itemsToString(item);
-            }
-            else {
-                res += item;
-                if (i == items.length - 1)
-                    res += ')';
-                else
-                    res += ',';
-            }
-        }
-        if (count > 1)
-            res = '(' + count + '*' + res + ')';
-        return res;
-    }
-
     var emptyElements = [];
 
-    self.getElements = function() {
-        if (appState.isLoaded)
-            return appState.models.elements;
-        return emptyElements;
-    }
-
-    self.beamlineDescription = function(beamline) {
-        return itemsToString(beamline.items);
-    };
-
-    self.editItem = function(type, item) {
-        appState.models[type] = item;
-        panelState.showModalEditor(type, $scope);
-    };
-
-    self.itemBend = function(item) {
-        if (angular.isDefined(item.angle))
-            return (item.angle * 180 / Math.PI).toFixed(1);
-        return '';
-    };
-
-    self.itemDescription = function(type, item) {
-        if (! item)
-            return 'null';
-        var schema = APP_SCHEMA.model[type];
-        var res = '';
-        var fields = Object.keys(item).sort();
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
-            if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0)
-                continue;
-            if (angular.isDefined(item[f]))
-                if (schema[f][2] != item[f])
-                    res += (res.length ? ',' : '') + f + '=' + item[f];
-        }
-        return res;
-    };
-
-    self.itemLength = function(item) {
-        if (angular.isDefined(item.l))
-            return numFormat(item.l, 'm');
-        return '';
-    };
-
-    self.setActiveTab = function(name) {
-        self.activeTab = name;
-    };
-
+    self.appState = appState;
     self.activeTab = 'basic';
-
-    self.titleForName = function(name) {
-        return APP_SCHEMA.view[name].description;
-    };
+    self.activeBeamlineId = null;
 
     self.basicNames = [
         'CSBEND', 'CSRCSBEND', 'CSRDRIFT',
@@ -225,24 +127,189 @@ app.controller('LatticeController', function(appState, panelState, $window, $sco
 
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
-    self.createElement = function(name) {
-        $('#srw-newBeamlineElement-editor').modal('hide');
-        var schema = APP_SCHEMA.model[name];
+    self.elementPic = {
+        alpha: ['ALPH'],
+        bend: ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        mirror: ['LMIRROR', 'REFLECT'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH', ],
+        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MATR', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    };
+
+    function nextId() {
+        return Math.max(
+            appState.maxId(appState.models.elements, '_id'),
+            appState.maxId(appState.models.beamlines)) + 1;
+    }
+
+    function sortBeamlines() {
+        appState.models.beamlines.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    function sortElements() {
+        appState.models.elements.sort(function(a, b) {
+            var res = a.type.localeCompare(b.type);
+            if (res == 0)
+                res = a.name.localeCompare(b.name);
+            return res;
+        });
+    }
+
+    function uniqueNameForType(prefix) {
+        var names = {};
+        var containerNames = ['elements', 'beamlines'];
+        for (var i = 0; i < containerNames.length; i++) {
+            var containerName = containerNames[i];
+            for (var j = 0; j < appState.models[containerName].length; j++)
+                names[appState.models[containerName][j].name] = 1;
+        }
+        var name = prefix;
+        var index = 1;
+        while (names[name + index])
+            index++;
+        return name + index;
+    }
+
+    function updateModels(name, idField, containerName, sortMethod) {
+        // update element/elements or beamline/beamlines
+        var m = appState.models[name];
+        var foundIt = false;
+        for (var i = 0; i < appState.models[containerName].length; i++) {
+            var el = appState.models[containerName][i];
+            if (m[idField] == el[idField]) {
+                foundIt = true;
+                break;
+            }
+        }
+        if (! foundIt)
+            appState.models[containerName].push(m);
+        sortMethod();
+        appState.saveChanges(containerName);
+    }
+
+    self.addToBeamline = function(item) {
+        self.getActiveBeamline().items.push(item.id || item._id);
+        appState.saveChanges('beamlines');
+    };
+
+    self.angleFormat = function(angle) {
+        var degrees = angle * 180 / Math.PI;
+        degrees = Math.round(degrees * 10) / 10;
+        degrees %= 360;
+        return degrees.toFixed(1);
+    };
+
+    self.createElement = function(type) {
+        $('#s-newBeamlineElement-editor').modal('hide');
+        var schema = APP_SCHEMA.model[type];
         var model = {
-            //TODO(pjm): give it unique "name"?
+            _id: nextId(),
+            type: type,
+            name: uniqueNameForType(type.charAt(0)),
         };
+        // set model defaults from schema
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
             if (schema[f][2] != undefined)
                 model[f] = schema[f][2];
         }
-        appState.models[name] = model;
-        panelState.showModalEditor(name, $scope);
+        self.editElement(type, model);
+    };
+
+    self.editBeamline = function(beamline) {
+        self.activeBeamlineId = beamline.id;
+        appState.models.simulation.activeBeamlineId = beamline.id;
+        appState.saveChanges('simulation');
+        $rootScope.$broadcast('activeBeamlineChanged');
+    };
+
+    self.editElement = function(type, item) {
+        appState.models[type] = item;
+        panelState.showModalEditor(type, $scope);
+    };
+
+    self.getActiveBeamline = function() {
+        var id = self.activeBeamlineId;
+        for (var i = 0; i < appState.models.beamlines.length; i++) {
+            var b = appState.models.beamlines[i];
+            if (b.id == id)
+                return b;
+        }
+        return null;
+    };
+
+    self.getElements = function() {
+        if (appState.isLoaded)
+            return appState.models.elements;
+        return emptyElements;
+    }
+
+    self.isElementModel = function(name) {
+        return name == name.toUpperCase();
+    };
+
+    self.elementForId = function(id) {
+        for (var i = 0; i < appState.models.beamlines.length; i++) {
+            var b = appState.models.beamlines[i];
+            if (b.id == id)
+                return b;
+        }
+        for (var i = 0; i < appState.models.elements.length; i++) {
+            var e = appState.models.elements[i];
+            if (e._id == id)
+                return e;
+        }
+        return null;
+    };
+
+    self.nameForId = function(id) {
+        return self.elementForId(id).name;
+    };
+
+    self.newBeamline = function() {
+        appState.models['beamline'] = {
+            name: uniqueNameForType('BL'),
+            id: nextId(),
+            l: 0,
+            count: 0,
+            items: [],
+        };
+        panelState.showModalEditor('beamline', $scope);
     };
 
     self.newElement = function() {
-        $('#srw-newBeamlineElement-editor').modal('show');
+        $('#s-newBeamlineElement-editor').modal('show');
+    };
+
+    //TODO(pjm): use library for this
+    self.numFormat = function(num, units) {
+        if (! angular.isDefined(num))
+            return '';
+        if (num < 1) {
+            num *= 1000;
+            units = 'm' + units;
+        }
+        if (Math.round(num * 100) == 0)
+            return '0';
+        if (num >= 100)
+            return num.toFixed(0) + units;
+        if (num >= 10)
+            return num.toFixed(1) + units;
+        return num.toFixed(2) + units;
+    };
+
+    self.setActiveTab = function(name) {
+        self.activeTab = name;
     };
 
     self.splitPaneHeight = function() {
@@ -251,61 +318,151 @@ app.controller('LatticeController', function(appState, panelState, $window, $sco
         return (w.height() - el.offset().top - 15) + 'px';
     };
 
-    self.toggleElement = function(element) {
-        element.expanded = ! element.expanded;
+    self.titleForName = function(name) {
+        return APP_SCHEMA.view[name].description;
     };
 
+    $scope.$on('cancelChanges', function(e, name) {
+        if (name == 'beamline') {
+            appState.removeModel(name);
+            appState.cancelChanges('beamlines');
+        }
+        else if (self.isElementModel(name)) {
+            appState.removeModel(name);
+            appState.cancelChanges('elements');
+        }
+    });
+
     $scope.$on('modelChanged', function(e, name) {
-        if (name != name.toUpperCase())
-            return;
-        var elementGroup;
-        if (! appState.models.elements)
-            appState.models.elements = [];
-        var elements = appState.models.elements;
+        if (name == 'beamline') {
+            updateModels('beamline', 'id', 'beamlines', sortBeamlines);
+            self.editBeamline(appState.models.beamline);
+        }
+        if (self.isElementModel(name)) {
+            updateModels(name, '_id', 'elements', sortElements);
+        }
+    });
 
-        for (var i = 0; i < elements.length; i++) {
-            if (elements[i].type == name) {
-                elementGroup = elements[i];
-                break;
-            }
-        }
-        if (! elementGroup) {
-            elementGroup = {
-                type: name,
-                expanded: true,
-                items: [],
-            };
-            elements.push(elementGroup);
-            elementGroup.items.push(appState.models[name]);
-        }
-        else {
-            var found = false;
-            for (var i = 0; i < elementGroup.items.length; i++) {
-                if (elementGroup.items[i].name == appState.models[name].name) {
-                    found = true;
-                    break;
-                }
-            }
-            if (! found)
-                elementGroup.items.push(appState.models[name]);
-        }
-        elements.sort(function(a, b) {
-            if (a.name > b.name)
-                return 1;
-            if (a.name < b.name)
-                return -1
-            return 0;
+    if (appState.isLoaded()) {
+        self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+    }
+    else {
+        $scope.$on('modelsLoaded', function() {
+            self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
         });
-        appState.saveChanges('elements');
-    });
-
-    $(window).resize(resize);
-    $scope.$on('$destroy', function() {
-        $(window).off('resize', resize);
-    });
+    }
 });
 
-app.directive('appHeader', function(appState) {
+app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
+    var self = this;
+    var simulationModel = 'elementAnimation';
+    self.panelState = panelState;
+    self.isAborting = false;
+    self.isDestroyed = false;
+    self.dots = '.';
+
+    frameCache.setAnimationArgs({
+        elementAnimation: [],
+    }, simulationModel);
+    frameCache.setFrameCount(0);
+
+    function refreshStatus() {
+        requestSender.sendRequest(
+            'runStatus',
+            function(data) {
+                //console.log('runStatus data: ', data);
+                if (self.isAborting)
+                    return;
+                if (data.frameCount) {
+                    //console.log('set frame id: ', data.frameCount);
+                    frameCache.setFrameCount(data.frameCount);
+                }
+                if (data.state != 'running') {
+                    if (data.state != simulationState())
+                        appState.saveChanges('simulationStatus');
+                }
+                else {
+                    if (! self.isDestroyed) {
+                        self.dots += '.';
+                        if (self.dots.length > 3)
+                            self.dots = '.';
+                        $timeout(refreshStatus, 2000);
+                    }
+                }
+                setSimulationState(data.state);
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    }
+
+    function setSimulationState(state) {
+        if (! appState.models.simulationStatus[simulationModel])
+            appState.models.simulationStatus[simulationModel] = {}
+        appState.models.simulationStatus[simulationModel].state = state;
+    }
+
+    function simulationState() {
+        return appState.models.simulationStatus[simulationModel].state;
+    }
+
+    self.cancelSimulation = function() {
+        if (simulationState() != 'running')
+            return;
+        setSimulationState('canceled');
+        self.isAborting = true;
+        requestSender.sendRequest(
+            'runCancel',
+            function(data) {
+                self.isAborting = false;
+                appState.saveChanges('simulationStatus');
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    self.isState = function(state) {
+        if (appState.isLoaded())
+            return simulationState() == state;
+        return false;
+    };
+
+    self.runSimulation = function() {
+        if (simulationState() == 'running')
+            return;
+        frameCache.setFrameCount(0);
+        setSimulationState('running');
+        requestSender.sendRequest(
+            'runBackground',
+            function(data) {
+                appState.models.simulationStatus[simulationModel].startTime = data['startTime'];
+                appState.saveChanges('simulationStatus');
+                refreshStatus();
+            },
+            {
+                report: simulationModel,
+                models: appState.applicationState(),
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
+    $scope.$on('$destroy', function () {
+        self.isDestroyed = true;
+    });
+
+    if (appState.isLoaded())
+        refreshStatus();
+    else {
+        $scope.$on('modelsLoaded', refreshStatus);
+    }
+});
+
+app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
         scope: {
@@ -320,15 +477,334 @@ app.directive('appHeader', function(appState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-target="#srw-simulation-editor" data-toggle="modal"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
                 return appState.isLoaded();
             };
+        },
+    };
+});
+
+app.directive('beamlineEditor', function(appState) {
+    return {
+        restirct: 'A',
+        scope: {
+            lattice: '=controller',
+        },
+        template: [
+            '<div data-ng-if="showEditor()" class="panel panel-info">',
+              '<div class="panel-heading" data-panel-heading="Beamline Editor - {{ beamlineName() }}" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>',
+              '<div class="panel-body cssFade" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+                '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
+                '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
+                  '<div class="s-drop-left">&nbsp;</div>',
+                  '<span data-ng-if="item.repeatCount" class="s-count">{{ item.repeatCount }}</span>',
+                  '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId)}"><span>{{ itemName(item) }}</span></div>',
+                '</div>',
+                '<div class="elegant-beamline-element s-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="s-drop-left">&nbsp;</div></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var selectedItemId = null;
+            $scope.beamlineItems = [];
+            var activeBeamline = null;
+
+            function updateBeamline() {
+                var items = [];
+                for (var i = 0; i < $scope.beamlineItems.length; i++) {
+                    items.push($scope.beamlineItems[i].id);
+                }
+                activeBeamline.items = items;
+                appState.saveChanges('beamlines');
+            }
+
+            $scope.beamlineName = function() {
+                return activeBeamline ? activeBeamline.name : '';
+            };
+
+            $scope.dragStart = function(data) {
+                $scope.selectItem(data);
+            };
+
+            $scope.dropItem = function(index, data) {
+                if (! data)
+                    return;
+                if (data.itemId) {
+                    var curr = $scope.beamlineItems.indexOf(data);
+                    if (curr < index)
+                        index--;
+                    $scope.beamlineItems.splice(curr, 1);
+                }
+                else {
+                    data = $scope.beamlineItems.splice($scope.beamlineItems.length - 1, 1)[0];
+                }
+                $scope.beamlineItems.splice(index, 0, data);
+                updateBeamline();
+            };
+
+            $scope.dropLast = function(data) {
+                if (! data || ! data.itemId)
+                    return;
+                var curr = $scope.beamlineItems.indexOf(data);
+                $scope.beamlineItems.splice(curr, 1);
+                $scope.beamlineItems.push(data);
+                updateBeamline();
+            };
+
+            $scope.dropPanel = function(data) {
+                if (! data || data.itemId)
+                    return;
+                if (data.id == activeBeamline.id)
+                    return;
+                var item = {
+                    id: data.id || data._id,
+                    itemId: appState.maxId($scope.beamlineItems, 'itemId') + 1,
+                };
+                $scope.beamlineItems.push(item);
+                $scope.selectItem(item);
+                updateBeamline();
+            };
+
+            $scope.editItem = function(item) {
+                var el = $scope.lattice.elementForId(item.id);
+                return $scope.lattice.editElement(el.type, el);
+            };
+
+            $scope.isSelected = function(itemId) {
+                if (selectedItemId)
+                    return itemId == selectedItemId;
+                return false;
+            };
+
+            $scope.itemName = function(item) {
+                item.name = $scope.lattice.nameForId(item.id);
+                return item.name;
+            };
+
+            $scope.selectItem = function(item) {
+                selectedItemId = item ? item.itemId : null;
+            };
+
+            $scope.showEditor = function() {
+                if (! appState.isLoaded())
+                    return false;
+                if (! $scope.lattice.activeBeamlineId)
+                    return false;
+                var beamline = $scope.lattice.getActiveBeamline();
+                if (activeBeamline && activeBeamline == beamline && beamline.items.length == $scope.beamlineItems.length)
+                    return true;
+                activeBeamline = beamline;
+                $scope.selectItem();
+                $scope.beamlineItems = [];
+                var itemId = 1;
+                for (var i = 0; i < activeBeamline.items.length; i++) {
+                    $scope.beamlineItems.push({
+                        id: activeBeamline.items[i],
+                        itemId: itemId++,
+                    });
+                }
+                return true;
+            };
+        },
+    };
+});
+
+app.directive('beamlineTable', function(appState) {
+    return {
+        restirct: 'A',
+        scope: {
+            lattice: '=controller',
+        },
+        template: [
+            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+              '<colgroup>',
+                '<col style="width: 12ex">',
+                '<col>',
+                '<col style="width: 10ex">',
+                '<col style="width: 12ex">',
+                '<col style="width: 10ex">',
+              '</colgroup>',
+              '<thead>',
+                '<tr>',
+                  '<th>Name</th>',
+                  '<th>Description</th>',
+                  '<th>Elements</th>',
+                  '<th>Length</th>',
+                  '<th>Bend</th>',
+                '</tr>',
+              '</thead>',
+              '<tbody>',
+                '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
+                  '<td><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
+                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
+                  '<td style="text-align: right">{{ beamline.count }}</td>',
+                  '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                '</tr>',
+              '</tbody>',
+            '</table>',
+        ].join(''),
+        controller: function($scope) {
+
+            function itemsToString(items) {
+                var res = '(';
+                if (! items.length)
+                    res += ' ';
+                for (var i = 0; i < items.length; i++) {
+                    var id = items[i];
+                    res += $scope.lattice.nameForId(id);
+                    if (i != items.length - 1)
+                        res += ',';
+                }
+                res += ')';
+                return res;
+            }
+
+            $scope.addToBeamline = function(beamline) {
+                $scope.lattice.addToBeamline(beamline);
+            };
+
+            $scope.beamlineBend = function(beamline, defaultValue) {
+                if (angular.isDefined(beamline.angle))
+                    return $scope.lattice.angleFormat(beamline.angle);
+                return defaultValue;
+            };
+
+            $scope.beamlineDescription = function(beamline) {
+                return itemsToString(beamline.items);
+            };
+
+            $scope.beamlineLength = function(beamline) {
+                return $scope.lattice.numFormat(beamline.length, 'm');
+            };
+
+            $scope.editBeamline = function(beamline) {
+                $scope.lattice.editBeamline(beamline);
+            };
+
+            $scope.isActiveBeamline = function(beamline) {
+                if ($scope.lattice.activeBeamlineId)
+                    return $scope.lattice.activeBeamlineId == beamline.id;
+                return false;
+            };
+        },
+    };
+});
+
+app.directive('elementTable', function(appState) {
+    return {
+        restirct: 'A',
+        scope: {
+            lattice: '=controller',
+        },
+        template: [
+            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+              '<colgroup>',
+                '<col style="width: 12ex">',
+                '<col>',
+                '<col style="width: 12ex">',
+                '<col style="width: 10ex">',
+              '</colgroup>',
+              '<thead>',
+                '<tr>',
+                  '<th>Name</th>',
+                  '<th>Description</th>',
+                  '<th>Length</th>',
+                  '<th>Bend</th>',
+                '</tr>',
+              '</thead>',
+              '<tbody data-ng-repeat="category in tree track by category.name">',
+                '<tr>',
+                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': isExpanded(category), \'glyphicon-collapse-down\': ! isExpanded(category)}"></span> <b>{{ category.name }}</b></td>',
+                '</tr>',
+                '<tr class="cssFade" data-ng-show="isExpanded(category)" data-ng-repeat="element in category.elements track by element._id">',
+                  '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
+                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
+                  '<td style="text-align: right">{{ elementLength(element) }}</td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                '</tr>',
+              '</tbody>',
+            '</table>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.tree = [];
+            var collapsedElements = {};
+
+            function loadTree() {
+                //TODO(pjm): merge new tree with existing to avoid un-needed UI updates
+                $scope.tree = [];
+                var category = null;
+                var elements = appState.models.elements;
+
+                for (var i = 0; i < elements.length; i++) {
+                    var element = elements[i];
+                    if (! category || category.name != element.type) {
+                        category = {
+                            name: element.type,
+                            elements: [],
+                        };
+                        $scope.tree.push(category);
+                    }
+                    category.elements.push(element);
+                }
+            }
+
+            $scope.addToBeamline = function(element) {
+                $scope.lattice.addToBeamline(element);
+            };
+
+            $scope.editElement = function(type, item) {
+                return $scope.lattice.editElement(type, item);
+            };
+
+            $scope.elementBend = function(element, defaultValue) {
+                if (angular.isDefined(element.angle))
+                    return $scope.lattice.angleFormat(element.angle);
+                return defaultValue;
+            };
+
+            $scope.elementDescription = function(type, element) {
+                if (! element)
+                    return 'null';
+                var schema = APP_SCHEMA.model[type];
+                var res = '';
+                var fields = Object.keys(element).sort();
+                for (var i = 0; i < fields.length; i++) {
+                    var f = fields[i];
+                    if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0)
+                        continue;
+                    if (angular.isDefined(element[f]) && angular.isDefined(schema[f]))
+                        if (schema[f][2] != element[f])
+                            res += (res.length ? ',' : '') + f + '=' + element[f];
+                }
+                return res;
+            };
+
+            $scope.elementLength = function(element) {
+                return $scope.lattice.numFormat(element.l, 'm');
+            };
+
+            $scope.isExpanded = function(category) {
+                return ! collapsedElements[category.name];
+            };
+
+            $scope.toggleCategory = function(category) {
+                collapsedElements[category.name] = ! collapsedElements[category.name];
+            };
+
+            $scope.$on('cancelChanges', function(e, name) {
+                if (name == 'elements')
+                    loadTree();
+            });
+
+            if (appState.isLoaded())
+                loadTree();
+            else
+                $scope.$on('modelsLoaded', loadTree);
         },
     };
 });

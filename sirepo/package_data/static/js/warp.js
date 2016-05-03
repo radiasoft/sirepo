@@ -190,7 +190,7 @@ app.controller('WARPDynamicsController', function(appState, frameCache, panelSta
     }
 });
 
-app.controller('WARPSourceController', function(appState, frameCache, warpService, $scope, $timeout) {
+app.controller('WARPSourceController', function(appState, frameCache, warpService, $document, $scope) {
     var self = this;
     $scope.appState = appState;
     var constants = {
@@ -381,7 +381,7 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
 
     function setVisibility(fields, isVisible, oldValue) {
         for (var i = 0; i < fields.length; i++) {
-            var el = $(fieldClass(fields[i])).parent();
+            var el = $(fieldClass(fields[i])).closest('.form-group');
             if (isVisible) {
                 if (oldValue)
                     el.slideDown()
@@ -393,6 +393,15 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
                     el.hide();
             }
         }
+    }
+
+    function updateFieldState() {
+        $document.ready(function() {
+            gridDimensionsChanged();
+            pulseDimensionsChanged();
+            beamRadiusMethodChanged();
+            beamBunchLengthMethodChanged();
+        });
     }
 
     self.isLaserPulse = function() {
@@ -429,17 +438,6 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
     $scope.$on('electronPlasma.changed', clearFrames);
     $scope.$on('simulationGrid.changed', clearFrames);
 
-    if (appState.isLoaded()) {
-        if (! $(fieldClass('simulationGrid.xMin') + ' input').length) {
-            $timeout(function() {
-                gridDimensionsChanged();
-                pulseDimensionsChanged();
-                beamRadiusMethodChanged();
-                beamBunchLengthMethodChanged();
-            }, 100);
-        }
-    }
-
     $scope.$on(
         'laserPulse.changed',
         function() {
@@ -453,6 +451,10 @@ app.controller('WARPSourceController', function(appState, frameCache, warpServic
             appState.saveQuietly('simulationGrid');
         });
 
+    if (appState.isLoaded())
+        updateFieldState();
+    else
+        $scope.$on('modelsLoaded', updateFieldState);
 });
 
 app.directive('appFooter', function() {

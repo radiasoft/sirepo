@@ -1,31 +1,102 @@
 'use strict';
 
+app.directive('advancedEditorPane', function(appState) {
+    return {
+        scope: {
+            viewName: '=',
+            isReadOnly: '=',
+            wantButtons: '@',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
+        },
+        template: [
+            '<h5 data-ng-if="description">{{ description }}</h5>',
+            '<form name="form" class="form-horizontal" novalidate>',
+              '<ul data-ng-if="pages" class="nav nav-tabs">',
+                '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">Page {{ page.index }}</a></li>',
+              '</ul>',
+              '<br />',
+              '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
+                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+              '</div>',
+              '<div data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.modelName = viewInfo.model || $scope.viewName;
+            $scope.description = viewInfo.description;
+            $scope.advancedFields = viewInfo.advanced;
+
+            $scope.isColumnField = function(f) {
+                return typeof(f) == 'string' ? false : true;
+            };
+
+            $scope.setActivePage = function(page) {
+                if ($scope.activePage)
+                    $scope.activePage.isActive = false;
+                $scope.activePage = page;
+                page.isActive = true;
+            };
+
+            if (viewInfo.fieldsPerTab && $scope.advancedFields.length > viewInfo.fieldsPerTab) {
+                $scope.pages = [];
+                var index = 0;
+                var items;
+                for (var i = 0; i < $scope.advancedFields.length; i++) {
+                    if (i % viewInfo.fieldsPerTab == 0) {
+                        index += 1;
+                        items = [];
+                        $scope.pages.push({
+                            index: index,
+                            isActive: index == 1,
+                            items: items,
+                        });
+                    }
+                    items.push($scope.advancedFields[i]);
+                }
+                $scope.setActivePage($scope.pages[0]);
+            }
+        },
+        link: function(scope, element) {
+            var resetActivePage = function() {
+                if (scope.pages)
+                    scope.setActivePage(scope.pages[0]);
+            };
+            if (scope.pages) {
+                $(element).closest('.modal').on('show.bs.modal', resetActivePage);
+                //TODO(pjm): need a generalized case for this
+                $(element).closest('.srw-editor-holder').on('s.resetActivePage', resetActivePage);
+            }
+        }
+    };
+});
+
 app.directive('basicEditorPanel', function(appState, panelState) {
     return {
         scope: {
-            modelName: '@',
+            viewName: '@',
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-name="{{ modelName }}"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
               '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
-                    '<div data-field-editor="f" data-model-name="modelName" data-model="appState.models[modelName]" class="model-{{modelName}}-{{f}}"></div>',
+                    '<div data-model-field="f" data-model-name="modelName"></div>',
                   '</div>',
-                  '<div data-buttons="" data-model-name="modelName"></div>',
+                  '<div data-buttons="" data-model-name="modelName" data-fields="basicFields"></div>',
                 '</form>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
+            var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.panelState = panelState;
-            $scope.basicFields = appState.viewInfo($scope.modelName).basic;
-            $scope.panelTitle = appState.viewInfo($scope.modelName).title;
-            $scope.isStringField = function(f) {
-                return typeof(f) == 'string' ? true : false;
-            };
+            $scope.basicFields = viewInfo.basic;
+            $scope.panelTitle = viewInfo.title;
         },
     };
 });
@@ -34,32 +105,56 @@ app.directive('buttons', function(appState) {
     return {
         scope: {
             modelName: '=',
-            modalId: '@',
+            fields: '=',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
         },
         template: [
             '<div class="col-sm-6 pull-right cssFade" data-ng-show="form.$dirty">',
-            '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.form = $scope.$parent.form;
+            var modelKey = $scope.modelName;
+
+            if ($scope.modelData)
+                modelKey = $scope.modelData.modelKey;
+
+            function extractModel(field, modelNames) {
+                var modelField = appState.parseModelField(field);
+                if (modelField)
+                    modelNames[modelField[0]] = true;
+            }
+            var modelNames = {};
+            modelNames[modelKey] = true;
+
+            for (var i = 0; i < $scope.fields.length; i++) {
+                var field = $scope.fields[i];
+                if (typeof(field) == 'string')
+                    extractModel(field, modelNames);
+                else {
+                    for (var col = 0; col < field.length; col++) {
+                        for (var colField = 0; colField < field[col][1].length; colField++)
+                            extractModel(field[col][1][colField], modelNames);
+                    }
+                }
+            }
+            modelNames = Object.keys(modelNames);
+
             function changeDone() {
                 $scope.form.$setPristine();
-                if ($scope.modalId)
-                    $('#' + $scope.modalId).modal('hide');
             }
-            $scope.$on($scope.modelName + '.changed', function() {
-                changeDone();
-            });
             $scope.saveChanges = function() {
-                if ($scope.form.$valid && $scope.modelName)
-                    appState.saveChanges($scope.modelName);
+                if ($scope.form.$valid)
+                    appState.saveChanges(modelNames);
             };
             $scope.cancelChanges = function() {
-                appState.cancelChanges($scope.modelName);
-                changeDone();
+                appState.cancelChanges(modelNames);
             };
+            $scope.$on(modelKey + '.changed', changeDone);
+            $scope.$on('cancelChanges', changeDone);
         }
     };
 });
@@ -112,7 +207,7 @@ app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label control-label">{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign srw-info-pointer"></span></label>',
+            '<label control-label">{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
@@ -125,24 +220,25 @@ app.directive('labelWithTooltip', function() {
     };
 });
 
-app.directive('fieldEditor', function(appState, requestSender) {
+app.directive('fieldEditor', function(appState, panelState, requestSender) {
     return {
         restirct: 'A',
         scope: {
-            fieldEditor: '=',
-            model: '=',
             modelName: '=',
+            field: '=fieldEditor',
+            model: '=',
             customLabel: '=',
             labelSize: "@",
             numberSize: "@",
             isReadOnly: "=",
         },
         template: [
+            '<div class="model-{{modelName}}-{{field}}">',
             '<div data-label-with-tooltip="" class="col-sm-{{ labelSize || \'5\' }} control-label" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="BeamList" class="col-sm-5">',
                 '<div class="dropdown">',
-                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[fieldEditor] }} <span class="caret"></span></button>',
+                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
                   '<ul class="dropdown-menu">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
                     '<li data-ng-repeat="item in requestSender.getAuxiliaryData(\'beams\') track by item.name">',
@@ -158,54 +254,51 @@ app.directive('fieldEditor', function(appState, requestSender) {
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
+                '<input string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="integer" data-ng-model="model[fieldEditor]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
+                '<input string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-                '<div data-file-field="fieldEditor" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
+                '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
               '</div>',
               '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-                '<div data-file-field="fieldEditor" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+                '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control" required data-ng-readonly="isReadOnly">',
+                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly">',
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" class="col-sm-5">',
-                '<input data-ng-model="model[fieldEditor]" class="form-control" data-ng-readonly="isReadOnly">',
+                '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly">',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
-                '<select number-to-string class="form-control" data-ng-model="model[fieldEditor]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+                '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
+            '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
             $scope.requestSender = requestSender;
-
-            var match = $scope.fieldEditor.match(/(.*?)\.(.*)/);
-            if (match) {
-                $scope.modelName = match[1];
-                $scope.fieldEditor = match[2];
-                if ($scope.$parent.fullModelName)
-                    $scope.$parent.fullModelName = $scope.modelName;
-            }
-
             // field def: [label, type]
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.fieldEditor];
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             $scope.selectBeam = function(item) {
-                $scope.model = item;
-                $scope.model[$scope.fieldEditor] = item.name;
-                $scope.$parent.form.$setDirty();
+                appState.models.electronBeam = item;
+                item[$scope.field] = item.name;
+                $scope.$parent.$parent.form.$setDirty();
             };
             $scope.emptyList = [];
             $scope.newUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
-                appState.addNewElectronBeam();
-                $('#srw-electronBeam-editor').modal('show');
+                var newBeam = appState.clone(appState.models.electronBeam);
+                delete newBeam.isReadOnly;
+                newBeam.name = 'Beam Name';
+                newBeam.id = appState.maxId(appState.models.electronBeams) + 1;
+                appState.models.electronBeams.push(newBeam);
+                appState.models.electronBeam = newBeam;
+                panelState.showModalEditor('electronBeam');
             };
         },
         link: function link(scope, element) {
@@ -281,7 +374,7 @@ app.directive('fileField', function(appState, requestSender) {
                 findParentAttribute('form').$setDirty();
             };
             $scope.showFileUpload = function() {
-                $('#srw-upload-file').modal('show');
+                $('#s-upload-file').modal('show');
                 findParentAttribute('form').$setDirty();
             };
             $scope.showFileReport = function() {
@@ -294,17 +387,18 @@ app.directive('fileField', function(appState, requestSender) {
 app.directive('columnEditor', function(appState) {
     return {
         scope: {
-            columnFields: '=',
             modelName: '=',
-            fullModelName: '=',
+            columnFields: '=',
             isReadOnly: '=',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
         },
         template: [
             '<div class="row">',
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-field-editor="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly" class="model-{{modelName}}-{{f}}"></div>',
+                  '<div data-model-field="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
                 '</div>',
               '</div>',
             '</div>',
@@ -312,14 +406,18 @@ app.directive('columnEditor', function(appState) {
         controller: function($scope) {
             $scope.appState = appState;
             $scope.customLabel = function(heading, f) {
-                var info = appState.modelInfo($scope.modelName)[f];
+                var m = $scope.modelName;
+                var modelField = appState.parseModelField(f);
+                if (modelField) {
+                    m = modelField[0];
+                    f = modelField[1];
+                }
+                var info = appState.modelInfo(m)[f];
                 var label = info[0];
                 heading = heading.replace(/ .*/, '');
                 label = label.replace(heading, '');
                 return label;
             };
-        },
-        link: function(scope, element) {
         },
     };
 });
@@ -333,7 +431,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
             fileType: '@',
         },
         template: [
-            '<div class="modal fade" id="srw-upload-file" tabindex="-1" role="dialog">',
+            '<div class="modal fade" id="s-upload-file" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -388,7 +486,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                             requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
                             $scope.parentController.fileUploadCompleted(data.filename);
                         }
-                        $('#srw-upload-file').modal('hide');
+                        $('#s-upload-file').modal('hide');
                     });
             };
         },
@@ -427,11 +525,12 @@ app.directive('helpButton', function($window) {
 app.directive('modalEditor', function(appState) {
     return {
         scope: {
-            modalEditor: '@',
-            // optional, for watch reports
-            itemId: '@',
+            viewName: '@',
             isReadOnly: '=',
             parentController: '=',
+            modalTitle: '=',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
         },
         template: [
             '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
@@ -445,18 +544,7 @@ app.directive('modalEditor', function(appState) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
-                        '<h5 data-ng-if="description">{{ description }}</h5>',
-                        '<form name="form" class="form-horizontal" novalidate>',
-                          '<ul data-ng-if="pages" class="nav nav-tabs">',
-                            '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">Page {{ page.index }}</a></li>',
-                          '</ul>',
-                          '<br />',
-                          '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
-                            '<div class="form-group form-group-sm model-{{modalEditor}}-{{f}}" data-ng-if="isStringField(f)" data-field-editor="f" data-model-name="modelName" data-model="appState.models[fullModelName]" data-is-read-only="isReadOnly"></div>',
-                            '<div data-ng-if="! isStringField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-full-model-name="fullModelName" data-is-read-only="isReadOnly"></div>',
-                          '</div>',
-                          '<div data-ng-if="editorId" data-buttons="" data-model-name="fullModelName" data-modal-id="{{ editorId }}"></div>',
-                        '</form>',
+                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-is-read-only="isReadOnly" data-want-buttons="true" data-model-data="modelData"></div>',
                       '</div>',
                     '</div>',
                   '</div>',
@@ -465,48 +553,26 @@ app.directive('modalEditor', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
-            var viewInfo = appState.viewInfo($scope.modalEditor);
-            $scope.description = viewInfo.description;
-            $scope.advancedFields = viewInfo.advanced;
-            if (viewInfo.fieldsPerTab && $scope.advancedFields.length > viewInfo.fieldsPerTab) {
-                $scope.pages = [];
-                var index = 0;
-                var items;
-                for (var i = 0; i < $scope.advancedFields.length; i++) {
-                    if (i % viewInfo.fieldsPerTab == 0) {
-                        index += 1;
-                        items = [];
-                        $scope.pages.push({
-                            index: index,
-                            isActive: index == 1,
-                            items: items,
-                        });
-                    }
-                    items.push($scope.advancedFields[i]);
-                }
+            function hideModal() {
+                if ($scope.editorId)
+                    $('#' + $scope.editorId).modal('hide');
             }
-            $scope.setActivePage = function(page) {
-                if ($scope.activePage)
-                    $scope.activePage.isActive = false;
-                $scope.activePage = page;
-                page.isActive = true;
-            };
+            var viewInfo = appState.viewInfo($scope.viewName);
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
-            $scope.modelName = viewInfo.model || $scope.modalEditor;
-            $scope.fullModelName = $scope.modelName + ($scope.itemId || '');
-            $scope.editorId = 'srw-' + (viewInfo.model ? $scope.modalEditor : $scope.fullModelName) + '-editor';
-            $scope.isStringField = function(f) {
-                return typeof(f) == 'string' ? true : false;
-            };
-            $scope.modalTitle = appState.getReportTitle(viewInfo.model ? $scope.modalEditor : $scope.fullModelName);
+            $scope.modelName = viewInfo.model || $scope.viewName;
+            $scope.modelKey = $scope.modelName;
+            $scope.editorId = 's-' + $scope.viewName + '-editor';
+            if ($scope.modelData) {
+                $scope.modelKey = $scope.modelData.modelKey;
+                $scope.editorId = 's-' + $scope.modelKey + '-editor';
+            }
+            if (! $scope.modalTitle)
+                $scope.modalTitle = viewInfo.title;
+            $scope.$on('modelChanged', hideModal);
+            $scope.$on('cancelChanges', hideModal);
         },
         link: function(scope, element) {
-            $(element).on('show.bs.modal', function() {
-                if (scope.pages)
-                    scope.setActivePage(scope.pages[0]);
-            });
             $(element).on('shown.bs.modal', function() {
                 if (! scope.isReadOnly)
                     $('#' + scope.editorId + ' .form-control').first().select();
@@ -516,7 +582,7 @@ app.directive('modalEditor', function(appState) {
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
-                appState.cancelChanges(scope.fullModelName);
+                appState.cancelChanges(scope.modelKey);
                 scope.$apply();
             });
             scope.$on('$destroy', function() {
@@ -524,6 +590,48 @@ app.directive('modalEditor', function(appState) {
                 $(element).off();
                 $('.modal').modal('hide').removeData('bs.modal');
             });
+        },
+    };
+});
+
+app.directive('modelField', function(appState) {
+    return {
+        scope: {
+            field: '=modelField',
+            modelName: '=',
+            customLabel: '=',
+            labelSize: "@",
+            numberSize: "@",
+            isReadOnly: "=",
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
+        },
+        template: [
+            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-is-read-only="isReadOnly" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-number-size="{{ numberSize }}"></div>',
+        ].join(''),
+        controller: function($scope) {
+            var modelName = $scope.modelName;
+            var field = $scope.field;
+            var modelField = appState.parseModelField(field);
+
+            if (modelField) {
+                modelName = modelField[0];
+                field = modelField[1];
+            }
+
+            $scope.modelForField = function() {
+                if ($scope.modelData && ! modelField)
+                    return $scope.modelData.getData();
+                return appState.models[modelName];
+            }
+
+            $scope.modelNameForField = function() {
+                return modelName;
+            }
+
+            $scope.fieldName = function(f) {
+                return field;
+            };
         },
     };
 });
@@ -547,20 +655,20 @@ app.directive('numberToString', function() {
     };
 });
 
-app.directive('panelHeading', function(panelState, appState, requestSender, frameCache, $http) {
+app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
     return {
         restrict: 'A',
         scope: {
             panelHeading: '@',
-            modelName: '@',
+            modelKey: '=',
             allowFullScreen: '@',
         },
         template: [
-            '<span class="srw-panel-heading">{{ panelHeading }}</span>',
-            '<div class="srw-panel-options pull-right">',
-              '<a href data-ng-show="showAdvancedEditor" data-ng-click="showEditor()" title="Edit"><span class="srw-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+            '<span class="s-panel-heading">{{ panelHeading }}</span>',
+            '<div class="s-panel-options pull-right">',
+              '<a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="s-panel-heading glyphicon glyphicon-pencil"></span></a> ',
               '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
-                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="srw-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="s-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
@@ -570,51 +678,24 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                   '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                 '</ul>',
               '</div>',
-              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="srw-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-hide="panelState.isHidden(modelName)" title="Hide"><span class="srw-panel-heading glyphicon glyphicon-triangle-top"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelName)" data-ng-show="panelState.isHidden(modelName)" title="Show"><span class="srw-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>',
+              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="s-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="s-panel-heading glyphicon glyphicon-triangle-top"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="s-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-
-            function downloadPlot(svg, height, plot3dCanvas) {
-                var canvas = document.createElement('canvas');
-                var context = canvas.getContext("2d");
-                var scale = height / parseInt(svg.getAttribute('height'));
-                canvas.width = parseInt(svg.getAttribute('width')) * scale;
-                canvas.height = parseInt(svg.getAttribute('height')) * scale;
-                context.fillStyle = '#FFFFFF';
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                context.fillStyle = '#000000';
-
-                if (plot3dCanvas) {
-                    var el = $(plot3dCanvas);
-                    context.drawImage(
-                        plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
-                        pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
-                }
-                var svgString = svg.parentNode.innerHTML;
-                context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob(function(blob) {
-                    var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
-                    saveAs(blob, fileName);
-                });
-            }
-
-            function pxToInteger(value) {
-                value = value.replace(/px/, '');
-                return parseInt(value);
-            }
-
+            $scope.hasEditor = appState.viewInfo($scope.modelKey)
+                && appState.viewInfo($scope.modelKey).advanced.length == 0 ? false : true;
             $scope.panelState = panelState;
+
             $scope.dataFileURL = function() {
                 if (appState.isLoaded()) {
                     return requestSender.formatUrl('downloadDataFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': APP_SCHEMA.simulationType,
-                        '<model_or_frame>':  appState.isAnimationModelName($scope.modelName)
-                            ? frameCache.getCurrentFrame($scope.modelName)
-                            : $scope.modelName,
+                        '<model_or_frame>':  appState.isAnimationModelName($scope.modelKey)
+                            ? frameCache.getCurrentFrame($scope.modelKey)
+                            : $scope.modelKey,
                     });
                 }
                 return '';
@@ -623,32 +704,21 @@ app.directive('panelHeading', function(panelState, appState, requestSender, fram
                 var svg = $scope.reportPanel.find('svg')[0];
                 if (! svg)
                     return;
+                var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
                 var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
-                // embed sirepo.css style within SVG for first download, css file is cached by browser
-                $http.get('/static/css/sirepo.css?' + SIREPO_APP_VERSION)
-                    .success(function(data) {
-                        if (svg.firstChild.nodeName != 'STYLE') {
-                            var css = document.createElement('style');
-                            css.type = 'text/css';
-                            css.appendChild(document.createTextNode(data));
-                            svg.insertBefore(css, svg.firstChild);
-                        }
-                        downloadPlot(svg, height, plot3dCanvas);
-                    });
+                plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
             $scope.hasData = function() {
                 if (appState.isLoaded()) {
-                    if (appState.isAnimationModelName($scope.modelName))
+                    if (appState.isAnimationModelName($scope.modelKey))
                         return frameCache.frameCount > 0;
-                    return ! panelState.isLoading($scope.modelName);
+                    return ! panelState.isLoading($scope.modelKey);
                 }
                 return false;
             };
             $scope.showEditor = function() {
-                panelState.showModalEditor($scope.modelName);
+                panelState.showModalEditor($scope.modelKey);
             };
-            $scope.showAdvancedEditor = appState.viewInfo($scope.modelName)
-                && appState.viewInfo($scope.modelName).advanced.length == 0 ? false : true;
         },
         link: function(scope, element) {
             scope.reportPanel = element.next();
@@ -662,17 +732,17 @@ app.directive('reportContent', function(panelState) {
         transclude: true,
         scope: {
             reportContent: '@',
-            fullModelName: '@',
+            modelKey: '@',
         },
         template: [
-            '<div data-ng-class="{\'srw-panel-loading\': panelState.isLoading(fullModelName), \'srw-panel-error\': panelState.getError(fullModelName)}" class="panel-body cssFade" data-ng-hide="panelState.isHidden(fullModelName)">',
-              '<div data-ng-show="panelState.isLoading(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
-              '<div data-ng-show="panelState.getError(fullModelName)" class="lead srw-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(fullModelName) }}</div>',
-              '<div data-ng-switch="reportContent" class="{{ panelState.getError(fullModelName) ? \'srw-hide-report\' : \'\' }}">',
-                '<div data-ng-switch-when="2d" data-plot2d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                '<div data-ng-switch-when="3d" data-plot3d="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                '<div data-ng-switch-when="heatmap" data-heatmap="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
-                '<div data-ng-switch-when="lattice" data-lattice="" class="srw-plot" data-model-name="{{ fullModelName }}"></div>',
+            '<div data-ng-class="{\'s-panel-loading\': panelState.isLoading(modelKey), \'s-panel-error\': panelState.getError(modelKey)}" class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelKey)">',
+              '<div data-ng-show="panelState.isLoading(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
+              '<div data-ng-show="panelState.getError(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
+              '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'s-hide-report\' : \'\' }}">',
+                '<div data-ng-switch-when="2d" data-plot2d="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="3d" data-plot3d="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="heatmap" data-heatmap="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="lattice" data-lattice="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
               '</div>',
               '<div data-ng-transclude=""></div>',
             '</div>',
@@ -683,32 +753,35 @@ app.directive('reportContent', function(panelState) {
     };
 });
 
-app.directive('reportPanel', function(appState, panelState) {
+app.directive('reportPanel', function(appState) {
     return {
         restrict: 'A',
         transclude: true,
         scope: {
             reportPanel: '@',
             modelName: '@',
-            // optional, for watch reports
-            itemId: '@',
+            panelTitle: '@',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
         },
         template: [
             '<div class="panel panel-info">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ appState.getReportTitle(fullModelName) }}" data-model-name="{{ fullModelName }}" data-allow-full-screen="1"></div>',
-              '<div data-report-content="{{ reportPanel }}" data-full-model-name="{{ fullModelName }}"><div data-ng-transclude=""></div></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-allow-full-screen="1"></div>',
+              '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var itemId = $scope.itemId ? $scope.itemId : '';
-            $scope.appState = appState;
-            $scope.panelState = panelState;
-            $scope.fullModelName = $scope.modelName + itemId;
+            $scope.modelKey = $scope.modelName;
+            if ($scope.modelData)
+                $scope.modelKey = $scope.modelData.modelKey;
+            $scope.reportTitle = function() {
+                return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
+            };
         },
     };
 });
 
-app.directive('appHeaderLeft', function() {
+app.directive('appHeaderLeft', function(panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -718,8 +791,13 @@ app.directive('appHeaderLeft', function() {
             '<ul class="nav navbar-nav">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
-            '<div class="navbar-text"><a href data-target="#srw-simulation-editor" data-toggle="modal"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
+            '<div class="navbar-text"><a href data-ng-click="showSimulationModal()"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
+            };
+        },
     };
 });
 
@@ -772,8 +850,53 @@ app.directive('fileModel', ['$parse', function ($parse) {
     };
 }]);
 
-app.service('fileUpload', ['$http', function ($http) {
-    this.uploadFileToUrl = function(file, args, uploadUrl, callback){
+app.service('plotToPNG', function($http) {
+
+    function downloadPlot(svg, height, plot3dCanvas, fileName) {
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext("2d");
+        var scale = height / parseInt(svg.getAttribute('height'));
+        canvas.width = parseInt(svg.getAttribute('width')) * scale;
+        canvas.height = parseInt(svg.getAttribute('height')) * scale;
+        context.fillStyle = '#FFFFFF';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#000000';
+
+        if (plot3dCanvas) {
+            var el = $(plot3dCanvas);
+            context.drawImage(
+                plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
+                pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
+        }
+        var svgString = svg.parentNode.innerHTML;
+        context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+            saveAs(blob, fileName);
+        });
+    }
+
+    function pxToInteger(value) {
+        value = value.replace(/px/, '');
+        return parseInt(value);
+    }
+
+    this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
+        // embed sirepo.css style within SVG for first download, css file is cached by browser
+        $http.get('/static/css/sirepo.css?' + SIREPO_APP_VERSION)
+            .success(function(data) {
+                if (svg.firstChild.nodeName != 'STYLE') {
+                    var css = document.createElement('style');
+                    css.type = 'text/css';
+                    css.appendChild(document.createTextNode(data));
+                    svg.insertBefore(css, svg.firstChild);
+                }
+                downloadPlot(svg, height, plot3dCanvas, fileName);
+            });
+    }
+});
+
+app.service('fileUpload', function($http) {
+    this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
         fd.append('arguments', args)
@@ -787,4 +910,4 @@ app.service('fileUpload', ['$http', function ($http) {
                 console.log('file upload failed');
             });
     }
-}]);
+});

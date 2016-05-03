@@ -57,69 +57,9 @@
                 "verticalSize": 10.0
             },
             {
-                "asymmetryAngle": 0.0,
-                "crystalThickness": 0.01,
-                "dSpacing": 3.1355713563754857,
-                "energy": 8999.0,
-                "grazingAngle": 1.5707963,
-                "h": 1,
-                "heightAmplification": 1,
-                "heightProfileFile": null,
-                "id": 6,
-                "k": 1,
-                "l": 1,
-                "material": "Unknown",
-                "nvx": -0.9755618200829507,
-                "nvy": 2.6140078081424982e-08,
-                "nvz": -0.2197251355590435,
-                "orientation": "x",
-                "position": 36.4488,
-                "psi0i": 2.2644798725393812e-07,
-                "psi0r": -1.2081131125059617e-05,
-                "psiHBi": 1.5810001743864205e-07,
-                "psiHBr": -6.38714117487423e-06,
-                "psiHi": 1.5810001743864205e-07,
-                "psiHr": -6.38714117487423e-06,
-                "rotationAngle": 0.0,
-                "title": "Crystal1",
-                "tvx": -0.2197251355590434,
-                "tvy": 5.887512284435968e-09,
-                "type": "crystal"
-            },
-            {
-                "asymmetryAngle": 0.0,
-                "crystalThickness": 0.01,
-                "dSpacing": 3.1355713563754857,
-                "energy": 8999.0,
-                "grazingAngle": -1.5707963,
-                "h": 1,
-                "heightAmplification": 1,
-                "heightProfileFile": null,
-                "id": 7,
-                "k": 1,
-                "l": 1,
-                "material": "Unknown",
-                "nvx": 0.9755618200829507,
-                "nvy": 2.6140078081424982e-08,
-                "nvz": -0.2197251355590435,
-                "orientation": "x",
-                "position": 36.4488,
-                "psi0i": 2.2644798725393812e-07,
-                "psi0r": -1.2081131125059617e-05,
-                "psiHBi": 1.5810001743864205e-07,
-                "psiHBr": -6.38714117487423e-06,
-                "psiHi": 1.5810001743864205e-07,
-                "psiHr": -6.38714117487423e-06,
-                "rotationAngle": 0.0,
-                "title": "Crystal2",
-                "tvx": 0.2197251355590434,
-                "tvy": 5.887512284435968e-09,
-                "type": "crystal"
-            },
-            {
                 "horizontalOffset": 0,
                 "horizontalSize": 3.0,
-                "id": 8,
+                "id": 6,
                 "position": 50.6572,
                 "shape": "r",
                 "title": "S4",
@@ -128,7 +68,7 @@
                 "verticalSize": 3.0
             },
             {
-                "id": 9,
+                "id": 7,
                 "position": 65.9178,
                 "title": "Sample",
                 "type": "watch"
@@ -407,70 +347,13 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "7": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
-                ]
-            ],
-            "8": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
-                ]
-            ],
-            "9": [
                 [
                     0,
                     0,
@@ -504,7 +387,7 @@
             "horizontalPosition": 0.0,
             "horizontalRange": 2.4,
             "isExample": 0,
-            "name": "srx (imported)",
+            "name": "amx (imported)",
             "photonEnergy": 9000.0,
             "sampleFactor": 1.0,
             "samplingMethod": 1,
@@ -531,7 +414,7 @@
             "verticalInitialPhase": 0.0,
             "verticalSymmetry": -1
         },
-        "watchpointReport9": {
+        "watchpointReport7": {
             "characteristic": 0,
             "fieldUnits": 2,
             "polarization": 6,

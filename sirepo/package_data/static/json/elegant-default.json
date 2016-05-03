@@ -1,1 +1,63 @@
-{"models": {"simulation": {"name": "simulation name"}, "bunch": {"p_central_mev": 54.983498856, "n_particles_per_bunch": 50000, "sigma_dp": 0.001, "sigma_s": 650, "emit_x": 46, "beta_x": 10, "alpha_x": 1, "emit_y": 46, "beta_y": 10, "alpha_y": 1}}, "simulationType": "elegant", "version": "20151029"}
+{
+    "models": {
+        "beamlineReport": {},
+        "beamlines": [],
+        "bunch": {
+            "alpha_x": 1,
+            "alpha_y": 1,
+            "alpha_z": 0,
+            "beta_x": 10,
+            "beta_y": 10,
+            "beta_z": 0,
+            "dp_s_coupling": 0,
+            "emit_x": 46,
+            "emit_y": 46,
+            "emit_z": 0,
+            "longitudinalMethod": "1",
+            "n_particles_per_bunch": 5000,
+            "p_central_mev": 1001,
+            "sigma_dp": 0.001,
+            "sigma_s": 650
+        },
+        "bunchReport1": {
+            "histogramBins": 200,
+            "x": "x",
+            "y": "xp"
+        },
+        "bunchReport2": {
+            "histogramBins": 200,
+            "x": "y",
+            "y": "yp"
+        },
+        "bunchReport3": {
+            "histogramBins": 200,
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "histogramBins": 200,
+            "x": "t",
+            "y": "p"
+        },
+        "elementAnimation": {
+            "histogramBins": 200,
+            "x": "x",
+            "y": "xp"
+        },
+        "elements": [],
+        "latticeGraph": {},
+        "simulation": {
+            "name": "Example",
+            "simulationId": "pAuOjl0s"
+        },
+        "simulationAnimation": {},
+        "simulationStatus": {
+            "elementAnimation": {
+                "state": "initial"
+            }
+        }
+    },
+    "report": "bunchReport4",
+    "simulationType": "elegant",
+    "version": "20160423"
+}
