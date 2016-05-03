@@ -569,30 +569,33 @@
         },
         "ellipsoidMirror": {
             "title": "Ellipsoid Mirror",
-            "fieldsPerTab": 9,
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "firstFocusLength",
-                "focalLength",
-                "tangentialSize",
-                "sagittalSize",
-                "grazingAngle",
-                "normalVectorZ",
-                [
-                    ["Horizontal", [
-                        "normalVectorX",
-                        "tangentialVectorX"
-                    ]],
-                    ["Vertical", [
-                        "normalVectorY",
-                        "tangentialVectorY"
-                    ]]
-                ],
-                "heightProfileFile",
-                "orientation",
-                "heightAmplification"
+                ["Dimensions", [
+                    "title",
+                    "position",
+                    "firstFocusLength",
+                    "focalLength",
+                    "tangentialSize",
+                    "sagittalSize",
+                    "grazingAngle",
+                    "normalVectorZ",
+                    [
+                        ["Horizontal", [
+                            "normalVectorX",
+                            "tangentialVectorX"
+                        ]],
+                        ["Vertical", [
+                            "normalVectorY",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Mirror Error", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
             ]
         },
         "fluxAnimation": {

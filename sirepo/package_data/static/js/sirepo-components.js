@@ -13,7 +13,7 @@ app.directive('advancedEditorPane', function(appState) {
             '<h5 data-ng-if="description">{{ description }}</h5>',
             '<form name="form" class="form-horizontal" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
-                '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">Page {{ page.index }}</a></li>',
+                '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
               '<br />',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
@@ -40,7 +40,22 @@ app.directive('advancedEditorPane', function(appState) {
                 page.isActive = true;
             };
 
-            if (viewInfo.fieldsPerTab && $scope.advancedFields.length > viewInfo.fieldsPerTab) {
+            // named tabs
+            if ($scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
+                $scope.pages = [];
+                for (var i = 0; i < $scope.advancedFields.length; i++) {
+                    var page = {
+                        name: $scope.advancedFields[i][0],
+                        items: [],
+                    };
+                    $scope.pages.push(page);
+                    var fields = $scope.advancedFields[i][1];
+                    for (var j = 0; j < fields.length; j++)
+                        page.items.push(fields[j]);
+                }
+            }
+            // fieldsPerTab
+            else if (viewInfo.fieldsPerTab && $scope.advancedFields.length > viewInfo.fieldsPerTab) {
                 $scope.pages = [];
                 var index = 0;
                 var items;
@@ -49,15 +64,15 @@ app.directive('advancedEditorPane', function(appState) {
                         index += 1;
                         items = [];
                         $scope.pages.push({
-                            index: index,
-                            isActive: index == 1,
+                            name: 'Page ' + index,
                             items: items,
                         });
                     }
                     items.push($scope.advancedFields[i]);
                 }
-                $scope.setActivePage($scope.pages[0]);
             }
+            if ($scope.pages)
+                $scope.setActivePage($scope.pages[0]);
         },
         link: function(scope, element) {
             var resetActivePage = function() {
