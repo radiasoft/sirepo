@@ -148,11 +148,15 @@ def fixup_old_data(data):
         data['models']['fluxReport']['magneticField'] = 1
         data['models']['fluxReport']['method'] = -1
         data['models']['fluxReport']['precision'] = 0.01
+        data['models']['fluxReport']['initialHarmonic'] = 1
+        data['models']['fluxReport']['finalHarmonic'] = 15
     if 'fluxAnimation' in data['models']:
         if 'magneticField' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['magneticField'] = 2
             data['models']['fluxAnimation']['method'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
+            data['models']['fluxAnimation']['initialHarmonic'] = 1
+            data['models']['fluxAnimation']['finalHarmonic'] = 15
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
             if data['models']['simulation']['sourceType'] in ['u', 't']:
@@ -221,6 +225,8 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['magneticField'] = 2
         data['models']['fluxAnimation']['method'] = 1
         data['models']['fluxAnimation']['precision'] = 0.01
+        data['models']['fluxAnimation']['initialHarmonic'] = 1
+        data['models']['fluxAnimation']['finalHarmonic'] = 15
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data:
