@@ -3,13 +3,9 @@ language: python
 branches:
   only:
     - master
-# http://stackoverflow.com/questions/35625488/invalidrequirement-invalid-requirement-parse-error-error-after-updating-a-py
 #TODO: this script could be pulled dynamically
 install:
-  - pip install -U pip
-  - pip uninstall --yes setuptools
-  - pip install setuptools==20.1.1
-  - pip install -U pytest
+  - pip install -U pip setuptools tox
   - pip install -r requirements.txt
 script:
   - python setup.py pkdeploy
