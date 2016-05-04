@@ -343,7 +343,8 @@ def prepare_aux_files(run_dir, data):
     zip_file.extractall(str(run_dir))
     for f in zip_file.namelist():
         if re.search('\.txt', f):
-            data['models']['tabulatedUndulator']['indexFile'] = f
+            data['models']['tabulatedUndulator']['indexFile'] = os.path.basename(f)
+            data['models']['tabulatedUndulator']['magnMeasFolder'] = os.path.dirname(f)
             break
 
 
