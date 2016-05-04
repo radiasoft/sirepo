@@ -217,6 +217,8 @@ def fixup_old_data(data):
             'longitudinalPosition': 1.305,
             'indexFile': '',
         }
+    if 'drift' not in data['models']['electronBeam']:
+        data['models']['electronBeam']['drift'] = 0.0
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
@@ -262,8 +264,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         # undulator longitudinal center only set with tabulatedUndulator
         v['tabulatedUndulator_longitudinalPosition'] = 0
     else:
-        #TODO(pjm): allow this to be set in UI?
-        drift = 0
+        drift = data['models']['electronBeam']['drift']
     v['electronBeamInitialDrift'] = drift
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 2

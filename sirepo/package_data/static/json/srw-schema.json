@@ -220,6 +220,7 @@
             "rmsSpread": ["RMS Energy Spread", "Float"],
             "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Average Vertical Position [mm]", "Float"],
+            "drift": ["Drift [m]", "Float"],
             "horizontalEmittance": ["Horizontal Emittance [nm]", "Float"],
             "horizontalBeta": ["Horizontal Beta [m]", "Float"],
             "horizontalAlpha": ["Horizontal Alpha [rad]", "Float"],
@@ -549,6 +550,7 @@
                 "rmsSpread",
                 "horizontalPosition",
                 "verticalPosition",
+                "drift",
                 [
                     ["Horizontal Twiss Parameters", [
                         "horizontalEmittance",
@@ -600,62 +602,68 @@
         },
         "fluxAnimation": {
             "title": "Spectral Flux for Finite Emittance Electron Beam",
-            "fieldsPerTab": 11,
             "basic": [],
             "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "photonEnergyPointCount",
-                [
-                    ["Horizontal", [
-                        "horizontalPosition",
-                        "horizontalApertureSize"
-                    ]],
-                    ["Vertical", [
-                        "verticalPosition",
-                        "verticalApertureSize"
-                    ]]
-                ],
-                "magneticField",
-                "initialHarmonic",
-                "finalHarmonic",
-                "method",
-                "fluxType",
-                "polarization",
-                "precision",
-                "longitudinalPrecision",
-                "azimuthalPrecision"
+                ["Parameters", [
+                    "distanceFromSource",
+                    "initialEnergy",
+                    "finalEnergy",
+                    "photonEnergyPointCount",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition",
+                            "horizontalApertureSize"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition",
+                            "verticalApertureSize"
+                        ]]
+                    ],
+                    "magneticField",
+                    "initialHarmonic",
+                    "finalHarmonic",
+                    "method",
+                    "fluxType",
+                    "polarization"
+                ]],
+                ["Precision", [
+                    "precision",
+                    "longitudinalPrecision",
+                    "azimuthalPrecision"
+                ]]
             ]
         },
         "fluxReport": {
             "title": "Flux Report",
-            "fieldsPerTab": 11,
             "basic": [],
             "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "photonEnergyPointCount",
-                [
-                    ["Horizontal", [
-                        "horizontalPosition",
-                        "horizontalApertureSize"
-                    ]],
-                    ["Vertical", [
-                        "verticalPosition",
-                        "verticalApertureSize"
-                    ]]
-                ],
-                "magneticField",
-                "initialHarmonic",
-                "finalHarmonic",
-                "method",
-                "fluxType",
-                "polarization",
-                "precision",
-                "longitudinalPrecision",
-                "azimuthalPrecision"
+                ["Parameters", [
+                    "distanceFromSource",
+                    "initialEnergy",
+                    "finalEnergy",
+                    "photonEnergyPointCount",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition",
+                            "horizontalApertureSize"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition",
+                            "verticalApertureSize"
+                        ]]
+                    ],
+                    "magneticField",
+                    "initialHarmonic",
+                    "finalHarmonic",
+                    "method",
+                    "fluxType",
+                    "polarization"
+                ]],
+                ["Precision", [
+                    "precision",
+                    "longitudinalPrecision",
+                    "azimuthalPrecision"
+                ]]
             ]
         },
         "gaussianBeam": {
@@ -725,26 +733,29 @@
         },
         "intensityReport": {
             "title": "Single-Electron Spectrum Report",
-            "fieldsPerTab": 9,
             "basic": [],
             "advanced": [
-                "distanceFromSource",
-                "initialEnergy",
-                "finalEnergy",
-                "photonEnergyPointCount",
-                "method",
-                "polarization",
-                "magneticField",
-                "fieldUnits",
-                [
-                    ["Horizontal", [
-                        "horizontalPosition"
-                    ]],
-                    ["Vertical", [
-                        "verticalPosition"
-                    ]]
-                ],
-                "precision"
+                ["Parameters", [
+                    "distanceFromSource",
+                    "initialEnergy",
+                    "finalEnergy",
+                    "photonEnergyPointCount",
+                    "method",
+                    "polarization",
+                    "magneticField",
+                    "fieldUnits",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition"
+                        ]]
+                    ]
+                ]],
+                ["Precision", [
+                    "precision"
+                ]]
             ]
         },
         "lens": {
