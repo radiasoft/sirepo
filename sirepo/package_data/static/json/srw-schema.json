@@ -63,16 +63,6 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
-        "Harmonics": [
-            ["1", "1"],
-            ["3", "3"],
-            ["5", "5"],
-            ["7", "7"],
-            ["9", "9"],
-            ["11", "11"],
-            ["13", "13"],
-            ["15", "15"]
-        ],
         "IntensityMethod": [
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
@@ -259,8 +249,8 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
             "magneticField": ["Magnetic Field", "MagneticField"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Harmonics"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Harmonics"],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
@@ -278,8 +268,8 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
             "magneticField": ["Magnetic Field", "MagneticField"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Harmonics"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Harmonics"],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
