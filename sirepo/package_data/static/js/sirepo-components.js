@@ -142,20 +142,29 @@ app.directive('buttons', function(appState) {
                 if (modelField)
                     modelNames[modelField[0]] = true;
             }
-            var modelNames = {};
-            modelNames[modelKey] = true;
 
-            for (var i = 0; i < $scope.fields.length; i++) {
-                var field = $scope.fields[i];
+            function iterateFields(field) {
+                // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
                 if (typeof(field) == 'string')
                     extractModel(field, modelNames);
                 else {
-                    for (var col = 0; col < field.length; col++) {
-                        for (var colField = 0; colField < field[col][1].length; colField++)
-                            extractModel(field[col][1][colField], modelNames);
+                    // [name, [cols]]
+                    if (typeof(field[0]) == 'string') {
+                        for (var i = 0; i < field[1].length; i++)
+                            iterateFields(field[1][i]);
+                    }
+                    // [[name, [cols]], [name, [cols]], ...]
+                    else {
+                        for (var i = 0; i < field.length; i++)
+                            iterateFields(field[i]);
                     }
                 }
             }
+
+            var modelNames = {};
+            modelNames[modelKey] = true;
+            for (var i = 0; i < $scope.fields.length; i++)
+                iterateFields($scope.fields[i]);
             modelNames = Object.keys(modelNames);
 
             function changeDone() {
