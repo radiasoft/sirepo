@@ -1,10 +1,11 @@
 'use strict';
 
-app.directive('advancedEditorPane', function(appState) {
+app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         scope: {
             viewName: '=',
             isReadOnly: '=',
+            parentController: '=',
             wantButtons: '@',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
@@ -38,6 +39,12 @@ app.directive('advancedEditorPane', function(appState) {
                     $scope.activePage.isActive = false;
                 $scope.activePage = page;
                 page.isActive = true;
+                if ($scope.parentController && $scope.parentController.handleModalShown) {
+                    // invoke parentController after UI has been constructed
+                    $timeout(function() {
+                        $scope.parentController.handleModalShown($scope.modelName);
+                    });
+                }
             };
 
             // named tabs
@@ -568,7 +575,7 @@ app.directive('modalEditor', function(appState) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
-                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-is-read-only="isReadOnly" data-want-buttons="true" data-model-data="modelData"></div>',
+                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-is-read-only="isReadOnly" data-want-buttons="true" data-model-data="modelData" data-parent-controller="parentController"></div>',
                       '</div>',
                     '</div>',
                   '</div>',
@@ -601,7 +608,7 @@ app.directive('modalEditor', function(appState) {
                 if (! scope.isReadOnly)
                     $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown)
-                    scope.parentController.handleModalShown(scope.modelName, $(element));
+                    scope.parentController.handleModalShown(scope.modelName);
             });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
