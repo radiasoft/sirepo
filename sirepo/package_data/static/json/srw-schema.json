@@ -68,10 +68,6 @@
             ["1", "Auto-Undulator"],
             ["2", "Auto-Wiggler"]
         ],
-        "MagneticField": [
-            ["1", "Approximate"],
-            ["2", "Accurate (tabulated)"]
-        ],
         "MillerIndicesRange": [
             ["0", "0"],
             ["1", "1"],
@@ -318,7 +314,6 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "magneticField": ["Magnetic Field", "MagneticField"],
             "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "lens": {
@@ -717,14 +712,12 @@
             "title": "Single-Electron Spectrum Report",
             "basic": [],
             "advanced": [
-                ["Parameters", [
+                ["Main", [
                     "distanceFromSource",
                     "initialEnergy",
                     "finalEnergy",
                     "photonEnergyPointCount",
-                    "method",
                     "polarization",
-                    "magneticField",
                     "fieldUnits",
                     [
                         ["Horizontal", [
@@ -735,7 +728,8 @@
                         ]]
                     ]
                 ]],
-                ["Precision", [
+                ["Accuracy", [
+                    "method",
                     "precision"
                 ]]
             ]
@@ -817,21 +811,25 @@
             "title": "Power Density Report",
             "basic": [],
             "advanced": [
-                "distanceFromSource",
-                "precision",
-                "method",
-                [
-                    ["Horizontal", [
-                        "horizontalPosition",
-                        "horizontalRange",
-                        "horizontalPointCount"
-                    ]],
-                    ["Vertical", [
-                        "verticalPosition",
-                        "verticalRange",
-                        "verticalPointCount"
-                    ]]
-                ]
+                ["Main", [
+                    "distanceFromSource",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition",
+                            "horizontalRange",
+                            "horizontalPointCount"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition",
+                            "verticalRange",
+                            "verticalPointCount"
+                        ]]
+                    ]
+                ]],
+                ["Accuracy", [
+                    "method",
+                    "precision"
+                ]]
             ]
         },
         "simulation": {

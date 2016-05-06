@@ -584,6 +584,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
             }
             if (srwService.isApplicationMode('calculator')) {
                 $('.model-fluxReport-method').hide(0);
+                $('.model-intensityReport-fieldUnits').hide(0);
             }
         }
     };

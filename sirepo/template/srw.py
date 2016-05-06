@@ -159,14 +159,16 @@ def fixup_old_data(data):
             data['models']['fluxAnimation']['finalHarmonic'] = 15
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
+            data['models']['intensityReport']['magneticField'] = 1
+            if data['models']['simulation']['sourceType'] == 't':
+                data['models']['intensityReport']['magneticField'] = 2
             if data['models']['simulation']['sourceType'] in ['u', 't']:
                 data['models']['intensityReport']['method'] = 1
-            elif data['models']['simulation']['sourceType'] in ['m']:
+            elif data['models']['simulation']['sourceType'] == 'm':
                 data['models']['intensityReport']['method'] = 2
             else:
                 data['models']['intensityReport']['method'] = 0
             data['models']['intensityReport']['precision'] = 0.01
-            data['models']['intensityReport']['magneticField'] = 1
             data['models']['intensityReport']['fieldUnits'] = 1
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = {}
