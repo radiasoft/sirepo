@@ -568,10 +568,36 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
 app.controller('SRWSourceController', function (appState, srwService, $scope) {
     var self = this;
     self.srwService = srwService;
+    $scope.appState = appState;
 
     self.fileUploadCompleted = function(filename) {
         if (appState.isLoaded())
             appState.models.tabulatedUndulator.magneticFile = filename;
+    }
+
+    function processFluxMethod(methodNumber) {
+        if (! appState.isLoaded() || typeof methodNumber === "undefined")
+            return;
+        var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
+        var fieldsOfAccurateMethod = ['precision'];
+        methodNumber = methodNumber.toString();
+        if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
+            for (var i=0; i<fieldsOfApproximateMethod.length; i++) {
+                $('.model-fluxReport-' + fieldsOfApproximateMethod[i]).show(0);
+            }
+            for (var i=0; i<fieldsOfAccurateMethod.length; i++) {
+                $('.model-fluxReport-' + fieldsOfAccurateMethod[i]).hide(0);
+            }
+        } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
+            for (var i=0; i<fieldsOfApproximateMethod.length; i++) {
+                $('.model-fluxReport-' + fieldsOfApproximateMethod[i]).hide(0);
+            }
+            for (var i=0; i<fieldsOfAccurateMethod.length; i++) {
+                $('.model-fluxReport-' + fieldsOfAccurateMethod[i]).show(0);
+            }
+        } else {
+            return;
+        }
     }
 
     self.handleModalShown = function(name, el) {
@@ -584,7 +610,10 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
             }
             if (srwService.isApplicationMode('calculator')) {
                 $('.model-fluxReport-method').hide(0);
+                $('.model-fluxReport-precision').hide(0);
                 $('.model-intensityReport-fieldUnits').hide(0);
+            } else {
+                processFluxMethod(appState.models.fluxReport.method);
             }
         }
     };
@@ -607,6 +636,10 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
         });
         appState.saveQuietly('electronBeam');
         appState.saveQuietly('electronBeams');
+    });
+
+    $scope.$watch('appState.models.fluxReport.method', function (newValue, oldValue) {
+        processFluxMethod(newValue);
     });
 });
 

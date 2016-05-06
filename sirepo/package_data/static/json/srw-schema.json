@@ -19,7 +19,7 @@
         ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
-            ["1", "Multi-Electron Intensity"],
+            ["1", "Multi-Electron Intensity (disregarding energy spread)"],
             ["4", "Single-Electron Radiation Phase"],
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
@@ -249,6 +249,7 @@
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Entity to Calculate", "Flux"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
@@ -266,6 +267,7 @@
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
+            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Entity to Calculate", "Flux"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
@@ -605,6 +607,7 @@
                 ]],
                 ["Accuracy", [
                     "method",
+                    "precision",
                     "initialHarmonic",
                     "finalHarmonic",
                     "longitudinalPrecision",
@@ -636,6 +639,7 @@
                 ]],
                 ["Accuracy", [
                     "method",
+                    "precision",
                     "initialHarmonic",
                     "finalHarmonic",
                     "longitudinalPrecision",
