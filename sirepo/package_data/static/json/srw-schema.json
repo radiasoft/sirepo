@@ -70,7 +70,7 @@
         ],
         "MagneticField": [
             ["1", "Approximate"],
-            ["2", "Accurate"]
+            ["2", "Accurate (tabulated)"]
         ],
         "MillerIndicesRange": [
             ["0", "0"],
@@ -248,14 +248,12 @@
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "magneticField": ["Magnetic Field", "MagneticField"],
             "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
-            "precision": ["Relative Precision", "Float"],
-            "fluxType": ["Flux Calculation", "Flux"],
+            "fluxType": ["Entity to Calculate", "Flux"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "fluxReport": {
@@ -267,14 +265,12 @@
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "magneticField": ["Magnetic Field", "MagneticField"],
             "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
             "method": ["Flux Computation Method", "FluxMethod"],
-            "precision": ["Relative Precision", "Float"],
-            "fluxType": ["Flux Calculation", "Flux"],
+            "fluxType": ["Entity to Calculate", "Flux"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
         "gaussianBeam": {
@@ -594,7 +590,7 @@
             "title": "Spectral Flux for Finite Emittance Electron Beam",
             "basic": [],
             "advanced": [
-                ["Parameters", [
+                ["Main", [
                     "distanceFromSource",
                     "initialEnergy",
                     "finalEnergy",
@@ -609,15 +605,13 @@
                             "verticalApertureSize"
                         ]]
                     ],
-                    "magneticField",
-                    "initialHarmonic",
-                    "finalHarmonic",
-                    "method",
                     "fluxType",
                     "polarization"
                 ]],
-                ["Precision", [
-                    "precision",
+                ["Accuracy", [
+                    "method",
+                    "initialHarmonic",
+                    "finalHarmonic",
                     "longitudinalPrecision",
                     "azimuthalPrecision"
                 ]]
@@ -627,7 +621,7 @@
             "title": "Flux Report",
             "basic": [],
             "advanced": [
-                ["Parameters", [
+                ["Main", [
                     "distanceFromSource",
                     "initialEnergy",
                     "finalEnergy",
@@ -642,15 +636,13 @@
                             "verticalApertureSize"
                         ]]
                     ],
-                    "magneticField",
-                    "initialHarmonic",
-                    "finalHarmonic",
-                    "method",
                     "fluxType",
                     "polarization"
                 ]],
-                ["Precision", [
-                    "precision",
+                ["Accuracy", [
+                    "method",
+                    "initialHarmonic",
+                    "finalHarmonic",
                     "longitudinalPrecision",
                     "azimuthalPrecision"
                 ]]

@@ -144,14 +144,14 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
-    if data['models']['fluxReport'] and 'magneticField' not in data['models']['fluxReport']:
+    if data['models']['fluxReport'] and 'method' not in data['models']['fluxReport']:
         data['models']['fluxReport']['magneticField'] = 1
         data['models']['fluxReport']['method'] = -1
         data['models']['fluxReport']['precision'] = 0.01
         data['models']['fluxReport']['initialHarmonic'] = 1
         data['models']['fluxReport']['finalHarmonic'] = 15
     if 'fluxAnimation' in data['models']:
-        if 'magneticField' not in data['models']['fluxAnimation']:
+        if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['magneticField'] = 2
             data['models']['fluxAnimation']['method'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
