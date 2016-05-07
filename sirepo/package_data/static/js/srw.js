@@ -348,10 +348,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
     };
 
-    self.fileUploadCompleted = function(filename) {
-        self.activeItem.heightProfileFile = filename;
-    }
-
     self.getBeamline = function() {
         return appState.models.beamline;
     };
@@ -369,7 +365,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         return [];
     };
 
-    self.handleModalShown = function(name, el) {
+    self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
                 $('.model-watchpointReport-fieldUnits').show(0);
@@ -569,12 +565,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
     var self = this;
     self.srwService = srwService;
 
-    self.fileUploadCompleted = function(filename) {
-        if (appState.isLoaded())
-            appState.models.tabulatedUndulator.magneticFile = filename;
-    }
-
-    self.handleModalShown = function(name, el) {
+    self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
                 $('.model-sourceIntensityReport-fieldUnits').show(0);
@@ -639,7 +630,7 @@ app.directive('appFooter', function(appState) {
             }
 
             // hook for sampling method changes
-            $scope.nav.handleModalShown = function(name, el) {
+            $scope.nav.handleModalShown = function(name) {
                 updateSimulationGridFields(0);
             };
             $scope.$watch('appState.models.simulation.samplingMethod', function (newValue, oldValue) {
@@ -1298,7 +1289,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
 
             $scope.isInitializing = function() {
                 if ($scope.isState('running'))
-                    return frameCache.frameCount < 1;
+                    return frameCache.getFrameCount() < 1;
                 return false;
             };
 

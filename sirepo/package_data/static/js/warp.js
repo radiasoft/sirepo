@@ -145,7 +145,7 @@ app.controller('WARPDynamicsController', function(appState, frameCache, panelSta
     };
 
     self.getFrameCount = function() {
-        return frameCache.frameCount;
+        return frameCache.getFrameCount();
     };
 
     self.isInitializing = function() {
