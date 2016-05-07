@@ -47,7 +47,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
         }
         scope.advanceFrame = function(increment) {
             var next = frameCache.getCurrentFrame(scope.modelName) + increment;
-            if (next < 0 || next > frameCache.frameCount - 1) {
+            if (next < 0 || next > frameCache.getFrameCount(scope.modelName) - 1) {
                 scope.isPlaying = false;
                 return;
             }
@@ -62,17 +62,22 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
             requestData();
         };
         scope.hasFrames = function() {
-            return frameCache.isLoaded() && frameCache.frameCount > 0;
+            return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
+        };
+        scope.hasManyFrames = function() {
+            if (SIREPO_APP_NAME == 'srw')
+                return false;
+            return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
         };
         scope.isFirstFrame = function() {
             return frameCache.getCurrentFrame(scope.modelName) == 0;
         };
         scope.isLastFrame = function() {
-            return frameCache.getCurrentFrame(scope.modelName) == frameCache.frameCount - 1;
+            return frameCache.getCurrentFrame(scope.modelName) == frameCache.getFrameCount(scope.modelName) - 1;
         };
         scope.lastFrame = function() {
             scope.isPlaying = false;
-            frameCache.setCurrentFrame(scope.modelName, frameCache.frameCount - 1);
+            frameCache.setCurrentFrame(scope.modelName, frameCache.getFrameCount(scope.modelName) - 1);
             requestData();
         };
         scope.togglePlay = function() {
@@ -84,12 +89,11 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
             scope.$on('framesCleared', scope.clearData);
         scope.$on('modelsLoaded', requestData);
         scope.$on('framesLoaded', function(event, oldFrameCount) {
-            //console.log('prevFrameIndex: ', scope.prevFrameIndex, ' oldFrameCount: ', oldFrameCount, ' frame count: ', frameCache.frameCount, ' currentFrame: ', frameCache.getCurrentFrame(scope.modelName));
             if (scope.prevFrameIndex < 0)
                 scope.firstFrame();
             else if (oldFrameCount == 0)
                 scope.lastFrame();
-            else if (scope.prevFrameIndex > frameCache.frameCount)
+            else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName))
                 scope.firstFrame();
             // go to the next last frame, if the current frame was the previous last frame
             else if (frameCache.getCurrentFrame(scope.modelName) == oldFrameCount - 1)
@@ -241,6 +245,21 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
     }
 });
 
+app.directive('animationButtons', function() {
+    return {
+        restrict: 'A',
+        template: [
+            '<div data-ng-if="isAnimation && hasManyFrames()" style="width: 100%;" class="text-center">',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1)"><span class="glyphicon glyphicon-step-backward"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? \'pause\' : \'play\' }}"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1)"><span class="glyphicon glyphicon-step-forward"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>',
+            '</div>',
+        ].join(''),
+    };
+});
+
 app.directive('plot2d', function(plotting) {
     return {
         restrict: 'A',
@@ -254,7 +273,7 @@ app.directive('plot2d', function(plotting) {
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
-            var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, xUnits, yAxis, yAxisGrid, yAxisScale, yUnits;
+            var formatter, ordinate_formatter, graphLine, points, xAxis, xAxisGrid, xAxisScale, xPeakValues, yAxis, yAxisGrid, yAxisScale;
             var defaultCircleSize = null;
             function mouseMove() {
                 if (! points)
@@ -402,7 +421,7 @@ app.directive('plot2d', function(plotting) {
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(d3.format('s'));
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
                 xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
                 yAxis = plotting.createExponentialAxis(yAxisScale, 'left');
                 yAxisGrid = plotting.createAxis(yAxisScale, 'left');
@@ -452,8 +471,6 @@ app.directive('plot2d', function(plotting) {
                 var xPoints = plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
                 points = d3.zip(xPoints, json.points);
                 $scope.xRange = json.x_range;
-                xUnits = json.x_units;
-                yUnits = json.y_units;
                 xAxisScale.domain([json.x_range[0], json.x_range[1]]);
                 yAxisScale.domain([d3.min(json.points), d3.max(json.points)]);
                 select('.y-axis-label').text(json.y_label);
@@ -467,9 +484,15 @@ app.directive('plot2d', function(plotting) {
 
             $scope.destroy = function() {
                 $('.overlay').off();
-                $scope.slider.off();
-                $scope.slider.data('slider').picker.off();
-                $scope.slider.remove();
+                if ($scope.showSlider()) {
+                    $scope.slider.off();
+                    $scope.slider.data('slider').picker.off();
+                    $scope.slider.remove();
+                }
+            };
+
+            $scope.showSlider = function() {
+                return SIREPO_APP_NAME == 'srw';
             };
         },
         link: function link(scope, element) {

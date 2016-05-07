@@ -304,10 +304,12 @@ app.factory('appState', function($rootScope, requestSender) {
     return self;
 });
 
-app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope) {
+app.factory('frameCache', function(appState, panelState, requestSender, $timeout, $rootScope) {
     var self = {};
+    var frameCountByModelKey = {};
+    var masterFrameCount = 0;
     self.animationInfo = {};
-    self.frameCount = 0;
+
 
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
@@ -352,8 +354,9 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
     self.getFrame = function(modelName, index, isPlaying, callback) {
         if (! appState.isLoaded())
             return;
+        var isHidden = panelState.isHidden(modelName);
         var startTime = new Date().getTime();
-        var delay = isPlaying
+        var delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
             : 0;
         var frameId = [
@@ -364,26 +367,39 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
             index,
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('*');
-        requestSender.sendRequest(
-            requestSender.formatUrl(
-                'simulationFrame',
-                {
-                    '<frame_id>': frameId,
-                }),
-            function(data) {
-                var endTime = new Date().getTime();
-                var elapsed = endTime - startTime;
-                if (elapsed < delay)
-                    $timeout(function() {
+
+        var requestFunction = function() {
+            requestSender.sendRequest(
+                requestSender.formatUrl(
+                    'simulationFrame',
+                    {
+                        '<frame_id>': frameId,
+                    }),
+                function(data) {
+                    var endTime = new Date().getTime();
+                    var elapsed = endTime - startTime;
+                    if (elapsed < delay)
+                        $timeout(function() {
+                            callback(index, data);
+                        }, delay - elapsed);
+                    else
                         callback(index, data);
-                    }, delay - elapsed);
-                else
-                    callback(index, data);
-            });
+                });
+        };
+        if (isHidden)
+            panelState.addPendingRequest(modelName, requestFunction);
+        else
+            requestFunction();
     };
 
     self.isLoaded = function() {
         return appState.isLoaded();
+    };
+
+    self.getFrameCount = function(modelKey) {
+        if (modelKey in frameCountByModelKey)
+            return frameCountByModelKey[modelKey];
+        return masterFrameCount;
     };
 
     self.setAnimationArgs = function(argFields, animationModelName) {
@@ -398,20 +414,25 @@ app.factory('frameCache', function(appState, requestSender, $timeout, $rootScope
         self.animationInfo[modelName].currentFrame = currentFrame;
     };
 
-    self.setFrameCount = function(frameCount) {
-        if (frameCount == self.frameCount)
+    self.setFrameCount = function(frameCount, modelKey) {
+        if (modelKey) {
+            frameCountByModelKey[modelKey] = frameCount;
+            return;
+        }
+        if (frameCount == masterFrameCount)
             return;
         if (frameCount == 0) {
-            self.frameCount = frameCount;
+            masterFrameCount = frameCount;
+            frameCountByModelKey = {};
             $rootScope.$broadcast('framesCleared');
         }
         else if (frameCount > 0) {
-            var oldFrameCount = self.frameCount;
-            self.frameCount = frameCount;
+            var oldFrameCount = masterFrameCount;
+            masterFrameCount = frameCount;
             $rootScope.$broadcast('framesLoaded', oldFrameCount);
         }
         else {
-            self.frameCount = frameCount;
+            masterFrameCount = frameCount;
         }
     }
 
@@ -428,12 +449,7 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     });
 
     function clearPanel(name) {
-        // preserves the "hidden" panel value
-        if (panels[name]) {
-            panels[name] = {
-                hidden: panels[name].hidden,
-            };
-        }
+        delete panels[name];
         delete pendingRequests[name];
     }
 
@@ -468,6 +484,10 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
         panels[name][key] = value;
     }
 
+    self.addPendingRequest = function(name, requestFunction) {
+        pendingRequests[name] = requestFunction;
+    };
+
     self.clear = function(name) {
         if (name)
             clearPanel(name);
@@ -482,7 +502,12 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     };
 
     self.isHidden = function(name) {
-        return getPanelValue(name, 'hidden') ? true : false;
+        if (! appState.isLoaded())
+            return true;
+        var state = appState.applicationState();
+        if (state.panelState)
+            return state.panelState.hidden.indexOf(name) >= 0;
+        return false;
     };
 
     self.isLoading = function(name) {
@@ -498,19 +523,24 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
             //console.log('cached: ', name);
             return;
         }
-        if (getPanelValue(name, 'hidden'))
-            pendingRequests[name] = callback;
+        if (self.isHidden(name)) {
+            self.addPendingRequest(name, function() {
+                sendRequest(name, callback);
+            });
+        }
         else
             sendRequest(name, callback);
     };
 
-    self.showModalEditor = function(modelKey) {
+    self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#s-' + modelKey + '-editor';
-        if ($(editorId).length) {
+
+        if ($(editorId).length)
             $(editorId).modal('show');
-        }
         else {
-            $('body').append($compile('<div data-modal-editor="" data-view-name="' + modelKey + '"></div>')($rootScope));
+            if (! template)
+                template = '<div data-modal-editor="" data-view-name="' + modelKey + '"></div>';
+            $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
             $timeout(function() {
                 $(editorId).modal('show');
@@ -519,18 +549,26 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     };
 
     self.toggleHidden = function(name) {
-        setPanelValue(name, 'hidden', ! self.isHidden(name));
-        if (! self.isHidden(name)) {
+        var state = appState.applicationState();
+        if (! state.panelState) {
+            state.panelState = {
+                hidden: [],
+            };
+        }
+        if (self.isHidden(name)) {
+            state.panelState.hidden.splice(state.panelState.hidden.indexOf(name), 1);
 
             if (pendingRequests[name]) {
-                var callback = pendingRequests[name];
+                var requestFunction = pendingRequests[name];
                 delete pendingRequests[name];
-                sendRequest(name, callback);
+                requestFunction();
             }
             // needed to resize a hidden report
             if (appState.isReportModelName(name))
                 $($window).trigger('resize');
         }
+        else
+            state.panelState.hidden.push(name);
     };
 
     return self;
