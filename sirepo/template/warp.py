@@ -33,7 +33,7 @@ _MIN_MAX_INDEX = {
 }
 
 
-def background_percent_complete(data, run_dir, is_running):
+def background_percent_complete(data, run_dir, is_running, schema):
     simulation_id = data['models']['simulation']['simulationId']
     files = _h5_file_list(run_dir)
     if len(files) < 2:
@@ -261,13 +261,13 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def get_data_file(run_dir, frame_index):
+def get_data_file(run_dir, model, frame):
     files = _h5_file_list(run_dir)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
-    if len(files) < frame_index + 1:
-        frame_index = -1
-    filename = str(files[int(frame_index)])
+    if len(files) < frame + 1:
+        frame = -1
+    filename = str(files[int(frame)])
     with open(filename) as f:
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
