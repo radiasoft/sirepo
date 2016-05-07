@@ -4,6 +4,14 @@
             ["0", "No"],
             ["1", "Yes"]
         ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
         "LongitudinalBunchMethod": [
             ["1", "sigma s, sigma dp, dp s coupling"],
             ["2", "sigma s, sigma dp, alpha z"],
@@ -229,8 +237,6 @@
         "beamline": {
             "name": ["Name", "String"]
         },
-        "beamlineElementSettings": {
-        },
         "beamlineReport": {
         },
         "bunch": {
@@ -256,9 +262,12 @@
             "histogramBins": ["Histogram Bins", "Integer"]
         },
         "elementAnimation": {
-            "x": ["X Value", "PhaseSpaceCoordinate"],
-            "y": ["Y Value", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"]
+            "x": ["X Value", "ValueList", ""],
+            "y": ["Y Value", "ValueList", ""],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "fileId": ["File ID", "String", ""],
+            "values": ["Values", "Array", []]
         },
         "simulation": {
             "name": ["Name", "String"]
@@ -288,7 +297,7 @@
             "strength": ["STRENGTH", "Float", "0.0", "factor by which to multiply field"],
             "accuracy": ["ACCURACY", "Float", "0.0", "integration accuracy"],
             "method": ["METHOD", "BmapxyMethod", "", "integration method"],
-            "filename": ["FILENAME", "OptionalString", "", "name of file containing columns (x, y, Fx, Fy) giving normalized field (Fx, Fy) vs (x, y)"],
+            "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, Fx, Fy) giving normalized field (Fx, Fy) vs (x, y)"],
             "fx": ["FX", "OptionalString", "", "rpn expression for Fx in terms of x and y"],
             "fy": ["FY", "OptionalString", "", "rpn expression for Fy in terms of x and y"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
@@ -307,8 +316,8 @@
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "fire_on_pass": ["FIRE ON PASS", "Integer", "0", "pass number to fire on"],
             "n_kicks": ["N KICKS", "Integer", "0", "Number of kicks to use for simulation. 0 uses an exact result but ignores b2."],
-            "waveform": ["WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
-            "deflection_map": ["DEFLECTION MAP", "OptionalString", "", "optional filename giving the spatial variation of the deflection"],
+            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "deflection_map": ["DEFLECTION MAP", "InputFile", "", "optional filename giving the spatial variation of the deflection"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CENTER": {
@@ -483,7 +492,7 @@
             "sgderiv_halfwidth": ["SGDERIV HALFWIDTH", "Integer", "0", "Savitzky-Golay filter half-width for taking derivative of current histogram. Defaults to SG HALFWIDTH (if positive) or else 1."],
             "sgderiv_order": ["SGDERIV ORDER", "Integer", "1", "Savitzky-Golay filter order for taking derivative of current histogram"],
             "trapazoid_integration": ["TRAPAZOID INTEGRATION", "Integer", "1", "Select whether to use trapazoid-rule integration (default)or a simple sum."],
-            "output_file": ["OUTPUT FILE", "OptionalString", "", "output file for CSR wakes"],
+            "output_file": ["OUTPUT FILE", "OutputFile", "", "output file for CSR wakes"],
             "output_interval": ["OUTPUT INTERVAL", "Integer", "1", "interval (in kicks) of output to OUTPUT FILE"],
             "output_last_wake_only": ["OUTPUT LAST WAKE ONLY", "Boolean", "0", "output final wake only?"],
             "steady_state": ["STEADY STATE", "Boolean", "0", "use steady-state wake equations?"],
@@ -503,7 +512,7 @@
             "csr": ["CSR", "Boolean", "1", "enable CSR computations?"],
             "block_csr": ["BLOCK CSR", "Boolean", "0", "block CSR from entering CSR-DRIFT?"],
             "derbenev_criterion_mode": ["DERBENEV CRITERION MODE", "CsrcsbendDerbenevCriterionMode", "disable", ""],
-            "particle_output_file": ["PARTICLE OUTPUT FILE", "OptionalString", "", "name of file for phase-space output"],
+            "particle_output_file": ["PARTICLE OUTPUT FILE", "OutputFile", "", "name of file for phase-space output"],
             "particle_output_interval": ["PARTICLE OUTPUT INTERVAL", "Integer", "0", "interval (in kicks) of output to PARTICLE OUTPUT FILE"],
             "slice_analysis_interval": ["SLICE ANALYSIS INTERVAL", "Integer", "0", "interval (in kicks) of output to slice analysis file (from slice analysis command)"],
             "low_frequency_cutoff0": ["LOW FREQUENCY CUTOFF0", "Float", "-1", "Highest spatial frequency at which low-frequency cutoff filter is zero. If not positive, no low-frequency cutoff filter is applied. Frequency is in units of Nyquist (0.5/binsize)."],
@@ -511,7 +520,7 @@
             "high_frequency_cutoff0": ["HIGH FREQUENCY CUTOFF0", "Float", "-1", "Spatial frequency at which smoothing (high-frequency cutoff) filter begins. If not positive, no frequency filter smoothing is done. Frequency is in units of Nyquist (0.5/binsize)."],
             "high_frequency_cutoff1": ["HIGH FREQUENCY CUTOFF1", "Float", "-1", "Spatial frequency at which smoothing (high-frequency cutoff) filter is 0. If not given, defaults to HIGH FREQUENCY CUTOFF0."],
             "clip_negative_bins": ["CLIP NEGATIVE BINS", "Boolean", "1", "If non-zero, then any bins with negative counts after the filters are applied have the counts set to zero."],
-            "wake_filter_file": ["WAKE FILTER FILE", "OptionalString", "", "Name of file supplying wake-field filtering data."],
+            "wake_filter_file": ["WAKE FILTER FILE", "InputFile", "", "Name of file supplying wake-field filtering data."],
             "wff_freq_column": ["WFF FREQ COLUMN", "OptionalString", "", "Name of column supplying frequency values for wakefield filtering data."],
             "wff_real_column": ["WFF REAL COLUMN", "OptionalString", "", "Name of column supplying real values for wakefield filtering data."],
             "wff_imag_column": ["WFF IMAG COLUMN", "OptionalString", "", "Name of column supplying imaginary values for wakefield filtering data."],
@@ -533,9 +542,9 @@
             "spread_mode": ["SPREAD MODE", "CsrdriftSpreadMode", "full", ""],
             "wavelength_mode": ["WAVELENGTH MODE", "CsrdriftWavelengthMode", "sigmaz", ""],
             "bunchlength_mode": ["BUNCHLENGTH MODE", "CsrdriftBunchlengthMode", "68-percentile", ""],
-            "saldin54_output": ["SALDIN54 OUTPUT", "OptionalString", "", "Filename for output of CSR intensity vs. z as computed using Saldin eq 54."],
+            "saldin54_output": ["SALDIN54 OUTPUT", "OutputFile", "", "Filename for output of CSR intensity vs. z as computed using Saldin eq 54."],
             "use_stupakov": ["USE STUPAKOV", "Boolean", "0", "Use treatment from G. Stupakov's note of 9/12/2001?"],
-            "stupakov_output": ["STUPAKOV OUTPUT", "OptionalString", "", "Filename for output of CSR wake vs. s as computed using Stupakov's equations."],
+            "stupakov_output": ["STUPAKOV OUTPUT", "OutputFile", "", "Filename for output of CSR wake vs. s as computed using Stupakov's equations."],
             "stupakov_output_interval": ["STUPAKOV OUTPUT INTERVAL", "Integer", "1", "Interval (in kicks) between output of Stupakov wakes."],
             "slice_analysis_interval": ["SLICE ANALYSIS INTERVAL", "Integer", "0", "interval (in kicks) of output to slice analysis file (from slice analysis command)"],
             "linearize": ["LINEARIZE", "Boolean", "0", "use linear optics for drift pieces?"],
@@ -561,8 +570,8 @@
             "periods": ["PERIODS", "Integer", "0", "Number of wiggler periods."],
             "steps_per_period": ["STEPS PER PERIOD", "Integer", "10", "Integration steps per period."],
             "integration_order": ["INTEGRATION ORDER", "Integer", "4", "Integration order (2 or 4)."],
-            "by_file": ["BY FILE", "OptionalString", "", "Name of SDDS file with By harmonic data."],
-            "bx_file": ["BX FILE", "OptionalString", "", "Name of SDDS file with Bx harmonic data."],
+            "by_file": ["BY FILE", "InputFile", "", "Name of SDDS file with By harmonic data."],
+            "bx_file": ["BX FILE", "InputFile", "", "Name of SDDS file with Bx harmonic data."],
             "by_split_pole": ["BY SPLIT POLE", "Boolean", "0", "Use \"split-pole\" expansion for By?"],
             "bx_split_pole": ["BX SPLIT POLE", "Boolean", "0", "Use \"split-pole\" expansion for Bx?"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "Include classical synchrotron radiation?"],
@@ -572,7 +581,7 @@
             "vertical": ["VERTICAL", "Boolean", "0", "If SINUSOIDAL is non-zero, then setting this to non-zero gives a vertical wiggler. Default is horizontal."],
             "helical": ["HELICAL", "Boolean", "0", "Ideal helical wiggler? If non-zero and SINUSOIDAL is also non-zero, BX FILE and BY FILE are not used."],
             "force_matched": ["FORCE MATCHED", "Boolean", "1", "Force matched dispersion for first harmonics? If non-zero, start and end of magnetic field will be inset from the ends of the device if phase is not 0 or π."],
-            "field_output": ["FIELD OUTPUT", "OptionalString", "", "Name of file to which field samples will be written. Slow, so use only for debugging."],
+            "field_output": ["FIELD OUTPUT", "OutputFile", "", "Name of file to which field samples will be written. Slow, so use only for debugging."],
             "verbosity": ["VERBOSITY", "Integer", "0", "A higher value requires more detailed printouts related to computations."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -585,7 +594,7 @@
         "DSCATTER": {
             "name": ["Name", "String"],
             "plane": ["PLANE", "DscatterPlane", "", "Plane to scatter, (dp is deltaP/P)"],
-            "filename": ["FILENAME", "OptionalString", "", "Name of SDDS file containing distribution function."],
+            "filename": ["FILENAME", "InputFile", "", "Name of SDDS file containing distribution function."],
             "valuename": ["VALUENAME", "OptionalString", "", "Name of column containing the independent variable for the distribution function data."],
             "cdfname": ["CDFNAME", "OptionalString", "", "Name of column containing the cumulative distribution function data."],
             "pdfname": ["PDFNAME", "OptionalString", "", "Name of column containing the probability distribution function data."],
@@ -878,20 +887,20 @@
             "fse": ["FSE", "Float", "0.0", "fractional strength error"],
             "n_kicks": ["N KICKS", "Integer", "1", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "include classical synchrotron radiation?"],
-            "filename": ["FILENAME", "OptionalString", "", "name of file containing multi-pole data"],
+            "filename": ["FILENAME", "InputFile", "", "name of file containing multi-pole data"],
             "sqrt_order": ["SQRT ORDER", "Integer", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FRFMODE": {
             "name": ["Name", "String"],
-            "filename": ["FILENAME", "OptionalString", "", "input file"],
+            "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "Float", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "Integer", "20", "number of bins for current histogram"],
             "rigid_until_pass": ["RIGID UNTIL PASS", "Integer", "0", "don't affect the beam until this pass"],
             "use_symm_data": ["USE SYMM DATA", "Boolean", "0", "use \"Symm\" columns from URMEL output file?"],
             "factor": ["FACTOR", "Float", "1", "factor by which to multiply shunt impedances"],
             "cutoff": ["CUTOFF [HZ]", "Float", "0.0", "If >0, cutoff frequency. Modes above this frequency are ignored."],
-            "output_file": ["OUTPUT FILE", "OptionalString", "", "Output file for voltage in each mode."],
+            "output_file": ["OUTPUT FILE", "OutputFile", "", "Output file for voltage in each mode."],
             "flush_interval": ["FLUSH INTERVAL", "Integer", "1", "Interval in passes at which to flush output data."],
             "ramp_passes": ["RAMP PASSES", "Integer", "0", "Number of passes over which to linearly ramp up the impedance to full strength."],
             "reset_for_each_step": ["RESET FOR EACH STEP", "Boolean", "1", "If nonzero, voltage and phase are reset for each simulation step."],
@@ -912,14 +921,14 @@
             "dx": ["DX [M]", "Float", "0.0", "misalignment"],
             "dy": ["DY [M]", "Float", "0.0", "misalignment"],
             "dz": ["DZ [M]", "Float", "0.0", "misalignment"],
-            "input_file": ["INPUT FILE", "OptionalString", "", "Name of SDDS file which contains field data."],
+            "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file which contains field data."],
             "n_kicks": ["N KICKS", "Integer", "1", "Number of kicks into which to split the element."],
             "verbose": ["VERBOSE", "Integer", "0", "Used for debugging code. Not applicable to Pelegant"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FTRFMODE": {
             "name": ["Name", "String"],
-            "filename": ["FILENAME", "OptionalString", "", "input file"],
+            "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "Float", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "Integer", "20", "number of bins for current histogram"],
             "rigid_until_pass": ["RIGID UNTIL PASS", "Integer", "0", "don't affect the beam until this pass"],
@@ -929,7 +938,7 @@
             "xfactor": ["XFACTOR", "Float", "1", "factor by which to multiply shunt impedances"],
             "yfactor": ["YFACTOR", "Float", "1", "factor by which to multiply shunt impedances"],
             "cutoff": ["CUTOFF [HZ]", "Float", "0.0", "If >0, cutoff frequency. Modes above this frequency are ignored."],
-            "output_file": ["OUTPUT FILE", "OptionalString", "", "Output file for voltage in each mode."],
+            "output_file": ["OUTPUT FILE", "OutputFile", "", "Output file for voltage in each mode."],
             "flush_interval": ["FLUSH INTERVAL", "Integer", "1", "Interval in passes at which to flush output data."],
             "ramp_passes": ["RAMP PASSES", "Integer", "0", "Number of passes over which to linearly ramp up the impedance to full strength."],
             "reset_for_each_step": ["RESET FOR EACH STEP", "Boolean", "1", "If nonzero, voltage and phase are reset for each simulation step."],
@@ -952,8 +961,8 @@
             "order": ["ORDER", "Integer", "0", "Order=3 including the 3rd order terms. Otherwise using 2nd order formula."],
             "end_pole": ["END POLE", "Integer", "1", "The ending poles are treated as 2 half periods at each sides of the wiggler with reducing field strength, such as 0.25, 0.75, ..., 0.75, -0.25. Periods has to >2"],
             "shim_on": ["SHIM ON", "Integer", "0", "Include shim correction"],
-            "input_file": ["INPUT FILE", "OptionalString", "", "Name of SDDS file with By harmonic data given at GAP0 and equal longitudinal phases."],
-            "shim_input": ["SHIM INPUT", "OptionalString", "", "Name of SDDS file with shim field integral harmonic data given at GAP0."],
+            "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file with By harmonic data given at GAP0 and equal longitudinal phases."],
+            "shim_input": ["SHIM INPUT", "InputFile", "", "Name of SDDS file with shim field integral harmonic data given at GAP0."],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "Include classical synchrotron radiation?"],
             "isr": ["ISR", "Boolean", "0", "Include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "Integer", "1", "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
@@ -969,7 +978,7 @@
         },
         "HISTOGRAM": {
             "name": ["Name", "String"],
-            "filename": ["FILENAME", "OptionalString", "", "filename for histogram output, possibly incomplete (see below)"],
+            "filename": ["FILENAME", "OutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
             "interval": ["INTERVAL", "Integer", "1", "interval in passes between output"],
             "start_pass": ["START PASS", "Integer", "0", "starting pass for output"],
             "bins": ["BINS", "Integer", "50", "number of bins"],
@@ -1025,7 +1034,7 @@
             "force_matched_twiss": ["FORCE MATCHED TWISS", "Integer", "0", "Force computations to be done with twiss parameters of the beamline, not the beam."],
             "isring": ["ISRING", "Boolean", "1", "Is it storage ring?"],
             "interval": ["INTERVAL", "Integer", "1", "Interval in passes at which to update output file."],
-            "filename": ["FILENAME", "OptionalString", "", "Output filename."],
+            "filename": ["FILENAME", "OutputFile", "", "Output filename."],
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "Boolean", "1", "If non-zero, then do calculations bunch-by-bunch."],
             "verbose": ["VERBOSE", "Boolean", "0", "If non-zero, then print updates during calculations."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
@@ -1099,8 +1108,8 @@
             "fse": ["FSE", "Float", "0.0", "fractional strength error"],
             "n_kicks": ["N KICKS", "Integer", "4", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "include classical synchrotron radiation?"],
-            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "OptionalString", "", "input file for systematic multi-poles"],
-            "random_multipoles": ["RANDOM MULTIPOLES", "OptionalString", "", "input file for random multi-poles"],
+            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
             "integration_order": ["INTEGRATION ORDER", "Integer", "4", "integration order (2 or 4)"],
             "sqrt_order": ["SQRT ORDER", "Integer", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "isr": ["ISR", "Boolean", "0", "include incoherent synchrotron radiation (scattering)?"],
@@ -1138,9 +1147,9 @@
             "vsteering": ["VSTEERING", "Boolean", "0", "use for vertical correction?"],
             "n_kicks": ["N KICKS", "Integer", "4", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "include classical synchrotron radiation?"],
-            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "OptionalString", "", "input file for systematic multi-poles"],
-            "random_multipoles": ["RANDOM MULTIPOLES", "OptionalString", "", "input file for random multi-poles"],
-            "steering_multipoles": ["STEERING MULTIPOLES", "OptionalString", "", "input file for multipole content of steering kicks"],
+            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
+            "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for multipole content of steering kicks"],
             "integration_order": ["INTEGRATION ORDER", "Integer", "4", "integration order (2 or 4)"],
             "sqrt_order": ["SQRT ORDER", "Integer", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "isr": ["ISR", "Boolean", "0", "include incoherent synchrotron radiation (scattering)?"],
@@ -1223,8 +1232,8 @@
             "fse": ["FSE", "Float", "0.0", "fractional strength error"],
             "n_kicks": ["N KICKS", "Integer", "4", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "include classical synchrotron radiation?"],
-            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "OptionalString", "", "input file for systematic multi-poles"],
-            "random_multipoles": ["RANDOM MULTIPOLES", "OptionalString", "", "input file for random multi-poles"],
+            "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
             "integration_order": ["INTEGRATION ORDER", "Integer", "4", "integration order (2 or 4)"],
             "sqrt_order": ["SQRT ORDER", "Integer", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "isr": ["ISR", "Boolean", "0", "include incoherent synchrotron radiation (scattering)?"],
@@ -1246,7 +1255,7 @@
         },
         "LRWAKE": {
             "name": ["Name", "String"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "name of file giving Green function"],
+            "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing longitudinal Green function"],
             "wycolumn": ["WYCOLUMN", "OptionalString", "", "column in INPUTFILE containing horizontal Green function"],
@@ -1300,7 +1309,7 @@
             "laser_n": ["LASER N", "Integer", "0", "laser vertical mode number (<5)"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "Include classical synchrotron radiation?"],
             "isr": ["ISR", "Boolean", "0", "Include quantum excitation?"],
-            "time_profile": ["TIME PROFILE", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving time-dependent modulation of the laser electric and magnetic fields."],
+            "time_profile": ["TIME PROFILE", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving time-dependent modulation of the laser electric and magnetic fields."],
             "time_offset": ["TIME OFFSET [S]", "Float", "0.0", "Time offset of the laser profile."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1351,7 +1360,7 @@
             "eyaw": ["EYAW [RAD]", "Float", "0.0", "misalignment"],
             "epitch": ["EPITCH [RAD]", "Float", "0.0", "misalignment"],
             "n_steps": ["N STEPS", "Integer", "100", "number of steps (for nonadaptive integration)"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "SDDS file containing (Br, Bz) vs (r, z). Each page should have values for a fixed r."],
+            "inputfile": ["INPUTFILE", "InputFile", "", "SDDS file containing (Br, Bz) vs (r, z). Each page should have values for a fixed r."],
             "rcolumn": ["RCOLUMN", "OptionalString", "", "column containing r values"],
             "zcolumn": ["ZCOLUMN", "OptionalString", "", "column containing z values"],
             "brcolumn": ["BRCOLUMN", "OptionalString", "", "column containing Br values"],
@@ -1374,7 +1383,7 @@
         "MATR": {
             "name": ["Name", "String"],
             "l": ["L [M]", "Float", "0.0", "length"],
-            "filename": ["FILENAME", "OptionalString", "", "input file"],
+            "filename": ["FILENAME", "InputFile", "", "input file"],
             "order": ["ORDER", "Integer", "1", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1422,18 +1431,18 @@
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "fire_on_pass": ["FIRE ON PASS", "Integer", "0", "pass number to fire on"],
             "n_kicks": ["N KICKS", "Integer", "0", "Number of kicks to use for simulation."],
-            "waveform": ["WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MHISTOGRAM": {
             "name": ["Name", "String"],
-            "file1d": ["FILE1D", "OptionalString", "", "filename for 1d histogram output, possibly incomplete (see below)"],
-            "file2dh": ["FILE2DH", "OptionalString", "", "filename for 2d x-x' histogram output, possibly incomplete (see below)"],
-            "file2dv": ["FILE2DV", "OptionalString", "", "filename for 2d y-y' histogram output, possibly incomplete (see below)"],
-            "file2dl": ["FILE2DL", "OptionalString", "", "filename for 2d dt-deltaP histogram output, possibly incomplete (see below)"],
-            "file4d": ["FILE4D", "OptionalString", "", "filename for 4d x-x'-y-y' histogram output, possibly incomplete (see below)"],
-            "file6d": ["FILE6D", "OptionalString", "", "filename for 6d x-x'-y-y'-dtdeltaP histogram output, possibly incomplete (see below)"],
-            "input_bins": ["INPUT BINS", "OptionalString", "", "Name ofSDDSfile contains input bin number."],
+            "file1d": ["FILE1D", "OutputFile", "", "filename for 1d histogram output, possibly incomplete (see below)"],
+            "file2dh": ["FILE2DH", "OutputFile", "", "filename for 2d x-x' histogram output, possibly incomplete (see below)"],
+            "file2dv": ["FILE2DV", "OutputFile", "", "filename for 2d y-y' histogram output, possibly incomplete (see below)"],
+            "file2dl": ["FILE2DL", "OutputFile", "", "filename for 2d dt-deltaP histogram output, possibly incomplete (see below)"],
+            "file4d": ["FILE4D", "OutputFile", "", "filename for 4d x-x'-y-y' histogram output, possibly incomplete (see below)"],
+            "file6d": ["FILE6D", "OutputFile", "", "filename for 6d x-x'-y-y'-dtdeltaP histogram output, possibly incomplete (see below)"],
+            "input_bins": ["INPUT BINS", "InputFile", "", "Name ofSDDSfile contains input bin number."],
             "interval": ["INTERVAL", "Integer", "1", "interval in passes between output."],
             "start_pass": ["START PASS", "Integer", "0", "starting pass for output"],
             "normalize": ["NORMALIZE", "Boolean", "1", "normalize histogram with number of particles?"],
@@ -1641,7 +1650,7 @@
         },
         "RAMPP": {
             "name": ["Name", "String"],
-            "waveform": ["WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
+            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPRF": {
@@ -1651,9 +1660,9 @@
             "phase": ["PHASE [DEG]", "Float", "0.0", "nominal phase"],
             "freq": ["FREQ [Hz]", "Float", "500000000", "nominal frequency"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
-            "volt_waveform": ["VOLT WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
-            "phase_waveform": ["PHASE WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving phase offset vs time (requires FREQ WAVEFORM)"],
-            "freq_waveform": ["FREQ WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving frequency factor vs time (requires PHASE WAVEFORM)"],
+            "volt_waveform": ["VOLT WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "phase_waveform": ["PHASE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving phase offset vs time (requires FREQ WAVEFORM)"],
+            "freq_waveform": ["FREQ WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving frequency factor vs time (requires PHASE WAVEFORM)"],
             "fiducial": ["FIDUCIAL", "Fiducial", "", "mode for determining fiducial arrival time"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1756,9 +1765,9 @@
             "n_kicks": ["N KICKS", "Integer", "0", "Number of kicks to use for kick method. Set to zero for matrix method."],
             "zwake": ["ZWAKE", "Integer", "1", "If zero, longitudinal wake is turned off."],
             "trwake": ["TRWAKE", "Integer", "1", "If zero, transverse wakes are turned off."],
-            "wakefile": ["WAKEFILE", "OptionalString", "", "name of file containing Green functions"],
-            "zwakefile": ["ZWAKEFILE", "OptionalString", "", "if WAKEFILE=NULL, optional name of file containing longitudinal Green function"],
-            "trwakefile": ["TRWAKEFILE", "OptionalString", "", "if WAKEFILE=NULL, optional name of file containing transverse Green functions"],
+            "wakefile": ["WAKEFILE", "InputFile", "", "name of file containing Green functions"],
+            "zwakefile": ["ZWAKEFILE", "InputFile", "", "if WAKEFILE=NULL, optional name of file containing longitudinal Green function"],
+            "trwakefile": ["TRWAKEFILE", "InputFile", "", "if WAKEFILE=NULL, optional name of file containing transverse Green functions"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column containing x Green function"],
             "wycolumn": ["WYCOLUMN", "OptionalString", "", "column containing y Green function"],
@@ -1795,7 +1804,7 @@
             "n_kicks": ["N KICKS", "Integer", "0", "number of kicks (0=autoscale)"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "standing_wave": ["STANDING WAVE", "Boolean", "0", "If nonzero, then cavity is standing wave."],
-            "voltage_waveform": ["VOLTAGE WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
             "voltage_periodic": ["VOLTAGE PERIODIC", "Boolean", "0", "If non-zero, voltage waveform is periodic with period given by time span."],
             "align_waveforms": ["ALIGN WAVEFORMS", "Boolean", "0", "If non-zero, waveforms' t=0 is aligned with first bunch arrival time."],
             "voltage_noise": ["VOLTAGE NOISE", "Float", "0.0", "Rms fractional noise level for voltage."],
@@ -1835,11 +1844,11 @@
             "detuned_until_pass": ["DETUNED UNTIL PASS", "Integer", "0", "cavity is completely detuned until this pass"],
             "sample_interval": ["SAMPLE INTERVAL", "Integer", "1", "passes between samples to RECORD file"],
             "flush_interval": ["FLUSH INTERVAL", "Integer", "1000", "samples between flushing output to RECORD file"],
-            "record": ["RECORD", "OptionalString", "", "output file for cavity fields"],
+            "record": ["RECORD", "OutputFile", "", "output file for cavity fields"],
             "single_pass": ["SINGLE PASS", "Boolean", "0", "if nonzero, don't accumulate field from pass to pass"],
             "pass_interval": ["PASS INTERVAL", "Integer", "1", "interval in passes at which to apply PASS INTERVAL times the field (may increase speed)"],
-            "freq_waveform": ["FREQ WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving frequency/f0 vs time, where f0 is the frequency given with the FREQ parameter"],
-            "q_waveform": ["Q WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving qualityFactor/Q0 vs time, where Q0 is the quality factor given the the Q parameter."],
+            "freq_waveform": ["FREQ WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving frequency/f0 vs time, where f0 is the frequency given with the FREQ parameter"],
+            "q_waveform": ["Q WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving qualityFactor/Q0 vs time, where Q0 is the quality factor given the the Q parameter."],
             "ramp_passes": ["RAMP PASSES", "Integer", "0", "Number of passes over which to linearly ramp up the impedance to full strength."],
             "binless": ["BINLESS", "Boolean", "0", "If nonzero, use algorithm that doesn't requiring binning. Best for few particles, widely spaced."],
             "reset_for_each_step": ["RESET FOR EACH STEP", "Boolean", "1", "If nonzero, voltage and phase are reset for each simulation step."],
@@ -1864,7 +1873,7 @@
             "frequency": ["FREQUENCY [HZ]", "Float", "2856000000", "frequency"],
             "voltage": ["VOLTAGE [V]", "Float", "0.0", "peak deflecting voltage"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
-            "voltage_waveform": ["VOLTAGE WAVEFORM", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
             "voltage_periodic": ["VOLTAGE PERIODIC", "Boolean", "0", "If non-zero, voltage waveform is periodic with period given by time span."],
             "align_waveforms": ["ALIGN WAVEFORMS", "Boolean", "0", "If non-zero, waveforms' t=0 is aligned with first bunch arrival time."],
             "voltage_noise": ["VOLTAGE NOISE", "Float", "0.0", "Rms fractional noise level for voltage."],
@@ -1894,10 +1903,10 @@
             "n_steps": ["N STEPS", "Integer", "100", "number of steps (for nonadaptive integration)"],
             "radial_order": ["RADIAL ORDER", "Integer", "1", "highest order in off-axis expansion"],
             "change_p0": ["CHANGE P0", "Boolean", "0", "does element change central momentum?"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "file containing Ez vs z at r=0"],
+            "inputfile": ["INPUTFILE", "InputFile", "", "file containing Ez vs z at r=0"],
             "zcolumn": ["ZCOLUMN", "OptionalString", "", "column containing z values"],
             "ezcolumn": ["EZCOLUMN", "OptionalString", "", "column containing Ez values"],
-            "solenoid_file": ["SOLENOID FILE", "OptionalString", "", "file containing map of Bz and Br vs z and r. Each page contains values for a single r."],
+            "solenoid_file": ["SOLENOID FILE", "InputFile", "", "file containing map of Bz and Br vs z and r. Each page contains values for a single r."],
             "solenoid_zcolumn": ["SOLENOID ZCOLUMN", "OptionalString", "", "column containing z values for solenoid map."],
             "solenoid_rcolumn": ["SOLENOID RCOLUMN", "OptionalString", "", "column containing r values for solenoid map. If omitted, data is assumed to be for r=0 and an on-axis expansion is performed."],
             "solenoid_bzcolumn": ["SOLENOID BZCOLUMN", "OptionalString", "", "column containing Bz values for solenoid map."],
@@ -1914,7 +1923,7 @@
             "accuracy": ["ACCURACY", "Float", "0.0001", "integration accuracy"],
             "method": ["METHOD", "Rftmez0Method", "runge-kutta", "integration method"],
             "fiducial": ["FIDUCIAL", "TPFiducial", "t,median", ""],
-            "field_test_file": ["FIELD TEST FILE", "OptionalString", "", "filename for output of test fields (r=0)"],
+            "field_test_file": ["FIELD TEST FILE", "OutputFile", "", "filename for output of test fields (r=0)"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RIMULT": {
@@ -2099,7 +2108,7 @@
             "kick_limit": ["KICK LIMIT", "Float", "0.0", "Limit on applied kick, nominally in radians."],
             "delay": ["DELAY", "Integer", "0", "Delay (in turns)"],
             "longitudinal": ["LONGITUDINAL", "Boolean", "0", "If non-zero, kick is in the longitudinal plane. KICK LIMIT is in fractional momentum deviation."],
-            "output_file": ["OUTPUT FILE", "OptionalString", "", "File for logging filter output and driver output"],
+            "output_file": ["OUTPUT FILE", "OutputFile", "", "File for logging filter output and driver output"],
             "a0": ["A0", "Float", "1", "Filter coefficient"],
             "a1": ["A1", "Float", "0.0", "Filter coefficient"],
             "a2": ["A2", "Float", "0.0", "Filter coefficient"],
@@ -2185,7 +2194,7 @@
             "plane": ["PLANE", "TrfmodePlane", "both", ""],
             "sample_interval": ["SAMPLE INTERVAL", "Integer", "1", "passes between output to RECORD file"],
             "per_particle_output": ["PER PARTICLE OUTPUT", "Boolean", "0", "If non-zero, then in BINLESS mode, provides per-particle output of RECORD data."],
-            "record": ["RECORD", "OptionalString", "", "output file for cavity data"],
+            "record": ["RECORD", "OutputFile", "", "output file for cavity data"],
             "single_pass": ["SINGLE PASS", "Boolean", "0", "if nonzero, don't accumulate field from pass to pass"],
             "rigid_until_pass": ["RIGID UNTIL PASS", "Integer", "0", "don't affect the beam until this pass"],
             "dx": ["DX [M]", "Float", "0.0", "misalignment"],
@@ -2202,7 +2211,7 @@
         },
         "TRWAKE": {
             "name": ["Name", "String"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "name of file giving Green functions"],
+            "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green functions"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing x Green function"],
             "wycolumn": ["WYCOLUMN", "OptionalString", "", "column in INPUTFILE containing y Green function"],
@@ -2341,7 +2350,7 @@
             "dz": ["DZ [M]", "Float", "0.0", "misalignment"],
             "field_factor": ["FIELD FACTOR", "Float", "1", "Factor by which to multiply the magnetic fields."],
             "xy_factor": ["XY FACTOR", "Float", "1", "Factor by which to multiply the x and y values in the input file."],
-            "input_file": ["INPUT FILE", "OptionalString", "", "Name of SDDS file with undulator kickmap data."],
+            "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file with undulator kickmap data."],
             "n_kicks": ["N KICKS", "Integer", "1", "Number of kicks into which to split the element."],
             "periods": ["PERIODS", "Integer", "0", "Number of periods (for radiation integral computations only)."],
             "kref": ["KREF", "Float", "0.0", "Reference value of undulator parameter. K=KREF*FIELD FACTOR is used for radiation integral calculations only assuming period=L/PERIODS."],
@@ -2380,7 +2389,7 @@
         },
         "WAKE": {
             "name": ["Name", "String"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "name of file giving Green function"],
+            "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wcolumn": ["WCOLUMN", "OptionalString", "", "column in INPUTFILE containing Green function"],
             "charge": ["CHARGE [C]", "Float", "0.0", "beam charge (or use CHARGE element)"],
@@ -2404,7 +2413,7 @@
             "interval": ["INTERVAL", "Integer", "1", "interval for data output (in turns)"],
             "start_pass": ["START PASS", "Integer", "0", "pass on which to start"],
             "end_pass": ["END PASS", "Integer", "-1", "pass on which to end (inclusive). Ignored if negative."],
-            "filename": ["FILENAME", "OptionalString", "", "output filename, possibly incomplete (see below)"],
+            "filename": ["FILENAME", "OutputFile", "", "output filename, possibly incomplete (see below)"],
             "label": ["LABEL", "OptionalString", "", "output label"],
             "mode": ["MODE", "WatchMode", "coordinates", ""],
             "x_data": ["X DATA", "Boolean", "1", "include x data in coordinate mode?"],
@@ -2439,12 +2448,12 @@
             "rs": ["RS [Ohm]", "Float", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "Float", "0.0", "cavity Q"],
             "freq": ["FREQ [Hz]", "Float", "0.0", "frequency (BROAD BAND=1)"],
-            "zreal": ["ZREAL", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving real part of impedance vs f (BROAD BAND=0)"],
-            "zimag": ["ZIMAG", "OptionalString", "", "<filename>=<x>+<y>form specification of input file giving imaginary part of impedance vs f (BROAD BAND=0)"],
+            "zreal": ["ZREAL", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving real part of impedance vs f (BROAD BAND=0)"],
+            "zimag": ["ZIMAG", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving imaginary part of impedance vs f (BROAD BAND=0)"],
             "bin_size": ["BIN SIZE [S]", "Float", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "Integer", "128", "number of bins for current histogram"],
             "max_n_bins": ["MAX N_BINS", "Integer", "0", "Maximum number of bins for current histogram"],
-            "wakes": ["WAKES", "OptionalString", "", "filename for output of wake"],
+            "wakes": ["WAKES", "OutputFile", "", "filename for output of wake"],
             "wake_interval": ["WAKE INTERVAL", "Integer", "1", "interval in passes at which to output wake"],
             "wake_start": ["WAKE START", "Integer", "0", "pass at which to start to output wake"],
             "wake_end": ["WAKE END", "Integer", "9223372036854775807", "pass at which to stop to output wake"],
@@ -2469,7 +2478,7 @@
             "rs": ["RS [Ohm]", "Float", "0.0", "shunt impedance (Rs=Ra/2=V^2/(2*P))"],
             "q": ["Q", "Float", "0.0", "cavity Q"],
             "freq": ["FREQ [Hz]", "Float", "0.0", "frequency (BROAD BAND=1)"],
-            "inputfile": ["INPUTFILE", "OptionalString", "", "name of file giving impedance (BROAD BAND=0)"],
+            "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving impedance (BROAD BAND=0)"],
             "freqcolumn": ["FREQCOLUMN", "OptionalString", "", "column in INPUTFILE containing frequency"],
             "zxreal": ["ZXREAL", "OptionalString", "", "column in INPUTFILE containing real impedance for x plane"],
             "zximag": ["ZXIMAG", "OptionalString", "", "column in INPUTFILE containing imaginary impedance for x plane"],
@@ -2487,7 +2496,7 @@
             "factor": ["FACTOR", "Float", "1", "Factor by which to multiply x and y impedances."],
             "xfactor": ["XFACTOR", "Float", "1", "Factor by which to multiply x impedance."],
             "yfactor": ["YFACTOR", "Float", "1", "Factor by which to multiply y impedance."],
-            "wakes": ["WAKES", "OptionalString", "", "filename for output of wake"],
+            "wakes": ["WAKES", "OutputFile", "", "filename for output of wake"],
             "wake_interval": ["WAKE INTERVAL", "Integer", "1", "interval in passes at which to output wake"],
             "wake_start": ["WAKE START", "Integer", "0", "pass at which to start to output wake"],
             "wake_end": ["WAKE END", "Integer", "9223372036854775807", "pass at which to stop to output wake"],
@@ -2504,8 +2513,8 @@
         }
     },
     "view": {
-        "beamlineElementSettings": {
-            "title": "Beamline Element Settings",
+        "beamlineReport": {
+            "title": "Beamline Report",
             "advanced": []
         },
         "bunch": {
@@ -2552,11 +2561,24 @@
                 "name"
             ]
         },
+        "elementAnimation": {
+            "title": "Output Report",
+            "advanced": [
+                "x",
+                "y",
+                "histogramBins",
+                "framesPerSecond"
+            ]
+        },
         "simulation": {
             "title": "Simulation",
             "advanced": [
                 "name"
             ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
         },
         "ALPH": {
             "title": "ALPH",
