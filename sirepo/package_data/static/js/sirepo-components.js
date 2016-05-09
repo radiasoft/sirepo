@@ -299,6 +299,15 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
               '<div data-ng-switch-when="String" class="col-sm-5">',
                 '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly">',
               '</div>',
+              '<div data-ng-switch-when="InputFile" class="col-sm-7">',
+                '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
+              '</div>',
+              '<div data-ng-switch-when="OutputFile" class="col-sm-5">',
+                '<div data-output-file-field="field" data-model="model"></div>',
+              '</div>',
+              '<div data-ng-switch-when="ValueList" class="col-sm-5">',
+                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'values\']"></select>',
+              '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" class="col-sm-5">',
                 '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly">',
@@ -340,11 +349,43 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
     };
 });
 
-app.directive('fileField', function(appState, requestSender) {
+app.directive('outputFileField', function() {
+    return {
+        restirct: 'A',
+        scope: {
+            field: '=outputFileField',
+            model: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            var items = [];
+            var filename = '';
+
+            $scope.items = function() {
+                if (! $scope.model)
+                    return items;
+                var name = $scope.model.name + '.' + $scope.field + '.sdds';
+                if (name != filename) {
+                    filename = name;
+                    items = [
+                        ['', 'None'],
+                        [name, name],
+                    ];
+                }
+                return items;
+            };
+        },
+    };
+});
+
+app.directive('fileField', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
             fileField: '=',
+            modelName: '=',
             model: '=',
             emptySelectionText: '@',
             selectionRequired: '=',
@@ -368,6 +409,7 @@ app.directive('fileField', function(appState, requestSender) {
           '</div>',
         ].join(''),
         controller: function($scope) {
+
             function findParentAttribute(name) {
                 var scope = $scope;
                 while (scope && ! scope[name]) {
@@ -381,12 +423,16 @@ app.directive('fileField', function(appState, requestSender) {
                     return requestSender.formatUrl('downloadFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': APP_SCHEMA.simulationType,
-                        '<filename>': $scope.model[$scope.fileField],
+                        '<filename>': SIREPO_APP_NAME == 'srw'
+                            ? $scope.model[$scope.fileField]
+                            : $scope.fileType + '.' + $scope.model[$scope.fileField],
                     });
                 }
                 return '';
             };
             $scope.itemList = function() {
+                if (! $scope.fileType)
+                    $scope.fileType = $scope.modelName + '-' + $scope.fileField;
                 if (requestSender.getAuxiliaryData($scope.fileType))
                     return requestSender.getAuxiliaryData($scope.fileType);
                 if (! appState.isLoaded())
@@ -405,7 +451,9 @@ app.directive('fileField', function(appState, requestSender) {
                 findParentAttribute('form').$setDirty();
             };
             $scope.showFileUpload = function() {
-                $('#s-upload-file').modal('show');
+                panelState.showModalEditor(
+                    'fileUpload' + $scope.fileType,
+                    '<div data-file-upload-dialog="" data-dialog-title="Upload File" data-file-type="fileType" data-model="model" data-field="fileField"></div>', $scope);
                 findParentAttribute('form').$setDirty();
             };
             $scope.showFileReport = function() {
@@ -459,10 +507,12 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
         scope: {
             dialogTitle: '@',
             parentController: '=',
-            fileType: '@',
+            fileType: '=',
+            model: '=',
+            field: '=',
         },
         template: [
-            '<div class="modal fade" id="s-upload-file" tabindex="-1" role="dialog">',
+            '<div class="modal fade" id="s-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -506,6 +556,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                         {
                             '<simulation_id>': appState.models.simulation.simulationId,
                             '<simulation_type>': APP_SCHEMA.simulationType,
+                            '<file_type>': $scope.fileType,
                         }),
                     function(data) {
                         $scope.isUploading = false;
@@ -513,11 +564,9 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                             $scope.fileUploadError = data.error;
                             return;
                         }
-                        else {
-                            requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
-                            $scope.parentController.fileUploadCompleted(data.filename);
-                        }
-                        $('#s-upload-file').modal('hide');
+                        requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
+                        $scope.model[$scope.field] = data.filename;
+                        $('#s-fileUpload' + $scope.fileType + '-editor').modal('hide');
                     });
             };
         },
@@ -529,6 +578,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
             });
             scope.$on('$destroy', function() {
                 $(element).off();
+                $(element).detach();
             });
         },
     };
@@ -724,9 +774,10 @@ app.directive('panelHeading', function(appState, frameCache, panelState, request
                     return requestSender.formatUrl('downloadDataFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': APP_SCHEMA.simulationType,
-                        '<model_or_frame>':  appState.isAnimationModelName($scope.modelKey)
+                        '<model>': $scope.modelKey,
+                        '<frame>': appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
-                            : $scope.modelKey,
+                            : -1,
                     });
                 }
                 return '';
@@ -742,7 +793,7 @@ app.directive('panelHeading', function(appState, frameCache, panelState, request
             $scope.hasData = function() {
                 if (appState.isLoaded()) {
                     if (appState.isAnimationModelName($scope.modelKey))
-                        return frameCache.frameCount > 0;
+                        return frameCache.getFrameCount() > 0;
                     return ! panelState.isLoading($scope.modelKey);
                 }
                 return false;

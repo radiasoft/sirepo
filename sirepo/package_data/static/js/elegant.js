@@ -15,11 +15,11 @@ app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION + Math.random(),
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION + Math.random(),
         });
 });
 
@@ -235,7 +235,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.editElement = function(type, item) {
         appState.models[type] = item;
-        panelState.showModalEditor(type, $scope);
+        panelState.showModalEditor(type);
     };
 
     self.getActiveBeamline = function() {
@@ -355,16 +355,62 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
 app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
     var self = this;
-    var simulationModel = 'elementAnimation';
+    var simulationModel = 'animation';
     self.panelState = panelState;
     self.isAborting = false;
     self.isDestroyed = false;
     self.dots = '.';
+    self.simulationStatusModelName = 'simulationStatus';
+    self.simulationErrors = '';
 
-    frameCache.setAnimationArgs({
-        elementAnimation: [],
-    }, simulationModel);
+    self.outputFiles = [];
+
+    frameCache.setAnimationArgs({});
     frameCache.setFrameCount(0);
+
+    function loadElementReports(outputInfo) {
+        self.outputFiles = [];
+        var animationArgs = {};
+
+        for (var i = 0; i < outputInfo.length; i++) {
+            var info = outputInfo[i];
+            var modelKey = 'elementAnimation' + info.id;
+            self.outputFiles.push({
+                //TODO(pjm): need a proper test for this case
+                reportType: info.columns[0] == 's' ? '2d' : 'heatmap',
+                modelName: 'elementAnimation',
+                filename: info['filename'],
+                modelAccess: {
+                    modelKey: modelKey,
+                },
+            });
+            animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId'];
+            if (appState.models[modelKey]) {
+                var m = appState.models[modelKey];
+                if (info.columns.indexOf(m.x) < 0)
+                    m.x = info.columns[0];
+                if (info.columns.indexOf(m.y) < 0)
+                    m.y = info.columns[1];
+                m.fileId = info.id;
+                m.values = info.columns;
+            }
+            else {
+                appState.models[modelKey] = {
+                    x: info.columns[0],
+                    y: info.columns[1],
+                    histogramBins: 200,
+                    fileId: info.id,
+                    values: info.columns,
+                    framesPerSecond: 2,
+                };
+                if (i > 0 && ! panelState.isHidden(modelKey))
+                    panelState.toggleHidden(modelKey);
+            }
+            appState.saveQuietly(modelKey);
+            frameCache.setFrameCount(info.page_count, modelKey);
+        }
+        frameCache.setAnimationArgs(animationArgs, simulationModel);
+    }
 
     function refreshStatus() {
         requestSender.sendRequest(
@@ -373,11 +419,15 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                 //console.log('runStatus data: ', data);
                 if (self.isAborting)
                     return;
+                self.simulationErrors = data.errors || '';
                 if (data.frameCount) {
                     //console.log('set frame id: ', data.frameCount);
                     frameCache.setFrameCount(data.frameCount);
+                    loadElementReports(data.outputInfo);
                 }
                 if (data.state != 'running') {
+                    if (! data.frameCount)
+                        self.outputFiles = [];
                     if (data.state != simulationState())
                         appState.saveChanges('simulationStatus');
                 }
@@ -432,10 +482,23 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         return false;
     };
 
+    self.logFileURL = function() {
+        if (! appState.isLoaded())
+            return '';
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': APP_SCHEMA.simulationType,
+            //TODO(pjm): centralize animation model name
+            '<model>': 'animation',
+            '<frame>': -1,
+        });
+    };
+
     self.runSimulation = function() {
         if (simulationState() == 'running')
             return;
         frameCache.setFrameCount(0);
+        self.outputFiles = [];
         setSimulationState('running');
         requestSender.sendRequest(
             'runBackground',
@@ -496,8 +559,9 @@ app.directive('beamlineEditor', function(appState) {
         },
         template: [
             '<div data-ng-if="showEditor()" class="panel panel-info">',
-              '<div class="panel-heading" data-panel-heading="Beamline Editor - {{ beamlineName() }}" data-model-name="beamlineElementSettings" data-editor-id="s-beamlineElementSettings-editor"></div>',
-              '<div class="panel-body cssFade" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+
+              '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span></div>',
+              '<div class="panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="s-drop-left">&nbsp;</div>',
@@ -807,4 +871,35 @@ app.directive('elementTable', function(appState) {
                 $scope.$on('modelsLoaded', loadTree);
         },
     };
+});
+
+app.directive('elementAnimationModalEditor', function(appState) {
+    return {
+        scope: {
+            modelKey: '@',
+        },
+        template: [
+            '<div data-modal-editor="" view-name="elementAnimation" data-model-data="modelAccess"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.modelAccess = {
+                modelKey: $scope.modelKey,
+                getData: function() {
+                    var data = appState.models[$scope.modelKey];
+                    return data;
+                },
+            };
+        },
+    };
+});
+
+
+//TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
+// from http://stackoverflow.com/questions/19305821/multiple-modals-overlay
+$(document).on('show.bs.modal', '.modal', function () {
+    var zIndex = 1040 + (10 * $('.modal:visible').length);
+    $(this).css('z-index', zIndex);
+    setTimeout(function() {
+        $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+    }, 0);
 });

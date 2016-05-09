@@ -46,7 +46,7 @@ with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
     _SCHEMA = json.load(f)
 
 
-def background_percent_complete(data, run_dir, is_running):
+def background_percent_complete(data, run_dir, is_running, schema):
     filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']]))
     if os.path.isfile(filename):
         return {
@@ -297,7 +297,7 @@ def get_application_data(data):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
-def get_data_file(run_dir, frame_index):
+def get_data_file(run_dir, model, frame):
     for path in glob.glob(str(run_dir.join('res_*.dat'))):
         path = str(py.path.local(path))
         with open(path) as f:

@@ -1,11 +1,11 @@
 {
-    "version": "20160506",
+    "version": "20160507",
     "route": {
         "clearFrames": "/clear-frames",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
-        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model_or_frame>",
+        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
@@ -23,6 +23,6 @@
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     }
 }

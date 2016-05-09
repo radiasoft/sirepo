@@ -171,23 +171,23 @@ def app_delete_simulation():
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
-def app_download_data_file(simulation_type, simulation_id, model_or_frame):
+def app_download_data_file(simulation_type, simulation_id, model, frame):
     data = {
         'simulationType': simulation_type,
         'simulationId': simulation_id,
     }
-    frame_index = -1
+    frame = int(frame)
     template = sirepo.template.import_module(simulation_type)
-    if re.match(r'^\d+$', model_or_frame):
-        frame_index = int(model_or_frame)
+    if frame >= 0:
         data['report'] = template.get_animation_name(data)
     else:
-        data['report'] = model_or_frame
+        data['report'] = model
     run_dir = simulation_db.simulation_run_dir(data)
-    filename, content, content_type = template.get_data_file(run_dir, frame_index)
+    filename, content, content_type = template.get_data_file(run_dir, model, frame)
     response = flask.make_response(content)
     response.mimetype = content_type
-    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    if content_type != 'text/plain':
+        response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
     return response
 
 
@@ -377,7 +377,7 @@ def app_run_status():
     run_dir = simulation_db.simulation_run_dir(data)
 
     if cfg.job_queue.is_running(_job_id(sid, data['report'])):
-        completion = template.background_percent_complete(data, run_dir, True)
+        completion = template.background_percent_complete(data, run_dir, True, _schema_cache(simulation_type))
         state = 'running'
     else:
         report = data['report']
@@ -388,7 +388,7 @@ def app_run_status():
                 'state': 'initial',
             }
         state = data['models']['simulationStatus'][report]['state']
-        completion = template.background_percent_complete(data, run_dir, False)
+        completion = template.background_percent_complete(data, run_dir, False, _schema_cache(simulation_type))
         if state == 'running':
             if completion['percent_complete'] >= 100:
                 state = 'completed'
@@ -409,6 +409,8 @@ def app_run_status():
         'frameCount': completion['frame_count'],
         'frameId': frame_id,
         'elapsedTime': elapsed_time,
+        'outputInfo': completion['output_info'] if 'output_info' in completion else None,
+        'errors': completion['errors'] if 'errors' in completion else None,
     })
 
 
@@ -442,13 +444,21 @@ def app_simulation_frame(frame_id):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
 def app_file_list(simulation_type, simulation_id, file_type):
+    file_type = werkzeug.secure_filename(file_type)
     res = []
-    #TODO(pjm): keep files in folder by file_type instead of by extension
-    search = '*.dat' if file_type == 'mirror' else '*.zip'
+    #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
+    if simulation_type == 'srw':
+        search = '*.dat' if file_type == 'mirror' else '*.zip'
+    else:
+        search = '{}.*'.format(file_type)
     d = simulation_db.simulation_lib_dir(simulation_type)
     for f in glob.glob(str(d.join(search))):
         if os.path.isfile(f):
-            res.append(os.path.basename(f))
+            filename = os.path.basename(f)
+            if not simulation_type == 'srw':
+                # strip the file_type prefix
+                filename = filename[len(file_type) + 1:]
+            res.append(filename)
     res.sort()
     return json.dumps(res)
 
@@ -542,19 +552,23 @@ def _cfg_time_limit(value):
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
-def app_upload_file(simulation_type, simulation_id):
+def app_upload_file(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
     lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(f.filename)
-    p = lib.join(filename)
+    if simulation_type == 'srw':
+        p = lib.join(filename)
+    else:
+        p = lib.join(werkzeug.secure_filename('{}.{}'.format(file_type, filename)))
     err = None
     if p.check():
         err = 'file exists: {}'.format(filename)
     if not err:
         f.save(str(p))
-        err = _validate_data_file(p)
-        if err:
-            pkio.unchecked_remove(p)
+        if simulation_type == 'srw':
+            err = _validate_data_file(p)
+            if err:
+                pkio.unchecked_remove(p)
     if err:
         return flask.jsonify({
             'error': err,
