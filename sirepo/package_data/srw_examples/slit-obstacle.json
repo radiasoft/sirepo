@@ -39,6 +39,7 @@
         "electronBeam": {
             "beamSelector": "APS",
             "current": 0.1,
+            "drift": 0.0,
             "energy": 7,
             "energyDeviation": 0,
             "horizontalAlpha": 0,

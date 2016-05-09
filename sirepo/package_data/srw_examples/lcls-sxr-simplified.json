@@ -61,6 +61,7 @@
         "electronBeam": {
             "beamSelector": "NSLS-II Low Beta Final",
             "current": 0.5,
+            "drift": 0.0,
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,

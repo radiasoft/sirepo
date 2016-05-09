@@ -29,6 +29,7 @@
         "electronBeam": {
             "beamSelector": "User Defined",
             "current": "0.5",
+            "drift": 0.0,
             "energy": 2.75,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
