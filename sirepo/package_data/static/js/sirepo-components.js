@@ -883,6 +883,20 @@ app.directive('appHeaderLeft', function(panelState) {
     };
 });
 
+app.directive('simulationStatusTimer', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            timeData: '=simulationStatusTimer',
+        },
+        template: [
+            '<span data-ng-if="timeData.elapsedTime">',
+              'Elapsed time: {{ timeData.elapsedDays }} {{ timeData.elapsedTime | date:\'HH:mm:ss\' }}',
+            '</span>',
+        ].join(''),
+    };
+});
+
 app.directive('stringToNumber', function() {
     var NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
     return {

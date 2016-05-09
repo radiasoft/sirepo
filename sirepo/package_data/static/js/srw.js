@@ -1378,20 +1378,6 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
     };
 });
 
-app.directive('simulationStatusTimer', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            timeData: '=simulationStatusTimer',
-        },
-        template: [
-            '<div data-ng-if="timeData.elapsedTime">',
-              '<br />Elapsed time: {{ timeData.elapsedDays }} {{ timeData.elapsedTime | date:\'HH:mm:ss\' }}',
-            '</div>',
-        ].join(''),
-    };
-});
-
 app.directive('tooltipEnabler', function() {
     return {
         link: function(scope, element) {
