@@ -566,25 +566,26 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
     self.srwService = srwService;
     $scope.appState = appState;
 
-    function processFluxMethod(methodNumber) {
+    function processFluxMethod(methodNumber, reportName) {
         if (! appState.isLoaded() || typeof methodNumber === "undefined")
             return;
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
         var fieldsOfAccurateMethod = ['precision'];
         methodNumber = methodNumber.toString();
+        var modelReport = '.model-' + reportName + '-';
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
-            for (var i=0; i<fieldsOfApproximateMethod.length; i++) {
-                $('.model-fluxReport-' + fieldsOfApproximateMethod[i]).show(0);
+            for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
+                $(modelReport + fieldsOfApproximateMethod[i]).show(0);
             }
-            for (var i=0; i<fieldsOfAccurateMethod.length; i++) {
-                $('.model-fluxReport-' + fieldsOfAccurateMethod[i]).hide(0);
+            for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
+                $(modelReport + fieldsOfAccurateMethod[i]).hide(0);
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
-            for (var i=0; i<fieldsOfApproximateMethod.length; i++) {
-                $('.model-fluxReport-' + fieldsOfApproximateMethod[i]).hide(0);
+            for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
+                $(modelReport + fieldsOfApproximateMethod[i]).hide(0);
             }
-            for (var i=0; i<fieldsOfAccurateMethod.length; i++) {
-                $('.model-fluxReport-' + fieldsOfAccurateMethod[i]).show(0);
+            for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
+                $(modelReport + fieldsOfAccurateMethod[i]).show(0);
             }
         } else {
             return;
@@ -604,7 +605,8 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
                 $('.model-fluxReport-precision').hide(0);
                 $('.model-intensityReport-fieldUnits').hide(0);
             } else {
-                processFluxMethod(appState.models.fluxReport.method);
+                processFluxMethod(appState.models.fluxReport.method, 'fluxReport');
+                processFluxMethod(appState.models.fluxAnimation.method, 'fluxAnimation');
             }
         }
     };
@@ -630,7 +632,10 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
     });
 
     $scope.$watch('appState.models.fluxReport.method', function (newValue, oldValue) {
-        processFluxMethod(newValue);
+        processFluxMethod(newValue, 'fluxReport');
+    });
+    $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
+        processFluxMethod(newValue, 'fluxAnimation');
     });
 });
 
