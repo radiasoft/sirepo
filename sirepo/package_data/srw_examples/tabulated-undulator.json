@@ -1,1 +1,249 @@
-{"report": "intensityReport", "models": {"fluxReport": {"verticalApertureSize": "1", "fluxType": 1, "azimuthalPrecision": 1, "longitudinalPrecision": 1, "verticalPosition": 0, "horizontalApertureSize": "1", "finalEnergy": 20000, "polarization": 6, "horizontalPosition": 0, "distanceFromSource": 20, "photonEnergyPointCount": 10000, "initialEnergy": "100"}, "simulationStatus": {"state": "canceled", "startTime": 1457472204}, "sourceIntensityReport": {"polarization": 6, "characteristic": 0, "fieldUnits": 1, "distanceFromSource": 20}, "electronBeam": {"horizontalEmittance": 1.5, "horizontalAlpha": 0, "verticalBeta": 1.17, "name": "Custom Beam", "verticalDispersionDerivative": 0, "verticalPosition": 0, "horizontalBeta": 1.84, "energy": 3, "verticalAlpha": 0, "verticalEmittance": 0.008, "horizontalDispersionDerivative": 0, "current": 0.5, "energyDeviation": 0, "horizontalPosition": 0, "horizontalDispersion": 0, "rmsSpread": 0.0007, "verticalDispersion": 0, "id": 2, "beamSelector": "Custom Beam"}, "multipole": {"field": 0.4, "distribution": "n", "length": 3, "order": 1}, "simulation": {"sampleFactor": 0.3, "verticalRange": 1.5, "horizontalPointCount": 100, "name": "Tabulated Undulator Example", "verticalPosition": 0, "facility": "", "horizontalRange": 1.5, "documentationUrl": "", "isExample": "", "photonEnergy": 8019, "horizontalPosition": 0, "simulationId": "pbDHlcso", "verticalPointCount": 100, "outOfSessionSimulationId": "", "samplingMethod": 1, "sourceType": "t"}, "postPropagation": [0, 0, 1, 0, 0, 1, 1, 1, 1], "watchpointReport3": {"polarization": 6, "characteristic": 0, "fieldUnits": 1, "precision": 0.01}, "initialIntensityReport": {"polarization": 6, "characteristic": 0, "fieldUnits": 1, "precision": 0.01}, "powerDensityReport": {"verticalPointCount": 100, "verticalRange": "15", "horizontalPointCount": 100, "verticalPosition": 0, "horizontalRange": "15", "precision": "1", "horizontalPosition": "0", "distanceFromSource": 33.1798, "method": 1}, "propagation": {"3": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]], "2": [[0, 0, 1, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 1, 1, 1, 1]]}, "gaussianBeam": {"rmsPulseDuration": 0.1, "waistAngleY": 0, "polarization": 1, "waistAngleX": 0, "energyPerPulse": "0.001", "rmsSizeY": "9.78723", "rmsSizeX": "9.78723", "waistZ": 0, "waistX": 0, "waistY": 0}, "beamline": [{"verticalOffset": 0, "horizontalSize": 0.25, "title": "Aperture", "verticalSize": 0.25, "horizontalOffset": 0, "shape": "r", "position": 33.1798, "type": "aperture", "id": 2}, {"position": 45, "type": "watch", "id": 3, "title": "Watchpoint"}], "tabulatedUndulator": {"phase": 0, "indexFile": "ivu21_srx_sum.txt", "magneticFile": "magnetic_measurements.zip", "longitudinalPosition": 1.305, "gap": 6.72}, "intensityReport": {"initialEnergy": 100, "verticalPosition": 0, "precision": 0.01, "finalEnergy": 20000, "polarization": 6, "horizontalPosition": "0", "distanceFromSource": 33.1798, "photonEnergyPointCount": 10000}, "multiElectronAnimation": {"horizontalRange": "0.4", "verticalPosition": 0, "verticalRange": "0.6", "horizontalPosition": 0, "stokesParameter": "0"}, "undulator": {"verticalAmplitude": "0.88770981", "verticalSymmetry": -1, "horizontalSymmetry": 1, "period": 20, "horizontalInitialPhase": 0, "length": 3, "verticalInitialPhase": 0, "horizontalAmplitude": "0", "longitudinalPosition": 0}, "electronBeams": [{"horizontalEmittance": 1.5, "horizontalAlpha": 0, "verticalBeta": 1.17, "name": "Custom Beam", "verticalDispersionDerivative": 0, "verticalPosition": 0, "horizontalBeta": 1.84, "energy": 3, "verticalAlpha": 0, "verticalEmittance": 0.008, "horizontalDispersionDerivative": 0, "current": 0.5, "energyDeviation": 0, "horizontalPosition": 0, "horizontalDispersion": 0, "rmsSpread": 0.0007, "verticalDispersion": 0, "id": 2, "beamSelector": "Custom Beam"}]}, "simulationType": "srw", "version": "20160302"}
+{
+    "models": {
+        "beamline": [
+            {
+                "horizontalOffset": 0,
+                "horizontalSize": 0.25,
+                "id": 2,
+                "position": 33.1798,
+                "shape": "r",
+                "title": "Aperture",
+                "type": "aperture",
+                "verticalOffset": 0,
+                "verticalSize": 0.25
+            },
+            {
+                "id": 3,
+                "position": 45,
+                "title": "Watchpoint",
+                "type": "watch"
+            }
+        ],
+        "electronBeam": {
+            "beamSelector": "Custom Beam",
+            "current": 0.5,
+            "energy": 3,
+            "energyDeviation": 0,
+            "horizontalAlpha": 0,
+            "horizontalBeta": 1.84,
+            "horizontalDispersion": 0,
+            "horizontalDispersionDerivative": 0,
+            "horizontalEmittance": 1.5,
+            "horizontalPosition": 0,
+            "id": 2,
+            "name": "Custom Beam",
+            "rmsSpread": 0.0007,
+            "verticalAlpha": 0,
+            "verticalBeta": 1.17,
+            "verticalDispersion": 0,
+            "verticalDispersionDerivative": 0,
+            "verticalEmittance": 0.008,
+            "verticalPosition": 0
+        },
+        "electronBeams": [
+            {
+                "beamSelector": "Custom Beam",
+                "current": 0.5,
+                "energy": 3,
+                "energyDeviation": 0,
+                "horizontalAlpha": 0,
+                "horizontalBeta": 1.84,
+                "horizontalDispersion": 0,
+                "horizontalDispersionDerivative": 0,
+                "horizontalEmittance": 1.5,
+                "horizontalPosition": 0,
+                "id": 2,
+                "name": "Custom Beam",
+                "rmsSpread": 0.0007,
+                "verticalAlpha": 0,
+                "verticalBeta": 1.17,
+                "verticalDispersion": 0,
+                "verticalDispersionDerivative": 0,
+                "verticalEmittance": 0.008,
+                "verticalPosition": 0
+            }
+        ],
+        "fluxReport": {
+            "azimuthalPrecision": 1,
+            "distanceFromSource": 20,
+            "finalEnergy": 20000,
+            "fluxType": 1,
+            "horizontalApertureSize": "1",
+            "horizontalPosition": 0,
+            "initialEnergy": "100",
+            "longitudinalPrecision": 1,
+            "photonEnergyPointCount": 10000,
+            "polarization": 6,
+            "verticalApertureSize": "1",
+            "verticalPosition": 0
+        },
+        "gaussianBeam": {
+            "energyPerPulse": "0.001",
+            "polarization": 1,
+            "rmsPulseDuration": 0.1,
+            "rmsSizeX": "9.78723",
+            "rmsSizeY": "9.78723",
+            "waistAngleX": 0,
+            "waistAngleY": 0,
+            "waistX": 0,
+            "waistY": 0,
+            "waistZ": 0
+        },
+        "initialIntensityReport": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        },
+        "intensityReport": {
+            "distanceFromSource": 33.1798,
+            "finalEnergy": 20000,
+            "horizontalPosition": "0",
+            "initialEnergy": 100,
+            "photonEnergyPointCount": 10000,
+            "polarization": 6,
+            "precision": 0.01,
+            "verticalPosition": 0
+        },
+        "multiElectronAnimation": {
+            "horizontalPosition": 0,
+            "horizontalRange": "0.4",
+            "stokesParameter": "0",
+            "verticalPosition": 0,
+            "verticalRange": "0.6"
+        },
+        "multipole": {
+            "distribution": "n",
+            "field": 0.4,
+            "length": 3,
+            "order": 1
+        },
+        "postPropagation": [
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1
+        ],
+        "powerDensityReport": {
+            "distanceFromSource": 33.1798,
+            "horizontalPointCount": 100,
+            "horizontalPosition": "0",
+            "horizontalRange": "15",
+            "method": 1,
+            "precision": "1",
+            "verticalPointCount": 100,
+            "verticalPosition": 0,
+            "verticalRange": "15"
+        },
+        "propagation": {
+            "2": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "3": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ]
+        },
+        "simulation": {
+            "documentationUrl": "",
+            "facility": "",
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0,
+            "horizontalRange": 1.5,
+            "isExample": "",
+            "name": "Tabulated Undulator Example",
+            "outOfSessionSimulationId": "",
+            "photonEnergy": 8019,
+            "sampleFactor": 0.3,
+            "samplingMethod": 1,
+            "simulationId": "pbDHlcso",
+            "sourceType": "t",
+            "verticalPointCount": 100,
+            "verticalPosition": 0,
+            "verticalRange": 1.5
+        },
+        "simulationStatus": {
+            "startTime": 1457472204,
+            "state": "canceled"
+        },
+        "sourceIntensityReport": {
+            "characteristic": 0,
+            "distanceFromSource": 20,
+            "fieldUnits": 1,
+            "polarization": 6
+        },
+        "tabulatedUndulator": {
+            "gap": 6.72,
+            "indexFile": "ivu21_srx_sum.txt",
+            "longitudinalPosition": 1.305,
+            "magneticFile": "magnetic_measurements.zip",
+            "phase": 0
+        },
+        "undulator": {
+            "horizontalAmplitude": "0",
+            "horizontalInitialPhase": 0,
+            "horizontalSymmetry": 1,
+            "length": 3,
+            "longitudinalPosition": 0,
+            "period": 20,
+            "verticalAmplitude": "0.88770981",
+            "verticalInitialPhase": 0,
+            "verticalSymmetry": -1
+        },
+        "watchpointReport3": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        }
+    },
+    "report": "intensityReport",
+    "simulationType": "srw",
+    "version": "20160302"
+}
