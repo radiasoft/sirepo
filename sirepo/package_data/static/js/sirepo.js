@@ -70,9 +70,10 @@ app.factory('activeSection', function($route, $rootScope, $location, appState) {
     return self;
 });
 
-app.factory('appState', function($rootScope, requestSender) {
+app.factory('appState', function(requestSender, $rootScope, $timeout) {
     var self = {};
     self.models = {};
+    var autoSaveTimer = null;
     var savedModelValues = {};
 
     function broadcastClear() {
@@ -100,6 +101,19 @@ app.factory('appState', function($rootScope, requestSender) {
         return savedModelValues;
     };
 
+    self.autoSave = function() {
+        if (! self.isLoaded)
+            return;
+        self.resetAutoSaveTimer();
+        requestSender.sendRequest(
+            'saveSimulationData',
+            function(data) {},
+            {
+                models: savedModelValues,
+                simulationType: APP_SCHEMA.simulationType,
+            });
+    };
+
     self.cancelChanges = function(name) {
         // cancel changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
@@ -116,6 +130,8 @@ app.factory('appState', function($rootScope, requestSender) {
         broadcastClear();
         self.models = emptyValues || {};
         savedModelValues = {};
+        if (autoSaveTimer)
+            $timeout.cancel(autoSaveTimer);
     };
 
     self.clone = function(obj) {
@@ -219,6 +235,7 @@ app.factory('appState', function($rootScope, requestSender) {
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
+                self.resetAutoSaveTimer();
             });
     };
 
@@ -259,6 +276,13 @@ app.factory('appState', function($rootScope, requestSender) {
     self.removeModel = function(name) {
         delete self.models[name];
         delete savedModelValues[name];
+    }
+
+    self.resetAutoSaveTimer = function() {
+        // auto save data every 60 seconds
+        if (autoSaveTimer)
+            $timeout.cancel(autoSaveTimer)
+        autoSaveTimer = $timeout(self.autoSave, 60000);
     }
 
     self.saveQuietly = function(name) {
@@ -460,6 +484,7 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     }
 
     function sendRequest(name, callback) {
+        appState.resetAutoSaveTimer();
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(data, error) {
@@ -781,6 +806,8 @@ app.controller('NavController', function (activeSection, appState, requestSender
     };
 
     self.openSection = function(name) {
+        if (name == 'simulations' && appState.isLoaded())
+            appState.autoSave();
         requestSender.localRedirect(name, {
             ':simulationId': appState.isLoaded()
                 ? appState.models.simulation.simulationId

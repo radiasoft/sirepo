@@ -23,6 +23,7 @@
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
+        "saveSimulationData": "/save-simulation",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     }
 }
