@@ -482,11 +482,9 @@ tr:hover .s-button-bar-parent {
   background-color: #82caff;
   width: 0;
   display: inline-block;
-  transition: width 0.5s;
 }
 .elegant-beamline-element.drag-enter .s-drop-left {
-  width: 3em;
-  transition: width 0.5s;
+  width: 4em;
 }
 .elegant-beamline-element.dragging {
   display: none;
