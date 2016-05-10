@@ -13,16 +13,11 @@
         <g class="focus" style="display: none;">
           <circle r="6"></circle>
         </g>
-        <rect class="overlay" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
           <path class="line"></path>
         </svg>
+        <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
       </g>
     </svg></div>
-    <div data-ng-if="showSlider()" class="s-slider-values text-center">
-      <strong>{{ xRange[0] | number:0 }}</strong>
-      <input type="text" class="s-plot2d-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="[0,100]" data-slider-tooltip="hide">
-      <strong>{{ xRange[1] | number:0 }}</strong>
-    </div>
     <div data-animation-buttons=""></div>
   </div>
