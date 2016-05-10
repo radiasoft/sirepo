@@ -207,6 +207,27 @@ def app_error_logging():
     return '{}'
 
 
+@app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
+def app_file_list(simulation_type, simulation_id, file_type):
+    file_type = werkzeug.secure_filename(file_type)
+    res = []
+    #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
+    if simulation_type == 'srw':
+        search = '*.dat' if file_type == 'mirror' else '*.zip'
+    else:
+        search = '{}.*'.format(file_type)
+    d = simulation_db.simulation_lib_dir(simulation_type)
+    for f in glob.glob(str(d.join(search))):
+        if os.path.isfile(f):
+            filename = os.path.basename(f)
+            if not simulation_type == 'srw':
+                # strip the file_type prefix
+                filename = filename[len(file_type) + 1:]
+            res.append(filename)
+    res.sort()
+    return json.dumps(res)
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     redirect_uri = None
@@ -414,6 +435,13 @@ def app_run_status():
     })
 
 
+@app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
+def app_save_simulation_data():
+    data = _json_input()
+    simulation_db.save_simulation_json(data['simulationType'], data)
+    return '{}'
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
     response = flask.jsonify(simulation_db.open_json_file(simulation_type, sid=simulation_id))
@@ -440,27 +468,6 @@ def app_simulation_frame(frame_id):
     else:
         _no_cache(response)
     return response
-
-
-@app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
-def app_file_list(simulation_type, simulation_id, file_type):
-    file_type = werkzeug.secure_filename(file_type)
-    res = []
-    #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
-    if simulation_type == 'srw':
-        search = '*.dat' if file_type == 'mirror' else '*.zip'
-    else:
-        search = '{}.*'.format(file_type)
-    d = simulation_db.simulation_lib_dir(simulation_type)
-    for f in glob.glob(str(d.join(search))):
-        if os.path.isfile(f):
-            filename = os.path.basename(f)
-            if not simulation_type == 'srw':
-                # strip the file_type prefix
-                filename = filename[len(file_type) + 1:]
-            res.append(filename)
-    res.sort()
-    return json.dumps(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))

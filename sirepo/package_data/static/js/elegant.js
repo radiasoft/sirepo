@@ -362,6 +362,10 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     self.dots = '.';
     self.simulationStatusModelName = 'simulationStatus';
     self.simulationErrors = '';
+    self.timeData = {
+        elapsedDays: null,
+        elapsedTime: null,
+    };
 
     self.outputFiles = [];
 
@@ -416,14 +420,17 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         requestSender.sendRequest(
             'runStatus',
             function(data) {
-                //console.log('runStatus data: ', data);
                 if (self.isAborting)
                     return;
                 self.simulationErrors = data.errors || '';
                 if (data.frameCount) {
-                    //console.log('set frame id: ', data.frameCount);
                     frameCache.setFrameCount(data.frameCount);
                     loadElementReports(data.outputInfo);
+                }
+                if (data.elapsedTime) {
+                    self.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                    self.timeData.elapsedTime = new Date(1970, 0, 1);
+                    self.timeData.elapsedTime.setSeconds(data.elapsedTime);
                 }
                 if (data.state != 'running') {
                     if (! data.frameCount)
@@ -498,6 +505,8 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         if (simulationState() == 'running')
             return;
         frameCache.setFrameCount(0);
+        self.timeData.elapsedTime = null;
+        self.timeData.elapsedDays = null;
         self.outputFiles = [];
         setSimulationState('running');
         requestSender.sendRequest(
@@ -551,7 +560,7 @@ app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-app.directive('beamlineEditor', function(appState) {
+app.directive('beamlineEditor', function(appState, $document, $timeout) {
     return {
         restirct: 'A',
         scope: {
@@ -561,7 +570,7 @@ app.directive('beamlineEditor', function(appState) {
             '<div data-ng-if="showEditor()" class="panel panel-info">',
 
               '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span></div>',
-              '<div class="panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+              '<div class="panel-body" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="s-drop-left">&nbsp;</div>',
@@ -576,6 +585,8 @@ app.directive('beamlineEditor', function(appState) {
             var selectedItemId = null;
             $scope.beamlineItems = [];
             var activeBeamline = null;
+            var dragCanceled = false;
+            var dropSuccess = false;
 
             function updateBeamline() {
                 var items = [];
@@ -591,13 +602,32 @@ app.directive('beamlineEditor', function(appState) {
             };
 
             $scope.dragStart = function(data) {
+                dragCanceled = false;
+                dropSuccess = false;
                 $scope.selectItem(data);
+            };
+
+            $scope.dragStop = function(data) {
+                if (! data || dragCanceled)
+                    return;
+                if (data.itemId) {
+                    $timeout(function() {
+                        if (! dropSuccess) {
+                            var curr = $scope.beamlineItems.indexOf(data);
+                            $scope.beamlineItems.splice(curr, 1);
+                            updateBeamline();
+                        }
+                    });
+                }
             };
 
             $scope.dropItem = function(index, data) {
                 if (! data)
                     return;
                 if (data.itemId) {
+                    if (dragCanceled)
+                        return;
+                    dropSuccess = true;
                     var curr = $scope.beamlineItems.indexOf(data);
                     if (curr < index)
                         index--;
@@ -613,6 +643,9 @@ app.directive('beamlineEditor', function(appState) {
             $scope.dropLast = function(data) {
                 if (! data || ! data.itemId)
                     return;
+                if (dragCanceled)
+                    return;
+                dropSuccess = true;
                 var curr = $scope.beamlineItems.indexOf(data);
                 $scope.beamlineItems.splice(curr, 1);
                 $scope.beamlineItems.push(data);
@@ -620,8 +653,12 @@ app.directive('beamlineEditor', function(appState) {
             };
 
             $scope.dropPanel = function(data) {
-                if (! data || data.itemId)
+                if (! data)
                     return;
+                if (data.itemId) {
+                    dropSuccess = true;
+                    return;
+                }
                 if (data.id == activeBeamline.id)
                     return;
                 var item = {
@@ -635,7 +672,8 @@ app.directive('beamlineEditor', function(appState) {
 
             $scope.editItem = function(item) {
                 var el = $scope.lattice.elementForId(item.id);
-                return $scope.lattice.editElement(el.type, el);
+                if (el.type)
+                    $scope.lattice.editElement(el.type, el);
             };
 
             $scope.isSelected = function(itemId) {
@@ -647,6 +685,16 @@ app.directive('beamlineEditor', function(appState) {
             $scope.itemName = function(item) {
                 item.name = $scope.lattice.nameForId(item.id);
                 return item.name;
+            };
+
+            $scope.onKeyDown = function(e) {
+                // escape key - simulation a mouseup to cancel dragging
+                if (e.keyCode == 27) {
+                    if (selectedItemId) {
+                        dragCanceled = true;
+                        $document.triggerHandler('mouseup');
+                    }
+                }
             };
 
             $scope.selectItem = function(item) {
@@ -674,6 +722,12 @@ app.directive('beamlineEditor', function(appState) {
                 return true;
             };
         },
+        link: function(scope, element, attrs) {
+            $document.on('keydown', scope.onKeyDown);
+            scope.$on('$destroy', function() {
+                $document.off('keydown', scope.onKeyDown);
+            });
+        }
     };
 });
 

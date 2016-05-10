@@ -15,8 +15,11 @@ import os
 import py.path
 import re
 import sdds
+import time
 
 WANT_BROWSER_FRAME_CACHE = True
+
+_BACKGROUND_LOG_FILE = 'background.log'
 
 _ELEGANT_ME_EV = 0.51099906e6
 
@@ -60,7 +63,7 @@ def _is_error_text(text):
 
 
 def _parse_errors_from_log(run_dir):
-    path = run_dir.join('background.log')
+    path = run_dir.join(_BACKGROUND_LOG_FILE)
     if not path.exists():
         return ''
     res = ''
@@ -80,11 +83,14 @@ def _parse_errors_from_log(run_dir):
 
 def background_percent_complete(data, run_dir, is_running, schema):
     if is_running or not _has_valid_elegant_output(run_dir):
-        return {
+        res = {
             'percent_complete': 100,
             'frame_count': 0,
             'errors': _parse_errors_from_log(run_dir),
         }
+        if is_running:
+            res['last_update_time'] = int(time.time())
+        return res
     output_info = [
         _file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir, 0, 1),
     ]
@@ -104,6 +110,7 @@ def background_percent_complete(data, run_dir, is_running, schema):
         'percent_complete': 100,
         'frame_count': 1,
         'output_info': output_info,
+        'last_update_time': output_info[0]['last_update_time'],
     }
 
 
@@ -282,7 +289,7 @@ def get_data_file(run_dir, model, frame):
             return os.path.basename(path), f.read(), 'application/octet-stream'
 
     if model == 'animation':
-        path = str(run_dir.join('background.log'))
+        path = str(run_dir.join(_BACKGROUND_LOG_FILE))
         with open(path) as f:
             text = f.read()
             text = re.sub(r'.*(Running elegant at)', r'\1', text, 0, re.S)
@@ -372,6 +379,7 @@ def _file_info(filename, run_dir, id, output_index):
         'id': '{}-{}'.format(id, output_index),
         'page_count': page_count,
         'columns': column_names,
+        'last_update_time': os.path.getmtime(str(file_path)),
     }
 
 

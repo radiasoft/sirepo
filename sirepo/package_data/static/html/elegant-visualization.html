@@ -14,6 +14,7 @@
             <div class="col-sm-12">
               <div data-ng-show="visualization.isState('running')">
                 Running {{ visualization.dots }}
+                <div data-simulation-status-timer="visualization.timeData"></div>
               </div>
               <div class="progress">
                 <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="100" aria-valuemax="100" style="width: 100%">
@@ -27,7 +28,8 @@
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('completed') || visualization.isState('canceled')">
             <div class="col-sm-12">
               Simulation
-              <span data-ng-show="visualization.isState('completed')">Completed</span><span data-ng-show="visualization.isState('canceled')">Stopped</span>
+              <span data-ng-show="visualization.isState('completed')">Completed</span><span data-ng-show="visualization.isState('canceled')">Stopped</span>,
+              <span data-simulation-status-timer="visualization.timeData"></span>
               <br><br>
               <div data-ng-if="visualization.simulationErrors" class="well well-lg">
                 <div class="text-warning"><strong>elegant Errors:</strong></div>
@@ -45,12 +47,6 @@
 
     </div>
     <div class="clearfix"></div>
-    <!--
-    <div class="col-md-6 col-xl-4">
-      <div data-report-panel="heatmap" data-model-name="elementAnimation" data-panel-title="W1 - Watch"><div data-simulation-status-panel="elementAnimation"></div></div>
-    </div>
-    -->
-
     <div data-ng-repeat="item in visualization.outputFiles" class="col-md-6 col-xl-4">
       <div data-report-panel="{{ item.reportType }}" data-model-name="{{ item.modelName }}" data-model-data="item.modelAccess" data-panel-title="{{ item.filename }}"></div>
     </div>
