@@ -258,16 +258,14 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     else:
         position = _get_first_element_position(data)
     v['beamlineFirstElementPosition'] = position
-    # initial drift = 1/2 undulator length + 2 periods
     source_type = data['models']['simulation']['sourceType']
-    drift = 0
     if source_type == 'u':
-        drift = -0.5 * data['models']['undulator']['length'] - 2 * data['models']['undulator']['period']
-        # undulator longitudinal center only set with tabulatedUndulator
-        v['tabulatedUndulator_longitudinalPosition'] = 0
+        v['undulatorLongitudinalPosition'] = data['models']['undulator']['longitudinalPosition']
+    elif source_type == 't':
+        v['undulatorLongitudinalPosition'] = data['models']['tabulatedUndulator']['longitudinalPosition']
     else:
-        drift = data['models']['electronBeam']['drift']
-    v['electronBeamInitialDrift'] = drift
+        v['undulatorLongitudinalPosition'] = 0.0
+
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 2
     if source_type == 'u' or source_type == 't':

@@ -415,6 +415,7 @@
         "undulator": {
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
+            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
             "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
             "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
@@ -949,6 +950,7 @@
             "advanced": [
                 "period",
                 "length",
+                "longitudinalPosition",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
