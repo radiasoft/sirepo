@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Wrapper to run SRW from the command line.
+"""Wrapper to run warp from the command line.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -7,16 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp
-from sirepo import celery_tasks
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import h5py
-import json
-import numpy as np
 import py.path
 import sirepo.template.warp as template
-import time
 
 
 def run(cfg_dir):
