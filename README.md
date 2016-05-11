@@ -19,6 +19,26 @@ For this to work, you will need to [install the prerequisites](https://github.co
 
 [API Documentation is available on Read the Docs.](http://sirepo.readthedocs.org)
 
+### Manual Install with Docker
+
+You can start Sirepo with [Docker](https://www.docker.com/).
+
+If you are running Docker as an ordinary user (recommended), use the following:
+
+```bash
+$ docker run -it --rm -p 8000:8000 -v "$PWD:/vagrant" radiasoft/sirepo /radia-run "$(id -u)" "$(id -g)" /home/vagrant/bin/radia-run-sirepo /vagrant 8000
+```
+
+The `/radia-run` command ensures the guest's user can read/write files from the
+current directory, which is where the database and other files will be stored.
+
+Otherwise, you can run sirepo in an emphemeral container as root, but without
+storing files on the host:
+
+```bash
+# docker run -it --rm -p 8000:8000 -u vagrant radiasoft/sirepo bash -l -c 'radia-run-sirepo "$HOME" 8000'
+```
+
 ### Manual Install with Vagrant
 
 You can start Sirepo with [Vagrant](https://www.vagrantup.com/).
