@@ -32,7 +32,11 @@ $ docker run -it --rm -p 8000:8000 -v "$PWD:/vagrant" radiasoft/sirepo /radia-ru
 The `/radia-run` command ensures the guest's user can read/write files from the
 current directory, which is where the database and other files will be stored.
 
-Otherwise, you can run sirepo in an emphemeral container as root, but without
+Then visit the following link:
+
+[[http://localhost:8000/light]]
+
+You can run sirepo in an emphemeral container as root, but without
 storing files on the host:
 
 ```bash
@@ -88,6 +92,10 @@ cd sirepo
 pip install -e .
 sirepo service http
 ```
+
+Then visit the following link:
+
+[[http://localhost:8000/light]]
 
 #### Sharing Folder with Vagrant VM
 
