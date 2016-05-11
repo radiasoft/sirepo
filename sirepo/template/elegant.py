@@ -17,9 +17,11 @@ import re
 import sdds
 import time
 
-WANT_BROWSER_FRAME_CACHE = True
+ELEGANT_LOG_FILE = 'elegant.stdout'
 
-_BACKGROUND_LOG_FILE = 'background.log'
+ELEGANT_STDERR_FILE = 'elegant.stderr'
+
+WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_ME_EV = 0.51099906e6
 
@@ -59,11 +61,12 @@ def _has_valid_elegant_output(run_dir):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error', text, re.IGNORECASE)
 
 
 def _parse_errors_from_log(run_dir):
-    path = run_dir.join(_BACKGROUND_LOG_FILE)
+    #TODO(pjm): also check ELEGANT_STDERR_FILE
+    path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
         return ''
     res = ''
@@ -290,11 +293,9 @@ def get_data_file(run_dir, model, frame):
             return os.path.basename(path), f.read(), 'application/octet-stream'
 
     if model == 'animation':
-        path = str(run_dir.join(_BACKGROUND_LOG_FILE))
+        path = str(run_dir.join(ELEGANT_LOG_FILE))
         with open(path) as f:
-            text = f.read()
-            text = re.sub(r'.*(Running elegant at)', r'\1', text, 0, re.S)
-            return 'elegant-output.txt', text, 'text/plain'
+            return 'elegant-output.txt', f.read(), 'text/plain'
 
     for path in glob.glob(str(run_dir.join('elegant.bun'))):
         path = str(py.path.local(path))
