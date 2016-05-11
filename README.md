@@ -34,7 +34,7 @@ current directory, which is where the database and other files will be stored.
 
 Then visit the following link:
 
-[[http://localhost:8000/light]]
+[http://localhost:8000/light](http://localhost:8000/light)
 
 You can run sirepo in an emphemeral container as root, but without
 storing files on the host:
@@ -95,7 +95,7 @@ sirepo service http
 
 Then visit the following link:
 
-[[http://localhost:8000/light]]
+[http://localhost:8000/light](http://localhost:8000/light)
 
 #### Sharing Folder with Vagrant VM
 
