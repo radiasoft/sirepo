@@ -104,7 +104,8 @@ def background_percent_complete(data, run_dir, is_running, schema):
             if not value or k not in model_schema:
                 continue
             element_schema = model_schema[k]
-            if element_schema[1] == 'OutputFile':
+            #TODO(pjm): iterate active beamline elements and remove exists() check
+            if element_schema[1] == 'OutputFile' and run_dir.join(value).exists():
                 output_info.append(_file_info(value, run_dir, el['_id'], field_index))
     return {
         'percent_complete': 100,
