@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Wrapper to run SRW from the command line.
+"""Wrapper to run elegant from the command line.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.elegant import extract_report_data
+from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE, ELEGANT_STDERR_FILE
 from subprocess import call
 
 def run(cfg_dir):
@@ -39,7 +39,9 @@ def _run_elegant():
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     pkio.write_text('elegant.lte', lattice_file)
     pkio.write_text('elegant.ele', elegant_file)
-    call(['elegant', 'elegant.ele'])
+    with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
+        with open(ELEGANT_STDERR_FILE, 'w') as elegant_stderr:
+            call(['elegant', 'elegant.ele'], stdout=elegant_stdout, stderr=elegant_stderr)
 
 
 def _extract_bunch_report():

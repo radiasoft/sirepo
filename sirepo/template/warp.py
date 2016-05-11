@@ -273,6 +273,14 @@ def get_data_file(run_dir, model, frame):
 
 
 def is_cache_valid(data, old_data):
+    related_models = [data['report'], 'electronBeam', 'electronPlasma', 'laserPulse', 'simulationGrid']
+
+    if data['report'] in ['beamPreviewReport', 'laserPreviewReport']:
+        for name in related_models:
+            if data['models'][name] != old_data['models'][name]:
+                return False
+        return True
+
     return False
 
 

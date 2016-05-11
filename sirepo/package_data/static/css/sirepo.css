@@ -207,18 +207,6 @@
       opacity: 0;
     }
 
-    div.s-slider-values {
-      margin-left: 30px;
-      margin-bottom: 1em;
-    }
-    .s-panel-loading div.s-slider-values {
-      display: none;
-    }
-    div.slider-horizontal {
-      margin: 0 1em;
-      min-width: 160px;
-    }
-
     /* plot styles */
     .s-plot .axis text {
       font-size: 10px;
