@@ -61,7 +61,7 @@ def _has_valid_elegant_output(run_dir):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity', text, re.IGNORECASE)
 
 
 def _parse_errors_from_log(run_dir):
@@ -359,8 +359,17 @@ def write_parameters(data, schema, run_dir, run_async):
     )
 
 
+def _add_beamlines(beamline, beamlines, ordered_beamlines):
+    if beamline in ordered_beamlines:
+        return
+    for id in beamline['items']:
+        if id in beamlines:
+            _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
+    ordered_beamlines.append(beamline)
+
+
 def _file_info(filename, run_dir, id, output_index):
-    file_path = run_dir.join(filename);
+    file_path = run_dir.join(filename)
     index = 0
     if sdds.sddsdata.InitializeInput(index, str(file_path)) != 1:
         sdds.sddsdata.PrintErrors(1)
@@ -388,9 +397,22 @@ def _file_info(filename, run_dir, id, output_index):
 def _generate_lattice(data, schema, v):
     res = ''
     names = {}
+    beamlines = {}
+
+    for bl in data['models']['beamlines']:
+        if 'visualizationBeamlineId' in data['models']['simulation']:
+            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
+                v['use_beamline'] = bl['name']
+        names[bl['id']] = bl['name']
+        beamlines[bl['id']] = bl
+
+    ordered_beamlines = []
+
+    for id in beamlines:
+        _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
 
     for el in data['models']['elements']:
-        res += el['name'] + ': ' + el['type'] + ','
+        res += '"{}": {},'.format(el['name'].upper(), el['type'])
         names[el['_id']] = el['name']
 
         for k in el:
@@ -407,19 +429,13 @@ def _generate_lattice(data, schema, v):
         res = res[:-1]
         res += "\n"
 
-    for bl in data['models']['beamlines']:
-        if 'use_beamline' not in v:
-            v['use_beamline'] = bl['name']
-        names[bl['id']] = bl['name']
-
-    #TODO(pjm): sort beamline in dependency order
-    for bl in reversed(data['models']['beamlines']):
-        res += bl['name'] + ': line=('
-        for id in bl['items']:
-            res += '{},'.format(names[id])
+    for bl in ordered_beamlines:
         if len(bl['items']):
+            res += '"{}": LINE=('.format(bl['name'].upper())
+            for id in bl['items']:
+                res += '{},'.format(names[id].upper())
             res = res[:-1]
-        res += ")\n"
+            res += ")\n"
 
     return res
 

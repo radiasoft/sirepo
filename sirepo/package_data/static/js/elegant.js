@@ -15,17 +15,28 @@ app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION + Math.random(),
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION + Math.random(),
+            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION,
         });
 });
 
 app.controller('ElegantSourceController', function(appState, $scope) {
     var self = this;
     var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
+
+    function dpsCouplingChanged() {
+        // dp_s_coupling valid only between -1 and 1
+        if (! appState.isLoaded())
+            return;
+        var v = parseFloat(appState.models.bunch.dp_s_coupling);
+        if (v > 1)
+            appState.models.bunch.dp_s_coupling = 1;
+        else if (v < -1)
+            appState.models.bunch.dp_s_coupling = -1;
+    }
 
     function showFields(fields, delay) {
         for (var i = 0; i < longitudinalFields.length; i++) {
@@ -81,6 +92,7 @@ app.controller('ElegantSourceController', function(appState, $scope) {
     $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
         updateLongitudinalFields(400);
     });
+    $scope.$watch('appState.models.bunch.dp_s_coupling', dpsCouplingChanged);
 });
 
 app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
@@ -142,6 +154,13 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MATR', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
         rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
     };
+
+    function fixModelName(modelName) {
+        var m = appState.models[modelName];
+        // remove invalid characters
+        m.name = m.name.replace(/[\s\#\*'"]/g, '');
+        return;
+    }
 
     function nextId() {
         return Math.max(
@@ -284,7 +303,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
             count: 0,
             items: [],
         };
-        panelState.showModalEditor('beamline', $scope);
+        panelState.showModalEditor('beamline');
     };
 
     self.newElement = function() {
@@ -335,10 +354,12 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'beamline') {
+            fixModelName(name);
             updateModels('beamline', 'id', 'beamlines', sortBeamlines);
             self.editBeamline(appState.models.beamline);
         }
         if (self.isElementModel(name)) {
+            fixModelName(name);
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
@@ -356,6 +377,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
     var self = this;
     var simulationModel = 'animation';
+    self.appState = appState;
     self.panelState = panelState;
     self.isAborting = false;
     self.isDestroyed = false;
@@ -433,8 +455,13 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                     self.timeData.elapsedTime.setSeconds(data.elapsedTime);
                 }
                 if (data.state != 'running') {
-                    if (! data.frameCount)
+                    if (! data.frameCount) {
+                        if (data.state == 'completed' && ! self.simulationErrors) {
+                            // completed with no output, show link to elegant log
+                            self.simulationErrors = 'No output produced. View the elegant log for more information.';
+                        }
                         self.outputFiles = [];
+                    }
                     if (data.state != simulationState())
                         appState.saveChanges('simulationStatus');
                 }
@@ -483,6 +510,17 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             });
     };
 
+    self.getBeamlines = function() {
+        if (! appState.isLoaded())
+            return null;
+        if (! appState.models.simulation.visualizationBeamlineId
+            && appState.models.beamlines
+            && appState.models.beamlines.length) {
+            appState.models.simulation.visualizationBeamlineId = appState.models.beamlines[0].id;
+        }
+        return appState.models.beamlines;
+    };
+
     self.isState = function(state) {
         if (appState.isLoaded())
             return simulationState() == state;
@@ -504,6 +542,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     self.runSimulation = function() {
         if (simulationState() == 'running')
             return;
+        appState.saveQuietly('simulation');
         frameCache.setFrameCount(0);
         self.timeData.elapsedTime = null;
         self.timeData.elapsedDays = null;
@@ -549,13 +588,23 @@ app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
                 return appState.isLoaded();
             };
+            $scope.hasBeamlines = function() {
+                if (! appState.isLoaded())
+                    return false;
+                for (var i = 0; i < appState.models.beamlines.length; i++) {
+                    var beamline = appState.models.beamlines[i];
+                    if (beamline.items.length > 0)
+                        return true;
+                }
+                return false;
+            }
         },
     };
 });
@@ -944,6 +993,27 @@ app.directive('elementAnimationModalEditor', function(appState) {
                 },
             };
         },
+    };
+});
+
+app.directive('runSimulationFields', function() {
+    return {
+        template: [
+            '<div>',
+              '<div class="col-sm-3 control-label">',
+                '<label>Beamline</label>',
+              '</div>',
+              '<div class="col-sm-4">',
+                '<select class="form-control" data-ng-model="visualization.appState.models.simulation.visualizationBeamlineId" data-ng-options="item.id as item.name for item in visualization.getBeamlines()"></select>',
+              '</div>',
+              '<div class="col-sm-5" data-ng-show="visualization.isState(\'initial\')">',
+               '<button class="btn btn-primary" data-ng-click="visualization.runSimulation()">Start Simulation</button>',
+              '</div>',
+              '<div class="col-sm-5" data-ng-hide="visualization.isState(\'initial\')">',
+                '<button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>',
+              '</div>',
+            '</div>',
+        ].join(''),
     };
 });
 

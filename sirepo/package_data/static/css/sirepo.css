@@ -487,7 +487,9 @@ tr:hover .s-button-bar-parent {
   -moz-user-select: none;
 }
 .elegant-icon {
-  cursor: move;
   -moz-user-select: none;
   min-width: 4em;
+}
+.elegant-icon span {
+  cursor: move;
 }
