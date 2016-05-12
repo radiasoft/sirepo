@@ -238,7 +238,7 @@ app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label control-label">{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
+            '<label>{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
