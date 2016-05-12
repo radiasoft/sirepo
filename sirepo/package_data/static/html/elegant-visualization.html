@@ -6,9 +6,7 @@
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.simulationStatusModelName"></div>
         <div class="panel-body cssFade" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('initial')">
-            <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-primary" data-ng-click="visualization.runSimulation()">Start Simulation</button>
-            </div>
+            <div data-run-simulation-fields=""></div>
           </form>
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('running')">
             <div class="col-sm-12">
@@ -21,7 +19,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-sm-6 pull-right cssFade">
+            <div class="col-sm-6 pull-right">
               <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
             </div>
           </form>
@@ -38,9 +36,7 @@
                   <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
               </div>
             </div>
-            <div class="col-sm-6 pull-right cssFade">
-              <button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>
-            </div>
+            <div data-run-simulation-fields=""></div>
           </form>
         </div>
       </div>

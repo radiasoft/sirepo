@@ -19,9 +19,9 @@
         ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
-            ["xp", "x'"],
+            ["xp", "xp"],
             ["y", "y"],
-            ["yp", "y'"],
+            ["yp", "yp"],
             ["t", "t"],
             ["p", "p"]
         ],
@@ -240,19 +240,19 @@
         "beamlineReport": {
         },
         "bunch": {
-            "p_central_mev": ["Central momentum [MeV]", "Float"],
-            "n_particles_per_bunch": ["Particles Per Bunch", "Integer"],
-            "emit_x": ["Horizontal Emittance [nm]", "Float"],
+            "p_central_mev": ["Central momentum [MeV]", "Float", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
+            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "", "Number of particles in each bunch"],
+            "emit_x": ["Horizontal Geometric Emittance [nm]", "Float", "", "RMS emittance for the X plane"],
             "beta_x": ["Horizontal Beta [m]", "Float"],
             "alpha_x": ["Horizontal Alpha", "Float"],
-            "emit_y": ["Vertical Emittance [nm]", "Float"],
+            "emit_y": ["Vertical Geometric Emittance [nm]", "Float", "", "RMS emittance for the Y plane"],
             "beta_y": ["Vertical Beta [m]", "Float"],
             "alpha_y": ["Vertical Alpha", "Float"],
             "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
-            "sigma_s": ["Sigma s [µm]", "Float"],
+            "sigma_s": ["Sigma s [µm]", "Float", "", "Fractional momentum spread, δ, and bunch length"],
             "sigma_dp": ["Sigma dp", "Float"],
-            "dp_s_coupling": ["dp s Coupling", "Float"],
-            "emit_z": ["Longitudinal Emittance [nm]", "Float"],
+            "dp_s_coupling": ["dp s Coupling", "Float", "", "Specifies the coupling between s and δ"],
+            "emit_z": ["Longitudinal Geometric Emittance [nm]", "Float", "", "RMS emittance for the Z plane"],
             "beta_z": ["Longitudinal Beta [m]", "Float"],
             "alpha_z": ["Longitudinal Alpha", "Float"]
         },
@@ -270,10 +270,10 @@
             "values": ["Values", "Array", []]
         },
         "simulation": {
-            "name": ["Name", "String"]
+            "name": ["Name", "String"],
+            "visualizationBeamlineId": ["Beamline Name", "String", ""]
         },
-        "simulationStatus": {
-        },
+        "simulationStatus": {},
         "ALPH": {
             "name": ["Name", "String"],
             "xmax": ["XMAX [M]", "Float", "0.0", "size of alpha"],
