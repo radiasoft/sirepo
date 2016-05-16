@@ -144,12 +144,13 @@ def fixup_old_data(data):
             for k in data['models']:
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
-    if data['models']['fluxReport'] and 'method' not in data['models']['fluxReport']:
-        data['models']['fluxReport']['magneticField'] = 1
-        data['models']['fluxReport']['method'] = -1
-        data['models']['fluxReport']['precision'] = 0.01
-        data['models']['fluxReport']['initialHarmonic'] = 1
-        data['models']['fluxReport']['finalHarmonic'] = 15
+    if data['models']['fluxReport']:
+        data['models']['fluxReport']['magneticField'] = 1  # always approximate for static Flux Report
+        data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
+        data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
+        if 'initialHarmonic' not in data['models']['fluxReport']:
+            data['models']['fluxReport']['initialHarmonic'] = 1
+            data['models']['fluxReport']['finalHarmonic'] = 15
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['magneticField'] = 2
@@ -219,6 +220,16 @@ def fixup_old_data(data):
             'longitudinalPosition': 1.305,
             'indexFile': '',
         }
+    if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
+        data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
+        data['models']['tabulatedUndulator']['period'] = 0
+        data['models']['tabulatedUndulator']['length'] = 0
+        data['models']['tabulatedUndulator']['horizontalAmplitude'] = 0
+        data['models']['tabulatedUndulator']['horizontalInitialPhase'] = 0
+        data['models']['tabulatedUndulator']['horizontalSymmetry'] = 1
+        data['models']['tabulatedUndulator']['verticalAmplitude'] = 0
+        data['models']['tabulatedUndulator']['verticalInitialPhase'] = 0
+        data['models']['tabulatedUndulator']['verticalSymmetry'] = -1
     if 'drift' not in data['models']['electronBeam']:
         data['models']['electronBeam']['drift'] = 0.0
     if 'fluxAnimation' not in data['models']:

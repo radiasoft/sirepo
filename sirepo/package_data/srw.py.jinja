@@ -191,18 +191,30 @@ def setup_source(v):
 
     if appV.ueb:
         srwl_bl._USER_DEFINED_EBEAM = srwl_bl.SRWLPartBeam()
-        srwl_bl._USER_DEFINED_EBEAM.from_Twiss(_e=appV.ueb_e, _sig_e=appV.ueb_sig_e, _emit_x=appV.ueb_emit_x, _beta_x=appV.ueb_beta_x, _alpha_x=appV.ueb_alpha_x, _eta_x=appV.ueb_eta_x, _eta_x_pr=appV.ueb_eta_x_pr, _emit_y=appV.ueb_emit_y, _beta_y=appV.ueb_beta_y, _alpha_y=appV.ueb_alpha_y, _eta_y=appV.ueb_eta_y, _eta_y_pr=appV.ueb_eta_y_pr)
+        srwl_bl._USER_DEFINED_EBEAM.from_Twiss(
+            _e=appV.ueb_e,
+            _sig_e=appV.ueb_sig_e,
+            _emit_x=appV.ueb_emit_x,
+            _beta_x=appV.ueb_beta_x,
+            _alpha_x=appV.ueb_alpha_x,
+            _eta_x=appV.ueb_eta_x,
+            _eta_x_pr=appV.ueb_eta_x_pr,
+            _emit_y=appV.ueb_emit_y,
+            _beta_y=appV.ueb_beta_y,
+            _alpha_y=appV.ueb_alpha_y,
+            _eta_y=appV.ueb_eta_y,
+            _eta_y_pr=appV.ueb_eta_y_pr
+        )
 
     mag = None
     if appV.source_type == 'u':
         v.und_b = 1
+        del v.und_g
         del v.gbm_pen
     elif appV.source_type == 't':
-        v.und_b = 1
         del v.gbm_pen
         v.und_mdir = './{{tabulatedUndulator_magnMeasFolder}}'
         v.ss_mag = 2
-        v.sm_mag = 2
         v.pw_mag = 2
         v.w_mag = 2
 

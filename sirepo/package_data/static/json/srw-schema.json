@@ -45,9 +45,7 @@
             ["2", "Flux per Unit Surface"]
         ],
         "FluxMethod": [
-            ["0", "Manual"],
             ["1", "Auto-Undulator"],
-            ["2", "Auto-Wiggler"],
             ["-1", "Use Approximate Method"]
         ],
         "FocalPlane": [
@@ -67,6 +65,10 @@
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
             ["2", "Auto-Wiggler"]
+        ],
+        "MagneticField": [
+            ["1", "Approximate"],
+            ["2", "Accurate (tabulated)"]
         ],
         "MillerIndicesRange": [
             ["0", "0"],
@@ -144,6 +146,10 @@
         "Symmetry": [
             ["1", "Symmetrical"],
             ["-1", "Anti-symmetrical"]
+        ],
+        "UndulatorType": [
+            ["u_i", "Idealized"],
+            ["u_t", "Tabulated"]
         ]
     },
     "model": {
@@ -248,6 +254,7 @@
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Flux Computation Method", "FluxMethod"],
             "precision": ["Relative Precision", "Float"],
             "fluxType": ["Entity to Calculate", "Flux"],
@@ -266,8 +273,6 @@
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
             "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
-            "method": ["Flux Computation Method", "FluxMethod"],
-            "precision": ["Relative Precision", "Float"],
             "fluxType": ["Entity to Calculate", "Flux"],
             "polarization": ["Polarization Component to Extract", "Polarization"]
         },
@@ -406,9 +411,18 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "tabulatedUndulator": {
+            "undulatorType": ["Type of Undulator", "UndulatorType"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
+            "period": ["Period [mm]", "Float"],
+            "length": ["Length [m]", "Float"],
             "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
+            "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
+            "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
+            "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
+            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
+            "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
             "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
@@ -607,6 +621,7 @@
                     "polarization"
                 ]],
                 ["Accuracy", [
+                    "magneticField",
                     "method",
                     "precision",
                     "initialHarmonic",
@@ -639,8 +654,6 @@
                     "polarization"
                 ]],
                 ["Accuracy", [
-                    "method",
-                    "precision",
                     "initialHarmonic",
                     "finalHarmonic",
                     "longitudinalPrecision",
@@ -930,14 +943,32 @@
         "tabulatedUndulator": {
             "title": "Tabulated Undulator",
             "basic": [
+                "undulatorType",
                 "gap",
+                "period",
+                "length",
+                "verticalAmplitude",
                 "longitudinalPosition",
                 "magneticFile"
             ],
             "advanced": [
                 "gap",
+                "phase",
+                "period",
+                "length",
                 "longitudinalPosition",
-                "phase"
+                [
+                    ["Horizontal", [
+                        "horizontalAmplitude",
+                        "horizontalInitialPhase",
+                        "horizontalSymmetry"
+                    ]],
+                    ["Vertical", [
+                        "verticalAmplitude",
+                        "verticalInitialPhase",
+                        "verticalSymmetry"
+                    ]]
+                ]
             ]
         },
         "undulator": {
@@ -954,13 +985,13 @@
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
-                        "horizontalSymmetry",
-                        "horizontalInitialPhase"
+                        "horizontalInitialPhase",
+                        "horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "verticalAmplitude",
-                        "verticalSymmetry",
-                        "verticalInitialPhase"
+                        "verticalInitialPhase",
+                        "verticalSymmetry"
                     ]]
                 ]
             ]

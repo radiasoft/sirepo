@@ -561,7 +561,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     });
 });
 
-app.controller('SRWSourceController', function (appState, srwService, $scope) {
+app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout) {
     var self = this;
     self.srwService = srwService;
     $scope.appState = appState;
@@ -592,6 +592,34 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
         }
     }
 
+    function processUndulator(undType) {
+        if (! appState.isLoaded() || typeof undType === "undefined") {
+            console.log('Not loaded!');
+            return;
+        }
+        var fieldsOfIdealizedUndulator = ['period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
+        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
+        var modelReport = '.model-tabulatedUndulator-';
+        var duration = 0;  // ms
+        if (undType === "u_t") {  // tabulated
+            for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+                $(modelReport + fieldsOfTabulatedUndulator[i]).show(duration);
+            }
+            for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+                $(modelReport + fieldsOfIdealizedUndulator[i]).hide(duration);
+            }
+        } else if (undType === "u_i") {  // idealized
+            for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+                $(modelReport + fieldsOfTabulatedUndulator[i]).hide(duration);
+            }
+            for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+                $(modelReport + fieldsOfIdealizedUndulator[i]).show(duration);
+            }
+        } else {
+            return;
+        }
+    }
+
     self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
@@ -601,11 +629,8 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
                 $('.model-sourceIntensityReport-fieldUnits').hide(0);
             }
             if (srwService.isApplicationMode('calculator')) {
-                $('.model-fluxReport-method').hide(0);
-                $('.model-fluxReport-precision').hide(0);
                 $('.model-intensityReport-fieldUnits').hide(0);
             } else {
-                processFluxMethod(appState.models.fluxReport.method, 'fluxReport');
                 processFluxMethod(appState.models.fluxAnimation.method, 'fluxAnimation');
             }
         }
@@ -631,9 +656,12 @@ app.controller('SRWSourceController', function (appState, srwService, $scope) {
         appState.saveQuietly('electronBeams');
     });
 
-    $scope.$watch('appState.models.fluxReport.method', function (newValue, oldValue) {
-        processFluxMethod(newValue, 'fluxReport');
+    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
+        $timeout(function() {
+            processUndulator(newValue);
+        });
     });
+
     $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
         processFluxMethod(newValue, 'fluxAnimation');
     });
