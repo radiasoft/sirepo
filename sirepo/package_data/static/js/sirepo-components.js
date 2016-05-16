@@ -475,7 +475,7 @@ app.directive('columnEditor', function(appState) {
         template: [
             '<div class="row">',
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
-                '<div class="lead text-center">{{ col[0] }}</div>',
+                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
                   '<div data-model-field="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
                 '</div>',
@@ -484,6 +484,9 @@ app.directive('columnEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            $scope.columnHeadingClass = function() {
+                return 'model-' + $scope.modelName + '-column-heading';
+            };
             $scope.customLabel = function(heading, f) {
                 var m = $scope.modelName;
                 var modelField = appState.parseModelField(f);
