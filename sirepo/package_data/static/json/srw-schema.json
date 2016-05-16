@@ -941,7 +941,7 @@
             ]
         },
         "tabulatedUndulator": {
-            "title": "Tabulated Undulator",
+            "title": "Undulator (Idealized/Tabulated)",
             "basic": [
                 "undulatorType",
                 "gap",

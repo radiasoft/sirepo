@@ -250,6 +250,12 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
             # render the watchpoint report settings in the initialIntensityReport template slot
             data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+    if data['models']['simulation']['sourceType'] == 't':
+        undulator_type = data['models']['tabulatedUndulator']['undulatorType']
+        data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
+        if undulator_type == 'u_i':
+            data['models']['tabulatedUndulator']['gap'] = 0.0
+            data['models']['tabulatedUndulator']['indexFile'] = ''
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
@@ -274,12 +280,13 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['undulatorLongitudinalPosition'] = data['models']['undulator']['longitudinalPosition']
     elif source_type == 't':
         v['undulatorLongitudinalPosition'] = data['models']['tabulatedUndulator']['longitudinalPosition']
+        v['simulation_sourceType'] = data['models']['tabulatedUndulator']['undulatorType']
     else:
         v['undulatorLongitudinalPosition'] = 0.0
 
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 2
-    if source_type == 'u' or source_type == 't':
+    if source_type in ['u', 't', 'u_i', 'u_t']:
         v['energyCalculationMethod'] = 1
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
@@ -288,7 +295,8 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data:
         v[data['report']] = 1
         if data['report'] == 'fluxAnimation':
-            v['fluxNumberOfMacroElectrons'] = 1000000
+            if int(v['fluxAnimation_method']) == 1:
+                v['fluxNumberOfMacroElectrons'] = 1000000
     return pkjinja.render_resource('srw.py', v)
 
 

@@ -573,6 +573,8 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         var fieldsOfAccurateMethod = ['precision'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
+        $(modelReport + 'magneticField').find('.form-control').prop('disabled', true);
+        appState.models.fluxAnimation.magneticField = 1;
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).show(0);
@@ -581,6 +583,9 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 $(modelReport + fieldsOfAccurateMethod[i]).hide(0);
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
+            if (appState.models.tabulatedUndulator.undulatorType === 'u_t') {
+                appState.models.fluxAnimation.magneticField = 2;
+            }
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).hide(0);
             }
@@ -594,26 +599,28 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
 
     function processUndulator(undType) {
         if (! appState.isLoaded() || typeof undType === "undefined") {
-            console.log('Not loaded!');
             return;
         }
+        var columnHeading = 'column-heading';
         var fieldsOfIdealizedUndulator = ['period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
         var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
         var modelReport = '.model-tabulatedUndulator-';
         var duration = 0;  // ms
         if (undType === "u_t") {  // tabulated
+            $(modelReport + columnHeading).hide(duration);
             for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
-                $(modelReport + fieldsOfTabulatedUndulator[i]).show(duration);
+                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').show(duration);
             }
             for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
-                $(modelReport + fieldsOfIdealizedUndulator[i]).hide(duration);
+                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').hide(duration);
             }
         } else if (undType === "u_i") {  // idealized
+            $(modelReport + columnHeading).show(duration);
             for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
-                $(modelReport + fieldsOfTabulatedUndulator[i]).hide(duration);
+                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').hide(duration);
             }
             for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
-                $(modelReport + fieldsOfIdealizedUndulator[i]).show(duration);
+                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').show(duration);
             }
         } else {
             return;

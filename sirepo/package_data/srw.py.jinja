@@ -207,17 +207,15 @@ def setup_source(v):
         )
 
     mag = None
-    if appV.source_type == 'u':
+    if appV.source_type == 'u' or appV.source_type == 'u_i':
         v.und_b = 1
         del v.und_g
         del v.gbm_pen
-    elif appV.source_type == 't':
+    elif appV.source_type == 't' or appV.source_type == 'u_t':
         del v.gbm_pen
         v.und_mdir = './{{tabulatedUndulator_magnMeasFolder}}'
-        v.ss_mag = 2
         v.pw_mag = 2
         v.w_mag = 2
-
     elif appV.source_type == 'g':
         pass
     elif appV.source_type == 'm':
