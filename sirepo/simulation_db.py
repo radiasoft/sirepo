@@ -311,7 +311,7 @@ def _random_id(parent_dir, simulation_type=None):
             if e.errno == errno.EEXIST:
                 pass
             raise
-    raise RuntimeError('{}: failed to create unique direcotry'.format(parent_dir))
+    raise RuntimeError('{}: failed to create unique directory'.format(parent_dir))
 
 
 def _report_name(data):

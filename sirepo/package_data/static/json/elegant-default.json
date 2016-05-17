@@ -45,12 +45,10 @@
             "y": "xp"
         },
         "elements": [],
-        "latticeGraph": {},
         "simulation": {
             "name": "Example",
             "simulationId": "pAuOjl0s"
         },
-        "simulationAnimation": {},
         "simulationStatus": {
             "elementAnimation": {
                 "state": "initial"

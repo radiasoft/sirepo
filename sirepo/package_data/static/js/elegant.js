@@ -158,7 +158,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     function fixModelName(modelName) {
         var m = appState.models[modelName];
         // remove invalid characters
-        m.name = m.name.replace(/[\s\#\*'"]/g, '');
+        m.name = m.name.replace(/[\s#*'",]/g, '');
         return;
     }
 
@@ -314,17 +314,20 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.numFormat = function(num, units) {
         if (! angular.isDefined(num))
             return '';
+        num = parseFloat(num)
         if (num < 1) {
             num *= 1000;
             units = 'm' + units;
         }
         if (Math.round(num * 100) == 0)
             return '0';
-        if (num >= 100)
+        if (num >= 1000)
             return num.toFixed(0) + units;
-        if (num >= 10)
+        if (num >= 100)
             return num.toFixed(1) + units;
-        return num.toFixed(2) + units;
+        if (num >= 10)
+            return num.toFixed(2) + units;
+        return num.toFixed(3) + units;
     };
 
     self.setActiveTab = function(name) {
@@ -609,17 +612,16 @@ app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-app.directive('beamlineEditor', function(appState, $document, $timeout) {
+app.directive('beamlineEditor', function(appState, $document, $timeout, $window) {
     return {
         restirct: 'A',
         scope: {
             lattice: '=controller',
         },
         template: [
-            '<div data-ng-if="showEditor()" class="panel panel-info">',
-
+            '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span></div>',
-              '<div class="panel-body" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+              '<div style="height: {{ editorHeight() }}" class="panel-body elegant-beamline-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="s-drop-left">&nbsp;</div>',
@@ -719,6 +721,12 @@ app.directive('beamlineEditor', function(appState, $document, $timeout) {
                 updateBeamline();
             };
 
+            $scope.editorHeight = function() {
+                var w = $($window);
+                var el = $('.elegant-beamline-editor-panel');
+                return (w.height() - el.offset().top - 15) + 'px';
+            };
+
             $scope.editItem = function(item) {
                 var el = $scope.lattice.elementForId(item.id);
                 if (el.type)
@@ -793,6 +801,7 @@ app.directive('beamlineTable', function(appState) {
                 '<col>',
                 '<col style="width: 10ex">',
                 '<col style="width: 12ex">',
+                '<col style="width: 12ex">',
                 '<col style="width: 10ex">',
               '</colgroup>',
               '<thead>',
@@ -800,6 +809,7 @@ app.directive('beamlineTable', function(appState) {
                   '<th>Name</th>',
                   '<th>Description</th>',
                   '<th>Elements</th>',
+                  '<th>Start-End</th>',
                   '<th>Length</th>',
                   '<th>Bend</th>',
                 '</tr>',
@@ -809,6 +819,7 @@ app.directive('beamlineTable', function(appState) {
                   '<td><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td style="text-align: right">{{ beamline.count }}</td>',
+                  '<td style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
                 '</tr>',
@@ -843,6 +854,10 @@ app.directive('beamlineTable', function(appState) {
 
             $scope.beamlineDescription = function(beamline) {
                 return itemsToString(beamline.items);
+            };
+
+            $scope.beamlineDistance = function(beamline) {
+                return $scope.lattice.numFormat(beamline.distance, 'm');
             };
 
             $scope.beamlineLength = function(beamline) {
@@ -888,7 +903,7 @@ app.directive('elementTable', function(appState) {
                 '<tr>',
                   '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': isExpanded(category), \'glyphicon-collapse-down\': ! isExpanded(category)}"></span> <b>{{ category.name }}</b></td>',
                 '</tr>',
-                '<tr class="cssFade" data-ng-show="isExpanded(category)" data-ng-repeat="element in category.elements track by element._id">',
+                '<tr data-ng-show="isExpanded(category)" data-ng-repeat="element in category.elements track by element._id">',
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',

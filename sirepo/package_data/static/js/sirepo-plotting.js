@@ -1127,8 +1127,15 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     var item = items[i];
                     var picType = $scope.getPicType(item.type);
                     var length = parseFloat(item.l || item.xmax || item.length || 0);
+                    pos.length += length;
+                    if (length < 0) {
+                        // negative length, back up
+                        x += length;
+                        length = 0;
+                    }
                     if (picType == 'bend') {
                         var radius = length / 2;
+                        var angle = parseFloat(item.angle || item.kick || item.hkick || 0);
                         maxHeight = Math.max(maxHeight, length);
                         group.items.push({
                             picType: picType,
@@ -1139,7 +1146,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                         });
                         //console.log(item.type, ' ', [radius, pos.radius + pos.x + x, pos.y]);
                         x += radius;
-                        newAngle = item.angle * 180 / Math.PI;
+                        newAngle = angle * 180 / Math.PI;
                         pos.radius = radius;
                     }
                     else {
@@ -1154,7 +1161,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             groupItem.height = 0.6;
                             groupItem.y = pos.y;
                         }
-                        else if (picType == 'drift') {
+                        else if (picType == 'drift' || picType == 'aperture') {
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
@@ -1194,6 +1201,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     radius: 0,
                     bounds: [0, 0, 0, 0],
                     count: 0,
+                    length: 0,
                 };
                 var explodedItems = explodeItems($scope.items);
                 var group = [];
@@ -1209,7 +1217,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     //TODO(pjm): identify drift types
                     if ($scope.getPicType(item.type) != 'drift')
                         pos.count++;
-                    if ('angle' in item)
+                    if ($scope.getPicType(item.type) == 'bend')
                         groupDone = true;
                     group.push(item);
                 }
@@ -1249,7 +1257,8 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 $scope.items = appState.clone(beamline.items);
                 $scope.svgGroups = [];
                 var pos = computePositions();
-                beamline.length = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
+                beamline.distance = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
+                beamline.length = pos.length;
                 beamline.angle = pos.angle * Math.PI / 180;
                 beamline.count = pos.count;
                 $scope.resize();
@@ -1371,9 +1380,10 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
 
             $scope.init = function() {
                 $scope.zoom = d3.behavior.zoom()
-                    .scaleExtent([1, 10])
+                    .scaleExtent([1, 100])
                     .on('zoom', zoomed);
-                select('svg').call($scope.zoom);
+                select('svg').call($scope.zoom)
+                    .on('dblclick.zoom', null);
                 $scope.container = select('.s-zoom-plot');
                 loadItemsFromBeamline();
             };
