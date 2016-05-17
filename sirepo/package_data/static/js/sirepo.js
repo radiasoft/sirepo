@@ -29,7 +29,7 @@ var app_local_routes = {
 
 var appDefaultSimulationValues = {};
 
-var app = angular.module('SirepoApp', ['ngAnimate', 'ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
+var app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 app.value('localRoutes', app_local_routes);
 
@@ -101,13 +101,13 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
         return savedModelValues;
     };
 
-    self.autoSave = function() {
+    self.autoSave = function(callback) {
         if (! self.isLoaded)
             return;
         self.resetAutoSaveTimer();
         requestSender.sendRequest(
             'saveSimulationData',
-            function(data) {},
+            callback,
             {
                 models: savedModelValues,
                 simulationType: APP_SCHEMA.simulationType,
@@ -669,7 +669,8 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
         var promise = data
             ? $http.post(url, data)
             : $http.get(url);
-        promise.success(successCallback);
+        if (successCallback)
+            promise.success(successCallback);
         if (errorCallback)
             promise.error(errorCallback);
         else
@@ -801,18 +802,27 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
 app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
-    self.isActive = function(name) {
-        return activeSection.getActiveSection() == name;
-    };
-
-    self.openSection = function(name) {
-        if (name == 'simulations' && appState.isLoaded())
-            appState.autoSave();
+    function openSection(name) {
         requestSender.localRedirect(name, {
             ':simulationId': appState.isLoaded()
                 ? appState.models.simulation.simulationId
                 : null,
         });
+    }
+
+    self.isActive = function(name) {
+        return activeSection.getActiveSection() == name;
+    };
+
+    self.openSection = function(name) {
+        if (name == 'simulations' && appState.isLoaded()) {
+            appState.autoSave(function() {
+                openSection(name);
+            });
+        }
+        else {
+            openSection(name);
+        }
     };
 
     self.pageTitle = function() {
