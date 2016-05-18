@@ -174,13 +174,6 @@
     .s-panel-options > a, .s-panel-options > div {
       margin-left: 1em;
     }
-    .cssFade {
-        transition: 0.5s linear all;
-        opacity: 1;
-    }
-    .cssFade.ng-hide {
-        opacity: 0;
-    }
 
     .s-panel-error {
       background-color: #777;

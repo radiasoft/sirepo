@@ -73,6 +73,7 @@ app.factory('activeSection', function($route, $rootScope, $location, appState) {
 app.factory('appState', function(requestSender, $rootScope, $timeout) {
     var self = {};
     self.models = {};
+    var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
 
@@ -105,6 +106,13 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
         if (! self.isLoaded)
             return;
         self.resetAutoSaveTimer();
+        if (lastAutoSaveData && self.deepEquals(lastAutoSaveData, savedModelValues)) {
+            // no changes
+            if (callback)
+                callback();
+            return;
+        }
+        lastAutoSaveData = self.clone(savedModelValues);
         requestSender.sendRequest(
             'saveSimulationData',
             callback,

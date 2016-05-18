@@ -281,16 +281,21 @@ def app_get_application_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
-    f = flask.request.files['file']
-    arguments = str(flask.request.form['arguments'])
-    pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
-    error, data = sirepo.importer.import_python(
-        f.read(),
-        lib_dir=simulation_db.simulation_lib_dir(simulation_type),
-        tmp_dir=simulation_db.tmp_dir(),
-        user_filename=f.filename,
-        arguments=arguments,
-    )
+    if simulation_type == 'srw':
+        #TODO(pjm): move srw specific import code into template.srw.import_file()
+        f = flask.request.files['file']
+        arguments = str(flask.request.form['arguments'])
+        pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
+        error, data = sirepo.importer.import_python(
+            f.read(),
+            lib_dir=simulation_db.simulation_lib_dir(simulation_type),
+            tmp_dir=simulation_db.tmp_dir(),
+            user_filename=f.filename,
+            arguments=arguments,
+        )
+    else:
+        template = sirepo.template.import_module(simulation_type)
+        error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
     if error:
         return flask.jsonify({'error': error})
     return _save_new_and_reply(simulation_type, data)

@@ -103,7 +103,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
         template: [
             '<div class="panel panel-info">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
-              '<div class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelName)">',
+              '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
                   '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
                     '<div data-model-field="f" data-model-name="modelName"></div>',
@@ -132,7 +132,7 @@ app.directive('buttons', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div class="col-sm-6 pull-right cssFade" data-ng-show="form.$dirty">',
+            '<div class="col-sm-6 pull-right" data-ng-show="form.$dirty">',
               '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
@@ -820,7 +820,7 @@ app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-ng-class="{\'s-panel-loading\': panelState.isLoading(modelKey), \'s-panel-error\': panelState.getError(modelKey)}" class="panel-body cssFade" data-ng-hide="panelState.isHidden(modelKey)">',
+            '<div data-ng-class="{\'s-panel-loading\': panelState.isLoading(modelKey), \'s-panel-error\': panelState.getError(modelKey)}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
               '<div data-ng-show="panelState.isLoading(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
               '<div data-ng-show="panelState.getError(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'s-hide-report\' : \'\' }}">',
