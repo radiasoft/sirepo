@@ -7,7 +7,9 @@ u"""elegant execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
+from pykern import pkresource
 from sirepo import simulation_db
+from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
 import glob
 import numpy as np
@@ -16,10 +18,9 @@ import py.path
 import re
 import sdds
 import time
+import werkzeug
 
 ELEGANT_LOG_FILE = 'elegant.stdout'
-
-ELEGANT_STDERR_FILE = 'elegant.stderr'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -47,41 +48,9 @@ _PLOT_TITLE = {
     't-p': 'Longitudinal',
 }
 
+_STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
-def _has_valid_elegant_output(run_dir):
-    path = run_dir.join(_ELEGANT_FINAL_OUTPUT_FILE)
-    if not path.exists():
-        return False
-    file_ok = False
-    if sdds.sddsdata.InitializeInput(0, str(path)) == 1:
-        if sdds.sddsdata.ReadPage(0) == 1:
-            file_ok = True
-    sdds.sddsdata.Terminate(0)
-    return file_ok
-
-
-def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity', text, re.IGNORECASE)
-
-
-def _parse_errors_from_log(run_dir):
-    #TODO(pjm): also check ELEGANT_STDERR_FILE
-    path = run_dir.join(ELEGANT_LOG_FILE)
-    if not path.exists():
-        return ''
-    res = ''
-    text = pkio.read_text(str(path))
-    want_next_line = False
-    for line in text.split("\n"):
-        if want_next_line:
-            res += line + "\n"
-            want_next_line = False
-        elif _is_error_text(line):
-            if len(line) < 10:
-                want_next_line = True
-            else:
-                res += line + "\n"
-    return res
+_SCHEMA = simulation_db.read_json(_STATIC_FOLDER.join('json/elegant-schema'))
 
 
 def background_percent_complete(data, run_dir, is_running, schema):
@@ -167,10 +136,6 @@ def extract_report_data(filename, data, p_central_mev, page_index):
         'z_matrix': hist.T.tolist(),
     }
 
-def _field_label(field):
-    if field in _FIELD_LABEL:
-        return _FIELD_LABEL[field]
-    return field
 
 def fixup_old_data(data):
     if 'bunchReport4' not in data['models']:
@@ -221,6 +186,52 @@ def fixup_old_data(data):
         data['models']['beamlineReport'] = {}
 
 
+def generate_lattice(data, v):
+    res = ''
+    names = {}
+    beamlines = {}
+
+    for bl in data['models']['beamlines']:
+        if 'visualizationBeamlineId' in data['models']['simulation']:
+            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
+                v['use_beamline'] = bl['name']
+        names[bl['id']] = bl['name']
+        beamlines[bl['id']] = bl
+
+    ordered_beamlines = []
+
+    for id in beamlines:
+        _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
+
+    for el in data['models']['elements']:
+        res += '"{}": {},'.format(el['name'].upper(), el['type'])
+        names[el['_id']] = el['name']
+
+        for k in el:
+            if k in ['name', 'type', '_id']:
+                continue
+            value = el[k]
+            element_schema = _SCHEMA['model'][el['type']][k]
+            default_value = element_schema[2]
+            if value is not None and default_value is not None:
+                if str(value) != str(default_value):
+                    if element_schema[1] == 'InputFile':
+                        value = '{}-{}.{}'.format(el['type'], k, value)
+                    res += '{}="{}",'.format(k, value)
+        res = res[:-1]
+        res += "\n"
+
+    for bl in ordered_beamlines:
+        if len(bl['items']):
+            res += '"{}": LINE=('.format(bl['name'].upper())
+            for id in bl['items']:
+                res += '{},'.format(names[id].upper())
+            res = res[:-1]
+            res += ")\n"
+
+    return res
+
+
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
@@ -239,7 +250,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['bunch_sigma_s'] = 0
         v['bunch_dp_s_coupling'] = 0
     if run_async:
-        v['lattice'] = _generate_lattice(data, schema, v)
+        v['lattice'] = generate_lattice(data, v)
     else:
         # use a dummy lattice with a 0 length drift for generating bunches
         v['use_beamline'] = 'bl'
@@ -267,21 +278,6 @@ def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(filename)), frame_data, model_data['models']['bunch']['p_central_mev'], frame_index)
 
 
-def _get_filename_for_element_id(id, data):
-    filename = _ELEGANT_FINAL_OUTPUT_FILE
-
-    for el in data['models']['elements']:
-        if str(el['_id']) != id[0]:
-            continue
-        field_index = 0
-        for k in sorted(el.iterkeys()):
-            field_index += 1
-            if str(field_index) == id[1]:
-                filename = el[k]
-                break
-    return filename
-
-
 def get_data_file(run_dir, model, frame):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -302,6 +298,17 @@ def get_data_file(run_dir, model, frame):
         with open(path) as f:
             return os.path.basename(path), f.read(), 'application/octet-stream'
     raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
+
+
+def import_file(request, lib_dir=None, tmp_dir=None):
+    f = request.files['file']
+    try:
+        data = elegant_lattice_importer.import_file(f.read())
+        name = re.sub(r'\.lte$', '', werkzeug.secure_filename(f.filename), re.IGNORECASE)
+        data['models']['simulation']['name'] = name
+        return None, data
+    except IOError as e:
+        return e.message, None
 
 
 def is_cache_valid(data, old_data):
@@ -368,6 +375,12 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
     ordered_beamlines.append(beamline)
 
 
+def _field_label(field):
+    if field in _FIELD_LABEL:
+        return _FIELD_LABEL[field]
+    return field
+
+
 def _file_info(filename, run_dir, id, output_index):
     file_path = run_dir.join(filename)
     index = 0
@@ -394,49 +407,53 @@ def _file_info(filename, run_dir, id, output_index):
     }
 
 
-def _generate_lattice(data, schema, v):
-    res = ''
-    names = {}
-    beamlines = {}
-
-    for bl in data['models']['beamlines']:
-        if 'visualizationBeamlineId' in data['models']['simulation']:
-            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
-                v['use_beamline'] = bl['name']
-        names[bl['id']] = bl['name']
-        beamlines[bl['id']] = bl
-
-    ordered_beamlines = []
-
-    for id in beamlines:
-        _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
+def _get_filename_for_element_id(id, data):
+    filename = _ELEGANT_FINAL_OUTPUT_FILE
 
     for el in data['models']['elements']:
-        res += '"{}": {},'.format(el['name'].upper(), el['type'])
-        names[el['_id']] = el['name']
+        if str(el['_id']) != id[0]:
+            continue
+        field_index = 0
+        for k in sorted(el.iterkeys()):
+            field_index += 1
+            if str(field_index) == id[1]:
+                filename = el[k]
+                break
+    return filename
 
-        for k in el:
-            if k in ['name', 'type', '_id']:
-                continue
-            value = el[k]
-            element_schema = schema['model'][el['type']][k]
-            default_value = element_schema[2]
-            if value is not None and default_value is not None:
-                if str(value) != str(default_value):
-                    if element_schema[1] == 'InputFile':
-                        value = '{}-{}.{}'.format(el['type'], k, value)
-                    res += '{}="{}",'.format(k, value)
-        res = res[:-1]
-        res += "\n"
 
-    for bl in ordered_beamlines:
-        if len(bl['items']):
-            res += '"{}": LINE=('.format(bl['name'].upper())
-            for id in bl['items']:
-                res += '{},'.format(names[id].upper())
-            res = res[:-1]
-            res += ")\n"
+def _has_valid_elegant_output(run_dir):
+    path = run_dir.join(_ELEGANT_FINAL_OUTPUT_FILE)
+    if not path.exists():
+        return False
+    file_ok = False
+    if sdds.sddsdata.InitializeInput(0, str(path)) == 1:
+        if sdds.sddsdata.ReadPage(0) == 1:
+            file_ok = True
+    sdds.sddsdata.Terminate(0)
+    return file_ok
 
+
+def _is_error_text(text):
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find', text, re.IGNORECASE)
+
+
+def _parse_errors_from_log(run_dir):
+    path = run_dir.join(ELEGANT_LOG_FILE)
+    if not path.exists():
+        return ''
+    res = ''
+    text = pkio.read_text(str(path))
+    want_next_line = False
+    for line in text.split("\n"):
+        if want_next_line:
+            res += line + "\n"
+            want_next_line = False
+        elif _is_error_text(line):
+            if len(line) < 10:
+                want_next_line = True
+            else:
+                res += line + "\n"
     return res
 
 
