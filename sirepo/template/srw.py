@@ -71,16 +71,6 @@ def copy_animation_file(source_path, target_path):
     pass
 
 
-def _intensity_units(is_gaussian, model_data):
-    if is_gaussian:
-        if 'report' in model_data:
-            i = model_data['models'][model_data['report']]['fieldUnits']
-        else:
-            i = model_data['models']['initialIntensityReport']['fieldUnits']
-        return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
-    return 'ph/s/.1%bw/mm^2'
-
-
 def extract_report_data(filename, model_data):
     flux_type = 1
     if 'report' in model_data and model_data['report'] == 'fluxAnimation':
@@ -160,15 +150,6 @@ def fixup_old_data(data):
             data['models']['fluxAnimation']['finalHarmonic'] = 15
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
-            data['models']['intensityReport']['magneticField'] = 1
-            if data['models']['simulation']['sourceType'] == 't':
-                data['models']['intensityReport']['magneticField'] = 2
-            if data['models']['simulation']['sourceType'] in ['u', 't']:
-                data['models']['intensityReport']['method'] = 1
-            elif data['models']['simulation']['sourceType'] == 'm':
-                data['models']['intensityReport']['method'] = 2
-            else:
-                data['models']['intensityReport']['method'] = 0
             data['models']['intensityReport']['precision'] = 0.01
             data['models']['intensityReport']['fieldUnits'] = 1
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
@@ -222,12 +203,12 @@ def fixup_old_data(data):
         }
     if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
-        data['models']['tabulatedUndulator']['period'] = 0
-        data['models']['tabulatedUndulator']['length'] = 0
+        data['models']['tabulatedUndulator']['period'] = 21
+        data['models']['tabulatedUndulator']['length'] = 1.5
         data['models']['tabulatedUndulator']['horizontalAmplitude'] = 0
         data['models']['tabulatedUndulator']['horizontalInitialPhase'] = 0
         data['models']['tabulatedUndulator']['horizontalSymmetry'] = 1
-        data['models']['tabulatedUndulator']['verticalAmplitude'] = 0
+        data['models']['tabulatedUndulator']['verticalAmplitude'] = 0.8
         data['models']['tabulatedUndulator']['verticalInitialPhase'] = 0
         data['models']['tabulatedUndulator']['verticalSymmetry'] = -1
     if 'drift' not in data['models']['electronBeam']:
@@ -243,6 +224,7 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['initialHarmonic'] = 1
         data['models']['fluxAnimation']['finalHarmonic'] = 15
 
+
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     if 'report' in data:
         if data['report'] == 'fluxAnimation':
@@ -250,6 +232,12 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
             # render the watchpoint report settings in the initialIntensityReport template slot
             data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+        elif data['report'] == 'intensityReport':
+            d = _process_intensity_report(data['models']['simulation']['sourceType'],
+                                          data['models']['tabulatedUndulator']['undulatorType'])
+            data['models']['intensityReport']['magneticField'] = d['magneticField']
+            data['models']['intensityReport']['method'] = d['method']
+    undulator_type = 'u_i'
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
@@ -280,13 +268,12 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['undulatorLongitudinalPosition'] = data['models']['undulator']['longitudinalPosition']
     elif source_type == 't':
         v['undulatorLongitudinalPosition'] = data['models']['tabulatedUndulator']['longitudinalPosition']
-        v['simulation_sourceType'] = data['models']['tabulatedUndulator']['undulatorType']
     else:
         v['undulatorLongitudinalPosition'] = 0.0
 
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 2
-    if source_type in ['u', 't', 'u_i', 'u_t']:
+    if source_type in ['u', 't']:
         v['energyCalculationMethod'] = 1
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
@@ -311,6 +298,8 @@ def get_application_data(data):
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
         return _compute_crystal_orientation(data['optical_element'])
+    elif data['method'] == 'process_intensity_report':
+        return _process_intensity_report(data['source_type'], data['undulator_type'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -429,27 +418,6 @@ def _beamline_element(template, item, fields, propagation):
         template.format(*map(lambda x: item[x], fields)),
         _propagation_params(propagation[str(item['id'])][0]),
     )
-
-
-def _fixup_beam(data, beam):
-    # fix old beam structure to match new schema
-    beam['name'] = beam['beamName']['name']
-    beam['beamSelector'] = beam['name']
-    for b in _PREDEFINED_BEAMS:
-        if b['name'] == beam['name']:
-            beam.update(b)
-            return
-    if 'twissParameters' in data['models']:
-        if 'name' in data['models']['twissParameters']:
-            del data['models']['twissParameters']['name']
-        beam.update(data['models']['twissParameters'])
-        beam['id'] = 1
-        data['models']['electronBeams'] = [beam]
-        return
-
-    # otherwise default to the first predefined beam
-    beam.update(_PREDEFINED_BEAMS[0])
-    beam['beamSelector'] = beam['name']
 
 
 def _compute_crystal_init(model):
@@ -687,6 +655,35 @@ def _height_profile_element(item, propagation, overwrite_propagation=False):
         template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})'
     res += _beamline_element(template, item, fields, propagation)
     return res
+
+def _intensity_units(is_gaussian, model_data):
+    if is_gaussian:
+        if 'report' in model_data:
+            i = model_data['models'][model_data['report']]['fieldUnits']
+        else:
+            i = model_data['models']['initialIntensityReport']['fieldUnits']
+        return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
+    return 'ph/s/.1%bw/mm^2'
+
+def _process_intensity_report(source_type, undulator_type):
+    # Magnetic field:
+    magnetic_field = 1
+    if source_type == 't' and undulator_type == 'u_t':
+        magnetic_field = 2
+
+    # Method:
+    if source_type in ['u', 't']:
+        method = 1
+    elif source_type == 'm':
+        method = 2
+    else:
+        method = 0
+
+    data = {
+        'magneticField': magnetic_field,
+        'method': method
+    }
+    return data
 
 def _propagation_params(prop):
     res = '    pp.append(['

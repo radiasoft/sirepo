@@ -318,6 +318,7 @@
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -747,6 +748,7 @@
                     ]
                 ]],
                 ["Accuracy", [
+                    "magneticField",
                     "method",
                     "precision"
                 ]]
@@ -941,7 +943,7 @@
             ]
         },
         "tabulatedUndulator": {
-            "title": "Undulator (Idealized/Tabulated)",
+            "title": "Undulator (Idealized or Tabulated)",
             "basic": [
                 "undulatorType",
                 "gap",

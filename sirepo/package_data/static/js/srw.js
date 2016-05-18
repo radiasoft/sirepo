@@ -561,10 +561,18 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     });
 });
 
-app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout) {
+app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout, requestSender) {
     var self = this;
     self.srwService = srwService;
     $scope.appState = appState;
+
+    function disableField(reportName, field, value, ifDisable) {
+        if (! appState.isLoaded() || typeof value === "undefined")
+            return;
+        var modelReport = '.model-' + reportName + '-';
+        $(modelReport + field).find('.form-control').prop('disabled', ifDisable);
+        appState.models[reportName][field] = value;
+    }
 
     function processFluxMethod(methodNumber, reportName) {
         if (! appState.isLoaded() || typeof methodNumber === "undefined")
@@ -573,8 +581,8 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         var fieldsOfAccurateMethod = ['precision'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
-        $(modelReport + 'magneticField').find('.form-control').prop('disabled', true);
-        appState.models.fluxAnimation.magneticField = 1;
+        // Set magnetic field values automatically:
+        disableField(reportName, 'magneticField', 1, true);
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).show(0);
@@ -584,7 +592,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
             if (appState.models.tabulatedUndulator.undulatorType === 'u_t') {
-                appState.models.fluxAnimation.magneticField = 2;
+                disableField(reportName, 'magneticField', 2, true);
             }
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).hide(0);
@@ -595,6 +603,22 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         } else {
             return;
         }
+    }
+
+    function processIntensityReport(reportName) {
+        if (! appState.isLoaded())
+            return;
+        requestSender.getApplicationData(
+            {
+                method: 'process_intensity_report',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+            },
+            function(data) {
+                disableField(reportName, 'method', data['method'], true);
+                disableField(reportName, 'magneticField', data['magneticField'], true);
+            }
+        );
     }
 
     function processUndulator(undType) {
@@ -638,7 +662,11 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             if (srwService.isApplicationMode('calculator')) {
                 $('.model-intensityReport-fieldUnits').hide(0);
             } else {
-                processFluxMethod(appState.models.fluxAnimation.method, 'fluxAnimation');
+                if (name === 'fluxAnimation') {
+                    processFluxMethod(appState.models.fluxAnimation.method, name);
+                } else if (name === 'intensityReport') {
+                    processIntensityReport(name);
+                }
             }
         }
     };
@@ -670,7 +698,9 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     });
 
     $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
-        processFluxMethod(newValue, 'fluxAnimation');
+        $timeout(function() {
+            processFluxMethod(newValue, 'fluxAnimation');
+        });
     });
 });
 
