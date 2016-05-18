@@ -9,8 +9,11 @@ from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE, ELEGANT_STDERR_FILE
+from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE
 from subprocess import call
+
+_ELEGANT_STDERR_FILE = 'elegant.stderr'
+
 
 def run(cfg_dir):
     """Run elegant in ``cfg_dir``
@@ -40,8 +43,12 @@ def _run_elegant():
     pkio.write_text('elegant.lte', lattice_file)
     pkio.write_text('elegant.ele', elegant_file)
     with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
-        with open(ELEGANT_STDERR_FILE, 'w') as elegant_stderr:
+        with open(_ELEGANT_STDERR_FILE, 'w') as elegant_stderr:
             call(['elegant', 'elegant.ele'], stdout=elegant_stdout, stderr=elegant_stderr)
+    # combine stderr with stdout
+    with open(ELEGANT_LOG_FILE, 'a') as log_file:
+        with open(_ELEGANT_STDERR_FILE, 'r') as f:
+            log_file.write(f.read())
 
 
 def _extract_bunch_report():
