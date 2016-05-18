@@ -3,9 +3,9 @@
     <div class="col-md-6 col-xl-4">
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="simulationStatus"></div>
-        <div class="panel-body cssFade" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
+        <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
           <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('initial')">
-            <div class="col-sm-6 pull-right cssFade">
+            <div class="col-sm-6 pull-right">
               <button class="btn btn-primary" data-ng-click="dynamics.runSimulation()">Start Simulation</button>
             </div>
           </form>
@@ -22,7 +22,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-sm-6 pull-right cssFade">
+            <div class="col-sm-6 pull-right">
               <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">End Simulation</button>
             </div>
           </form>
@@ -34,7 +34,7 @@
               </span>
               <br><br>
             </div>
-            <div class="col-sm-6 pull-right cssFade">
+            <div class="col-sm-6 pull-right">
               <button class="btn btn-default" data-ng-click="dynamics.runSimulation()">Start New Simulation</button>
             </div>
           </form>
