@@ -576,6 +576,18 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     }
 });
 
+app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-lattice-import-dialog=""></div>',
+        ].join(''),
+    };
+});
+
 app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
@@ -593,6 +605,9 @@ app.directive('appHeader', function(appState, panelState) {
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
               '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
+            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
+                '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+            '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
@@ -607,7 +622,10 @@ app.directive('appHeader', function(appState, panelState) {
                         return true;
                 }
                 return false;
-            }
+            };
+            $scope.showImportModal = function() {
+                $('#elegant-lattice-import').modal('show');
+            };
         },
     };
 });
@@ -1007,6 +1025,75 @@ app.directive('elementAnimationModalEditor', function(appState) {
                     return data;
                 },
             };
+        },
+    };
+});
+
+app.directive('latticeImportDialog', function(fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="modal fade" id="elegant-lattice-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="importForm">',
+                        '<div class="form-group">',
+                          '<label>Select Lattice File</label>',
+                          '<input id="elegant-lattice-file-import" type="file" data-file-model="latticeFile">',
+                          '<br />',
+                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                        '</div>',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-ng-click="importLatticeFile(latticeFile)" class="btn btn-primary">Import File</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileUploadError = '';
+            $scope.title = 'Import Elegant Lattice File';
+            $scope.importLatticeFile = function(latticeFile, importArgs) {
+                if (! latticeFile)
+                    return;
+                fileUpload.uploadFileToUrl(
+                    latticeFile,
+                    '',
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': APP_SCHEMA.simulationType,
+                        }),
+                    function(data) {
+                        if (data.error) {
+                            $scope.fileUploadError = data.error;
+                        }
+                        else {
+                            $('#elegant-lattice-import').modal('hide');
+                            requestSender.localRedirect('lattice', {
+                                ':simulationId': data.models.simulation.simulationId,
+                            });
+                        }
+                    });
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#elegant-lattice-file-import').val(null);
+                scope.fileUploadError = ''
+            });
         },
     };
 });
