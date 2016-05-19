@@ -6,6 +6,7 @@ u"""elegant lattice parser.
 """
 from __future__ import absolute_import, division, print_function
 import json
+import os
 import py.path
 import re
 import subprocess
@@ -14,6 +15,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import elegant_lattice_parser
 
+_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
 with open(str(_STATIC_FOLDER.join('json/elegant-default.json'))) as f:
@@ -101,8 +103,10 @@ def _validate_field(el, field):
             el[field] = '{}.{}.sdds'.format(el['name'], field)
         elif field_type == 'Float':
             if re.search(r'\S\s+\S', el[field]):
+                my_env = os.environ.copy()
+                my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
                 #TODO(pjm): security - need to scrub field value
-                out = subprocess.check_output(['rpnl', el[field]])
+                out = subprocess.check_output(['rpnl', el[field]], env=my_env)
                 if len(out):
                     el[field] = out.strip()
                 else:
