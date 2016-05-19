@@ -6,11 +6,14 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE
-from subprocess import call
+import copy
+import os
+import subprocess
 
 _ELEGANT_STDERR_FILE = 'elegant.stderr'
 
@@ -44,7 +47,15 @@ def _run_elegant():
     pkio.write_text('elegant.ele', elegant_file)
     with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
         with open(_ELEGANT_STDERR_FILE, 'w') as elegant_stderr:
-            call(['elegant', 'elegant.ele'], stdout=elegant_stdout, stderr=elegant_stderr)
+            env = copy.deepcopy(os.environ)
+            env['RPN_DEFNS'] = pkresource.filename('rpn.defns')
+            p = subprocess.Popen(
+                ['elegant', 'elegant.ele'],
+                stdout=elegant_stdout,
+                stderr=elegant_stderr,
+                env=env,
+            )
+            p.wait()
     # combine stderr with stdout
     with open(ELEGANT_LOG_FILE, 'a') as log_file:
         with open(_ELEGANT_STDERR_FILE, 'r') as f:
