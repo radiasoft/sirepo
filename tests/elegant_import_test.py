@@ -8,10 +8,13 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp
+import pytest
+
+pytest.importorskip('sdds')
 
 _FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte']
 
-class TestFlaskRequest():
+class TestFlaskRequest(object):
     def __init__(self, filename):
         self.filename = filename
         self.files = {

@@ -4,3 +4,4 @@ flask
 numconv
 pykern
 uwsgi
+numpy
