@@ -101,7 +101,8 @@ def _validate_field(el, field):
             el[field] = '{}.{}.sdds'.format(el['name'], field)
         elif field_type == 'Float':
             if re.search(r'\S\s+\S', el[field]):
-                out = subprocess.check_output('rpnl "{}"'.format(el[field]), shell=True)
+                #TODO(pjm): security - need to scrub field value
+                out = subprocess.check_output(['rpnl', el[field]])
                 if len(out):
                     el[field] = out.strip()
                 else:

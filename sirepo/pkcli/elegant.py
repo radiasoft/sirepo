@@ -21,7 +21,7 @@ def run(cfg_dir):
     The files in ``cfg_dir`` must be configured properly.
 
     Args:
-        cfg_dir (str): directory to run srw in
+        cfg_dir (str): directory to run elegant in
     """
     with pkio.save_chdir(cfg_dir):
         _run_elegant()
@@ -29,10 +29,10 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    """Run warp in ``cfg_dir`` with mpi
+    """Run elegant as a background task
 
     Args:
-        cfg_dir (str): directory to run warp in
+        cfg_dir (str): directory to run elegant in
     """
     with pkio.save_chdir(cfg_dir):
         _run_elegant();
