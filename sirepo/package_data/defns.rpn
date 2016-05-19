@@ -1,0 +1,426 @@
+/* define constants and some functions
+/* PI
+1 atan 4 * sto pi pop
+/* log(10)
+10 ln sto log_10 pop
+/* largest number possible
+100 exp sto HUGE pop
+HUGE sto on_div_by_zero pop
+/* CHange Sign 
+udf
+chs
+-1 *
+
+/* ABSolute value 
+udf
+abs
+0 < pop ? chs : 0 + $
+
+/* MODulo--this one is to confuse the beginner.
+udf
+mod
+= rup swap = rup swap = rup / int rdn * rdn swap - 0 < ? pop rdn + : pop rdn pop $
+
+
+/* TANgent
+udf
+tan
+= cos swap sin swap /
+
+/* SINe for Degrees
+udf
+dsin
+180 / pi * sin
+
+/* SINe for Degrees
+udf
+dsin
+180 / pi * sin
+
+/* COSine for Degrees
+udf
+dcos
+180 / pi * cos
+
+/* TANgent for Degrees
+udf
+dtan
+180 / pi * tan
+
+/* ArcSINe for Degrees
+udf
+dasin
+asin 180 * pi /
+
+/* ArcCOSine for Degrees
+udf
+dacos
+acos 180 * pi /
+
+/* ArcTANgent for Degrees
+udf
+datan
+atan 180 * pi /
+
+/* RECiprocal
+udf
+rec
+1 swap /
+
+/* Radians TO Degrees
+udf
+rtod
+180 * pi /
+
+/* Degrees TO Radians
+udf
+dtor
+180 / pi *
+
+/* hyperbolic cos
+udf
+cosh
+exp = rec + 2 /
+
+/* hyperbolic sin
+udf
+sinh
+exp = chs rec + 2 /
+
+/* hyperbolic tan
+udf
+tanh
+= sinh swap cosh /
+
+/* inverse hyperbolic cos
+udf
+acosh
+= sqr 1 - sqrt + ln
+
+/* inverse hyperbolic sin
+udf
+asinh
+= sqr 1 + sqrt + ln
+
+/* inverse hyperbolic tan
+udf
+atanh
+= 1 + swap chs 1 + / sqrt ln
+
+/* 10^x 
+udf
+10x
+10 swap pow
+
+/* log base-10
+udf
+log
+ln log_10 /
+
+/* Chebyshev T polynomial
+udf
+Tn
+swap acos * cos
+
+/* hypot function: sqrt(sqr(x)+sqr(y))
+udf
+hypot
+sqr swap sqr + sqrt
+
+/* signal to terminal
+udf
+beep
+1 "\007\n" puts
+
+/* maximum of top two items on stack
+udf
+max2
+< ? swap pop : pop $
+
+/* minimum of top two items on stack
+udf
+min2
+> ? swap pop : pop $
+
+/* maximum of top N items on statck
+udf
+maxn
+sto imaxn pop
+< ? swap pop : pop $
+imaxn 1 - 1 > ? pop maxn : pop pop $
+
+/* minium of top N items on statck
+udf
+minn
+sto iminn pop
+> ? swap pop : pop $
+iminn 1 - 1 > ? pop minn : pop pop $
+
+/* show the top of the stack
+udf
+top
+= 1 getformat fprf 1 "\n" puts 
+
+/* duplicate the second-to-top item on the stack
+udf
+over
+rup = rdn swap
+
+/* duplicate top two items on the stack
+udf
+ddup
+rup = rdn swap rup = rdn swap
+
+/* interpolate/extrapolate
+/* usage: x x0 x1 y0 y1 interp
+udf
+interp
+swap = rup - rup swap = rup - rdn swap rdn swap / rup - rdn * rdn +
+
+/* compute distance between two (x, y) points
+/* usage: x1 y1 x2 y2 dist2
+udf
+dist2
+swap rup - sqr swap rdn - sqr + sqrt
+
+/* rotate stack down N times: N rdnn
+udf
+rdnn
+0 == pop ? pop : 1 - rdn swap rdnn $
+
+/* rotate stack up N times:  N rupn
+udf
+rupn
+0 == pop ? pop : 1 - swap rup rupn $
+
+/* pop top N items from stack: N popn
+udf
+popn
+0 == pop ? pop :
+stlv 1 == pop pop ? "error: too few values on stack (popn)\n" 1 puts : swap pop 1 - popn $ $
+
+udf
+clr
+stlv popn
+
+udf
+exit
+quit
+
+udf
+fact
+0.5 + int 1 swap 2 < ? pop pop : pop factloop $
+
+udf
+factloop
+= rup * rdn 1 - 1 == ? pop pop : pop factloop $
+
+udf
+safe_div
+0 == ? pop pop pop on_div_by_zero : pop / $
+
+/* (atan(x)+(pi/2))/pi
+udf
+knee
+atan pi 2 / + pi /
+
+/* soft-edge "greater than" function
+/* <value> <target> <tolerance> segt
+/* = 0 if <value> < <target>
+/* grows like ((<value>-<target>)/<tolerance>)^2 otherwise
+udf
+segt
+rup - 0 < ? rdn 3 popn 0 : pop rdn / sqr $
+
+/* soft-edge "less than" function
+/* <value> <target> <tolerance> selt
+/* = 0 if <value> > <target>
+/* grows like ((<value>-<target>)/<tolerance>)^2 otherwise
+udf
+selt
+rup swap rdn segt
+
+/* soft-edge "not equal-to" function
+/* <value> <target> <tolerance> sene
+/* -> 0 as <value> -> <target> +/- <tolerance>
+udf
+sene
+rup - rdn / 1 > ? - sqr : pop -1 < ? - sqr : pop pop 0 $ $
+
+udf
+stepfn
+0 < ? pop pop 0 :  == ? pop pop 0.5 : pop pop 1 $ $
+
+udf
+true
+1 1 ==
+
+udf
+false
+1 0 ==
+
+/* physical constants
+2.99792458e10 sto c_cgs pop
+2.99792458e8  sto c_mks pop
+4.80325e-10 sto e_cgs pop
+1.60217733e-19 sto e_mks pop
+9.1093897e-28 sto me_cgs pop
+9.1093897e-31 sto me_mks pop
+2.81794092e-13 sto re_cgs pop
+2.81794092e-15 sto re_mks pop
+1.380658e-16 sto kb_cgs pop
+1.380658e-23 sto kb_mks pop
+0.51099906 sto mev pop
+1.0545887e-34 sto hbar_mks pop
+6.582173e-22 sto hbar_MeVs pop
+1.6726485e-27 sto mp_mks pop
+4 pi * 1e-7 * sto mu_o pop
+1e7 4 / pi / c_mks sqr / sto eps_o pop
+
+/* constants for alpha-magnets
+191.655e-2 sto Kas pop
+75.0499e-2 sto Kaq pop
+
+udf
+beta.p
+= sqr 1 + sqrt /
+
+udf
+gamma.p
+sqr 1 + sqrt
+
+udf
+gamma.beta
+sqr 1 swap - sqrt rec
+
+udf
+p.beta
+= sqr 1 swap - sqrt /
+
+udf
+p.gamma
+sqr 1 - sqrt
+
+
+udf
+KSprob
+sqr -2 * exp sto KSterm
+1 sto KSsign
+0 sto KSsum
+1 sto KSindex
+KSloop
+
+udf
+KSloop
+KSterm KSindex sqr pow
+1e-8 < ? cle KSsum 2 *
+     : pop KSsign * KSsum + sto KSsum 
+       KSindex 1 + sto KSindex
+       KSsign -1 * sto KSsign
+       cle
+       KSloop
+     $
+
+
+/* simple statistics
+/* usage: <x1> <x2> <x3> ... <xn> n stats
+/* returns mean (top) and standard deviation (top-1)
+udf
+stats
+sto istats sto istatsSave pop 0 sto statsSum sto statsSum2 pop
+statsLoop
+statsSum istatsSave / 
+= sqr statsSum2 istatsSave / - istatsSave * istatsSave 1 - / abs sqrt swap 
+
+udf
+statsLoop
+0 istats == pop pop ? :
+        = statsSum + sto statsSum pop
+        sqr statsSum2 + sto statsSum2 pop
+        istats 1 - sto istats pop
+        statsLoop
+        $
+
+/* mean of N values
+/* usage: <x1> <x2> <x3> ... <xn> n mean
+udf
+mean
+sto imean sto imeanSave pop 0 sto meanSum pop
+meanLoop
+meanSum imeanSave /
+
+udf
+meanLoop
+0 imean == pop pop ? :
+        meanSum + sto meanSum pop 
+        imean 1 - sto imean pop
+        meanLoop
+        $
+
+/* rms of N values
+/* usage: <x1> <x2> <x3> ... <xn> n rms
+udf
+rms
+sto irms sto irmsSave pop 0 sto rmsSum pop
+rmsLoop
+rmsSum irmsSave / sqrt
+
+udf
+rmsLoop
+0 irms == pop pop ? :
+        sqr rmsSum + sto rmsSum pop 
+        irms 1 - sto irms pop
+        rmsLoop
+        $
+
+udf
+duplog
+? true true : false false $
+
+udf
+sign
+= abs == pop pop ? 1 : -1 $ 0 +
+
+
+/* mult function so * isn't needed in rpnl commands
+udf
+mult
+*
+
+
+/* test function prints "true" or "false" based on
+/* value on logical stack.  The numerical stack is
+/* cleared (!) to prevent rpnl from printing a number
+udf
+test
+? "true\n" : "false\n" $ 1 puts cle
+
+
+/* compute significance level for two-tailed t distribution:
+/* t nu t2SL
+udf
+t2SL
+rup sqr rdn = rup + rdn = rup / rec rdn 2 / 0.5 betai 
+
+/* compute significance level for F-test:
+/* var1 var2 nu1 nu2 FSL
+udf
+FSL
+stlv 4 < pop pop ? "usage: <var1> <var2> <nu1> <nu2> FSL\n" 1 puts stop : $
+rup rup / 1 < pop ? rec rdn rdn swap : rdn rdn $
+ddup 2 / rup 2 / rup 
+rup * rdn = rup + rdn swap / 
+rdn rdn swap betai
+
+/* compute significance level for Pearson's r (linear correlation coefficient):
+/* r nu rSL
+udf
+rSL
+rup abs = sqr 1 - rdn = rup / rec chs sqrt * rdn t2SL
+
+/* compute significance level for chi-squared:
+/* chiSq nu Chi2SL
+udf
+Chi2SL
+2 / swap 2 / swap gamQ
+
