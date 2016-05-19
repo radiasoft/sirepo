@@ -135,7 +135,6 @@ def fixup_old_data(data):
                 if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
-        data['models']['fluxReport']['magneticField'] = 1  # always approximate for static Flux Report
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
         data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
         if 'initialHarmonic' not in data['models']['fluxReport']:
@@ -143,7 +142,6 @@ def fixup_old_data(data):
             data['models']['fluxReport']['finalHarmonic'] = 15
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
-            data['models']['fluxAnimation']['magneticField'] = 2
             data['models']['fluxAnimation']['method'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
@@ -218,7 +216,6 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
         data['models']['fluxAnimation']['initialEnergy'] = 10000.0
         data['models']['fluxAnimation']['finalEnergy'] = 20000.0
-        data['models']['fluxAnimation']['magneticField'] = 2
         data['models']['fluxAnimation']['method'] = 1
         data['models']['fluxAnimation']['precision'] = 0.01
         data['models']['fluxAnimation']['initialHarmonic'] = 1
@@ -226,6 +223,22 @@ def fixup_old_data(data):
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
+    # Process method and magnetic field values for intensity and flux reports:
+    d = _process_intensity_report(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType']
+    )
+    for field in ['magneticField', 'method']:
+        data['models']['intensityReport'][field] = d[field]
+    for rep in ['fluxReport', 'fluxAnimation']:
+        d = _process_flux_reports(
+            data['models'][rep]['method'],
+            rep,
+            data['models']['simulation']['sourceType'],
+            data['models']['tabulatedUndulator']['undulatorType']
+        )
+        data['models'][rep]['magneticField'] = d['magneticField']
+
     if 'report' in data:
         if data['report'] == 'fluxAnimation':
             data['models']['fluxReport'] = data['models'][data['report']].copy()
@@ -238,12 +251,6 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
             data['models']['tabulatedUndulator']['indexFile'] = ''
-
-    # Process intensityReport:
-    d = _process_intensity_report(data['models']['simulation']['sourceType'],
-                                  data['models']['tabulatedUndulator']['undulatorType'])
-    data['models']['intensityReport']['magneticField'] = d['magneticField']
-    data['models']['intensityReport']['method'] = d['method']
 
     _validate_data(data, schema)
     last_id = None
@@ -301,6 +308,8 @@ def get_application_data(data):
         return _compute_crystal_orientation(data['optical_element'])
     elif data['method'] == 'process_intensity_report':
         return _process_intensity_report(data['source_type'], data['undulator_type'])
+    elif data['method'] == 'process_flux_reports':
+        return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -665,6 +674,11 @@ def _intensity_units(is_gaussian, model_data):
             i = model_data['models']['initialIntensityReport']['fieldUnits']
         return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
     return 'ph/s/.1%bw/mm^2'
+
+def _process_flux_reports(method_number, report_name, source_type, undulator_type):
+    # Magnetic field processing:
+    magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' and report_name == 'fluxAnimation' and int(method_number) == 1 else 1
+    return {'magneticField': magnetic_field}
 
 def _process_intensity_report(source_type, undulator_type):
     # Magnetic field:

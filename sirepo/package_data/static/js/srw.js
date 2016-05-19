@@ -577,12 +577,23 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     function processFluxMethod(methodNumber, reportName) {
         if (! appState.isLoaded() || typeof methodNumber === "undefined")
             return;
+        // Get magnetic field values from server:
+        requestSender.getApplicationData(
+            {
+                method: 'process_flux_reports',
+                method_number: methodNumber,
+                report_name: reportName,
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+            },
+            function(data) {
+                disableField(reportName, 'magneticField', data['magneticField'], true);
+            }
+        );
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
         var fieldsOfAccurateMethod = ['precision'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
-        // Set magnetic field values automatically:
-        disableField(reportName, 'magneticField', 1, true);
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).show(0);
@@ -591,9 +602,6 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 $(modelReport + fieldsOfAccurateMethod[i]).hide(0);
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
-            if (appState.models.tabulatedUndulator.undulatorType === 'u_t') {
-                disableField(reportName, 'magneticField', 2, true);
-            }
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).hide(0);
             }
