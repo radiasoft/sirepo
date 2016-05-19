@@ -232,18 +232,19 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
             # render the watchpoint report settings in the initialIntensityReport template slot
             data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-        elif data['report'] == 'intensityReport':
-            d = _process_intensity_report(data['models']['simulation']['sourceType'],
-                                          data['models']['tabulatedUndulator']['undulatorType'])
-            data['models']['intensityReport']['magneticField'] = d['magneticField']
-            data['models']['intensityReport']['method'] = d['method']
-    undulator_type = 'u_i'
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
             data['models']['tabulatedUndulator']['indexFile'] = ''
+
+    # Process intensityReport:
+    d = _process_intensity_report(data['models']['simulation']['sourceType'],
+                                  data['models']['tabulatedUndulator']['undulatorType'])
+    data['models']['intensityReport']['magneticField'] = d['magneticField']
+    data['models']['intensityReport']['method'] = d['method']
+
     _validate_data(data, schema)
     last_id = None
     if 'report' in data:
