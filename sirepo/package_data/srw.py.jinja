@@ -33,7 +33,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
     ['und_per', 'f', {{undulator_period}}, 'undulator period [m]'],
     ['und_len', 'f', {{undulator_length}}, 'undulator length [m]'],
-    ['und_zc', 'f', {{undulatorLongitudinalPosition}}, 'undulator center longitudinal position [m]'],
+    ['und_zc', 'f', {{undulator_longitudinalPosition}}, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', {{undulator_horizontalSymmetry}}, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', {{undulator_verticalSymmetry}}, 'undulator vertical magnetic field symmetry vs longitudinal position'],
     ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
@@ -136,11 +136,11 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
     ['w_ny', 'i', {{simulation_verticalPointCount}}, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', {{simulation_sampleFactor}}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_prec', 'f', {{sourceIntensityReport_precision}}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', {{initialIntensityReport_fieldUnits}}, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', {{initialIntensityReport_polarization}}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['si_type', 'i', {{initialIntensityReport_characteristic}}, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
-    ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
+    ['w_mag', 'i', {{sourceIntensityReport_magneticField}}, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
 
     ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
@@ -207,15 +207,16 @@ def setup_source(v):
         )
 
     mag = None
-    if appV.source_type == 'u' or (not v.und_g or v.und_g == 0):
-        v.und_b = 1
-        del v.und_g
-        del v.gbm_pen
-    elif appV.source_type == 't' or (v.und_g and v.und_g > 0):
-        del v.gbm_pen
-        v.und_mdir = './{{tabulatedUndulator_magnMeasFolder}}'
-        v.pw_mag = 2
-        v.w_mag = 2
+    if appV.source_type in ['u', 't']:
+        if appV.source_type == 'u' or (not v.und_g or v.und_g == 0):
+            v.und_b = 1
+            del v.und_g
+            del v.gbm_pen
+        elif appV.source_type == 't' or (v.und_g and v.und_g > 0):
+            del v.gbm_pen
+            v.und_mdir = './{{tabulatedUndulator_magnMeasFolder}}'
+            v.pw_mag = 2
+            v.w_mag = 2
     elif appV.source_type == 'g':
         pass
     elif appV.source_type == 'm':

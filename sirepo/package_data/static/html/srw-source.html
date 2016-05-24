@@ -32,7 +32,7 @@
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="powerDensityReport" data-panel-title="{{ source.srwService.getReportTitle('powerDensityReport') }}"></div>
     </div>
-    <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isApplicationMode('calculator')" class="col-md-6 col-xl-4">
+    <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="sourceIntensityReport" data-panel-title="{{ source.srwService.getReportTitle('sourceIntensityReport') }}"></div>
     </div>
   </div> <!-- /row -->
@@ -40,7 +40,7 @@
 
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="tabulatedUndulator" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="electronBeam" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
+<div data-modal-editor="" view-name="electronBeam" data-parent-controller="source" data-is-read-only="source.srwService.isPredefinedBeam()"></div>
 <div data-modal-editor="" view-name="sourceIntensityReport" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="fluxAnimation" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="intensityReport" data-parent-controller="source"></div>

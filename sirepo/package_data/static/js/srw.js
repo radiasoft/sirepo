@@ -574,6 +574,28 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         appState.models[reportName][field] = value;
     }
 
+    function processBeamDrift() {
+        if (! appState.isLoaded())
+            return;
+        if (appState.models.simulation.sourceType === 'u') {
+            var und = 'undulator';
+        } else if (appState.models.simulation.sourceType === 't') {
+            var und = 'tabulatedUndulator';
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'process_beam_drift',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                undulator_period: appState.models[und]['period'] / 1000,
+                undulator_length: appState.models[und]['length'],
+            },
+            function(data) {
+                appState.models.electronBeam.drift = data['drift'];
+            }
+        );
+    }
+
     function processFluxMethod(methodNumber, reportName) {
         if (! appState.isLoaded() || typeof methodNumber === "undefined")
             return;
@@ -613,18 +635,23 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         }
     }
 
-    function processIntensityReport(reportName) {
+    function processIntensityReports(reportName, fieldsToDisable, methodName) {
         if (! appState.isLoaded())
             return;
         requestSender.getApplicationData(
             {
-                method: 'process_intensity_report',
+                method: methodName,
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
             },
             function(data) {
-                disableField(reportName, 'method', data['method'], true);
-                disableField(reportName, 'magneticField', data['magneticField'], true);
+                for (var i = 0; i < fieldsToDisable.length; i++) {
+                    var true_false = true;
+                    if (fieldsToDisable[i] === 'method') {
+                        true_false = false;
+                    }
+                    disableField(reportName, fieldsToDisable[i], data[fieldsToDisable[i]], true_false);
+                }
             }
         );
     }
@@ -669,12 +696,17 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             }
             if (srwService.isApplicationMode('calculator')) {
                 $('.model-intensityReport-fieldUnits').hide(0);
-            } else {
-                if (name === 'fluxAnimation') {
-                    processFluxMethod(appState.models.fluxAnimation.method, name);
-                } else if (name === 'intensityReport') {
-                    processIntensityReport(name);
-                }
+                $('.model-sourceIntensityReport-magneticField').hide(0);
+            }
+
+            if (name === 'fluxAnimation') {
+                processFluxMethod(appState.models.fluxAnimation.method, name);
+            } else if (name === 'intensityReport') {
+                processIntensityReports(name, ['method', 'magneticField'], 'process_intensity_reports');
+            } else if (name === 'sourceIntensityReport') {
+                processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
+            } else if (name === 'electronBeam') {
+                processBeamDrift();
             }
         }
     };
@@ -701,13 +733,17 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
 
     $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
         $timeout(function() {
-            processUndulator(newValue);
+            if (srwService.isElectronBeam()) {
+                processUndulator(newValue);
+            }
         });
     });
 
     $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
         $timeout(function() {
-            processFluxMethod(newValue, 'fluxAnimation');
+            if (srwService.isElectronBeam()) {
+                processFluxMethod(newValue, 'fluxAnimation');
+            }
         });
     });
 });

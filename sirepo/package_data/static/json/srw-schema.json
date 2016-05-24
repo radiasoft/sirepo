@@ -394,7 +394,9 @@
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
+            "precision": ["Relative Precision", "Float"]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String"],
@@ -895,25 +897,31 @@
             "title": "Intensity Report",
             "basic": [],
             "advanced": [
-                "distanceFromSource",
-                "simulation.photonEnergy",
-                "polarization",
-                "characteristic",
-                "fieldUnits",
-                "simulation.samplingMethod",
-                "simulation.sampleFactor",
-                [
-                    ["Horizontal", [
-                        "simulation.horizontalPosition",
-                        "simulation.horizontalRange",
-                        "simulation.horizontalPointCount"
-                    ]],
-                    ["Vertical", [
-                        "simulation.verticalPosition",
-                        "simulation.verticalRange",
-                        "simulation.verticalPointCount"
-                    ]]
-                ]
+                ["Main", [
+                    "distanceFromSource",
+                    "simulation.photonEnergy",
+                    "polarization",
+                    "characteristic",
+                    "fieldUnits",
+                    "simulation.samplingMethod",
+                    "simulation.sampleFactor",
+                    [
+                        ["Horizontal", [
+                            "simulation.horizontalPosition",
+                            "simulation.horizontalRange",
+                            "simulation.horizontalPointCount"
+                        ]],
+                        ["Vertical", [
+                            "simulation.verticalPosition",
+                            "simulation.verticalRange",
+                            "simulation.verticalPointCount"
+                        ]]
+                    ]
+                ]],
+                ["Accuracy", [
+                    "magneticField",
+                    "precision"
+                ]]
             ]
         },
         "sphericalMirror": {

@@ -148,8 +148,17 @@ def fixup_old_data(data):
             data['models']['fluxAnimation']['finalHarmonic'] = 15
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
+            if data['models']['simulation']['sourceType'] in ['u', 't']:
+                data['models']['intensityReport']['method'] = 1
+            elif data['models']['simulation']['sourceType'] == 'm':
+                data['models']['intensityReport']['method'] = 2
+            else:
+                data['models']['intensityReport']['method'] = 0
             data['models']['intensityReport']['precision'] = 0.01
             data['models']['intensityReport']['fieldUnits'] = 1
+    if 'sourceIntensityReport' in data['models']:
+        if 'precision' not in data['models']['sourceIntensityReport']:
+            data['models']['sourceIntensityReport']['precision'] = 0.01
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = {}
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
@@ -223,13 +232,18 @@ def fixup_old_data(data):
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
-    # Process method and magnetic field values for intensity and flux reports:
-    d = _process_intensity_report(
+    # Process method and magnetic field values for intensity, flux and intensity distribution reports:
+    # Intensity report:
+    d = _process_intensity_reports(
         data['models']['simulation']['sourceType'],
         data['models']['tabulatedUndulator']['undulatorType']
     )
-    for field in ['magneticField', 'method']:
-        data['models']['intensityReport'][field] = d[field]
+    rep = 'intensityReport'
+    field = 'magneticField'
+    data['models'][rep][field] = d[field]
+
+    # Flux* reports:
+    field = 'magneticField'
     for rep in ['fluxReport', 'fluxAnimation']:
         d = _process_flux_reports(
             data['models'][rep]['method'],
@@ -237,7 +251,16 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
             data['models']['simulation']['sourceType'],
             data['models']['tabulatedUndulator']['undulatorType']
         )
-        data['models'][rep]['magneticField'] = d['magneticField']
+        data['models'][rep][field] = d[field]
+
+    # Intensity Distribution (2D) report:
+    d = _process_intensity_reports(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType']
+    )
+    rep = 'sourceIntensityReport'
+    field = 'magneticField'
+    data['models'][rep][field] = d[field]
 
     if 'report' in data:
         if data['report'] == 'fluxAnimation':
@@ -271,18 +294,17 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     else:
         position = _get_first_element_position(data)
     v['beamlineFirstElementPosition'] = position
-    source_type = data['models']['simulation']['sourceType']
-    if source_type == 'u':
-        v['undulatorLongitudinalPosition'] = data['models']['undulator']['longitudinalPosition']
-    elif source_type == 't':
-        v['undulatorLongitudinalPosition'] = data['models']['tabulatedUndulator']['longitudinalPosition']
-    else:
-        v['undulatorLongitudinalPosition'] = 0.0
+
+    v['electronBeam_drift'] = _process_beam_drift(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType'],
+        data['models']['undulator']['length'],
+        data['models']['undulator']['period']
+    )['drift']
 
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 2
-    if source_type in ['u', 't']:
-        v['energyCalculationMethod'] = 1
+    v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
+
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
@@ -306,10 +328,12 @@ def get_application_data(data):
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
         return _compute_crystal_orientation(data['optical_element'])
-    elif data['method'] == 'process_intensity_report':
-        return _process_intensity_report(data['source_type'], data['undulator_type'])
+    elif data['method'] == 'process_intensity_reports':
+        return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_flux_reports':
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
+    elif data['method'] == 'process_beam_drift':
+        return _process_beam_drift(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -675,30 +699,23 @@ def _intensity_units(is_gaussian, model_data):
         return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
     return 'ph/s/.1%bw/mm^2'
 
+def _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period):
+    """Calculate drift for ideal undulator."""
+    drift = 0.0
+    if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
+        # initial drift = 1/2 undulator length + 2 periods
+        drift = -0.5 * undulator_length - 2 * undulator_period
+    return {'drift': drift}
+
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' and report_name == 'fluxAnimation' and int(method_number) == 1 else 1
     return {'magneticField': magnetic_field}
 
-def _process_intensity_report(source_type, undulator_type):
-    # Magnetic field:
-    magnetic_field = 1
-    if source_type == 't' and undulator_type == 'u_t':
-        magnetic_field = 2
-
-    # Method:
-    if source_type in ['u', 't']:
-        method = 1
-    elif source_type == 'm':
-        method = 2
-    else:
-        method = 0
-
-    data = {
-        'magneticField': magnetic_field,
-        'method': method
-    }
-    return data
+def _process_intensity_reports(source_type, undulator_type):
+    # Magnetic field processing:
+    magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' else 1
+    return {'magneticField': magnetic_field}
 
 def _propagation_params(prop):
     res = '    pp.append(['
