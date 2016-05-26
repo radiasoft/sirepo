@@ -86,6 +86,7 @@ def background_percent_complete(data, run_dir, is_running, schema):
         'frame_count': 1,
         'output_info': output_info,
         'last_update_time': output_info[0]['last_update_time'],
+        'errors': _parse_errors_from_log(run_dir),
     }
 
 
@@ -209,6 +210,14 @@ def fixup_old_data(data):
         }
     if 'beamlineReport' not in data['models']:
         data['models']['beamlineReport'] = {}
+    if 'bunchSource' not in data['models']:
+        data['models']['bunchSource'] = {
+            'inputSource': 'bunched_beam',
+        }
+    if 'bunchFile' not in data['models']:
+        data['models']['bunchFile'] = {
+            'sourceFile': None,
+        }
 
 
 def generate_lattice(data, v):
@@ -345,7 +354,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
 
 def is_cache_valid(data, old_data):
     if 'bunchReport' in data['report']:
-        for name in [data['report'], 'bunch', 'simulation']:
+        for name in [data['report'], 'bunch', 'simulation', 'bunchSource', 'bunchFile']:
             if data['models'][name] != old_data['models'][name]:
                 return False
         return True
@@ -484,10 +493,11 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:', text, re.IGNORECASE)
 
 
 def _parse_errors_from_log(run_dir):
+    print('** parsing error log')
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
         return ''

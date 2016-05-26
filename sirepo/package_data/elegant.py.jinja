@@ -5,6 +5,7 @@ lattice_file = """
 """
 
 elegant_file = """
+
 &run_setup
         lattice = elegant.lte,
         use_beamline = {{use_beamline}},
@@ -24,6 +25,7 @@ elegant_file = """
 !        n_passes = 1000,
 &end
 
+{% if bunchSource_inputSource == 'bunched_beam' %}
 &bunched_beam
        n_particles_per_bunch = {{bunch_n_particles_per_bunch}},
        one_random_bunch=0,
@@ -45,6 +47,13 @@ elegant_file = """
        enforce_rms_values[0] = 1,1,1,
        bunch = %s.bun
 &end
+{% endif %}
+
+{% if bunchSource_inputSource == 'sdds_beam' %}
+&sdds_beam
+       input = "bunchFile-sourceFile.{{bunchFile_sourceFile}}",
+&end
+{% endif %}
 
 &track &end
 """

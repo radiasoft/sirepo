@@ -4,6 +4,10 @@
             ["0", "No"],
             ["1", "Yes"]
         ],
+        "BunchInputSource": [
+            ["sdds_beam", "SDDS Input File"],
+            ["bunched_beam", "Twiss Parameters"]
+        ],
         "FramesPerSecond": [
             ["1", "1"],
             ["2", "2"],
@@ -239,6 +243,9 @@
         },
         "beamlineReport": {
         },
+        "bunchSource": {
+            "inputSource": ["Bunch Source", "BunchInputSource"]
+        },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV]", "Float", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "", "Number of particles in each bunch"],
@@ -255,6 +262,9 @@
             "emit_z": ["Longitudinal Geometric Emittance [nm]", "Float", "", "RMS emittance for the Z plane"],
             "beta_z": ["Longitudinal Beta [m]", "Float"],
             "alpha_z": ["Longitudinal Alpha", "Float"]
+        },
+        "bunchFile": {
+            "sourceFile": ["Beam File", "InputFile"]
         },
         "bunchReport": {
             "x": ["X Value", "PhaseSpaceCoordinate"],
@@ -2546,8 +2556,9 @@
         "bunch": {
             "title": "Bunch",
             "basic": [
-                "p_central_mev",
-                "n_particles_per_bunch"
+                "bunchSource.inputSource",
+                "n_particles_per_bunch",
+                "p_central_mev"
             ],
             "advanced": [
                 "p_central_mev",
@@ -2572,6 +2583,15 @@
                 "beta_z",
                 "alpha_z"
             ]
+        },
+        "bunchFile": {
+            "title": "Bunch",
+            "basic": [
+                "bunchSource.inputSource",
+                "sourceFile",
+                "bunch.p_central_mev"
+            ],
+            "advanced": []
         },
         "bunchReport": {
             "title": "Bunch Report",

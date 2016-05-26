@@ -23,9 +23,16 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('ElegantSourceController', function(appState, $scope) {
+app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
     var self = this;
     var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
+    //TODO(pjm): share with template/elegant.py _PLOT_TITLE
+    var plotTitle = {
+        'x-xp': 'Horizontal',
+        'y-yp': 'Vertical',
+        'x-y': 'Cross-section',
+        't-p': 'Longitudinal',
+    };
 
     function validateSaving() {
         if (! appState.isLoaded())
@@ -94,8 +101,22 @@ app.controller('ElegantSourceController', function(appState, $scope) {
         {id: 4},
     ];
 
+    self.bunchReportHeading = function(item) {
+        if (! appState.isLoaded())
+            return;
+        var bunch = appState.models['bunchReport' + item.id];
+        var key = bunch.x + '-' + bunch.y;
+        return 'Bunch Report - ' + (plotTitle[key] || (bunch.x + ' / ' + bunch.y));
+    };
+
     self.handleModalShown = function() {
         updateLongitudinalFields(0);
+    };
+
+    self.isBunchSource = function(name) {
+        if (! appState.isLoaded())
+            return false;
+        return appState.models.bunchSource.inputSource == name;
     };
 
     var modelAccessByItemId = {};
@@ -120,6 +141,19 @@ app.controller('ElegantSourceController', function(appState, $scope) {
     });
     $scope.$watchCollection('appState.models.bunch', validateTyping);
     $scope.$on('bunch.changed', validateSaving);
+    $scope.$watch('appState.models.bunchSource.inputSource', function(newValue, oldValue) {
+        if (newValue && oldValue && (newValue != oldValue)) {
+            //TODO(pjm): rework this
+            $timeout(function() {
+                var el = $('#s-bunch-basicEditor')[0];
+                if (el)
+                    angular.element(el).scope().form.$setDirty();
+                el = $('#s-bunchFile-basicEditor')[0];
+                if (el)
+                    angular.element(el).scope().form.$setDirty();
+            });
+        }
+    });
 });
 
 app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {

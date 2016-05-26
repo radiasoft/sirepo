@@ -184,6 +184,7 @@ def _validate_field(el, field):
             field_type = _SCHEMA['model'][el['type']][f][1]
     if not field_type:
         pkdp('{}: unkown field type for {}', field, el['type'])
+        del el[field]
     else:
         if field_type == 'OutputFile':
             el[field] = '{}.{}.sdds'.format(el['name'], field)
