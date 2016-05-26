@@ -12,7 +12,8 @@ import pytest
 
 pytest.importorskip('sdds')
 
-_FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte']
+#TODO(pjm): use glob to find data files
+_FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte', 'bad-rpn.lte', 'BYBL.lte']
 
 class TestFlaskRequest(object):
     def __init__(self, filename):
