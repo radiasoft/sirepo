@@ -59,7 +59,7 @@ def background_percent_complete(data, run_dir, is_running, schema):
     }
 
 
-def copy_animation_file(source_path, target_path):
+def copy_related_files(data, source_path, target_path):
     pass
 
 

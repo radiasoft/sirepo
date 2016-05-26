@@ -62,12 +62,7 @@ def background_percent_complete(data, run_dir, is_running, schema):
     }
 
 
-def copy_animation_file(source_path, target_path):
-    # source_file = str(py.path.local(source_path).join('animation', _MULTI_ELECTRON_FILENAME))
-    # if os.path.isfile(source_file):
-    #     pkio.mkdir_parent(str(py.path.local(target_path).join('animation')))
-    #     target_file = str(py.path.local(target_path).join('animation', _MULTI_ELECTRON_FILENAME))
-    #     shutil.copyfile(source_file, target_file)
+def copy_related_files(data, source_path, target_path):
     pass
 
 

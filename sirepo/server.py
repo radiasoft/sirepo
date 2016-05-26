@@ -128,7 +128,7 @@ def app_copy_nonsession_simulation():
         data['models']['simulation']['isExample'] = ''
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(simulation_type, data)
-        sirepo.template.import_module(simulation_type).copy_animation_file(global_path, simulation_db.simulation_dir(simulation_type, simulation_db.parse_sid(data)))
+        sirepo.template.import_module(simulation_type).copy_related_files(data, global_path, str(simulation_db.simulation_dir(simulation_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
 
@@ -585,10 +585,12 @@ def app_upload_file(simulation_type, simulation_id, file_type):
         return flask.jsonify({
             'error': err,
             'filename': filename,
+            'fileType': file_type,
             'simulationId': simulation_id,
         })
     return flask.jsonify({
         'filename': filename,
+        'fileType': file_type,
         'simulationId': simulation_id,
     })
 
