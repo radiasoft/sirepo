@@ -101,7 +101,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
             viewName: '@',
         },
         template: [
-            '<div class="panel panel-info">',
+            '<div class="panel panel-info" id="{{ \'s-\' + viewName + \'-basicEditor\' }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
               '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
                 '<form name="form" class="form-horizontal" novalidate>',
