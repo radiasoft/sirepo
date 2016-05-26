@@ -14,9 +14,11 @@ from sirepo.template import template_common
 import glob
 import numpy as np
 import os
+import os.path
 import py.path
 import re
 import sdds
+import shutil
 import time
 import werkzeug
 
@@ -26,7 +28,7 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_ME_EV = 0.51099906e6
 
-_ELEGANT_FINAL_OUTPUT_FILE = 'elegant.out'
+_ELEGANT_FINAL_OUTPUT_FILE = 'elegant-final-output.sdds'
 
 _FIELD_LABEL = {
     'x': 'x [m]',
@@ -87,8 +89,31 @@ def background_percent_complete(data, run_dir, is_running, schema):
     }
 
 
-def copy_animation_file(source_path, target_path):
-    pass
+def copy_related_files(data, source_path, target_path):
+    # copy any simulation output
+    if os.path.isdir(str(py.path.local(source_path).join('animation'))):
+        animation_dir = py.path.local(target_path).join('animation')
+        pkio.mkdir_parent(str(animation_dir))
+        for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
+            shutil.copy(f, str(animation_dir))
+    # copy element InputFiles to lib
+    #TODO(pjm): assumes the location of the lib directory
+    source_lib = py.path.local(os.path.dirname(source_path)).join('lib')
+    target_lib = py.path.local(os.path.dirname(target_path)).join('lib')
+    lib_files = []
+    for el in data['models']['elements']:
+        model_schema = _SCHEMA['model'][el['type']]
+        for k in el:
+            if k not in model_schema:
+                continue
+            element_schema = model_schema[k]
+            if el[k] and element_schema[1].startswith('InputFile'):
+                #TODO(pjm): need a common formatter for file names
+                lib_files.append('{}-{}.{}'.format(el['type'], k, el[k]))
+    for f in lib_files:
+        target = target_lib.join(f)
+        if not target.exists():
+            shutil.copy(str(source_lib.join(f)), str(target))
 
 
 def extract_report_data(filename, data, p_central_mev, page_index):
@@ -113,7 +138,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
     if yfield == 'p':
         y = _scale_p(y, p_central_mev)
 
-    if column_names[0] == 's':
+    if _is_2d_plot(column_names):
         # 2d plot
         return {
             'title': _plot_title(xfield, yfield, page_index),
@@ -208,15 +233,17 @@ def generate_lattice(data, v):
         names[el['_id']] = el['name']
 
         for k in el:
-            if k in ['name', 'type', '_id']:
+            if k in ['name', 'type', '_id'] or re.search('(X|Y)$', k):
                 continue
             value = el[k]
             element_schema = _SCHEMA['model'][el['type']][k]
             default_value = element_schema[2]
             if value is not None and default_value is not None:
                 if str(value) != str(default_value):
-                    if element_schema[1] == 'InputFile':
+                    if element_schema[1].startswith('InputFile'):
                         value = '{}-{}.{}'.format(el['type'], k, value)
+                        if element_schema[1] == 'InputFileXY':
+                            value += '={}+{}'.format(el[k + 'X'], el[k + 'Y'])
                     res += '{}="{}",'.format(k, value)
         res = res[:-1]
         res += "\n"
@@ -225,7 +252,12 @@ def generate_lattice(data, v):
         if len(bl['items']):
             res += '"{}": LINE=('.format(bl['name'].upper())
             for id in bl['items']:
-                res += '{},'.format(names[id].upper())
+                sign = ''
+                if id < 0:
+                    sign = '-'
+                    id = - id;
+
+                res += '{},'.format(sign + names[id].upper())
             res = res[:-1]
             res += ")\n"
 
@@ -334,6 +366,14 @@ def remove_last_frame(run_dir):
 
 def run_all_text():
     return '''
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')
 '''
 
 
@@ -432,6 +472,15 @@ def _has_valid_elegant_output(run_dir):
             file_ok = True
     sdds.sddsdata.Terminate(0)
     return file_ok
+
+
+#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
+def _is_2d_plot(columns):
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return False
+    return True
 
 
 def _is_error_text(text):
