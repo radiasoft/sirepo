@@ -285,10 +285,10 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
+                '<input string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
-                '<input string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly">',
+                '<input string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
                 '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
@@ -297,10 +297,17 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
               '</div>',
               '<div data-ng-switch-when="String" class="col-sm-5">',
-                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly">',
+                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
+              '</div>',
+              '<div data-ng-switch-when="InputFileXY" class="col-sm-7">',
+                  '<div style="display: inline-block" data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
+                  ' <label style="margin: 0 1ex">X</label> ',
+                  '<input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />',
+                  ' <label style="margin: 0 1ex">Y</label> ',
+                  '<input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />',
               '</div>',
               '<div data-ng-switch-when="OutputFile" class="col-sm-5">',
                 '<div data-output-file-field="field" data-model="model"></div>',
@@ -310,7 +317,7 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" class="col-sm-5">',
-                '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly">',
+                '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly" />',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default class="col-sm-5">',
@@ -330,6 +337,12 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 $scope.$parent.$parent.form.$setDirty();
             };
             $scope.emptyList = [];
+            $scope.fieldX = function() {
+                return $scope.field + 'X';
+            };
+            $scope.fieldY = function() {
+                return $scope.field + 'Y';
+            };
             $scope.newUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
                 var newBeam = appState.clone(appState.models.electronBeam);
@@ -403,7 +416,7 @@ app.directive('fileField', function(appState, panelState, requestSender) {
               '<li><a href data-ng-click="showFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
             '</ul>',
           '</div> ',
-          '<div data-ng-if="model[fileField]" class="btn-group" role="group">',
+          '<div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">',
             '<button type="button" title="View Graph" class="btn btn-default" data-ng-if="wantFileReport" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default""><span class="glyphicon glyphicon-cloud-download"></a>',
           '</div>',
@@ -429,6 +442,15 @@ app.directive('fileField', function(appState, panelState, requestSender) {
                     });
                 }
                 return '';
+            };
+            $scope.hasValidFileSelected = function() {
+                if ($scope.fileType && $scope.model) {
+                    var f = $scope.model[$scope.fileField];
+                    var list = requestSender.getAuxiliaryData($scope.fileType);
+                    if (f && list && list.indexOf(f) >= 0)
+                        return true;
+                }
+                return false;
             };
             $scope.itemList = function() {
                 if (! $scope.fileType)
@@ -527,7 +549,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                       '<form>',
                         '<div class="form-group">',
                           '<label>Select File</label>',
-                          '<input type="file" data-file-model="inputFile">',
+                          '<input type="file" data-file-model="inputFile" />',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
