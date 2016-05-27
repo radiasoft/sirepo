@@ -174,6 +174,7 @@ appParam = [
     ['ueb', 'i', {{userDefinedElectronBeam}}, 'Use user defined beam'],
     ['ueb_e', 'f', {{electronBeam_energy}}, 'energy [GeV]'],
     ['ueb_sig_e', 'f', {{electronBeam_rmsSpread}}, 'RMS energy spread'],
+    ['ueb_beam_definition', 's', '{{electronBeam_beamDefinition}}', 'definition of the beam using Twiss Parameters (t) or Moments (m)'],
     ['ueb_emit_x', 'f', {{electronBeam_horizontalEmittance}}, 'horizontal emittance [m]'],
     ['ueb_beta_x', 'f', {{electronBeam_horizontalBeta}}, 'horizontal beta-function [m]'],
     ['ueb_alpha_x', 'f', {{electronBeam_horizontalAlpha}}, 'horizontal alpha-function [rad]'],
@@ -184,6 +185,12 @@ appParam = [
     ['ueb_alpha_y', 'f', {{electronBeam_verticalAlpha}}, 'vertical alpha-function [rad]'],
     ['ueb_eta_y', 'f', {{electronBeam_verticalDispersion}}, 'vertical dispersion function [m]'],
     ['ueb_eta_y_pr', 'f', {{electronBeam_verticalDispersionDerivative}}, 'vertical dispersion function derivative [rad]'],
+    ['ueb_rms_size_x', 'f', {{electronBeam_rmsSizeX}}, "horizontal RMS size [m]"],
+    ['ueb_rms_diverg_x', 'f', {{electronBeam_rmsDivergX}}, "horizontal RMS divergence [rad]"],
+    ['ueb_xxpr_x', 'f', {{electronBeam_xxprX}}, "horizontal <(x-<x>)(x'-<x'>)> [m]"],
+    ['ueb_rms_size_y', 'f', {{electronBeam_rmsSizeY}}, "vertical RMS size [m]"],
+    ['ueb_rms_diverg_y', 'f', {{electronBeam_rmsDivergY}}, "vertical RMS divergence [rad]"],
+    ['ueb_xxpr_y', 'f', {{electronBeam_xxprY}}, "vertical <(x-<x>)(x'-<x'>)> [m]"],
 ]
 
 def setup_source(v):
@@ -191,20 +198,34 @@ def setup_source(v):
 
     if appV.ueb:
         srwl_bl._USER_DEFINED_EBEAM = srwl_bl.SRWLPartBeam()
-        srwl_bl._USER_DEFINED_EBEAM.from_Twiss(
-            _e=appV.ueb_e,
-            _sig_e=appV.ueb_sig_e,
-            _emit_x=appV.ueb_emit_x,
-            _beta_x=appV.ueb_beta_x,
-            _alpha_x=appV.ueb_alpha_x,
-            _eta_x=appV.ueb_eta_x,
-            _eta_x_pr=appV.ueb_eta_x_pr,
-            _emit_y=appV.ueb_emit_y,
-            _beta_y=appV.ueb_beta_y,
-            _alpha_y=appV.ueb_alpha_y,
-            _eta_y=appV.ueb_eta_y,
-            _eta_y_pr=appV.ueb_eta_y_pr
-        )
+        if appV.ueb_beam_definition == 't':
+            srwl_bl._USER_DEFINED_EBEAM.from_Twiss(
+                _e=appV.ueb_e,
+                _sig_e=appV.ueb_sig_e,
+                _emit_x=appV.ueb_emit_x,
+                _beta_x=appV.ueb_beta_x,
+                _alpha_x=appV.ueb_alpha_x,
+                _eta_x=appV.ueb_eta_x,
+                _eta_x_pr=appV.ueb_eta_x_pr,
+                _emit_y=appV.ueb_emit_y,
+                _beta_y=appV.ueb_beta_y,
+                _alpha_y=appV.ueb_alpha_y,
+                _eta_y=appV.ueb_eta_y,
+                _eta_y_pr=appV.ueb_eta_y_pr
+            )
+        elif appV.ueb_beam_definition == 'm':
+            srwl_bl._USER_DEFINED_EBEAM.from_RMS(
+                _e=appV.ueb_e,
+                _sig_e=appV.ueb_sig_e,
+                _sig_x=appV.ueb_rms_size_x,
+                _sig_x_pr=appV.ueb_rms_diverg_x,
+                _m_xx_pr=appV.ueb_xxpr_x,
+                _sig_y=appV.ueb_rms_size_y,
+                _sig_y_pr=appV.ueb_rms_diverg_y,
+                _m_yy_pr=appV.ueb_xxpr_y
+            )
+        else:
+            raise AssertionError('{}: unknown ueb_beam_definition'.format(appV.ueb_beam_definition))
 
     mag = None
     if appV.source_type in ['u', 't']:

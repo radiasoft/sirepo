@@ -230,6 +230,11 @@ def fixup_old_data(data):
     if 'undulatorDefinition' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorDefinition'] = 'B'
         data['models']['tabulatedUndulator']['undulatorParameter'] = None
+    if 'beamDefinition' not in data['models']['electronBeam']:
+        data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
+        beam_moments_defaults = _process_beam_moments_defaults()
+        for field in ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY']:
+            data['models']['electronBeam'][field] = beam_moments_defaults[field]
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -334,6 +339,8 @@ def get_application_data(data):
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_drift':
         return _process_beam_drift(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
+    elif data['method'] == 'process_beam_moments_defaults':
+        return _process_beam_moments_defaults()
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -708,6 +715,17 @@ def _process_beam_drift(source_type, undulator_type, undulator_length, undulator
         # initial drift = 1/2 undulator length + 2 periods
         drift = -0.5 * undulator_length - 2 * undulator_period
     return {'drift': drift}
+
+def _process_beam_moments_defaults():
+    model = {
+        'rmsSizeX': 372.612,
+        'rmsDivergX': 10.4666,
+        'xxprX': 0.0,
+        'rmsSizeY': 9.87421,
+        'rmsDivergY': 3.94968,
+        'xxprY': 0.0,
+    }
+    return model
 
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
     # Magnetic field processing:

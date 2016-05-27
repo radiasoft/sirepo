@@ -582,7 +582,9 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         }
         var modelReport = '.model-' + reportName + '-';
         $(modelReport + field).find('.form-control').prop(property, ifDisable);
-        appState.models[reportName][field] = value;
+        if (value !== 'skip') {
+            appState.models[reportName][field] = value;
+        }
     }
 
     function processBeamDrift() {
@@ -605,6 +607,63 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 appState.models.electronBeam.drift = data['drift'];
             }
         );
+    }
+
+    function processBeamDefinition() {
+        if (! appState.isLoaded())
+            return;
+        var beamDefinition = appState.models.electronBeam.beamDefinition;
+        var columnHeading = 'column-heading';
+        var fieldsOfTwiss = ['horizontalEmittance', 'horizontalBeta', 'horizontalAlpha', 'horizontalDispersion', 'horizontalDispersionDerivative',
+                             'verticalEmittance', 'verticalBeta', 'verticalAlpha', 'verticalDispersion', 'verticalDispersionDerivative'];
+        var fieldsOfMoments = ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'];
+
+        if (appState.models.electronBeam.isReadOnly) {
+            requestSender.getApplicationData(
+                {
+                    method: 'process_beam_moments_defaults',
+                },
+                function(data) {
+                    disableField('electronBeam', 'beamDefinition', 't', true);
+                    for (var i = 0; i < fieldsOfMoments.length; i++) {
+                        disableField('electronBeam', fieldsOfMoments[i], data[fieldsOfMoments[i]], true);
+                    }
+                }
+            );
+        } else {
+            disableField('electronBeam', 'beamDefinition', 'skip', false);
+            for (var i = 0; i < fieldsOfMoments.length; i++) {
+                disableField('electronBeam', fieldsOfMoments[i], 'skip', false);
+            }
+        }
+
+        var modelReport = '.model-electronBeam-';
+        var duration = 0;  // ms
+        if (beamDefinition === "t") {  // Twiss
+            $($(modelReport + columnHeading)[0]).show(duration);
+            $($(modelReport + columnHeading)[1]).show(duration);
+            $($(modelReport + columnHeading)[2]).hide(duration);
+            $($(modelReport + columnHeading)[3]).hide(duration);
+            for (var i = 0; i < fieldsOfTwiss.length; i++) {
+                $(modelReport + fieldsOfTwiss[i]).closest('.form-group').show(duration);
+            }
+            for (var i = 0; i < fieldsOfMoments.length; i++) {
+                $(modelReport + fieldsOfMoments[i]).closest('.form-group').hide(duration);
+            }
+        } else if (beamDefinition === "m") {  // Moments
+            $($(modelReport + columnHeading)[0]).hide(duration);
+            $($(modelReport + columnHeading)[1]).hide(duration);
+            $($(modelReport + columnHeading)[2]).show(duration);
+            $($(modelReport + columnHeading)[3]).show(duration);
+            for (var i = 0; i < fieldsOfTwiss.length; i++) {
+                $(modelReport + fieldsOfTwiss[i]).closest('.form-group').hide(duration);
+            }
+            for (var i = 0; i < fieldsOfMoments.length; i++) {
+                $(modelReport + fieldsOfMoments[i]).closest('.form-group').show(duration);
+            }
+        } else {
+            return;
+        }
     }
 
     function processFluxMethod(methodNumber, reportName) {
@@ -741,6 +800,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
             } else if (name === 'electronBeam') {
                 processBeamDrift();
+                processBeamDefinition();
             }
         }
     };
@@ -763,6 +823,14 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         });
         appState.saveQuietly('electronBeam');
         appState.saveQuietly('electronBeams');
+    });
+
+    $scope.$watch('appState.models.electronBeam.beamDefinition', function (newValue, oldValue) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                processBeamDefinition();
+            }
+        });
     });
 
     $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {

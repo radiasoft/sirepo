@@ -17,6 +17,10 @@
             ["light-sources", "Light Source Facilities"],
             ["wavefront", "Wavefront Propagation"]
         ],
+        "BeamDefinition": [
+            ["t", "Twiss"],
+            ["m", "Moments"]
+        ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
             ["1", "Multi-Electron Intensity (disregarding energy spread)"],
@@ -217,6 +221,7 @@
             "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Average Vertical Position [mm]", "Float"],
             "drift": ["Drift [m]", "Float"],
+            "beamDefinition": ["Beam Definition by", "BeamDefinition"],
             "horizontalEmittance": ["Horizontal Emittance [nm]", "Float"],
             "horizontalBeta": ["Horizontal Beta [m]", "Float"],
             "horizontalAlpha": ["Horizontal Alpha [rad]", "Float"],
@@ -226,7 +231,13 @@
             "verticalBeta": ["Vertical Beta [m]", "Float"],
             "verticalAlpha": ["Vertical Alpha [rad]", "Float"],
             "verticalDispersion": ["Vertical Dispersion [m]", "Float"],
-            "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"]
+            "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"],
+            "rmsSizeX": ["RMS Size [µm]", "Float"],
+            "rmsDivergX": ["RMS Divergence [µrad]", "Float"],
+            "xxprX": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"],
+            "rmsSizeY": ["RMS Size [µm]", "Float"],
+            "rmsDivergY": ["RMS Divergence [µrad]", "Float"],
+            "xxprY": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"]
         },
         "ellipsoidMirror": {
             "title": ["Element Name", "String"],
@@ -419,7 +430,7 @@
         },
         "tabulatedUndulator": {
             "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "undulatorDefinition": ["Undulator definition via...", "UndulatorDefinition"],
+            "undulatorDefinition": ["Undulator definition by", "UndulatorDefinition"],
             "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
@@ -436,7 +447,7 @@
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
-            "undulatorDefinition": ["Undulator definition via...", "UndulatorDefinition"],
+            "undulatorDefinition": ["Undulator definition by", "UndulatorDefinition"],
             "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
@@ -560,6 +571,7 @@
                 "horizontalPosition",
                 "verticalPosition",
                 "drift",
+                "beamDefinition",
                 [
                     ["Horizontal Twiss Parameters", [
                         "horizontalEmittance",
@@ -574,6 +586,18 @@
                         "verticalAlpha",
                         "verticalDispersion",
                         "verticalDispersionDerivative"
+                    ]]
+                ],
+                [
+                    ["Horizontal Moments", [
+                        "rmsSizeX",
+                        "rmsDivergX",
+                        "xxprX"
+                    ]],
+                    ["Vertical Moments", [
+                        "rmsSizeY",
+                        "rmsDivergY",
+                        "xxprY"
                     ]]
                 ]
             ]
