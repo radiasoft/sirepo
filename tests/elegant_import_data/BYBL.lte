@@ -1,0 +1,65 @@
+!!! Use <filename>=<timeName>+<ratioName> syntax
+!!! Use more exact rf frequency
+!!! Set VOLT=1, so we can give actual voltage instead of the ratio
+!!! Set PHASE=0, so we can give actual phase instead of offset
+!!! Set FREQ=1, so we can give actual frequency instead of ratio
+RF  :RAMPRF,L=0.000001,VOLT=1, PHASE=0, FREQ=1, VOLT_WAVEFORM="RfRamp.sdds=time+Voltage", &
+	PHASE_WAVEFORM="RfRamp.sdds=time+Phase", FREQ_WAVEFORM="RfRamp.sdds=time+Frequency"
+ramp :RAMPP, WAVEFORM="RfRamp.sdds=time+MomentumRatio"
+
+! Use matrix bend for speed to see basic dynamics
+BDmag: SBEN,L=1.3,ANGLE=0.1464522526788075,K1=-5.550893E-01, &
+E1=0.073226,E2=0.073226, K2=-4.1
+
+BFmag: SBEN,L=1.24,ANGLE=0.05702547219491924,K1=8.20000E-01, &
+E1=0.028513,E2=0.028513, K2=3.5
+
+Aperture: ECOL, L=0, X_MAX=0.020, Y_MAX=0.012
+
+BD: Line=(Aperture,BDmag,Aperture)
+BF: Line=(Aperture,BFmag,Aperture)
+
+
+D1: DRIFT,L=0.51
+D2: DRIFT,L=0.51
+D2a: DRIFT,L=0.25
+DA: DRIFT,L=3.31
+DEX: DRIFT,L=1.0
+DEX3: DRIFT,L=0.3333333
+DB: DRIFT,L=0.4
+DC: DRIFT,L=0.75
+DD: DRIFT,L=0.25
+DE: DRIFT,L=0.53
+DG: DRIFT,L=0.61
+DSE: DRIF,L=0.225
+
+MK1: MARKER
+MK2: MARKER
+MON: Moni, L=0.000001
+
+BX: HKICK,L=1e-006,KICK=1e-009
+BY: VKICK,L=1e-006,KICK=1e-009
+
+QD: QUAD,L=0.2,K1=-1.359655
+QF: QUAD,L=0.3,K1=1.95
+QG: QUAD,L=0.2,K1=1.433046 
+
+SF: SEXT,L=0.15,K2=0.0
+SD: SEXT,L=0.15,K2=-0.0
+
+SSF: LINE=(DSE,SF,DSE)
+SSD: LINE=(DSE,SD,DSE)
+CL: LINE=(BD,D1,BF,D2)
+CQ: LINE=(QG,DG)
+DSL: LINE=(DA,MON,BX,BY,DEX,QF,DB,BD,DC,CQ,QD,DD,BF,DE,BX)
+DSR: LINE=(MON,DE,BF,DD,QD,-CQ,DC,BD,DB,QF,DEX,BY,DA)
+ARC: LINE=(BD,MON,SSF,BF,D2a,BX,D2a,BD,MON,SSD,BF,D2a, &
+BY,D2a,BX,CL,BD,D2a,BX,D2a,BF, &
+SSD,MON,BD,D2a,BY,D2a,BF,SSF,MON,BD)
+PER: LINE=(MK1,DSL,ARC,DSR,MK2)
+!! Add lumped synchrotron radiation
+SR: SREFFECTS,COUPLING=0.1
+!!! Add watch points
+w1: watch,filename="%s.w1",mode="parameters",flush_interval=1000
+w2: watch,filename="%s.w2",mode="coord",interval=1000
+RING: LINE=(w1, w2, 4*PER, ramp, SR, RF)

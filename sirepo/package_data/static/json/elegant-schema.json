@@ -4,6 +4,10 @@
             ["0", "No"],
             ["1", "Yes"]
         ],
+        "BunchInputSource": [
+            ["sdds_beam", "SDDS Input File"],
+            ["bunched_beam", "Twiss Parameters"]
+        ],
         "FramesPerSecond": [
             ["1", "1"],
             ["2", "2"],
@@ -239,6 +243,9 @@
         },
         "beamlineReport": {
         },
+        "bunchSource": {
+            "inputSource": ["Bunch Source", "BunchInputSource"]
+        },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV]", "Float", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "", "Number of particles in each bunch"],
@@ -255,6 +262,9 @@
             "emit_z": ["Longitudinal Geometric Emittance [nm]", "Float", "", "RMS emittance for the Z plane"],
             "beta_z": ["Longitudinal Beta [m]", "Float"],
             "alpha_z": ["Longitudinal Alpha", "Float"]
+        },
+        "bunchFile": {
+            "sourceFile": ["Beam File", "InputFile"]
         },
         "bunchReport": {
             "x": ["X Value", "PhaseSpaceCoordinate"],
@@ -316,7 +326,9 @@
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "fire_on_pass": ["FIRE ON PASS", "Integer", "0", "pass number to fire on"],
             "n_kicks": ["N KICKS", "Integer", "0", "Number of kicks to use for simulation. 0 uses an exact result but ignores b2."],
-            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "waveform": ["WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "waveformX": ["X", "String", ""],
+            "waveformY": ["Y", "String", ""],
             "deflection_map": ["DEFLECTION MAP", "InputFile", "", "optional filename giving the spatial variation of the deflection"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1309,7 +1321,9 @@
             "laser_n": ["LASER N", "Integer", "0", "laser vertical mode number (<5)"],
             "synch_rad": ["SYNCH RAD", "Boolean", "0", "Include classical synchrotron radiation?"],
             "isr": ["ISR", "Boolean", "0", "Include quantum excitation?"],
-            "time_profile": ["TIME PROFILE", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving time-dependent modulation of the laser electric and magnetic fields."],
+            "time_profile": ["TIME PROFILE", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving time-dependent modulation of the laser electric and magnetic fields."],
+            "time_profileX": ["X", "String", ""],
+            "time_profileY": ["Y", "String", ""],
             "time_offset": ["TIME OFFSET [S]", "Float", "0.0", "Time offset of the laser profile."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1431,7 +1445,9 @@
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "fire_on_pass": ["FIRE ON PASS", "Integer", "0", "pass number to fire on"],
             "n_kicks": ["N KICKS", "Integer", "0", "Number of kicks to use for simulation."],
-            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "waveform": ["WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving kick factor vs time"],
+            "waveformX": ["X", "String", ""],
+            "waveformY": ["Y", "String", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MHISTOGRAM": {
@@ -1650,7 +1666,9 @@
         },
         "RAMPP": {
             "name": ["Name", "String"],
-            "waveform": ["WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
+            "waveform": ["WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
+            "waveformX": ["X", "String", ""],
+            "waveformY": ["Y", "String", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPRF": {
@@ -1660,9 +1678,15 @@
             "phase": ["PHASE [DEG]", "Float", "0.0", "nominal phase"],
             "freq": ["FREQ [Hz]", "Float", "500000000", "nominal frequency"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
-            "volt_waveform": ["VOLT WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
-            "phase_waveform": ["PHASE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving phase offset vs time (requires FREQ WAVEFORM)"],
-            "freq_waveform": ["FREQ WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving frequency factor vs time (requires PHASE WAVEFORM)"],
+            "volt_waveform": ["VOLT WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "volt_waveformX": ["X", "String", ""],
+            "volt_waveformY": ["Y", "String", ""],
+            "phase_waveform": ["PHASE WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving phase offset vs time (requires FREQ WAVEFORM)"],
+            "phase_waveformX": ["X", "String", ""],
+            "phase_waveformY": ["Y", "String", ""],
+            "freq_waveform": ["FREQ WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving frequency factor vs time (requires PHASE WAVEFORM)"],
+            "freq_waveformX": ["X", "String", ""],
+            "freq_waveformY": ["Y", "String", ""],
             "fiducial": ["FIDUCIAL", "Fiducial", "", "mode for determining fiducial arrival time"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
@@ -1804,7 +1828,9 @@
             "n_kicks": ["N KICKS", "Integer", "0", "number of kicks (0=autoscale)"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
             "standing_wave": ["STANDING WAVE", "Boolean", "0", "If nonzero, then cavity is standing wave."],
-            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveformX": ["X", "String", ""],
+            "voltage_waveformY": ["Y", "String", ""],
             "voltage_periodic": ["VOLTAGE PERIODIC", "Boolean", "0", "If non-zero, voltage waveform is periodic with period given by time span."],
             "align_waveforms": ["ALIGN WAVEFORMS", "Boolean", "0", "If non-zero, waveforms' t=0 is aligned with first bunch arrival time."],
             "voltage_noise": ["VOLTAGE NOISE", "Float", "0.0", "Rms fractional noise level for voltage."],
@@ -1847,8 +1873,12 @@
             "record": ["RECORD", "OutputFile", "", "output file for cavity fields"],
             "single_pass": ["SINGLE PASS", "Boolean", "0", "if nonzero, don't accumulate field from pass to pass"],
             "pass_interval": ["PASS INTERVAL", "Integer", "1", "interval in passes at which to apply PASS INTERVAL times the field (may increase speed)"],
-            "freq_waveform": ["FREQ WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving frequency/f0 vs time, where f0 is the frequency given with the FREQ parameter"],
-            "q_waveform": ["Q WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving qualityFactor/Q0 vs time, where Q0 is the quality factor given the the Q parameter."],
+            "freq_waveform": ["FREQ WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving frequency/f0 vs time, where f0 is the frequency given with the FREQ parameter"],
+            "freq_waveformX": ["X", "String", ""],
+            "freq_waveformY": ["Y", "String", ""],
+            "q_waveform": ["Q WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving qualityFactor/Q0 vs time, where Q0 is the quality factor given the the Q parameter."],
+            "q_waveformX": ["X", "String", ""],
+            "q_waveformY": ["Y", "String", ""],
             "ramp_passes": ["RAMP PASSES", "Integer", "0", "Number of passes over which to linearly ramp up the impedance to full strength."],
             "binless": ["BINLESS", "Boolean", "0", "If nonzero, use algorithm that doesn't requiring binning. Best for few particles, widely spaced."],
             "reset_for_each_step": ["RESET FOR EACH STEP", "Boolean", "1", "If nonzero, voltage and phase are reset for each simulation step."],
@@ -1873,7 +1903,9 @@
             "frequency": ["FREQUENCY [HZ]", "Float", "2856000000", "frequency"],
             "voltage": ["VOLTAGE [V]", "Float", "0.0", "peak deflecting voltage"],
             "phase_reference": ["PHASE REFERENCE", "Integer", "0", "phase reference number (to link with other time-dependent elements)"],
-            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveform": ["VOLTAGE WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving voltage waveform factor vs time"],
+            "voltage_waveformX": ["X", "String", ""],
+            "voltage_waveformY": ["Y", "String", ""],
             "voltage_periodic": ["VOLTAGE PERIODIC", "Boolean", "0", "If non-zero, voltage waveform is periodic with period given by time span."],
             "align_waveforms": ["ALIGN WAVEFORMS", "Boolean", "0", "If non-zero, waveforms' t=0 is aligned with first bunch arrival time."],
             "voltage_noise": ["VOLTAGE NOISE", "Float", "0.0", "Rms fractional noise level for voltage."],
@@ -2448,8 +2480,12 @@
             "rs": ["RS [Ohm]", "Float", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "Float", "0.0", "cavity Q"],
             "freq": ["FREQ [Hz]", "Float", "0.0", "frequency (BROAD BAND=1)"],
-            "zreal": ["ZREAL", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving real part of impedance vs f (BROAD BAND=0)"],
-            "zimag": ["ZIMAG", "InputFile", "", "<filename>=<x>+<y>form specification of input file giving imaginary part of impedance vs f (BROAD BAND=0)"],
+            "zreal": ["ZREAL", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving real part of impedance vs f (BROAD BAND=0)"],
+            "zrealX": ["X", "String", ""],
+            "zrealY": ["Y", "String", ""],
+            "zimag": ["ZIMAG", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving imaginary part of impedance vs f (BROAD BAND=0)"],
+            "zimagX": ["X", "String", ""],
+            "zimagY": ["Y", "String", ""],
             "bin_size": ["BIN SIZE [S]", "Float", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "Integer", "128", "number of bins for current histogram"],
             "max_n_bins": ["MAX N_BINS", "Integer", "0", "Maximum number of bins for current histogram"],
@@ -2520,8 +2556,9 @@
         "bunch": {
             "title": "Bunch",
             "basic": [
-                "p_central_mev",
-                "n_particles_per_bunch"
+                "bunchSource.inputSource",
+                "n_particles_per_bunch",
+                "p_central_mev"
             ],
             "advanced": [
                 "p_central_mev",
@@ -2546,6 +2583,15 @@
                 "beta_z",
                 "alpha_z"
             ]
+        },
+        "bunchFile": {
+            "title": "Bunch",
+            "basic": [
+                "bunchSource.inputSource",
+                "sourceFile",
+                "bunch.p_central_mev"
+            ],
+            "advanced": []
         },
         "bunchReport": {
             "title": "Bunch Report",

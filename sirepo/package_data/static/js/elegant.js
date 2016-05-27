@@ -23,19 +23,52 @@ app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-app.controller('ElegantSourceController', function(appState, $scope) {
+app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
     var self = this;
     var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
+    //TODO(pjm): share with template/elegant.py _PLOT_TITLE
+    var plotTitle = {
+        'x-xp': 'Horizontal',
+        'y-yp': 'Vertical',
+        'x-y': 'Cross-section',
+        't-p': 'Longitudinal',
+    };
 
-    function dpsCouplingChanged() {
-        // dp_s_coupling valid only between -1 and 1
+    function validateSaving() {
         if (! appState.isLoaded())
             return;
-        var v = parseFloat(appState.models.bunch.dp_s_coupling);
+        var bunch = appState.models.bunch;
+        validateGreaterThanZero(bunch, 'beta_x');
+        validateGreaterThanZero(bunch, 'beta_y');
+        validateGreaterThanZero(bunch, 'n_particles_per_bunch');
+        validateGreaterThanZero(bunch, 'p_central_mev');
+        appState.saveQuietly('bunch');
+    }
+
+    function validateGreaterThanZero(model, field) {
+        if (parseFloat(model[field]) <= 0)
+            model[field] = 1;
+    }
+
+    function validateGreaterOrEqualToZero(model, field) {
+        if (parseFloat(model[field]) < 0)
+            model[field] = 0
+    }
+
+    function validateTyping() {
+        if (! appState.isLoaded())
+            return;
+        var bunch = appState.models.bunch;
+        // dp_s_coupling valid only between -1 and 1
+        var v = parseFloat(bunch.dp_s_coupling);
         if (v > 1)
-            appState.models.bunch.dp_s_coupling = 1;
+            bunch.dp_s_coupling = 1;
         else if (v < -1)
-            appState.models.bunch.dp_s_coupling = -1;
+            bunch.dp_s_coupling = -1;
+        validateGreaterOrEqualToZero(bunch, 'emit_x');
+        validateGreaterOrEqualToZero(bunch, 'emit_y');
+        validateGreaterOrEqualToZero(bunch, 'emit_z');
+        validateGreaterOrEqualToZero(bunch, 'beta_z');
     }
 
     function showFields(fields, delay) {
@@ -68,8 +101,22 @@ app.controller('ElegantSourceController', function(appState, $scope) {
         {id: 4},
     ];
 
+    self.bunchReportHeading = function(item) {
+        if (! appState.isLoaded())
+            return;
+        var bunch = appState.models['bunchReport' + item.id];
+        var key = bunch.x + '-' + bunch.y;
+        return 'Bunch Report - ' + (plotTitle[key] || (bunch.x + ' / ' + bunch.y));
+    };
+
     self.handleModalShown = function() {
         updateLongitudinalFields(0);
+    };
+
+    self.isBunchSource = function(name) {
+        if (! appState.isLoaded())
+            return false;
+        return appState.models.bunchSource.inputSource == name;
     };
 
     var modelAccessByItemId = {};
@@ -92,7 +139,21 @@ app.controller('ElegantSourceController', function(appState, $scope) {
     $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
         updateLongitudinalFields(400);
     });
-    $scope.$watch('appState.models.bunch.dp_s_coupling', dpsCouplingChanged);
+    $scope.$watchCollection('appState.models.bunch', validateTyping);
+    $scope.$on('bunch.changed', validateSaving);
+    $scope.$watch('appState.models.bunchSource.inputSource', function(newValue, oldValue) {
+        if (newValue && oldValue && (newValue != oldValue)) {
+            //TODO(pjm): rework this
+            $timeout(function() {
+                var el = $('#s-bunch-basicEditor')[0];
+                if (el)
+                    angular.element(el).scope().form.$setDirty();
+                el = $('#s-bunchFile-basicEditor')[0];
+                if (el)
+                    angular.element(el).scope().form.$setDirty();
+            });
+        }
+    });
 });
 
 app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
@@ -278,6 +339,8 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     };
 
     self.elementForId = function(id) {
+        if (id < 0)
+            id = -id;
         for (var i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
             if (b.id == id)
@@ -405,8 +468,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             var info = outputInfo[i];
             var modelKey = 'elementAnimation' + info.id;
             self.outputFiles.push({
-                //TODO(pjm): need a proper test for this case
-                reportType: info.columns[0] == 's' ? '2d' : 'heatmap',
+                reportType: reportTypeForColumns(info.columns),
                 modelName: 'elementAnimation',
                 filename: info['filename'],
                 modelAccess: {
@@ -483,6 +545,15 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                 models: appState.applicationState(),
                 simulationType: APP_SCHEMA.simulationType,
             });
+    }
+
+    //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
+    function reportTypeForColumns(columns) {
+        if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
+            || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
+            || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0))
+            return 'heatmap';
+        return '2d';
     }
 
     function setSimulationState(state) {
@@ -630,7 +701,7 @@ app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-app.directive('beamlineEditor', function(appState, $document, $timeout, $window) {
+app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
     return {
         restirct: 'A',
         scope: {
@@ -638,13 +709,17 @@ app.directive('beamlineEditor', function(appState, $document, $timeout, $window)
         },
         template: [
             '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
-              '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span></div>',
+              '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
+                '<div class="s-panel-options pull-right">',
+                  '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="s-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+                '</div>',
+              '</div>',
               '<div style="height: {{ editorHeight() }}" class="panel-body elegant-beamline-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="s-drop-left">&nbsp;</div>',
                   '<span data-ng-if="item.repeatCount" class="s-count">{{ item.repeatCount }}</span>',
-                  '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId)}"><span>{{ itemName(item) }}</span></div>',
+                  '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
                 '</div>',
                 '<div class="elegant-beamline-element s-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="s-drop-left">&nbsp;</div></div>',
               '</div>',
@@ -749,6 +824,16 @@ app.directive('beamlineEditor', function(appState, $document, $timeout, $window)
                 var el = $scope.lattice.elementForId(item.id);
                 if (el.type)
                     $scope.lattice.editElement(el.type, el);
+                else {
+                    // reverse the beamline
+                    item.id = -item.id;
+                    updateBeamline();
+                }
+            };
+
+            $scope.isBeamline = function(item) {
+                var el = $scope.lattice.elementForId(item.id);
+                return el.type ? false : true;
             };
 
             $scope.isSelected = function(itemId) {
@@ -759,7 +844,7 @@ app.directive('beamlineEditor', function(appState, $document, $timeout, $window)
 
             $scope.itemName = function(item) {
                 item.name = $scope.lattice.nameForId(item.id);
-                return item.name;
+                return (item.id < 0 ? '-' : '') + item.name;
             };
 
             $scope.onKeyDown = function(e) {
@@ -774,6 +859,13 @@ app.directive('beamlineEditor', function(appState, $document, $timeout, $window)
 
             $scope.selectItem = function(item) {
                 selectedItemId = item ? item.itemId : null;
+            };
+
+            $scope.showBeamlineNameModal = function() {
+                if (activeBeamline) {
+                    appState.models['beamline'] = activeBeamline;
+                    panelState.showModalEditor('beamline');
+                }
             };
 
             $scope.showEditor = function() {
@@ -815,7 +907,7 @@ app.directive('beamlineTable', function(appState) {
         template: [
             '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
               '<colgroup>',
-                '<col style="width: 12ex">',
+                '<col style="width: 20ex">',
                 '<col>',
                 '<col style="width: 10ex">',
                 '<col style="width: 12ex">',
@@ -834,7 +926,7 @@ app.directive('beamlineTable', function(appState) {
               '</thead>',
               '<tbody>',
                 '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
+                  '<td><div class="badge elegant-icon elegant-beamline-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td style="text-align: right">{{ beamline.count }}</td>',
                   '<td style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
@@ -904,7 +996,7 @@ app.directive('elementTable', function(appState) {
         template: [
             '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
               '<colgroup>',
-                '<col style="width: 12ex">',
+                '<col style="width: 20ex">',
                 '<col>',
                 '<col style="width: 12ex">',
                 '<col style="width: 10ex">',
@@ -1034,7 +1126,7 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="modal fade" id="elegant-lattice-import" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="static" id="elegant-lattice-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -1044,18 +1136,46 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
-                      '<form name="importForm">',
-                        '<div class="form-group">',
-                          '<label>Select Lattice File</label>',
-                          '<input id="elegant-lattice-file-import" type="file" data-file-model="latticeFile">',
-                          '<br />',
-                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                        '</div>',
-                        '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importLatticeFile(latticeFile)" class="btn btn-primary">Import File</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                        '</div>',
-                      '</form>',
+                        '<form class="form-horizontal" name="importForm">',
+                          '<div data-ng-show="isState(\'ready\')">',
+                            '<div data-ng-show="isState(\'ready\')" class="form-group">',
+                              '<label>Select Lattice File</label>',
+                              '<input id="elegant-lattice-file-import" type="file" data-file-model="latticeFile" />',
+                              '<br />',
+                              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                            '</div>',
+                            '<div class="col-sm-6 pull-right">',
+                              '<button data-ng-click="importLatticeFile(latticeFile)" class="btn btn-primary">Import File</button>',
+                              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                            '</div>',
+                          '</div>',
+                          '<div data-ng-show="filename" class="form-group">',
+                            '<label class="col-xs-4 control-label">Importing lattice</label>',
+                            '<div class="col-xs-8">',
+                              '<p class="form-control-static">{{ filename }}</p>',
+                            '</div>',
+                          '</div>',
+                          '<div data-ng-show="isState(\'import\') || isState(\'load-file-lists\')" class="col-sm-6 col-sm-offset-6">',
+                            'Uploading file - please wait.',
+                            '<br /><br />',
+                          '</div>',
+                          '<div data-ng-show="isState(\'missing-files\')">',
+                            '<p>Please upload the files below which are referenced in the lattice file.</p>',
+                            '<div class="form-group" data-ng-repeat="item in missingFiles">',
+                              '<div class="col-sm-8 col-sm-offset-1">',
+                                '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
+                                '<span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>',
+                                '<label>{{ item[2] }}</label> ({{ item[4] }}: {{ item[0] }} {{ item[1] }})',
+                                '<input type="file" data-file-model="item[5]" />',
+                              '</div>',
+                            '</div>',
+                            '<div class="col-sm-6 pull-right">',
+                              '<button data-ng-click="importMissingFiles()" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingFiles() }">{{ importMissingFilesButtonText() }}</button>',
+                              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                            '</div>',
+                          '</div>',
+                        '</form>',
+                      '</div>',
                     '</div>',
                   '</div>',
                 '</div>',
@@ -1063,11 +1183,120 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.fileUploadError = '';
             $scope.title = 'Import Elegant Lattice File';
-            $scope.importLatticeFile = function(latticeFile, importArgs) {
+            // states: ready, import, load-file-lists, missing-files
+            $scope.state = 'ready';
+
+            $scope.isCorrectMissingFile = function(item) {
+                if (! item[5])
+                    return false;
+                return item[2] == item[5].name;
+            };
+
+            function elementInputFiles(type) {
+                var res = [];
+                var elementSchema = APP_SCHEMA.model[type];
+                for (var f in elementSchema) {
+                    if (elementSchema[f][1].indexOf('InputFile') >= 0)
+                        res.push(f);
+                }
+                return res;
+            }
+
+            function hideAndRedirect() {
+                $('#elegant-lattice-import').modal('hide');
+                requestSender.localRedirect('lattice', {
+                    ':simulationId': $scope.id,
+                });
+            }
+
+            function loadFileLists() {
+                $scope.state = 'load-file-lists';
+                if (! $scope.missingFileLists.length) {
+                    verifyMissingFiles();
+                    return;
+                }
+                var fileType = $scope.missingFileLists.pop();
+                requestSender.loadAuxiliaryData(
+                    fileType,
+                    requestSender.formatUrl('listFiles', {
+                        '<simulation_id>': $scope.id,
+                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<file_type>': fileType,
+                    }),
+                    loadFileLists);
+            }
+
+            function verifyInputFiles(data) {
+                var requiredFiles = {};
+                for (var i = 0; i < data.models.elements.length; i++) {
+                    var el = data.models.elements[i];
+                    var inputFiles = elementInputFiles(el.type);
+                    for (var j = 0; j < inputFiles.length; j++) {
+                        if (el[inputFiles[j]]) {
+                            if (! requiredFiles[el.type])
+                                requiredFiles[el.type] = {};
+                            if (! requiredFiles[el.type][inputFiles[j]])
+                                requiredFiles[el.type][inputFiles[j]] = {};
+                            requiredFiles[el.type][inputFiles[j]][el[inputFiles[j]]] = el.name;
+                        }
+                    }
+                }
+                $scope.inputFiles = [];
+                for (var type in requiredFiles) {
+                    for (var field in requiredFiles[type]) {
+                        for (var filename in requiredFiles[type][field]) {
+                            $scope.inputFiles.push([type, field, filename, type + '-' + field, requiredFiles[type][field][filename]]);
+                        }
+                    }
+                }
+                verifyFileLists();
+            }
+
+            function verifyFileLists() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var fileType = $scope.inputFiles[i][3];
+                    if (! requestSender.getAuxiliaryData(fileType))
+                        res.push(fileType);
+                }
+                $scope.missingFileLists = res;
+                loadFileLists();
+            }
+
+            function verifyMissingFiles() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var filename = $scope.inputFiles[i][2];
+                    var fileType = $scope.inputFiles[i][3];
+                    var list = requestSender.getAuxiliaryData(fileType);
+                    if (list.indexOf(filename) < 0)
+                        res.push($scope.inputFiles[i]);
+                }
+                if (! res.length) {
+                    hideAndRedirect();
+                    return;
+                }
+                $scope.state = 'missing-files';
+                $scope.missingFiles = res.sort(function(a, b) {
+                    if (a[0] < b[0])
+                        return -1;
+                    if (a[0] > b[0])
+                        return 1;
+                    if (a[1] < b[1])
+                        return -1;
+                    if (a[1] > b[1])
+                        return 1;
+                    return 0;
+                });
+            }
+
+            $scope.importLatticeFile = function(latticeFile) {
                 if (! latticeFile)
                     return;
+                $scope.resetState();
+                $scope.state = 'import';
+                $scope.filename = latticeFile.name;
                 fileUpload.uploadFileToUrl(
                     latticeFile,
                     '',
@@ -1078,21 +1307,82 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
                         }),
                     function(data) {
                         if (data.error) {
+                            $scope.resetState();
                             $scope.fileUploadError = data.error;
                         }
                         else {
-                            $('#elegant-lattice-import').modal('hide');
-                            requestSender.localRedirect('lattice', {
-                                ':simulationId': data.models.simulation.simulationId,
-                            });
+                            $scope.id = data.models.simulation.simulationId;
+                            $scope.simulationName = data.models.simulation.name;
+                            verifyInputFiles(data);
                         }
                     });
             };
+
+            $scope.importMissingFiles = function() {
+                $scope.state = 'import';
+                for (var i = 0; i < $scope.missingFiles.length; i++) {
+                    var f = $scope.missingFiles[i][5];
+                    var fileType = $scope.missingFiles[i][3];
+
+                    fileUpload.uploadFileToUrl(
+                        f,
+                        '',
+                        requestSender.formatUrl(
+                            'uploadFile',
+                            {
+                                '<simulation_id>': $scope.id,
+                                '<simulation_type>': APP_SCHEMA.simulationType,
+                                '<file_type>': fileType,
+                            }),
+                        function(data) {
+                            if (data.error) {
+                                $scope.fileUploadError = data.error;
+                                return;
+                            }
+                            requestSender.getAuxiliaryData(data.fileType).push(data.filename);
+                            hideAndRedirect();
+                        });
+                }
+            };
+
+            $scope.importMissingFilesButtonText = function() {
+                if (! $scope.missingFiles)
+                    return '';
+                return 'Import File' + ($scope.missingFiles.length > 1 ? 's' : '');
+            };
+
+            $scope.isMissingFiles = function() {
+                if (! $scope.missingFiles)
+                    return true;
+
+                for (var i = 0; i < $scope.missingFiles.length; i++) {
+                    if (! $scope.missingFiles[i][5])
+                        return true;
+                    if (! $scope.isCorrectMissingFile($scope.missingFiles[i]))
+                        return true;
+                }
+                return false;
+            };
+
+            $scope.isState = function(state) {
+                return $scope.state == state;
+            }
+
+            $scope.resetState = function() {
+                $scope.id = null;
+                $scope.filename = '';
+                $scope.simulationName = '';
+                $scope.state = 'ready';
+                $scope.fileUploadError = '';
+                $scope.inputFiles = null;
+            };
+
+            $scope.resetState();
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
                 $('#elegant-lattice-file-import').val(null);
-                scope.fileUploadError = ''
+                scope.resetState();
             });
         },
     };

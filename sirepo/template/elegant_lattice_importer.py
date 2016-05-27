@@ -6,6 +6,8 @@ u"""elegant lattice parser.
 """
 from __future__ import absolute_import, division, print_function
 import json
+import math
+import ntpath
 import os
 import py.path
 import re
@@ -15,6 +17,10 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import elegant_lattice_parser
 
+_ANGLE_FIELDS = ['angle', 'kick', 'hkick']
+_BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND']
+_DRIFT_TYPES = ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT']
+_LENGTH_FIELDS = ['l', 'xmax', 'length']
 _RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -43,7 +49,7 @@ def import_file(text):
 
     for el in models['elements']:
         el['type'] = _validate_type(el)
-        for field in el:
+        for field in el.copy():
             _validate_field(el, field)
         for field in _SCHEMA['model'][el['type']]:
             if field not in el:
@@ -52,15 +58,72 @@ def import_file(text):
     for bl in models['beamlines']:
         bl['items'] = _validate_beamline(bl, name_to_id)
 
+    if len(models['elements']) == 0 or len(models['beamlines']) == 0:
+        raise IOError('no beamline elements found in file')
+    _calculate_beamline_metrics(models)
+
     data = _DEFAULTS.copy()
     data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
-    data['models']['beamlines'] = models['beamlines']
+    data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
+    data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id
         data['models']['simulation']['visualizationBeamlineId'] = default_beamline_id
 
     return data
+
+
+def _calculate_beamline_metrics(models):
+    metrics = {}
+    for el in models['elements']:
+        metrics[el['_id']] = {
+            'length': _element_length(el),
+            'angle': _element_angle(el),
+            'count': _element_count(el),
+        }
+    for bl in models['beamlines']:
+        bl['length'] = 0
+        bl['angle'] = 0
+        bl['distance'] = 0
+        bl['count'] = 0
+        bl['end_x'] = 0
+        bl['end_y'] = 0
+        #TODO(pjm): convert key not found to IOError
+        for id in bl['items']:
+            if id < 0:
+                id = -id
+            el_metrics = metrics[id]
+
+            if 'distance' in el_metrics:
+                angle = bl['angle'] + el_metrics['end_angle']
+                bl['end_x'] += math.cos(angle) * el_metrics['distance']
+                bl['end_y'] += math.sin(angle) * el_metrics['distance']
+            elif el_metrics['angle']:
+                radius = el_metrics['length'] / 2
+                bl['end_x'] += math.cos(bl['angle']) * radius
+                bl['end_y'] += math.sin(bl['angle']) * radius
+
+            bl['length'] += el_metrics['length']
+            bl['angle'] += el_metrics['angle']
+            bl['count'] += el_metrics['count']
+
+            if 'distance' in el_metrics:
+                pass
+            elif el_metrics['angle']:
+                radius = el_metrics['length'] / 2
+                bl['end_x'] += math.cos(bl['angle']) * radius
+                bl['end_y'] += math.sin(bl['angle']) * radius
+            else:
+                bl['end_x'] += math.cos(bl['angle']) * el_metrics['length']
+                bl['end_y'] += math.sin(bl['angle']) * el_metrics['length']
+        bl['distance'] = math.sqrt(bl['end_x'] ** 2 + bl['end_y'] ** 2)
+        bl['end_angle'] = math.atan2(bl['end_y'], bl['end_x'])
+        metrics[bl['id']] = bl
+
+    for bl in models['beamlines']:
+        for f in ['end_x', 'end_y', 'end_angle']:
+            del bl[f]
 
 
 def _create_name_map(models):
@@ -77,15 +140,38 @@ def _create_name_map(models):
     return name_to_id, last_beamline_id
 
 
+def _element_angle(el):
+    if el['type'] in _BEND_TYPES:
+        for f in _ANGLE_FIELDS:
+            if f in el:
+                return float(el[f])
+    return 0
+
+
+def _element_count(el):
+    if el['type'] in _DRIFT_TYPES:
+        return 0
+    return 1
+
+
+def _element_length(el):
+    for f in _LENGTH_FIELDS:
+        if f in el:
+            return float(el[f])
+    return 0
+
+
 def _validate_beamline(bl, name_to_id):
     items = []
     for name in bl['items']:
-        #TODO(pjm): handle reversed elements
+        is_reversed = False
         if re.search(r'^-', name):
+            is_reversed = True
             name = re.sub(r'^-', '', name)
         if name.upper() not in name_to_id:
             raise IOError('{}: unknown beamline item name'.format(name))
-        items.append(name_to_id[name.upper()])
+        id = name_to_id[name.upper()]
+        items.append(-id if is_reversed else id)
     return items
 
 
@@ -98,19 +184,36 @@ def _validate_field(el, field):
             field_type = _SCHEMA['model'][el['type']][f][1]
     if not field_type:
         pkdp('{}: unkown field type for {}', field, el['type'])
+        del el[field]
     else:
         if field_type == 'OutputFile':
             el[field] = '{}.{}.sdds'.format(el['name'], field)
+        elif field_type == 'InputFile':
+            el[field] = ntpath.basename(el[field])
+        elif field_type == "InputFileXY":
+            # <filename>=<x>+<y>
+            fullname= ntpath.basename(el[field])
+            m = re.search('^(.*?)\=(.*?)\+(.*)$', fullname)
+            if m:
+                el[field] = m.group(1)
+                el[field + 'X'] = m.group(2)
+                el[field + 'Y'] = m.group(3)
+            else:
+                el[field] = fullname
         elif field_type == 'Float':
             if re.search(r'\S\s+\S', el[field]):
                 my_env = os.environ.copy()
                 my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
                 #TODO(pjm): security - need to scrub field value
-                out = subprocess.check_output(['rpnl', el[field]], env=my_env)
+                out = ''
+                try:
+                    out = subprocess.check_output(['rpnl', el[field]], env=my_env)
+                except subprocess.CalledProcessError as e:
+                    raise IOError('invalid rpn "{}"'.format(el[field]))
                 if len(out):
                     el[field] = out.strip()
                 else:
-                    raise IOError('invalid rpn: {}'.format(el[field]))
+                    raise IOError('invalid rpn: "{}"'.format(el[field]))
 
 
 def _validate_type(el):

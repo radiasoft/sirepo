@@ -1230,15 +1230,18 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
             }
 
             //TODO(pjm): will infinitely recurse if beamlines are self-referential
-            function explodeItems(items, res) {
+            function explodeItems(items, res, reversed) {
                 if (! res)
                     res = [];
+                if (reversed)
+                    items = items.slice().reverse();
                 for (var i = 0; i < items.length; i++) {
-                    var item = $scope.latticeController.elementForId(items[i]);
+                    var id = items[i];
+                    var item = $scope.latticeController.elementForId(id);
                     if (item.type)
                         res.push(item);
                     else {
-                        explodeItems(item.items, res);
+                        explodeItems(item.items, res, id < 0);
                     }
                 }
                 return res;
@@ -1271,6 +1274,10 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 if ($scope.markerWidth < 20) {
                     $scope.markerUnits = '10 m';
                     $scope.markerWidth *= 10;
+                    if ($scope.markerWidth < 20) {
+                        $scope.markerUnits = '100 m';
+                        $scope.markerWidth *= 10;
+                    }
                 }
                 else if ($scope.markerWidth > 200) {
                     $scope.markerUnits = '10 cm';
@@ -1380,7 +1387,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
 
             $scope.init = function() {
                 $scope.zoom = d3.behavior.zoom()
-                    .scaleExtent([1, 100])
+                    .scaleExtent([1, 50])
                     .on('zoom', zoomed);
                 select('svg').call($scope.zoom)
                     .on('dblclick.zoom', null);

@@ -5,20 +5,27 @@ lattice_file = """
 """
 
 elegant_file = """
+
 &run_setup
         lattice = elegant.lte,
-        default_order = 1,
         use_beamline = {{use_beamline}},
+        default_order = 2,
         p_central_mev = {{bunch_p_central_mev}},
         output = {{elegantFinalOutput}},
-        echo_lattice = 1,
 !        random_number_seed = 0,
+        combine_bunch_statistics = 0,
+        concat_order = 2,
+        tracking_updates = 1,
+        echo_lattice = 0,
+        print_statistics = 1,
 &end
 
 &run_control
         n_steps = 1,
+!        n_passes = 1000,
 &end
 
+{% if bunchSource_inputSource == 'bunched_beam' %}
 &bunched_beam
        n_particles_per_bunch = {{bunch_n_particles_per_bunch}},
        one_random_bunch=0,
@@ -40,6 +47,13 @@ elegant_file = """
        enforce_rms_values[0] = 1,1,1,
        bunch = %s.bun
 &end
+{% endif %}
+
+{% if bunchSource_inputSource == 'sdds_beam' %}
+&sdds_beam
+       input = "bunchFile-sourceFile.{{bunchFile_sourceFile}}",
+&end
+{% endif %}
 
 &track &end
 """

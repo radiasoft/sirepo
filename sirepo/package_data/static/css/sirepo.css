@@ -473,6 +473,9 @@ tr:hover .s-button-bar-parent {
 .elegant-beamline-element.drag-enter.dragging .s-drop-left {
   width: 0;
 }
+.elegant-beamline-icon {
+  background-color: #222;
+}
 .elegant-item-selected {
   background-color: blue;
   box-shadow: 0 0 25px gray;

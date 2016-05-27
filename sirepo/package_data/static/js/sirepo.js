@@ -651,14 +651,19 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
         return self[name];
     };
 
-    self.loadAuxiliaryData = function(name, path) {
-        if (self[name] || self[name + ".loading"])
+    self.loadAuxiliaryData = function(name, path, callback) {
+        if (self[name] || self[name + ".loading"]) {
+            if (callback)
+                callback(self[name]);
             return;
+        }
         self[name + ".loading"] = true;
         $http['get'](path + '?' + SIREPO_APP_VERSION)
             .success(function(data, status) {
                 self[name] = data;
                 delete self[name + ".loading"];
+                if (callback)
+                    callback(data);
             })
             .error(function() {
                 console.log(path, ' load failed!');
