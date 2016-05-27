@@ -566,11 +566,22 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     self.srwService = srwService;
     $scope.appState = appState;
 
-    function disableField(reportName, field, value, ifDisable) {
-        if (! appState.isLoaded() || typeof value === "undefined")
+    function formatFloat(v, n) {
+        if (typeof(n) === 'undefined') {
+            n = 8;
+        }
+        var formattedValue = +parseFloat(v).toFixed(n);
+        return formattedValue;
+    }
+
+    function disableField(reportName, field, value, ifDisable, property) {
+        if (! appState.isLoaded() || typeof(value) === 'undefined')
             return;
+        if (typeof(property) === 'undefined') {
+            property = 'disabled';
+        }
         var modelReport = '.model-' + reportName + '-';
-        $(modelReport + field).find('.form-control').prop('disabled', ifDisable);
+        $(modelReport + field).find('.form-control').prop(property, ifDisable);
         appState.models[reportName][field] = value;
     }
 
@@ -656,12 +667,35 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         );
     }
 
+    function processUndulatorDefinition(reportName) {
+        if (! appState.isLoaded() || typeof(reportName) === 'undefined')
+            return;
+        requestSender.getApplicationData(
+            {
+                method: 'process_undulator_definition',
+                undulator_definition: appState.models[reportName]['undulatorDefinition'],
+                undulator_parameter: appState.models[reportName]['undulatorParameter'],
+                vertical_amplitude: appState.models[reportName]['verticalAmplitude'],
+                undulator_period: appState.models[reportName]['period'] / 1000,
+            },
+            function(data) {
+                if (appState.models[reportName]['undulatorDefinition'] === 'B') {
+                    disableField(reportName, 'undulatorParameter', formatFloat(data['undulator_parameter']), true, 'readOnly');
+                    disableField(reportName, 'verticalAmplitude', data['vertical_amplitude'], false, 'readOnly');
+                } else if (appState.models[reportName]['undulatorDefinition'] === 'K') {
+                    disableField(reportName, 'undulatorParameter', data['undulator_parameter'], false, 'readOnly');
+                    disableField(reportName, 'verticalAmplitude', formatFloat(data['vertical_amplitude']), true, 'readOnly');
+                }
+            }
+        );
+    }
+
     function processUndulator(undType) {
-        if (! appState.isLoaded() || typeof undType === "undefined") {
+        if (! appState.isLoaded() || typeof(undType) === 'undefined') {
             return;
         }
         var columnHeading = 'column-heading';
-        var fieldsOfIdealizedUndulator = ['period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
+        var fieldsOfIdealizedUndulator = ['undulatorDefinition', 'undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
         var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
         var modelReport = '.model-tabulatedUndulator-';
         var duration = 0;  // ms
@@ -731,6 +765,14 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         appState.saveQuietly('electronBeams');
     });
 
+    $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                processFluxMethod(newValue, 'fluxAnimation');
+            }
+        });
+    });
+
     $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
@@ -739,10 +781,33 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         });
     });
 
-    $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
+    function wrapFields(reportNames, fields) {
+        var fieldsList = [];
+        for (var i = 0; i < reportNames.length; i++) {
+            for (var j = 0; j < fields.length; j++) {
+                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
+            }
+        }
+        return '[' + fieldsList.toString() + ']';
+    }
+
+    var fieldsToMonitor = [
+        'undulatorDefinition',
+        'undulatorParameter',
+        'verticalAmplitude',
+        'period',
+    ];
+
+    var undulatorReports = ['undulator', 'tabulatedUndulator'];
+    $scope.$watchCollection(wrapFields(undulatorReports, fieldsToMonitor), function (newValues, oldValues) {
         $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                processFluxMethod(newValue, 'fluxAnimation');
+            if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
+                if (srwService.isTabulatedUndulator()) {
+                    var reportName = undulatorReports[1];
+                } else {
+                    var reportName = undulatorReports[0];
+                }
+                processUndulatorDefinition(reportName);
             }
         });
     });

@@ -229,7 +229,12 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['precision'] = 0.01
         data['models']['fluxAnimation']['initialHarmonic'] = 1
         data['models']['fluxAnimation']['finalHarmonic'] = 15
-
+    if 'undulatorDefinition' not in data['models']['undulator']:
+        data['models']['undulator']['undulatorDefinition'] = 'B'
+        data['models']['undulator']['undulatorParameter'] = None
+    if 'undulatorDefinition' not in data['models']['tabulatedUndulator']:
+        data['models']['tabulatedUndulator']['undulatorDefinition'] = 'B'
+        data['models']['tabulatedUndulator']['undulatorParameter'] = None
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -334,6 +339,8 @@ def get_application_data(data):
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_drift':
         return _process_beam_drift(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
+    elif data['method'] == 'process_undulator_definition':
+        return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -716,6 +723,22 @@ def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' else 1
     return {'magneticField': magnetic_field}
+
+def _process_undulator_definition(model):
+    """Convert K -> B and B -> K."""
+    from srwlib import SRWLMagFldH, SRWLMagFldU
+    try:
+        if model['undulator_definition'] == 'B':
+            # Convert B -> K:
+            und = SRWLMagFldU([SRWLMagFldH(1, 'v', float(model['vertical_amplitude']), 0, 1)], float(model['undulator_period']))
+            model['undulator_parameter'] = und.get_K()
+        elif model['undulator_definition'] == 'K':
+            # Convert K to B:
+            und = SRWLMagFldU([], float(model['undulator_period']))
+            model['vertical_amplitude'] = und.K_2_B(float(model['undulator_parameter']))
+        return model
+    except:
+        return model
 
 def _propagation_params(prop):
     res = '    pp.append(['

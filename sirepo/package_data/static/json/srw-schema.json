@@ -147,6 +147,10 @@
             ["1", "Symmetrical"],
             ["-1", "Anti-symmetrical"]
         ],
+        "UndulatorDefinition": [
+            ["B", "Magnetic Field (B)"],
+            ["K", "Undulator Parameter (K)"]
+        ],
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
@@ -415,6 +419,8 @@
         },
         "tabulatedUndulator": {
             "undulatorType": ["Type of Undulator", "UndulatorType"],
+            "undulatorDefinition": ["Undulator definition via...", "UndulatorDefinition"],
+            "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
             "period": ["Period [mm]", "Float"],
@@ -430,6 +436,8 @@
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
+            "undulatorDefinition": ["Undulator definition via...", "UndulatorDefinition"],
+            "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
             "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
@@ -954,10 +962,12 @@
             "title": "Undulator (Idealized or Tabulated)",
             "basic": [
                 "undulatorType",
+                "undulatorDefinition",
+                "verticalAmplitude",
+                "undulatorParameter",
                 "gap",
                 "period",
                 "length",
-                "verticalAmplitude",
                 "longitudinalPosition",
                 "magneticFile"
             ],
@@ -984,9 +994,11 @@
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
+                "undulatorDefinition",
+                "verticalAmplitude",
+                "undulatorParameter",
                 "period",
-                "length",
-                "verticalAmplitude"
+                "length"
             ],
             "advanced": [
                 "period",
