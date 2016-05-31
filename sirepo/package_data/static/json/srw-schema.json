@@ -228,7 +228,7 @@
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
             "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
             "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
@@ -291,7 +291,7 @@
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
             "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
             "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
             "diffractionOrder": ["Diffraction Order", "Float"],
@@ -398,7 +398,7 @@
             "sagittalSize": ["Sagittal Size [m]", "Float"],
             "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
             "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Central Normal Vector", "Float"],
+            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
             "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
             "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
@@ -566,11 +566,11 @@
                     "grazingAngle",
                     "normalVectorZ",
                     [
-                        ["Horizontal", [
+                        ["Horizontal Coordinates of", [
                             "normalVectorX",
                             "tangentialVectorX"
                         ]],
-                        ["Vertical", [
+                        ["Vertical Coordinates of", [
                             "normalVectorY",
                             "tangentialVectorY"
                         ]]
@@ -685,11 +685,11 @@
                 "grazingAngle",
                 "normalVectorZ",
                 [
-                    ["Horizontal", [
+                    ["Horizontal Coordinates of", [
                         "normalVectorX",
                         "tangentialVectorX"
                     ]],
-                    ["Vertical", [
+                    ["Vertical Coordinates of", [
                         "normalVectorY",
                         "tangentialVectorY"
                     ]]
@@ -912,11 +912,11 @@
                 "sagittalSize",
                 "normalVectorZ",
                 [
-                    ["Horizontal", [
+                    ["Horizontal Coordinates of", [
                         "normalVectorX",
                         "tangentialVectorX"
                     ]],
-                    ["Vertical", [
+                    ["Vertical Coordinates of", [
                         "normalVectorY",
                         "tangentialVectorY"
                     ]]
