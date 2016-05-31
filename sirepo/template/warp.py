@@ -353,6 +353,10 @@ def run_all_text():
     return ''
 
 
+def validate_file(file_type, path):
+    return None
+
+
 def write_parameters(data, schema, run_dir, run_async):
     """Write the parameters file
 

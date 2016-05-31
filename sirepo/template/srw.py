@@ -382,6 +382,47 @@ def static_lib_files():
     return res
 
 
+def validate_file(file_type, path):
+    """Ensure the data file contains parseable rows data"""
+    match = re.search(r'\.(\w+)$', str(path))
+    extension = None
+    if match:
+        extension = match.group(1).lower()
+    else:
+        return 'invalid file extension'
+
+    if extension == 'dat':
+        # mirror file
+        try:
+            count = 0
+            with open(str(path)) as f:
+                for line in f.readlines():
+                    parts = line.split("\t")
+                    if len(parts) > 0:
+                        float(parts[0])
+                    if len(parts) > 1:
+                       float(parts[1])
+                       count += 1
+            if count == 0:
+                return 'no data rows found in file'
+        except ValueError as e:
+            return 'invalid file format: {}'.format(e)
+    elif extension == 'zip':
+        # undulator magnetic data file
+        #TODO(pjm): add additional zip file validation
+        zip_file = zipfile.ZipFile(str(path))
+        is_valid = False
+        for f in zip_file.namelist():
+            if re.search('\.txt', f.lower()):
+                is_valid = True
+                break
+        if not is_valid:
+            return 'zip file missing txt index file'
+    else:
+        return 'invalid file type: {}'.format(extension)
+    return None
+
+
 def write_parameters(data, schema, run_dir, run_async):
     """Write the parameters file
 
