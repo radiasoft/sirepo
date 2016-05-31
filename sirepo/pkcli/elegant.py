@@ -68,7 +68,7 @@ def _run_elegant(bunch_report=False):
 def _extract_bunch_report():
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
-        file = 'bunchFile-sourceFile.' + data['models']['bunchFile']['sourceFile']
+        file = 'bunchFile-sourceFile.{}'.format(data['models']['bunchFile']['sourceFile'])
     else:
         file = 'elegant.bun'
     info = extract_report_data(file, data['models'][data['report']], data['models']['bunch']['p_central_mev'], 0)
