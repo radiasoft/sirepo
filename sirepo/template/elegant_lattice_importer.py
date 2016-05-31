@@ -20,6 +20,7 @@ from sirepo.template import elegant_lattice_parser
 _ANGLE_FIELDS = ['angle', 'kick', 'hkick']
 _BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND']
 _DRIFT_TYPES = ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT']
+_IGNORE_LENGTH_TYPES = ['ILMATRIX', 'STRAY', 'SCRIPT']
 _LENGTH_FIELDS = ['l', 'xmax', 'length']
 _RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
@@ -46,9 +47,11 @@ def import_file(text):
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
+    element_names = {}
 
     for el in models['elements']:
-        el['type'] = _validate_type(el)
+        el['type'] = _validate_type(el, element_names)
+        element_names[el['name'].upper()] = el
         for field in el.copy():
             _validate_field(el, field)
         for field in _SCHEMA['model'][el['type']]:
@@ -56,7 +59,7 @@ def import_file(text):
                 el[field] = _SCHEMA['model'][el['type']][field][2]
 
     for bl in models['beamlines']:
-        bl['items'] = _validate_beamline(bl, name_to_id)
+        bl['items'] = _validate_beamline(bl, name_to_id, element_names)
 
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
@@ -155,13 +158,15 @@ def _element_count(el):
 
 
 def _element_length(el):
+    if el['type'] in _IGNORE_LENGTH_TYPES:
+        return 0
     for f in _LENGTH_FIELDS:
         if f in el:
             return float(el[f])
     return 0
 
 
-def _validate_beamline(bl, name_to_id):
+def _validate_beamline(bl, name_to_id, element_names):
     items = []
     for name in bl['items']:
         is_reversed = False
@@ -171,7 +176,10 @@ def _validate_beamline(bl, name_to_id):
         if name.upper() not in name_to_id:
             raise IOError('{}: unknown beamline item name'.format(name))
         id = name_to_id[name.upper()]
-        items.append(-id if is_reversed else id)
+        if name.upper() in element_names:
+            items.append(id)
+        else:
+            items.append(-id if is_reversed else id)
     return items
 
 
@@ -216,7 +224,7 @@ def _validate_field(el, field):
                     raise IOError('invalid rpn: "{}"'.format(el[field]))
 
 
-def _validate_type(el):
+def _validate_type(el, element_names):
     type = el['type'].upper()
     match = None
     for el_type in _ELEGANT_TYPES:
@@ -227,5 +235,13 @@ def _validate_type(el):
         if not el_type:
             raise IOError('{}: unknown element type'.format(type))
     if not match:
-        raise IOError('{}: element not found'.format(type))
+        # type may refer to another element
+        if el['type'] in element_names:
+            el_copy = element_names[el['type'].upper()]
+            for field in el_copy.copy():
+                if field not in el:
+                    el[field] = el_copy[field]
+            match = el_copy['type']
+        else:
+            raise IOError('{}: element not found'.format(type))
     return match

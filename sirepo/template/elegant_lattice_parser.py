@@ -75,6 +75,9 @@ def _parse_beamline_items(state):
     while True:
         value = _parse_value(state)
         if not value:
+            if _peek_char(state) == ',':
+                _assert_char(state, ',')
+                continue
             _raise_error(state, 'expecting beamline element')
         if re.search(r'[0-9]', value[0]):
             repeat_count = int(value)
@@ -111,10 +114,7 @@ def _parse_element(name, type, state):
             _raise_error(state, 'expecting field')
         if _peek_char(state) == '=':
             _assert_char(state, '=')
-            value = _parse_value(state)
-            if not len(value):
-                _raise_error(state, 'expecting value')
-            el[field.lower()] = value
+            el[field.lower()] = _parse_value(state)
 
 
 def _parse_line(line, state):
@@ -143,23 +143,23 @@ def _parse_line(line, state):
     else:
         _parse_element(name, type, state)
     _ignore_whitespace(state)
-    if _has_char(state):
+    if _has_char(state) and _peek_char(state) != '!':
         _raise_error(state, 'left-over input')
     return True
 
 
 def _parse_quoted_value(state):
     _assert_char(state, '"')
-    name = _read_until(state, '"')
-    if name is not None:
+    value = _read_until(state, '"')
+    if value is not None:
         _assert_char(state, '"')
-    return name
+    return value
 
 
 def _parse_value(state, end_regex=None):
     if _peek_char(state) == '"':
         return _parse_quoted_value(state)
-    return _read_until(state, end_regex if end_regex else r'[\s,=)*]')
+    return _read_until(state, end_regex if end_regex else r'[\s,=\!)*]')
 
 
 def _peek_char(state):
