@@ -1126,25 +1126,51 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var picType = $scope.getPicType(item.type);
-                    var length = parseFloat(item.l || item.xmax || item.length || 0);
+                    var length = parseFloat(item.l || item.xmax || 0);
+                    if (picType == 'zeroLength')
+                        length = 0;
+                    var elRadius = parseFloat(item.rx || item.x_max || 0);
                     pos.length += length;
                     if (length < 0) {
                         // negative length, back up
                         x += length;
                         length = 0;
                     }
+                    //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var radius = length / 2;
                         var angle = parseFloat(item.angle || item.kick || item.hkick || 0);
                         maxHeight = Math.max(maxHeight, length);
+                        var height = 0.75;
+                        var enter = [pos.radius + pos.x + x, pos.y];
+                        if (length == 0) {
+                            length = 0.1;
+                            enter[0] -= 0.05;
+                        }
+                        var enterEdge = parseFloat(item.e1 || 0);
+                        var exitEdge = parseFloat(item.e2 || 0);
+                        if (item.type == 'RBEN') {
+                            enterEdge = 0;
+                            exitEdge = 0;
+                        }
+                        var exit = [enter[0] + length / 2 + Math.cos(angle) * length / 2,
+                                    pos.y + Math.sin(angle) * length / 2];
+                        var exitAngle = exitEdge - angle;
                         group.items.push({
                             picType: picType,
                             element: item,
-                            radius: radius,
-                            cx: pos.radius + pos.x + x + radius,
-                            cy: pos.y,
+                            color: $scope.getPicColor(item.type, 'blue'),
+                            points: [
+                                [enter[0] - Math.sin(-enterEdge) * height / 2,
+                                 enter[1] - Math.cos(-enterEdge) * height / 2],
+                                [enter[0] + Math.sin(-enterEdge) * height / 2,
+                                 enter[1] + Math.cos(-enterEdge) * height / 2],
+                                [exit[0] + Math.sin(exitAngle) * height / 2,
+                                 exit[1] + Math.cos(exitAngle) * height / 2],
+                                [exit[0] - Math.sin(exitAngle) * height / 2,
+                                 exit[1] - Math.cos(exitAngle) * height / 2],
+                            ],
                         });
-                        //console.log(item.type, ' ', [radius, pos.radius + pos.x + x, pos.y]);
                         x += radius;
                         newAngle = angle * 180 / Math.PI;
                         pos.radius = radius;
@@ -1158,24 +1184,107 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             width: length,
                         };
                         if (picType == 'watch') {
-                            groupItem.height = 0.6;
+                            groupItem.height = 1;
                             groupItem.y = pos.y;
+                            groupItem.color = $scope.getPicColor(item.type, 'lightgreen');
                         }
-                        else if (picType == 'drift' || picType == 'aperture') {
+                        else if (picType == 'drift') {
+                            groupItem.color = $scope.getPicColor(item.type, 'lightgrey');
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
-                        else if (picType == 'zeroLength' || length == 0) {
+                        else if (picType == 'aperture') {
+                            groupItem.color = 'lightgrey';
+                            groupItem.apertureColor = $scope.getPicColor(item.type, 'black');
+                            groupItem.height = 0.1;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            if (groupItem.width == 0) {
+                                groupItem.x -= 0.01;
+                                groupItem.width = 0.02;
+                            }
+                            groupItem.opening = elRadius || 0.1;
+                        }
+                        else if (picType == 'alpha') {
+                            var angle = 40.71;
+                            newAngle = 180 - 2 * angle;
+                            if (length < 0.3)
+                                groupItem.width = 0.3;
+                            groupItem.angle = angle;
+                            groupItem.height = groupItem.width;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            length = 0;
+                        }
+                        else if (picType == 'magnet') {
+                            groupItem.height = 0.5;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            groupItem.color = $scope.getPicColor(item.type, 'red');
+                        }
+                        else if (picType == 'undulator') {
+                            groupItem.height = 0.25;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            groupItem.color = $scope.getPicColor(item.type, 'gray');
+                            var periods = Math.round(parseFloat(item.periods || item.poles || 0));
+                            if (periods <= 0)
+                                periods = Math.round(5 * length);
+                            groupItem.blockWidth = groupItem.width / (2 * periods);
+                            groupItem.blocks = [];
+                            groupItem.blockHeight = 0.03;
+                            for (var j = 0; j < 2 * periods; j++) {
+                                groupItem.blocks.push([
+                                    groupItem.x + j * groupItem.blockWidth,
+                                    j % 2
+                                        ? groupItem.y + groupItem.height / 4
+                                        : groupItem.y + groupItem.height * 3 / 4 - groupItem.blockHeight,
+                                ]);
+                            }
+                        }
+                        else if (picType == 'zeroLength' || picType == 'mirror' || (picType == 'rf' && length < 0.005)) {
+                            groupItem.color = $scope.getPicColor(item.type, 'black');
                             groupItem.picType = 'zeroLength';
-                            groupItem.height = 0.3;
+                            groupItem.height = 0.5;
                             groupItem.y = pos.y;
                         }
+                        else if (picType == 'rf') {
+                            groupItem.height = 0.3;
+                            groupItem.y = pos.y;
+                            var ovalCount = Math.round(length / (groupItem.height / 2)) || 1;
+                            groupItem.ovalWidth = length / ovalCount;
+                            groupItem.ovals = [];
+                            for (var j = 0; j < ovalCount; j++) {
+                                groupItem.ovals.push(groupItem.x + j * groupItem.ovalWidth + groupItem.ovalWidth / 2);
+                            }
+                            groupItem.color = $scope.getPicColor(item.type, 'gold');
+                        }
+                        else if (picType == 'recirc') {
+                            groupItem.radius = 0.3;
+                            groupItem.y = pos.y;
+                            groupItem.leftEdge = groupItem.x - groupItem.radius;
+                            groupItem.rightEdge = groupItem.x + groupItem.radius;
+                            groupItem.color = $scope.getPicColor(item.type, 'lightgreen');
+                        }
+                        else if (picType == 'lens') {
+                            groupItem.height = 0.2;
+                            groupItem.width = 0.02;
+                            groupItem.x -= 0.01;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            groupItem.color = $scope.getPicColor(item.type, 'lightblue');
+                        }
+                        else if (picType == 'solenoid') {
+                            if (length == 0) {
+                                groupItem.width = 0.3;
+                                groupItem.x -= 0.15;
+                            }
+                            groupItem.height = groupItem.width
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            groupItem.color = $scope.getPicColor(item.type, 'lightblue');
+                        }
                         else {
+                            groupItem.color = $scope.getPicColor(item.type, 'green');
                             groupItem.height = 0.2;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
                         maxHeight = Math.max(maxHeight, groupItem.height);
-                        groupItem.x = pos.radius + pos.x + x;
+                        //groupItem.x = pos.radius + pos.x + x;
                         group.items.push(groupItem);
                         //console.log(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
@@ -1214,10 +1323,10 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     }
                     //var item = $scope.latticeController.elementForId($scope.items[i]);
                     var item = explodedItems[i];
-                    //TODO(pjm): identify drift types
-                    if ($scope.getPicType(item.type) != 'drift')
+                    var picType = $scope.getPicType(item.type);
+                    if (picType != 'drift')
                         pos.count++;
-                    if ($scope.getPicType(item.type) == 'bend')
+                    if (picType == 'bend' || picType == 'alpha')
                         groupDone = true;
                     group.push(item);
                 }
@@ -1333,6 +1442,10 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 $scope.$apply();
             }
 
+            $scope.getPicColor = function(type, defaultColor) {
+                return $scope.latticeController.elementColor[type] || defaultColor;
+            };
+
             $scope.getPicType = function(type) {
                 if (! picTypeCache) {
                     picTypeCache = {};
@@ -1344,7 +1457,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                     }
                 }
                 return picTypeCache[type];
-            }
+            };
 
             $scope.itemClicked = function(item) {
                 $scope.latticeController.editElement(item.type, item);

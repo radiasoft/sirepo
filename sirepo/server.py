@@ -30,7 +30,6 @@ import threading
 import time
 import werkzeug
 import werkzeug.exceptions
-import zipfile
 
 
 #: Cache of schemas keyed by app name
@@ -567,6 +566,7 @@ def _cfg_time_limit(value):
 def app_upload_file(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
     lib = simulation_db.simulation_lib_dir(simulation_type)
+    template = sirepo.template.import_module(simulation_type)
     filename = werkzeug.secure_filename(f.filename)
     if simulation_type == 'srw':
         p = lib.join(filename)
@@ -577,10 +577,9 @@ def app_upload_file(simulation_type, simulation_id, file_type):
         err = 'file exists: {}'.format(filename)
     if not err:
         f.save(str(p))
-        if simulation_type == 'srw':
-            err = _validate_data_file(p)
-            if err:
-                pkio.unchecked_remove(p)
+        err = template.validate_file(file_type, str(p))
+        if err:
+            pkio.unchecked_remove(p)
     if err:
         return flask.jsonify({
             'error': err,
@@ -684,47 +683,6 @@ def _start_simulation(data, run_async=False):
     if run_async:
         return cfg.job_queue(_job_id(sid, data['report']), run_dir, cmd)
     return _Command(cmd, cfg.foreground_time_limit)
-
-
-def _validate_data_file(path):
-    """Ensure the data file contains parseable rows data"""
-    match = re.search(r'\.(\w+)$', str(path))
-    extension = None
-    if match:
-        extension = match.group(1).lower()
-    else:
-        return 'invalid file extension'
-
-    if extension == 'dat':
-        # mirror file
-        try:
-            count = 0
-            with open(str(path)) as f:
-                for line in f.readlines():
-                    parts = line.split("\t")
-                    if len(parts) > 0:
-                        float(parts[0])
-                    if len(parts) > 1:
-                       float(parts[1])
-                       count += 1
-            if count == 0:
-                return 'no data rows found in file'
-        except ValueError as e:
-            return 'invalid file format: {}'.format(e)
-    elif extension == 'zip':
-        # undulator magnetic data file
-        #TODO(pjm): add additional zip file validation
-        zip_file = zipfile.ZipFile(str(path))
-        is_valid = False
-        for f in zip_file.namelist():
-            if re.search('\.txt', f.lower()):
-                is_valid = True
-                break
-        if not is_valid:
-            return 'zip file missing txt index file'
-    else:
-        return 'invalid file type: {}'.format(extension)
-    return None
 
 
 class _Background(object):

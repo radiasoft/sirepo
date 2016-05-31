@@ -210,10 +210,27 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         mirror: ['LMIRROR', 'REFLECT'],
         recirc: ['RECIRC'],
         solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH', ],
-        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MATR', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
+        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
         rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    };
+
+    self.elementColor = {
+        BMAPXY: 'magenta',
+        FTABLE: 'magenta',
+        KOCT: 'lightyellow',
+        KQUAD: 'tomato',
+        KSEXT: 'lightgreen',
+        MATTER: 'black',
+        OCTU: 'yellow',
+        QUAD: 'red',
+        //TODO(pjm): should be white-red gradient
+        QUFRINGE: 'salmon',
+        SEXT: 'lightgreen',
+        VKICK: 'blue',
+        'LMIRROR': 'lightblue',
+        'REFLECT': 'blue',
     };
 
     function fixModelName(modelName) {
@@ -367,6 +384,9 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
             items: [],
         };
         panelState.showModalEditor('beamline');
+        var el = $('#s-beamline-editor form')[0];
+        if (el)
+            angular.element(el).scope().form.$setDirty();
     };
 
     self.newElement = function() {

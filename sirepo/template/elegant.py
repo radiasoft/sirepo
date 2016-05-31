@@ -121,10 +121,12 @@ def extract_report_data(filename, data, p_central_mev, page_index):
     xfield = data['x']
     yfield = data['y']
     bins = data['histogramBins']
-
     index = 0
     if sdds.sddsdata.InitializeInput(index, filename) != 1:
-        sdds.sddsdata.PrintErrors(1)
+        sdds.sddsdata.Terminate(index)
+        return {
+            'error': 'invalid data file',
+        }
     column_names = sdds.sddsdata.GetColumnNames(index)
     count = page_index
     while count >= 0:
@@ -141,6 +143,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
 
     if _is_2d_plot(column_names):
         # 2d plot
+        sdds.sddsdata.Terminate(index)
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
@@ -151,8 +154,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
 
     nbins = int(bins)
     hist, edges = np.histogramdd([x, y], nbins)
-    if sdds.sddsdata.Terminate(index) != 1:
-        sdds.sddsdata.PrintErrors(1)
+    sdds.sddsdata.Terminate(index)
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -395,6 +397,28 @@ def static_lib_files():
     return []
 
 
+def validate_file(file_type, path):
+    err = None
+    if file_type == 'bunchFile-sourceFile':
+        err = 'expecting sdds file with x, xp, y, yp, t and p columns'
+        index = 0
+        if sdds.sddsdata.InitializeInput(index, path) == 1:
+            column_names = sdds.sddsdata.GetColumnNames(index)
+            has_columns = True
+            for col in ['x', 'xp', 'y', 'yp', 't', 'p']:
+                if col not in column_names:
+                    has_columns = False
+                    break
+            if has_columns:
+                if sdds.sddsdata.ReadPage(index) == 1:
+                    if len(sdds.sddsdata.GetColumn(index, column_names.index('x'))) > 0:
+                        err = None
+                    else:
+                        err = 'sdds file contains no rows'
+        sdds.sddsdata.Terminate(index)
+    return err
+
+
 def write_parameters(data, schema, run_dir, run_async):
     """Write the parameters file
 
@@ -434,7 +458,7 @@ def _file_info(filename, run_dir, id, output_index):
     file_path = run_dir.join(filename)
     index = 0
     if sdds.sddsdata.InitializeInput(index, str(file_path)) != 1:
-        sdds.sddsdata.PrintErrors(1)
+        sdds.sddsdata.Terminate(index)
         return {}
     column_names = sdds.sddsdata.GetColumnNames(index)
     page_count = 1
@@ -497,7 +521,6 @@ def _is_error_text(text):
 
 
 def _parse_errors_from_log(run_dir):
-    print('** parsing error log')
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
         return ''
