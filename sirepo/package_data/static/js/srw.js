@@ -587,55 +587,54 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         }
     }
 
-    function processBeamDrift() {
+    function processBeamParameters() {
         if (! appState.isLoaded())
             return;
+
         if (appState.models.simulation.sourceType === 'u') {
             var und = 'undulator';
         } else if (appState.models.simulation.sourceType === 't') {
             var und = 'tabulatedUndulator';
+        } else {
+            var und = 'undulator';
         }
-        requestSender.getApplicationData(
-            {
-                method: 'process_beam_drift',
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                undulator_period: appState.models[und]['period'] / 1000,
-                undulator_length: appState.models[und]['length'],
-            },
-            function(data) {
-                appState.models.electronBeam.drift = data['drift'];
-            }
-        );
-    }
 
-    function processBeamDefinition() {
-        if (! appState.isLoaded())
-            return;
         var beamDefinition = appState.models.electronBeam.beamDefinition;
         var columnHeading = 'column-heading';
         var fieldsOfTwiss = ['horizontalEmittance', 'horizontalBeta', 'horizontalAlpha', 'horizontalDispersion', 'horizontalDispersionDerivative',
                              'verticalEmittance', 'verticalBeta', 'verticalAlpha', 'verticalDispersion', 'verticalDispersionDerivative'];
         var fieldsOfMoments = ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'];
 
-        if (appState.models.electronBeam.isReadOnly) {
-            requestSender.getApplicationData(
-                {
-                    method: 'process_beam_moments_defaults',
-                },
-                function(data) {
+        requestSender.getApplicationData(
+            {
+                method: 'process_beam_parameters',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                undulator_period: appState.models[und]['period'] / 1000,
+                undulator_length: appState.models[und]['length'],
+            },
+            function(data) {
+                if (appState.models.electronBeam.isReadOnly) {
+                    disableField('electronBeam', 'driftCalculationMethod', 'auto', true);
+                    disableField('electronBeam', 'drift', data['drift'], true);
                     disableField('electronBeam', 'beamDefinition', 't', true);
                     for (var i = 0; i < fieldsOfMoments.length; i++) {
                         disableField('electronBeam', fieldsOfMoments[i], data[fieldsOfMoments[i]], true);
                     }
+                } else {
+                    disableField('electronBeam', 'driftCalculationMethod', 'skip', false);
+                    if (appState.models.electronBeam.driftCalculationMethod === 'auto') {
+                        disableField('electronBeam', 'drift', data['drift'], true);
+                    } else {
+                        disableField('electronBeam', 'drift', 'skip', false);
+                    }
+                    disableField('electronBeam', 'beamDefinition', 'skip', false);
+                    for (var i = 0; i < fieldsOfMoments.length; i++) {
+                        disableField('electronBeam', fieldsOfMoments[i], 'skip', false);
+                    }
                 }
-            );
-        } else {
-            disableField('electronBeam', 'beamDefinition', 'skip', false);
-            for (var i = 0; i < fieldsOfMoments.length; i++) {
-                disableField('electronBeam', fieldsOfMoments[i], 'skip', false);
             }
-        }
+        );
 
         var modelReport = '.model-electronBeam-';
         var duration = 0;  // ms
@@ -799,8 +798,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             } else if (name === 'sourceIntensityReport') {
                 processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
             } else if (name === 'electronBeam') {
-                processBeamDrift();
-                processBeamDefinition();
+                processBeamParameters();
             }
         }
     };
@@ -825,10 +823,20 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         appState.saveQuietly('electronBeams');
     });
 
-    $scope.$watch('appState.models.electronBeam.beamDefinition', function (newValue, oldValue) {
+    function wrapFields(reportNames, fields) {
+        var fieldsList = [];
+        for (var i = 0; i < reportNames.length; i++) {
+            for (var j = 0; j < fields.length; j++) {
+                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
+            }
+        }
+        return '[' + fieldsList.toString() + ']';
+    }
+
+    $scope.$watchCollection(wrapFields(['electronBeam'], ['driftCalculationMethod', 'beamDefinition']), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
-                processBeamDefinition();
+                processBeamParameters();
             }
         });
     });
@@ -848,16 +856,6 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             }
         });
     });
-
-    function wrapFields(reportNames, fields) {
-        var fieldsList = [];
-        for (var i = 0; i < reportNames.length; i++) {
-            for (var j = 0; j < fields.length; j++) {
-                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
-            }
-        }
-        return '[' + fieldsList.toString() + ']';
-    }
 
     var fieldsToMonitor = [
         'undulatorDefinition',

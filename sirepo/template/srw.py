@@ -111,6 +111,35 @@ def extract_report_data(filename, model_data):
     return info
 
 
+def fixup_electron_beam(data):
+    if 'driftCalculationMethod' not in data['models']['electronBeam']:
+        data['models']['electronBeam']['driftCalculationMethod'] = 'auto'  # can be either 'auto' or 'manual'
+
+    if data['models']['simulation']['sourceType'] == 'u':
+        und = 'undulator'
+    elif data['models']['simulation']['sourceType'] == 't':
+        und = 'tabulatedUndulator'
+    else:
+        und = 'undulator'
+
+    beam_parameters = _process_beam_parameters(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType'],
+        float(data['models'][und]['length']),
+        float(data['models'][und]['period']) / 1000.0
+    )
+
+    if 'drift' not in data['models']['electronBeam'] or data['models']['electronBeam']['driftCalculationMethod'] == 'auto':
+        data['models']['electronBeam']['drift'] = beam_parameters['drift']
+
+    if 'beamDefinition' not in data['models']['electronBeam']:
+        data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
+        for field in ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY']:
+            data['models']['electronBeam'][field] = beam_parameters[field]
+
+    return data
+
+
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
     if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] == 'Undulator Radiation':
@@ -213,8 +242,10 @@ def fixup_old_data(data):
         data['models']['tabulatedUndulator']['verticalAmplitude'] = 0.8
         data['models']['tabulatedUndulator']['verticalInitialPhase'] = 0
         data['models']['tabulatedUndulator']['verticalSymmetry'] = -1
-    if 'drift' not in data['models']['electronBeam']:
-        data['models']['electronBeam']['drift'] = 0.0
+
+    # Fixup electron beam parameters (drift, moments, etc.):
+    data = fixup_electron_beam(data)
+
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
@@ -230,11 +261,6 @@ def fixup_old_data(data):
     if 'undulatorDefinition' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorDefinition'] = 'B'
         data['models']['tabulatedUndulator']['undulatorParameter'] = None
-    if 'beamDefinition' not in data['models']['electronBeam']:
-        data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
-        beam_moments_defaults = _process_beam_moments_defaults()
-        for field in ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY']:
-            data['models']['electronBeam'][field] = beam_moments_defaults[field]
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -300,13 +326,6 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         position = _get_first_element_position(data)
     v['beamlineFirstElementPosition'] = position
 
-    v['electronBeam_drift'] = _process_beam_drift(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType'],
-        data['models']['undulator']['length'],
-        data['models']['undulator']['period']
-    )['drift']
-
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
 
@@ -337,10 +356,8 @@ def get_application_data(data):
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_flux_reports':
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
-    elif data['method'] == 'process_beam_drift':
-        return _process_beam_drift(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
-    elif data['method'] == 'process_beam_moments_defaults':
-        return _process_beam_moments_defaults()
+    elif data['method'] == 'process_beam_parameters':
+        return _process_beam_parameters(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -713,11 +730,12 @@ def _process_beam_drift(source_type, undulator_type, undulator_length, undulator
     drift = 0.0
     if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
         # initial drift = 1/2 undulator length + 2 periods
-        drift = -0.5 * undulator_length - 2 * undulator_period
-    return {'drift': drift}
+        drift = -0.5 * float(undulator_length) - 2 * float(undulator_period)
+    return drift
 
-def _process_beam_moments_defaults():
+def _process_beam_parameters(source_type, undulator_type, undulator_length, undulator_period):
     model = {
+        'drift': _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period),
         'rmsSizeX': 372.612,
         'rmsDivergX': 10.4666,
         'xxprX': 0.0,
