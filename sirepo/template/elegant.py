@@ -394,7 +394,10 @@ def static_lib_files():
     Returns:
         list: py.path.local objects
     """
-    return []
+    res = []
+    for f in glob.glob(str(_STATIC_FOLDER.join('dat', '*.sdds'))):
+        res.append(py.path.local(f))
+    return res
 
 
 def validate_file(file_type, path):
@@ -443,6 +446,8 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
     if beamline in ordered_beamlines:
         return
     for id in beamline['items']:
+        if id < 0:
+            id = -id;
         if id in beamlines:
             _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
     ordered_beamlines.append(beamline)

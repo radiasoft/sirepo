@@ -388,9 +388,8 @@
         },
         "simulationAnimation": {},
         "simulationStatus": {
-            "elementAnimation": {
-                "startTime": 1461877174,
-                "state": "completed"
+            "animation": {
+                "state": "initial"
             }
         }
     },
