@@ -918,7 +918,7 @@ app.directive('beamlineEditor', function(appState, panelState, $document, $timeo
     };
 });
 
-app.directive('beamlineTable', function(appState) {
+app.directive('beamlineTable', function(appState, $window) {
     return {
         restirct: 'A',
         scope: {
@@ -929,8 +929,8 @@ app.directive('beamlineTable', function(appState) {
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
-                '<col style="width: 10ex">',
-                '<col style="width: 12ex">',
+                '<col data-ng-show="isLargeWindow()" style="width: 10ex">',
+                '<col data-ng-show="isLargeWindow()" style="width: 12ex">',
                 '<col style="width: 12ex">',
                 '<col style="width: 10ex">',
               '</colgroup>',
@@ -938,8 +938,8 @@ app.directive('beamlineTable', function(appState) {
                 '<tr>',
                   '<th>Name</th>',
                   '<th>Description</th>',
-                  '<th>Elements</th>',
-                  '<th>Start-End</th>',
+                  '<th data-ng-show="isLargeWindow()">Elements</th>',
+                  '<th data-ng-show="isLargeWindow()">Start-End</th>',
                   '<th>Length</th>',
                   '<th>Bend</th>',
                 '</tr>',
@@ -948,8 +948,8 @@ app.directive('beamlineTable', function(appState) {
                 '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
                   '<td><div class="badge elegant-icon elegant-beamline-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
-                  '<td style="text-align: right">{{ beamline.count }}</td>',
-                  '<td style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
+                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
+                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
                 '</tr>',
@@ -957,6 +957,8 @@ app.directive('beamlineTable', function(appState) {
             '</table>',
         ].join(''),
         controller: function($scope) {
+
+            var windowSize = 0;
 
             function itemsToString(items) {
                 var res = '(';
@@ -1003,6 +1005,18 @@ app.directive('beamlineTable', function(appState) {
                     return $scope.lattice.activeBeamlineId == beamline.id;
                 return false;
             };
+
+            $scope.isLargeWindow = function() {
+                return windowSize >= 1200;
+            };
+
+            function windowResize() {
+                windowSize = $($window).width();
+            }
+
+            $($window).resize(windowResize);
+            windowResize();
+
         },
     };
 });
