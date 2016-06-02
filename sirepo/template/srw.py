@@ -255,12 +255,9 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['precision'] = 0.01
         data['models']['fluxAnimation']['initialHarmonic'] = 1
         data['models']['fluxAnimation']['finalHarmonic'] = 15
-    if 'undulatorDefinition' not in data['models']['undulator']:
-        data['models']['undulator']['undulatorDefinition'] = 'B'
-        data['models']['undulator']['undulatorParameter'] = None
-    if 'undulatorDefinition' not in data['models']['tabulatedUndulator']:
-        data['models']['tabulatedUndulator']['undulatorDefinition'] = 'B'
-        data['models']['tabulatedUndulator']['undulatorParameter'] = None
+    for rep in ['undulator', 'tabulatedUndulator']:
+        if 'undulatorParameter' not in data['models'][rep]:
+            data['models'][rep]['undulatorParameter'] = None
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:

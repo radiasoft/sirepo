@@ -992,7 +992,6 @@
             "title": "Undulator (Idealized or Tabulated)",
             "basic": [
                 "undulatorType",
-                "undulatorDefinition",
                 "verticalAmplitude",
                 "undulatorParameter",
                 "gap",
@@ -1024,7 +1023,6 @@
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
-                "undulatorDefinition",
                 "verticalAmplitude",
                 "undulatorParameter",
                 "period",

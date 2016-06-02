@@ -725,24 +725,22 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         );
     }
 
-    function processUndulatorDefinition(reportName) {
+    function processUndulatorDefinition(reportName, undulatorDefinition) {
         if (! appState.isLoaded() || typeof(reportName) === 'undefined')
             return;
         requestSender.getApplicationData(
             {
                 method: 'process_undulator_definition',
-                undulator_definition: appState.models[reportName]['undulatorDefinition'],
+                undulator_definition: undulatorDefinition,
                 undulator_parameter: appState.models[reportName]['undulatorParameter'],
                 vertical_amplitude: appState.models[reportName]['verticalAmplitude'],
                 undulator_period: appState.models[reportName]['period'] / 1000,
             },
             function(data) {
-                if (appState.models[reportName]['undulatorDefinition'] === 'B') {
-                    disableField(reportName, 'undulatorParameter', formatFloat(data['undulator_parameter']), true, 'readOnly');
-                    disableField(reportName, 'verticalAmplitude', data['vertical_amplitude'], false, 'readOnly');
-                } else if (appState.models[reportName]['undulatorDefinition'] === 'K') {
-                    disableField(reportName, 'undulatorParameter', data['undulator_parameter'], false, 'readOnly');
-                    disableField(reportName, 'verticalAmplitude', formatFloat(data['vertical_amplitude']), true, 'readOnly');
+                if (undulatorDefinition === 'K') {
+                    disableField(reportName, 'verticalAmplitude', formatFloat(data['vertical_amplitude']), false, 'readOnly');
+                } else {
+                    disableField(reportName, 'undulatorParameter', formatFloat(data['undulator_parameter']), false, 'readOnly');
                 }
             }
         );
@@ -753,7 +751,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             return;
         }
         var columnHeading = 'column-heading';
-        var fieldsOfIdealizedUndulator = ['undulatorDefinition', 'undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
+        var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
         var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
         var modelReport = '.model-tabulatedUndulator-';
         var duration = 0;  // ms
@@ -857,23 +855,26 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         });
     });
 
-    var fieldsToMonitor = [
-        'undulatorDefinition',
-        'undulatorParameter',
-        'verticalAmplitude',
-        'period',
-    ];
+    function undulatorReportName() {
+        var reportName = 'undulator';
+        if (srwService.isTabulatedUndulator()) {
+            var reportName = 'tabulatedUndulator';
+        }
+        return reportName;
+    }
 
-    var undulatorReports = ['undulator', 'tabulatedUndulator'];
-    $scope.$watchCollection(wrapFields(undulatorReports, fieldsToMonitor), function (newValues, oldValues) {
+    $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['undulatorParameter']), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                if (srwService.isTabulatedUndulator()) {
-                    var reportName = undulatorReports[1];
-                } else {
-                    var reportName = undulatorReports[0];
-                }
-                processUndulatorDefinition(reportName);
+                processUndulatorDefinition(undulatorReportName(), 'K');
+            }
+        });
+    });
+
+    $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['verticalAmplitude', 'period']), function (newValues, oldValues) {
+        $timeout(function() {
+            if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
+                processUndulatorDefinition(undulatorReportName(), 'B');
             }
         });
     });
