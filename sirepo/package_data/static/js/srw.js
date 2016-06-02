@@ -863,10 +863,16 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         return reportName;
     }
 
+    function activeField() {
+        return angular.element(document.activeElement).scope().field;
+    }
+
     $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['undulatorParameter']), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                processUndulatorDefinition(undulatorReportName(), 'K');
+                if (activeField() === 'undulatorParameter') {
+                    processUndulatorDefinition(undulatorReportName(), 'K');
+                }
             }
         });
     });
@@ -874,7 +880,9 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['verticalAmplitude', 'period']), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                processUndulatorDefinition(undulatorReportName(), 'B');
+                if ((activeField() === 'verticalAmplitude') || (activeField() === 'period')) {
+                    processUndulatorDefinition(undulatorReportName(), 'B');
+                }
             }
         });
     });
