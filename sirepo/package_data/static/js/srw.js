@@ -880,7 +880,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['verticalAmplitude', 'period']), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                if ((activeField() === 'verticalAmplitude') || (activeField() === 'period')) {
+                if ((activeField() === 'verticalAmplitude') || (activeField() === 'period') || (typeof(activeField()) === 'undefined')) {
                     processUndulatorDefinition(undulatorReportName(), 'B');
                 }
             }

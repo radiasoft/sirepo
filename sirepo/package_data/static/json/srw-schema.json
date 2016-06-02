@@ -155,10 +155,6 @@
             ["1", "Symmetrical"],
             ["-1", "Anti-symmetrical"]
         ],
-        "UndulatorDefinition": [
-            ["B", "Magnetic Field (B)"],
-            ["K", "Undulator Parameter (K)"]
-        ],
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
@@ -435,7 +431,6 @@
         },
         "tabulatedUndulator": {
             "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "undulatorDefinition": ["Undulator definition by", "UndulatorDefinition"],
             "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
@@ -452,7 +447,6 @@
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
-            "undulatorDefinition": ["Undulator definition by", "UndulatorDefinition"],
             "undulatorParameter": ["Undulator Parameter (K)", "Float"],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
