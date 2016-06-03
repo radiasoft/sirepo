@@ -104,7 +104,7 @@
         "electronBeam": {
             "beamSelector": "NSLS-II Low Beta Final",
             "current": 0.5,
-            "drift": 0.0,
+            "drift": 0,
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
@@ -124,17 +124,41 @@
             "verticalPosition": 0
         },
         "electronBeams": [],
+        "fluxAnimation": {
+            "azimuthalPrecision": 1,
+            "distanceFromSource": 20,
+            "finalEnergy": 20000,
+            "finalHarmonic": 15,
+            "fluxType": 1,
+            "horizontalApertureSize": "1",
+            "horizontalPosition": 0,
+            "initialEnergy": 10000,
+            "initialHarmonic": 1,
+            "longitudinalPrecision": 1,
+            "magneticField": 2,
+            "method": 1,
+            "photonEnergyPointCount": 1000,
+            "polarization": 6,
+            "precision": 0.01,
+            "verticalApertureSize": "1",
+            "verticalPosition": 0
+        },
         "fluxReport": {
             "azimuthalPrecision": 1,
             "distanceFromSource": 20,
             "finalEnergy": 20000,
+            "finalHarmonic": 15,
             "fluxType": 1,
             "horizontalApertureSize": "1",
             "horizontalPosition": 0,
             "initialEnergy": "100",
+            "initialHarmonic": 1,
             "longitudinalPrecision": 1,
+            "magneticField": 1,
+            "method": -1,
             "photonEnergyPointCount": 10000,
             "polarization": 6,
+            "precision": 0.01,
             "verticalApertureSize": "1",
             "verticalPosition": 0
         },
@@ -163,6 +187,8 @@
             "finalEnergy": "20000",
             "horizontalPosition": "0",
             "initialEnergy": "100",
+            "magneticField": 1,
+            "method": 0,
             "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
@@ -181,15 +207,20 @@
             "length": 3,
             "order": 1
         },
+        "panelState": {
+            "hidden": [
+                "watchpointReport10"
+            ]
+        },
         "postPropagation": [
             0,
             0,
             1,
             0,
             0,
+            "0.1",
             1,
-            1,
-            1,
+            "0.1",
             1
         ],
         "powerDensityReport": {
@@ -383,23 +414,27 @@
             "name": "LCLS SXR beamline",
             "outOfSessionSimulationId": "",
             "photonEnergy": 500,
-            "sampleFactor": 0.3,
+            "sampleFactor": 0.2,
             "samplingMethod": 1,
-            "simulationId": "yVRroIqN",
+            "simulationId": "Ykp78R4P",
             "sourceType": "g",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 16
         },
-        "simulationStatus": {
-            "startTime": 1454630148,
-            "state": "canceled"
-        },
+        "simulationStatus": {},
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 125.1,
             "fieldUnits": "2",
             "polarization": 6
+        },
+        "tabulatedUndulator": {
+            "gap": 6.72,
+            "indexFile": "",
+            "longitudinalPosition": 1.305,
+            "magneticFile": "magnetic_measurements.zip",
+            "phase": 0
         },
         "undulator": {
             "horizontalAmplitude": "0",
@@ -429,5 +464,5 @@
     },
     "report": "watchpointReport5",
     "simulationType": "srw",
-    "version": "20160219"
+    "version": "20160601"
 }
