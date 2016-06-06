@@ -101,4 +101,53 @@
   </div>
 </div>
 
+<div class="modal fade" id="s-element-in-use-dialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <span class="lead modal-title text-info">{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}</span>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-sm-12">
+              <p>The {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong> is used by the <strong>{{ lattice.deleteWarning.beamlineName }}</strong> and can not be deleted.</p>
+            </div>
+            <div class="col-sm-offset-6 col-sm-3">
+              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="s-delete-element-dialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <span class="lead modal-title text-info">{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}</span>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-sm-12">
+              <p>Delete {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong>?</p>
+            </div>
+            <div class="col-sm-offset-4 col-sm-3">
+              <button data-ng-click="lattice.deleteElement()" data-dismiss="modal" class="btn btn-danger" style="width:100%">Delete</button>
+            </div>
+            <div class="col-sm-3">
+              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div data-modal-editor="" view-name="beamline" data-parent-controller="lattice"></div>
