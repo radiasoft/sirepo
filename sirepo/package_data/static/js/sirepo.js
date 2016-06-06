@@ -565,6 +565,10 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
             sendRequest(name, callback);
     };
 
+    self.setError = function(name, error) {
+        setPanelValue(name, 'error', error);
+    };
+
     self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#s-' + modelKey + '-editor';
 
