@@ -50,43 +50,37 @@ _PLOT_TITLE = {
     't-p': 'Longitudinal',
 }
 
+_SDDS_INDEX = 0
+
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
 _SCHEMA = simulation_db.read_json(_STATIC_FOLDER.join('json/elegant-schema'))
 
 
-def background_percent_complete(data, run_dir, is_running, schema):
-    if is_running or not _has_valid_elegant_output(run_dir):
-        res = {
-            'percent_complete': 100,
-            'frame_count': 0,
-            'errors': _parse_errors_from_log(run_dir),
-        }
-        if is_running:
-            res['last_update_time'] = int(time.time())
+def background_percent_complete(report, run_dir, is_running, schema):
+    errors, last_element = _parse_elegant_log(run_dir)
+    res = {
+        'percent_complete': 100,
+        'frame_count': 0,
+        'errors': errors,
+    }
+    if is_running:
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        res['last_update_time'] = int(time.time())
+        res['percent_complete'] = _compute_percent_complete(data, last_element)
+        res['start_time'] = data['models']['simulationStatus'][report]['startTime']
         return res
-    output_info = [
-        _file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir, 0, 1),
-    ]
-
-    for el in data['models']['elements']:
-        model_schema = schema['model'][el['type']]
-        field_index = 0
-        for k in sorted(el.iterkeys()):
-            field_index += 1
-            value = el[k]
-            if not value or k not in model_schema:
-                continue
-            element_schema = model_schema[k]
-            #TODO(pjm): iterate active beamline elements and remove exists() check
-            if element_schema[1] == 'OutputFile' and run_dir.join(value).exists():
-                output_info.append(_file_info(value, run_dir, el['_id'], field_index))
+    if not _has_valid_elegant_output(run_dir):
+        return res
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    output_info = _output_info(run_dir, data, schema)
     return {
         'percent_complete': 100,
         'frame_count': 1,
         'output_info': output_info,
         'last_update_time': output_info[0]['last_update_time'],
-        'errors': _parse_errors_from_log(run_dir),
+        'start_time': data['models']['simulationStatus'][report]['startTime'],
+        'errors': errors,
     }
 
 
@@ -121,29 +115,28 @@ def extract_report_data(filename, data, p_central_mev, page_index):
     xfield = data['x']
     yfield = data['y']
     bins = data['histogramBins']
-    index = 0
-    if sdds.sddsdata.InitializeInput(index, filename) != 1:
-        sdds.sddsdata.Terminate(index)
-        return {
-            'error': 'invalid data file',
-        }
-    column_names = sdds.sddsdata.GetColumnNames(index)
+    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
+        return _sdds_error()
+    column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
     count = page_index
     while count >= 0:
-        errorCode = sdds.sddsdata.ReadPage(index)
-        if errorCode != 1:
-            sdds.sddsdata.PrintErrors(1)
+        if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
+            break
         count -= 1
-    x = sdds.sddsdata.GetColumn(index, column_names.index(xfield))
+    try:
+        x = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(xfield))
+    except SystemError as e:
+        return _sdds_error()
+
     if xfield == 'p':
         x = _scale_p(x, p_central_mev)
-    y = sdds.sddsdata.GetColumn(index, column_names.index(yfield))
+    y = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(yfield))
     if yfield == 'p':
         y = _scale_p(y, p_central_mev)
 
     if _is_2d_plot(column_names):
         # 2d plot
-        sdds.sddsdata.Terminate(index)
+        sdds.sddsdata.Terminate(_SDDS_INDEX)
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
@@ -154,7 +147,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
 
     nbins = int(bins)
     hist, edges = np.histogramdd([x, y], nbins)
-    sdds.sddsdata.Terminate(index)
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -266,8 +259,7 @@ def generate_lattice(data, v):
                 sign = ''
                 if id < 0:
                     sign = '-'
-                    id = - id;
-
+                    id = abs(id)
                 res += '{},'.format(sign + names[id].upper())
             res = res[:-1]
             res += ")\n"
@@ -404,21 +396,20 @@ def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
         err = 'expecting sdds file with x, xp, y, yp, t and p columns'
-        index = 0
-        if sdds.sddsdata.InitializeInput(index, path) == 1:
-            column_names = sdds.sddsdata.GetColumnNames(index)
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
             has_columns = True
             for col in ['x', 'xp', 'y', 'yp', 't', 'p']:
                 if col not in column_names:
                     has_columns = False
                     break
             if has_columns:
-                if sdds.sddsdata.ReadPage(index) == 1:
-                    if len(sdds.sddsdata.GetColumn(index, column_names.index('x'))) > 0:
-                        err = None
-                    else:
-                        err = 'sdds file contains no rows'
-        sdds.sddsdata.Terminate(index)
+                sdds.sddsdata.ReadPage(_SDDS_INDEX)
+                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index('x'))) > 0:
+                    err = None
+                else:
+                    err = 'sdds file contains no rows'
+        sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
 
 
@@ -446,11 +437,29 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
     if beamline in ordered_beamlines:
         return
     for id in beamline['items']:
-        if id < 0:
-            id = -id;
+        id = abs(id)
         if id in beamlines:
             _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
     ordered_beamlines.append(beamline)
+
+
+def _compute_percent_complete(data, last_element):
+    if not last_element:
+        return 0
+    elements = {}
+    for e in data['models']['elements']:
+        elements[e['_id']] = e
+    beamlines = {}
+    for b in data['models']['beamlines']:
+        beamlines[b['id']] = b
+    id = data['models']['simulation']['visualizationBeamlineId']
+    beamline_map = {}
+    count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
+    index = beamline_map[last_element] if last_element in beamline_map else 0
+    res = index * 100 / count
+    if res > 100:
+        return 100
+    return res
 
 
 def _field_label(field):
@@ -461,21 +470,18 @@ def _field_label(field):
 
 def _file_info(filename, run_dir, id, output_index):
     file_path = run_dir.join(filename)
-    index = 0
-    if sdds.sddsdata.InitializeInput(index, str(file_path)) != 1:
-        sdds.sddsdata.Terminate(index)
+    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
+        sdds.sddsdata.Terminate(_SDDS_INDEX)
         return {}
-    column_names = sdds.sddsdata.GetColumnNames(index)
+    column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
     page_count = 1
 
-    page = sdds.sddsdata.ReadPage(index)
-    if page != 1:
-        sdds.sddsdata.PrintErrors(1)
+    page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
     while page > 0:
-        page = sdds.sddsdata.ReadPage(index)
+        page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
         if page > 0:
             page_count += 1
-    sdds.sddsdata.Terminate(index)
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
         'filename': filename,
         'id': '{}-{}'.format(id, output_index),
@@ -505,10 +511,14 @@ def _has_valid_elegant_output(run_dir):
     if not path.exists():
         return False
     file_ok = False
-    if sdds.sddsdata.InitializeInput(0, str(path)) == 1:
-        if sdds.sddsdata.ReadPage(0) == 1:
+    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
+        sdds.sddsdata.ReadPage(_SDDS_INDEX)
+        try:
+            sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)
             file_ok = True
-    sdds.sddsdata.Terminate(0)
+        except SystemError as e:
+            pass
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
     return file_ok
 
 
@@ -522,17 +532,43 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left', text, re.IGNORECASE)
 
 
-def _parse_errors_from_log(run_dir):
+def _output_info(run_dir, data, schema):
+    res = [
+        _file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir, 0, 1),
+    ]
+
+    for el in data['models']['elements']:
+        model_schema = schema['model'][el['type']]
+        field_index = 0
+        for k in sorted(el.iterkeys()):
+            field_index += 1
+            value = el[k]
+            if not value or k not in model_schema:
+                continue
+            element_schema = model_schema[k]
+            #TODO(pjm): iterate active beamline elements and remove exists() check
+            if element_schema[1] == 'OutputFile' and run_dir.join(value).exists():
+                res.append(_file_info(value, run_dir, el['_id'], field_index))
+    return res
+
+
+def _parse_elegant_log(run_dir):
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
-        return ''
+        return '', 0
     res = ''
+    last_element = None
     text = pkio.read_text(str(path))
     want_next_line = False
     for line in text.split("\n"):
+        match = re.search('^Starting (\S+) at s\=', line)
+        if match:
+            name = match.group(1)
+            if not re.search('^M\d+\#', name):
+                last_element = name
         if want_next_line:
             res += line + "\n"
             want_next_line = False
@@ -541,7 +577,7 @@ def _parse_errors_from_log(run_dir):
                 want_next_line = True
             else:
                 res += line + "\n"
-    return res
+    return res, last_element
 
 
 def _plot_title(xfield, yfield, page_index):
@@ -561,9 +597,31 @@ def _scale_p(points, p_central_mev):
     return (np.array(points) * _ELEGANT_ME_EV - p_central_ev).tolist()
 
 
+def _sdds_error():
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
+    return {
+        'error': 'invalid data file',
+    }
+
+
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
     enum_info = template_common.parse_enums(schema['enum'])
     for k in data['models']:
         if k in schema['model']:
             template_common.validate_model(data['models'][k], schema['model'][k], enum_info)
+
+
+def _walk_beamline(beamline, index, elements, beamlines, beamline_map):
+    # walk beamline in order, adding (<name>#<count> => index) to beamline_map
+    for id in beamline['items']:
+        if id in elements:
+            name = elements[id]['name']
+            if name not in beamline_map:
+                beamline_map[name] = 0
+            beamline_map[name] += 1
+            beamline_map['{}#{}'.format(name.upper(), beamline_map[name])] = index
+            index += 1
+        else:
+            index = _walk_beamline(beamlines[abs(id)], index, elements, beamlines, beamline_map)
+    return index
