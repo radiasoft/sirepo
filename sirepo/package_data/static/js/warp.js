@@ -80,6 +80,8 @@ app.controller('WARPDynamicsController', function(appState, frameCache, panelSta
     });
 
     function refreshStatus() {
+        if (! appState.isLoaded())
+            return;
         requestSender.sendRequest(
             'runStatus',
             function(data) {
@@ -103,7 +105,7 @@ app.controller('WARPDynamicsController', function(appState, frameCache, panelSta
             },
             {
                 report: simulationModel,
-                models: appState.applicationState(),
+                simulationId: appState.models.simulation.simulationId,
                 simulationType: APP_SCHEMA.simulationType,
             });
     }

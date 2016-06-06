@@ -21,6 +21,7 @@ from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp
 from pykern import pkjinja
 from pykern import pkresource
+from sirepo import simulation_db
 from sirepo.template import template_common
 import uti_plot_com
 
@@ -46,14 +47,16 @@ with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
     _SCHEMA = json.load(f)
 
 
-def background_percent_complete(data, run_dir, is_running, schema):
-    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']]))
+def background_percent_complete(report, run_dir, is_running, schema):
+    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[report]))
     if os.path.isfile(filename):
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         return {
             'percent_complete': 100,
             'frame_count': 1,
             'total_frames': 1,
             'last_update_time': os.path.getmtime(filename),
+            'start_time': data['models']['simulationStatus'][report]['startTime'] if report in data['models']['simulationStatus'] else None,
         }
     return {
         'percent_complete': 0,

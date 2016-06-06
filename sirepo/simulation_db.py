@@ -22,7 +22,7 @@ import sirepo.template
 import werkzeug.exceptions
 
 #: Implemented apps
-APP_NAMES = ['srw', 'warp', 'elegant']
+SIMULATION_TYPES = ['srw', 'warp', 'elegant']
 
 #: Json files
 JSON_SUFFIX = '.json'
@@ -254,6 +254,15 @@ def tmp_dir():
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
 
 
+def verify_app_directory(simulation_type):
+    """Ensure the app directory is present. If not, create it and add example files.
+    """
+    d = simulation_dir(simulation_type)
+    if d.exists():
+        return
+    _create_example_and_lib_files(simulation_type)
+
+
 def write_json(filename, data):
     """Write data as json to filename
 
@@ -262,6 +271,17 @@ def write_json(filename, data):
     """
     with open(_json_filename(filename), 'w') as f:
         json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
+
+
+def _create_example_and_lib_files(simulation_type):
+    d = simulation_dir(simulation_type)
+    pkio.mkdir_parent(d)
+    for s in examples(simulation_type):
+        save_new_example(simulation_type, s)
+    d = simulation_lib_dir(simulation_type)
+    pkio.mkdir_parent(d)
+    for f in sirepo.template.import_module(simulation_type).static_lib_files():
+        f.copy(d)
 
 
 def _find_user_simulation_copy(simulation_type, sid):
@@ -374,15 +394,8 @@ def _user_dir_create():
     uid = _random_id(_user_dir_name())['id']
     # Must set before calling simulation_dir
     flask.session[_UID_ATTR] = uid
-    for app_name in APP_NAMES:
-        d = simulation_dir(app_name)
-        pkio.mkdir_parent(d)
-        for s in examples(app_name):
-            save_new_example(app_name, s)
-        d = simulation_lib_dir(app_name)
-        pkio.mkdir_parent(d)
-        for f in sirepo.template.import_module(app_name).static_lib_files():
-            f.copy(d)
+    for simulation_type in SIMULATION_TYPES:
+        _create_example_and_lib_files(simulation_type)
 
 
 def _user_dir_name(uid=None):
