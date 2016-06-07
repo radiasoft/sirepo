@@ -328,6 +328,11 @@ def get_data_file(run_dir, model, frame):
         with open(path) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
 
+    if model == 'beamlineReport':
+        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
+        source = generate_parameters_file(data, _SCHEMA, run_async=True)
+        return 'python-source.py', source, 'text/plain'
+
     for path in glob.glob(str(run_dir.join('elegant.bun'))):
         path = str(py.path.local(path))
         with open(path) as f:
