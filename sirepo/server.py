@@ -402,7 +402,7 @@ def app_run_status():
     run_dir = simulation_db.simulation_run_dir(data)
 
     if cfg.job_queue.is_running(_job_id(sid, data['report'])):
-        completion = template.background_percent_complete(data, run_dir, True, _schema_cache(simulation_type))
+        completion = template.background_percent_complete(data['report'], run_dir, True, _schema_cache(simulation_type))
         state = 'running'
     else:
         report = data['report']
@@ -413,7 +413,7 @@ def app_run_status():
                 'state': 'initial',
             }
         state = data['models']['simulationStatus'][report]['state']
-        completion = template.background_percent_complete(data, run_dir, False, _schema_cache(simulation_type))
+        completion = template.background_percent_complete(data['report'], run_dir, False, _schema_cache(simulation_type))
         if state == 'running':
             if completion['percent_complete'] >= 100:
                 state = 'completed'
@@ -424,9 +424,9 @@ def app_run_status():
 
     frame_id = ''
     elapsed_time = ''
-    if 'last_update_time' in completion and 'startTime' in data['models']['simulationStatus'][data['report']]:
+    if 'last_update_time' in completion and 'start_time' in completion:
         frame_id = completion['last_update_time']
-        elapsed_time = int(frame_id) - int(data['models']['simulationStatus'][data['report']]['startTime'])
+        elapsed_time = int(frame_id) - int(completion['start_time'])
 
     return flask.jsonify({
         'state': state,
@@ -479,6 +479,7 @@ def app_simulation_list():
     input = _json_input()
     simulation_type = input['simulationType']
     search = input['search'] if 'search' in input else None
+    simulation_db.verify_app_directory(simulation_type)
     return json.dumps(
         sorted(
             simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, search),
@@ -666,7 +667,7 @@ def _start_simulation(data, run_async=False):
     simulation_type = data['simulationType']
     sid = simulation_db.parse_sid(data)
     data = simulation_db.fixup_old_data(simulation_type, data)
-    assert simulation_type in simulation_db.APP_NAMES, \
+    assert simulation_type in simulation_db.SIMULATION_TYPES, \
         '{}: invalid simulation type'.format(simulation_type)
     template = sirepo.template.import_module(simulation_type)
     for d in simulation_db.simulation_dir(simulation_type, sid), simulation_db.simulation_lib_dir(simulation_type):

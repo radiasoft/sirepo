@@ -1543,7 +1543,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                     },
                     {
                         report: $scope.model,
-                        models: appState.applicationState(),
+                        simulationId: appState.models.simulation.simulationId,
                         simulationType: APP_SCHEMA.simulationType,
                     });
             }

@@ -683,7 +683,7 @@ app.directive('modalEditor', function(appState) {
                 if (! scope.isReadOnly)
                     $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown)
-                    scope.parentController.handleModalShown(scope.modelName);
+                    scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
             });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes

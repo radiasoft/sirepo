@@ -15,6 +15,7 @@ from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
+from sirepo import simulation_db
 from sirepo.template import template_common
 import numpy
 import os
@@ -33,8 +34,7 @@ _MIN_MAX_INDEX = {
 }
 
 
-def background_percent_complete(data, run_dir, is_running, schema):
-    simulation_id = data['models']['simulation']['simulationId']
+def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir)
     if len(files) < 2:
         return {
@@ -45,6 +45,7 @@ def background_percent_complete(data, run_dir, is_running, schema):
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
     plasma_length = float(data['models']['electronPlasma']['length']) / 1e3
     zmin = float(data['models']['simulationGrid']['zMin']) / 1e6

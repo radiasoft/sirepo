@@ -225,13 +225,23 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         MATTER: 'black',
         OCTU: 'yellow',
         QUAD: 'red',
-        //TODO(pjm): should be white-red gradient
         QUFRINGE: 'salmon',
         SEXT: 'lightgreen',
         VKICK: 'blue',
         'LMIRROR': 'lightblue',
         'REFLECT': 'blue',
     };
+
+    function elementsByName() {
+        var res = {};
+        var containerNames = ['elements', 'beamlines'];
+        for (var i = 0; i < containerNames.length; i++) {
+            var containerName = containerNames[i];
+            for (var j = 0; j < appState.models[containerName].length; j++)
+                res[appState.models[containerName][j].name] = 1;
+        }
+        return res;
+    }
 
     function fixModelName(modelName) {
         var m = appState.models[modelName];
@@ -240,10 +250,41 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         return;
     }
 
+    function getBeamlinesWhichContainId(id) {
+        var res = []
+        for (var i = 0; i < appState.models.beamlines.length; i++) {
+            var b = appState.models.beamlines[i];
+            for (var j = 0; j < b.items.length; j++) {
+                if (id == Math.abs(b.items[j]))
+                    res.push(b.id);
+            }
+        }
+        return res;
+    }
+
     function nextId() {
         return Math.max(
             appState.maxId(appState.models.elements, '_id'),
             appState.maxId(appState.models.beamlines)) + 1;
+    }
+
+    function showDeleteWarning(type, element, beamlines) {
+        var names = {};
+        for (var i = 0; i < beamlines.length; i++) {
+            names[self.elementForId(beamlines[i]).name] = true;
+        }
+        names = Object.keys(names).sort();
+        var idField = type == 'elements' ? '_id' : 'id';
+        self.deleteWarning = {
+            type: type,
+            element: element,
+            typeName: type == 'elements' ? 'Element' : 'Beamline',
+            name: self.elementForId(element[idField]).name,
+            beamlineName: Object.keys(names).length > 1
+                ? ('beamlines (' + names.join(', ') + ')')
+                : ('beamline ' + names[0]),
+        };
+        $(beamlines.length ? '#s-element-in-use-dialog' : '#s-delete-element-dialog').modal('show');
     }
 
     function sortBeamlines() {
@@ -262,13 +303,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     }
 
     function uniqueNameForType(prefix) {
-        var names = {};
-        var containerNames = ['elements', 'beamlines'];
-        for (var i = 0; i < containerNames.length; i++) {
-            var containerName = containerNames[i];
-            for (var j = 0; j < appState.models[containerName].length; j++)
-                names[appState.models[containerName][j].name] = 1;
-        }
+        var names = elementsByName();
         var name = prefix;
         var index = 1;
         while (names[name + index])
@@ -287,8 +322,11 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
                 break;
             }
         }
-        if (! foundIt)
+        if (! foundIt) {
+            if (elementsByName()[m.name])
+                m.name = uniqueNameForType(m.name + '-');
             appState.models[containerName].push(m);
+        }
         sortMethod();
         appState.saveChanges(containerName);
     }
@@ -323,6 +361,29 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         self.editElement(type, model);
     };
 
+    self.deleteElement = function() {
+        var type = self.deleteWarning.type;
+        var element = self.deleteWarning.element;
+        self.deleteWarning = null;
+        var idField = type == 'elements' ? '_id' : 'id';
+        for (var i = 0; i < appState.models[type].length; i++) {
+            var el = appState.models[type][i];
+            if (el[idField] == element[idField]) {
+                appState.models[type].splice(i, 1);
+                appState.saveChanges(type);
+                $rootScope.$broadcast('elementDeleted', type);
+                return;
+            }
+        }
+        return;
+    };
+
+    self.deleteElementPrompt = function(type, element) {
+        var idField = type == 'elements' ? '_id' : 'id';
+        var beamlines = getBeamlinesWhichContainId(element[idField]);
+        showDeleteWarning(type, element, beamlines);
+    };
+
     self.editBeamline = function(beamline) {
         self.activeBeamlineId = beamline.id;
         appState.models.simulation.activeBeamlineId = beamline.id;
@@ -333,6 +394,21 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.editElement = function(type, item) {
         appState.models[type] = item;
         panelState.showModalEditor(type);
+    };
+
+    self.elementForId = function(id) {
+        id = Math.abs(id);
+        for (var i = 0; i < appState.models.beamlines.length; i++) {
+            var b = appState.models.beamlines[i];
+            if (b.id == id)
+                return b;
+        }
+        for (var i = 0; i < appState.models.elements.length; i++) {
+            var e = appState.models.elements[i];
+            if (e._id == id)
+                return e;
+        }
+        return null;
     };
 
     self.getActiveBeamline = function() {
@@ -349,26 +425,10 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         if (appState.isLoaded)
             return appState.models.elements;
         return emptyElements;
-    }
+    };
 
     self.isElementModel = function(name) {
         return name == name.toUpperCase();
-    };
-
-    self.elementForId = function(id) {
-        if (id < 0)
-            id = -id;
-        for (var i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
-            if (b.id == id)
-                return b;
-        }
-        for (var i = 0; i < appState.models.elements.length; i++) {
-            var e = appState.models.elements[i];
-            if (e._id == id)
-                return e;
-        }
-        return null;
     };
 
     self.nameForId = function(id) {
@@ -420,7 +480,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.splitPaneHeight = function() {
         var w = $($window);
         var el = $('.s-split-pane-frame');
-        return (w.height() - el.offset().top - 15) + 'px';
+        return Math.round(w.height() - el.offset().top - 15) + 'px';
     };
 
     self.titleForName = function(name) {
@@ -463,6 +523,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
     var self = this;
     var simulationModel = 'animation';
+    var progress;
     self.appState = appState;
     self.panelState = panelState;
     self.isAborting = false;
@@ -479,6 +540,10 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
 
     frameCache.setAnimationArgs({});
     frameCache.setFrameCount(0);
+
+    function hideField(modelName, field) {
+        $('.model-' + modelName + '-' + field).closest('.form-group').hide();
+    }
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
@@ -524,6 +589,8 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     }
 
     function refreshStatus() {
+        if (! appState.isLoaded())
+            return;
         requestSender.sendRequest(
             'runStatus',
             function(data) {
@@ -531,7 +598,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                     return;
                 self.simulationErrors = data.errors || '';
                 if (data.frameCount) {
-                    frameCache.setFrameCount(data.frameCount);
+                    frameCache.setFrameCount(parseInt(data.frameCount));
                     loadElementReports(data.outputInfo);
                 }
                 if (data.elapsedTime) {
@@ -552,6 +619,16 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                 }
                 else {
                     if (! self.isDestroyed) {
+                        if (data.percentComplete) {
+                            // don't regress
+                            if (progress && progress.percentComplete > data.percentComplete)
+                                ;
+                            else {
+                                progress = {
+                                    percentComplete: data.percentComplete,
+                                }
+                            }
+                        }
                         self.dots += '.';
                         if (self.dots.length > 3)
                             self.dots = '.';
@@ -562,7 +639,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             },
             {
                 report: simulationModel,
-                models: appState.applicationState(),
+                simulationId: appState.models.simulation.simulationId,
                 simulationType: APP_SCHEMA.simulationType,
             });
     }
@@ -582,6 +659,10 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         appState.models.simulationStatus[simulationModel].state = state;
     }
 
+    function showField(modelName, field) {
+        $('.model-' + modelName + '-' + field).closest('.form-group').show();
+    }
+
     function simulationState() {
         return appState.models.simulationStatus[simulationModel].state;
     }
@@ -589,6 +670,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     self.cancelSimulation = function() {
         if (simulationState() != 'running')
             return;
+        progress = null;
         setSimulationState('canceled');
         self.isAborting = true;
         requestSender.sendRequest(
@@ -604,6 +686,12 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             });
     };
 
+    self.displayPercentComplete = function() {
+        if (self.isInitializing())
+            return 100;
+        return progress.percentComplete;
+    };
+
     self.getBeamlines = function() {
         if (! appState.isLoaded())
             return null;
@@ -613,6 +701,32 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             appState.models.simulation.visualizationBeamlineId = appState.models.beamlines[0].id;
         }
         return appState.models.beamlines;
+    };
+
+    self.handleModalShown = function(name, modelKey) {
+        for (var i = 0; i < self.outputFiles.length; i++) {
+            var info = self.outputFiles[i];
+            if (info.modelAccess.modelKey == modelKey) {
+                if (info.reportType == 'heatmap') {
+                    showField(name, 'histogramBins');
+                    hideField(name, 'framesPerSecond');
+                }
+                else {
+                    hideField(name, 'histogramBins');
+                    if (frameCache.getFrameCount(modelKey) > 1)
+                        showField(name, 'framesPerSecond');
+                    else
+                        hideField(name, 'framesPerSecond');
+                }
+                break;
+            }
+        }
+    };
+
+    self.isInitializing = function() {
+        if (progress && progress.percentComplete > 0)
+            return false;
+        return true;
     };
 
     self.isState = function(state) {
@@ -636,6 +750,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     self.runSimulation = function() {
         if (simulationState() == 'running')
             return;
+        progress = null;
         appState.saveQuietly('simulation');
         frameCache.setFrameCount(0);
         self.timeData.elapsedTime = null;
@@ -951,7 +1066,7 @@ app.directive('beamlineTable', function(appState, $window) {
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -994,6 +1109,10 @@ app.directive('beamlineTable', function(appState, $window) {
 
             $scope.beamlineLength = function(beamline) {
                 return $scope.lattice.numFormat(beamline.length, 'm');
+            };
+
+            $scope.deleteBeamline = function(beamline) {
+                $scope.lattice.deleteElementPrompt('beamlines', beamline);
             };
 
             $scope.editBeamline = function(beamline) {
@@ -1051,7 +1170,7 @@ app.directive('elementTable', function(appState) {
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button></div><div></td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1081,6 +1200,10 @@ app.directive('elementTable', function(appState) {
 
             $scope.addToBeamline = function(element) {
                 $scope.lattice.addToBeamline(element);
+            };
+
+            $scope.deleteElement = function(element) {
+                $scope.lattice.deleteElementPrompt('elements', element);
             };
 
             $scope.editElement = function(type, item) {
@@ -1126,6 +1249,10 @@ app.directive('elementTable', function(appState) {
                 if (name == 'elements')
                     loadTree();
             });
+            $scope.$on('elementDeleted', function(e, name) {
+                if (name == 'elements')
+                    loadTree();
+            });
 
             if (appState.isLoaded())
                 loadTree();
@@ -1139,9 +1266,10 @@ app.directive('elementAnimationModalEditor', function(appState) {
     return {
         scope: {
             modelKey: '@',
+            controller: '=parentController',
         },
         template: [
-            '<div data-modal-editor="" view-name="elementAnimation" data-model-data="modelAccess"></div>',
+            '<div data-modal-editor="" view-name="elementAnimation" data-model-data="modelAccess" data-parent-controller="controller"></div>',
         ].join(''),
         controller: function($scope) {
             $scope.modelAccess = {

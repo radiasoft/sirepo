@@ -39,8 +39,13 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
                 return;
             scope.prevFrameIndex = index;
             frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
-                if (scope.element)
+                if (scope.element) {
+                    if (data.error) {
+                        panelState.setError(scope.modelName, data.error);
+                        return;
+                    }
                     scope.load(data);
+                }
                 if (scope.isPlaying)
                     scope.advanceFrame(1);
             });
