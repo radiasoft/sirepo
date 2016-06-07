@@ -18,7 +18,7 @@
                 Completed frame: {{ dynamics.getFrameCount() }}
               </div>
               <div class="progress">
-                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ dynamics.displayPercentComplete() }}%">
+                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.displayPercentComplete() }}%">
                 </div>
               </div>
             </div>
