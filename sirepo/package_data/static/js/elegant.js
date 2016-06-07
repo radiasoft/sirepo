@@ -269,21 +269,20 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     }
 
     function showDeleteWarning(type, element, beamlines) {
-        var names = '';
+        var names = {};
         for (var i = 0; i < beamlines.length; i++) {
-            names += self.elementForId(beamlines[i]).name;
-            if (i != beamlines.length - 1)
-                names += ', ';
+            names[self.elementForId(beamlines[i]).name] = true;
         }
+        names = Object.keys(names).sort();
         var idField = type == 'elements' ? '_id' : 'id';
         self.deleteWarning = {
             type: type,
             element: element,
             typeName: type == 'elements' ? 'Element' : 'Beamline',
             name: self.elementForId(element[idField]).name,
-            beamlineName: beamlines.length > 1
-                ? ('beamlines (' + names + ')')
-                : ('beamline ' + names),
+            beamlineName: Object.keys(names).length > 1
+                ? ('beamlines (' + names.join(', ') + ')')
+                : ('beamline ' + names[0]),
         };
         $(beamlines.length ? '#s-element-in-use-dialog' : '#s-delete-element-dialog').modal('show');
     }
@@ -481,7 +480,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.splitPaneHeight = function() {
         var w = $($window);
         var el = $('.s-split-pane-frame');
-        return (w.height() - el.offset().top - 15) + 'px';
+        return Math.round(w.height() - el.offset().top - 15) + 'px';
     };
 
     self.titleForName = function(name) {
