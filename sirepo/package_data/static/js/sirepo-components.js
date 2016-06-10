@@ -9,6 +9,8 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
             wantButtons: '@',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
+            // 'basic' or 'advanced' (default)
+            fieldDef: '@',
         },
         template: [
             '<h5 data-ng-if="description">{{ description }}</h5>',
@@ -16,7 +18,7 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
               '<ul data-ng-if="pages" class="nav nav-tabs">',
                 '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
-              '<br />',
+              '<br data-ng-if="pages" />',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
                 '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
@@ -28,7 +30,7 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
             var viewInfo = appState.viewInfo($scope.viewName);
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
-            $scope.advancedFields = viewInfo.advanced;
+            $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
 
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
@@ -103,13 +105,9 @@ app.directive('basicEditorPanel', function(appState, panelState) {
         template: [
             '<div class="panel panel-info" id="{{ \'s-\' + viewName + \'-basicEditor\' }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
-              '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
-                '<form name="form" class="form-horizontal" novalidate>',
-                  '<div class="form-group form-group-sm" data-ng-repeat="f in basicFields">',
-                    '<div data-model-field="f" data-model-name="modelName"></div>',
-                  '</div>',
-                  '<div data-buttons="" data-model-name="modelName" data-fields="basicFields"></div>',
-                '</form>',
+                '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
+                  //TODO(pjm): not really an advanced editor pane anymore, should get renamed
+                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic"></div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -117,7 +115,6 @@ app.directive('basicEditorPanel', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.viewName);
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.panelState = panelState;
-            $scope.basicFields = viewInfo.basic;
             $scope.panelTitle = viewInfo.title;
         },
     };
