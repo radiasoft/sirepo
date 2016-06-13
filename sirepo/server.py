@@ -429,7 +429,7 @@ def app_run_status():
         elapsed_time = int(frame_id) - int(completion['start_time'])
 
     return flask.jsonify({
-        'state': state,
+        'state': completion['state'] if 'state' in completion else state,
         'percentComplete': completion['percent_complete'],
         'frameCount': completion['frame_count'],
         'frameId': frame_id,

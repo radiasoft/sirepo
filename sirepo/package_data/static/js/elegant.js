@@ -529,7 +529,6 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     self.isAborting = false;
     self.isDestroyed = false;
     self.dots = '.';
-    self.simulationStatusModelName = 'simulationStatus';
     self.simulationErrors = '';
     self.timeData = {
         elapsedDays: null,
@@ -541,6 +540,26 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     frameCache.setAnimationArgs({});
     frameCache.setFrameCount(0);
 
+    function defaultYColumn(columns) {
+        for (var i = 1; i < columns.length; i++) {
+            if (columns[i].indexOf('Element') >= 0)
+                continue;
+            return columns[i];
+        }
+        return columns[1];
+    }
+
+    function fileURL(index) {
+        if (! appState.isLoaded())
+            return '';
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': APP_SCHEMA.simulationType,
+            '<model>': simulationModel,
+            '<frame>': index,
+        });
+    }
+
     function hideField(modelName, field) {
         $('.model-' + modelName + '-' + field).closest('.form-group').hide();
     }
@@ -551,6 +570,8 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
 
         for (var i = 0; i < outputInfo.length; i++) {
             var info = outputInfo[i];
+            if (! info.columns)
+                continue;
             var modelKey = 'elementAnimation' + info.id;
             self.outputFiles.push({
                 reportType: reportTypeForColumns(info.columns),
@@ -573,7 +594,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             else {
                 appState.models[modelKey] = {
                     x: info.columns[0],
-                    y: info.columns[1],
+                    y: defaultYColumn(info.columns),
                     histogramBins: 200,
                     fileId: info.id,
                     values: info.columns,
@@ -723,6 +744,10 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         }
     };
 
+    self.hasOutput = function() {
+        return self.isState('completed') || self.isState('canceled');
+    };
+
     self.isInitializing = function() {
         if (progress && progress.percentComplete > 0)
             return false;
@@ -736,15 +761,11 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
     };
 
     self.logFileURL = function() {
-        if (! appState.isLoaded())
-            return '';
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': APP_SCHEMA.simulationType,
-            //TODO(pjm): centralize animation model name
-            '<model>': 'animation',
-            '<frame>': -1,
-        });
+        return fileURL(-1);
+    };
+
+    self.parametersFileURL = function() {
+        return fileURL(-2);
     };
 
     self.runSimulation = function() {
