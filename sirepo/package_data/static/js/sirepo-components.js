@@ -257,14 +257,14 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
             model: '=',
             customLabel: '=',
             labelSize: "@",
-            numberSize: "@",
+            fieldSize: "@",
             isReadOnly: "=",
         },
         template: [
             '<div class="model-{{modelName}}-{{field}}">',
-            '<div data-label-with-tooltip="" class="col-sm-{{ labelSize || \'5\' }} control-label" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
+            '<div data-ng-show="showLabel()" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
-              '<div data-ng-switch-when="BeamList" class="col-sm-5">',
+              '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
                 '<div class="dropdown">',
                   '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
                   '<ul class="dropdown-menu">',
@@ -281,10 +281,10 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                   '</ul>',
                 '</div>',
               '</div>',
-              '<div data-ng-switch-when="Float" class="col-sm-{{ numberSize || \'3\' }}">',
+              '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
                 '<input string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
-              '<div data-ng-switch-when="Integer" class="col-sm-{{ numberSize || \'3\' }}">',
+              '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
                 '<input string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
@@ -293,7 +293,7 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
               '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
                 '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
               '</div>',
-              '<div data-ng-switch-when="String" class="col-sm-5">',
+              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
@@ -306,18 +306,18 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                   ' <label style="margin: 0 1ex">Y</label> ',
                   '<input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />',
               '</div>',
-              '<div data-ng-switch-when="OutputFile" class="col-sm-5">',
+              '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
                 '<div data-output-file-field="field" data-model="model"></div>',
               '</div>',
-              '<div data-ng-switch-when="ValueList" class="col-sm-5">',
+              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
                 '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'values\']"></select>',
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
-              '<div data-ng-switch-when="OptionalString" class="col-sm-5">',
+              '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly" />',
               '</div>',
               // assume it is an enum
-              '<div data-ng-switch-default class="col-sm-5">',
+              '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
             '</div>',
@@ -328,6 +328,12 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
             $scope.requestSender = requestSender;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
+            $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (isNumber($scope.info[1]) ? '3' : '5'));
+
+            function isNumber(type) {
+                return type == 'Integer' || type == 'Float';
+            }
             $scope.selectBeam = function(item) {
                 appState.models.electronBeam = item;
                 item[$scope.field] = item.name;
@@ -349,6 +355,11 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 appState.models.electronBeams.push(newBeam);
                 appState.models.electronBeam = newBeam;
                 panelState.showModalEditor('electronBeam');
+            };
+            $scope.showLabel = function() {
+                if ($scope.labelSize == '')
+                    return true;
+                return $scope.labelSize > 0;
             };
         },
         link: function link(scope, element) {
@@ -492,21 +503,50 @@ app.directive('columnEditor', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div class="row">',
+            '<div data-ng-if="! oneLabelLayout" class="row">',
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-model-field="f" data-label-size="7" data-number-size="5" data-custom-label="customLabel(col[0], f)" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[$parent.$index][$index]" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
                 '</div>',
               '</div>',
             '</div>',
+            '<div data-ng-if="oneLabelLayout" class="row">',
+              '<div class="col-sm-7 col-sm-offset-1">',
+                '<div class="row">',
+                  '<div class="col-sm-5 col-sm-offset-7">',
+                    '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[0][0] }}</div>',
+                  '</div>',
+                '</div>',
+                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
+                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[0][$index]" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                '</div>',
+              '</div>',
+              '<div class="col-sm-3">',
+                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[1][0] }}</div>',
+                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[1][1]">',
+                  '<div data-model-field="f" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                '</div>',
+              '</div>',
+            '</div>',
+            '<div>&nbsp;</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
-            $scope.columnHeadingClass = function() {
-                return 'model-' + $scope.modelName + '-column-heading';
-            };
-            $scope.customLabel = function(heading, f) {
+
+            function createLabels() {
+                var res = [];
+                for (var i = 0; i < $scope.columnFields.length; i++) {
+                    var heading = $scope.columnFields[i][0];
+                    res[i] = [];
+                    for (var j = 0; j < $scope.columnFields[i][1].length; j++) {
+                        var col = $scope.columnFields[i][1][j];
+                        res[i][j] = getLabel(heading, col);
+                    }
+                }
+                return res;
+            }
+
+            function getLabel(heading, f) {
                 var m = $scope.modelName;
                 var modelField = appState.parseModelField(f);
                 if (modelField) {
@@ -518,6 +558,20 @@ app.directive('columnEditor', function(appState) {
                 heading = heading.replace(/ .*/, '');
                 label = label.replace(heading, '');
                 return label;
+            }
+
+            function isOneLabelLayout() {
+                for (var i = 0; i < $scope.columnLabels[0].length; i++) {
+                    if ($scope.columnLabels[0][i] != $scope.columnLabels[1][i])
+                        return false;
+                }
+                return true;
+            }
+
+            $scope.columnLabels = createLabels();
+            $scope.oneLabelLayout = isOneLabelLayout();
+            $scope.columnHeadingClass = function() {
+                return 'model-' + $scope.modelName + '-column-heading';
             };
         },
     };
@@ -704,13 +758,13 @@ app.directive('modelField', function(appState) {
             modelName: '=',
             customLabel: '=',
             labelSize: "@",
-            numberSize: "@",
+            fieldSize: "@",
             isReadOnly: "=",
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
         },
         template: [
-            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-is-read-only="isReadOnly" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-number-size="{{ numberSize }}"></div>',
+            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-is-read-only="isReadOnly" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
             var modelName = $scope.modelName;
