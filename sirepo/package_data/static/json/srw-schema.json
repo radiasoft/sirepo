@@ -54,6 +54,7 @@
         ],
         "FluxMethod": [
             ["1", "Auto-Undulator"],
+            ["2", "Auto-Wiggler"],
             ["-1", "Use Approximate Method"]
         ],
         "FocalPlane": [
