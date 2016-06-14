@@ -772,7 +772,7 @@ def _intensity_units(is_gaussian, model_data):
             i = model_data['models'][model_data['report']]['fieldUnits']
         else:
             i = model_data['models']['initialIntensityReport']['fieldUnits']
-        return _SCHEMA['enum']['FieldUnits'][int(i) - 1][1]
+        return _SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 
 def _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period):
