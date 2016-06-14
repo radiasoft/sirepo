@@ -754,7 +754,17 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
         var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
         var modelReport = '.model-tabulatedUndulator-';
+        var modelIdealizedReport = '.model-undulator-';
         var duration = 0;  // ms
+
+        // Limit and hide some fields in the calculator mode:
+        if (srwService.isApplicationMode('calculator')) {
+            var fieldsToHide = ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'];
+            for (var i = 0; i < fieldsToHide.length; i++) {
+                $(modelIdealizedReport + fieldsToHide[i]).closest('.form-group').hide(duration);
+            }
+        }
+
         if (undType === "u_t") {  // tabulated
             $(modelReport + columnHeading).hide(duration);
             for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {

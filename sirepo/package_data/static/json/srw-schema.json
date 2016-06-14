@@ -431,12 +431,12 @@
         },
         "tabulatedUndulator": {
             "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "undulatorParameter": ["Undulator Parameter (K)", "Float"],
+            "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
-            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
             "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
             "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
@@ -447,10 +447,10 @@
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "undulator": {
-            "undulatorParameter": ["Undulator Parameter (K)", "Float"],
+            "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
-            "longitudinalPosition": ["Undulator Center Longitudinal Position [m]", "Float"],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
             "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
             "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
@@ -986,20 +986,13 @@
             "title": "Undulator (Idealized or Tabulated)",
             "basic": [
                 "undulatorType",
-                "verticalAmplitude",
                 "undulatorParameter",
-                "gap",
-                "period",
-                "length",
-                "longitudinalPosition",
-                "magneticFile"
-            ],
-            "advanced": [
                 "gap",
                 "phase",
                 "period",
                 "length",
                 "longitudinalPosition",
+                "magneticFile",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
@@ -1012,17 +1005,15 @@
                         "verticalSymmetry"
                     ]]
                 ]
+            ],
+            "advanced": [
+                "period"
             ]
         },
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
-                "verticalAmplitude",
                 "undulatorParameter",
-                "period",
-                "length"
-            ],
-            "advanced": [
                 "period",
                 "length",
                 "longitudinalPosition",
@@ -1038,6 +1029,9 @@
                         "verticalSymmetry"
                     ]]
                 ]
+            ],
+            "advanced": [
+                "period"
             ]
         },
         "watch": {

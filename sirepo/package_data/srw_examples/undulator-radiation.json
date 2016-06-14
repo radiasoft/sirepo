@@ -113,7 +113,7 @@
             "period": "20",
             "verticalAmplitude": "0.88770981",
             "verticalInitialPhase": 0,
-            "verticalSymmetry": -1
+            "verticalSymmetry": 1
         }
     },
     "report": "intensityReport",
