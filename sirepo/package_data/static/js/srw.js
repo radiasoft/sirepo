@@ -857,6 +857,18 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         });
     });
 
+    $scope.$watch('appState.models.intensityReport.method', function (newValue, oldValue) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                var precisionLabel = APP_SCHEMA['model']['intensityReport']['precision'][0];
+                if (appState.models.intensityReport.method === "0") {
+                    precisionLabel = 'Step Size';
+                }
+                $('.model-intensityReport-precision').find('label').text(precisionLabel);
+            }
+        });
+    });
+
     $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
