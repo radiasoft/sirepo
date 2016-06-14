@@ -48,9 +48,8 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
                     });
                 }
             };
-
             // named tabs
-            if ($scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
+            if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
                 for (var i = 0; i < $scope.advancedFields.length; i++) {
                     var page = {
