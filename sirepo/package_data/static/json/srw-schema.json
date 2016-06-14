@@ -1007,9 +1007,7 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "period"
-            ]
+            "advanced": []
         },
         "undulator": {
             "title": "Idealized Undulator",
@@ -1031,9 +1029,7 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "period"
-            ]
+            "advanced": []
         },
         "watch": {
             "title": "Watchpoint",
