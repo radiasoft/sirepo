@@ -249,11 +249,11 @@
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
-            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
-            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
-            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
-            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "normalVectorX": ["Horizontal", "Float"],
+            "normalVectorY": ["Vertical", "Float"],
+            "normalVectorZ": ["Longitudinal", "Float"],
+            "tangentialVectorX": ["Horizontal", "Float"],
+            "tangentialVectorY": ["Vertical", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
@@ -311,11 +311,11 @@
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
-            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
-            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
-            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
-            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "normalVectorX": ["Horizontal", "Float"],
+            "normalVectorY": ["Vertical", "Float"],
+            "normalVectorZ": ["Longitudinal", "Float"],
+            "tangentialVectorX": ["Horizontal", "Float"],
+            "tangentialVectorY": ["Vertical", "Float"],
             "diffractionOrder": ["Diffraction Order", "Float"],
             "grooveDensity0": ["Groove Density a0", "Float"],
             "grooveDensity1": ["Groove Density a1y", "Float"],
@@ -421,11 +421,11 @@
             "radius": ["Radius of Surface Curvature [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
-            "normalVectorX": ["Horizontal Central Normal Vector", "Float"],
-            "normalVectorY": ["Vertical Central Normal Vector", "Float"],
-            "normalVectorZ": ["Longitudinal Coordinate of Central Normal Vector", "Float"],
-            "tangentialVectorX": ["Horizontal Central Tangential Vector", "Float"],
-            "tangentialVectorY": ["Vertical Central Tangential Vector", "Float"],
+            "normalVectorX": ["Horizontal", "Float"],
+            "normalVectorY": ["Vertical", "Float"],
+            "normalVectorZ": ["Longitudinal", "Float"],
+            "tangentialVectorX": ["Horizontal", "Float"],
+            "tangentialVectorY": ["Vertical", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
@@ -508,53 +508,56 @@
         },
         "crystal": {
             "title": "Crystal",
-            "fieldsPerTab": 11,
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                [
-                    ["Material of the crystal", [
-                        "material"
-                    ]],
-                    ["Miller's indices", [
-                        "h",
-                        "k",
-                        "l"
-                    ]]
-                ],
-                "energy",
-                "grazingAngle",
-                "asymmetryAngle",
-                "rotationAngle",
-                "crystalThickness",
-                "dSpacing",
-                [
-                    ["Real part of crystal polarizability", [
-                        "psi0r",
-                        "psiHr",
-                        "psiHBr"
-                    ]],
-                    ["Imaginary part of crystal polarizability", [
-                        "psi0i",
-                        "psiHi",
-                        "psiHBi"
-                    ]]
-                ],
-                [
-                    ["Outward normal vector", [
-                        "nvx",
-                        "nvy",
-                        "nvz"
-                    ]],
-                    ["Central tangential vector", [
-                        "tvx",
-                        "tvy"
-                    ]]
-                ],
-                "heightProfileFile",
-                "orientation",
-                "heightAmplification"
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    [
+                        ["Material of the crystal", [
+                            "material"
+                        ]],
+                        ["Miller's indices", [
+                            "h",
+                            "k",
+                            "l"
+                        ]]
+                    ],
+                    "energy",
+                    "grazingAngle",
+                    "asymmetryAngle",
+                    "rotationAngle",
+                    "crystalThickness",
+                    "dSpacing",
+                    [
+                        ["Real part of crystal polarizability", [
+                            "psi0r",
+                            "psiHr",
+                            "psiHBr"
+                        ]],
+                        ["Imaginary part of crystal polarizability", [
+                            "psi0i",
+                            "psiHi",
+                            "psiHBi"
+                        ]]
+                    ],
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Height Profile", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
             ]
         },
         "electronBeam": {
@@ -615,14 +618,14 @@
                     "tangentialSize",
                     "sagittalSize",
                     "grazingAngle",
-                    "normalVectorZ",
                     [
-                        ["Horizontal Coordinates of", [
+                        ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
-                            "tangentialVectorX"
-                        ]],
-                        ["Vertical Coordinates of", [
                             "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
                             "tangentialVectorY"
                         ]]
                     ]
@@ -725,31 +728,34 @@
         },
         "grating": {
             "title": "Grating",
-            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "tangentialSize",
-                "sagittalSize",
-                "grazingAngle",
-                "normalVectorZ",
-                [
-                    ["Horizontal Coordinates of", [
-                        "normalVectorX",
-                        "tangentialVectorX"
-                    ]],
-                    ["Vertical Coordinates of", [
-                        "normalVectorY",
-                        "tangentialVectorY"
-                    ]]
-                ],
-                "diffractionOrder",
-                "grooveDensity0",
-                "grooveDensity1",
-                "grooveDensity2",
-                "grooveDensity3",
-                "grooveDensity4"
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    "tangentialSize",
+                    "sagittalSize",
+                    "grazingAngle",
+                    [
+                        ["Coordinates of Central Normal Vector", [
+                            "normalVectorX",
+                            "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Additional Parameters", [
+                    "diffractionOrder",
+                    "grooveDensity0",
+                    "grooveDensity1",
+                    "grooveDensity2",
+                    "grooveDensity3",
+                    "grooveDensity4"
+                ]]
             ]
         },
         "initialIntensityReport": {
@@ -959,28 +965,31 @@
         },
         "sphericalMirror": {
             "title": "Spherical Mirror",
-            "fieldsPerTab": 7,
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "radius",
-                "tangentialSize",
-                "sagittalSize",
-                "normalVectorZ",
-                [
-                    ["Horizontal Coordinates of", [
-                        "normalVectorX",
-                        "tangentialVectorX"
-                    ]],
-                    ["Vertical Coordinates of", [
-                        "normalVectorY",
-                        "tangentialVectorY"
-                    ]]
-                ],
-                "heightProfileFile",
-                "orientation",
-                "heightAmplification"
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    "radius",
+                    "tangentialSize",
+                    "sagittalSize",
+                    [
+                        ["Coordinates of Central Normal Vector", [
+                            "normalVectorX",
+                            "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Mirror Error", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
             ]
         },
         "tabulatedUndulator": {
