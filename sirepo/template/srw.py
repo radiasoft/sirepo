@@ -797,7 +797,10 @@ def _process_beam_parameters(source_type, undulator_type, undulator_length, undu
 
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
     # Magnetic field processing:
-    magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' and report_name == 'fluxAnimation' and int(method_number) == 1 else 1
+    magnetic_field = 1
+    if source_type == 't' and undulator_type == 'u_t' and report_name == 'fluxAnimation' and (int(method_number) in [1, 2]):
+        magnetic_field = 2
+
     return {'magneticField': magnetic_field}
 
 def _process_intensity_reports(source_type, undulator_type):
