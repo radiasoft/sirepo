@@ -28,7 +28,26 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_ME_EV = 0.51099906e6
 
+_ELEGANT_CENTROID_OUTPUT_FILE = 'centroid-output.sdds'
+
 _ELEGANT_FINAL_OUTPUT_FILE = 'elegant-final-output.sdds'
+
+_ELEGANT_PARAMETERS_FRAME_ID = -2
+
+_ELEGANT_PARAMETERS_OUTPUT_FILE = 'elegant-parameters.sdds'
+
+_ELEGANT_SIGMA_OUTPUT_FILE = 'sigma-matrix.sdds'
+
+_ELEGANT_TWISS_OUTPUT_FILE = 'twiss-parameters.sdds'
+
+_STANDARD_OUTPUT_FILE_ID = 0
+
+_STANDARD_OUTPUT_FILE_INDEX = {
+    _ELEGANT_FINAL_OUTPUT_FILE: 1,
+    _ELEGANT_TWISS_OUTPUT_FILE: 2,
+    _ELEGANT_CENTROID_OUTPUT_FILE: 3,
+    _ELEGANT_SIGMA_OUTPUT_FILE: 4,
+}
 
 _FIELD_LABEL = {
     'x': 'x [m]',
@@ -70,6 +89,9 @@ def background_percent_complete(report, run_dir, is_running, schema):
         res['percent_complete'] = _compute_percent_complete(data, last_element)
         res['start_time'] = data['models']['simulationStatus'][report]['startTime']
         return res
+    if not _has_elegant_output(run_dir):
+        res['state'] = 'initial'
+        return res
     if not _has_valid_elegant_output(run_dir):
         return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -105,6 +127,8 @@ def copy_related_files(data, source_path, target_path):
             if el[k] and element_schema[1].startswith('InputFile'):
                 #TODO(pjm): need a common formatter for file names
                 lib_files.append('{}-{}.{}'.format(el['type'], k, el[k]))
+    if data['models']['bunchFile']['sourceFile']:
+        lib_files.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
     for f in lib_files:
         target = target_lib.join(f)
         if not target.exists():
@@ -143,6 +167,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
             'x_label': _field_label(xfield),
             'y_label': _field_label(yfield),
             'points': y,
+            'x_points': x,
         }
 
     nbins = int(bins)
@@ -271,6 +296,10 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
     v['elegantFinalOutput'] = _ELEGANT_FINAL_OUTPUT_FILE
+    v['elegantCentroidOutput'] = _ELEGANT_CENTROID_OUTPUT_FILE
+    v['elegantSigmaOutput'] = _ELEGANT_SIGMA_OUTPUT_FILE
+    v['elegantParameterOutput'] = _ELEGANT_PARAMETERS_OUTPUT_FILE
+    v['elegantTwissOutput'] = _ELEGANT_TWISS_OUTPUT_FILE
     longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
     if longitudinal_method == 1:
         v['bunch_emit_z'] = 0
@@ -284,6 +313,11 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['bunch_sigma_dp'] = 0
         v['bunch_sigma_s'] = 0
         v['bunch_dp_s_coupling'] = 0
+    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
+        v['bunch_beta_x'] = 5
+        v['bunch_beta_y'] = 5
+        v['bunch_alpha_x'] = 0
+        v['bunch_alpha_x'] = 0
     if run_async:
         v['lattice'] = generate_lattice(data, v)
     else:
@@ -324,6 +358,10 @@ def get_data_file(run_dir, model, frame):
             return os.path.basename(path), f.read(), 'application/octet-stream'
 
     if model == 'animation':
+        if frame == _ELEGANT_PARAMETERS_FRAME_ID:
+            path = str(run_dir.join(_ELEGANT_PARAMETERS_OUTPUT_FILE))
+            with open(path) as f:
+                return _ELEGANT_PARAMETERS_OUTPUT_FILE, f.read(), 'application/octet-stream'
         path = str(run_dir.join(ELEGANT_LOG_FILE))
         with open(path) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
@@ -498,6 +536,10 @@ def _file_info(filename, run_dir, id, output_index):
 
 def _get_filename_for_element_id(id, data):
     filename = _ELEGANT_FINAL_OUTPUT_FILE
+    if id[0] == str(_STANDARD_OUTPUT_FILE_ID):
+        for k in _STANDARD_OUTPUT_FILE_INDEX:
+            if id[1] == str(_STANDARD_OUTPUT_FILE_INDEX[k]):
+                return k
 
     for el in data['models']['elements']:
         if str(el['_id']) != id[0]:
@@ -509,6 +551,11 @@ def _get_filename_for_element_id(id, data):
                 filename = el[k]
                 break
     return filename
+
+
+def _has_elegant_output(run_dir):
+    path = run_dir.join(_ELEGANT_FINAL_OUTPUT_FILE)
+    return path.exists()
 
 
 def _has_valid_elegant_output(run_dir):
@@ -542,9 +589,11 @@ def _is_error_text(text):
 
 def _output_info(run_dir, data, schema):
     res = [
-        _file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir, 0, 1),
+        _standard_file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir),
+        _standard_file_info(_ELEGANT_TWISS_OUTPUT_FILE, run_dir),
+        _standard_file_info(_ELEGANT_CENTROID_OUTPUT_FILE, run_dir),
+        _standard_file_info(_ELEGANT_SIGMA_OUTPUT_FILE, run_dir),
     ]
-
     for el in data['models']['elements']:
         model_schema = schema['model'][el['type']]
         field_index = 0
@@ -607,6 +656,10 @@ def _sdds_error():
     return {
         'error': 'invalid data file',
     }
+
+
+def _standard_file_info(filename, run_dir):
+    return _file_info(filename, run_dir, _STANDARD_OUTPUT_FILE_ID, int(_STANDARD_OUTPUT_FILE_INDEX[filename]))
 
 
 def _validate_data(data, schema):

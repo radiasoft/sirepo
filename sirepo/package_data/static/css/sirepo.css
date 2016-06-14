@@ -253,12 +253,28 @@
       fill: steelblue;
     }
     .s-plot rect.mouse-zoom {
-      cursor: -webkit-zoom-in;
       cursor: zoom-in;
     }
     .s-plot rect.mouse-move {
-      cursor: -webkit-move;
       cursor: move;
+    }
+    .s-plot rect.mouse-move-ew {
+      cursor: ew-resize;
+    }
+    .s-plot rect.mouse-move-e {
+      cursor: e-resize;
+    }
+    .s-plot rect.mouse-move-w {
+      cursor: w-resize;
+    }
+    .s-plot rect.mouse-move-ns {
+      cursor: ns-resize;
+    }
+    .s-plot rect.mouse-move-n {
+      cursor: n-resize;
+    }
+    .s-plot rect.mouse-move-s {
+      cursor: s-resize;
     }
     .s-plot .z-axis-label {
       line-height: 160%;

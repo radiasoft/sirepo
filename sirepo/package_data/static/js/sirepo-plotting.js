@@ -473,7 +473,9 @@ app.directive('plot2d', function(plotting) {
                 select('.focus').style('display', 'none');
                 select('.focus-text').text('');
                 $scope.dataCleared = false;
-                var xPoints = plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
+                var xPoints = json.x_points
+                    ? json.x_points
+                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
                 points = d3.zip(xPoints, json.points);
                 $scope.xRange = json.x_range;
                 xAxisScale.domain([json.x_range[0], json.x_range[1]]);
@@ -679,8 +681,7 @@ app.directive('plot3d', function(plotting) {
                 rightPanelXScale.range([0, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right]).nice();
                 mainXAxis.tickSize(- canvasSize - $scope.bottomPanelHeight + $scope.bottomPanelMargin.bottom); // tickLine == gridline
                 mainYAxis.tickSize(- canvasSize - $scope.rightPanelWidth + $scope.rightPanelMargin.right); // tickLine == gridline
-                $scope.zoom.center([canvasSize / 2, canvasSize / 2])
-                    .x(xAxisScale.domain([xValueMin, xValueMax]))
+                $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]))
                     .y(yAxisScale.domain([yValueMin, yValueMax]));
                 select('.mouse-rect').call($scope.zoom);
                 refresh();
@@ -980,8 +981,7 @@ app.directive('heatmap', function(plotting) {
                 plotting.ticks(xAxis, canvasSize, true);
                 xAxisScale.range([0, canvasSize]);
                 yAxisScale.range([canvasSize, 0]);
-                $scope.zoom.center([canvasSize / 2, canvasSize / 2])
-                    .x(xAxisScale.domain([xValueMin, xValueMax]))
+                $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]))
                     .y(yAxisScale.domain([yValueMin, yValueMax]));
                 select('.mouse-rect').call($scope.zoom);
                 colorbar.barlength(canvasSize)

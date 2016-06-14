@@ -249,10 +249,10 @@
         "bunch": {
             "p_central_mev": ["Central momentum [MeV]", "Float", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "", "Number of particles in each bunch"],
-            "emit_x": ["Horizontal Geometric Emittance [nm]", "Float", "", "RMS emittance for the X plane"],
+            "emit_x": ["Horizontal Geometric Emittance [nm]", "Float"],
             "beta_x": ["Horizontal Beta [m]", "Float"],
             "alpha_x": ["Horizontal Alpha", "Float"],
-            "emit_y": ["Vertical Geometric Emittance [nm]", "Float", "", "RMS emittance for the Y plane"],
+            "emit_y": ["Vertical Geometric Emittance [nm]", "Float"],
             "beta_y": ["Vertical Beta [m]", "Float"],
             "alpha_y": ["Vertical Alpha", "Float"],
             "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],

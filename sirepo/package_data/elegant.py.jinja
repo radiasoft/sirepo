@@ -12,6 +12,9 @@ elegant_file = """
         default_order = 2,
         p_central_mev = {{bunch_p_central_mev}},
         output = {{elegantFinalOutput}},
+        centroid = {{elegantCentroidOutput}},
+        sigma = {{elegantSigmaOutput}},
+        parameters = {{elegantParameterOutput}},
 !        random_number_seed = 0,
         combine_bunch_statistics = 0,
         concat_order = 2,
@@ -23,6 +26,18 @@ elegant_file = """
 &run_control
         n_steps = 1,
 !        n_passes = 1000,
+&end
+
+&twiss_output
+   matched=0,
+   beta_x = {{bunch_beta_x}},
+   beta_y = {{bunch_beta_y}},
+   alpha_x = {{bunch_alpha_x}},
+   alpha_y = {{bunch_alpha_y}},
+   statistics = 1,
+   concat_order = 3,
+   output_at_each_step = 1,
+   filename={{elegantTwissOutput}}
 &end
 
 {% if bunchSource_inputSource == 'bunched_beam' %}
