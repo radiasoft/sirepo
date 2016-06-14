@@ -45,8 +45,8 @@
         ],
         "FieldUnits": [
             ["0", "Arbitrary Units"],
-            ["1", "(ph/s/.1%bw/mm²)½"],
-            ["2", "(J/eV/mm²)½"]
+            ["1", "ph/s/.1%bw/mm²"],
+            ["2", "J/eV/mm²"]
         ],
         "Flux": [
             ["1", "Flux"],
