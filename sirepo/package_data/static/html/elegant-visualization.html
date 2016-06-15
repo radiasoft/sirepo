@@ -14,8 +14,8 @@
                 <li><a href data-ng-href="{{ visualization.parametersFileURL() }}">Output Parameters File</a></li>
               </ul>
             </div>
-            <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="s-panel-heading glyphicon glyphicon-triangle-top"></span></a>
-            <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="s-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>
+            <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-hide="visualization.panelState.isHidden('simulationStatus')" title="Hide"><span class="s-panel-heading glyphicon glyphicon-triangle-top"></span></a>
+            <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-show="visualization.panelState.isHidden('simulationStatus')" title="Show"><span class="s-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>
           </div>
         </div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
