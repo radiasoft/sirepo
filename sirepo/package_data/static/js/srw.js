@@ -687,17 +687,17 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         var modelReport = '.model-' + reportName + '-';
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
-                $(modelReport + fieldsOfApproximateMethod[i]).show(0);
+                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').show(0);
             }
             for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
-                $(modelReport + fieldsOfAccurateMethod[i]).hide(0);
+                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').hide(0);
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
             for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
-                $(modelReport + fieldsOfApproximateMethod[i]).hide(0);
+                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').hide(0);
             }
             for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
-                $(modelReport + fieldsOfAccurateMethod[i]).show(0);
+                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').show(0);
             }
         } else {
             return;
@@ -789,14 +789,14 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
-                $('.model-sourceIntensityReport-fieldUnits').show(0);
+                $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').show(0);
             }
             else {
-                $('.model-sourceIntensityReport-fieldUnits').hide(0);
+                $('.model-intensityReport-fieldUnits').closest('.form-group').hide(0);
+                $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').hide(0);
             }
             if (srwService.isApplicationMode('calculator')) {
-                $('.model-intensityReport-fieldUnits').hide(0);
-                $('.model-sourceIntensityReport-magneticField').hide(0);
+                $('.model-sourceIntensityReport-magneticField').closest('.form-group').hide(0);
             }
 
             if (name === 'fluxAnimation') {
@@ -853,6 +853,18 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         $timeout(function() {
             if (srwService.isElectronBeam()) {
                 processFluxMethod(newValue, 'fluxAnimation');
+            }
+        });
+    });
+
+    $scope.$watch('appState.models.intensityReport.method', function (newValue, oldValue) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                var precisionLabel = APP_SCHEMA['model']['intensityReport']['precision'][0];
+                if (appState.models.intensityReport.method === "0") {
+                    precisionLabel = 'Step Size';
+                }
+                $('.model-intensityReport-precision').find('label').text(precisionLabel);
             }
         });
     });
