@@ -34,22 +34,6 @@ _TESTS = {  # Values are optional arguments:
 }
 
 
-def _create_tmp_dir():
-    tmp_dir = py.path.local('/tmp').join(str(uuid.uuid4()))
-    _remove_dir(tmp_dir)
-    tmp_dir.mkdir()
-    for f in glob.glob(str(_DAT_DIR.join('mirror_*d.dat'))):
-        shutil.copy2(f, str(tmp_dir))
-    return tmp_dir
-
-
-def _remove_dir(tmp_dir):
-    try:
-        tmp_dir.remove(ignore_errors=True)
-    except:
-        pass
-
-
 def test_importer():
     from sirepo.importer import import_python
     with pkunit.save_chdir_work():
@@ -71,3 +55,19 @@ def test_importer():
             assert not error, \
                 '{}: should be valid input'.format(base_py)
             pkunit.assert_object_with_json(b, actual)
+
+
+def _create_tmp_dir():
+    tmp_dir = py.path.local('/tmp').join(str(uuid.uuid4()))
+    _remove_dir(tmp_dir)
+    tmp_dir.mkdir()
+    for f in glob.glob(str(_DAT_DIR.join('mirror_*d.dat'))):
+        shutil.copy2(f, str(tmp_dir))
+    return tmp_dir
+
+
+def _remove_dir(tmp_dir):
+    try:
+        tmp_dir.remove(ignore_errors=True)
+    except:
+        pass

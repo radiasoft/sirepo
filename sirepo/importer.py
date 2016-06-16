@@ -43,6 +43,10 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     """
     error = 'Import failed: error unknown'
     script = None
+
+    # Patch for the mirror profile for the exported .py file from Sirepo:
+    code = _patch_mirror_profile(code, lib_dir)
+
     try:
         with pkio.save_chdir(tmp_dir):
             # This string won't show up anywhere
@@ -262,7 +266,7 @@ def beamline_element(obj, idx, title, elem_type, position):
                 data[key] = obj.input_parms[key]
 
         # Should be multiplied by 1000.0:
-        for key in ['horizontalTransverseSize', 'verticalTransverseSize']:
+        for key in ['grazingAngle', 'horizontalTransverseSize', 'verticalTransverseSize']:
             data[key] *= 1000.0
 
         data['heightProfileFile'] = 'mirror_1d.dat' if elem_type == 'mirror' else 'mirror_2d.dat'
@@ -510,7 +514,7 @@ def parsed_dict(v, op):
     # This dictionary will is used for both initial intensity report and for watch point:
     initialIntensityReport = {
         'characteristic': v.si_type,
-        'fieldUnits': 2,
+        'fieldUnits': 1,
         'polarization': v.si_pol,
         'precision': v.w_prec,
         'sampleFactor': 0,
@@ -519,9 +523,9 @@ def parsed_dict(v, op):
     # Default electron beam:
     if hasattr(v, 'ebm_nm'):
         source_type = 'u'
-
+        full_beam_name = '{}{}'.format(v.ebm_nm, v.ebm_nms)
         electronBeam = {
-            'beamSelector': v.ebm_nm,
+            'beamSelector': full_beam_name,
             'current': v.ebm_i,
             'energy': _default_value('ueb_e', v, std_options, 3.0),
             'energyDeviation': _default_value('ebm_de', v, std_options, 0.0),
@@ -531,8 +535,8 @@ def parsed_dict(v, op):
             'horizontalDispersionDerivative': _default_value('ueb_eta_x_pr', v, std_options, 0.0),
             'horizontalEmittance': _default_value('ueb_emit_x', v, std_options, 9e-10) * 1e9,
             'horizontalPosition': v.ebm_x,
-            'isReadOnly': False,
-            'name': v.ebm_nm,
+            'isReadOnly': True,
+            'name': full_beam_name,
             'rmsSpread': _default_value('ueb_sig_e', v, std_options, 0.00089),
             'verticalAlpha': _default_value('ueb_alpha_y', v, std_options, 0.0),
             'verticalBeta': _default_value('ueb_beta_y', v, std_options, 1.06),
@@ -691,7 +695,7 @@ def parsed_dict(v, op):
             'sourceIntensityReport': {
                 'characteristic': v.si_type,  # 0,
                 'distanceFromSource': v.op_r,
-                'fieldUnits': 2,
+                'fieldUnits': 1,
                 'polarization': v.si_pol,
             },
             'undulator': undulator,
@@ -712,10 +716,11 @@ def parsed_dict(v, op):
 
 
 class SRWParser(object):
-    def __init__(self, script, lib_dir, user_filename, arguments):
+    def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
         self.lib_dir = lib_dir
         self.initial_lib_dir = lib_dir
         self.list_of_files = None
+        self.optics_func_name = optics_func_name
         m = pkrunpy.run_path_as_module(script)
         varParam = getattr(m, 'varParam')
         if arguments:
@@ -726,11 +731,11 @@ class SRWParser(object):
         if self.initial_lib_dir:
             self.replace_files()
         try:
-            self.optics = getattr(m, 'set_optics')(self.var_param)
+            self.optics = getattr(m, self.optics_func_name)(self.var_param)
         except ValueError as e:
             if re.search('could not convert string to float', e.message):
                 self.replace_files('mirror_2d.dat')
-                self.optics = getattr(m, 'set_optics')(self.var_param)
+                self.optics = getattr(m, self.optics_func_name)(self.var_param)
 
         self.data = parsed_dict(self.var_param, self.optics)
         self.data['models']['simulation']['name'] = _name(user_filename)
@@ -755,6 +760,28 @@ class SRWParser(object):
         self.get_files()
 
 
+def _find_line_in_trace(script):
+    """Parse the stack trace for the most recent error message
+
+    Returns:
+        int: first line number in trace that was called from the script
+    """
+    trace = None
+    t = None
+    f = None
+    try:
+        trace = inspect.trace()
+        for t in reversed(trace):
+            f = t[0]
+            if py.path.local(f.f_code.co_filename) == script:
+                return f.f_lineno
+    finally:
+        del trace
+        del f
+        del t
+    return None
+
+
 def _name(user_filename):
     """Parse base name from user_filename
 
@@ -777,23 +804,12 @@ def _name(user_filename):
     return res + ' (imported)'
 
 
-def _find_line_in_trace(script):
-    """Parse the stack trace for the most recent error message
-
-    Returns:
-        int: first line number in trace that was called from the script
-    """
-    trace = None
-    t = None
-    f = None
-    try:
-        trace = inspect.trace()
-        for t in reversed(trace):
-            f = t[0]
-            if py.path.local(f.f_code.co_filename) == script:
-                return f.f_lineno
-    finally:
-        del trace
-        del f
-        del t
-    return None
+def _patch_mirror_profile(code, lib_dir, var_name='ifnHDM', mirror_file='mirror_1d.dat'):
+    """Patch for the mirror profile for the exported .py file from Sirepo"""
+    code_list = code.split('\n')
+    mirror_file = '{}/{}'.format(lib_dir, mirror_file)
+    for i in range(len(code_list)):
+        if re.search('^(\s*)' + var_name + '(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
+            code_list[i] = code_list[i].replace(var_name, '{} = \'{}\'  # '.format(var_name, mirror_file))
+    code = '\n'.join(code_list)
+    return code

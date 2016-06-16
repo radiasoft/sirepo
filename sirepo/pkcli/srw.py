@@ -65,7 +65,7 @@ v.wm_nm = {total_particles}
 v.wm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes
 v.wm_ns = {slaves}
-op = get_beamline_optics()
+op = set_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
         mpi.run(script)
@@ -96,7 +96,7 @@ def _run_srw():
     run_dir = os.getcwd()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     #TODO(pjm): need to properly escape data values, untrusted from client
-    # this defines the get_srw_params() and get_beamline_optics() functions
+    # this defines the get_srw_params() and set_optics() functions
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
     source_type, mag = setup_source(v)
@@ -117,7 +117,7 @@ def _run_srw():
         _process_output(_mirror_plot(data), data)
         return
     elif re.search('^watchpointReport', data['report']):
-        op = get_beamline_optics()
+        op = set_optics()
         v.ws = True
         outfile = v.ws_fni
     else:

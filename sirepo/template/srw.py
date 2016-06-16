@@ -445,10 +445,11 @@ def run_all_reports():
     v.si = True
     v.ws = True
     v.ws_pl = 'xy'
-    op = get_beamline_optics()
+    op = set_optics()
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
-run_all_reports()
+if __name__ == '__main__':
+    run_all_reports()
 '''
 
 def static_lib_files():
@@ -523,10 +524,11 @@ def write_parameters(data, schema, run_dir, run_async):
     )
 
 
-def _beamline_element(template, item, fields, propagation):
-    return '    el.append({})\n{}'.format(
+def _beamline_element(template, item, fields, propagation, shift=''):
+    return '{}    el.append({})\n{}'.format(
+        shift,
         template.format(*map(lambda x: item[x], fields)),
-        _propagation_params(propagation[str(item['id'])][0]),
+        _propagation_params(propagation[str(item['id'])][0], shift),
     )
 
 
@@ -755,15 +757,17 @@ def _height_profile_element(item, propagation, overwrite_propagation=False):
             propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
         else:
             return ''
-    res = '    ifnHDM = "{}"\n'.format(item['heightProfileFile'])
-    res += '    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'
+    shift = '    '
+    res = '{}ifnHDM = "{}"\n'.format(shift, item['heightProfileFile'])
+    res += '{}if ifnHDM:\n'.format(shift)
+    res += '{}    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'.format(shift)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
     if 'horizontalTransverseSize' in item:
         template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
         fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))
     else:
         template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})'
-    res += _beamline_element(template, item, fields, propagation)
+    res += _beamline_element(template, item, fields, propagation, shift=shift)
     return res
 
 def _intensity_units(is_gaussian, model_data):
@@ -824,8 +828,8 @@ def _process_undulator_definition(model):
     except:
         return model
 
-def _propagation_params(prop):
-    res = '    pp.append(['
+def _propagation_params(prop, shift=''):
+    res = '{}    pp.append(['.format(shift)
     for i in range(len(prop)):
         res += str(prop[i])
         if (i != len(prop) - 1):

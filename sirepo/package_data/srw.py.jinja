@@ -12,7 +12,7 @@ import srwlib
 import srwlpy
 
 
-srwblParam = srwl_bl.srwl_uti_ext_options([
+varParam = [
 
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
@@ -170,7 +170,7 @@ srwblParam = srwl_bl.srwl_uti_ext_options([
 
     #to add options
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
-])
+]
 
 
 appParam = [
@@ -204,6 +204,7 @@ appParam = [
     ['ueb_xxpr_y', 'f', {{electronBeam_xxprY}}, "vertical <(x-<x>)(x'-<x'>)> [m]"],
 ]
 
+varParam = srwl_bl.srwl_uti_ext_options(varParam + appParam)
 
 def setup_source(v):
     appV = srwl_bl.srwl_uti_parse_options(appParam, use_sys_argv=False)
@@ -266,14 +267,14 @@ def setup_source(v):
 
 
 def get_srw_params():
-    return srwblParam
+    return varParam
 
 
 def get_app_params():
     return appParam
 
 
-def get_beamline_optics():
+def set_optics(v=None):
     {{beamlineOptics}}
 
 
