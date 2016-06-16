@@ -46,7 +46,7 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warp in
     """
     with pkio.save_chdir(cfg_dir):
-        mpi.run(_script())
+        mpi.run_script(_script())
 
 
 def _run_warp():
