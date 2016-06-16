@@ -24,6 +24,70 @@ try:
 except:
     import pickle
 
+try:
+    import py.path
+    from pykern import pkresource
+
+    static_dir = py.path.local(pkresource.filename('static'))
+except:
+    static_dir = '/home/vagrant/src/radiasoft/sirepo/sirepo/package_data/static'
+
+static_url = 'https://raw.githubusercontent.com/radiasoft/sirepo/master/sirepo/package_data/static'
+static_js_url = static_url + '/js'
+static_json_url = static_url + '/json'
+static_js_dir = static_dir + '/js'
+static_json_dir = static_dir + '/json'
+
+
+class SRWParser(object):
+    def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
+        self.lib_dir = lib_dir
+        self.initial_lib_dir = lib_dir
+        self.list_of_files = None
+        self.optics_func_name = optics_func_name
+        m = pkrunpy.run_path_as_module(script)
+        varParam = getattr(m, 'varParam')
+        if arguments:
+            import shlex
+            arguments = shlex.split(arguments)
+        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
+        self.get_files()
+        if self.initial_lib_dir:
+            self.replace_files()
+        try:
+            self.optics = getattr(m, self.optics_func_name)(self.var_param)
+        except ValueError as e:
+            if re.search('could not convert string to float', e.message):
+                self.replace_files('mirror_2d.dat')
+                self.optics = getattr(m, self.optics_func_name)(self.var_param)
+
+        self.data = _parsed_dict(self.var_param, self.optics)
+        self.data['models']['simulation']['name'] = _name(user_filename)
+
+    def get_files(self):
+        self.list_of_files = []
+        for key in self.var_param.__dict__.keys():
+            if key.find('_ifn') >= 0:
+                self.list_of_files.append(self.var_param.__dict__[key])
+            # TODO(robnagler) this directory has to be a constant; imports
+            #   don't have control of their environment
+            if key.find('fdir') >= 0:
+                self.lib_dir = py.path.local(self.var_param.__dict__[key])
+
+    def replace_files(self, mirror_file='mirror_1d.dat'):
+        for key in self.var_param.__dict__.keys():
+            if key.find('_ifn') >= 0:
+                if getattr(self.var_param, key) != '':
+                    self.var_param.__dict__[key] = mirror_file
+            if key.find('fdir') >= 0:
+                self.var_param.__dict__[key] = str(self.initial_lib_dir)
+        self.get_files()
+
+
+class Struct(object):
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
 
 def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     """Converts script_text into json and stores as new simulation.
@@ -73,88 +137,8 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     return error, None
 
 
-def get_json(json_url):
-    return json.loads(requests.get(json_url).text)
-
-
-static_url = 'https://raw.githubusercontent.com/radiasoft/sirepo/master/sirepo/package_data/static'
-static_js_url = static_url + '/js'
-static_json_url = static_url + '/json'
-
-
-def list2dict(data_list):
-    """
-    The function converts list of lists to a dictionary with keys from 1st elements and values from 3rd elements.
-
-    :param data_list: list of SRW parameters (e.g., 'appParam' in Sirepo's *.py files).
-    :return out_dict: dictionary with all parameters.
-    """
-
-    out_dict = {}
-
-    for i in range(len(data_list)):
-        out_dict[data_list[i][0]] = data_list[i][2]
-
-    return out_dict
-
-
-class Struct(object):
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
-
-# For sourceIntensityReport:
-try:
-    import py.path
-    from pykern import pkresource
-
-    static_dir = py.path.local(pkresource.filename('static'))
-except:
-    static_dir = '/home/vagrant/src/radiasoft/sirepo/sirepo/package_data/static'
-
-static_js_dir = static_dir + '/js'
-static_json_dir = static_dir + '/json'
-
-
-def get_default_drift():
-    """The function parses srw.js file to find the default values for drift propagation parameters, which can be
-    sometimes missed in the exported .py files (when distance = 0), but should be presented in .json files.
-
-    :return default_drift_prop: found list as a string.
-    """
-
-    try:
-        file_content = requests.get(static_js_url + '/srw.js').text
-    except:
-        file_content = ''
-
-    default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
-
-    try:
-        content = file_content.split('\n')
-        for i in range(len(content)):
-            if content[i].find('function defaultDriftPropagationParams()') >= 0:
-                # Find 'return' statement:
-                for j in range(10):
-                    '''
-                        function defaultDriftPropagationParams() {
-                            return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
-                        }
-                    '''
-                    if content[i + j].find('return') >= 0:
-                        default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
-                        break
-                break
-    except:
-        pass
-
-    default_drift_prop = ast.literal_eval(default_drift_prop)
-
-    return default_drift_prop
-
-
 # Mapping all the values to a dictionary:
-def beamline_element(obj, idx, title, elem_type, position):
+def _beamline_element(obj, idx, title, elem_type, position):
     data = dict()
 
     data['id'] = idx
@@ -298,7 +282,7 @@ def beamline_element(obj, idx, title, elem_type, position):
     return data
 
 
-def get_beamline(obj_arOpt, init_distance=20.0):
+def _get_beamline(obj_arOpt, init_distance=20.0):
     """The function creates a beamline from the provided object and/or AST tree.
 
     :param obj_arOpt: SRW object containing properties of the beamline elements.
@@ -419,7 +403,7 @@ def get_beamline(obj_arOpt, init_distance=20.0):
             })
 
     for i in range(len(positions)):
-        data = beamline_element(
+        data = _beamline_element(
             positions[i]['object'],
             positions[i]['id'],
             positions[i]['title'],
@@ -431,7 +415,48 @@ def get_beamline(obj_arOpt, init_distance=20.0):
     return elements_list
 
 
-def get_propagation(op):
+def _get_default_drift():
+    """The function parses srw.js file to find the default values for drift propagation parameters, which can be
+    sometimes missed in the exported .py files (when distance = 0), but should be presented in .json files.
+
+    :return default_drift_prop: found list as a string.
+    """
+
+    try:
+        file_content = requests.get(static_js_url + '/srw.js').text
+    except:
+        file_content = ''
+
+    default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
+
+    try:
+        content = file_content.split('\n')
+        for i in range(len(content)):
+            if content[i].find('function defaultDriftPropagationParams()') >= 0:
+                # Find 'return' statement:
+                for j in range(10):
+                    '''
+                        function defaultDriftPropagationParams() {
+                            return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
+                        }
+                    '''
+                    if content[i + j].find('return') >= 0:
+                        default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
+                        break
+                break
+    except:
+        pass
+
+    default_drift_prop = ast.literal_eval(default_drift_prop)
+
+    return default_drift_prop
+
+
+def _get_json(json_url):
+    return json.loads(requests.get(json_url).text)
+
+
+def _get_propagation(op):
     prop_dict = {}
     counter = 0
     for i in range(len(op.arProp) - 1):
@@ -449,47 +474,75 @@ def get_propagation(op):
             if next_name == 'SRWLOptD':
                 prop_dict[str(counter)].append(op.arProp[i + 1])
             else:
-                prop_dict[str(counter)].append(get_default_drift())
+                prop_dict[str(counter)].append(_get_default_drift())
 
     return prop_dict
 
 
-def _update_crystals(data, v):
-    """Update rotation angle from the parameters value.
-
-    Args:
-        data: list of beamline elements from get_beamline() function.
-        v: object containing all variables.
+def _find_line_in_trace(script):
+    """Parse the stack trace for the most recent error message
 
     Returns:
-        data: updated list.
+        int: first line number in trace that was called from the script
+    """
+    trace = None
+    t = None
+    f = None
+    try:
+        trace = inspect.trace()
+        for t in reversed(trace):
+            f = t[0]
+            if py.path.local(f.f_code.co_filename) == script:
+                return f.f_lineno
+    finally:
+        del trace
+        del f
+        del t
+    return None
+
+
+def _list2dict(data_list):
+    """
+    The function converts list of lists to a dictionary with keys from 1st elements and values from 3rd elements.
+
+    :param data_list: list of SRW parameters (e.g., 'appParam' in Sirepo's *.py files).
+    :return out_dict: dictionary with all parameters.
     """
 
-    for i in range(len(data)):
-        if data[i]['type'] == 'crystal':
-            try:  # get crystal #
-                crystal_id = int(data[i]['title'].replace('Crystal', ''))
-            except:
-                crystal_id = 1
+    out_dict = {}
 
-            try:  # update rotation angle
-                data[i]['rotationAngle'] = getattr(v, 'op_DCM_ac{}'.format(crystal_id))
-            except:
-                pass
+    for i in range(len(data_list)):
+        out_dict[data_list[i][0]] = data_list[i][2]
 
-            if not data[i]['energy']:
-                try:  # update energy if an old srwlib.py is used
-                    data[i]['energy'] = v.op_DCM_e
-                except:
-                    data[i]['energy'] = v.w_e
-
-    return data
+    return out_dict
 
 
-def parsed_dict(v, op):
-    std_options = Struct(**list2dict(srwl_uti_std_options()))
+def _name(user_filename):
+    """Parse base name from user_filename
 
-    beamline_elements = get_beamline(op.arOpt, v.op_r)
+    Can't assume the file separators will be understood so have to
+    parse out the name manually.
+
+    Will need to be uniquely named by sirepo.server, but not done
+    yet.
+
+    Args:
+        user_filename (str): Passed in from browser
+
+    Returns:
+        str: suitable name
+    """
+    # crude but good enough for now.
+    m = re.search(r'([^:/\\]+)\.\w+$', user_filename)
+    res = m.group(1) if m else user_filename
+    # res could technically
+    return res + ' (imported)'
+
+
+def _parsed_dict(v, op):
+    std_options = Struct(**_list2dict(srwl_uti_std_options()))
+
+    beamline_elements = _get_beamline(op.arOpt, v.op_r)
 
     # Since the rotation angle cannot be passed from SRW object, we update the angle here:
     beamline_elements = _update_crystals(beamline_elements, v)
@@ -675,7 +728,7 @@ def parsed_dict(v, op):
                 'verticalPosition': v.pw_y,
                 'verticalRange': v.pw_ry * 1e3,
             },
-            'propagation': get_propagation(op),
+            'propagation': _get_propagation(op),
             'simulation': {
                 'facility': 'Import',
                 'horizontalPointCount': v.w_nx,
@@ -715,95 +768,6 @@ def parsed_dict(v, op):
     return python_dict
 
 
-class SRWParser(object):
-    def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
-        self.lib_dir = lib_dir
-        self.initial_lib_dir = lib_dir
-        self.list_of_files = None
-        self.optics_func_name = optics_func_name
-        m = pkrunpy.run_path_as_module(script)
-        varParam = getattr(m, 'varParam')
-        if arguments:
-            import shlex
-            arguments = shlex.split(arguments)
-        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
-        self.get_files()
-        if self.initial_lib_dir:
-            self.replace_files()
-        try:
-            self.optics = getattr(m, self.optics_func_name)(self.var_param)
-        except ValueError as e:
-            if re.search('could not convert string to float', e.message):
-                self.replace_files('mirror_2d.dat')
-                self.optics = getattr(m, self.optics_func_name)(self.var_param)
-
-        self.data = parsed_dict(self.var_param, self.optics)
-        self.data['models']['simulation']['name'] = _name(user_filename)
-
-    def get_files(self):
-        self.list_of_files = []
-        for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                self.list_of_files.append(self.var_param.__dict__[key])
-            # TODO(robnagler) this directory has to be a constant; imports
-            #   don't have control of their environment
-            if key.find('fdir') >= 0:
-                self.lib_dir = py.path.local(self.var_param.__dict__[key])
-
-    def replace_files(self, mirror_file='mirror_1d.dat'):
-        for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                if getattr(self.var_param, key) != '':
-                    self.var_param.__dict__[key] = mirror_file
-            if key.find('fdir') >= 0:
-                self.var_param.__dict__[key] = str(self.initial_lib_dir)
-        self.get_files()
-
-
-def _find_line_in_trace(script):
-    """Parse the stack trace for the most recent error message
-
-    Returns:
-        int: first line number in trace that was called from the script
-    """
-    trace = None
-    t = None
-    f = None
-    try:
-        trace = inspect.trace()
-        for t in reversed(trace):
-            f = t[0]
-            if py.path.local(f.f_code.co_filename) == script:
-                return f.f_lineno
-    finally:
-        del trace
-        del f
-        del t
-    return None
-
-
-def _name(user_filename):
-    """Parse base name from user_filename
-
-    Can't assume the file separators will be understood so have to
-    parse out the name manually.
-
-    Will need to be uniquely named by sirepo.server, but not done
-    yet.
-
-    Args:
-        user_filename (str): Passed in from browser
-
-    Returns:
-        str: suitable name
-    """
-    # crude but good enough for now.
-    m = re.search(r'([^:/\\]+)\.\w+$', user_filename)
-    res = m.group(1) if m else user_filename
-    # res could technically
-    return res + ' (imported)'
-
-
 def _patch_mirror_profile(code, lib_dir, var_name='ifnHDM', mirror_file='mirror_1d.dat'):
     """Patch for the mirror profile for the exported .py file from Sirepo"""
     code_list = code.split('\n')
@@ -813,3 +777,35 @@ def _patch_mirror_profile(code, lib_dir, var_name='ifnHDM', mirror_file='mirror_
             code_list[i] = code_list[i].replace(var_name, '{} = \'{}\'  # '.format(var_name, mirror_file))
     code = '\n'.join(code_list)
     return code
+
+
+def _update_crystals(data, v):
+    """Update rotation angle from the parameters value.
+
+    Args:
+        data: list of beamline elements from get_beamline() function.
+        v: object containing all variables.
+
+    Returns:
+        data: updated list.
+    """
+
+    for i in range(len(data)):
+        if data[i]['type'] == 'crystal':
+            try:  # get crystal #
+                crystal_id = int(data[i]['title'].replace('Crystal', ''))
+            except:
+                crystal_id = 1
+
+            try:  # update rotation angle
+                data[i]['rotationAngle'] = getattr(v, 'op_DCM_ac{}'.format(crystal_id))
+            except:
+                pass
+
+            if not data[i]['energy']:
+                try:  # update energy if an old srwlib.py is used
+                    data[i]['energy'] = v.op_DCM_e
+                except:
+                    data[i]['energy'] = v.w_e
+
+    return data
