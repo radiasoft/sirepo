@@ -310,7 +310,7 @@ def run_all_reports():
         v.sm = True
         v.sm_pl = 'e'
     v.si = True
-    v.ws = True
+    v.ws = False
     v.ws_pl = 'xy'
     op = set_optics()
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
