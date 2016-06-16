@@ -16,7 +16,46 @@ import subprocess
 import sys
 
 
-def run(script):
+def run_program(cmd, output='mpi_run.out', env=None):
+    """Execute python script with mpi.
+
+    Args:
+        cmd (list): cmd to run
+        output (str): where to write stdout and stderr
+        env (dict): what to pass as env
+    """
+    p = None
+    try:
+        cmd = [
+            'mpiexec',
+            '--bind-to',
+            'none',
+            '-n',
+            str(cfg.slaves),
+
+        ] + cmd
+        p = subprocess.Popen(
+            cmd,
+            stdin=open(os.devnull),
+            stdout=open(output, 'w'),
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
+        pkdp('Started: {} {}', p.pid, cmd)
+        signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
+        rc = p.wait()
+        if rc != 0:
+            p = None
+            raise RuntimeError('child terminated: retcode={}'.format(rc))
+        pkdp('Stopped: {} {}', pid, cmd)
+        p = None
+    finally:
+        if not p is None:
+            pkdp('Terminating: {} {}', p.pid, cmd)
+            p.terminate()
+
+
+def run_script(script):
     """Execute python script with mpi.
 
     Args:
@@ -35,33 +74,7 @@ if MPI.COMM_WORLD.Get_rank():
     fn = 'mpi_run.py'
     pkio.write_text(fn, script)
     p = None
-    try:
-        cmd = [
-            'mpiexec',
-            '--bind-to',
-            'none',
-            '-n',
-            str(cfg.slaves),
-            sys.executable or 'python',
-            fn,
-        ]
-        p = subprocess.Popen(
-            cmd,
-            stdin=open(os.devnull),
-            stdout=open('mpi_run.out', 'w'),
-            stderr=subprocess.STDOUT,
-        )
-        pkdp('Started: {} {}', p.pid, cmd)
-        signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
-        rc = p.wait()
-        if rc != 0:
-            p = None
-            raise RuntimeError('child terminated: retcode={}'.format(rc))
-        pkdp('Stopped: {} {}', pid, cmd)
-    finally:
-        if not p is None:
-            pkdp('Terminating: {} {}', p.pid, cmd)
-            p.terminate()
+    return run_program([sys.executable or 'python', fn])
 
 
 cfg = pkconfig.init(

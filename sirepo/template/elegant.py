@@ -22,7 +22,7 @@ import shutil
 import time
 import werkzeug
 
-ELEGANT_LOG_FILE = 'elegant.stdout'
+ELEGANT_LOG_FILE = 'elegant.log'
 
 WANT_BROWSER_FRAME_CACHE = True
 

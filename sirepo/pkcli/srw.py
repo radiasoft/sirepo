@@ -68,7 +68,7 @@ v.wm_ns = {slaves}
 op = set_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
-        mpi.run(script)
+        mpi.run_script(script)
 
 
 def _mirror_plot(model_data):
