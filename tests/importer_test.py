@@ -20,17 +20,18 @@ pytest.importorskip('srwl_bl')
 _ROOT_DIR = py.path.local()
 _DAT_DIR = _ROOT_DIR.join('sirepo/package_data/static/dat')
 _TESTS = {  # Values are optional arguments:
-    'lcls_sxr': ('lcls_sxr', None),
-    'chx': ('chx', None),
-    'lcls_simplified': ('lcls_simplified', None),
-    'srx': ('srx', None),
-    'srx_bl2': ('srx', '--op_BL=2'),
-    'srx_bl3': ('srx', '--op_BL=3'),
-    'srx_bl4': ('srx', '--op_BL=4'),
     'amx': ('amx', None),
     'amx_bl2': ('amx', '--op_BL=2'),
     'amx_bl3': ('amx', '--op_BL=3'),
     'amx_bl4': ('amx', '--op_BL=4'),
+    'chx': ('chx', None),
+    'exported_chx': ('exported_chx', None),
+    'lcls_simplified': ('lcls_simplified', None),
+    'lcls_sxr': ('lcls_sxr', None),
+    'srx': ('srx', None),
+    'srx_bl2': ('srx', '--op_BL=2'),
+    'srx_bl3': ('srx', '--op_BL=3'),
+    'srx_bl4': ('srx', '--op_BL=4'),
 }
 
 
