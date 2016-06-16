@@ -34,7 +34,7 @@
                 "verticalOffset": 0
             },
             {
-                "grazingAngle": 0.0025,
+                "grazingAngle": 2.5,
                 "heightAmplification": 1.0,
                 "heightProfileFile": "mirror_2d.dat",
                 "horizontalTransverseSize": 0.0,
@@ -75,7 +75,7 @@
             }
         ],
         "electronBeam": {
-            "beamSelector": "NSLS-II Low Beta ",
+            "beamSelector": "NSLS-II Low Beta Day1",
             "current": 0.5,
             "energy": 3.0,
             "energyDeviation": 0.0,
@@ -85,8 +85,8 @@
             "horizontalDispersionDerivative": 0.0,
             "horizontalEmittance": 0.9,
             "horizontalPosition": 0.0,
-            "isReadOnly": false,
-            "name": "NSLS-II Low Beta ",
+            "isReadOnly": true,
+            "name": "NSLS-II Low Beta Day1",
             "rmsSpread": 0.00089,
             "verticalAlpha": 0.0,
             "verticalBeta": 1.06,
@@ -124,7 +124,7 @@
         },
         "initialIntensityReport": {
             "characteristic": 0,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01,
             "sampleFactor": 0
@@ -400,7 +400,7 @@
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 33.1798,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6
         },
         "undulator": {
@@ -416,7 +416,7 @@
         },
         "watchpointReport7": {
             "characteristic": 0,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01,
             "sampleFactor": 0

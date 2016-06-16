@@ -151,7 +151,7 @@
         },
         "initialIntensityReport": {
             "characteristic": 0,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01,
             "sampleFactor": 0
@@ -433,7 +433,7 @@
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 125.1,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6
         },
         "undulator": {
@@ -449,14 +449,14 @@
         },
         "watchpointReport4": {
             "characteristic": 0,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01,
             "sampleFactor": 0
         },
         "watchpointReport7": {
             "characteristic": 0,
-            "fieldUnits": 2,
+            "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01,
             "sampleFactor": 0
