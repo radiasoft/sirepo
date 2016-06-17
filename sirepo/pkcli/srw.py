@@ -60,7 +60,7 @@ def run_background(cfg_dir):
         script += '''
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
-source_type, mag = setup_source(v)
+source_type, mag = srwl_bl.setup_source(v)
 v.wm_nm = {total_particles}
 v.wm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes
@@ -99,7 +99,7 @@ def _run_srw():
     # this defines the get_srw_params() and set_optics() functions
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
-    source_type, mag = setup_source(v)
+    source_type, mag = srwl_bl.setup_source(v)
     op = None
     if data['report'] == 'intensityReport':
         v.ss = True

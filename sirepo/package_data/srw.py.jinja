@@ -170,10 +170,8 @@ varParam = [
 
     #to add options
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
-]
 
-
-appParam = [
+    # Former appParam:
     ['source_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 #---Multipole
     ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
@@ -204,91 +202,12 @@ appParam = [
     ['ueb_xxpr_y', 'f', {{electronBeam_xxprY}}, "vertical <(x-<x>)(x'-<x'>)> [m]"],
 ]
 
-varParam = srwl_bl.srwl_uti_ext_options(varParam + appParam)
-
-def setup_source(v):
-    appV = srwl_bl.srwl_uti_parse_options(appParam, use_sys_argv=False)
-
-    if appV.ueb:
-        srwl_bl._USER_DEFINED_EBEAM = srwl_bl.SRWLPartBeam()
-        if appV.ueb_beam_definition == 't':
-            srwl_bl._USER_DEFINED_EBEAM.from_Twiss(
-                _e=appV.ueb_e,
-                _sig_e=appV.ueb_sig_e,
-                _emit_x=appV.ueb_emit_x,
-                _beta_x=appV.ueb_beta_x,
-                _alpha_x=appV.ueb_alpha_x,
-                _eta_x=appV.ueb_eta_x,
-                _eta_x_pr=appV.ueb_eta_x_pr,
-                _emit_y=appV.ueb_emit_y,
-                _beta_y=appV.ueb_beta_y,
-                _alpha_y=appV.ueb_alpha_y,
-                _eta_y=appV.ueb_eta_y,
-                _eta_y_pr=appV.ueb_eta_y_pr
-            )
-        elif appV.ueb_beam_definition == 'm':
-            srwl_bl._USER_DEFINED_EBEAM.from_RMS(
-                _e=appV.ueb_e,
-                _sig_e=appV.ueb_sig_e,
-                _sig_x=appV.ueb_rms_size_x,
-                _sig_x_pr=appV.ueb_rms_diverg_x,
-                _m_xx_pr=appV.ueb_xxpr_x,
-                _sig_y=appV.ueb_rms_size_y,
-                _sig_y_pr=appV.ueb_rms_diverg_y,
-                _m_yy_pr=appV.ueb_xxpr_y
-            )
-        else:
-            raise AssertionError('{}: unknown ueb_beam_definition'.format(appV.ueb_beam_definition))
-
-    mag = None
-    if appV.source_type in ['u', 't']:
-        if appV.source_type == 'u' or (not v.und_g or v.und_g == 0):
-            v.und_b = 1
-            del v.und_g
-            del v.gbm_pen
-        elif appV.source_type == 't' or (v.und_g and v.und_g > 0):
-            del v.gbm_pen
-            v.und_mdir = './{{tabulatedUndulator_magnMeasFolder}}'
-            v.pw_mag = 2
-            v.w_mag = 2
-    elif appV.source_type == 'g':
-        pass
-    elif appV.source_type == 'm':
-        mag = srwlib.SRWLMagFldC()
-        mag.arXc.append(0)
-        mag.arYc.append(0)
-        mag.arMagFld.append(srwlib.SRWLMagFldM(appV.mp_field, appV.mp_order, appV.mp_distribution, appV.mp_len))
-        mag.arZc.append(appV.mp_zc)
-        del v.gbm_pen
-    else:
-        raise AssertionError('{}: unknown source_type'.format(appV.source_type))
-
-    return appV.source_type, mag
+varParam = srwl_bl.srwl_uti_ext_options(varParam)
 
 
 def get_srw_params():
     return varParam
 
 
-def get_app_params():
-    return appParam
-
-
 def set_optics(v=None):
     {{beamlineOptics}}
-
-
-def patched_srwl_bl_set_e_beam(self, **kwargs):
-    if hasattr(srwl_bl, '_USER_DEFINED_EBEAM'):
-        kwargs['_e_beam_name'] = ''
-        kwargs['_e_beam'] = srwl_bl._USER_DEFINED_EBEAM
-    return original_set_e_beam(self, **kwargs)
-
-
-if srwl_bl.SRWLBeamline.set_e_beam.__module__ != patched_srwl_bl_set_e_beam.__module__:
-    # monkey patch SRWLBeamline.set_e_beam() to allow a user defined ebeam when called from calc_all()
-    original_set_e_beam = srwl_bl.SRWLBeamline.set_e_beam
-    srwl_bl.SRWLBeamline.set_e_beam = patched_srwl_bl_set_e_beam
-
-
-srwl_bl.SRWLBeamline.set_e_beam = patched_srwl_bl_set_e_beam

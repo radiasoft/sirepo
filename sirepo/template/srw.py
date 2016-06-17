@@ -433,7 +433,7 @@ def run_all_text():
     return '''
 def run_all_reports():
     v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-    source_type, mag = setup_source(v)
+    source_type, mag = srwl_bl.setup_source(v)
     if source_type != 'g':
         v.ss = True
         v.ss_pl = 'e'
@@ -442,10 +442,10 @@ def run_all_reports():
     if source_type == 'u':
         v.sm = True
         v.sm_pl = 'e'
-    v.si = True
-    v.ws = True
-    v.ws_pl = 'xy'
     op = set_optics()
+    v.si = True
+    v.ws = True if len(op.arOpt) else False
+    v.ws_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 if __name__ == '__main__':
