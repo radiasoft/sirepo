@@ -525,11 +525,10 @@ def write_parameters(data, schema, run_dir, run_async):
 
 
 def _beamline_element(template, item, fields, propagation, shift=''):
-    return '{}    el.append({})\n{}'.format(
+    return '{}    el.append({})'.format(
         shift,
-        template.format(*map(lambda x: item[x], fields)),
-        _propagation_params(propagation[str(item['id'])][0], shift),
-    )
+        template.format(*map(lambda x: item[x], fields))
+    ), _propagation_params(propagation[str(item['id'])][0], shift)
 
 
 def _compute_crystal_init(model):
@@ -646,27 +645,27 @@ def _crystal_element(template, item, fields, propagation):
     opCr = {}
     # Set crystal orientation:
     opCr.set_orient({}, {}, {}, {}, {})
-    el.append(opCr)
-    {}\n'''.format(
+    el.append(opCr)\n'''.format(
         template.format(*map(lambda x: item[x], fields)),
-        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy'],
-        _propagation_params(propagation[str(item['id'])][0]).strip()
+        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
     )
-    return res
+    return res, _propagation_params(propagation[str(item['id'])][0])
 
 
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     propagation = models['propagation']
-    res = '''
+    res_el = '''
     el = []
-    pp = []
+'''
+    res_pp = '''    pp = []
 '''
     prev = None
     has_item = False
     last_element = False
     want_final_propagation = True
 
+    height_profile_counter = 1
     for item in beamline:
         if last_element:
             want_final_propagation = False
@@ -675,74 +674,130 @@ def _generate_beamline_optics(models, last_id):
             has_item = True
             size = item['position'] - prev['position']
             if size != 0:
-                res += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
-                res += _propagation_params(propagation[str(prev['id'])][1])
+                res_el += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
+                res_pp += _propagation_params(propagation[str(prev['id'])][1])
         if item['type'] == 'aperture':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
                 propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'crl':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
                 item,
                 ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
                 propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'crystal':
-            res += _crystal_element(
+            el, pp = _crystal_element(
                 'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
                 item,
                 ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
                 propagation)
-            res += _height_profile_element(item, propagation, overwrite_propagation=True)
+            res_el += el
+            res_pp += pp
+
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                overwrite_propagation=True,
+                height_profile_el_name='Cryst{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'ellipsoidMirror':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
                 item,
                 ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
-            res += _height_profile_element(item, propagation, overwrite_propagation=True)
+            res_el += el
+            res_pp += pp
+
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                overwrite_propagation=True,
+                height_profile_el_name='ElMirror{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'grating':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
                 item,
                 ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
                 propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'lens':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptL({}, {}, {}, {})',
                 item,
                 ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
                 propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'mirror':
-            res += _height_profile_element(item, propagation)
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                height_profile_el_name='Mirror{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'obstacle':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
                 propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'sphericalMirror':
-            res += _beamline_element(
+            el, pp = _beamline_element(
                 'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
                 item,
                 ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ','tangentialVectorX', 'tangentialVectorY'],
                 propagation)
-            res += _height_profile_element(item, propagation, overwrite_propagation=True)
+            res_el += el
+            res_pp += pp
+
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                overwrite_propagation=True,
+                height_profile_el_name='SphMirror{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'watch':
             if not has_item:
-                res += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
-                res += _propagation_params(propagation[str(item['id'])][0])
+                res_el += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
+                res_pp += _propagation_params(propagation[str(item['id'])][0])
             if last_id and last_id == int(item['id']):
                 last_element = True
         prev = item
-        res += '\n'
+        res_el += '\n'
+        res_pp += '\n'
 
     # final propagation parameters
     if want_final_propagation:
-        res += _propagation_params(models['postPropagation'])
-    res += '    return srwlib.SRWLOptC(el, pp)\n'
+        res_pp += _propagation_params(models['postPropagation'])
+
+    res = res_el + res_pp + '\n    return srwlib.SRWLOptC(el, pp)\n'
     return res
 
 def _get_first_element_position(data):
@@ -751,24 +806,27 @@ def _get_first_element_position(data):
         return beamline[0]['position']
     return 20
 
-def _height_profile_element(item, propagation, overwrite_propagation=False):
+def _height_profile_element(item, propagation, overwrite_propagation=False, height_profile_el_name='Mirror'):
+    shift = '    '
     if overwrite_propagation:
         if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
             propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
         else:
-            return ''
-    shift = '    '
-    res = '{}ifnHDM = "{}"\n'.format(shift, item['heightProfileFile'])
-    res += '{}if ifnHDM:\n'.format(shift)
-    res += '{}    hProfDataHDM = srwlib.srwl_uti_read_data_cols(ifnHDM, "\\t", 0, 1)\n'.format(shift)
+            return '', ''
+    res = '{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
+    res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
+    res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t", 0, 1)\n'.format(shift, height_profile_el_name, height_profile_el_name)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
+    hProfData = 'hProfData{}'.format(height_profile_el_name)
     if 'horizontalTransverseSize' in item:
-        template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
+        template = 'srwlib.srwl_opt_setup_surf_height_1d(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
         fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))
     else:
-        template = 'srwlib.srwl_opt_setup_surf_height_1d(hProfDataHDM, _dim="{}", _ang={}, _amp_coef={})'
-    res += _beamline_element(template, item, fields, propagation, shift=shift)
-    return res
+        template = 'srwlib.srwl_opt_setup_surf_height_1d(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
+    el, pp = _beamline_element(template, item, fields, propagation, shift=shift)
+    res += el
+    pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
+    return res, pp
 
 def _intensity_units(is_gaussian, model_data):
     if is_gaussian:
@@ -829,13 +887,7 @@ def _process_undulator_definition(model):
         return model
 
 def _propagation_params(prop, shift=''):
-    res = '{}    pp.append(['.format(shift)
-    for i in range(len(prop)):
-        res += str(prop[i])
-        if (i != len(prop) - 1):
-            res += ', '
-    res += '])\n'
-    return res
+    return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
 
 def _remap_3d(info, allrange, z_label, z_units):
     x_range = [allrange[3], allrange[4], allrange[5]]

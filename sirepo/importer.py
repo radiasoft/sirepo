@@ -768,13 +768,23 @@ def _parsed_dict(v, op):
     return python_dict
 
 
-def _patch_mirror_profile(code, lib_dir, var_name='ifnHDM', mirror_file='mirror_1d.dat'):
+def _patch_mirror_profile(code, lib_dir, mirror_file='mirror_1d.dat'):
     """Patch for the mirror profile for the exported .py file from Sirepo"""
+    var_names = ['Cryst', 'ElMirror', 'Mirror', 'SphMirror', 'HDM']
     code_list = code.split('\n')
-    mirror_file = '{}/{}'.format(lib_dir, mirror_file)
-    for i in range(len(code_list)):
-        if re.search('^(\s*)' + var_name + '(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
-            code_list[i] = code_list[i].replace(var_name, '{} = \'{}\'  # '.format(var_name, mirror_file))
+    for var_name in var_names:
+        if var_name in ['Mirror']:
+            final_mirror_file = '"{}/{}"'.format(lib_dir, mirror_file)
+        else:
+            final_mirror_file = None
+        var_name = 'ifn' + var_name
+        for i in range(len(code_list)):
+            if re.search('^(\s*)' + var_name + '(\d*)(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
+                full_var_name = code_list[i].strip().split('=')[0].strip()
+                code_list[i] = code_list[i].replace(
+                    full_var_name,
+                    '{} = {}  # '.format(full_var_name, final_mirror_file)
+                )
     code = '\n'.join(code_list)
     return code
 
