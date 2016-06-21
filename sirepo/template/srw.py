@@ -429,28 +429,37 @@ def remove_last_frame(run_dir):
     pass
 
 
-def run_all_text():
-    return '''
-def run_all_reports():
-    v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-    source_type, mag = srwl_bl.setup_source(v)
-    if source_type != 'g':
-        v.ss = True
-        v.ss_pl = 'e'
-        v.pw = True
-        v.pw_pl = 'xy'
-    if source_type == 'u':
-        v.sm = True
-        v.sm_pl = 'e'
-    op = set_optics()
-    v.si = True
-    v.ws = True if len(op.arOpt) else False
-    v.ws_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+def run_all_text(data):
+    """TODO(mrakitin): the code is duplicated from sirepo/pkcli/srw.py, need to invent something universal."""
+    content = [
+        'v = srwl_bl.srwl_uti_parse_options(varParam)',
+        'source_type, mag = srwl_bl.setup_source(v)',
+        'op = None'
+    ]
+    if 'report' not in data or data['report'] == 'intensityReport':
+        content.append('v.ss = True')
+        content.append("v.ss_pl = 'e'")
+    elif data['report'] == 'fluxReport':
+        content.append('v.sm = True')
+        content.append("v.sm_pl = 'e'")
+    elif data['report'] == 'powerDensityReport':
+        content.append('v.pw = True')
+        content.append("v.pw_pl = 'xy'")
+    elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
+        content.append('v.si = True')
+        content.append("v.si_pl = 'xy'")
+    elif data['report'] == 'mirrorReport':
+        pass
+    elif re.search('^watchpointReport', data['report']):
+        content.append('op = set_optics()')
+        content.append('v.ws = True')
+        content.append("v.ws_pl = 'xy'")
+    else:
+        raise Exception('unknown report: {}'.format(data['report']))
+    content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
 
-if __name__ == '__main__':
-    run_all_reports()
-'''
+    text = "\nif __name__ == '__main__':\n{}".format('\n'.join(['{}{}'.format('    ', x) for x in content]))
+    return text
 
 def static_lib_files():
     """Library shared between simulations of this type
@@ -655,11 +664,9 @@ def _crystal_element(template, item, fields, propagation):
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     propagation = models['propagation']
-    res_el = '''
-    el = []
-'''
-    res_pp = '''    pp = []
-'''
+    res_el = 'el = []\n'
+    res_pp = '    pp = []\n'
+
     prev = None
     has_item = False
     last_element = False

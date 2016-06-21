@@ -12,8 +12,10 @@ import srwlib
 import srwlpy
 
 
-varParam = [
+def set_optics(v=None):
+    {{beamlineOptics}}
 
+varParam = srwl_bl.srwl_uti_ext_options([
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
 #---Data Folder
@@ -209,14 +211,4 @@ varParam = [
     ['ueb_rms_diverg_y', 'f', {{electronBeam_rmsDivergY}}, "vertical RMS divergence [rad]"],
     ['ueb_xxpr_y', 'f', {{electronBeam_xxprY}}, "vertical <(x-<x>)(x'-<x'>)> [m]"],
 {% endif %}
-]
-
-varParam = srwl_bl.srwl_uti_ext_options(varParam)
-
-
-def get_srw_params():
-    return varParam
-
-
-def set_optics(v=None):
-    {{beamlineOptics}}
+])

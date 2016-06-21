@@ -329,7 +329,7 @@ def app_python_source(simulation_type, simulation_id):
     return flask.Response(
         '{}{}'.format(
             template.generate_parameters_file(data, _schema_cache(simulation_type), run_async=True),
-            template.run_all_text()),
+            template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
         mimetype='text/plain',
     )
 

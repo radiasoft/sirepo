@@ -12,8 +12,15 @@ import srwlib
 import srwlpy
 
 
-varParam = [
+def set_optics(v=None):
+    el = []
+    pp = []
+    pp.append([])
 
+    return srwlib.SRWLOptC(el, pp)
+
+
+varParam = srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'Undulator Radiation', 'simulation name'],
 
 #---Data Folder
@@ -50,22 +57,6 @@ varParam = [
     ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
 
-    ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
-    ['gbm_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
-    ['gbm_z', 'f', 0.0, 'average longitudinal coordinate of waist [m]'],
-    ['gbm_xp', 'f', 0.0, 'average horizontal angle at waist [rad]'],
-    ['gbm_yp', 'f', 0.0, 'average verical angle at waist [rad]'],
-    ['gbm_ave', 'f', 9000.0, 'average photon energy [eV]'],
-    ['gbm_pen', 'f', 0.001, 'energy per pulse [J]'],
-    ['gbm_rep', 'f', 1, 'rep. rate [Hz]'],
-    ['gbm_pol', 'f', 1, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
-    ['gbm_sx', 'f', 9.78723e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
-    ['gbm_sy', 'f', 9.78723e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
-    ['gbm_st', 'f', 1e-13, 'rms pulse duration [s] (for intensity)'],
-    ['gbm_mx', 'f', 0, 'transverse Gauss-Hermite mode order in horizontal direction'],
-    ['gbm_my', 'f', 0, 'transverse Gauss-Hermite mode order in vertical direction'],
-    ['gbm_ca', 's', 'c', 'treat _sigX, _sigY as sizes in [m] in coordinate representation (_presCA="c") or as angular divergences in [rad] in angular representation (_presCA="a")'],
-    ['gbm_ft', 's', 't', 'treat _sigT as pulse duration in [s] in time domain/representation (_presFT="t") or as bandwidth in [eV] in frequency domain/representation (_presFT="f")'],
 
 #---Calculation Types
     #Single-Electron Spectrum vs Photon Energy
@@ -173,12 +164,7 @@ varParam = [
 
     # Former appParam:
     ['source_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
-#---Multipole
-    ['mp_field', 'f', 0.4, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
-    ['mp_order', 'i', 1, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
-    ['mp_distribution', 's', 'n', 'normal (n) or skew (s)'],
-    ['mp_len', 'f', 3.0, 'effective length [m]'],
-    ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
+
 #---User Defined Electron Beam
     ['ueb', 'i', 0, 'Use user defined beam'],
     ['ueb_e', 'f', 3.0, 'energy [GeV]'],
@@ -200,40 +186,12 @@ varParam = [
     ['ueb_rms_size_y', 'f', 9.87421e-06, "vertical RMS size [m]"],
     ['ueb_rms_diverg_y', 'f', 3.94968e-06, "vertical RMS divergence [rad]"],
     ['ueb_xxpr_y', 'f', 0.0, "vertical <(x-<x>)(x'-<x'>)> [m]"],
-]
-
-varParam = srwl_bl.srwl_uti_ext_options(varParam)
-
-
-def get_srw_params():
-    return varParam
-
-
-def set_optics(v=None):
-    
-    el = []
-    pp = []
-    pp.append([])
-
-    return srwlib.SRWLOptC(el, pp)
-
-
-def run_all_reports():
-    v = srwl_bl.srwl_uti_parse_options(get_srw_params())
-    source_type, mag = srwl_bl.setup_source(v)
-    if source_type != 'g':
-        v.ss = True
-        v.ss_pl = 'e'
-        v.pw = True
-        v.pw_pl = 'xy'
-    if source_type == 'u':
-        v.sm = True
-        v.sm_pl = 'e'
-    op = set_optics()
-    v.si = True
-    v.ws = True if len(op.arOpt) else False
-    v.ws_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+])
 
 if __name__ == '__main__':
-    run_all_reports()
+    v = srwl_bl.srwl_uti_parse_options(varParam)
+    source_type, mag = srwl_bl.setup_source(v)
+    op = None
+    v.si = True
+    v.si_pl = 'xy'
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)

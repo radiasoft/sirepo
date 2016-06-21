@@ -59,7 +59,7 @@ def run_background(cfg_dir):
         p['slaves'] = mpi.cfg.slaves
         script += '''
 import srwl_bl
-v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
+v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
 source_type, mag = srwl_bl.setup_source(v)
 v.wm_nm = {total_particles}
 v.wm_na = {particles_per_slave}
@@ -96,9 +96,9 @@ def _run_srw():
     run_dir = os.getcwd()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     #TODO(pjm): need to properly escape data values, untrusted from client
-    # this defines the get_srw_params() and set_optics() functions
+    # This defines the varParam variable and set_optics() function:
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    v = srwl_bl.srwl_uti_parse_options(get_srw_params(), use_sys_argv=False)
+    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
     source_type, mag = srwl_bl.setup_source(v)
     op = None
     if data['report'] == 'intensityReport':
