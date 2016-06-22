@@ -465,7 +465,15 @@ def run_all_text(data):
         raise Exception('unknown report: {}'.format(data['report']))
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
 
-    text = "\nif __name__ == '__main__':\n{}".format('\n'.join(['{}{}'.format('    ', x) for x in content]))
+    text = """
+
+def main():
+{}
+
+
+if __name__ == '__main__':
+    main()
+""".format('\n'.join(['{}{}'.format('    ', x) for x in content]))
     return text
 
 
