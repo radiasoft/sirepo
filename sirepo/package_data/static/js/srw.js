@@ -612,6 +612,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
                 undulator_period: appState.models[und]['period'] / 1000,
                 undulator_length: appState.models[und]['length'],
+                ebeam: appState.models.electronBeam,
             },
             function(data) {
                 if (appState.models.electronBeam.isReadOnly) {
@@ -630,7 +631,11 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                     }
                     disableField('electronBeam', 'beamDefinition', 'skip', false);
                     for (var i = 0; i < fieldsOfMoments.length; i++) {
-                        disableField('electronBeam', fieldsOfMoments[i], 'skip', false);
+                        var val = 'skip';
+                        if (beamDefinition === 't') {
+                            val = formatFloat(data[fieldsOfMoments[i]]);
+                        }
+                        disableField('electronBeam', fieldsOfMoments[i], val, false);
                     }
                 }
             }
@@ -841,7 +846,21 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         return '[' + fieldsList.toString() + ']';
     }
 
-    $scope.$watchCollection(wrapFields(['electronBeam'], ['driftCalculationMethod', 'beamDefinition']), function (newValues, oldValues) {
+    var electronBeamWatchFields = [
+        'driftCalculationMethod',
+        'beamDefinition',
+        'horizontalEmittance',
+        'horizontalBeta',
+        'horizontalAlpha',
+        'horizontalDispersion',
+        'horizontalDispersionDerivative',
+        'verticalEmittance',
+        'verticalBeta',
+        'verticalAlpha',
+        'verticalDispersion',
+        'verticalDispersionDerivative',
+    ];
+    $scope.$watchCollection(wrapFields(['electronBeam'], electronBeamWatchFields), function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
                 processBeamParameters();

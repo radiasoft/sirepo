@@ -133,11 +133,11 @@ def fixup_electron_beam(data):
         data['models']['simulation']['sourceType'],
         data['models']['tabulatedUndulator']['undulatorType'],
         float(data['models'][und]['length']),
-        float(data['models'][und]['period']) / 1000.0
+        float(data['models'][und]['period']) / 1000.0,
+        data['models']['electronBeam'],
     )
 
-    if 'drift' not in data['models']['electronBeam'] or data['models']['electronBeam']['driftCalculationMethod'] == 'auto':
-        data['models']['electronBeam']['drift'] = beam_parameters['drift']
+    data['models']['electronBeam']['drift'] = beam_parameters['drift']
 
     if 'beamDefinition' not in data['models']['electronBeam']:
         data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
@@ -271,6 +271,7 @@ def fixup_old_data(data):
                 'undulator_period': float(data['models'][rep]['period']) / 1000.0
             })['undulator_parameter'], 8)
 
+
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
@@ -366,7 +367,13 @@ def get_application_data(data):
     elif data['method'] == 'process_flux_reports':
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
-        return _process_beam_parameters(data['source_type'], data['undulator_type'], data['undulator_length'], data['undulator_period'])
+        return _process_beam_parameters(
+            data['source_type'],
+            data['undulator_type'],
+            data['undulator_length'],
+            data['undulator_period'],
+            data['ebeam'],
+        )
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -460,6 +467,7 @@ def run_all_text(data):
 
     text = "\nif __name__ == '__main__':\n{}".format('\n'.join(['{}{}'.format('    ', x) for x in content]))
     return text
+
 
 def static_lib_files():
     """Library shared between simulations of this type
@@ -637,6 +645,29 @@ def _compute_grazing_angle(model):
     return model
 
 
+def _convert_ebeam_units(field_name, value, to_si=True):
+    """Convert values from the schema to SI units (m, rad) and back.
+
+    Args:
+        field_name: name of the field in _SCHEMA['model']['electronBeam'].
+        value: value of the field.
+        to_si: if set to True, convert to SI units, otherwise convert back to the units in the schema.
+
+    Returns:
+        value: converted value.
+    """
+    if field_name in _SCHEMA['model']['electronBeam'].keys():
+        label, field_type = _SCHEMA['model']['electronBeam'][field_name]
+        if field_type == 'Float':
+            if re.search('\[m(m|rad)\]', label):
+                value *= _invert_value(1e3, to_si)
+            elif re.search('\[\xb5(m|rad)\]', label):  # mu
+                value *= _invert_value(1e6, to_si)
+            elif re.search('\[n(m|rad)\]', label):
+                value *= _invert_value(1e9, to_si)
+    return value
+
+
 def _crystal_element(template, item, fields, propagation):
     """The function prepares the code for processing of the crystal element.
 
@@ -807,11 +838,13 @@ def _generate_beamline_optics(models, last_id):
     res = res_el + res_pp + '\n    return srwlib.SRWLOptC(el, pp)\n'
     return res
 
+
 def _get_first_element_position(data):
     beamline = data['models']['beamline']
     if len(beamline):
         return beamline[0]['position']
     return 20
+
 
 def _height_profile_element(item, propagation, overwrite_propagation=False, height_profile_el_name='Mirror'):
     shift = '    '
@@ -835,6 +868,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
     pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
     return res, pp
 
+
 def _intensity_units(is_gaussian, model_data):
     if is_gaussian:
         if 'report' in model_data:
@@ -844,6 +878,14 @@ def _intensity_units(is_gaussian, model_data):
         return _SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 
+
+def _invert_value(value, invert=False):
+    """Invert specified value - 1 / value."""
+    if invert:
+        value **= (-1)
+    return value
+
+
 def _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period):
     """Calculate drift for ideal undulator."""
     drift = 0.0
@@ -852,16 +894,52 @@ def _process_beam_drift(source_type, undulator_type, undulator_length, undulator
         drift = -0.5 * float(undulator_length) - 2 * float(undulator_period)
     return drift
 
-def _process_beam_parameters(source_type, undulator_type, undulator_length, undulator_period):
+
+def _process_beam_parameters(source_type, undulator_type, undulator_length, undulator_period, ebeam):
+    if 'drift' not in ebeam or 'driftCalculationMethod' not in ebeam or ebeam['driftCalculationMethod'] == 'auto':
+        drift = _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period)
+    else:
+        drift = ebeam['drift']
     model = {
-        'drift': _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period),
-        'rmsSizeX': 372.612,
-        'rmsDivergX': 10.4666,
-        'xxprX': 0.0,
-        'rmsSizeY': 9.87421,
-        'rmsDivergY': 3.94968,
-        'xxprY': 0.0,
+        'drift': drift,
     }
+
+    moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
+    for k in moments_fields:
+        model[k] = ebeam[k] if k in ebeam else 0
+
+    if 'beamDefinition' not in ebeam or ebeam['beamDefinition'] == 't':  # Twiss
+        import copy
+        ebeam = copy.deepcopy(ebeam)
+
+        # Convert to SI units to perform SRW calculation:
+        for k in ebeam:
+            ebeam[k] = _convert_ebeam_units(k, ebeam[k])
+
+        import srwlib
+        beam = srwlib.SRWLPartBeam()
+        beam.from_Twiss(
+            _e=ebeam['energy'],
+            _sig_e=ebeam['rmsSpread'],
+            _emit_x=ebeam['horizontalEmittance'],
+            _beta_x=ebeam['horizontalBeta'],
+            _alpha_x=ebeam['horizontalAlpha'],
+            _eta_x=ebeam['horizontalDispersion'],
+            _eta_x_pr=ebeam['horizontalDispersionDerivative'],
+            _emit_y=ebeam['verticalEmittance'],
+            _beta_y=ebeam['verticalBeta'],
+            _alpha_y=ebeam['verticalAlpha'],
+            _eta_y=ebeam['verticalDispersion'],
+            _eta_y_pr=ebeam['verticalDispersionDerivative'],
+        )
+
+        for i, k in enumerate(moments_fields):
+            model[k] = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
+
+        # Convert to the units used in the schema:
+        for k in model.keys():
+            model[k] = _convert_ebeam_units(k, model[k], to_si=False)
+
     return model
 
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
