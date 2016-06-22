@@ -806,7 +806,7 @@ def _generate_beamline_optics(models, last_id):
             el, pp = _beamline_element(
                 'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
                 item,
-                ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ','tangentialVectorX', 'tangentialVectorY'],
+                ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
                 propagation)
             res_el += el
             res_pp += pp
@@ -853,7 +853,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
             propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
         else:
             return '', ''
-    res = '{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
+    res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
     res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
     res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t", 0, 1)\n'.format(shift, height_profile_el_name, height_profile_el_name)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
