@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-u"""SiRepo setup script
+u"""Sirepo setup script
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pksetup import setup
+try:
+    import pykern.pksetup
+except ImportError:
+    import pip
+    pip.main(['install', 'pykern'])
+    import pykern.pksetup
 
-setup(
+pykern.pksetup.setup(
     name='sirepo',
     description='accelerator code gui',
     author='RadiaSoft LLC.',
