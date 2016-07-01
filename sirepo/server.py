@@ -137,29 +137,22 @@ def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = _json_input()
     simulation_type = req['simulationType']
+    name = req['name'] if 'name' in req else None
     data = simulation_db.open_json_file(simulation_type, sid=req['simulationId'])
-    base_name = data['models']['simulation']['name']
-    names = simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_name)
-    count = 0
-    while True:
-        count += 1
-        name = base_name + ' (copy{})'.format(' {}'.format(count) if count > 1 else '')
-        if name in names and count < 100:
-            continue
-        break
+    if not name:
+        base_name = data['models']['simulation']['name']
+        names = simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_name)
+        count = 0
+        while True:
+            count += 1
+            name = base_name + ' (copy{})'.format(' {}'.format(count) if count > 1 else '')
+            if name in names and count < 100:
+                continue
+            break
     data['models']['simulation']['name'] = name
     data['models']['simulation']['isExample'] = ''
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(simulation_type, data)
-
-
-@app.route('/favicon.ico')
-def app_route_favicon():
-    """Routes to favicon.ico file."""
-    return flask.send_from_directory(
-        str(simulation_db.STATIC_FOLDER.join('img')),
-        'favicon.ico', mimetype='image/vnd.microsoft.icon'
-    )
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
@@ -239,9 +232,11 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
                     'simulation.name': s['models']['simulation']['name'],
                 })
                 if len(rows) == 0:
-                    simulation_db.save_new_example(simulation_type, s)
-        redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}'.format(
-            simulation_type, flask.escape(simulation_name), application_mode)
+                    type, show_item_id = simulation_db.save_new_example(simulation_type, s)
+                else:
+                    show_item_id = rows[0]['simulationId']
+        redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}&show_item_id={}'.format(
+            simulation_type, flask.escape(simulation_name), application_mode, show_item_id)
     else:
         # otherwise use the existing named simulation, or copy it from the examples
         rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
@@ -309,6 +304,7 @@ def app_new_simulation():
         simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(simulation_type, simulation_db.JSON_SUFFIX)),
     )
     data['models']['simulation']['name'] = new_simulation_data['name']
+    data['models']['simulation']['folder'] = new_simulation_data['folder']
     sirepo.template.import_module(simulation_type).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(simulation_type, data)
 
@@ -343,11 +339,22 @@ def app_root(simulation_type):
     )
 
 
+@app.route('/favicon.ico')
+def app_route_favicon():
+    """Routes to favicon.ico file."""
+    return flask.send_from_directory(
+        str(simulation_db.STATIC_FOLDER.join('img')),
+        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
     data = _json_input()
     run_dir = simulation_db.simulation_run_dir(data)
-    if not _cached_simulation_available(run_dir, data):
+    res = _cached_simulation_results(run_dir, data)
+
+    if not res:
         err = _start_simulation(data).run_and_read()
         if err:
             sid = simulation_db.parse_sid(data)
@@ -356,8 +363,8 @@ def app_run():
                 'error': _error_text(err),
                 'simulationId': sid,
             })
-    bn = run_dir.join(template_common.OUTPUT_BASE_NAME)
-    return flask.jsonify(simulation_db.read_json(bn))
+        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+    return flask.jsonify(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
@@ -476,15 +483,14 @@ def app_simulation_frame(frame_id):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list():
-    input = _json_input()
-    simulation_type = input['simulationType']
-    search = input['search'] if 'search' in input else None
+    data = _json_input()
+    simulation_type = data['simulationType']
+    search = data['search'] if 'search' in data else None
     simulation_db.verify_app_directory(simulation_type)
     return json.dumps(
         sorted(
             simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, search),
-            key=lambda row: row['last_modified'],
-            reverse=True
+            key=lambda row: row['name'],
         )
     )
 
@@ -493,6 +499,51 @@ def app_simulation_list():
 def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
     return flask.jsonify(_schema_cache(sim_type))
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
+def app_update_folder():
+    data = _json_input()
+    old_name = data['oldName']
+    new_name = data['newName']
+    for row in simulation_db.iterate_simulation_datafiles(data['simulationType'], _simulation_data):
+        folder = row['models']['simulation']['folder']
+        if folder.startswith(old_name):
+            row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
+            simulation_db.save_simulation_json(data['simulationType'], row)
+    return '{}'
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
+def app_upload_file(simulation_type, simulation_id, file_type):
+    f = flask.request.files['file']
+    lib = simulation_db.simulation_lib_dir(simulation_type)
+    template = sirepo.template.import_module(simulation_type)
+    filename = werkzeug.secure_filename(f.filename)
+    if simulation_type == 'srw':
+        p = lib.join(filename)
+    else:
+        p = lib.join(werkzeug.secure_filename('{}.{}'.format(file_type, filename)))
+    err = None
+    if p.check():
+        err = 'file exists: {}'.format(filename)
+    if not err:
+        f.save(str(p))
+        err = template.validate_file(file_type, str(p))
+        if err:
+            pkio.unchecked_remove(p)
+    if err:
+        return flask.jsonify({
+            'error': err,
+            'filename': filename,
+            'fileType': file_type,
+            'simulationId': simulation_id,
+        })
+    return flask.jsonify({
+        'filename': filename,
+        'fileType': file_type,
+        'simulationId': simulation_id,
+    })
 
 
 @app.route('/light')
@@ -508,14 +559,14 @@ def sr_landing_page():
     return flask.redirect('/light')
 
 
-def _cached_simulation_available(run_dir, data):
+def _cached_simulation_results(run_dir, data):
     if not run_dir.check():
         return False
     try:
         old_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         template = sirepo.template.import_module(data['simulationType'])
         if template.is_cache_valid(data, old_data):
-            return True
+            return simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
     except IOError as e:
         pass
     except Exception as e:
@@ -563,38 +614,6 @@ def _cfg_time_limit(value):
     return v
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
-def app_upload_file(simulation_type, simulation_id, file_type):
-    f = flask.request.files['file']
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    template = sirepo.template.import_module(simulation_type)
-    filename = werkzeug.secure_filename(f.filename)
-    if simulation_type == 'srw':
-        p = lib.join(filename)
-    else:
-        p = lib.join(werkzeug.secure_filename('{}.{}'.format(file_type, filename)))
-    err = None
-    if p.check():
-        err = 'file exists: {}'.format(filename)
-    if not err:
-        f.save(str(p))
-        err = template.validate_file(file_type, str(p))
-        if err:
-            pkio.unchecked_remove(p)
-    if err:
-        return flask.jsonify({
-            'error': err,
-            'filename': filename,
-            'fileType': file_type,
-            'simulationId': simulation_id,
-        })
-    return flask.jsonify({
-        'filename': filename,
-        'fileType': file_type,
-        'simulationId': simulation_id,
-    })
-
-
 def _error_text(err):
     """Parses error from subprocess"""
     m = re.search(_SUBPROCESS_ERROR_RE, err)
@@ -636,16 +655,14 @@ def _schema_cache(sim_type):
     return schema
 
 
+def _simulation_data(res, path, data):
+    """Iterator function to return entire simulation data
+    """
+    res.append(data)
+
+
 def _simulation_name(res, path, data):
-    """Extract name of simulation from data file
-
-    Args:
-        res (list): results of iteration
-        path (py.path): full path to file
-        data (dict): parsed json
-
-    Returns:
-        str: Human readable name for simulation
+    """Iterator function to return simulation name
     """
     res.append(data['models']['simulation']['name'])
 

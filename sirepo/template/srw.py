@@ -32,6 +32,26 @@ _MULTI_ELECTRON_FILENAME_FOR_MODEL = {
     'multiElectronAnimation': 'res_int_pr_me.dat',
 }
 
+_EXAMPLE_FOLDERS = {
+    'Bending Magnet Radiation': '/SR Calculator',
+    'Diffraction by an Aperture': '/Wavefront Propagation',
+    'Ellipsoidal Undulator Example': '/Examples',
+    'Focusing Bending Magnet Radiation': '/Examples',
+    'Gaussian X-ray Beam Through Perfect CRL': '/Examples',
+    'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors': '/Examples',
+    'Idealized Free Electron Laser Pulse': '/SR Calculator',
+    'LCLS SXR beamline - Simplified': '/Light Source Facilities/LCLS',
+    'LCLS SXR beamline': '/Light Source Facilities/LCLS',
+    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II',
+    'Polarization of Bending Magnet Radiation': '/Examples',
+    'Soft X-Ray Undulator Radiation Containing VLS Grating': '/Examples',
+    'Tabulated Undulator Example': '/Examples',
+    'Undulator Radiation': '/SR Calculator',
+    'Young\'s Double Slit Experiment (green laser)': '/Wavefront Propagation',
+    'Young\'s Double Slit Experiment (green laser, no lens)': '/Wavefront Propagation',
+    'Young\'s Double Slit Experiment': '/Wavefront Propagation',
+}
+
 _PREDEFINED_MAGNETIC_ZIP_FILE = 'magnetic_measurements.zip'
 
 #: Where server files and static files are found
@@ -143,7 +163,6 @@ def fixup_electron_beam(data):
         data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
         for field in ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY']:
             data['models']['electronBeam'][field] = beam_parameters[field]
-
     return data
 
 
@@ -270,6 +289,11 @@ def fixup_old_data(data):
                 'vertical_amplitude': float(data['models'][rep]['verticalAmplitude']),
                 'undulator_period': float(data['models'][rep]['period']) / 1000.0
             })['undulator_parameter'], 8)
+    if 'folder' not in data['models']['simulation']:
+        if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
+            data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
+        else:
+            data['models']['simulation']['folder'] = '/'
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):

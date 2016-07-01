@@ -225,6 +225,8 @@ def fixup_old_data(data):
         beam['transverseEmittance'] = 0.00001
         beam['rmsRadius'] = 15
         beam['beamBunchLengthMethod'] = 's'
+    if 'folder' not in data['models']['simulation']:
+        data['models']['simulation']['folder'] = '/'
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):

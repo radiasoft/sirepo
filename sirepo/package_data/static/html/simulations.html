@@ -1,32 +1,72 @@
-    <div class="container">
-      <div class="row" data-ng-if="! simulations.isApp('srw')">
-        <div class="text-center col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
-          <button data-ng-click="simulations.showSimulationModal()" class="btn btn-default" type="submit"><span class="glyphicon glyphicon-plus"></span> New</button>
-          <button data-ng-click="simulations.open(simulations.selected)" class="btn btn-default {{ simulations.selected ? 'btn-primary' : '' }}" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-open-file"></span> Open</button>
-          <button data-ng-click="simulations.copy()" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-copy"></span> Copy</button>
-          <button data-target="#s-delete-confirmation" data-toggle="modal" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-trash"></span> Delete</button>
-          <button data-ng-click="simulations.pythonSource(item)" class="btn btn-default" data-ng-class="{disabled: ! simulations.selected}" type="submit"><span class="glyphicon glyphicon-cloud-download"></span> Python Source</button>
+<script type="text/ng-template" id="s-folder">
+  <a href data-ng-click="simulations.toggleFolder(item)">
+    <span class="glyphicon s-small-nav-icon" data-ng-class="{'glyphicon-chevron-down': item.isOpen, 'glyphicon-chevron-right': ! item.isOpen}"></span>
+    <span class="glyphicon s-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isOpen, 'glyphicon-folder-close': ! item.isOpen}"></span> {{ item.name }}
+  </a>
+  <ul data-ng-if="item.isOpen" class="nav s-nav-sidebar">
+    <li data-ng-repeat="item in item.children | filter:{isFolder: true}" data-ng-include="'s-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
+  </ul>
+</script>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="hidden-xs col-sm-4 col-md-3 s-sidebar">
+      <ul class="nav s-nav-sidebar s-nav-sidebar-root">
+        <li data-ng-repeat="item in simulations.fileTree" data-ng-include="'s-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
+      </ul>
+    </div>
+    <div class="col-sm-8 col-md-9">
+      <div class="s-iconset">
+        <div class="s-folder-nav visible-xs clear-fix">
+          <a href data-ng-repeat="item in simulations.activeFolderPath" data-ng-click="simulations.openItem(item)"><span data-ng-if="simulations.isRootFolder(item)" class="glyphicon glyphicon-folder-open s-nav-icon"></span><span data-ng-if="! simulations.isRootFolder(item)" class="glyphicon glyphicon-chevron-right s-small-nav-icon"></span>{{ item.name }} </a>
         </div>
-      </div>
-      <br>
-      <div class="row">
-        <div class="col-sm-offset-1 col-sm-10 col-lg-offset-2 col-lg-8">
-          <table class="table table-hover">
-            <thead>
-            <tr>
-              <th>Name</th>
-              <th>Last Modified</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr data-ng-repeat="item in simulations.list" data-ng-class="{success: simulations.isSelected(item)}" data-ng-click="simulations.selectItem(item)">
-              <td><a href data-ng-click="simulations.open(item)">{{ item.name }}</a></td>
-              <td>{{ item.last_modified }}</td>
-            </tr>
-            </tbody>
-          </table>
+        <div data-ng-repeat="item in simulations.activeFolder.children" class="s-icon-col">
+          <div class="s-thumbnail text-center dropdown">
+            <a class="s-item-icon" data-toggle="dropdown">
+              <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder}"></span><span class="caret"></span>
+            </a>
+            <a class="s-item-text" href data-ng-click="simulations.openItem(item)">{{ item.name }}</a>
+            <ul class="dropdown-menu">
+              <li><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon s-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isFolder, 'glyphicon-open-file': ! item.isFolder}"></span> Open</a></li>
+              <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate s-nav-icon"></span> Open as a New Copy</a></li>
+              <li><a href data-ng-click="simulations.renameItem(item)"><span class="glyphicon glyphicon-edit s-nav-icon"></span> Rename</a></li>
+              <li><a href data-ng-click="simulations.moveItem(item)"><span class="glyphicon glyphicon-arrow-right s-nav-icon"></span> Move</a></li>
+              <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.pythonSource(item)"><span class="glyphicon glyphicon-cloud-download s-nav-icon"></span> Python Source</a></li>
+              <li data-ng-if="simulations.canDelete(item)" class="divider"></li>
+              <li data-ng-if="simulations.canDelete(item)"><a href data-ng-click="simulations.deleteItem(item)"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <div data-confirmation-modal="" data-id="s-delete-confirmation" data-title="Delete Simulation?" data-text="Delete simulation &quot;{{ simulations.selected.name }}&quot;?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()"></div>
+<div data-confirmation-modal="" data-id="s-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()">Delete simulation &quot;{{ simulations.selectedItem.name }}&quot;?</div>
+
+<div data-confirmation-modal="" data-id="s-rename-confirmation" data-title="Rename {{ simulations.selectedItemType() }}" data-ok-text="Rename" data-ok-clicked="simulations.renameSelected()">
+  <form class="form-horizontal">
+    <label class="col-sm-3 control-label">New Name</label>
+    <div class="col-sm-9">
+      <input class="form-control" data-ng-model="simulations.renameName" />
+    </div>
+  </form>
+</div>
+
+<div data-confirmation-modal="" data-id="s-copy-confirmation" data-title="Copy {{ simulations.selectedItemType() }}" data-ok-text="Create Copy" data-ok-clicked="simulations.copySelected()">
+  <form class="form-horizontal">
+    <label class="col-sm-3 control-label">New Name</label>
+    <div class="col-sm-9">
+      <input class="form-control" data-ng-model="simulations.copyName" />
+    </div>
+  </form>
+</div>
+
+<div data-confirmation-modal="" data-id="s-move-confirmation" data-title="Move {{ simulations.selectedItemType() }}" data-ok-text="Move" data-ok-clicked="simulations.moveSelected()">
+  <form class="form-horizontal">
+    <label class="col-sm-3 control-label">New Folder</label>
+    <div class="col-sm-9">
+      <select class="form-control" data-ng-model="simulations.targetFolder" data-ng-options="folder as simulations.pathName(folder) for folder in simulations.moveFolderList"></select>
+    </div>
+  </form>
+</div>
