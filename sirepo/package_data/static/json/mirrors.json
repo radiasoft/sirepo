@@ -1,1 +1,23 @@
-[{"fileName":"mirror_1d.dat"},{"fileName":"mirror2_1d.dat"},{"fileName":"mirror_2d.dat"}]
+[
+    {
+        "fileName": "mirror_1d.dat"
+    },
+    {
+        "fileName": "mirror2_1d.dat"
+    },
+    {
+        "fileName": "mirror_2d.dat"
+    },
+    {
+        "fileName": "HFM_SESO.dat"
+    },
+    {
+        "fileName": "Si_heat204.dat"
+    },
+    {
+        "fileName": "VFM_SESO.dat"
+    },
+    {
+        "fileName": "VM03rms.dat"
+    }
+]
