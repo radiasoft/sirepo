@@ -27,7 +27,10 @@ var app_local_routes = {
     notFoundCopy: '/copy-session/:simulationIds',
 };
 
-var appDefaultSimulationValues = {};
+var appDefaultSimulationValues = {
+    simulation: {},
+    simulationFolder: {},
+};
 
 var app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
@@ -137,7 +140,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     self.clearModels = function(emptyValues) {
         broadcastClear();
         self.models = emptyValues || {};
-        savedModelValues = {};
+        savedModelValues = self.clone(self.models);
         if (autoSaveTimer)
             $timeout.cancel(autoSaveTimer);
     };
@@ -151,13 +154,14 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
         return self.clone(val);
     };
 
-    self.copySimulation = function(simulationId, op) {
+    self.copySimulation = function(simulationId, op, name) {
         requestSender.sendRequest(
             'copySimulation',
             op,
             {
                 simulationId: simulationId,
                 simulationType: APP_SCHEMA.simulationType,
+                name: name,
             });
     };
 
@@ -218,7 +222,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             });
     };
 
-    self.loadModels = function(simulationId) {
+    self.loadModels = function(simulationId, callback) {
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId)
             return;
         self.clearModels();
@@ -244,6 +248,8 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
                 updateReports();
                 broadcastLoaded();
                 self.resetAutoSaveTimer();
+                if (callback)
+                    callback();
             });
     };
 
@@ -268,6 +274,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             op,
             {
                 name: model.name,
+                folder: model.folder,
                 sourceType: model.sourceType,
                 simulationType: APP_SCHEMA.simulationType,
             });
@@ -675,8 +682,10 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
             });
     };
 
-    self.localRedirect = function(routeName, params) {
+    self.localRedirect = function(routeName, params, search) {
         $location.path(self.formatLocalUrl(routeName, params));
+        if (search)
+            $location.search(search);
     }
 
     self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
@@ -819,12 +828,12 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
 app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
-    function openSection(name) {
+    function openSection(name, search) {
         requestSender.localRedirect(name, {
             ':simulationId': appState.isLoaded()
                 ? appState.models.simulation.simulationId
                 : null,
-        });
+        }, search);
     }
 
     self.isActive = function(name) {
@@ -834,7 +843,9 @@ app.controller('NavController', function (activeSection, appState, requestSender
     self.openSection = function(name) {
         if (name == 'simulations' && appState.isLoaded()) {
             appState.autoSave(function() {
-                openSection(name);
+                openSection(name, {
+                    show_item_id: appState.models.simulation.simulationId,
+                });
             });
         }
         else {
@@ -914,65 +925,331 @@ app.controller('NotFoundCopyController', function (requestSender, $route) {
 
 app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
     var self = this;
-    self.list = [];
-    self.selected = null;
-    appState.clearModels(appState.clone(appDefaultSimulationValues));
-    $scope.$on('simulation.changed', function() {
-        appState.newSimulation(
-            appState.models.simulation,
-            function(data) {
-                self.open(data.models.simulation);
-            });
-    });
+    self.activeFolder = null;
+    self.activeFolderPath = [];
+    self.fileTree = [];
+    self.selectedItem = null;
+    var showItemId = $location.search().show_item_id;
+
+    function addToTree(item) {
+        var path = item.folder == '/'
+            ? []
+            : item.folder.slice(1).split('/');
+        var currentFolder = rootFolder();
+
+        while (path.length) {
+            var search = path.shift();
+            var folder = null;
+            for (var i = 0; i < currentFolder.children.length; i++) {
+                if (search == currentFolder.children[i].name) {
+                    folder = currentFolder.children[i];
+                    break;
+                }
+            }
+            if (! folder) {
+                folder = {
+                    name: search,
+                    parent: currentFolder,
+                    isFolder: true,
+                    children: [],
+                }
+                currentFolder.children.push(folder);
+            }
+            currentFolder = folder;
+        }
+        var item = {
+            parent: currentFolder,
+            name: item.name,
+            simulationId: item.simulationId,
+        };
+        currentFolder.children.push(item);
+        return item;
+    }
+
+    function clearModels() {
+        appState.clearModels(appState.clone(appDefaultSimulationValues));
+    }
+
+    function folderList(excludeFolder, res, searchFolder) {
+        if (! res) {
+            searchFolder = rootFolder();
+            res = [searchFolder];
+        }
+        for (var i = 0; i < searchFolder.children.length; i++) {
+            var child = searchFolder.children[i];
+            if (child.isFolder && child != excludeFolder) {
+                res.push(child);
+                folderList(excludeFolder, res, child);
+            }
+        }
+        return res;
+    }
+
     function loadList() {
+        var showItem = null;
         appState.listSimulations(
             $location.search(),
             function(data) {
-                self.list = data;
+                data.sort(function(a, b) {
+                    return (a.folder + a.name).localeCompare(b.folder + b.name);
+                });
+                self.fileTree = [
+                    {
+                        name: '/',
+                        isFolder: true,
+                        children: [],
+                    },
+                ];
+                for (var i = 0; i < data.length; i++) {
+                    var item = addToTree(data[i]);
+                    if (showItemId && (item.simulationId == showItemId))
+                        showItem = item;
+                }
+                if (showItem)
+                    self.openItem(showItem.parent);
+                else
+                    self.openItem(rootFolder());
             });
     }
 
-    self.copy = function() {
-        appState.copySimulation(
-            self.selected.simulationId,
-            function(data) {
-                self.open(data.models.simulation);
+    function removeItemFromFolder(item) {
+        var parent = item.parent;
+        parent.children.splice(parent.children.indexOf(item), 1);
+    }
+
+    function renameSelectedItem() {
+        self.selectedItem.name = self.renameName;
+        resortChildren(self.selectedItem.parent);
+    }
+
+    function reparentSelectedItem(oldParent) {
+        oldParent.children.splice(oldParent.children.indexOf(self.selectedItem), 1);
+        self.selectedItem.parent = self.targetFolder;
+        self.targetFolder.children.push(self.selectedItem);
+        resortChildren(self.targetFolder);
+        self.targetFolder = null;
+    }
+
+    function resortChildren(folder) {
+        folder.children.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    function rootFolder() {
+        return self.fileTree[0];
+    }
+
+    function setActiveFolder(item) {
+        self.activeFolder = item;
+        self.activeFolderPath = [];
+        while (item) {
+            self.activeFolderPath.unshift(item);
+            item = item.parent;
+        }
+    }
+
+    function updateSelectedFolder(oldPath) {
+        requestSender.sendRequest(
+            'updateFolder',
+            function() {
+                self.selectedItem = null;
+            },
+            {
+                oldName: oldPath,
+                newName: self.pathName(self.selectedItem),
+                simulationType: APP_SCHEMA.simulationType,
             });
+    }
+
+    function updateSelectedItem(op) {
+        appState.loadModels(
+            self.selectedItem.simulationId,
+            function() {
+                op();
+                appState.saveQuietly('simulation');
+                appState.autoSave(clearModels);
+                self.selectedItem = null;
+            });
+    }
+
+    self.canDelete = function(item) {
+        if (item.isFolder)
+            return item.children.length == 0;
+        return true;
+    };
+
+    self.copyItem = function(item) {
+        self.selectedItem = item;
+        var names = {};
+        for (var i = 0; i < self.activeFolder.children.length; i++) {
+            names[self.activeFolder.children[i].name] = true;
+        }
+        var count = 2;
+        var name = item.name;
+        name = name.replace(/\s+\d+$/, '');
+        while (names[name + ' ' + count])
+            count++;
+        self.copyName = name + ' ' + count;
+        $('#s-copy-confirmation').modal('show');
+    };
+
+    self.copySelected = function() {
+        appState.copySimulation(
+            self.selectedItem.simulationId,
+            function(data) {
+                self.openItem(data.models.simulation);
+            },
+            self.copyName);
+    };
+
+    self.deleteItem = function(item) {
+        if (item.isFolder)
+            removeItemFromFolder(item);
+        else {
+            self.selectedItem = item;
+            $('#s-delete-confirmation').modal('show');
+        }
     };
 
     self.deleteSelected = function() {
-        appState.deleteSimulation(self.selected.simulationId, loadList);
-        self.selected = null;
+        appState.deleteSimulation(
+            self.selectedItem.simulationId,
+            function() {
+                removeItemFromFolder(self.selectedItem);
+                self.selectedItem = null;
+            });
     };
 
-    self.isApp = function(name) {
-        return name == SIREPO_APP_NAME;
+    self.isActiveFolder = function(item) {
+        return item == self.activeFolder;
     };
 
-    self.isSelected = function(item) {
-        return self.selected && self.selected == item ? true : false;
+    self.isRootFolder = function(item) {
+        return item == rootFolder();
     };
 
-    self.open = function(item) {
-        requestSender.localRedirect('source', {
-            ':simulationId': item.simulationId,
-        });
+    self.moveItem = function(item) {
+        self.selectedItem = item;
+        self.targetFolder = item.parent;
+        self.moveFolderList = folderList(item);
+        $('#s-move-confirmation').modal('show');
+    };
+
+    self.moveSelected = function() {
+        var parent = self.selectedItem.parent;
+        if (self.targetFolder == parent)
+            return;
+        if (self.selectedItem.isFolder) {
+            var oldPath = self.pathName(self.selectedItem);
+            reparentSelectedItem(parent);
+            updateSelectedFolder(oldPath);
+        }
+        else {
+            updateSelectedItem(function() {
+                appState.models.simulation.folder = self.pathName(self.targetFolder);
+                reparentSelectedItem(parent);
+            });
+        }
+    };
+
+    self.openItem = function(item) {
+        if (item.isFolder) {
+            item.isOpen = true;
+            setActiveFolder(item);
+            var current = item;
+            while (current != rootFolder()) {
+                current = current.parent;
+                current.isOpen = true;
+            }
+        }
+        else {
+            requestSender.localRedirect('source', {
+                ':simulationId': item.simulationId,
+            });
+        }
+    };
+
+    self.pathName = function(folder) {
+        if (self.isRootFolder(folder))
+            return '/';
+        var path = '/' + folder.name;
+        while (folder.parent != rootFolder()) {
+            folder = folder.parent;
+            path = '/' + folder.name + path;
+        }
+        return path;
     };
 
     self.pythonSource = function(item) {
         $window.open(requestSender.formatUrl('pythonSource', {
-            '<simulation_id>': self.selected.simulationId,
+            '<simulation_id>': item.simulationId,
             '<simulation_type>': APP_SCHEMA.simulationType,
         }), '_blank');
     };
 
-    self.selectItem = function(item) {
-        self.selected = item;
+    self.renameItem = function(item) {
+        self.selectedItem = item;
+        self.renameName = item.name;
+        $('#s-rename-confirmation').modal('show');
+    };
+
+    self.renameSelected = function() {
+        if (! self.renameName || (self.renameName == self.selectedItem.name))
+            return;
+        if (self.selectedItem.isFolder) {
+            var oldPath = self.pathName(self.selectedItem);
+            renameSelectedItem();
+            updateSelectedFolder(oldPath);
+        }
+        else {
+            updateSelectedItem(function() {
+                appState.models.simulation.name = self.renameName;
+                renameSelectedItem();
+            });
+        }
+    };
+
+    self.selectedItemType = function(item) {
+        if (self.selectedItem && self.selectedItem.isFolder)
+            return 'Folder';
+        return 'Simulation';
     };
 
     self.showSimulationModal = function() {
         panelState.showModalEditor('simulation');
     };
 
+    self.toggleFolder = function(item) {
+        if (item == self.activeFolder)
+            item.isOpen = ! item.isOpen;
+        else {
+            setActiveFolder(item);
+            item.isOpen = true;
+        }
+    };
+
+    clearModels();
+    $scope.$on('simulation.changed', function() {
+        appState.models.simulation.folder = self.pathName(self.activeFolder);
+        appState.newSimulation(
+            appState.models.simulation,
+            function(data) {
+                self.openItem(data.models.simulation);
+            });
+    });
+    $scope.$on('simulationFolder.changed', function() {
+        var name = appState.models.simulationFolder.name;
+        name = name.replace(/[\/]/g, '');
+        self.activeFolder.children.push({
+            name: name,
+            parent: self.activeFolder,
+            isFolder: true,
+            children: [],
+        });
+        resortChildren(self.activeFolder);
+        appState.models.simulationFolder.name = '';
+        appState.saveQuietly('simulationFolder');
+    });
     loadList();
 });

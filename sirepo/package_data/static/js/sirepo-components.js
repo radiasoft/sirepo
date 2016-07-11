@@ -189,16 +189,17 @@ app.directive('buttons', function(appState) {
 app.directive('confirmationModal', function() {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             id: '@',
             title: '@',
-            text: '@',
             okText: '@',
             okClicked: '&',
+            cancelText: '@',
         },
         template: [
             '<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
+              '<div class="modal-dialog">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-warning">',
                     '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
@@ -207,14 +208,14 @@ app.directive('confirmationModal', function() {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
-                        '<div class="col-sm-6 col-sm-offset-3">',
-                          '<p>{{ text }}</p>',
+                        '<div class="col-sm-12">',
+                          '<div data-ng-transclude=""></div>',
                         '</div>',
                       '</div>',
                       '<div class="row">',
-                        '<div class="col-sm-6 pull-right">',
-                          '<button data-dismiss="modal" data-ng-click="okClicked()" class="btn btn-default">{{ okText }}</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
+                          '<button data-ng-if="okText" data-dismiss="modal" data-ng-click="okClicked()" class="btn btn-default">{{ okText }}</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
                     '</div>',
@@ -234,7 +235,7 @@ app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label>{{ label }} <span ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
+            '<label>{{ label }} <span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
@@ -948,11 +949,16 @@ app.directive('appHeaderLeft', function(panelState) {
             '<ul class="nav navbar-nav">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
-            '<div class="navbar-text"><a href data-ng-click="showSimulationModal()"><span ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
+            '<div data-ng-if="showTitle()" class="navbar-text"><a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
         ].join(''),
         controller: function($scope) {
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
+            };
+            $scope.showTitle = function() {
+                if ($scope.nav.isActive('simulations'))
+                    return false;
+                return true;
             };
         },
     };

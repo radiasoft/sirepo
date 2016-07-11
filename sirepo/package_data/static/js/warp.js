@@ -1,11 +1,7 @@
 'use strict';
 
 app_local_routes.dynamics = '/dynamics/:simulationId';
-appDefaultSimulationValues = {
-    simulation: {
-        sourceType: 'laserPulse',
-    },
-};
+appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -470,7 +466,7 @@ app.directive('appFooter', function() {
     };
 });
 
-app.directive('appHeader', function(appState) {
+app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
         scope: {
@@ -486,10 +482,22 @@ app.directive('appHeader', function(appState) {
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',
             '</ul>',
+            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+            '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
+                if ($scope.nav.isActive('simulations'))
+                    return false;
                 return appState.isLoaded();
+            };
+            $scope.showNewFolderModal = function() {
+                panelState.showModalEditor('simulationFolder');
+            };
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
         },
     };

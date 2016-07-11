@@ -171,6 +171,9 @@
             "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType"]
         },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
         "particleAnimation": {
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"],
@@ -308,6 +311,12 @@
             "advanced": [
                 "name",
                 "sourceType"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
             ]
         },
         "simulationStatus": {

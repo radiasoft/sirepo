@@ -50,9 +50,16 @@
             "simulationId": "pAuOjl0s"
         },
         "simulationStatus": {
-            "elementAnimation": {
+            "animation": {
                 "state": "initial"
             }
+        },
+        "beamlineReport": {},
+        "bunchSource": {
+            "inputSource": "bunched_beam"
+        },
+        "bunchFile": {
+            "sourceFile": null
         }
     },
     "report": "bunchReport4",
