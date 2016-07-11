@@ -1148,6 +1148,11 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                         maxHeight = Math.max(maxHeight, length);
                         var height = 0.75;
                         var enter = [pos.radius + pos.x + x, pos.y];
+                        //TODO(pjm): if angle is arc length, need to convert it to a rendered length
+                        // if (length > 0 && angle != 0) {
+                        //     var noArcLength = Math.abs(2 * Math.sin(angle / 2) * length / angle);
+                        //     length = noArcLength;
+                        // }
                         if (length == 0) {
                             length = 0.1;
                             enter[0] -= 0.05;

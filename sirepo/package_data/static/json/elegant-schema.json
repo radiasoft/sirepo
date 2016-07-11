@@ -281,7 +281,11 @@
         },
         "simulation": {
             "name": ["Name", "String"],
-            "visualizationBeamlineId": ["Beamline Name", "String", ""]
+            "visualizationBeamlineId": ["Beamline Name", "String", ""],
+            "folder": ["Folder", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
         },
         "simulationStatus": {},
         "ALPH": {
@@ -2618,6 +2622,12 @@
         },
         "simulation": {
             "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
             "advanced": [
                 "name"
             ]

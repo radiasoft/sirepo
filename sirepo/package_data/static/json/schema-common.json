@@ -1,5 +1,5 @@
 {
-    "version": "20160614",
+    "version": "20160701",
     "route": {
         "clearFrames": "/clear-frames",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
@@ -24,6 +24,7 @@
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
         "saveSimulationData": "/save-simulation",
+        "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     }
 }

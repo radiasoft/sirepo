@@ -165,6 +165,7 @@ def process_simulation_list(res, path, data):
     res.append({
         'simulationId': _sid_from_path(path),
         'name': data['models']['simulation']['name'],
+        'folder': data['models']['simulation']['folder'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
@@ -187,7 +188,7 @@ def read_json(filename):
 
 def save_new_example(simulation_type, data):
     data['models']['simulation']['isExample'] = '1'
-    save_new_simulation(simulation_type, data)
+    return save_new_simulation(simulation_type, data)
 
 
 def save_new_simulation(simulation_type, data):
