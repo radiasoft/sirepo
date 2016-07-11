@@ -84,6 +84,7 @@ describe('Factory: appState', function() {
         expect($rootScope.$broadcast).toHaveBeenCalledWith('myReport1.changed');
         expect($rootScope.$broadcast).not.toHaveBeenCalledWith('myReport2.changed');
         expect($rootScope.$broadcast).not.toHaveBeenCalledWith('m1.changed');
+        appState.models.m1.f1 = 'x';
         appState.saveChanges('m1');
         expect($rootScope.$broadcast).toHaveBeenCalledWith('m1.changed');
         expect($rootScope.$broadcast).toHaveBeenCalledWith('myReport2.changed');
