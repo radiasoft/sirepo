@@ -4,12 +4,14 @@ beforeEach(module('SirepoApp'));
 describe('Factory: panelState', function() {
     var successCallback;
     var errorCallback;
+    var applicationState = {};
 
     beforeEach(module(function ($provide) {
         $provide.value('appState', {
             isLoaded: function() { return true; },
-            applicationState: function() { return {} },
+            applicationState: function() { return applicationState },
             isReportModelName: function() { return false },
+            resetAutoSaveTimer: function() {},
         });
         //TODO(pjm): share mock objects among other tests
         $provide.value('$http', {
