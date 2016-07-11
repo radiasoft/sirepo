@@ -423,6 +423,7 @@
         "simulation": {
             "documentationUrl": "",
             "facility": "NSLS-II",
+            "folder": "/Light Source Facilities/NSLS-II/NSLS-II SMI beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 2.4,
