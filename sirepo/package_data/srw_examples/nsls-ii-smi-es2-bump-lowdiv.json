@@ -8,7 +8,19 @@
                 "type": "watch"
             },
             {
-                "horizontalFocalLength": 10.978190609330321,
+                "grazingAngle": 97.27,
+                "heightAmplification": 1,
+                "heightProfileFile": "Si_heat204.dat",
+                "horizontalTransverseSize": 20,
+                "id": 2,
+                "orientation": "y",
+                "position": 31.94,
+                "title": "MOAT",
+                "type": "mirror",
+                "verticalTransverseSize": 1.553866986011868
+            },
+            {
+                "horizontalFocalLength": 14.154432435857863,
                 "horizontalOffset": 0,
                 "id": 3,
                 "position": 34.88244,
@@ -18,14 +30,51 @@
                 "verticalOffset": 0
             },
             {
+                "grazingAngle": 3.1415927000000003,
+                "heightAmplification": 1,
+                "heightProfileFile": "HFM_SESO.dat",
+                "horizontalTransverseSize": 1.5707937661447706,
+                "id": 4,
+                "normalVectorZ": 0.0031415875322895414,
+                "orientation": "x",
+                "position": 34.88244,
+                "title": "HFMT",
+                "type": "mirror",
+                "verticalTransverseSize": 6
+            },
+            {
                 "horizontalFocalLength": 1e+23,
                 "horizontalOffset": 0,
                 "id": 5,
                 "position": 38.30244,
                 "title": "VFML",
                 "type": "lens",
-                "verticalFocalLength": 9.61142340171739,
+                "verticalFocalLength": 10.730747950189782,
                 "verticalOffset": 0
+            },
+            {
+                "grazingAngle": 3.1415927000000003,
+                "heightAmplification": 1,
+                "heightProfileFile": "VFM_SESO.dat",
+                "horizontalTransverseSize": 6,
+                "id": 6,
+                "orientation": "y",
+                "position": 38.30244,
+                "title": "VFMT",
+                "type": "mirror",
+                "verticalTransverseSize": 1.2566350129158168
+            },
+            {
+                "grazingAngle": 3.1415927000000003,
+                "heightAmplification": 1,
+                "heightProfileFile": "VM03rms.dat",
+                "horizontalTransverseSize": 6,
+                "id": 7,
+                "orientation": "y",
+                "position": 39.00244,
+                "title": "VMT",
+                "type": "mirror",
+                "verticalTransverseSize": 1.5707937661447706
             },
             {
                 "horizontalOffset": 0,
@@ -67,33 +116,33 @@
             {
                 "id": 11,
                 "position": 59.00244,
-                "title": "Sample",
+                "title": "ES2",
                 "type": "watch"
             }
         ],
         "electronBeam": {
             "beamDefinition": "t",
-            "beamSelector": "NSLS-II High Beta Day 1",
+            "beamSelector": "NSLS-II High Beta Day1",
             "current": 0.5,
             "drift": -1.4432500000000001,
             "driftCalculationMethod": "auto",
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
-            "horizontalBeta": 20.85,
+            "horizontalBeta": 2.02,
             "horizontalDispersion": 0,
             "horizontalDispersionDerivative": 0,
             "horizontalEmittance": 0.9,
             "horizontalPosition": 0,
             "isReadOnly": true,
-            "name": "NSLS-II High Beta Day 1",
-            "rmsDivergX": 6.570043198176042,
-            "rmsDivergY": 1.533929977694741,
-            "rmsSizeX": 136.9854006819705,
-            "rmsSizeY": 5.215361924162119,
+            "name": "NSLS-II High Beta Day1",
+            "rmsDivergX": 21.107926341908755,
+            "rmsDivergY": 2.7472112789737806,
+            "rmsSizeX": 42.63801121065569,
+            "rmsSizeY": 2.9120439557122078,
             "rmsSpread": 0.00089,
             "verticalAlpha": 0,
-            "verticalBeta": 3.4,
+            "verticalBeta": 1.06,
             "verticalDispersion": 0,
             "verticalDispersionDerivative": 0,
             "verticalEmittance": 0.008,
@@ -123,8 +172,8 @@
         "fluxReport": {
             "azimuthalPrecision": 1,
             "distanceFromSource": 29.5,
-            "finalEnergy": 21000,
-            "finalHarmonic": 21,
+            "finalEnergy": 20000,
+            "finalHarmonic": 15,
             "fluxType": 1,
             "horizontalApertureSize": 1,
             "horizontalPosition": 0,
@@ -162,25 +211,12 @@
             "fieldUnits": 1,
             "finalEnergy": 20400,
             "horizontalPosition": 0,
-            "initialEnergy": 20300,
-            "magneticField": 1,
+            "initialEnergy": 20000,
             "method": 1,
-            "photonEnergyPointCount": 1000,
+            "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
-        },
-        "mirrorReport": {
-            "grazingAngle": 3.1415927000000003,
-            "heightAmplification": 1,
-            "heightProfileFile": "VM03rms.dat",
-            "horizontalTransverseSize": 6,
-            "id": 7,
-            "orientation": "y",
-            "position": 39.00244,
-            "title": "VMT",
-            "type": "mirror",
-            "verticalTransverseSize": 1.5707937661447706
         },
         "multiElectronAnimation": {
             "horizontalPosition": 0,
@@ -194,6 +230,11 @@
             "field": 0,
             "length": 0,
             "order": 1
+        },
+        "panelState": {
+            "hidden": [
+                "watchpointReport1"
+            ]
         },
         "postPropagation": [
             0,
@@ -302,6 +343,33 @@
                     1
                 ]
             ],
+            "2": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
             "3": [
                 [
                     0,
@@ -332,7 +400,94 @@
                     0
                 ]
             ],
+            "4": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
             "5": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    2,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ]
+            ],
+            "6": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    2,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0
+                ]
+            ],
+            "7": [
                 [
                     0,
                     0,
@@ -428,12 +583,12 @@
             "horizontalPosition": 0,
             "horizontalRange": 2.4,
             "isExample": 1,
-            "name": "SMI beamline (ES2, bump, Norm, no errors)",
+            "name": "SMI beamline (ES2, bump, LowDiv)",
             "outOfSessionSimulationId": "",
-            "photonEnergy": 20356.86,
+            "photonEnergy": 20358,
             "sampleFactor": 0,
             "samplingMethod": 1,
-            "simulationId": "0RrAZnJP",
+            "simulationId": "XumVjnMY",
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
@@ -444,7 +599,6 @@
             "characteristic": 0,
             "distanceFromSource": 29.5,
             "fieldUnits": 1,
-            "magneticField": 1,
             "polarization": 6,
             "precision": 0.01
         },
@@ -494,5 +648,5 @@
     },
     "report": "watchpointReport11",
     "simulationType": "srw",
-    "version": "20160614"
+    "version": "20160701"
 }

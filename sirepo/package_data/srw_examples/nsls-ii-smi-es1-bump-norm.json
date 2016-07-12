@@ -77,45 +77,19 @@
             },
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 0.9,
+                "horizontalSize": 0.4,
                 "id": 8,
                 "position": 47.00244,
                 "shape": "r",
                 "title": "SSA",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 0.9
+                "verticalSize": 0.4
             },
             {
-                "horizontalOffset": 0,
-                "horizontalSize": 1,
                 "id": 9,
-                "position": 57.33736,
-                "shape": "c",
-                "title": "ApCRL",
-                "type": "aperture",
-                "verticalOffset": 0,
-                "verticalSize": 0
-            },
-            {
-                "attenuationLength": 0.0285447,
-                "focalPlane": 3,
-                "horizontalApertureSize": 1,
-                "id": 10,
-                "numberOfLenses": 23,
-                "position": 57.33736,
-                "radius": 5e-05,
-                "refractiveIndex": 8.21692879e-07,
-                "shape": 1,
-                "title": "CRL",
-                "type": "crl",
-                "verticalApertureSize": 1,
-                "wallThickness": 3.24e-05
-            },
-            {
-                "id": 11,
-                "position": 59.00244,
-                "title": "ES2",
+                "position": 50.90244,
+                "title": "ES1",
                 "type": "watch"
             }
         ],
@@ -289,57 +263,6 @@
                     0,
                     0,
                     0
-                ]
-            ],
-            "10": [
-                [
-                    0,
-                    0,
-                    1,
-                    2,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1,
-                    0,
-                    0,
-                    0
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "11": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
                 ]
             ],
             "2": [
@@ -521,7 +444,7 @@
                     0,
                     0,
                     1,
-                    0,
+                    2,
                     0,
                     1,
                     1,
@@ -553,24 +476,18 @@
                     1,
                     1,
                     1,
-                    1,
-                    0,
-                    0,
-                    0
+                    1
                 ],
                 [
                     0,
                     0,
                     1,
-                    2,
-                    0,
-                    1,
-                    1,
-                    1,
                     1,
                     0,
-                    0,
-                    0
+                    1,
+                    1,
+                    1,
+                    1
                 ]
             ]
         },
@@ -582,12 +499,12 @@
             "horizontalPosition": 0,
             "horizontalRange": 2.4,
             "isExample": 1,
-            "name": "SMI beamline (ES2, bump, Norm)",
+            "name": "SMI beamline (ES1, bump, Norm)",
             "outOfSessionSimulationId": "",
             "photonEnergy": 20358,
             "sampleFactor": 0,
             "samplingMethod": 1,
-            "simulationId": "fljV5yrz",
+            "simulationId": "riZ7Baw0",
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
@@ -637,7 +554,7 @@
             "precision": 0.008,
             "sampleFactor": 0
         },
-        "watchpointReport11": {
+        "watchpointReport9": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
@@ -645,7 +562,7 @@
             "sampleFactor": 0
         }
     },
-    "report": "watchpointReport11",
+    "report": "watchpointReport9",
     "simulationType": "srw",
     "version": "20160701"
 }
