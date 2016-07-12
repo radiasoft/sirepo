@@ -626,7 +626,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
                     inputFile,
-                    '',
+                    null,
                     requestSender.formatUrl(
                         'uploadFile',
                         {
@@ -1076,7 +1076,11 @@ app.service('fileUpload', function($http) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
-        fd.append('arguments', args)
+        if (args) {
+            for (var k in args) {
+                fd.append(k, args[k]);
+            }
+        }
         $http.post(uploadUrl, fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}

@@ -23,7 +23,7 @@
         <div data-ng-repeat="item in simulations.activeFolder.children" class="s-icon-col">
           <div class="s-thumbnail text-center dropdown">
             <a class="s-item-icon" data-toggle="dropdown">
-              <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder}"></span><span class="caret"></span>
+              <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 's-transparent-icon': ! item.isFolder}"></span><span class="caret"></span>
             </a>
             <a class="s-item-text" href data-ng-click="simulations.openItem(item)">{{ item.name }}</a>
             <ul class="dropdown-menu">

@@ -22,7 +22,6 @@ import os
 import py
 import re
 import signal
-import sirepo.importer
 import sirepo.template
 import subprocess
 import sys
@@ -224,17 +223,24 @@ def app_file_list(simulation_type, simulation_id, file_type):
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     redirect_uri = None
     if application_mode == 'light-sources':
+        show_item_id = None
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
-        for s in simulation_db.examples(simulation_type):
+        examples = sorted(
+            simulation_db.examples(simulation_type),
+            key=lambda row: row['models']['simulation']['folder'],
+        )
+        for s in examples:
             if s['models']['simulation']['facility'] == simulation_name:
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': s['models']['simulation']['name'],
                 })
-                if len(rows) == 0:
-                    type, show_item_id = simulation_db.save_new_example(simulation_type, s)
+                if len(rows):
+                    id = rows[0]['simulationId']
                 else:
-                    show_item_id = rows[0]['simulationId']
+                    type, id = simulation_db.save_new_example(simulation_type, s)
+                if not show_item_id:
+                    show_item_id = id
         redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}&show_item_id={}'.format(
             simulation_type, flask.escape(simulation_name), application_mode, show_item_id)
     else:
@@ -275,23 +281,11 @@ def app_get_application_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
-    if simulation_type == 'srw':
-        #TODO(pjm): move srw specific import code into template.srw.import_file()
-        f = flask.request.files['file']
-        arguments = str(flask.request.form['arguments'])
-        pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
-        error, data = sirepo.importer.import_python(
-            f.read(),
-            lib_dir=simulation_db.simulation_lib_dir(simulation_type),
-            tmp_dir=simulation_db.tmp_dir(),
-            user_filename=f.filename,
-            arguments=arguments,
-        )
-    else:
-        template = sirepo.template.import_module(simulation_type)
-        error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
+    template = sirepo.template.import_module(simulation_type)
+    error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
     if error:
         return flask.jsonify({'error': error})
+    data['models']['simulation']['folder'] = flask.request.form['folder']
     return _save_new_and_reply(simulation_type, data)
 
 

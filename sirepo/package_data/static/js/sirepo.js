@@ -79,6 +79,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
+    var activeFolderPath = null;
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -197,6 +198,10 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
                 simulationId: simulationId,
                 simulationType: APP_SCHEMA.simulationType,
             });
+    };
+
+    self.getActiveFolderPath = function() {
+        return activeFolderPath;
     };
 
     self.isAnimationModelName = function(name) {
@@ -334,6 +339,10 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
 
         if (requireReportUpdate)
             updateReports();
+    };
+
+    self.setActiveFolderPath = function(path) {
+        activeFolderPath = path;
     };
 
     self.viewInfo = function(name) {
@@ -1047,6 +1056,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
             self.activeFolderPath.unshift(item);
             item = item.parent;
         }
+        appState.setActiveFolderPath(self.pathName(self.activeFolder));
     }
 
     function updateSelectedFolder(oldPath) {
