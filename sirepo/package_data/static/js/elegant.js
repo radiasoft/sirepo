@@ -2,9 +2,6 @@
 
 app_local_routes.lattice = '/lattice/:simulationId';
 app_local_routes.visualization = '/visualization/:simulationId';
-appDefaultSimulationValues = {
-    simulation: {},
-};
 
 app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -833,15 +830,19 @@ app.directive('appHeader', function(appState, panelState) {
               '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-                '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+              '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
             $scope.isLoaded = function() {
+                if ($scope.nav.isActive('simulations'))
+                    return false;
                 return appState.isLoaded();
             };
             $scope.hasBeamlines = function() {
-                if (! appState.isLoaded())
+                if (! $scope.isLoaded())
                     return false;
                 for (var i = 0; i < appState.models.beamlines.length; i++) {
                     var beamline = appState.models.beamlines[i];
@@ -852,6 +853,12 @@ app.directive('appHeader', function(appState, panelState) {
             };
             $scope.showImportModal = function() {
                 $('#elegant-lattice-import').modal('show');
+            };
+            $scope.showNewFolderModal = function() {
+                panelState.showModalEditor('simulationFolder');
+            };
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
         },
     };
@@ -1304,7 +1311,7 @@ app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-app.directive('latticeImportDialog', function(fileUpload, requestSender) {
+app.directive('latticeImportDialog', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1482,7 +1489,9 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
                 $scope.filename = latticeFile.name;
                 fileUpload.uploadFileToUrl(
                     latticeFile,
-                    '',
+                    {
+                        folder: appState.getActiveFolderPath(),
+                    },
                     requestSender.formatUrl(
                         'importFile',
                         {
@@ -1509,7 +1518,7 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
 
                     fileUpload.uploadFileToUrl(
                         f,
-                        '',
+                        null,
                         requestSender.formatUrl(
                             'uploadFile',
                             {

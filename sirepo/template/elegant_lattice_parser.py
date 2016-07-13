@@ -38,6 +38,12 @@ def _assert_char(state, char):
     _ignore_whitespace(state)
 
 
+def _assert_end_of_line(state):
+    _ignore_whitespace(state)
+    if _has_char(state) and _peek_char(state) != '!':
+        _raise_error(state, 'left-over input')
+
+
 def _has_char(state):
     return state['index'] < len(state['line'])
 
@@ -111,7 +117,7 @@ def _parse_element(name, type, state):
         _assert_char(state, ',')
         field = _parse_value(state)
         if not field:
-            _raise_error(state, 'expecting field')
+            _assert_end_of_line(state)
         if _peek_char(state) == '=':
             _assert_char(state, '=')
             el[field.lower()] = _parse_value(state)
@@ -142,9 +148,7 @@ def _parse_line(line, state):
         _parse_beamline(name, state)
     else:
         _parse_element(name, type, state)
-    _ignore_whitespace(state)
-    if _has_char(state) and _peek_char(state) != '!':
-        _raise_error(state, 'left-over input')
+    _assert_end_of_line(state)
     return True
 
 

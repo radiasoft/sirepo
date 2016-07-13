@@ -184,52 +184,6 @@ def extract_report_data(filename, data, p_central_mev, page_index):
 
 
 def fixup_old_data(data):
-    if 'bunchReport4' not in data['models']:
-        data['models']['bunchReport1'] = {
-            'x': 'x',
-            'y': 'xp',
-            'histogramBins': 200,
-        }
-        data['models']['bunchReport2'] = {
-            'x': 'y',
-            'y': 'yp',
-            'histogramBins': 200,
-        }
-        data['models']['bunchReport3'] = {
-            'x': 'x',
-            'y': 'y',
-            'histogramBins': 200,
-        }
-        data['models']['bunchReport4'] = {
-            'x': 't',
-            'y': 'p',
-            'histogramBins': 200,
-        }
-    if 'longitudinalMethod' not in data['models']['bunch']:
-        bunch = data['models']['bunch']
-        bunch['longitudinalMethod'] = '1'
-        bunch['dp_s_coupling'] = 0
-        bunch['alpha_z'] = 0
-        bunch['beta_z'] = 0
-        bunch['emit_z'] = 0
-    if 'beamlines' not in data['models']:
-        data['models']['beamlines'] = []
-    if 'elements' not in data['models']:
-        data['models']['elements'] = []
-    if 'simulationStatus' not in data['models']:
-        data['models']['simulationStatus'] = {
-            'animation': {
-                'state': 'initial',
-            },
-        }
-    if 'animation' not in data['models']['simulationStatus']:
-        data['models']['simulationStatus'] = {
-            'animation': {
-                'state': 'initial',
-            },
-        }
-    if 'beamlineReport' not in data['models']:
-        data['models']['beamlineReport'] = {}
     if 'bunchSource' not in data['models']:
         data['models']['bunchSource'] = {
             'inputSource': 'bunched_beam',
@@ -238,6 +192,8 @@ def fixup_old_data(data):
         data['models']['bunchFile'] = {
             'sourceFile': None,
         }
+    if 'folder' not in data['models']['simulation']:
+        data['models']['simulation']['folder'] = '/'
 
 
 def generate_lattice(data, v):

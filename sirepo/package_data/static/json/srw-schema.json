@@ -405,6 +405,9 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "documentationUrl": ["Documentation URL", "OptionalString"]
         },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
         "simulationStatus": {
         },
         "sourceIntensityReport": {
@@ -898,6 +901,12 @@
             "advanced": [
                 "name",
                 "sourceType"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
             ]
         },
         "simulationDocumentation": {
