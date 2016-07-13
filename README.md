@@ -108,6 +108,104 @@ and remove the following line from the `Vagrantfile`:
 config.vm.synced_folder ".", "/vagrant", disabled: true
 ```
 
+### Angular Testing
+
+In order to test, you need to install Xvfb, nodejs (v4+), and google-chrome.
+
+Install node globally as root:
+
+```bash
+curl -s -S -L https://rpm.nodesource.com/setup_4.x | bash
+yum -y install nodejs
+```
+
+Install Xvfb globally as root. It runs as vagrant:
+
+```bash
+yum install xorg-x11-server-Xvfb
+cat > /etc/systemd/system/Xvfb.service <<'EOF'
+[Unit]
+Description=Xvfb
+After=network.target
+
+[Service]
+User=vagrant
+SyslogIdentifier=%p
+# -noreset fixes memory leak issue with other flags described here:
+# http://blog.jeffterrace.com/2012/07/xvfb-memory-leak-workaround.html
+# Start with screen 10, because we use visible X11 apps on VMs.
+# Small screen size to save memory
+# RANDR needed for chrome
+ExecStart=/usr/bin/Xvfb -ac -extension RANDR -noreset -screen 0 1024x768x8
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable Xvfb
+systemctl start Xvfb
+```
+
+Install Chrome globally as root:
+
+```bash
+cat << 'EOF' > /etc/yum.repos.d/google-chrome.repo
+[google-chrome]
+name=google-chrome - $basearch
+baseurl=http://dl.google.com/linux/chrome/rpm/stable/$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
+EOF
+yum install -y google-chrome-stable
+```
+
+#### Karma (Angular unit testing)
+
+The tests are located in `tests/karma`.
+[Tutorial on karma and jasmine.](https://daveceddia.com/testing-angular-part-1-karma-setup/)
+
+As user install node modules:
+
+```bash
+cd ~/src/radiasoft/sirepo
+npm install karma --save-dev
+npm install karma-jasmine --save-dev
+npm install karma-phantomjs-launcher
+```
+
+To run tests:
+
+```bash
+cd ~/src/radiasoft/sirepo
+./node_modules/karma/bin/karma start
+```
+
+
+#### Protractor (Angular end-to-end testing)
+
+The tests are located in `tests/protractor`.
+[Tutorial on protractor and jasmine.](http://www.protractortest.org/#/tutorial)
+
+As user install node modules:
+
+```bash
+cd ~/src/radiasoft/sirepo
+npm install protractor
+./node_modules/protractor/bin/webdriver-manager update
+```
+
+To run tests:
+
+```bash
+cd ~/src/radiasoft/sirepo
+# Starts server on http://localhost:4444/wd/hub.
+DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
+# Starts server on 8000 by default
+sirepo service http >& http.log &
+#
+./node_modules/protractor/bin/protractor protractor-conf.js
+```
+
 #### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
