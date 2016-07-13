@@ -14,6 +14,7 @@ import os
 import py.path
 import re
 import shutil
+import sirepo.importer
 import traceback
 import zipfile
 
@@ -413,6 +414,19 @@ def get_data_file(run_dir, model, frame):
 
 def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
+
+
+def import_file(request, lib_dir, tmp_dir):
+    f = request.files['file']
+    arguments = str(request.form['arguments'])
+    pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
+    return sirepo.importer.import_python(
+        f.read(),
+        lib_dir=lib_dir,
+        tmp_dir=tmp_dir,
+        user_filename=f.filename,
+        arguments=arguments,
+    )
 
 
 def is_cache_valid(data, old_data):

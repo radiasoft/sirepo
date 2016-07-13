@@ -1311,7 +1311,7 @@ app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-app.directive('latticeImportDialog', function(fileUpload, requestSender) {
+app.directive('latticeImportDialog', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1489,7 +1489,9 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
                 $scope.filename = latticeFile.name;
                 fileUpload.uploadFileToUrl(
                     latticeFile,
-                    '',
+                    {
+                        folder: appState.getActiveFolderPath(),
+                    },
                     requestSender.formatUrl(
                         'importFile',
                         {
@@ -1516,7 +1518,7 @@ app.directive('latticeImportDialog', function(fileUpload, requestSender) {
 
                     fileUpload.uploadFileToUrl(
                         f,
-                        '',
+                        null,
                         requestSender.formatUrl(
                             'uploadFile',
                             {

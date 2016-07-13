@@ -1399,7 +1399,7 @@ app.directive('deleteSimulationModal', function(appState, $location) {
 });
 
 //TODO(pjm): refactor and generalize with mirrorUpload
-app.directive('importPython', function(fileUpload, requestSender) {
+app.directive('importPython', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1422,9 +1422,11 @@ app.directive('importPython', function(fileUpload, requestSender) {
                           'Optional arguments: <input id="srw-python-file-import-args" type="text" style="width: 100%" data-ng-model="importArgs"><br>',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
+                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
+                        '<div class="clearfix"></div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary">Import File</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary" data-ng-class="{\'disabled\': isUploading}">Import File</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-class="{\'disabled\': isUploading}">Cancel</button>',
                         '</div>',
                       '</form>',
                     '</div>',
@@ -1435,6 +1437,7 @@ app.directive('importPython', function(fileUpload, requestSender) {
         ].join(''),
         controller: function($scope) {
             $scope.fileUploadError = '';
+            $scope.isUploading = false;
             $scope.title = 'Import Python Beamline File';
             $scope.importPythonFile = function(pythonFile, importArgs) {
                 if (typeof importArgs === "undefined") {
@@ -1442,15 +1445,20 @@ app.directive('importPython', function(fileUpload, requestSender) {
                 }
                 if (! pythonFile)
                     return;
+                $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
                     pythonFile,
-                    importArgs,
+                    {
+                        folder: appState.getActiveFolderPath(),
+                        arguments: importArgs,
+                    },
                     requestSender.formatUrl(
                         'importFile',
                         {
                             '<simulation_type>': APP_SCHEMA.simulationType,
                         }),
                     function(data) {
+                        $scope.isUploading = false;
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                         }
