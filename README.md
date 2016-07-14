@@ -112,6 +112,10 @@ config.vm.synced_folder ".", "/vagrant", disabled: true
 
 In order to test, you need to install Xvfb, nodejs (v4+), and google-chrome.
 
+[Extensive tutorial on Angular Testing from 2013, which gives advice on jasmine testing, but uses obsolete scenario runner.](http://www.yearofmoo.com/2013/01/full-spectrum-testing-with-angularjs-and-karma.html)
+
+[Advice on how to test better](http://www.yearofmoo.com/2013/09/advanced-testing-and-debugging-in-angularjs.html#writing-efficient-tests)
+
 Install node globally as root:
 
 ```bash
