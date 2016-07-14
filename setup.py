@@ -8,7 +8,7 @@ try:
     import pykern.pksetup
 except ImportError:
     import pip
-    pip.main(['install', 'pykern'])
+    pip.main(['install', '--upgrade', 'pykern'])
     import pykern.pksetup
 
 pykern.pksetup.setup(
