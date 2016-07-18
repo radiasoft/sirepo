@@ -475,7 +475,7 @@ li.s-dropdown-submenu > a {
 }
 
 .s-sidebar {
-  margin-top: 2px;
+  margin-top: -10px;
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -513,10 +513,14 @@ ul.s-nav-sidebar-root {
   font-size: 10px;
 }
 .s-iconset {
-  margin-right: -10px;
+  margin-top: -10px;
 }
 .s-iconset a {
   text-decoration: none;
+}
+.s-iconset .s-icon-view-toggle {
+  float: right;
+  min-width: 8em;
 }
 .s-icon-col {
   float: left;

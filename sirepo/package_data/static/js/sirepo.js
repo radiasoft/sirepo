@@ -936,8 +936,20 @@ app.controller('SimulationsController', function (appState, panelState, requestS
     var self = this;
     self.activeFolder = null;
     self.activeFolderPath = [];
+    self.listColumns = [
+        {
+            field: 'name',
+            heading: 'Name',
+        },
+        {
+            field: 'lastModified',
+            heading: 'Last Modified',
+        }];
+    //TODO(pjm): store view state in db preference or client cookie
+    self.isIconView = true;
     self.fileTree = [];
     self.selectedItem = null;
+    self.sortField = 'name';
     var showItemId = $location.search().show_item_id;
 
     function addToTree(item) {
@@ -955,12 +967,17 @@ app.controller('SimulationsController', function (appState, panelState, requestS
                     break;
                 }
             }
-            if (! folder) {
+            if (folder) {
+                if (item.last_modified > folder.lastModified)
+                    folder.lastModified = item.last_modified;
+            }
+            else {
                 folder = {
                     name: search,
                     parent: currentFolder,
                     isFolder: true,
                     children: [],
+                    lastModified: item.last_modified,
                 }
                 currentFolder.children.push(folder);
             }
@@ -970,6 +987,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
             parent: currentFolder,
             name: item.name,
             simulationId: item.simulationId,
+            lastModified: item.last_modified,
         };
         currentFolder.children.push(item);
         return item;
@@ -1000,7 +1018,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
             $location.search(),
             function(data) {
                 data.sort(function(a, b) {
-                    return (a.folder + a.name).localeCompare(b.folder + b.name);
+                    return a.last_modified.localeCompare(b.last_modified);
                 });
                 self.fileTree = [
                     {
@@ -1028,21 +1046,13 @@ app.controller('SimulationsController', function (appState, panelState, requestS
 
     function renameSelectedItem() {
         self.selectedItem.name = self.renameName;
-        resortChildren(self.selectedItem.parent);
     }
 
     function reparentSelectedItem(oldParent) {
         oldParent.children.splice(oldParent.children.indexOf(self.selectedItem), 1);
         self.selectedItem.parent = self.targetFolder;
         self.targetFolder.children.push(self.selectedItem);
-        resortChildren(self.targetFolder);
         self.targetFolder = null;
-    }
-
-    function resortChildren(folder) {
-        folder.children.sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
     }
 
     function rootFolder() {
@@ -1139,6 +1149,10 @@ app.controller('SimulationsController', function (appState, panelState, requestS
         return item == rootFolder();
     };
 
+    self.isSortAscending = function() {
+        return self.sortField.charAt(0) != '-';
+    };
+
     self.moveItem = function(item) {
         self.selectedItem = item;
         self.targetFolder = item.parent;
@@ -1230,12 +1244,25 @@ app.controller('SimulationsController', function (appState, panelState, requestS
         panelState.showModalEditor('simulation');
     };
 
+    self.toggleIconView = function() {
+        self.isIconView = ! self.isIconView;
+    };
+
     self.toggleFolder = function(item) {
         if (item == self.activeFolder)
             item.isOpen = ! item.isOpen;
         else {
             setActiveFolder(item);
             item.isOpen = true;
+        }
+    };
+
+    self.toggleSort = function(field) {
+        if (self.sortField.indexOf(field) >= 0) {
+            self.sortField = self.isSortAscending() ? ('-' + field) : field;
+        }
+        else {
+            self.sortField = field;
         }
     };
 
@@ -1257,7 +1284,6 @@ app.controller('SimulationsController', function (appState, panelState, requestS
             isFolder: true,
             children: [],
         });
-        resortChildren(self.activeFolder);
         appState.models.simulationFolder.name = '';
         appState.saveQuietly('simulationFolder');
     });
