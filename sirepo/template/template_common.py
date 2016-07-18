@@ -48,8 +48,10 @@ def validate_model(model_data, model_schema, enum_info):
         field_type = model_schema[k][1]
         if k in model_data:
             value = model_data[k]
-        else:
+        elif len(model_schema[k]) > 2:
             value = model_schema[k][2]
+        else:
+            raise Exception('no value for field "{}" and no default value in schema'.format(k))
         if field_type in enum_info:
             if not enum_info[field_type][str(value)]:
                 raise Exception('invalid enum value: {}'.format(value))

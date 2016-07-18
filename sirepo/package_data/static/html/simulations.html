@@ -4,7 +4,7 @@
     <span class="glyphicon s-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isOpen, 'glyphicon-folder-close': ! item.isOpen}"></span> {{ item.name }}
   </a>
   <ul data-ng-if="item.isOpen" class="nav s-nav-sidebar">
-    <li data-ng-repeat="item in item.children | filter:{isFolder: true}" data-ng-include="'s-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
+    <li data-ng-repeat="item in item.children | filter:{isFolder: true} | orderBy:'name'" data-ng-include="'s-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
   </ul>
 </script>
 
@@ -17,10 +17,29 @@
     </div>
     <div class="col-sm-8 col-md-9">
       <div class="s-iconset">
-        <div class="s-folder-nav visible-xs clear-fix">
+        <div class="s-folder-nav visible-xs clearfix">
           <a href data-ng-repeat="item in simulations.activeFolderPath" data-ng-click="simulations.openItem(item)"><span data-ng-if="simulations.isRootFolder(item)" class="glyphicon glyphicon-folder-open s-nav-icon"></span><span data-ng-if="! simulations.isRootFolder(item)" class="glyphicon glyphicon-chevron-right s-small-nav-icon"></span>{{ item.name }} </a>
         </div>
-        <div data-ng-repeat="item in simulations.activeFolder.children" class="s-icon-col">
+        <div class="s-icon-view-toggle"><a href data-ng-click="simulations.toggleIconView()"><span class="glyphicon" data-ng-class="{'glyphicon-th-list': simulations.isIconView, 'glyphicon-th-large': ! simulations.isIconView }"></span> View as {{ simulations.isIconView ? 'List' : 'Icons' }}</a></div>
+        <div class="clearfix"></div>
+
+        <div data-ng-hide="simulations.isIconView" class="row"><div class="col-sm-offset-1 col-sm-10">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th data-ng-repeat="col in simulations.listColumns"><a data-ng-class="{'dropup': simulations.isSortAscending()}" href data-ng-click="simulations.toggleSort(col.field)">{{ col.heading }} <span data-ng-if="simulations.sortField.indexOf(col.field) >= 0" class="caret"></span></a></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:simulations.sortField">
+              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 's-transparent-icon': ! item.isFolder}"></span> {{ item.name }}</a></td>
+              <td>{{ item.lastModified }}</td>
+            </tr>
+          </tbody>
+        </table>
+        </div></div>
+
+        <div data-ng-show="simulations.isIconView" style="margin-right: -10px"><div data-ng-repeat="item in simulations.activeFolder.children | orderBy:'name'" class="s-icon-col">
           <div class="s-thumbnail text-center dropdown">
             <a class="s-item-icon" data-toggle="dropdown">
               <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 's-transparent-icon': ! item.isFolder}"></span><span class="caret"></span>
@@ -36,7 +55,8 @@
               <li data-ng-if="simulations.canDelete(item)"><a href data-ng-click="simulations.deleteItem(item)"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
             </ul>
           </div>
-        </div>
+        </div></div>
+
       </div>
     </div>
   </div>
