@@ -172,9 +172,9 @@ As user install node modules:
 
 ```bash
 cd ~/src/radiasoft/sirepo
-npm install karma --save-dev
-npm install karma-jasmine --save-dev
-npm install karma-phantomjs-launcher
+npm install --save-dev karma
+npm install --save-dev karma-jasmine
+npm install --save-dev karma-phantomjs-launcher
 ```
 
 To run tests:
@@ -194,7 +194,8 @@ As user install node modules:
 
 ```bash
 cd ~/src/radiasoft/sirepo
-npm install protractor
+npm install --save-dev protractor
+npm install --save-dev protractor-snapshot
 ./node_modules/protractor/bin/webdriver-manager update
 ```
 

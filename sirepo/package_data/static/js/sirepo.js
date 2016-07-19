@@ -73,7 +73,7 @@ app.factory('activeSection', function($route, $rootScope, $location, appState) {
     return self;
 });
 
-app.factory('appState', function(requestSender, $rootScope, $timeout) {
+app.factory('appState', function(requestSender, $rootScope, $interval) {
     var self = {};
     self.models = {};
     var lastAutoSaveData = null;
@@ -143,7 +143,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
         self.models = emptyValues || {};
         savedModelValues = self.clone(self.models);
         if (autoSaveTimer)
-            $timeout.cancel(autoSaveTimer);
+            $interval.cancel(autoSaveTimer);
     };
 
     self.clone = function(obj) {
@@ -301,8 +301,8 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     self.resetAutoSaveTimer = function() {
         // auto save data every 60 seconds
         if (autoSaveTimer)
-            $timeout.cancel(autoSaveTimer)
-        autoSaveTimer = $timeout(self.autoSave, 60000);
+            $interval.cancel(autoSaveTimer)
+        autoSaveTimer = $interval(self.autoSave, 60000);
     }
 
     self.saveQuietly = function(name) {
