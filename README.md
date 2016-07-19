@@ -210,7 +210,7 @@ sirepo service http >& http.log &
 ./node_modules/protractor/bin/protractor protractor-conf.js
 ```
 
-#### License
+### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
