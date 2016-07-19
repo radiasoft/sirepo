@@ -543,7 +543,7 @@
             "horizontalPosition": 0,
             "horizontalRange": 0.2,
             "isExample": "1",
-            "name": "beam line #1 7/15",
+            "name": "NSLS-II FMX beamline",
             "outOfSessionSimulationId": "",
             "photonEnergy": 10001.45,
             "sampleFactor": 5,
