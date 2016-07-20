@@ -156,7 +156,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
+        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
@@ -494,6 +494,30 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
         return '[' + fieldsList.toString() + ']';
     }
+
+    var CRLFields = [
+        'material',
+        'method',
+    ];
+    $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
+        if (checkChanged(newValues, oldValues)) {
+            var item = self.activeItem;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crl_characteristics',
+                    optical_element: item,
+                    photon_energy: appState.models.simulation.photonEnergy,
+                },
+                function(data) {
+                    var fields = ['refractiveIndex', 'attenuationLength'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = data[fields[i]];
+                    }
+                }
+            );
+        }
+    });
+
 
     var crystalInitFields = [
         'material',

@@ -28,6 +28,23 @@
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
+        "CRLMaterial": [
+            ["User-defined", "User-defined"],
+            ["Al", "Al"],
+            ["Be", "Be"],
+            ["C", "C"],
+            ["Cu", "Cu"],
+            ["Li", "Li"],
+            ["Mo", "Mo"],
+            ["Si", "Si"],
+            ["SiO2", "SiO2"],
+            ["W", "W"]
+        ],
+        "CRLMethod": [
+            ["server", "Server http://henke.lbl.gov"],
+            ["file", "File"],
+            ["calculation", "Calculate analytically"]
+        ],
         "CRLShape": [
             ["1", "Parabolic"],
             ["2", "Circular"]
@@ -175,6 +192,8 @@
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane"],
+            "material": ["Material of the CRL", "CRLMaterial"],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
             "refractiveIndex": ["Refractive Index Decrements of Material", "Float"],
             "attenuationLength": ["Attenuation Length [m]", "Float"],
             "shape": ["Shape", "CRLShape"],
@@ -499,6 +518,8 @@
                 "title",
                 "position",
                 "focalPlane",
+                "material",
+                "method",
                 "refractiveIndex",
                 "attenuationLength",
                 "shape",
