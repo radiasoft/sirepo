@@ -10,5 +10,5 @@ install:
   - pip install -r requirements.txt
   - npm install jshint
 script:
-  - ./node_modules/jshint/bin/jshint --config=etc/jshint.conf sirepo/package_data/static/js/sirepo*.js
+  - ./node_modules/jshint/bin/jshint --config=etc/jshint.conf sirepo/package_data/static/js/{sirepo,elegant,srw,warp},*.js
   - python setup.py pkdeploy
