@@ -1,3 +1,4 @@
+'use strict';
 
 // code from http://www.ng-newsletter.com/posts/d3-on-angular.html
 angular.module('d3', [])
@@ -16,7 +17,7 @@ angular.module('d3', [])
         scriptTag.src = '/static/js/d3-3.5.9.min.js';
         scriptTag.onreadystatechange = function () {
             if (this.readyState == 'complete') onScriptLoad();
-        }
+        };
         scriptTag.onload = onScriptLoad;
 
         var s = $document[0].getElementsByTagName('body')[0];

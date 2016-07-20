@@ -4,7 +4,7 @@ var SRW_EXAMPLES;
 
 angular.element(document).ready(function() {
     $.ajax({
-        url: '/static/json/srw-examples.json?' + LANDING_PAGE_APP_VERSION,
+        url: '/static/json/srw-examples.json?' + SIREPO.APP_VERSION,
         success: function(result) {
             SRW_EXAMPLES = result;
             angular.bootstrap(document, ['LandingPageApp']);
@@ -29,7 +29,7 @@ app.value('appRoutes', {
 app.config(function($routeProvider, appRoutesProvider) {
     var appRoutes = appRoutesProvider.$get();
     $routeProvider.when('/home', {
-        templateUrl: '/static/html/landing-page-home.html?' + LANDING_PAGE_APP_VERSION,
+        templateUrl: '/static/html/landing-page-home.html?' + SIREPO.APP_VERSION,
     });
     Object.keys(appRoutes).forEach(function(key) {
         $routeProvider.when('/' + key, {

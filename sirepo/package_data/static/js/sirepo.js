@@ -3,16 +3,16 @@
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
     $.ajax({
-        url: '/simulation-schema?' + SIREPO_APP_VERSION,
+        url: '/simulation-schema?' + SIREPO.APP_VERSION,
         data: {
-            simulationType: SIREPO_APP_NAME,
+            simulationType: SIREPO.APP_NAME,
         },
         success: function(result) {
-            APP_SCHEMA = result;
+            SIREPO.APP_SCHEMA = result;
             angular.bootstrap(document, ['SirepoApp']);
         },
         error: function(xhr, status, err) {
-            if (! APP_SCHEMA)
+            if (! SIREPO.APP_SCHEMA)
                 console.log("schema load failed: ", err);
         },
         method: 'POST',
@@ -20,42 +20,42 @@ angular.element(document).ready(function() {
     });
 });
 
-var app_local_routes = {
+SIREPO.appLocalRoutes = {
     simulations: '/simulations',
     source: '/source/:simulationId',
     notFound: '/not-found',
     notFoundCopy: '/copy-session/:simulationIds',
 };
 
-var appDefaultSimulationValues = {
+SIREPO.appDefaultSimulationValues = {
     simulation: {},
     simulationFolder: {},
 };
 
-var app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
-app.value('localRoutes', app_local_routes);
+SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
-app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/simulations.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.notFound, {
-            templateUrl: '/static/html/not-found.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/not-found.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.notFoundCopy, {
             controller: 'NotFoundCopyController as notFoundCopy',
-            templateUrl: '/static/html/copy-session.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/copy-session.html?' + SIREPO.APP_VERSION,
         })
         .otherwise({
             redirectTo: localRoutes.simulations,
         });
 });
 
-app.factory('activeSection', function($route, $rootScope, $location, appState) {
+SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -73,7 +73,7 @@ app.factory('activeSection', function($route, $rootScope, $location, appState) {
     return self;
 });
 
-app.factory('appState', function(requestSender, $rootScope, $timeout) {
+SIREPO.app.factory('appState', function(requestSender, $rootScope, $timeout) {
     var self = {};
     self.models = {};
     var lastAutoSaveData = null;
@@ -122,7 +122,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             callback,
             {
                 models: savedModelValues,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -161,7 +161,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             op,
             {
                 simulationId: simulationId,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
                 name: name,
             });
     };
@@ -196,7 +196,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             op,
             {
                 simulationId: simulationId,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -222,7 +222,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             'listSimulations',
             op,
             {
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
                 search: search,
             });
     };
@@ -236,7 +236,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
                 'simulationData',
                 {
                     '<simulation_id>': simulationId,
-                    '<simulation_type>': APP_SCHEMA.simulationType,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 }),
             function(data, status) {
                 if (data.redirect) {
@@ -270,7 +270,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     };
 
     self.modelInfo = function(name) {
-        return APP_SCHEMA.model[name];
+        return SIREPO.APP_SCHEMA.model[name];
     };
 
     self.newSimulation = function(model, op) {
@@ -281,7 +281,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
                 name: model.name,
                 folder: model.folder,
                 sourceType: model.sourceType,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -296,31 +296,31 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     self.removeModel = function(name) {
         delete self.models[name];
         delete savedModelValues[name];
-    }
+    };
 
     self.resetAutoSaveTimer = function() {
         // auto save data every 60 seconds
         if (autoSaveTimer)
-            $timeout.cancel(autoSaveTimer)
+            $timeout.cancel(autoSaveTimer);
         autoSaveTimer = $timeout(self.autoSave, 60000);
-    }
+    };
 
     self.saveQuietly = function(name) {
         // saves the model, but doesn't broadcast the change
         savedModelValues[name] = self.cloneModel(name);
-    }
+    };
 
     self.saveChanges = function(name) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
-            name = [name]
+            name = [name];
         var updatedModels = [];
         var requireReportUpdate = false;
 
         for (var i = 0; i < name.length; i++) {
             if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
                 // let the UI know the primary model has changed, even if it hasn't
-                if (i == 0)
+                if (i === 0)
                     updatedModels.push(name[i]);
             }
             else {
@@ -331,7 +331,7 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
             }
         }
 
-        for (var i = 0; i < updatedModels.length; i++) {
+        for (i = 0; i < updatedModels.length; i++) {
             if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
                 continue;
             broadcastChanged(updatedModels[i]);
@@ -346,13 +346,13 @@ app.factory('appState', function(requestSender, $rootScope, $timeout) {
     };
 
     self.viewInfo = function(name) {
-        return APP_SCHEMA.view[name];
+        return SIREPO.APP_SCHEMA.view[name];
     };
 
     return self;
 });
 
-app.factory('frameCache', function(appState, panelState, requestSender, $timeout, $rootScope) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $timeout, $rootScope) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -382,13 +382,13 @@ app.factory('frameCache', function(appState, panelState, requestSender, $timeout
                     {
                         report: self.animationModelName || modelName,
                         simulationId: appState.models.simulation.simulationId,
-                        simulationType: APP_SCHEMA.simulationType,
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             },
             {
                 report: self.animationModelName || modelName,
                 models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -408,7 +408,7 @@ app.factory('frameCache', function(appState, panelState, requestSender, $timeout
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
             : 0;
         var frameId = [
-            APP_SCHEMA.simulationType,
+            SIREPO.APP_SCHEMA.simulationType,
             appState.models.simulation.simulationId,
             modelName,
             animationArgs(modelName),
@@ -469,7 +469,7 @@ app.factory('frameCache', function(appState, panelState, requestSender, $timeout
         }
         if (frameCount == masterFrameCount)
             return;
-        if (frameCount == 0) {
+        if (frameCount === 0) {
             masterFrameCount = frameCount;
             frameCountByModelKey = {};
             $rootScope.$broadcast('framesCleared');
@@ -482,12 +482,12 @@ app.factory('frameCache', function(appState, panelState, requestSender, $timeout
         else {
             masterFrameCount = frameCount;
         }
-    }
+    };
 
     return self;
 });
 
-app.factory('panelState', function(appState, requestQueue, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -627,7 +627,7 @@ app.factory('panelState', function(appState, requestQueue, $compile, $rootScope,
     return self;
 });
 
-app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
+SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
     var self = {};
     var getApplicationDataTimeout;
 
@@ -653,7 +653,7 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
     };
 
     self.formatUrl = function(routeName, params) {
-        return formatUrl(APP_SCHEMA.route, routeName, params);
+        return formatUrl(SIREPO.APP_SCHEMA.route, routeName, params);
     };
 
     self.getApplicationData = function(data, callback) {
@@ -662,10 +662,10 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
             $timeout.cancel(getApplicationDataTimeout);
         getApplicationDataTimeout = $timeout(function() {
             getApplicationDataTimeout = null;
-            data['simulationType'] = APP_SCHEMA.simulationType;
+            data.simulationType = SIREPO.APP_SCHEMA.simulationType;
             self.sendRequest('getApplicationData', callback, data);
         }, 350);
-    }
+    };
 
     self.getAuxiliaryData = function(name) {
         return self[name];
@@ -678,7 +678,7 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
             return;
         }
         self[name + ".loading"] = true;
-        $http['get'](path + '?' + SIREPO_APP_VERSION)
+        $http.get(path + '?' + SIREPO.APP_VERSION)
             .success(function(data, status) {
                 self[name] = data;
                 delete self[name + ".loading"];
@@ -695,7 +695,7 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
         $location.path(self.formatLocalUrl(routeName, params));
         if (search)
             $location.search(search);
-    }
+    };
 
     self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
         var url = urlOrName.indexOf('/') >= 0
@@ -715,7 +715,7 @@ app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
     return self;
 });
 
-app.factory('requestQueue', function($rootScope, requestSender) {
+SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     var self = {};
     var runQueue = [];
     var queueId = 1;
@@ -737,11 +737,11 @@ app.factory('requestQueue', function($rootScope, requestSender) {
             {
                 report: queueItem.item[0],
                 models: queueItem.item[1],
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             },
             function(data, status) {
                 handleQueueResult(queueItem, {
-                    error: (data == null && status == 0)
+                    error: (data === null && status === 0)
                         ? 'the server is unavailable'
                         : 'a server error occurred',
                 });
@@ -776,19 +776,19 @@ app.factory('requestQueue', function($rootScope, requestSender) {
 
 // Exception logging from
 // http://engineering.talis.com/articles/client-side-error-logging/
-app.factory('traceService', function() {
+SIREPO.app.factory('traceService', function() {
     var self = {};
     self.printStackTrace = printStackTrace;
     return self;
 });
 
-app.provider('$exceptionHandler', {
+SIREPO.app.provider('$exceptionHandler', {
     $get: function(exceptionLoggingService) {
         return exceptionLoggingService;
     }
 });
 
-app.factory('exceptionLoggingService', function($log, $window, traceService) {
+SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceService) {
 
     function cleanText(obj) {
         if (obj) {
@@ -834,7 +834,7 @@ app.factory('exceptionLoggingService', function($log, $window, traceService) {
     return error;
 });
 
-app.controller('NavController', function (activeSection, appState, requestSender, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
     function openSection(name, search) {
@@ -866,10 +866,10 @@ app.controller('NavController', function (activeSection, appState, requestSender
         return $.grep(
             [
                 self.sectionTitle(),
-                SIREPO_APP_NAME.toUpperCase(),
+                SIREPO.APP_NAME.toUpperCase(),
                 'Radiasoft',
             ],
-            function(n){ return n })
+            function(n){ return n; })
             .join(' - ');
     };
 
@@ -880,7 +880,7 @@ app.controller('NavController', function (activeSection, appState, requestSender
             'findByName',
             {
                 '<simulation_name>': encodeURIComponent(name),
-                '<simulation_type>': APP_SCHEMA.simulationType,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<application_mode>': applicationMode,
             });
         appState.deleteSimulation(
@@ -897,7 +897,7 @@ app.controller('NavController', function (activeSection, appState, requestSender
     };
 });
 
-app.controller('NotFoundCopyController', function (requestSender, $route) {
+SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
     var self = this;
     var ids = $route.current.params.simulationIds.split('-');
     self.simulationId = ids[0];
@@ -917,7 +917,7 @@ app.controller('NotFoundCopyController', function (requestSender, $route) {
             },
             {
                 simulationId: self.simulationId,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -932,7 +932,7 @@ app.controller('NotFoundCopyController', function (requestSender, $route) {
     };
 });
 
-app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
     var self = this;
     self.activeFolder = null;
     self.activeFolderPath = [];
@@ -978,23 +978,23 @@ app.controller('SimulationsController', function (appState, panelState, requestS
                     isFolder: true,
                     children: [],
                     lastModified: item.last_modified,
-                }
+                };
                 currentFolder.children.push(folder);
             }
             currentFolder = folder;
         }
-        var item = {
+        var newItem = {
             parent: currentFolder,
             name: item.name,
             simulationId: item.simulationId,
             lastModified: item.last_modified,
         };
-        currentFolder.children.push(item);
-        return item;
+        currentFolder.children.push(newItem);
+        return newItem;
     }
 
     function clearModels() {
-        appState.clearModels(appState.clone(appDefaultSimulationValues));
+        appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
     }
 
     function folderList(excludeFolder, res, searchFolder) {
@@ -1078,7 +1078,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
             {
                 oldName: oldPath,
                 newName: self.pathName(self.selectedItem),
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     }
 
@@ -1095,7 +1095,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
 
     self.canDelete = function(item) {
         if (item.isFolder)
-            return item.children.length == 0;
+            return item.children.length === 0;
         return true;
     };
 
@@ -1208,7 +1208,7 @@ app.controller('SimulationsController', function (appState, panelState, requestS
     self.pythonSource = function(item) {
         $window.open(requestSender.formatUrl('pythonSource', {
             '<simulation_id>': item.simulationId,
-            '<simulation_type>': APP_SCHEMA.simulationType,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
         }), '_blank');
     };
 
