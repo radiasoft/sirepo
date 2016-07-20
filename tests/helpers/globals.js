@@ -1,10 +1,12 @@
 
 // required for unit tests, normally loaded by the application in srw.html
-var SIREPO_APP_VERSION = '1';
-var SIREPO_APP_NAME = 'srw';
+var SIREPO = {
+    APP_VERSION: '1',
+    APP_NAME: 'srw',
+};
 var KARMA_TEST_MODE = true;
 
-var APP_SCHEMA = {
+SIREPO.APP_SCHEMA = {
     "version": "20151209",
     "route": {
         "copySimulation": "/copy-simulation",
