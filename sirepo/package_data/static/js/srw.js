@@ -509,9 +509,10 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                     photon_energy: appState.models.simulation.photonEnergy,
                 },
                 function(data) {
+                    // TODO(mrakitin): hide 'method' field when the 'material' is 'User-defined'.
                     var fields = ['refractiveIndex', 'attenuationLength'];
                     for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = data[fields[i]];
+                        item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
                     }
                 }
             );

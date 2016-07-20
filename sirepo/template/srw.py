@@ -623,11 +623,11 @@ def _compute_crl_characteristics(model, photon_energy):
         kwargs['precise'] = True
         kwargs['data_file'] = '{}_atten.dat'.format(model['material'])
     if model['method'] == 'calculation':
-        raise ValueError(
-            'The method <{}> in bnlcrl library is not supported yet for attenuation length calculation.'.format(
-                model['method']))
-    atten = find_delta(**kwargs)
-    model['attenuationLength'] = atten['characteristic_value']
+        # The method 'calculation' in bnlcrl library is not supported yet for attenuation length calculation.
+        pass
+    else:
+        atten = find_delta(**kwargs)
+        model['attenuationLength'] = atten['characteristic_value']
 
     return model
 

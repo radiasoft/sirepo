@@ -104,6 +104,7 @@
                 "horizontalApertureSize": 1,
                 "id": 10,
                 "material": "User-defined",
+                "method": "server",
                 "numberOfLenses": 23,
                 "position": 57.33736,
                 "radius": 5e-05,
