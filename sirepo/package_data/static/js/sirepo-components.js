@@ -242,7 +242,9 @@ SIREPO.app.directive('labelWithTooltip', function() {
         link: function link(scope, element) {
             if (scope.tooltip) {
                 $(element).find('span').tooltip({
-                    title: scope.tooltip,
+                    title: function() {
+                        return scope.tooltip;
+                    },
                     placement: 'bottom',
                 });
             }
