@@ -500,6 +500,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         'method',
     ];
     $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
+        var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
+        if (newValues[0] === 'User-defined') {
+            crlMethodFormGroup.hide(0);
+        } else {
+            crlMethodFormGroup.show(0);
+        }
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
             requestSender.getApplicationData(
