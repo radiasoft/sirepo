@@ -8,5 +8,7 @@ branches:
 install:
   - pip install -U pip setuptools tox pytest
   - pip install -r requirements.txt
+  - npm install jshint
 script:
+  - ./node_modules/jshint/bin/jshint --config=etc/jshint.conf sirepo/package_data/static/js/sirepo*.js
   - python setup.py pkdeploy
