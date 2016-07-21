@@ -51,7 +51,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
         }
         var model = savedModelValues[modelName];
         var distance = '';
-        if (model && model.distanceFromSource !== null)
+        if (model && 'distanceFromSource' in model)
             distance = ', ' + model.distanceFromSource + 'm';
         else if (appState.isAnimationModelName(modelName))
             distance = '';
@@ -471,28 +471,39 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
             var item = self.activeItem;
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_grazing_angle',
-                    optical_element: item,
-                },
-                function(data) {
-                    var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = data[fields[i]];
+            if (item.type === 'grating') {
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_grazing_angle',
+                        optical_element: item,
+                    },
+                    function(data) {
+                        var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
+                        for (var i = 0; i < fields.length; i++) {
+                            item[fields[i]] = data[fields[i]];
+                        }
                     }
-                }
-            );
+                );
+            }
         }
     });
 
     function checkChanged(newValues, oldValues) {
-        for (var i=0; i<newValues.length; i++) {
+        for (var i = 0; i < newValues.length; i++) {
             if (! angular.isDefined(newValues[i]) || newValues[i] === null || newValues[i] === 'Unknown' || ! angular.isDefined(oldValues[i])) {
                 return false;
             }
         }
         return true;
+    }
+
+    function checkUndefinedExists(values) {
+        for (var i = 0; i < values.length; i++) {
+            if (typeof(values[i]) !== 'undefined') {
+                return true;
+            }
+        }
+        return false;
     }
 
     function wrapActiveItem(fields) {
@@ -506,19 +517,17 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     appState.whenModelsLoaded(updatePhotonEnergyHelpText);
     $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
 
-    var CRLDeltaAttenFields = [
+    var CRLFields = [
         'material',
         'method',
+        'numberOfLenses',
+        'position',
+        'radius',
+        'refractiveIndex',
     ];
-    $scope.$watchCollection(wrapActiveItem(CRLDeltaAttenFields), function (newValues, oldValues) {
-        var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
-        if (newValues[0] === 'User-defined') {
-            crlMethodFormGroup.hide(0);
-        } else {
-            crlMethodFormGroup.show(0);
-        }
-        if (checkChanged(newValues, oldValues)) {
-            var item = self.activeItem;
+    function computeCRLCharacteristics() {
+        var item = self.activeItem;
+        if (item.type === 'crl') {
             requestSender.getApplicationData(
                 {
                     method: 'compute_crl_characteristics',
@@ -530,38 +539,24 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                     for (var i = 0; i < fields.length; i++) {
                         item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
                     }
+
+                    var fields = ['focalDistance', 'absoluteFocusPosition'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
+                    }
                 }
             );
         }
-    });
-
-    var CRLFocusFields = [
-        'numberOfLenses',
-        'position',
-        'radius',
-        'refractiveIndex',
-    ];
-    function computeCRLFocus() {
-        var item = self.activeItem;
-        requestSender.getApplicationData(
-            {
-                method: 'compute_crl_focus',
-                optical_element: item,
-            },
-            function(data) {
-                var fields = ['focalDistance', 'absoluteFocusPosition'];
-                for (var i = 0; i < fields.length; i++) {
-                    item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
-                }
-            }
-        );
     }
-    $scope.$watchCollection(wrapActiveItem(CRLFocusFields), function (newValues, oldValues) {
-        for (var i = 0; i < newValues.length; i++) {
-            if (typeof(newValues[i]) !== 'undefined') {
-                computeCRLFocus();
-                break;
-            }
+    $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
+        var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
+        if (newValues[0] === 'User-defined') {
+            crlMethodFormGroup.hide(0);
+        } else {
+            crlMethodFormGroup.show(0);
+        }
+        if (checkUndefinedExists(newValues)) {
+            computeCRLCharacteristics();
         }
     });
 
@@ -575,18 +570,20 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_crystal_init',
-                    optical_element: item,
-                },
-                function(data) {
-                    var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = data[fields[i]];
+            if (item.type === 'crystal') {
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_crystal_init',
+                        optical_element: item,
+                    },
+                    function(data) {
+                        var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'];
+                        for (var i = 0; i < fields.length; i++) {
+                            item[fields[i]] = data[fields[i]];
+                        }
                     }
-                }
-            );
+                );
+            }
         }
     });
 
@@ -601,18 +598,20 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_crystal_orientation',
-                    optical_element: item,
-                },
-                function(data) {
-                    var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = data[fields[i]];
+            if (item.type === 'crystal') {
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_crystal_orientation',
+                        optical_element: item,
+                    },
+                    function(data) {
+                        var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
+                        for (var i = 0; i < fields.length; i++) {
+                            item[fields[i]] = data[fields[i]];
+                        }
                     }
-                }
-            );
+                );
+            }
         }
     });
 

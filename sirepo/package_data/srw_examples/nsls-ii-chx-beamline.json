@@ -47,14 +47,14 @@
                 "verticalSize": 1
             },
             {
+                "absoluteFocusPosition": 0.0,
                 "attenuationLength": "7.31294e-03",
+                "focalDistance": 0.0,
                 "focalPlane": 2,
                 "horizontalApertureSize": "1",
                 "id": 6,
                 "material": "User-defined",
                 "method": "server",
-                "focalDistance": 0.0,
-                "absoluteFocusPosition": 0.0,
                 "numberOfLenses": "1",
                 "position": "35.4",
                 "radius": "1.5e-03",
@@ -66,14 +66,14 @@
                 "wallThickness": "80.e-06"
             },
             {
+                "absoluteFocusPosition": 0.0,
                 "attenuationLength": "7.31294e-03",
+                "focalDistance": 0.0,
                 "focalPlane": 2,
                 "horizontalApertureSize": "1",
                 "id": 7,
                 "material": "User-defined",
                 "method": "server",
-                "focalDistance": 0.0,
-                "absoluteFocusPosition": 0.0,
                 "numberOfLenses": "6",
                 "position": "35.4",
                 "radius": "0.5e-03",
