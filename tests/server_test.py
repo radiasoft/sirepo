@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-u"""?
+u"""Simple API test for app.
 
-:copyright: Copyright (c) 2015 Bivio Software, Inc.  All Rights Reserved.
+:copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -22,10 +22,12 @@ def client():
         server.init(db)
         yield server.app.test_client()
 
+
 def test_basic(client):
     resp = client.get('/')
     assert resp.status_code == 404, \
         'There should not be a / route'
+
 
 def test_srw(client):
     resp = client.get('/srw')
