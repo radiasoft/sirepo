@@ -1,29 +1,37 @@
-var $snapshot = require('protractor-snapshot');
+// var $snapshot = require('protractor-snapshot');
+// $snapshot.source();
+// e.getText().then(console.log);
 
 describe('SRW-Library', function() {
     it('show-library', function() {
+        var e;
+        var expect_ev = '1.234';
         browser.get('http://localhost:8000/srw');
-        var e = element.all(by.repeater('item in simulations.fileTree'))
-            .all(by.cssContainingText('ul li a', 'Wavefront Propagation'))
-            .first();
-        e.getText().then(console.log);
-        $snapshot.source();
-        e = e.click();
-        $snapshot.source();
-        var e1 = element.all(by.repeater('item in simulations.activeFolder.children'))
+        element.all(by.repeater('item in simulations.fileTree'))
+            .all(by.cssContainingText('a', 'Wavefront Propagation'))
+            .first()
+            .click();
+        element.all(by.repeater('item in simulations.activeFolder.children'))
             .all(by.cssContainingText('.s-item-text', 'Diffraction by an Aperture'))
-            .first();
-        e1.getText().then(console.log);
-        $snapshot.source();
-        e1.click();
-        $snapshot.source();
-        //var ec = protractor.ExpectedConditions;
-        // Waits for the element with id 'abc' to be present on the dom.
-        // browser.wait(ec.presenceOf($('#s-gaussianBeam-basicEditor')), 5000);
-        var e = element.all(by.cssContainingText('.s-panel-heading', 'Intensity Report'))
-            .first();
+            .first()
+            .click();
+        element.all(by.css('.model-simulation-photonEnergy input'))
+            .first()
+            .clear()
+            .sendKeys(expect_ev);
+        element(by.id('s-gaussianBeam-basicEditor'))
+            .element(by.cssContainingText('button', 'Save Changes'))
+            .click();
+        e = element.all(by.cssContainingText('div.panel-heading', 'Intensity Report'))
+            .first()
+            .element(by.xpath('..'))
+            .element(by.css('text.main-title'));
+        expect(e.getText()).toBe('E=' + expect_ev + ' eV');
+        /*
+        /*
+        var link = element(by.css("a[data-ng-click='toggleEditMode()']"));
         // e.getText().then(console.log);
-        expect(e.getText()).toBe('Intensity Report, 0.5m');
+        // expect(e.getText()).toBe('Intensity Report, 0.5m');
         //expect(
         //
         //
