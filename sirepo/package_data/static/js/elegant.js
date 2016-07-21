@@ -507,15 +507,9 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, $rootS
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
-
-    if (appState.isLoaded()) {
+    appState.whenModelsLoaded(function() {
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-    }
-    else {
-        $scope.$on('modelsLoaded', function() {
-            self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-        });
-    }
+    });
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
@@ -793,12 +787,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     $scope.$on('$destroy', function () {
         self.isDestroyed = true;
     });
-
-    if (appState.isLoaded())
-        refreshStatus();
-    else {
-        $scope.$on('modelsLoaded', refreshStatus);
-    }
+    appState.whenModelsLoaded(refreshStatus);
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -1282,11 +1271,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                 if (name == 'elements')
                     loadTree();
             });
-
-            if (appState.isLoaded())
-                loadTree();
-            else
-                $scope.$on('modelsLoaded', loadTree);
+            appState.whenModelsLoaded(loadTree);
         },
     };
 });

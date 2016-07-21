@@ -349,6 +349,13 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $timeout) {
         return SIREPO.APP_SCHEMA.view[name];
     };
 
+    self.whenModelsLoaded = function(callback) {
+        if (self.isLoaded())
+            callback();
+        else
+            $rootScope.$on('modelsLoaded', callback);
+    };
+
     return self;
 });
 

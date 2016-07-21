@@ -16,7 +16,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('warpService', function(appState, $rootScope) {
+SIREPO.app.factory('warpService', function(appState) {
     var self = {};
     self.laserGridDimensions = null;
     self.beamGridDimensions = null;
@@ -44,7 +44,7 @@ SIREPO.app.factory('warpService', function(appState, $rootScope) {
         return isSourceType('laserPulse');
     };
 
-    $rootScope.$on('modelsLoaded', function() {
+    appState.whenModelsLoaded(function() {
         initGridDimensions();
         SIREPO.APP_SCHEMA.enum.GridDimensions = self.isLaserPulse()
             ? self.laserGridDimensions
@@ -180,12 +180,7 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
-
-    if (appState.isLoaded())
-        refreshStatus();
-    else {
-        $scope.$on('modelsLoaded', refreshStatus);
-    }
+    appState.whenModelsLoaded(refreshStatus);
 });
 
 SIREPO.app.controller('WARPSourceController', function(appState, frameCache, warpService, $document, $scope) {
@@ -447,11 +442,7 @@ SIREPO.app.controller('WARPSourceController', function(appState, frameCache, war
                 appState.saveQuietly('laserPulse');
             appState.saveQuietly('simulationGrid');
         });
-
-    if (appState.isLoaded())
-        updateFieldState();
-    else
-        $scope.$on('modelsLoaded', updateFieldState);
+    appState.whenModelsLoaded(updateFieldState);
 });
 
 SIREPO.app.directive('appFooter', function() {

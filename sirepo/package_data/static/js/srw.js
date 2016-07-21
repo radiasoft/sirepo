@@ -110,7 +110,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
             self.applicationMode = search.application_mode;
     });
 
-    $rootScope.$on('modelsLoaded', function() {
+    appState.whenModelsLoaded(function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
         SIREPO.APP_SCHEMA.enum.Characteristic = (self.isApplicationMode('wavefront') || self.isGaussianBeam())
@@ -503,12 +503,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         return '[' + fieldsList.toString() + ']';
     }
 
-    if (appState.isLoaded()) {
-        updatePhotonEnergyHelpText();
-    } else {
-        $scope.$on('modelsLoaded', updatePhotonEnergyHelpText);
-        $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
-    }
+    appState.whenModelsLoaded(updatePhotonEnergyHelpText);
+    $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
 
     var CRLDeltaAttenFields = [
         'material',
@@ -1784,12 +1780,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     frameCache.clearFrames($scope.model);
                 }
             });
-
-            if (appState.isLoaded())
-                refreshStatus();
-            else {
-                $scope.$on('modelsLoaded', refreshStatus);
-            }
+            appState.whenModelsLoaded(refreshStatus);
         },
     };
 });
