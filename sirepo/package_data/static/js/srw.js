@@ -1,22 +1,22 @@
 'use strict';
 
-app_local_routes.beamline = '/beamline/:simulationId';
-appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
+SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 
-app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
             controller: 'SRWSourceController as source',
-            templateUrl: '/static/html/srw-source.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/srw-source.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
-            templateUrl: '/static/html/srw-beamline.html?' + SIREPO_APP_VERSION,
-        })
+            templateUrl: '/static/html/srw-beamline.html?' + SIREPO.APP_VERSION,
+        });
 });
 
-app.factory('srwService', function(appState, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
     self.originalCharacteristicEnum = null;
@@ -25,8 +25,8 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     function initCharacteristic() {
         if (self.originalCharacteristicEnum)
             return;
-        self.originalCharacteristicEnum = APP_SCHEMA.enum['Characteristic'];
-        var characteristic = appState.clone(APP_SCHEMA.enum['Characteristic']);
+        self.originalCharacteristicEnum = SIREPO.APP_SCHEMA.enum.Characteristic;
+        var characteristic = appState.clone(SIREPO.APP_SCHEMA.enum.Characteristic);
         characteristic.splice(1, 1);
         for (var i = 0; i < characteristic.length; i++)
             characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
@@ -51,7 +51,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
         }
         var model = savedModelValues[modelName];
         var distance = '';
-        if (model && model.distanceFromSource != null)
+        if (model && model.distanceFromSource !== null)
             distance = ', ' + model.distanceFromSource + 'm';
         else if (appState.isAnimationModelName(modelName))
             distance = '';
@@ -91,7 +91,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     };
 
     self.setupWatchpointDirective = function($scope) {
-        var modelKey = 'watchpointReport' + $scope.itemId
+        var modelKey = 'watchpointReport' + $scope.itemId;
         $scope.modelAccess = {
             modelKey: modelKey,
             getData: function() {
@@ -110,10 +110,10 @@ app.factory('srwService', function(appState, $rootScope, $location) {
             self.applicationMode = search.application_mode;
     });
 
-    $rootScope.$on('modelsLoaded', function() {
+    appState.whenModelsLoaded(function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
-        APP_SCHEMA.enum['Characteristic'] = (self.isApplicationMode('wavefront') || self.isGaussianBeam())
+        SIREPO.APP_SCHEMA.enum.Characteristic = (self.isApplicationMode('wavefront') || self.isGaussianBeam())
             ? self.singleElectronCharacteristicEnum
             : self.originalCharacteristicEnum;
     });
@@ -121,7 +121,7 @@ app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope) {
+SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
 
     var crystalDefaults = {
@@ -156,7 +156,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crl', title:'CRL', focalPlane:2, refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
+        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
@@ -172,7 +172,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     self.activeItem = null;
     self.postPropagation = [];
     self.propagations = [];
-    self.analyticalTreatmentEnum = APP_SCHEMA.enum['AnalyticalTreatment'];
+    self.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
     self.singleElectron = true;
 
     function addItem(item) {
@@ -216,7 +216,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                 });
             if (i == beamline.length - 1)
                 break;
-            var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position)
+            var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
                     title: 'Drift ' + formatFloat(d) + 'm',
@@ -224,7 +224,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                 });
             }
         }
-        if (! appState.models.postPropagation || appState.models.postPropagation.length == 0)
+        if (! appState.models.postPropagation || appState.models.postPropagation.length === 0)
             appState.models.postPropagation = defaultItemPropagationParams();
         self.postPropagation = appState.models.postPropagation;
     }
@@ -258,7 +258,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
 
     function saveBeamline() {
         // culls and saves propagation and watchpoint models
-        var propagations = {}
+        var propagations = {};
         var watchpoints = {};
         for (var i = 0; i < appState.models.beamline.length; i++) {
             var item = appState.models.beamline[i];
@@ -281,7 +281,15 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
                 savedModelValues[modelName] = appState.cloneModel(modelName);
         }
         appState.saveChanges(['beamline', 'propagation', 'postPropagation']);
-    };
+    }
+
+    function updatePhotonEnergyHelpText() {
+        if (appState.isLoaded()) {
+                var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
+                SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
+        }
+    }
 
     function watchpointReportName(id) {
         return 'watchpointReport' + id;
@@ -322,7 +330,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         }
         else {
             // move last item to this index
-            item = appState.models.beamline.pop()
+            item = appState.models.beamline.pop();
         }
         appState.models.beamline.splice(index, 0, item);
         if (appState.models.beamline.length > 1) {
@@ -381,7 +389,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     self.isPropagationReadOnly = function() {
         //TODO(pjm): may want to disable this for novice users
         //return ! self.isDefaultMode();
-        return false
+        return false;
     };
 
     self.isSingleElectron = function() {
@@ -450,7 +458,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     };
 
     self.showTabs = function() {
-        if (self.getWatchItems().length == 0)
+        if (self.getWatchItems().length === 0)
             return false;
         if (srwService.isApplicationMode('wavefront'))
             return false;
@@ -495,6 +503,68 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         return '[' + fieldsList.toString() + ']';
     }
 
+    appState.whenModelsLoaded(updatePhotonEnergyHelpText);
+    $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
+
+    var CRLDeltaAttenFields = [
+        'material',
+        'method',
+    ];
+    $scope.$watchCollection(wrapActiveItem(CRLDeltaAttenFields), function (newValues, oldValues) {
+        var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
+        if (newValues[0] === 'User-defined') {
+            crlMethodFormGroup.hide(0);
+        } else {
+            crlMethodFormGroup.show(0);
+        }
+        if (checkChanged(newValues, oldValues)) {
+            var item = self.activeItem;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_crl_characteristics',
+                    optical_element: item,
+                    photon_energy: appState.models.simulation.photonEnergy,
+                },
+                function(data) {
+                    var fields = ['refractiveIndex', 'attenuationLength'];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
+                    }
+                }
+            );
+        }
+    });
+
+    var CRLFocusFields = [
+        'numberOfLenses',
+        'position',
+        'radius',
+        'refractiveIndex',
+    ];
+    function computeCRLFocus() {
+        var item = self.activeItem;
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crl_focus',
+                optical_element: item,
+            },
+            function(data) {
+                var fields = ['focalDistance', 'absoluteFocusPosition'];
+                for (var i = 0; i < fields.length; i++) {
+                    item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
+                }
+            }
+        );
+    }
+    $scope.$watchCollection(wrapActiveItem(CRLFocusFields), function (newValues, oldValues) {
+        for (var i = 0; i < newValues.length; i++) {
+            if (typeof(newValues[i]) !== 'undefined') {
+                computeCRLFocus();
+                break;
+            }
+        }
+    });
+
     var crystalInitFields = [
         'material',
         'energy',
@@ -502,7 +572,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         'k',
         'l',
     ];
-
     $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
@@ -529,7 +598,6 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
         'psi0i',
         'rotationAngle',
     ];
-
     $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
@@ -557,7 +625,7 @@ app.controller('SRWBeamlineController', function (appState, panelState, requestS
     });
 });
 
-app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout, requestSender) {
+SIREPO.app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout, requestSender) {
     var self = this;
     self.srwService = srwService;
     $scope.appState = appState;
@@ -586,13 +654,13 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     function processBeamParameters() {
         if (! appState.isLoaded())
             return;
-
+        var und;
         if (appState.models.simulation.sourceType === 'u') {
-            var und = 'undulator';
+            und = 'undulator';
         } else if (appState.models.simulation.sourceType === 't') {
-            var und = 'tabulatedUndulator';
+            und = 'tabulatedUndulator';
         } else {
-            var und = 'undulator';
+            und = 'undulator';
         }
 
         var beamDefinition = appState.models.electronBeam.beamDefinition;
@@ -606,27 +674,28 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 method: 'process_beam_parameters',
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                undulator_period: appState.models[und]['period'] / 1000,
-                undulator_length: appState.models[und]['length'],
+                undulator_period: appState.models[und].period / 1000,
+                undulator_length: appState.models[und].length,
                 ebeam: appState.models.electronBeam,
             },
             function(data) {
+                var i;
                 if (appState.models.electronBeam.isReadOnly) {
                     disableField('electronBeam', 'driftCalculationMethod', 'auto', true);
-                    disableField('electronBeam', 'drift', data['drift'], true);
+                    disableField('electronBeam', 'drift', data.drift, true);
                     disableField('electronBeam', 'beamDefinition', 't', true);
-                    for (var i = 0; i < fieldsOfMoments.length; i++) {
+                    for (i = 0; i < fieldsOfMoments.length; i++) {
                         disableField('electronBeam', fieldsOfMoments[i], data[fieldsOfMoments[i]], true);
                     }
                 } else {
                     disableField('electronBeam', 'driftCalculationMethod', 'skip', false);
                     if (appState.models.electronBeam.driftCalculationMethod === 'auto') {
-                        disableField('electronBeam', 'drift', data['drift'], true);
+                        disableField('electronBeam', 'drift', data.drift, true);
                     } else {
                         disableField('electronBeam', 'drift', 'skip', false);
                     }
                     disableField('electronBeam', 'beamDefinition', 'skip', false);
-                    for (var i = 0; i < fieldsOfMoments.length; i++) {
+                    for (i = 0; i < fieldsOfMoments.length; i++) {
                         var val = 'skip';
                         if (beamDefinition === 't') {
                             val = formatFloat(data[fieldsOfMoments[i]]);
@@ -639,15 +708,16 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
 
         var modelReport = '.model-electronBeam-';
         var duration = 0;  // ms
+        var i;
         if (beamDefinition === "t") {  // Twiss
             $($(modelReport + columnHeading)[0]).show(duration);
             $($(modelReport + columnHeading)[1]).show(duration);
             $($(modelReport + columnHeading)[2]).hide(duration);
             $($(modelReport + columnHeading)[3]).hide(duration);
-            for (var i = 0; i < fieldsOfTwiss.length; i++) {
+            for (i = 0; i < fieldsOfTwiss.length; i++) {
                 $(modelReport + fieldsOfTwiss[i]).closest('.form-group').show(duration);
             }
-            for (var i = 0; i < fieldsOfMoments.length; i++) {
+            for (i = 0; i < fieldsOfMoments.length; i++) {
                 $(modelReport + fieldsOfMoments[i]).closest('.form-group').hide(duration);
             }
         } else if (beamDefinition === "m") {  // Moments
@@ -655,10 +725,10 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             $($(modelReport + columnHeading)[1]).hide(duration);
             $($(modelReport + columnHeading)[2]).show(duration);
             $($(modelReport + columnHeading)[3]).show(duration);
-            for (var i = 0; i < fieldsOfTwiss.length; i++) {
+            for (i = 0; i < fieldsOfTwiss.length; i++) {
                 $(modelReport + fieldsOfTwiss[i]).closest('.form-group').hide(duration);
             }
-            for (var i = 0; i < fieldsOfMoments.length; i++) {
+            for (i = 0; i < fieldsOfMoments.length; i++) {
                 $(modelReport + fieldsOfMoments[i]).closest('.form-group').show(duration);
             }
         } else {
@@ -667,7 +737,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     }
 
     function processFluxMethod(methodNumber, reportName) {
-        if (! appState.isLoaded() || typeof methodNumber === "undefined")
+        if (! appState.isLoaded() || typeof(methodNumber) === 'undefined')
             return;
         // Get magnetic field values from server:
         requestSender.getApplicationData(
@@ -679,25 +749,26 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
             },
             function(data) {
-                disableField(reportName, 'magneticField', data['magneticField'], true);
+                disableField(reportName, 'magneticField', data.magneticField, true);
             }
         );
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
         var fieldsOfAccurateMethod = ['precision'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
+        var i;
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
-            for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
+            for (i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').show(0);
             }
-            for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
+            for (i = 0; i < fieldsOfAccurateMethod.length; i++) {
                 $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').hide(0);
             }
         } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
-            for (var i = 0; i < fieldsOfApproximateMethod.length; i++) {
+            for (i = 0; i < fieldsOfApproximateMethod.length; i++) {
                 $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').hide(0);
             }
-            for (var i = 0; i < fieldsOfAccurateMethod.length; i++) {
+            for (i = 0; i < fieldsOfAccurateMethod.length; i++) {
                 $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').show(0);
             }
         } else {
@@ -733,15 +804,15 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
             {
                 method: 'process_undulator_definition',
                 undulator_definition: undulatorDefinition,
-                undulator_parameter: appState.models[reportName]['undulatorParameter'],
-                vertical_amplitude: appState.models[reportName]['verticalAmplitude'],
-                undulator_period: appState.models[reportName]['period'] / 1000,
+                undulator_parameter: appState.models[reportName].undulatorParameter,
+                vertical_amplitude: appState.models[reportName].verticalAmplitude,
+                undulator_period: appState.models[reportName].period / 1000,
             },
             function(data) {
                 if (undulatorDefinition === 'K') {
-                    disableField(reportName, 'verticalAmplitude', formatFloat(data['vertical_amplitude']), false, 'readOnly');
+                    disableField(reportName, 'verticalAmplitude', formatFloat(data.vertical_amplitude), false, 'readOnly');
                 } else {
-                    disableField(reportName, 'undulatorParameter', formatFloat(data['undulator_parameter']), false, 'readOnly');
+                    disableField(reportName, 'undulatorParameter', formatFloat(data.undulator_parameter), false, 'readOnly');
                 }
             }
         );
@@ -757,29 +828,30 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
         var modelReport = '.model-tabulatedUndulator-';
         var modelIdealizedReport = '.model-undulator-';
         var duration = 0;  // ms
+        var i;
 
         // Limit and hide some fields in the calculator mode:
         if (srwService.isApplicationMode('calculator')) {
             var fieldsToHide = ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'];
-            for (var i = 0; i < fieldsToHide.length; i++) {
+            for (i = 0; i < fieldsToHide.length; i++) {
                 $(modelIdealizedReport + fieldsToHide[i]).closest('.form-group').hide(duration);
             }
         }
 
         if (undType === "u_t") {  // tabulated
             $(modelReport + columnHeading).hide(duration);
-            for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
                 $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').show(duration);
             }
-            for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
                 $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').hide(duration);
             }
         } else if (undType === "u_i") {  // idealized
             $(modelReport + columnHeading).show(duration);
-            for (var i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
                 $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').hide(duration);
             }
-            for (var i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
                 $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').show(duration);
             }
         } else {
@@ -875,7 +947,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     $scope.$watch('appState.models.intensityReport.method', function (newValue, oldValue) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
-                var precisionLabel = APP_SCHEMA['model']['intensityReport']['precision'][0];
+                var precisionLabel = SIREPO.APP_SCHEMA.model.intensityReport.precision[0];
                 if (appState.models.intensityReport.method === "0") {
                     precisionLabel = 'Step Size';
                 }
@@ -893,11 +965,9 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     });
 
     function undulatorReportName() {
-        var reportName = 'undulator';
-        if (srwService.isTabulatedUndulator()) {
-            var reportName = 'tabulatedUndulator';
-        }
-        return reportName;
+        if (srwService.isTabulatedUndulator())
+            return 'tabulatedUndulator';
+        return 'undulator';
     }
 
     function activeField() {
@@ -925,7 +995,7 @@ app.controller('SRWSourceController', function (appState, srwService, $scope, $t
     });
 });
 
-app.directive('appFooter', function(appState) {
+SIREPO.app.directive('appFooter', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -944,7 +1014,7 @@ app.directive('appFooter', function(appState) {
             function updateSimulationGridFields(delay) {
                 if (! appState.isLoaded())
                     return;
-                var method = appState.models['simulation']['samplingMethod'];
+                var method = appState.models.simulation.samplingMethod;
                 if (parseInt(method) == 1) {
                     $('.model-simulation-sampleFactor').show(delay);
                     $('.model-simulation-horizontalPointCount').hide(delay);
@@ -968,7 +1038,7 @@ app.directive('appFooter', function(appState) {
     };
 });
 
-app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
+SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
 
     var settingsIcon = [
         '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="s-panel-icon glyphicon glyphicon-cog"></span></a>',
@@ -1109,7 +1179,7 @@ app.directive('appHeader', function(appState, panelState, requestSender, srwServ
                             $scope.relatedSimulations = data;
                         },
                         {
-                            simulationType: APP_SCHEMA.simulationType,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
                             search: {
                                 'simulation.folder': appState.models.simulation.folder,
                             },
@@ -1153,7 +1223,7 @@ app.directive('appHeader', function(appState, panelState, requestSender, srwServ
             $scope.pythonSource = function(item) {
                 $window.open(requestSender.formatUrl('pythonSource', {
                     '<simulation_id>': simulationId(),
-                    '<simulation_type>': APP_SCHEMA.simulationType,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 }), '_blank');
             };
 
@@ -1168,7 +1238,7 @@ app.directive('appHeader', function(appState, panelState, requestSender, srwServ
     };
 });
 
-app.directive('beamlineIcon', function() {
+SIREPO.app.directive('beamlineIcon', function() {
     return {
         scope: {
             item: '=',
@@ -1221,7 +1291,7 @@ app.directive('beamlineIcon', function() {
     };
 });
 
-app.directive('beamlineItem', function($timeout) {
+SIREPO.app.directive('beamlineItem', function($timeout) {
     return {
         scope: {
             item: '=',
@@ -1332,7 +1402,7 @@ app.directive('beamlineItem', function($timeout) {
     };
 });
 
-app.directive('beamlineItemEditor', function(appState) {
+SIREPO.app.directive('beamlineItemEditor', function(appState) {
     return {
         scope: {
             modelName: '@',
@@ -1361,7 +1431,7 @@ app.directive('beamlineItemEditor', function(appState) {
             $scope.advancedFields = appState.viewInfo($scope.modelName).advanced;
             $scope.removeActiveItem = function() {
                 $scope.beamline.removeElement($scope.beamline.activeItem);
-            }
+            };
             $scope.modelAccess = {
                 modelKey: $scope.modelName,
                 getData: function() {
@@ -1374,7 +1444,7 @@ app.directive('beamlineItemEditor', function(appState) {
     };
 });
 
-app.directive('deleteSimulationModal', function(appState, $location) {
+SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
     return {
         restrict: 'A',
         scope: {},
@@ -1399,7 +1469,7 @@ app.directive('deleteSimulationModal', function(appState, $location) {
 });
 
 //TODO(pjm): refactor and generalize with mirrorUpload
-app.directive('importPython', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('importPython', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1440,9 +1510,8 @@ app.directive('importPython', function(appState, fileUpload, requestSender) {
             $scope.isUploading = false;
             $scope.title = 'Import Python Beamline File';
             $scope.importPythonFile = function(pythonFile, importArgs) {
-                if (typeof importArgs === "undefined") {
-                    var importArgs = '';
-                }
+                if (typeof(importArgs) === 'undefined')
+                    importArgs = '';
                 if (! pythonFile)
                     return;
                 $scope.isUploading = true;
@@ -1455,7 +1524,7 @@ app.directive('importPython', function(appState, fileUpload, requestSender) {
                     requestSender.formatUrl(
                         'importFile',
                         {
-                            '<simulation_type>': APP_SCHEMA.simulationType,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         }),
                     function(data) {
                         $scope.isUploading = false;
@@ -1474,13 +1543,13 @@ app.directive('importPython', function(appState, fileUpload, requestSender) {
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
                 $('#srw-python-file-import').val(null);
-                scope.fileUploadError = ''
+                scope.fileUploadError = '';
             });
         },
     };
 });
 
-app.directive('mobileAppTitle', function(srwService) {
+SIREPO.app.directive('mobileAppTitle', function(srwService) {
     function mobileTitle(mode, modeTitle) {
         return [
             '<div data-ng-if="srwService.isApplicationMode(\'' + mode + '\')" class="row visible-xs">',
@@ -1508,7 +1577,7 @@ app.directive('mobileAppTitle', function(srwService) {
     };
 });
 
-app.directive('resetSimulationModal', function(appState, srwService) {
+SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -1534,7 +1603,7 @@ app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
-app.directive('simulationStatusPanel', function(appState, frameCache, panelState, requestSender, $timeout) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, requestSender, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -1638,13 +1707,13 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                     {
                         report: $scope.model,
                         simulationId: appState.models.simulation.simulationId,
-                        simulationType: APP_SCHEMA.simulationType,
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             }
 
             function setSimulationState(state) {
                 if (! appState.models.simulationStatus[$scope.model])
-                    appState.models.simulationStatus[$scope.model] = {}
+                    appState.models.simulationStatus[$scope.model] = {};
                 appState.models.simulationStatus[$scope.model].state = state;
             }
 
@@ -1668,7 +1737,7 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                     {
                         report: $scope.model,
                         models: appState.applicationState(),
-                        simulationType: APP_SCHEMA.simulationType,
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
 
@@ -1694,14 +1763,14 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                 requestSender.sendRequest(
                     'runBackground',
                     function(data) {
-                        appState.models.simulationStatus[$scope.model].startTime = data['startTime'];
+                        appState.models.simulationStatus[$scope.model].startTime = data.startTime;
                         appState.saveChanges('simulationStatus');
                         refreshStatus();
                     },
                     {
                         report: $scope.model,
                         models: appState.applicationState(),
-                        simulationType: APP_SCHEMA.simulationType,
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
 
@@ -1711,17 +1780,12 @@ app.directive('simulationStatusPanel', function(appState, frameCache, panelState
                     frameCache.clearFrames($scope.model);
                 }
             });
-
-            if (appState.isLoaded())
-                refreshStatus();
-            else {
-                $scope.$on('modelsLoaded', refreshStatus);
-            }
+            appState.whenModelsLoaded(refreshStatus);
         },
     };
 });
 
-app.directive('tooltipEnabler', function() {
+SIREPO.app.directive('tooltipEnabler', function() {
     return {
         link: function(scope, element) {
             $('[data-toggle="tooltip"]').tooltip({
@@ -1732,7 +1796,7 @@ app.directive('tooltipEnabler', function() {
     };
 });
 
-app.directive('watchpointModalEditor', function(srwService) {
+SIREPO.app.directive('watchpointModalEditor', function(srwService) {
     return {
         scope: {
             parentController: '=',
@@ -1747,7 +1811,7 @@ app.directive('watchpointModalEditor', function(srwService) {
     };
 });
 
-app.directive('watchpointReport', function(srwService) {
+SIREPO.app.directive('watchpointReport', function(srwService) {
     return {
         scope: {
             itemId: '=',

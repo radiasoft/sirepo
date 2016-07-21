@@ -28,6 +28,23 @@
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
+        "CRLMaterial": [
+            ["User-defined", "User-defined"],
+            ["Al", "Al"],
+            ["Be", "Be"],
+            ["C", "C"],
+            ["Cu", "Cu"],
+            ["Li", "Li"],
+            ["Mo", "Mo"],
+            ["Si", "Si"],
+            ["SiO2", "SiO2"],
+            ["W", "W"]
+        ],
+        "CRLMethod": [
+            ["server", "Server http://henke.lbl.gov"],
+            ["file", "Saved data file"],
+            ["calculation", "Calculate analytically"]
+        ],
         "CRLShape": [
             ["1", "Parabolic"],
             ["2", "Circular"]
@@ -175,8 +192,12 @@
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane"],
-            "refractiveIndex": ["Refractive Index Decrements of Material", "Float"],
-            "attenuationLength": ["Attenuation Length [m]", "Float"],
+            "material": ["Material of the CRL", "CRLMaterial"],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
+            "refractiveIndex": ["Refractive Index Decrements of Material", "Float", "", "Tooltip"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "focalDistance": ["CRL Focal Distance [m]", "Float"],
+            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float"],
             "shape": ["Shape", "CRLShape"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
@@ -499,8 +520,12 @@
                 "title",
                 "position",
                 "focalPlane",
+                "material",
+                "method",
                 "refractiveIndex",
                 "attenuationLength",
+                "focalDistance",
+                "absoluteFocusPosition",
                 "shape",
                 "horizontalApertureSize",
                 "verticalApertureSize",

@@ -1,26 +1,26 @@
 'use strict';
 
-app_local_routes.lattice = '/lattice/:simulationId';
-app_local_routes.visualization = '/visualization/:simulationId';
+SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
+SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 
-app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
             controller: 'ElegantSourceController as source',
-            templateUrl: '/static/html/elegant-source.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/elegant-source.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO_APP_VERSION,
+            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO.APP_VERSION,
         });
 });
 
-app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
+SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
     var self = this;
     var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
@@ -49,7 +49,7 @@ app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
 
     function validateGreaterOrEqualToZero(model, field) {
         if (parseFloat(model[field]) < 0)
-            model[field] = 0
+            model[field] = 0;
     }
 
     function validateTyping() {
@@ -82,7 +82,7 @@ app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
     function updateLongitudinalFields(delay) {
         if (! appState.isLoaded())
             return;
-        var method = appState.models['bunch']['longitudinalMethod'];
+        var method = appState.models.bunch.longitudinalMethod;
         if (parseInt(method) == 1)
             showFields(['sigma_s', 'sigma_dp', 'dp_s_coupling'], delay);
         else if (parseInt(method) == 2)
@@ -153,7 +153,7 @@ app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
     });
 });
 
-app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
+SIREPO.app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -248,7 +248,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     }
 
     function getBeamlinesWhichContainId(id) {
-        var res = []
+        var res = [];
         for (var i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
             for (var j = 0; j < b.items.length; j++) {
@@ -293,7 +293,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     function sortElements() {
         appState.models.elements.sort(function(a, b) {
             var res = a.type.localeCompare(b.type);
-            if (res == 0)
+            if (res === 0)
                 res = a.name.localeCompare(b.name);
             return res;
         });
@@ -342,7 +342,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
 
     self.createElement = function(type) {
         $('#s-newBeamlineElement-editor').modal('hide');
-        var schema = APP_SCHEMA.model[type];
+        var schema = SIREPO.APP_SCHEMA.model[type];
         var model = {
             _id: nextId(),
             type: type,
@@ -352,7 +352,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
-            if (schema[f][2] != undefined)
+            if (schema[f][2] !== undefined)
                 model[f] = schema[f][2];
         }
         self.editElement(type, model);
@@ -394,13 +394,14 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     };
 
     self.elementForId = function(id) {
+        var i;
         id = Math.abs(id);
-        for (var i = 0; i < appState.models.beamlines.length; i++) {
+        for (i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
             if (b.id == id)
                 return b;
         }
-        for (var i = 0; i < appState.models.elements.length; i++) {
+        for (i = 0; i < appState.models.elements.length; i++) {
             var e = appState.models.elements[i];
             if (e._id == id)
                 return e;
@@ -433,7 +434,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     };
 
     self.newBeamline = function() {
-        appState.models['beamline'] = {
+        appState.models.beamline = {
             name: uniqueNameForType('BL'),
             id: nextId(),
             l: 0,
@@ -454,12 +455,12 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     self.numFormat = function(num, units) {
         if (! angular.isDefined(num))
             return '';
-        num = parseFloat(num)
+        num = parseFloat(num);
         if (num < 1) {
             num *= 1000;
             units = 'm' + units;
         }
-        if (Math.round(num * 100) == 0)
+        if (Math.round(num * 100) === 0)
             return '0';
         if (num >= 1000)
             return num.toFixed(0) + units;
@@ -481,7 +482,7 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
     };
 
     self.titleForName = function(name) {
-        return APP_SCHEMA.view[name].description;
+        return SIREPO.APP_SCHEMA.view[name].description;
     };
 
     $scope.$on('cancelChanges', function(e, name) {
@@ -506,18 +507,12 @@ app.controller('LatticeController', function(appState, panelState, $rootScope, $
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
-
-    if (appState.isLoaded()) {
+    appState.whenModelsLoaded(function() {
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-    }
-    else {
-        $scope.$on('modelsLoaded', function() {
-            self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-        });
-    }
+    });
 });
 
-app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
     var self = this;
     var simulationModel = 'animation';
     var progress;
@@ -551,7 +546,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             return '';
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': APP_SCHEMA.simulationType,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': simulationModel,
             '<frame>': index,
         });
@@ -573,7 +568,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             self.outputFiles.push({
                 reportType: reportTypeForColumns(info.columns),
                 modelName: 'elementAnimation',
-                filename: info['filename'],
+                filename: info.filename,
                 modelAccess: {
                     modelKey: modelKey,
                 },
@@ -644,7 +639,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
                             else {
                                 progress = {
                                     percentComplete: data.percentComplete,
-                                }
+                                };
                             }
                         }
                         self.dots += '.';
@@ -658,7 +653,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             {
                 report: simulationModel,
                 simulationId: appState.models.simulation.simulationId,
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     }
 
@@ -673,7 +668,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
 
     function setSimulationState(state) {
         if (! appState.models.simulationStatus[simulationModel])
-            appState.models.simulationStatus[simulationModel] = {}
+            appState.models.simulationStatus[simulationModel] = {};
         appState.models.simulationStatus[simulationModel].state = state;
     }
 
@@ -700,7 +695,7 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
             {
                 report: simulationModel,
                 models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
@@ -778,29 +773,24 @@ app.controller('VisualizationController', function(appState, frameCache, panelSt
         requestSender.sendRequest(
             'runBackground',
             function(data) {
-                appState.models.simulationStatus[simulationModel].startTime = data['startTime'];
+                appState.models.simulationStatus.simulationModel.startTime = data.startTime;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
             {
                 report: simulationModel,
                 models: appState.applicationState(),
-                simulationType: APP_SCHEMA.simulationType,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
 
     $scope.$on('$destroy', function () {
         self.isDestroyed = true;
     });
-
-    if (appState.isLoaded())
-        refreshStatus();
-    else {
-        $scope.$on('modelsLoaded', refreshStatus);
-    }
+    appState.whenModelsLoaded(refreshStatus);
 });
 
-app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
@@ -812,7 +802,7 @@ app.directive('appFooter', function() {
     };
 });
 
-app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
         scope: {
@@ -864,7 +854,7 @@ app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
+SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
     return {
         restirct: 'A',
         scope: {
@@ -1026,7 +1016,7 @@ app.directive('beamlineEditor', function(appState, panelState, $document, $timeo
 
             $scope.showBeamlineNameModal = function() {
                 if (activeBeamline) {
-                    appState.models['beamline'] = activeBeamline;
+                    appState.models.beamline = activeBeamline;
                     panelState.showModalEditor('beamline');
                 }
             };
@@ -1061,7 +1051,7 @@ app.directive('beamlineEditor', function(appState, panelState, $document, $timeo
     };
 });
 
-app.directive('beamlineTable', function(appState, $window) {
+SIREPO.app.directive('beamlineTable', function(appState, $window) {
     return {
         restirct: 'A',
         scope: {
@@ -1168,7 +1158,7 @@ app.directive('beamlineTable', function(appState, $window) {
     };
 });
 
-app.directive('elementTable', function(appState) {
+SIREPO.app.directive('elementTable', function(appState) {
     return {
         restirct: 'A',
         scope: {
@@ -1247,7 +1237,7 @@ app.directive('elementTable', function(appState) {
             $scope.elementDescription = function(type, element) {
                 if (! element)
                     return 'null';
-                var schema = APP_SCHEMA.model[type];
+                var schema = SIREPO.APP_SCHEMA.model[type];
                 var res = '';
                 var fields = Object.keys(element).sort();
                 for (var i = 0; i < fields.length; i++) {
@@ -1281,16 +1271,12 @@ app.directive('elementTable', function(appState) {
                 if (name == 'elements')
                     loadTree();
             });
-
-            if (appState.isLoaded())
-                loadTree();
-            else
-                $scope.$on('modelsLoaded', loadTree);
+            appState.whenModelsLoaded(loadTree);
         },
     };
 });
 
-app.directive('elementAnimationModalEditor', function(appState) {
+SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     return {
         scope: {
             modelKey: '@',
@@ -1311,7 +1297,7 @@ app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-app.directive('latticeImportDialog', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1385,7 +1371,7 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
 
             function elementInputFiles(type) {
                 var res = [];
-                var elementSchema = APP_SCHEMA.model[type];
+                var elementSchema = SIREPO.APP_SCHEMA.model[type];
                 for (var f in elementSchema) {
                     if (elementSchema[f][1].indexOf('InputFile') >= 0)
                         res.push(f);
@@ -1411,7 +1397,7 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
                     fileType,
                     requestSender.formatUrl('listFiles', {
                         '<simulation_id>': $scope.id,
-                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': fileType,
                     }),
                     loadFileLists);
@@ -1495,7 +1481,7 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
                     requestSender.formatUrl(
                         'importFile',
                         {
-                            '<simulation_type>': APP_SCHEMA.simulationType,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         }),
                     function(data) {
                         if (data.error) {
@@ -1512,6 +1498,14 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
 
             $scope.importMissingFiles = function() {
                 $scope.state = 'import';
+                var dataResponseHandler = function(data) {
+                    if (data.error) {
+                        $scope.fileUploadError = data.error;
+                        return;
+                    }
+                    requestSender.getAuxiliaryData(data.fileType).push(data.filename);
+                    hideAndRedirect();
+                };
                 for (var i = 0; i < $scope.missingFiles.length; i++) {
                     var f = $scope.missingFiles[i][5];
                     var fileType = $scope.missingFiles[i][3];
@@ -1523,17 +1517,10 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
                             'uploadFile',
                             {
                                 '<simulation_id>': $scope.id,
-                                '<simulation_type>': APP_SCHEMA.simulationType,
+                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                                 '<file_type>': fileType,
                             }),
-                        function(data) {
-                            if (data.error) {
-                                $scope.fileUploadError = data.error;
-                                return;
-                            }
-                            requestSender.getAuxiliaryData(data.fileType).push(data.filename);
-                            hideAndRedirect();
-                        });
+                        dataResponseHandler);
                 }
             };
 
@@ -1558,7 +1545,7 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
 
             $scope.isState = function(state) {
                 return $scope.state == state;
-            }
+            };
 
             $scope.resetState = function() {
                 $scope.id = null;
@@ -1580,7 +1567,7 @@ app.directive('latticeImportDialog', function(appState, fileUpload, requestSende
     };
 });
 
-app.directive('runSimulationFields', function() {
+SIREPO.app.directive('runSimulationFields', function() {
     return {
         template: [
             '<div>',

@@ -5,3 +5,4 @@ numconv
 pykern
 uwsgi
 numpy
+bnlcrl

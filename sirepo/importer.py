@@ -576,28 +576,39 @@ def _parsed_dict(v, op):
     # Default electron beam:
     if hasattr(v, 'ebm_nm'):
         source_type = 'u'
+        if v.ebm_nms == 'Day1':
+            v.ebm_nms = 'Day 1'
         full_beam_name = '{}{}'.format(v.ebm_nm, v.ebm_nms)
-        electronBeam = {
-            'beamSelector': full_beam_name,
-            'current': v.ebm_i,
-            'energy': _default_value('ueb_e', v, std_options, 3.0),
-            'energyDeviation': _default_value('ebm_de', v, std_options, 0.0),
-            'horizontalAlpha': _default_value('ueb_alpha_x', v, std_options, 0.0),
-            'horizontalBeta': _default_value('ueb_beta_x', v, std_options, 2.02),
-            'horizontalDispersion': _default_value('ueb_eta_x', v, std_options, 0.0),
-            'horizontalDispersionDerivative': _default_value('ueb_eta_x_pr', v, std_options, 0.0),
-            'horizontalEmittance': _default_value('ueb_emit_x', v, std_options, 9e-10) * 1e9,
-            'horizontalPosition': v.ebm_x,
-            'isReadOnly': True,
-            'name': full_beam_name,
-            'rmsSpread': _default_value('ueb_sig_e', v, std_options, 0.00089),
-            'verticalAlpha': _default_value('ueb_alpha_y', v, std_options, 0.0),
-            'verticalBeta': _default_value('ueb_beta_y', v, std_options, 1.06),
-            'verticalDispersion': _default_value('ueb_eta_y', v, std_options, 0.0),
-            'verticalDispersionDerivative': _default_value('ueb_eta_y_pr', v, std_options, 0.0),
-            'verticalEmittance': _default_value('ueb_emit_y', v, std_options, 8e-12) * 1e9,
-            'verticalPosition': v.ebm_y,
-        }
+        electronBeam = {}
+        with open(str(static_json_dir + '/beams.json'), 'r') as f:
+            predefined_beams = json.load(f)
+            for b in predefined_beams:
+                if b['name'] == full_beam_name:
+                    electronBeam = b
+                    electronBeam['beamSelector'] = full_beam_name
+                    break
+        if not electronBeam:
+            electronBeam = {
+                'beamSelector': full_beam_name,
+                'current': v.ebm_i,
+                'energy': _default_value('ueb_e', v, std_options, 3.0),
+                'energyDeviation': _default_value('ebm_de', v, std_options, 0.0),
+                'horizontalAlpha': _default_value('ueb_alpha_x', v, std_options, 0.0),
+                'horizontalBeta': _default_value('ueb_beta_x', v, std_options, 2.02),
+                'horizontalDispersion': _default_value('ueb_eta_x', v, std_options, 0.0),
+                'horizontalDispersionDerivative': _default_value('ueb_eta_x_pr', v, std_options, 0.0),
+                'horizontalEmittance': _default_value('ueb_emit_x', v, std_options, 9e-10) * 1e9,
+                'horizontalPosition': v.ebm_x,
+                'isReadOnly': True,
+                'name': full_beam_name,
+                'rmsSpread': _default_value('ueb_sig_e', v, std_options, 0.00089),
+                'verticalAlpha': _default_value('ueb_alpha_y', v, std_options, 0.0),
+                'verticalBeta': _default_value('ueb_beta_y', v, std_options, 1.06),
+                'verticalDispersion': _default_value('ueb_eta_y', v, std_options, 0.0),
+                'verticalDispersionDerivative': _default_value('ueb_eta_y_pr', v, std_options, 0.0),
+                'verticalEmittance': _default_value('ueb_emit_y', v, std_options, 8e-12) * 1e9,
+                'verticalPosition': v.ebm_y,
+            }
 
         undulator = {
             'horizontalAmplitude': _default_value('und_bx', v, std_options, 0.0),
@@ -606,7 +617,7 @@ def _parsed_dict(v, op):
             'length': _default_value('und_len', v, std_options, 1.5),
             'longitudinalPosition': _default_value('und_zc', v, std_options, 1.305),
             'period': _default_value('und_per', v, std_options, 0.021) * 1e3,
-            'verticalAmplitude': _default_value('und_by', v, std_options, 0.88770981),
+            'verticalAmplitude': _default_value('und_by', v, std_options, 0.88770981) if hasattr(v, 'und_by') else _default_value('und_b', v, std_options, 0.88770981),
             'verticalInitialPhase': _default_value('und_phy', v, std_options, 0.0),
             'verticalSymmetry': _default_value('und_sy', v, std_options, -1),
         }

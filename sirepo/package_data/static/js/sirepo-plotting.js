@@ -1,6 +1,6 @@
 'use strict';
 
-app.factory('plotting', function(appState, d3Service, frameCache, panelState, $timeout, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $timeout, $window) {
 
     var INITIAL_HEIGHT = 400;
 
@@ -49,7 +49,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
                 if (scope.isPlaying)
                     scope.advanceFrame(1);
             });
-        }
+        };
         scope.advanceFrame = function(increment) {
             var next = frameCache.getCurrentFrame(scope.modelName) + increment;
             if (next < 0 || next > frameCache.getFrameCount(scope.modelName) - 1) {
@@ -70,12 +70,12 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {
-            if (SIREPO_APP_NAME == 'srw')
+            if (SIREPO.APP_NAME == 'srw')
                 return false;
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
         };
         scope.isFirstFrame = function() {
-            return frameCache.getCurrentFrame(scope.modelName) == 0;
+            return frameCache.getCurrentFrame(scope.modelName) === 0;
         };
         scope.isLastFrame = function() {
             return frameCache.getCurrentFrame(scope.modelName) == frameCache.getFrameCount(scope.modelName) - 1;
@@ -96,7 +96,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
         scope.$on('framesLoaded', function(event, oldFrameCount) {
             if (scope.prevFrameIndex < 0)
                 scope.firstFrame();
-            else if (oldFrameCount == 0)
+            else if (oldFrameCount === 0)
                 scope.lastFrame();
             else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName))
                 scope.firstFrame();
@@ -142,7 +142,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
                 v = cleanNumber(v);
                 var units = scope[axis + 'units'] || '';
                 return v + units;
-            }
+            };
         },
 
         initialHeight: function(scope) {
@@ -170,7 +170,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
                                     scope.load(data);
                             });
                         }, 50);
-                    }
+                    };
                 }
 
                 scope.windowResize = debounce(function() {
@@ -224,7 +224,7 @@ app.factory('plotting', function(appState, d3Service, frameCache, panelState, $t
     }
 });
 
-app.directive('animationButtons', function() {
+SIREPO.app.directive('animationButtons', function() {
     return {
         restrict: 'A',
         template: [
@@ -239,13 +239,13 @@ app.directive('animationButtons', function() {
     };
 });
 
-app.directive('plot2d', function(plotting) {
+SIREPO.app.directive('plot2d', function(plotting) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot2d.html?' + SIREPO_APP_VERSION,
+        templateUrl: '/static/html/plot2d.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
 
             var ASPECT_RATIO = 4.0 / 7;
@@ -257,6 +257,7 @@ app.directive('plot2d', function(plotting) {
             var defaultCircleSize = null;
 
             function onClick() {
+                /*jshint validthis: true*/
                 if (! points)
                     return;
                 var mouseX = d3.mouse(this)[0];
@@ -268,7 +269,7 @@ app.directive('plot2d', function(plotting) {
                 if (xMax > domain[1])
                     xMax = domain[1];
 
-                focusIndex = -1
+                focusIndex = -1;
                 var maxPoint;
                 for (var i = 0; i < points.length; i++) {
                     var p = points[i];
@@ -302,7 +303,7 @@ app.directive('plot2d', function(plotting) {
             }
 
             function showFocusPoint(isMainFocus) {
-                var p = points[focusIndex]
+                var p = points[focusIndex];
                 var domain = xAxisScale.domain();
                 if (p[0] < domain[0] || p[0] > domain[1]) {
                     select('.focus').style('display', 'none');
@@ -330,7 +331,7 @@ app.directive('plot2d', function(plotting) {
                     return;
                 focusIndex = newIndex;
                 showFocusPoint(false);
-            };
+            }
 
             function refresh() {
                 if (d3.event && d3.event.translate) {
@@ -412,7 +413,7 @@ app.directive('plot2d', function(plotting) {
                 zoom.x(xAxisScale);
                 select('.overlay').call(zoom).on('dblclick.zoom', null);
                 refresh();
-            }
+            };
 
             function select(selector) {
                 var e = d3.select($scope.element);
@@ -435,8 +436,8 @@ app.directive('plot2d', function(plotting) {
                 yAxis = plotting.createExponentialAxis(yAxisScale, 'left');
                 yAxisGrid = plotting.createAxis(yAxisScale, 'left');
                 graphLine = d3.svg.line()
-                    .x(function(d) {return xAxisScale(d[0])})
-                    .y(function(d) {return yAxisScale(d[1])});
+                    .x(function(d) {return xAxisScale(d[0]);})
+                    .y(function(d) {return yAxisScale(d[1]);});
                 select('.overlay')
                     .on('mouseover', function() {
                         if (! keyListener) {
@@ -500,13 +501,13 @@ app.directive('plot2d', function(plotting) {
     };
 });
 
-app.directive('plot3d', function(plotting) {
+SIREPO.app.directive('plot3d', function(plotting) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot3d.html?' + SIREPO_APP_VERSION,
+        templateUrl: '/static/html/plot3d.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
 
             $scope.margin = 50;
@@ -517,8 +518,7 @@ app.directive('plot3d', function(plotting) {
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = true;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
-
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, heatmap, mainXAxis, mainYAxis, mouseRect, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValueMax, xValueMin, xValueRange, yAxisScale, yIndexScale, yValueMax, yValueMin, yValueRange;
             function drawBottomPanelCut() {
                 var bBottom = yIndexScale(yAxisScale.domain()[0]);
                 var yTop = yIndexScale(yAxisScale.domain()[1]);
@@ -724,11 +724,11 @@ app.directive('plot3d', function(plotting) {
                     refresh();
                 };
                 bottomPanelCutLine = d3.svg.line()
-                    .x(function(d) {return xAxisScale(d[0])})
-                    .y(function(d) {return bottomPanelYScale(d[1])});
+                    .x(function(d) {return xAxisScale(d[0]);})
+                    .y(function(d) {return bottomPanelYScale(d[1]);});
                 rightPanelCutLine = d3.svg.line()
-                    .y(function(d) { return yAxisScale(d[0])})
-                    .x(function(d) { return rightPanelXScale(d[1])});
+                    .y(function(d) { return yAxisScale(d[0]);})
+                    .x(function(d) { return rightPanelXScale(d[1]);});
             };
 
             $scope.load = function(json) {
@@ -790,13 +790,13 @@ app.directive('plot3d', function(plotting) {
     };
 });
 
-app.directive('heatmap', function(plotting) {
+SIREPO.app.directive('heatmap', function(plotting) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/heatmap.html?' + SIREPO_APP_VERSION,
+        templateUrl: '/static/html/heatmap.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
 
             $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};
@@ -814,7 +814,7 @@ app.directive('heatmap', function(plotting) {
                     return avg += avg !== null
 	                ? alpha * (value - avg)
 	                : value;
-                }
+                };
             };
 
             var allFrameMin = new EMA();
@@ -886,6 +886,7 @@ app.directive('heatmap', function(plotting) {
             }
 
             function mouseMove() {
+                /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2)
                     return;
                 var point = d3.mouse(this);
@@ -894,7 +895,7 @@ app.directive('heatmap', function(plotting) {
                 var x = Math.round((heatmap[0].length - 1) * (x0 - xValueMin) / (xValueMax - xValueMin));
                 var y = Math.round((heatmap.length - 1) * (y0 - yValueMin) / (yValueMax - yValueMin));
                 var value = heatmap[heatmap.length - 1 - y][x];
-                pointer.pointTo(value)
+                pointer.pointTo(value);
             }
 
             function refresh() {
@@ -1041,8 +1042,8 @@ app.directive('heatmap', function(plotting) {
                 select('.z-axis-label').text(json.z_label);
                 xAxisScale.domain([xValueMin, xValueMax]);
                 yAxisScale.domain([yValueMin, yValueMax]);
-                var zmin = json.z_matrix[0][0]
-                var zmax = json.z_matrix[0][0]
+                var zmin = json.z_matrix[0][0];
+                var zmax = json.z_matrix[0][0];
 
                 for (var yi = 0; yi <= ymax; ++yi) {
                     // flip to match the canvas coordinate system (origin: top left)
@@ -1080,13 +1081,13 @@ app.directive('heatmap', function(plotting) {
     };
 });
 
-app.directive('lattice', function(plotting, appState, $timeout, $window) {
+SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/lattice.html?' + SIREPO_APP_VERSION,
+        templateUrl: '/static/html/lattice.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
             //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
             var p = $scope;
@@ -1153,7 +1154,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                         //     var noArcLength = Math.abs(2 * Math.sin(angle / 2) * length / angle);
                         //     length = noArcLength;
                         // }
-                        if (length == 0) {
+                        if (length === 0) {
                             length = 0.1;
                             enter[0] -= 0.05;
                         }
@@ -1208,18 +1209,18 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             groupItem.apertureColor = $scope.getPicColor(item.type, 'black');
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
-                            if (groupItem.width == 0) {
+                            if (groupItem.width === 0) {
                                 groupItem.x -= 0.01;
                                 groupItem.width = 0.02;
                             }
                             groupItem.opening = elRadius || 0.1;
                         }
                         else if (picType == 'alpha') {
-                            var angle = 40.71;
-                            newAngle = 180 - 2 * angle;
+                            var alphaAngle = 40.71;
+                            newAngle = 180 - 2 * alphaAngle;
                             if (length < 0.3)
                                 groupItem.width = 0.3;
-                            groupItem.angle = angle;
+                            groupItem.angle = alphaAngle;
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
@@ -1260,8 +1261,8 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             var ovalCount = Math.round(length / (groupItem.height / 2)) || 1;
                             groupItem.ovalWidth = length / ovalCount;
                             groupItem.ovals = [];
-                            for (var j = 0; j < ovalCount; j++) {
-                                groupItem.ovals.push(groupItem.x + j * groupItem.ovalWidth + groupItem.ovalWidth / 2);
+                            for (var k = 0; k < ovalCount; k++) {
+                                groupItem.ovals.push(groupItem.x + k * groupItem.ovalWidth + groupItem.ovalWidth / 2);
                             }
                             groupItem.color = $scope.getPicColor(item.type, 'gold');
                         }
@@ -1280,11 +1281,11 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                             groupItem.color = $scope.getPicColor(item.type, 'lightblue');
                         }
                         else if (picType == 'solenoid') {
-                            if (length == 0) {
+                            if (length === 0) {
                                 groupItem.width = 0.3;
                                 groupItem.x -= 0.15;
                             }
-                            groupItem.height = groupItem.width
+                            groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = $scope.getPicColor(item.type, 'lightblue');
                         }
@@ -1300,7 +1301,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                         x += length;
                     }
                 }
-                if (pos.angle == 0) {
+                if (pos.angle === 0) {
                     pos.x += x + oldRadius;
                 }
                 else {
@@ -1459,7 +1460,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
             $scope.getPicType = function(type) {
                 if (! picTypeCache) {
                     picTypeCache = {};
-                    var elementPic = $scope.latticeController.elementPic
+                    var elementPic = $scope.latticeController.elementPic;
                     for (var picType in elementPic) {
                         var types = elementPic[picType];
                         for (var i = 0; i < types.length; i++)
@@ -1486,7 +1487,7 @@ app.directive('lattice', function(plotting, appState, $timeout, $window) {
                 if ($scope.svgBounds) {
                     var w = $scope.svgBounds[2] - $scope.svgBounds[0];
                     var h = $scope.svgBounds[3] - $scope.svgBounds[1];
-                    if (w == 0 || h == 0)
+                    if (w === 0 || h === 0)
                         return;
                     var scaleWidth = $scope.width / w;
                     var scaleHeight = $scope.height / h;

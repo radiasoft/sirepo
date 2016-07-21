@@ -45,9 +45,10 @@
     <script src="/static/js/split-pane-0.6.1.min.js"></script>
     <script src="/static/js/angular-split-pane-1.2.0.js"></script>
     <script>
-      var APP_SCHEMA;
-      var SIREPO_APP_NAME = '{{ app_name }}';
-      var SIREPO_APP_VERSION = '{{ version }}';
+        var SIREPO = {
+            APP_NAME:  '{{ app_name }}',
+            APP_VERSION: '{{ version }}',
+        };
     </script>
     <script src="/static/js/sirepo.js?{{ version }}"></script>
     <script src="/static/js/sirepo-components.js?{{ version }}"></script>

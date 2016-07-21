@@ -1,6 +1,6 @@
 'use strict';
 
-app.directive('advancedEditorPane', function(appState, $timeout) {
+SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         scope: {
             viewName: '=',
@@ -28,6 +28,7 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
         ].join(''),
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
+            var i;
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
@@ -51,7 +52,7 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
-                for (var i = 0; i < $scope.advancedFields.length; i++) {
+                for (i = 0; i < $scope.advancedFields.length; i++) {
                     var page = {
                         name: $scope.advancedFields[i][0],
                         items: [],
@@ -67,8 +68,8 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
                 $scope.pages = [];
                 var index = 0;
                 var items;
-                for (var i = 0; i < $scope.advancedFields.length; i++) {
-                    if (i % viewInfo.fieldsPerTab == 0) {
+                for (i = 0; i < $scope.advancedFields.length; i++) {
+                    if (i % viewInfo.fieldsPerTab === 0) {
                         index += 1;
                         items = [];
                         $scope.pages.push({
@@ -96,7 +97,7 @@ app.directive('advancedEditorPane', function(appState, $timeout) {
     };
 });
 
-app.directive('basicEditorPanel', function(appState, panelState) {
+SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     return {
         scope: {
             viewName: '@',
@@ -119,7 +120,7 @@ app.directive('basicEditorPanel', function(appState, panelState) {
     };
 });
 
-app.directive('buttons', function(appState) {
+SIREPO.app.directive('buttons', function(appState) {
     return {
         scope: {
             modelName: '=',
@@ -147,18 +148,19 @@ app.directive('buttons', function(appState) {
             }
 
             function iterateFields(field) {
+                var i;
                 // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
                 if (typeof(field) == 'string')
                     extractModel(field, modelNames);
                 else {
                     // [name, [cols]]
                     if (typeof(field[0]) == 'string') {
-                        for (var i = 0; i < field[1].length; i++)
+                        for (i = 0; i < field[1].length; i++)
                             iterateFields(field[1][i]);
                     }
                     // [[name, [cols]], [name, [cols]], ...]
                     else {
-                        for (var i = 0; i < field.length; i++)
+                        for (i = 0; i < field.length; i++)
                             iterateFields(field[i]);
                     }
                 }
@@ -186,7 +188,7 @@ app.directive('buttons', function(appState) {
     };
 });
 
-app.directive('confirmationModal', function() {
+SIREPO.app.directive('confirmationModal', function() {
     return {
         restrict: 'A',
         transclude: true,
@@ -227,7 +229,7 @@ app.directive('confirmationModal', function() {
     };
 });
 
-app.directive('labelWithTooltip', function() {
+SIREPO.app.directive('labelWithTooltip', function() {
     return {
         restrict: 'A',
         scope: {
@@ -240,7 +242,9 @@ app.directive('labelWithTooltip', function() {
         link: function link(scope, element) {
             if (scope.tooltip) {
                 $(element).find('span').tooltip({
-                    title: scope.tooltip,
+                    title: function() {
+                        return scope.tooltip;
+                    },
                     placement: 'bottom',
                 });
             }
@@ -248,7 +252,7 @@ app.directive('labelWithTooltip', function() {
     };
 });
 
-app.directive('fieldEditor', function(appState, panelState, requestSender) {
+SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
     return {
         restirct: 'A',
         scope: {
@@ -357,20 +361,20 @@ app.directive('fieldEditor', function(appState, panelState, requestSender) {
                 panelState.showModalEditor('electronBeam');
             };
             $scope.showLabel = function() {
-                if ($scope.labelSize == '')
+                if ($scope.labelSize === '')
                     return true;
                 return $scope.labelSize > 0;
             };
         },
         link: function link(scope, element) {
-            scope.enum = APP_SCHEMA.enum;
+            scope.enum = SIREPO.APP_SCHEMA.enum;
             if (scope.info && scope.info[1] == 'BeamList')
                 requestSender.loadAuxiliaryData('beams', '/static/json/beams.json');
         },
     };
 });
 
-app.directive('outputFileField', function() {
+SIREPO.app.directive('outputFileField', function() {
     return {
         restirct: 'A',
         scope: {
@@ -401,7 +405,7 @@ app.directive('outputFileField', function() {
     };
 });
 
-app.directive('fileField', function(appState, panelState, requestSender) {
+SIREPO.app.directive('fileField', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -443,8 +447,8 @@ app.directive('fileField', function(appState, panelState, requestSender) {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': APP_SCHEMA.simulationType,
-                        '<filename>': SIREPO_APP_NAME == 'srw'
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<filename>': SIREPO.APP_NAME == 'srw'
                             ? $scope.model[$scope.fileField]
                             : $scope.fileType + '.' + $scope.model[$scope.fileField],
                     });
@@ -471,7 +475,7 @@ app.directive('fileField', function(appState, panelState, requestSender) {
                     $scope.fileType,
                     requestSender.formatUrl('listFiles', {
                         '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
                     }));
                 return $scope.emptyList;
@@ -493,7 +497,7 @@ app.directive('fileField', function(appState, panelState, requestSender) {
     };
 });
 
-app.directive('columnEditor', function(appState) {
+SIREPO.app.directive('columnEditor', function(appState) {
     return {
         scope: {
             modelName: '=',
@@ -577,7 +581,7 @@ app.directive('columnEditor', function(appState) {
     };
 });
 
-app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -631,7 +635,7 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
                         'uploadFile',
                         {
                             '<simulation_id>': appState.models.simulation.simulationId,
-                            '<simulation_type>': APP_SCHEMA.simulationType,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                             '<file_type>': $scope.fileType,
                         }),
                     function(data) {
@@ -660,8 +664,8 @@ app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) 
     };
 });
 
-app.directive('helpButton', function($window) {
-    var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO_APP_NAME.toUpperCase() + '-';
+SIREPO.app.directive('helpButton', function($window) {
+    var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {
         scope: {
             helpTopic: '@helpButton',
@@ -679,7 +683,7 @@ app.directive('helpButton', function($window) {
     };
 });
 
-app.directive('modalEditor', function(appState) {
+SIREPO.app.directive('modalEditor', function(appState) {
     return {
         scope: {
             viewName: '@',
@@ -751,7 +755,7 @@ app.directive('modalEditor', function(appState) {
     };
 });
 
-app.directive('modelField', function(appState) {
+SIREPO.app.directive('modelField', function(appState) {
     return {
         scope: {
             field: '=modelField',
@@ -780,11 +784,11 @@ app.directive('modelField', function(appState) {
                 if ($scope.modelData && ! modelField)
                     return $scope.modelData.getData();
                 return appState.models[modelName];
-            }
+            };
 
             $scope.modelNameForField = function() {
                 return modelName;
-            }
+            };
 
             $scope.fieldName = function(f) {
                 return field;
@@ -793,7 +797,7 @@ app.directive('modelField', function(appState) {
     };
 });
 
-app.directive('numberToString', function() {
+SIREPO.app.directive('numberToString', function() {
     return {
         restrict: 'A',
         require: 'ngModel',
@@ -812,7 +816,7 @@ app.directive('numberToString', function() {
     };
 });
 
-app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -842,14 +846,14 @@ app.directive('panelHeading', function(appState, frameCache, panelState, request
         ].join(''),
         controller: function($scope) {
             $scope.hasEditor = appState.viewInfo($scope.modelKey)
-                && appState.viewInfo($scope.modelKey).advanced.length == 0 ? false : true;
+                && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
             $scope.panelState = panelState;
 
             $scope.dataFileURL = function() {
                 if (appState.isLoaded()) {
                     return requestSender.formatUrl('downloadDataFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': APP_SCHEMA.simulationType,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<model>': $scope.modelKey,
                         '<frame>': appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
@@ -857,12 +861,12 @@ app.directive('panelHeading', function(appState, frameCache, panelState, request
                     });
                 }
                 return '';
-            },
+            };
             $scope.downloadImage = function(height) {
                 var svg = $scope.reportPanel.find('svg')[0];
                 if (! svg)
                     return;
-                var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png'
+                var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
                 var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
@@ -884,7 +888,7 @@ app.directive('panelHeading', function(appState, frameCache, panelState, request
     };
 });
 
-app.directive('reportContent', function(panelState) {
+SIREPO.app.directive('reportContent', function(panelState) {
     return {
         restrict: 'A',
         transclude: true,
@@ -911,7 +915,7 @@ app.directive('reportContent', function(panelState) {
     };
 });
 
-app.directive('reportPanel', function(appState) {
+SIREPO.app.directive('reportPanel', function(appState) {
     return {
         restrict: 'A',
         transclude: true,
@@ -939,7 +943,7 @@ app.directive('reportPanel', function(appState) {
     };
 });
 
-app.directive('appHeaderLeft', function(panelState) {
+SIREPO.app.directive('appHeaderLeft', function(panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -964,7 +968,7 @@ app.directive('appHeaderLeft', function(panelState) {
     };
 });
 
-app.directive('simulationStatusTimer', function() {
+SIREPO.app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',
         scope: {
@@ -978,7 +982,7 @@ app.directive('simulationStatusTimer', function() {
     };
 });
 
-app.directive('stringToNumber', function() {
+SIREPO.app.directive('stringToNumber', function() {
     var NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
     return {
         restrict: 'A',
@@ -1012,7 +1016,7 @@ app.directive('stringToNumber', function() {
     };
 });
 
-app.directive('fileModel', ['$parse', function ($parse) {
+SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
     return {
         restrict: 'A',
         link: function(scope, element, attrs) {
@@ -1027,7 +1031,7 @@ app.directive('fileModel', ['$parse', function ($parse) {
     };
 }]);
 
-app.service('plotToPNG', function($http) {
+SIREPO.app.service('plotToPNG', function($http) {
 
     function downloadPlot(svg, height, plot3dCanvas, fileName) {
         var canvas = document.createElement('canvas');
@@ -1059,7 +1063,7 @@ app.service('plotToPNG', function($http) {
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed sirepo.css style within SVG for first download, css file is cached by browser
-        $http.get('/static/css/sirepo.css?' + SIREPO_APP_VERSION)
+        $http.get('/static/css/sirepo.css?' + SIREPO.APP_VERSION)
             .success(function(data) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');
@@ -1069,10 +1073,10 @@ app.service('plotToPNG', function($http) {
                 }
                 downloadPlot(svg, height, plot3dCanvas, fileName);
             });
-    }
+    };
 });
 
-app.service('fileUpload', function($http) {
+SIREPO.app.service('fileUpload', function($http) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -1090,5 +1094,5 @@ app.service('fileUpload', function($http) {
                 //TODO(pjm): error handling
                 console.log('file upload failed');
             });
-    }
+    };
 });

@@ -156,7 +156,7 @@ def fixup_electron_beam(data):
         float(data['models'][und]['length']),
         float(data['models'][und]['period']) / 1000.0,
         data['models']['electronBeam'],
-    )
+        )
 
     data['models']['electronBeam']['drift'] = beam_parameters['drift']
 
@@ -383,6 +383,10 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
+    elif data['method'] == 'compute_crl_characteristics':
+        return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
+    elif data['method'] == 'compute_crl_focus':
+        return _compute_crl_focus(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -545,8 +549,8 @@ def validate_file(file_type, path):
                     if len(parts) > 0:
                         float(parts[0])
                     if len(parts) > 1:
-                       float(parts[1])
-                       count += 1
+                        float(parts[1])
+                        count += 1
             if count == 0:
                 return 'no data rows found in file'
         except ValueError as e:
@@ -592,6 +596,49 @@ def _beamline_element(template, item, fields, propagation, shift=''):
         shift,
         template.format(*map(lambda x: item[x], fields))
     ), _propagation_params(propagation[str(item['id'])][0], shift)
+
+
+def _compute_crl_characteristics(model, photon_energy):
+    if model['material'] == 'User-defined':
+        return model
+
+    from bnlcrl.pkcli.simulate import find_delta
+
+    # Index of refraction:
+    kwargs = {
+        'energy': photon_energy,
+    }
+    if model['method'] == 'server':
+        kwargs['precise'] = True
+        kwargs['formula'] = model['material']
+    elif model['method'] == 'file':
+        kwargs['precise'] = True
+        kwargs['data_file'] = '{}_delta.dat'.format(model['material'])
+    else:
+        kwargs['calc_delta'] = True
+        kwargs['formula'] = model['material']
+    delta = find_delta(**kwargs)
+    model['refractiveIndex'] = delta['characteristic_value']
+
+    # Attenuation length:
+    kwargs['characteristic'] = 'atten'
+    if model['method'] == 'file':
+        kwargs['precise'] = True
+        kwargs['data_file'] = '{}_atten.dat'.format(model['material'])
+    if model['method'] == 'calculation':
+        # The method 'calculation' in bnlcrl library is not supported yet for attenuation length calculation.
+        pass
+    else:
+        atten = find_delta(**kwargs)
+        model['attenuationLength'] = atten['characteristic_value']
+
+    return model
+
+
+def _compute_crl_focus(model):
+    model['focalDistance'] = float(model['radius']) / (2. * float(model['numberOfLenses']) * float(model['refractiveIndex']))
+    model['absoluteFocusPosition'] = 1. / (1. / model['focalDistance'] - 1. / float(model['position'])) + float(model['position'])
+    return model
 
 
 def _compute_crystal_init(model):
