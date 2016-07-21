@@ -6,12 +6,12 @@ exports.config = {
 
         // base format for created files
         // replaces %suiteName%, %suiteId%, %specName%, %specId%, %browser%, %resolution% and %increment% with their respective values
-        basename: '%resolution%/%suiteId%-%suiteName%/%browser%-%specId%-%specName%-%increment%',
+        basename: '%specId%-%increment%',
 
         image: {
 
                 // where to put the screenshots, used by the default callback
-            target: './reports',
+            target: './run/protractor-snapshot',
 
             // default callbacks to handle the screenshot data
             callbacks: [
@@ -29,7 +29,7 @@ exports.config = {
         source: {
 
                 // where to put the html snapshots, used by the default callback
-            target: './reports',
+            target: './run/protractor-snapshot',
 
             // remove <meta name="fragment" content="!"> elements from the HTML snapshots
             removeMetaFragments: false,
@@ -61,11 +61,11 @@ exports.config = {
         // function or array of function, executed on first call of image() or source()
         // each function receives the ProtractorSnapshot instance as argument so you can use its config
         onInit: function ($snapshot) {
-            $snapshot.clearTarget('./reports');
+            $snapshot.clearTarget('./run/protractor-snapshot');
         },
 
         // write a log of all created snapshots, set to false to disable
-        report: false, // './reports/protractor-snapshot/report.json'
+        report: false, // './run/protractor-snapshot/protractor-snapshot/report.json'
     },
 
     onPrepare: function () {
