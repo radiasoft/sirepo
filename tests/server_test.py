@@ -5,10 +5,12 @@ u"""?
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import pytest
+pytest.importorskip('srwl_bl')
+
 from pykern import pkio
 from pykern import pkunit
 from sirepo import server
-import pytest
 import flask
 import json
 
