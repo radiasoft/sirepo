@@ -156,7 +156,7 @@ def fixup_electron_beam(data):
         float(data['models'][und]['length']),
         float(data['models'][und]['period']) / 1000.0,
         data['models']['electronBeam'],
-    )
+        )
 
     data['models']['electronBeam']['drift'] = beam_parameters['drift']
 
@@ -385,6 +385,8 @@ def get_application_data(data):
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
+    elif data['method'] == 'compute_crl_focus':
+        return _compute_crl_focus(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -547,8 +549,8 @@ def validate_file(file_type, path):
                     if len(parts) > 0:
                         float(parts[0])
                     if len(parts) > 1:
-                       float(parts[1])
-                       count += 1
+                        float(parts[1])
+                        count += 1
             if count == 0:
                 return 'no data rows found in file'
         except ValueError as e:
@@ -599,6 +601,7 @@ def _beamline_element(template, item, fields, propagation, shift=''):
 def _compute_crl_characteristics(model, photon_energy):
     if model['material'] == 'User-defined':
         return model
+
     from bnlcrl.pkcli.simulate import find_delta
 
     # Index of refraction:
@@ -630,6 +633,13 @@ def _compute_crl_characteristics(model, photon_energy):
         model['attenuationLength'] = atten['characteristic_value']
 
     return model
+
+
+def _compute_crl_focus(model):
+    model['focalDistance'] = float(model['radius']) / (2. * float(model['numberOfLenses']) * float(model['refractiveIndex']))
+    model['absoluteFocusPosition'] = 1. / (1. / model['focalDistance'] - 1. / float(model['position'])) + float(model['position'])
+    return model
+
 
 def _compute_crystal_init(model):
     parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']

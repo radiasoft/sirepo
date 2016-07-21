@@ -25,6 +25,8 @@
                 "id": 2,
                 "material": "User-defined",
                 "method": "server",
+                "focalDistance": 0.0,
+                "absoluteFocusPosition": 0.0,
                 "numberOfLenses": 6,
                 "position": 300,
                 "radius": 0.00025,

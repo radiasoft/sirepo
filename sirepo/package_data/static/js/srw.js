@@ -156,7 +156,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.toolbarItems = [
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, shape:1,
+        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
@@ -281,6 +281,14 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 savedModelValues[modelName] = appState.cloneModel(modelName);
         }
         appState.saveChanges(['beamline', 'propagation', 'postPropagation']);
+    }
+
+    function updatePhotonEnergyHelpText() {
+        if (appState.isLoaded()) {
+                var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
+                SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
+        }
     }
 
     function watchpointReportName(id) {
@@ -495,11 +503,18 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         return '[' + fieldsList.toString() + ']';
     }
 
-    var CRLFields = [
+    if (appState.isLoaded()) {
+        updatePhotonEnergyHelpText();
+    } else {
+        $scope.$on('modelsLoaded', updatePhotonEnergyHelpText);
+        $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
+    }
+
+    var CRLDeltaAttenFields = [
         'material',
         'method',
     ];
-    $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
+    $scope.$watchCollection(wrapActiveItem(CRLDeltaAttenFields), function (newValues, oldValues) {
         var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
         if (newValues[0] === 'User-defined') {
             crlMethodFormGroup.hide(0);
@@ -515,7 +530,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                     photon_energy: appState.models.simulation.photonEnergy,
                 },
                 function(data) {
-                    // TODO(mrakitin): hide 'method' field when the 'material' is 'User-defined'.
                     var fields = ['refractiveIndex', 'attenuationLength'];
                     for (var i = 0; i < fields.length; i++) {
                         item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
@@ -525,6 +539,35 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         }
     });
 
+    var CRLFocusFields = [
+        'numberOfLenses',
+        'position',
+        'radius',
+        'refractiveIndex',
+    ];
+    function computeCRLFocus() {
+        var item = self.activeItem;
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crl_focus',
+                optical_element: item,
+            },
+            function(data) {
+                var fields = ['focalDistance', 'absoluteFocusPosition'];
+                for (var i = 0; i < fields.length; i++) {
+                    item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
+                }
+            }
+        );
+    }
+    $scope.$watchCollection(wrapActiveItem(CRLFocusFields), function (newValues, oldValues) {
+        for (var i = 0; i < newValues.length; i++) {
+            if (typeof(newValues[i]) !== 'undefined') {
+                computeCRLFocus();
+                break;
+            }
+        }
+    });
 
     var crystalInitFields = [
         'material',
@@ -533,7 +576,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         'k',
         'l',
     ];
-
     $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
@@ -560,7 +602,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         'psi0i',
         'rotationAngle',
     ];
-
     $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
         if (checkChanged(newValues, oldValues)) {
             var item = self.activeItem;
@@ -700,7 +741,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     }
 
     function processFluxMethod(methodNumber, reportName) {
-        if (! appState.isLoaded() || typeof methodNumber === "undefined")
+        if (! appState.isLoaded() || typeof(methodNumber) === 'undefined')
             return;
         // Get magnetic field values from server:
         requestSender.getApplicationData(
@@ -1473,7 +1514,7 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
             $scope.isUploading = false;
             $scope.title = 'Import Python Beamline File';
             $scope.importPythonFile = function(pythonFile, importArgs) {
-                if (typeof importArgs === "undefined")
+                if (typeof(importArgs) === 'undefined')
                     importArgs = '';
                 if (! pythonFile)
                     return;

@@ -60,6 +60,8 @@
                 "id": 22,
                 "material": "User-defined",
                 "method": "server",
+                "focalDistance": 0.0,
+                "absoluteFocusPosition": 0.0,
                 "numberOfLenses": 3,
                 "position": 35.8,
                 "radius": 0.0015,

@@ -42,7 +42,7 @@
         ],
         "CRLMethod": [
             ["server", "Server http://henke.lbl.gov"],
-            ["file", "File"],
+            ["file", "Saved data file"],
             ["calculation", "Calculate analytically"]
         ],
         "CRLShape": [
@@ -194,8 +194,10 @@
             "focalPlane": ["Focal Plane", "FocalPlane"],
             "material": ["Material of the CRL", "CRLMaterial"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
-            "refractiveIndex": ["Refractive Index Decrements of Material", "Float"],
-            "attenuationLength": ["Attenuation Length [m]", "Float"],
+            "refractiveIndex": ["Refractive Index Decrements of Material", "Float", "", "Tooltip"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "focalDistance": ["CRL Focal Distance [m]", "Float"],
+            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float"],
             "shape": ["Shape", "CRLShape"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
@@ -522,6 +524,8 @@
                 "method",
                 "refractiveIndex",
                 "attenuationLength",
+                "focalDistance",
+                "absoluteFocusPosition",
                 "shape",
                 "horizontalApertureSize",
                 "verticalApertureSize",
