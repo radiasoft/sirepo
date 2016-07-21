@@ -540,8 +540,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                         item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
                     }
 
-                    var fields = ['focalDistance', 'absoluteFocusPosition'];
-                    for (var i = 0; i < fields.length; i++) {
+                    fields = ['focalDistance', 'absoluteFocusPosition'];
+                    for (i = 0; i < fields.length; i++) {
                         item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
                     }
                 }
