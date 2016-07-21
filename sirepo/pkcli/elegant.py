@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc
+from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE
@@ -39,30 +40,27 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run elegant in
     """
     with pkio.save_chdir(cfg_dir):
-        _run_elegant();
+        _run_elegant(with_mpi=True);
 
 
-def _run_elegant(bunch_report=False):
+def _run_elegant(bunch_report=False, with_mpi=False):
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     if bunch_report and re.search('\&sdds_beam\s', elegant_file):
         return
     pkio.write_text('elegant.lte', lattice_file)
-    pkio.write_text('elegant.ele', elegant_file)
+    ele = 'elegant.ele'
+    pkio.write_text(ele, elegant_file)
+    # TODO(robnagler) Need to handle this specially, b/c different binary
+    if with_mpi and mpi.cfg.slaves > 1:
+        return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE)
     with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
-        with open(_ELEGANT_STDERR_FILE, 'w') as elegant_stderr:
-            env = copy.deepcopy(os.environ)
-            env['RPN_DEFNS'] = pkresource.filename('rpn.defns')
-            p = subprocess.Popen(
-                ['elegant', 'elegant.ele'],
-                stdout=elegant_stdout,
-                stderr=elegant_stderr,
-                env=env,
-            )
-            p.wait()
-    # combine stderr with stdout
-    with open(ELEGANT_LOG_FILE, 'a') as log_file:
-        with open(_ELEGANT_STDERR_FILE, 'r') as f:
-            log_file.write(f.read())
+        p = subprocess.Popen(
+            ['elegant', ele],
+            stdout=elegant_stdout,
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
+        p.wait()
 
 
 def _extract_bunch_report():

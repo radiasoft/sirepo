@@ -51,7 +51,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
         }
         var model = savedModelValues[modelName];
         var distance = '';
-        if (model && model.distanceFromSource !== null)
+        if (model && 'distanceFromSource' in model)
             distance = ', ' + model.distanceFromSource + 'm';
         else if (appState.isAnimationModelName(modelName))
             distance = '';
