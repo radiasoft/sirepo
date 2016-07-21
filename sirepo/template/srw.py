@@ -385,8 +385,6 @@ def get_application_data(data):
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
-    elif data['method'] == 'compute_crl_focus':
-        return _compute_crl_focus(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -600,7 +598,7 @@ def _beamline_element(template, item, fields, propagation, shift=''):
 
 def _compute_crl_characteristics(model, photon_energy):
     if model['material'] == 'User-defined':
-        return model
+        return _compute_crl_focus(model)
 
     from bnlcrl.pkcli.simulate import find_delta
 
@@ -632,7 +630,7 @@ def _compute_crl_characteristics(model, photon_energy):
         atten = find_delta(**kwargs)
         model['attenuationLength'] = atten['characteristic_value']
 
-    return model
+    return _compute_crl_focus(model)
 
 
 def _compute_crl_focus(model):
