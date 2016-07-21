@@ -54,14 +54,14 @@
                 "verticalSize": 0.055
             },
             {
+                "absoluteFocusPosition": 0.0,
                 "attenuationLength": 0.0095953,
+                "focalDistance": 0.0,
                 "focalPlane": 2,
                 "horizontalApertureSize": 1,
                 "id": 22,
                 "material": "User-defined",
                 "method": "server",
-                "focalDistance": 0.0,
-                "absoluteFocusPosition": 0.0,
                 "numberOfLenses": 3,
                 "position": 35.8,
                 "radius": 0.0015,
