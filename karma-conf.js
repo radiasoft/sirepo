@@ -1,12 +1,11 @@
 // Karma configuration
 // Generated on Tue Jul 21 2015 19:52:26 GMT+0000 (UCT)
-
 // before running the first time:
 //   npm install karma --save-dev
 //   npm install karma-jasmine --save-dev
-//   npm install karma-chrome-launcher
+//   npm install karma-phantomjs-launcher
 // then:
-//   ./node_modules/karma/bin/karma start --single-run
+//   ./node_modules/karma/bin/karma start
 
 module.exports = function(config) {
   config.set({
@@ -41,7 +40,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/sirepo-plotting.js',
         'sirepo/package_data/static/js/srw.js',
         'tests/helpers/angular/*.js',
-        'tests/**/*.js',
+        'tests/karma/**/*.js',
     ],
 
 
@@ -66,7 +65,7 @@ module.exports = function(config) {
 
 
     // enable / disable colors in the output (reporters and logs)
-    colors: true,
+    colors: false,
 
 
     // level of logging
@@ -80,11 +79,11 @@ module.exports = function(config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome'],
+    browsers: ['PhantomJS'],
 
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
-    singleRun: false
+    singleRun: true
   })
 }
