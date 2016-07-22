@@ -24,6 +24,7 @@ from pykern import pkjinja
 from pykern import pkresource
 from sirepo import simulation_db
 from sirepo.template import template_common
+import bnlcrl.pkcli.simulate
 import uti_plot_com
 
 WANT_BROWSER_FRAME_CACHE = False
@@ -600,8 +601,6 @@ def _compute_crl_characteristics(model, photon_energy):
     if model['material'] == 'User-defined':
         return _compute_crl_focus(model)
 
-    from bnlcrl.pkcli.simulate import find_delta
-
     # Index of refraction:
     kwargs = {
         'energy': photon_energy,
@@ -615,7 +614,7 @@ def _compute_crl_characteristics(model, photon_energy):
     else:
         kwargs['calc_delta'] = True
         kwargs['formula'] = model['material']
-    delta = find_delta(**kwargs)
+    delta = bnlcrl.pkcli.simulate.find_delta(**kwargs)
     model['refractiveIndex'] = delta['characteristic_value']
 
     # Attenuation length:
@@ -627,15 +626,21 @@ def _compute_crl_characteristics(model, photon_energy):
         # The method 'calculation' in bnlcrl library is not supported yet for attenuation length calculation.
         pass
     else:
-        atten = find_delta(**kwargs)
+        atten = bnlcrl.pkcli.simulate.find_delta(**kwargs)
         model['attenuationLength'] = atten['characteristic_value']
 
     return _compute_crl_focus(model)
 
 
 def _compute_crl_focus(model):
-    model['focalDistance'] = float(model['radius']) / (2. * float(model['numberOfLenses']) * float(model['refractiveIndex']))
-    model['absoluteFocusPosition'] = 1. / (1. / model['focalDistance'] - 1. / float(model['position'])) + float(model['position'])
+    d = bnlcrl.pkcli.simulate.calc_ideal_focus(
+        radius=model['radius'],
+        n=model['numberOfLenses'],
+        delta=model['refractiveIndex'],
+        p0=model['position']
+    )
+    model['focalDistance'] = d['ideal_focus']
+    model['absoluteFocusPosition'] = d['p1_ideal_from_source']
     return model
 
 

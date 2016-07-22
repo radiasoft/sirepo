@@ -497,13 +497,13 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         return true;
     }
 
-    function checkUndefinedExists(values) {
+    function checkDefined(values) {
         for (var i = 0; i < values.length; i++) {
-            if (typeof(values[i]) !== 'undefined') {
-                return true;
+            if (typeof(values[i]) === 'undefined' || values[i] === null) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     function wrapActiveItem(fields) {
@@ -555,7 +555,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         } else {
             crlMethodFormGroup.show(0);
         }
-        if (checkUndefinedExists(newValues)) {
+        if (checkDefined(newValues)) {
             computeCRLCharacteristics();
         }
     });
