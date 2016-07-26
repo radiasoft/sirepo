@@ -60,6 +60,10 @@
             ["auto", "Automatic"],
             ["manual", "Manual"]
         ],
+        "EstimateTimeMomentParameters": [
+            ["auto", "Automatic"],
+            ["manual", "Manual"]
+        ],
         "FieldUnits": [
             ["0", "Arbitrary Units"],
             ["1", "ph/s/.1%bw/mm²"],
@@ -476,6 +480,7 @@
             "indexFile": ["Magnetic Zip Index File", "String"]
         },
         "trajectoryReport": {
+            "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters"],
             "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
             "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
             "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer"],
@@ -1068,6 +1073,7 @@
             "basic": [],
             "advanced": [
                 ["Main", [
+                    "timeMomentEstimation",
                     "initialTimeMoment",
                     "finalTimeMoment",
                     "numberOfPoints",

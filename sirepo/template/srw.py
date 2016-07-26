@@ -307,19 +307,15 @@ def fixup_old_data(data):
 
     # Trajectory report:
     if 'trajectoryReport' not in data['models']:
-        initialTimeMoment = -0.5
-        if data['models']['simulation']['sourceType'] == 't':
-            key = 'tabulatedUndulator'
-        else:
-            key = 'undulator'
-        finalTimeMoment = float(data['models'][key]['length']) + 0.5
         data['models']['trajectoryReport'] = {
-            'initialTimeMoment': initialTimeMoment,
-            'finalTimeMoment': finalTimeMoment,
+            'timeMomentEstimation': 'auto',
+            'initialTimeMoment': 0.0,
+            'finalTimeMoment': 3.0,
             'numberOfPoints': 10000,
             'plotAxis': 'x',
             'magneticField': 1,
         }
+
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -358,6 +354,18 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
             # render the watchpoint report settings in the initialIntensityReport template slot
             data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+        elif data['report'] == 'trajectoryReport':
+            if data['models']['simulation']['sourceType'] == 't':
+                key = 'tabulatedUndulator'
+            else:
+                key = 'undulator'
+            data['models']['trajectoryReport'] = _process_trajectory_report(
+                data['models']['trajectoryReport'],
+                data['models'][key]['longitudinalPosition'],
+                data['models'][key]['length'],
+                data['models']['simulation']['sourceType'],
+                data['models']['tabulatedUndulator']['undulatorType'],
+            )
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
@@ -424,6 +432,14 @@ def get_application_data(data):
             data['undulator_length'],
             data['undulator_period'],
             data['ebeam'],
+        )
+    elif data['method'] == 'process_trajectory_report':
+        return _process_trajectory_report(
+            data['report_model'],
+            data['longitudinal_position'],
+            data['length'],
+            data['source_type'],
+            data['undulator_type'],
         )
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
@@ -1076,6 +1092,25 @@ def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' else 1
     return {'magneticField': magnetic_field}
+
+def _process_trajectory_report(report_model, longitudinalPosition, length, source_type, undulator_type):
+    if report_model['timeMomentEstimation'] == 'manual':
+        return report_model
+
+    extra = 0.2
+    if source_type == 't' and undulator_type == 'u_t':
+        longitudinalPosition = 0.0
+        length = 2.5
+    else:
+        longitudinalPosition = float(longitudinalPosition)
+        length = float(length)
+    initialTimeMoment = longitudinalPosition - extra
+    finalTimeMoment = longitudinalPosition + length + extra
+
+    report_model['initialTimeMoment'] = initialTimeMoment
+    report_model['finalTimeMoment'] = finalTimeMoment
+
+    return report_model
 
 def _process_undulator_definition(model):
     """Convert K -> B and B -> K."""
