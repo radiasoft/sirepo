@@ -110,6 +110,7 @@ def extract_report_data(filename, model_data):
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = {
+        'res_trj.dat': [['Longitudinal Position', 'Position', 'Electron Trajectory'], ['m', 'm']],
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
@@ -120,7 +121,14 @@ def extract_report_data(filename, model_data):
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     }
 
-    data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
+    if model_data['report'] == 'trajectoryReport':
+        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(
+            filename,
+            traj_report=True,
+            traj_axis=model_data['models']['trajectoryReport']['plotAxis'],
+        )
+    else:
+        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
     filename = os.path.basename(filename)
 
     title = file_info[filename][0][2]
@@ -297,6 +305,21 @@ def fixup_old_data(data):
         else:
             data['models']['simulation']['folder'] = '/'
 
+    # Trajectory report:
+    if 'trajectoryReport' not in data['models']:
+        initialTimeMoment = -0.5
+        if data['models']['simulation']['sourceType'] == 't':
+            key = 'tabulatedUndulator'
+        else:
+            key = 'undulator'
+        finalTimeMoment = float(data['models'][key]['length']) + 0.5
+        data['models']['trajectoryReport'] = {
+            'initialTimeMoment': initialTimeMoment,
+            'finalTimeMoment': finalTimeMoment,
+            'numberOfPoints': 10000,
+            'plotAxis': 'x',
+            'magneticField': 1,
+        }
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -496,6 +519,9 @@ def run_all_text(data):
     elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
         content.append('v.si = True')
         content.append("v.si_pl = 'xy'")
+    elif data['report'] == 'trajectoryReport':
+        content.append('v.tr = True')
+        content.append("v.tr_pl = 'xxpyypz'")
     elif data['report'] == 'mirrorReport':
         pass
     elif re.search('^watchpointReport', data['report']):

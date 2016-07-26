@@ -74,6 +74,15 @@ varParam = srwl_bl.srwl_uti_ext_options([
 {% endif %}
 
 #---Calculation Types
+    # Electron Trajectory
+    ['tr', '', '', 'calculate electron trajectory', 'store_true'],
+    ['tr_cti', 'f', {{trajectoryReport_initialTimeMoment}}, 'initial time moment (c*t) for electron trajectory calculation [m]'],
+    ['tr_ctf', 'f', {{trajectoryReport_finalTimeMoment}}, 'final time moment (c*t) for electron trajectory calculation [m]'],
+    ['tr_np', 'f', {{trajectoryReport_numberOfPoints}}, 'number of points for trajectory calculation'],
+    ['tr_mag', 'i', {{trajectoryReport_magneticField}}, 'magnetic field to be used for trajectory calculation: 1- approximate, 2- accurate'],
+    ['tr_fn', 's', 'res_trj.dat', 'file name for saving calculated trajectory data'],
+    ['tr_pl', 's', '', 'plot the resulting trajectiry in graph(s): ""- dont plot, otherwise the string should list the trajectory components to plot'],
+
     #Single-Electron Spectrum vs Photon Energy
     ['ss', '', '', 'calculate single-e spectrum vs photon energy', 'store_true'],
     ['ss_ei', 'f', {{intensityReport_initialEnergy}}, 'initial photon energy [eV] for single-e spectrum vs photon energy calculation'],

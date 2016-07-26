@@ -131,6 +131,10 @@
             ["n", "Horizontal"],
             ["s", "Vertical"]
         ],
+        "PlotAxis": [
+            ["x", "Horizontal"],
+            ["y", "Vertical"]
+        ],
         "Polarization": [
             ["0", "Linear Horizontal"],
             ["1", "Linear Vertical"],
@@ -470,6 +474,13 @@
             "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
             "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
             "indexFile": ["Magnetic Zip Index File", "String"]
+        },
+        "trajectoryReport": {
+            "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
+            "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
+            "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer"],
+            "plotAxis": ["Axis to plot", "PlotAxis"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"]
         },
         "undulator": {
             "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
@@ -1051,6 +1062,21 @@
                 ]
             ],
             "advanced": []
+        },
+        "trajectoryReport": {
+            "title": "Electron Trajectory Report",
+            "basic": [],
+            "advanced": [
+                ["Main", [
+                    "initialTimeMoment",
+                    "finalTimeMoment",
+                    "numberOfPoints",
+                    "plotAxis"
+                ]],
+                ["Accuracy", [
+                    "magneticField"
+                ]]
+            ]
         },
         "undulator": {
             "title": "Idealized Undulator",

@@ -113,6 +113,9 @@ def _run_srw():
     elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
         v.si = True
         outfile = v.si_fn
+    elif data['report'] == 'trajectoryReport':
+        v.tr = True
+        outfile = v.tr_fn
     elif data['report'] == 'mirrorReport':
         _process_output(_mirror_plot(data), data)
         return
