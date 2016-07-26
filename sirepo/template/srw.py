@@ -122,6 +122,12 @@ def extract_report_data(filename, model_data):
     }
 
     if model_data['report'] == 'trajectoryReport':
+        assert model_data['models']['trajectoryReport']['plotAxis'] in ['x', 'y']
+        if model_data['models']['trajectoryReport']['plotAxis'] == 'x':
+            axis_name = 'Horizontal'
+        else:
+            axis_name = 'Vertical'
+        file_info['res_trj.dat'][0][1] = '{} {}'.format(axis_name, file_info['res_trj.dat'][0][1])
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(
             filename,
             traj_report=True,
