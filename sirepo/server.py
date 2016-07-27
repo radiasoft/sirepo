@@ -584,7 +584,6 @@ def _cfg_job_queue(value):
             print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
             sys.exit(1)
         return _Celery
-
     elif value == 'Background':
         signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
         return _Background
