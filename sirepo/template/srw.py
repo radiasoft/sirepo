@@ -365,12 +365,15 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
                 key = 'tabulatedUndulator'
             else:
                 key = 'undulator'
+            length = data['models'][key]['length']
             data['models']['trajectoryReport'] = _process_trajectory_report(
                 data['models']['trajectoryReport'],
                 data['models'][key]['longitudinalPosition'],
-                data['models'][key]['length'],
+                length,
                 data['models']['simulation']['sourceType'],
                 data['models']['tabulatedUndulator']['undulatorType'],
+                data['models']['tabulatedUndulator']['indexFile'],
+                data['models']['tabulatedUndulator']['gap'],
             )
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
@@ -446,6 +449,8 @@ def get_application_data(data):
             data['length'],
             data['source_type'],
             data['undulator_type'],
+            data['index_file'],
+            data['gap'],
         )
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
@@ -486,7 +491,7 @@ def is_cache_valid(data, old_data):
             related_models.append('postPropagation')
             related_models.append('propagation')
 
-    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport']:
+    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport', 'trajectoryReport']:
         for name in related_models:
             if data['models'][name] != old_data['models'][name]:
                 return False
@@ -515,6 +520,12 @@ def prepare_aux_files(run_dir, data):
         if re.search('\.txt', f):
             data['models']['tabulatedUndulator']['indexFile'] = os.path.basename(f)
             data['models']['tabulatedUndulator']['magnMeasFolder'] = os.path.dirname(f)
+            d = _find_tab_undulator_length(
+                py.path.local.join(py.path.local(run_dir), os.path.basename(f)),
+                data['models']['tabulatedUndulator']['gap'],
+            )
+            data['models']['undulator']['length'] = d['found_length']
+            data['models']['tabulatedUndulator']['length'] = d['found_length']
             break
 
 
@@ -1164,17 +1175,15 @@ def _process_intensity_reports(source_type, undulator_type):
 
 
 def _process_trajectory_report(report_model, longitudinal_position, length, source_type, undulator_type,
-                               index_file='', gap=None):
+                               index_file='', gap=0):
     if report_model['timeMomentEstimation'] == 'manual':
         return report_model
-
     extra = 0.2
-    if source_type == 't' and undulator_type == 'u_t' and index_file and gap > 0:
+    if source_type == 't' and undulator_type == 'u_t':
         longitudinalPosition = 0.0
-        length = _find_tab_undulator_length(index_file, gap)['found_length']
     else:
         longitudinalPosition = float(longitudinal_position)
-        length = float(length)
+    length = float(length)
     initialTimeMoment = longitudinalPosition - extra
     finalTimeMoment = longitudinalPosition + length + extra
 

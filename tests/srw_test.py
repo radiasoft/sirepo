@@ -91,7 +91,12 @@ def _prepare_env():
             'tabulatedUndulator': {
                 'magneticFile': 'magnetic_measurements.zip',
                 'indexFile': '',
-                'magnMeasFolder': ''
+                'magnMeasFolder': '',
+                'gap': 0,
+                'length': 0,
+            },
+            'undulator': {
+                'length': 0
             }
         }
     }

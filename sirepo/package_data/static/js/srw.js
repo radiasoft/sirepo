@@ -825,6 +825,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                 length: appState.models[und].length,
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                index_file: appState.models.tabulatedUndulator.indexFile,
+                gap: appState.models.tabulatedUndulator.gap,
             },
             function(data) {
                 for (var i = 0; i < fieldsToDisable.length; i++) {
