@@ -122,6 +122,12 @@ def extract_report_data(filename, model_data):
     }
 
     if model_data['report'] == 'trajectoryReport':
+        assert model_data['models']['trajectoryReport']['plotAxis'] in ['x', 'y']
+        if model_data['models']['trajectoryReport']['plotAxis'] == 'x':
+            axis_name = 'Horizontal'
+        else:
+            axis_name = 'Vertical'
+        file_info['res_trj.dat'][0][1] = '{} {}'.format(axis_name, file_info['res_trj.dat'][0][1])
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(
             filename,
             traj_report=True,
@@ -307,19 +313,15 @@ def fixup_old_data(data):
 
     # Trajectory report:
     if 'trajectoryReport' not in data['models']:
-        initialTimeMoment = -0.5
-        if data['models']['simulation']['sourceType'] == 't':
-            key = 'tabulatedUndulator'
-        else:
-            key = 'undulator'
-        finalTimeMoment = float(data['models'][key]['length']) + 0.5
         data['models']['trajectoryReport'] = {
-            'initialTimeMoment': initialTimeMoment,
-            'finalTimeMoment': finalTimeMoment,
+            'timeMomentEstimation': 'auto',
+            'initialTimeMoment': 0.0,
+            'finalTimeMoment': 3.0,
             'numberOfPoints': 10000,
             'plotAxis': 'x',
             'magneticField': 1,
         }
+
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
@@ -358,6 +360,21 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
             # render the watchpoint report settings in the initialIntensityReport template slot
             data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
+        elif data['report'] == 'trajectoryReport':
+            if data['models']['simulation']['sourceType'] == 't':
+                key = 'tabulatedUndulator'
+            else:
+                key = 'undulator'
+            length = data['models'][key]['length']
+            data['models']['trajectoryReport'] = _process_trajectory_report(
+                data['models']['trajectoryReport'],
+                data['models'][key]['longitudinalPosition'],
+                length,
+                data['models']['simulation']['sourceType'],
+                data['models']['tabulatedUndulator']['undulatorType'],
+                data['models']['tabulatedUndulator']['indexFile'],
+                data['models']['tabulatedUndulator']['gap'],
+            )
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
@@ -425,6 +442,16 @@ def get_application_data(data):
             data['undulator_period'],
             data['ebeam'],
         )
+    elif data['method'] == 'process_trajectory_report':
+        return _process_trajectory_report(
+            data['report_model'],
+            data['longitudinal_position'],
+            data['length'],
+            data['source_type'],
+            data['undulator_type'],
+            data['index_file'],
+            data['gap'],
+        )
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -464,7 +491,7 @@ def is_cache_valid(data, old_data):
             related_models.append('postPropagation')
             related_models.append('propagation')
 
-    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport']:
+    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport', 'trajectoryReport']:
         for name in related_models:
             if data['models'][name] != old_data['models'][name]:
                 return False
@@ -493,6 +520,12 @@ def prepare_aux_files(run_dir, data):
         if re.search('\.txt', f):
             data['models']['tabulatedUndulator']['indexFile'] = os.path.basename(f)
             data['models']['tabulatedUndulator']['magnMeasFolder'] = os.path.dirname(f)
+            d = _find_tab_undulator_length(
+                py.path.local.join(py.path.local(run_dir), os.path.basename(f)),
+                data['models']['tabulatedUndulator']['gap'],
+            )
+            data['models']['undulator']['length'] = d['found_length']
+            data['models']['tabulatedUndulator']['length'] = d['found_length']
             break
 
 
@@ -814,6 +847,67 @@ def _crystal_element(template, item, fields, propagation):
     return res, _propagation_params(propagation[str(item['id'])][0])
 
 
+def _find_closest_value(values_list, value):
+    """Find closest value to the specified input.
+
+    Args:
+        values_list: a list of float values.
+        value: a value for which the closest value should be found.
+
+    Returns:
+        dict: dictionary with the index of the found value (``idx``) and the closest value (``closest_value``).
+    """
+    assert type(value) is float
+    indices_previous = []
+    indices_next = []
+    for i in range(len(values_list)):
+        if values_list[i] <= value:
+            indices_previous.append(i)
+        else:
+            indices_next.append(i)
+
+    assert indices_previous or indices_next
+    idx_previous = indices_previous[-1] if indices_previous else indices_next[0]
+    idx_next = indices_next[0] if indices_next else indices_previous[-1]
+
+    idx = idx_previous if abs(values_list[idx_previous] - value) <= abs(values_list[idx_next] - value) else idx_next
+    return {
+        'idx': idx,
+        'closest_value': values_list[idx],
+    }
+
+
+def _find_tab_undulator_length(index_file, gap):
+    gap = float(gap)
+    sum_content = index_file.readlines()
+    gaps_list = []
+    dat_files_list = []
+    for row in sum_content:
+        v = row.split()
+        gaps_list.append(float(v[0]))
+        dat_files_list.append(v[3])
+
+    d = _find_closest_value(gaps_list, gap)
+    closest_gap = d['closest_value']
+    dat_file = dat_files_list[d['idx']]
+
+    dat_file_abs = py.path.local.join(
+        py.path.local(index_file.dirname),
+        dat_file,
+    )
+
+    dat_content = dat_file_abs.readlines()
+    step = float(dat_content[8].split('#')[1].strip())
+    number_of_points = int(dat_content[9].split('#')[1].strip())
+    found_length = step * number_of_points
+
+    return {
+        'found_length': found_length,
+        'dat_file': dat_file,
+        'dat_file_abs': dat_file_abs,
+        'closest_gap': closest_gap
+    }
+
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     propagation = models['propagation']
@@ -1064,6 +1158,7 @@ def _process_beam_parameters(source_type, undulator_type, undulator_length, undu
 
     return model
 
+
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 1
@@ -1072,10 +1167,31 @@ def _process_flux_reports(method_number, report_name, source_type, undulator_typ
 
     return {'magneticField': magnetic_field}
 
+
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' else 1
     return {'magneticField': magnetic_field}
+
+
+def _process_trajectory_report(report_model, longitudinal_position, length, source_type, undulator_type,
+                               index_file='', gap=0):
+    if report_model['timeMomentEstimation'] == 'manual':
+        return report_model
+    extra = 0.2
+    if source_type == 't' and undulator_type == 'u_t':
+        longitudinalPosition = 0.0
+    else:
+        longitudinalPosition = float(longitudinal_position)
+    length = float(length)
+    initialTimeMoment = longitudinalPosition - extra
+    finalTimeMoment = longitudinalPosition + length + extra
+
+    report_model['initialTimeMoment'] = initialTimeMoment
+    report_model['finalTimeMoment'] = finalTimeMoment
+
+    return report_model
+
 
 def _process_undulator_definition(model):
     """Convert K -> B and B -> K."""
@@ -1093,8 +1209,10 @@ def _process_undulator_definition(model):
     except:
         return model
 
+
 def _propagation_params(prop, shift=''):
     return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
+
 
 def _remap_3d(info, allrange, z_label, z_units):
     x_range = [allrange[3], allrange[4], allrange[5]]
@@ -1120,8 +1238,10 @@ def _remap_3d(info, allrange, z_label, z_units):
         'z_matrix': ar2d.tolist(),
     }
 
+
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
+
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
@@ -1135,6 +1255,7 @@ def _validate_data(data, schema):
         _validate_propagation(data['models']['propagation'][item_id][0])
         _validate_propagation(data['models']['propagation'][item_id][1])
     _validate_propagation(data['models']['postPropagation'])
+
 
 def _validate_propagation(prop):
     for i in range(len(prop)):

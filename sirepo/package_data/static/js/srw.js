@@ -796,6 +796,50 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         );
     }
 
+    function processTrajectoryReport(fieldsToDisable) {
+        if (! appState.isLoaded())
+            return;
+        if (appState.models.trajectoryReport.timeMomentEstimation == 'manual') {
+            for (var i = 0; i < fieldsToDisable.length; i++) {
+                var true_false = false;
+                if (fieldsToDisable[i] === '') {
+                    true_false = false;
+                }
+                disableField('trajectoryReport', fieldsToDisable[i], 'skip', true_false);
+            }
+            return;
+        }
+        var und;
+        if (appState.models.simulation.sourceType === 'u') {
+            und = 'undulator';
+        } else if (appState.models.simulation.sourceType === 't') {
+            und = 'tabulatedUndulator';
+        } else {
+            und = 'undulator';
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'process_trajectory_report',
+                report_model: appState.models.trajectoryReport,
+                longitudinal_position: appState.models[und].longitudinalPosition,
+                length: appState.models[und].length,
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                index_file: appState.models.tabulatedUndulator.indexFile,
+                gap: appState.models.tabulatedUndulator.gap,
+            },
+            function(data) {
+                for (var i = 0; i < fieldsToDisable.length; i++) {
+                    var true_false = true;
+                    if (fieldsToDisable[i] === '') {
+                        true_false = false;
+                    }
+                    disableField('trajectoryReport', fieldsToDisable[i], data[fieldsToDisable[i]], true_false);
+                }
+            }
+        );
+    }
+
     function processUndulatorDefinition(reportName, undulatorDefinition) {
         if (! appState.isLoaded() || typeof(reportName) === 'undefined')
             return;
@@ -877,6 +921,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                 processIntensityReports(name, ['method', 'magneticField'], 'process_intensity_reports');
             } else if (name === 'sourceIntensityReport') {
                 processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
+            } else if (name === 'trajectoryReport') {
+                processTrajectoryReport(['initialTimeMoment', 'finalTimeMoment']);
             } else if (name === 'electronBeam') {
                 processBeamParameters();
             }
@@ -951,6 +997,14 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                     precisionLabel = 'Step Size';
                 }
                 $('.model-intensityReport-precision').find('label').text(precisionLabel);
+            }
+        });
+    });
+
+    $scope.$watch('appState.models.trajectoryReport.timeMomentEstimation', function (newValue, oldValue) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                processTrajectoryReport(['initialTimeMoment', 'finalTimeMoment']);
             }
         });
     });
