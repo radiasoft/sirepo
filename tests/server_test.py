@@ -10,12 +10,11 @@ pytest.importorskip('srwl_bl')
 
 from pykern import pkio
 from pykern import pkunit
-from sirepo import server
-import flask
 import json
 
 @pytest.yield_fixture(scope='module')
 def client():
+    from sirepo import server
     with pkunit.save_chdir_work():
         db = pkio.mkdir_parent('db')
         server.app.config['TESTING'] = True
