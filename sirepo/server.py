@@ -584,8 +584,8 @@ def _cfg_job_queue(value):
             print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
             sys.exit(1)
         return _Celery
-
     elif value == 'Background':
+        signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
         return _Background
     else:
         raise AssertionError('{}: unknown job_queue'.format(value))
@@ -706,8 +706,6 @@ class _Background(object):
 
     def __init__(self, sid, run_dir, cmd):
         with self._lock:
-            if signal.getsignal(signal.SIGCHLD) != _Background.sigchld_handler:
-                signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
             assert not sid in self._process, \
                 'Simulation already running: sid={}'.format(sid)
             self.in_kill = False
