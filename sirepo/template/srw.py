@@ -184,8 +184,6 @@ def fixup_electron_beam(data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    if 'name' in data['models']['simulation'] and data['models']['simulation']['name'] == 'Undulator Radiation':
-        data['models']['sourceIntensityReport']['distanceFromSource'] = 20
     # add point count to reports and move sampleFactor to simulation model
     if data['models']['fluxReport'] and 'photonEnergyPointCount' not in data['models']['fluxReport']:
         data['models']['fluxReport']['photonEnergyPointCount'] = 10000
