@@ -1199,14 +1199,17 @@ def _process_intensity_reports(source_type, undulator_type):
 
 
 def _process_trajectory_report(report_model, longitudinal_position, length, source_type, undulator_type):
-    if report_model['timeMomentEstimation'] == 'manual':
-        return report_model
+    magneticField = 1
+    longitudinalPosition = float(longitudinal_position)
+    extra = 0.2
     if source_type == 't' and undulator_type == 'u_t':
+        magneticField = 2
         longitudinalPosition = 0.0
         extra = 0.0
-    else:
-        longitudinalPosition = float(longitudinal_position)
-        extra = 0.2
+    report_model['magneticField'] = magneticField
+    if report_model['timeMomentEstimation'] == 'manual':
+        return report_model
+
     length = float(length)
     initialTimeMoment = longitudinalPosition - extra
     finalTimeMoment = longitudinalPosition + length + extra
