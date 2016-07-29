@@ -154,6 +154,46 @@ def extract_report_data(filename, model_data):
     return info
 
 
+def find_tab_undulator_length(zip_file, gap):
+    """Find undulator length from the specified zip-archive with the magnetic measurements data.
+
+    Args:
+        zip_file: zip-archive with the magnetic measurements data.
+        gap: undulator gap [mm].
+
+    Returns:
+        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
+    """
+    z = zipfile.ZipFile(zip_file)
+    index_dir, index_file = _find_index_file(z)
+    with z.open(os.path.join(index_dir, index_file)) as f:
+        sum_content = f.readlines()
+    gap = float(gap)
+    gaps_list = []
+    dat_files_list = []
+    for row in sum_content:
+        v = row.split()
+        gaps_list.append(float(v[0]))
+        dat_files_list.append(v[3])
+
+    d = _find_closest_value(gaps_list, gap)
+    closest_gap = d['closest_value']
+    dat_file = dat_files_list[d['idx']]
+
+    with z.open(os.path.join(index_dir, dat_file)) as f:
+        dat_content = f.readlines()
+
+    step = float(dat_content[8].split('#')[1].strip())
+    number_of_points = int(dat_content[9].split('#')[1].strip())
+    found_length = round(step * number_of_points, 6)
+
+    return {
+        'found_length': found_length,
+        'dat_file': dat_file,
+        'closest_gap': closest_gap
+    }
+
+
 def fixup_electron_beam(data):
     if 'driftCalculationMethod' not in data['models']['electronBeam']:
         data['models']['electronBeam']['driftCalculationMethod'] = 'auto'  # can be either 'auto' or 'manual'
@@ -790,7 +830,7 @@ def _compute_undulator_length(model):
     zip_file = simulation_db.simulation_lib_dir('srw').join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
-        d = _find_tab_undulator_length(zip_file, model['gap'])
+        d = find_tab_undulator_length(zip_file, model['gap'])
         model['length'] = d['found_length']
     return model
 
@@ -892,45 +932,6 @@ def _find_index_file(zip_object):
     assert index_file is not None
     return index_dir, index_file
 
-
-def _find_tab_undulator_length(zip_file, gap):
-    """Find undulator length from the specified zip-archive with the magnetic measurements data.
-
-    Args:
-        zip_file: zip-archive with the magnetic measurements data.
-        gap: undulator gap [mm].
-
-    Returns:
-        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
-    """
-    z = zipfile.ZipFile(zip_file)
-    index_dir, index_file = _find_index_file(z)
-    with z.open(os.path.join(index_dir, index_file)) as f:
-        sum_content = f.readlines()
-    gap = float(gap)
-    gaps_list = []
-    dat_files_list = []
-    for row in sum_content:
-        v = row.split()
-        gaps_list.append(float(v[0]))
-        dat_files_list.append(v[3])
-
-    d = _find_closest_value(gaps_list, gap)
-    closest_gap = d['closest_value']
-    dat_file = dat_files_list[d['idx']]
-
-    with z.open(os.path.join(index_dir, dat_file)) as f:
-        dat_content = f.readlines()
-
-    step = float(dat_content[8].split('#')[1].strip())
-    number_of_points = int(dat_content[9].split('#')[1].strip())
-    found_length = round(step * number_of_points, 6)
-
-    return {
-        'found_length': found_length,
-        'dat_file': dat_file,
-        'closest_gap': closest_gap
-    }
 
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
