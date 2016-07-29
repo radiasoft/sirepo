@@ -54,6 +54,8 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     if with_mpi and mpi.cfg.slaves > 1:
         return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE)
     with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
+        env = copy.deepcopy(os.environ)
+        env['RPN_DEFNS'] = pkresource.filename('defns.rpn')
         p = subprocess.Popen(
             ['elegant', ele],
             stdout=elegant_stdout,
