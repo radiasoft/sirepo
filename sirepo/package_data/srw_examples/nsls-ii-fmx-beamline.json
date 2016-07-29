@@ -2,117 +2,84 @@
     "models": {
         "beamline": [
             {
-                "horizontalOffset": 0,
-                "horizontalSize": 0.05,
-                "id": 2,
+                "id": 9,
                 "position": 20,
-                "shape": "r",
-                "title": "S0",
-                "type": "aperture",
-                "verticalOffset": 0,
-                "verticalSize": 0.085
-            },
-            {
-                "grazingAngle": 3.14,
-                "heightAmplification": 1,
-                "heightProfileFile": "mirror_1d.dat",
-                "horizontalTransverseSize": 1,
-                "id": 19,
-                "normalVectorZ": 0.0031399948401452105,
-                "orientation": "x",
-                "position": 26,
-                "title": "HDM",
-                "type": "mirror",
-                "verticalTransverseSize": 1
-            },
-            {
-                "horizontalOffset": 0,
-                "horizontalSize": 0.044,
-                "id": 4,
-                "position": 33.5,
-                "shape": "r",
-                "title": "S1",
-                "type": "aperture",
-                "verticalOffset": 0,
-                "verticalSize": 1
-            },
-            {
-                "id": 10,
-                "position": 35.79,
-                "title": "Before CRL",
+                "title": "Watchpoint",
                 "type": "watch"
             },
             {
+                "horizontalFocalLength": 9.92727,
                 "horizontalOffset": 0,
-                "horizontalSize": 0.05,
-                "id": 8,
-                "position": 35.79,
-                "shape": "r",
-                "title": "S2",
-                "type": "aperture",
-                "verticalOffset": 0,
-                "verticalSize": 0.055
-            },
-            {
-                "absoluteFocusPosition": 0.0,
-                "attenuationLength": 0.0095953,
-                "focalDistance": 0.0,
-                "focalPlane": 2,
-                "horizontalApertureSize": 1,
-                "id": 22,
-                "material": "User-defined",
-                "method": "server",
-                "numberOfLenses": 3,
-                "position": 35.8,
-                "radius": 0.0015,
-                "refractiveIndex": 3.40673773e-06,
-                "shape": 1,
-                "title": "CRL",
-                "type": "crl",
-                "verticalApertureSize": 1,
-                "wallThickness": 8e-05
-            },
-            {
-                "id": 15,
-                "position": 44,
-                "title": "Before KL",
-                "type": "watch"
-            },
-            {
-                "horizontalFocalLength": 2.8767899291896146,
-                "horizontalOffset": 0,
-                "id": 11,
-                "position": 44.1,
-                "title": "KL",
+                "id": 2,
+                "position": 42,
+                "title": "HFM",
                 "type": "lens",
                 "verticalFocalLength": 1e+23,
                 "verticalOffset": 0
             },
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 0.07,
-                "id": 24,
-                "position": 44.1,
+                "horizontalSize": 0.03,
+                "id": 3,
+                "position": 55,
                 "shape": "r",
-                "title": "Aperture @ KL",
+                "title": "SSA",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 0.04
+                "verticalSize": 10
             },
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 0.06,
-                "id": 18,
-                "position": 48.4,
+                "horizontalSize": 1.25,
+                "id": 4,
+                "position": 66,
                 "shape": "r",
-                "title": "S3",
+                "title": "KB Aperture",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 0.06
+                "verticalSize": 1.25
             },
             {
-                "id": 14,
-                "position": 48.5,
+                "firstFocusLength": 64.75,
+                "focalLength": 1,
+                "grazingAngle": 2.5,
+                "heightAmplification": 1,
+                "heightProfileFile": null,
+                "id": 5,
+                "normalVectorX": 0,
+                "normalVectorY": 0.9999968750016276,
+                "normalVectorZ": -0.002499997395834147,
+                "orientation": "y",
+                "position": 66,
+                "sagittalSize": 1e+40,
+                "tangentialSize": 0.5,
+                "tangentialVectorX": 0,
+                "tangentialVectorY": -0.002499997395834147,
+                "title": "KBv",
+                "type": "ellipsoidMirror"
+            },
+            {
+                "firstFocusLength": 11.5,
+                "focalLength": 0.5,
+                "grazingAngle": 2.5,
+                "heightAmplification": 1,
+                "heightProfileFile": null,
+                "id": 6,
+                "normalVectorX": 0.9999968750016276,
+                "normalVectorY": 0,
+                "normalVectorZ": -0.002499997395834147,
+                "orientation": "x",
+                "position": 66.5,
+                "sagittalSize": 1e+40,
+                "tangentialSize": 0.5,
+                "tangentialVectorX": -0.002499997395834147,
+                "tangentialVectorY": 0,
+                "title": "KBh",
+                "type": "ellipsoidMirror"
+            },
+            {
+                "id": 7,
+                "position": 67,
                 "title": "Sample",
                 "type": "watch"
             }
@@ -121,7 +88,7 @@
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Final",
             "current": 0.5,
-            "drift": -1.529415,
+            "drift": -0.7927500000000001,
             "driftCalculationMethod": "auto",
             "energy": 3,
             "energyDeviation": 0,
@@ -207,27 +174,15 @@
         "intensityReport": {
             "distanceFromSource": 20,
             "fieldUnits": "1",
-            "finalEnergy": 10500,
+            "finalEnergy": "20000",
             "horizontalPosition": "0",
-            "initialEnergy": 9500,
-            "magneticField": 1,
+            "initialEnergy": "100",
+            "magneticField": "1",
             "method": "1",
             "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
-        },
-        "mirrorReport": {
-            "grazingAngle": 3.1415926,
-            "heightAmplification": 1,
-            "heightProfileFile": "mirror_1d.dat",
-            "horizontalTransverseSize": 1,
-            "id": 3,
-            "orientation": "x",
-            "position": 21.5,
-            "title": "Flat Mirror",
-            "type": "mirror",
-            "verticalTransverseSize": 1
         },
         "multiElectronAnimation": {
             "horizontalPosition": 0,
@@ -244,11 +199,9 @@
         },
         "panelState": {
             "hidden": [
-                "watchpointReport21",
-                "watchpointReport7",
-                "watchpointReport6",
-                "watchpointReport16",
-                "watchpointReport23"
+                "fluxReport",
+                "watchpointReport8",
+                "watchpointReport9"
             ]
         },
         "postPropagation": [
@@ -256,11 +209,11 @@
             0,
             1,
             0,
-            0,
             1,
-            1,
-            1,
-            1
+            "0.2",
+            "2",
+            "0.2",
+            "4"
         ],
         "powerDensityReport": {
             "distanceFromSource": 20,
@@ -274,150 +227,6 @@
             "verticalRange": "15"
         },
         "propagation": {
-            "10": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "11": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "14": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "15": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "18": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
-            "19": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            ],
             "2": [
                 [
                     0,
@@ -425,24 +234,24 @@
                     1,
                     0,
                     0,
-                    1,
-                    1,
-                    1,
-                    1
+                    "1",
+                    "1",
+                    "1",
+                    "1"
                 ],
                 [
                     0,
                     0,
                     1,
-                    1,
+                    "1",
                     0,
                     1,
                     1,
                     1,
-                    1
+                    "1"
                 ]
             ],
-            "22": [
+            "3": [
                 [
                     0,
                     0,
@@ -450,9 +259,9 @@
                     0,
                     0,
                     1,
+                    "6",
                     1,
-                    1,
-                    1
+                    "1"
                 ],
                 [
                     0,
@@ -463,31 +272,7 @@
                     1,
                     1,
                     1,
-                    1
-                ]
-            ],
-            "24": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
+                    "1"
                 ]
             ],
             "4": [
@@ -500,6 +285,78 @@
                     1,
                     1,
                     1,
+                    "1"
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "5": [
+                [
+                    0,
+                    0,
+                    1,
+                    "1",
+                    0,
+                    1,
+                    1,
+                    1,
+                    "1"
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    "1"
+                ]
+            ],
+            "6": [
+                [
+                    0,
+                    0,
+                    1,
+                    "1",
+                    0,
+                    1,
+                    1,
+                    1,
+                    "1"
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    "1"
+                ]
+            ],
+            "7": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
                     1
                 ],
                 [
@@ -514,7 +371,7 @@
                     1
                 ]
             ],
-            "8": [
+            "9": [
                 [
                     0,
                     0,
@@ -532,10 +389,10 @@
                     1,
                     1,
                     0,
-                    1,
-                    1,
-                    1,
-                    1
+                    "4",
+                    "4",
+                    "3",
+                    "3"
                 ]
             ]
         },
@@ -543,32 +400,26 @@
             "documentationUrl": "",
             "facility": "NSLS-II",
             "folder": "/Light Source Facilities/NSLS-II",
-            "horizontalPointCount": 100,
+            "horizontalPointCount": 201,
             "horizontalPosition": 0,
-            "horizontalRange": 0.2,
+            "horizontalRange": 0.4,
             "isExample": "1",
             "name": "NSLS-II FMX beamline",
             "outOfSessionSimulationId": "",
-            "photonEnergy": 10001.45,
-            "sampleFactor": 5,
-            "samplingMethod": 1,
-            "simulationId": "c2Dikat0",
+            "photonEnergy": 12707.91,
+            "sampleFactor": 0.4,
+            "samplingMethod": "1",
+            "simulationId": "tpny73JF",
             "sourceType": "u",
-            "verticalPointCount": 100,
+            "verticalPointCount": 201,
             "verticalPosition": 0,
-            "verticalRange": 0.3
+            "verticalRange": 0.4
         },
-        "simulationStatus": {
-            "multiElectronAnimation": {
-                "startTime": 1468954828,
-                "state": "running"
-            }
-        },
+        "simulationStatus": {},
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,
             "fieldUnits": 1,
-            "magneticField": 1,
             "polarization": 6,
             "precision": 0.01
         },
@@ -578,7 +429,7 @@
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "indexFile": "",
-            "length": 1.5,
+            "length": 2.500648,
             "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",
             "period": 21,
@@ -589,38 +440,40 @@
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
+        "trajectoryReport": {
+            "finalTimeMoment": 3,
+            "initialTimeMoment": 0,
+            "magneticField": 1,
+            "numberOfPoints": 10000,
+            "plotAxis": "x",
+            "timeMomentEstimation": "auto"
+        },
         "undulator": {
             "horizontalAmplitude": "0",
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
-            "length": 3,
-            "longitudinalPosition": 0.505,
-            "period": 14.7075,
-            "undulatorParameter": 1.21903445,
-            "verticalAmplitude": 0.88770981,
+            "length": 1.5015,
+            "longitudinalPosition": 1.25,
+            "period": 21,
+            "undulatorParameter": 1.57593947,
+            "verticalAmplitude": 0.80371,
             "verticalInitialPhase": 0,
-            "verticalSymmetry": "-1"
+            "verticalSymmetry": -1
         },
-        "watchpointReport10": {
+        "watchpointReport7": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01
         },
-        "watchpointReport14": {
-            "characteristic": 0,
-            "fieldUnits": 1,
-            "polarization": 6,
-            "precision": 0.01
-        },
-        "watchpointReport15": {
+        "watchpointReport9": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01
         }
     },
-    "report": "watchpointReport14",
+    "report": "watchpointReport7",
     "simulationType": "srw",
-    "version": "20160701"
+    "version": "20160728"
 }
