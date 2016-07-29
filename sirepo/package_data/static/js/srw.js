@@ -814,12 +814,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             },
             function(data) {
                 for (var i = 0; i < fieldsToDisable.length; i++) {
+                    var true_false = true;
+                    var value = data[fieldsToDisable[i]];
                     if (appState.models.trajectoryReport.timeMomentEstimation == 'manual' && fieldsToDisable[i] !== 'magneticField') {
-                        var true_false = false;
-                        var value = 'skip'
-                    } else {
-                        var true_false = true;
-                        var value = data[fieldsToDisable[i]];
+                        true_false = false;
+                        value = 'skip';
                     }
                     disableField('trajectoryReport', fieldsToDisable[i], value, true_false);
                 }
