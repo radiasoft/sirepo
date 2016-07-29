@@ -773,7 +773,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         requestSender.sendRequest(
             'runBackground',
             function(data) {
-                appState.models.simulationStatus.simulationModel.startTime = data.startTime;
+                appState.models.simulationStatus[simulationModel].startTime = data.startTime;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },

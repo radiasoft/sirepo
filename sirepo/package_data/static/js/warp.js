@@ -170,7 +170,7 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
         requestSender.sendRequest(
             'runBackground',
             function(data) {
-                appState.models.simulationStatus.simulationModel.startTime = data.startTime;
+                appState.models.simulationStatus[simulationModel].startTime = data.startTime;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
