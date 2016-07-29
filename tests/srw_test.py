@@ -69,6 +69,6 @@ def test_prepare_aux_files_1():
             }
         }
     }
-    srw.prepare_aux_files(pkunit.work_dir(), data)
+    srw.prepare_aux_files(pkunit.empty_work_dir(), data)
     assert data['models']['tabulatedUndulator']['magnMeasFolder'] == ''
     assert data['models']['tabulatedUndulator']['indexFile'] == 'ivu21_srx_sum.txt'
