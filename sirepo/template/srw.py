@@ -787,9 +787,11 @@ def _compute_grazing_angle(model):
 
 
 def _compute_undulator_length(model):
-    zip_file = str(simulation_db.simulation_lib_dir('srw').join(model['magneticFile']))
-    d = _find_tab_undulator_length(zip_file, model['gap'])
-    model['length'] = d['found_length']
+    zip_file = simulation_db.simulation_lib_dir('srw').join(model['magneticFile'])
+    if zip_file.check():
+        zip_file = str(zip_file)
+        d = _find_tab_undulator_length(zip_file, model['gap'])
+        model['length'] = d['found_length']
     return model
 
 
