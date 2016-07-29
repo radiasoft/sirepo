@@ -12,50 +12,18 @@ from pykern import pkresource
 from pykern import pkunit
 
 
-# Epsilon
-_EPS = 1e-3
-
-
-@pytest.fixture(scope='module')
-def zip_file():
-    import sirepo
-    return pkresource.filename('static/dat/magnetic_measurements.zip', sirepo)
-
-
-def test_find_tab_undulator_length_1(zip_file):
+def test_find_tab_undulator_length():
     from sirepo.template import srw
-    gap = 6.82
-    res = srw.find_tab_undulator_length(zip_file=zip_file, gap=gap)
-    assert res['dat_file'] == 'ivu21_srx_g6_8c.dat'
-    assert res['closest_gap'] == 6.8
-    assert abs(res['found_length'] - 2.5) < _EPS
-
-
-def test_find_tab_undulator_length_1s(zip_file):
-    from sirepo.template import srw
-    gap = '6.82'
-    res = srw.find_tab_undulator_length(zip_file=zip_file, gap=gap)
-    assert res['dat_file'] == 'ivu21_srx_g6_8c.dat'
-    assert res['closest_gap'] == 6.8
-    assert abs(res['found_length'] - 2.5) < _EPS
-
-
-def test_find_tab_undulator_length_2(zip_file):
-    from sirepo.template import srw
-    gap = 3
-    res = srw.find_tab_undulator_length(zip_file=zip_file, gap=gap)
-    assert res['dat_file'] == 'ivu21_srx_g6_2c.dat'
-    assert res['closest_gap'] == 6.2
-    assert abs(res['found_length'] - 2.5) < _EPS
-
-
-def test_find_tab_undulator_length_3(zip_file):
-    from sirepo.template import srw
-    gap = 45
-    res = srw.find_tab_undulator_length(zip_file=zip_file, gap=gap)
-    assert res['dat_file'] == 'ivu21_srx_g40_0c.dat'
-    assert res['closest_gap'] == 40
-    assert abs(res['found_length'] - 2.5) < _EPS
+    magnet = pkresource.filename('static/dat/magnetic_measurements.zip', srw)
+    for case in (
+        (6.82, 'ivu21_srx_g6_8c.dat', 6.8),
+        ('3', 'ivu21_srx_g6_2c.dat', 6.2),
+        (45, 'ivu21_srx_g40_0c.dat', 40),
+    ):
+        res = srw.find_tab_undulator_length(zip_file=magnet, gap=case[0])
+        assert res['dat_file'] == case[1]
+        assert res['closest_gap'] == case[2]
+        assert abs(res['found_length'] - 2.5) < 1e-3
 
 
 def test_prepare_aux_files_1():
