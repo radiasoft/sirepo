@@ -158,9 +158,7 @@ def fixup_electron_beam(data):
     if 'driftCalculationMethod' not in data['models']['electronBeam']:
         data['models']['electronBeam']['driftCalculationMethod'] = 'auto'  # can be either 'auto' or 'manual'
 
-    if data['models']['simulation']['sourceType'] == 'u':
-        und = 'undulator'
-    elif data['models']['simulation']['sourceType'] == 't':
+    if data['models']['simulation']['sourceType'] == 't':
         und = 'tabulatedUndulator'
     else:
         und = 'undulator'
@@ -319,6 +317,8 @@ def fixup_old_data(data):
             'plotAxis': 'x',
             'magneticField': 1,
         }
+    # Update tabulated undulator length:
+    data['models']['tabulatedUndulator'] = _compute_undulator_length(data['models']['tabulatedUndulator'])
 
 
 def generate_parameters_file(data, schema, run_dir=None, run_async=False):
@@ -363,15 +363,12 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
                 key = 'tabulatedUndulator'
             else:
                 key = 'undulator'
-            length = data['models'][key]['length']
             data['models']['trajectoryReport'] = _process_trajectory_report(
                 data['models']['trajectoryReport'],
                 data['models'][key]['longitudinalPosition'],
-                length,
+                data['models'][key]['length'],
                 data['models']['simulation']['sourceType'],
                 data['models']['tabulatedUndulator']['undulatorType'],
-                data['models']['tabulatedUndulator']['indexFile'],
-                data['models']['tabulatedUndulator']['gap'],
             )
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
@@ -447,9 +444,9 @@ def get_application_data(data):
             data['length'],
             data['source_type'],
             data['undulator_type'],
-            data['index_file'],
-            data['gap'],
         )
+    elif data['method'] == 'compute_undulator_length':
+        return _compute_undulator_length(data['report_model'])
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -514,17 +511,9 @@ def prepare_aux_files(run_dir, data):
         _STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE).copy(run_dir)
     zip_file = zipfile.ZipFile(str(filepath))
     zip_file.extractall(str(run_dir))
-    for f in zip_file.namelist():
-        if re.search('\.txt', f):
-            data['models']['tabulatedUndulator']['indexFile'] = os.path.basename(f)
-            data['models']['tabulatedUndulator']['magnMeasFolder'] = os.path.dirname(f)
-            d = _find_tab_undulator_length(
-                py.path.local.join(py.path.local(run_dir), os.path.basename(f)),
-                data['models']['tabulatedUndulator']['gap'],
-            )
-            data['models']['undulator']['length'] = d['found_length']
-            data['models']['tabulatedUndulator']['length'] = d['found_length']
-            break
+    index_dir, index_file = _find_index_file(zip_file)
+    data['models']['tabulatedUndulator']['magnMeasFolder'] = index_dir
+    data['models']['tabulatedUndulator']['indexFile'] = index_file
 
 
 def remove_last_frame(run_dir):
@@ -775,7 +764,6 @@ def _compute_crystal_orientation(model):
 
 
 def _compute_grazing_angle(model):
-
     def preserve_sign(item, field, new_value):
         old_value = item[field] if field in item else 0
         was_negative = float(old_value) < 0
@@ -795,6 +783,13 @@ def _compute_grazing_angle(model):
         model['tangentialVectorX'] = 0
         preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle))
 
+    return model
+
+
+def _compute_undulator_length(model):
+    zip_file = str(simulation_db.simulation_lib_dir('srw').join(model['magneticFile']))
+    d = _find_tab_undulator_length(zip_file, model['gap'])
+    model['length'] = d['found_length']
     return model
 
 
@@ -875,9 +870,42 @@ def _find_closest_value(values_list, value):
     }
 
 
-def _find_tab_undulator_length(index_file, gap):
+def _find_index_file(zip_object):
+    """The function finds an index file (``*.txt``) in the provided zip-object.
+
+    Args:
+        zip_object: an object created by ``zipfile.ZipFile()``.
+
+    Returns:
+        index_dir (str): found dir of the index file.
+        index_file (str): found index file (e.g., ``ivu21_srx_sum.txt``).
+    """
+    index_file = None
+    index_dir = None
+    for f in zip_object.namelist():
+        if re.search('\.txt', f):
+            index_file = os.path.basename(f)
+            index_dir = os.path.dirname(f)
+            break
+    assert index_file is not None
+    return index_dir, index_file
+
+
+def _find_tab_undulator_length(zip_file, gap):
+    """Find undulator length from the specified zip-archive with the magnetic measurements data.
+
+    Args:
+        zip_file: zip-archive with the magnetic measurements data.
+        gap: undulator gap [mm].
+
+    Returns:
+        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
+    """
+    z = zipfile.ZipFile(zip_file)
+    index_dir, index_file = _find_index_file(z)
+    with z.open(os.path.join(index_dir, index_file)) as f:
+        sum_content = f.readlines()
     gap = float(gap)
-    sum_content = index_file.readlines()
     gaps_list = []
     dat_files_list = []
     for row in sum_content:
@@ -889,20 +917,16 @@ def _find_tab_undulator_length(index_file, gap):
     closest_gap = d['closest_value']
     dat_file = dat_files_list[d['idx']]
 
-    dat_file_abs = py.path.local.join(
-        py.path.local(index_file.dirname),
-        dat_file,
-    )
+    with z.open(os.path.join(index_dir, dat_file)) as f:
+        dat_content = f.readlines()
 
-    dat_content = dat_file_abs.readlines()
     step = float(dat_content[8].split('#')[1].strip())
     number_of_points = int(dat_content[9].split('#')[1].strip())
-    found_length = step * number_of_points
+    found_length = round(step * number_of_points, 6)
 
     return {
         'found_length': found_length,
         'dat_file': dat_file,
-        'dat_file_abs': dat_file_abs,
         'closest_gap': closest_gap
     }
 
@@ -1172,15 +1196,15 @@ def _process_intensity_reports(source_type, undulator_type):
     return {'magneticField': magnetic_field}
 
 
-def _process_trajectory_report(report_model, longitudinal_position, length, source_type, undulator_type,
-                               index_file='', gap=0):
+def _process_trajectory_report(report_model, longitudinal_position, length, source_type, undulator_type):
     if report_model['timeMomentEstimation'] == 'manual':
         return report_model
-    extra = 0.2
     if source_type == 't' and undulator_type == 'u_t':
         longitudinalPosition = 0.0
+        extra = 0.0
     else:
         longitudinalPosition = float(longitudinal_position)
+        extra = 0.2
     length = float(length)
     initialTimeMoment = longitudinalPosition - extra
     finalTimeMoment = longitudinalPosition + length + extra

@@ -654,9 +654,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         if (! appState.isLoaded())
             return;
         var und;
-        if (appState.models.simulation.sourceType === 'u') {
-            und = 'undulator';
-        } else if (appState.models.simulation.sourceType === 't') {
+        if (appState.models.simulation.sourceType === 't') {
             und = 'tabulatedUndulator';
         } else {
             und = 'undulator';
@@ -810,9 +808,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             return;
         }
         var und;
-        if (appState.models.simulation.sourceType === 'u') {
-            und = 'undulator';
-        } else if (appState.models.simulation.sourceType === 't') {
+        if (appState.models.simulation.sourceType === 't') {
             und = 'tabulatedUndulator';
         } else {
             und = 'undulator';
@@ -825,8 +821,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                 length: appState.models[und].length,
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                index_file: appState.models.tabulatedUndulator.indexFile,
-                gap: appState.models.tabulatedUndulator.gap,
             },
             function(data) {
                 for (var i = 0; i < fieldsToDisable.length; i++) {
@@ -1015,6 +1009,20 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                 processUndulator(newValue);
             }
         });
+    });
+
+    $scope.$watch('appState.models.tabulatedUndulator.magneticFile', function (newValue, oldValue) {
+        if (newValue && oldValue) {
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_undulator_length',
+                    report_model: appState.models.tabulatedUndulator,
+                },
+                function(data) {
+                    appState.models.tabulatedUndulator.length = data.length;
+                }
+            );
+        }
     });
 
     function undulatorReportName() {
