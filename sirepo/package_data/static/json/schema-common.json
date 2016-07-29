@@ -1,5 +1,5 @@
 {
-    "version": "20160727",
+    "version": "20160728",
     "route": {
         "clearFrames": "/clear-frames",
         "copyNonSessionSimulation": "/copy-non-session-simulation",

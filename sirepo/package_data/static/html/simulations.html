@@ -31,7 +31,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:simulations.sortField">
+            <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', simulations.sortField]">
               <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 's-transparent-icon': ! item.isFolder}"></span> {{ item.name }}</a></td>
               <td>{{ item.lastModified }}</td>
             </tr>
@@ -39,7 +39,7 @@
         </table>
         </div></div>
 
-        <div data-ng-show="simulations.isIconView" style="margin-right: -10px"><div data-ng-repeat="item in simulations.activeFolder.children | orderBy:'name'" class="s-icon-col">
+        <div data-ng-show="simulations.isIconView" style="margin-right: -10px"><div data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', 'name']" class="s-icon-col">
           <div class="s-thumbnail text-center dropdown">
             <a class="s-item-icon" data-toggle="dropdown">
               <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 's-transparent-icon': ! item.isFolder}"></span><span class="caret"></span>
