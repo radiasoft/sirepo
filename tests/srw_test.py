@@ -10,16 +10,19 @@ pytest.importorskip('srwl_bl')
 
 from pykern import pkresource
 from pykern import pkunit
-import os
-import py.path
-import sirepo
-import tempfile
 
+
+# Epsilon
 _EPS = 1e-3
-zip_file = pkresource.filename('static/dat/magnetic_measurements.zip', sirepo)
 
 
-def test_find_tab_undulator_length_1():
+@pytest.fixture(scope='module')
+def zip_file():
+    import sirepo
+    return pkresource.filename('static/dat/magnetic_measurements.zip', sirepo)
+
+
+def test_find_tab_undulator_length_1(zip_file):
     from sirepo.template import srw
     gap = 6.82
     res = srw._find_tab_undulator_length(zip_file=zip_file, gap=gap)
@@ -28,7 +31,7 @@ def test_find_tab_undulator_length_1():
     assert abs(res['found_length'] - 2.5) < _EPS
 
 
-def test_find_tab_undulator_length_1s():
+def test_find_tab_undulator_length_1s(zip_file):
     from sirepo.template import srw
     gap = '6.82'
     res = srw._find_tab_undulator_length(zip_file=zip_file, gap=gap)
@@ -37,7 +40,7 @@ def test_find_tab_undulator_length_1s():
     assert abs(res['found_length'] - 2.5) < _EPS
 
 
-def test_find_tab_undulator_length_2():
+def test_find_tab_undulator_length_2(zip_file):
     from sirepo.template import srw
     gap = 3
     res = srw._find_tab_undulator_length(zip_file=zip_file, gap=gap)
@@ -46,7 +49,7 @@ def test_find_tab_undulator_length_2():
     assert abs(res['found_length'] - 2.5) < _EPS
 
 
-def test_find_tab_undulator_length_3():
+def test_find_tab_undulator_length_3(zip_file):
     from sirepo.template import srw
     gap = 45
     res = srw._find_tab_undulator_length(zip_file=zip_file, gap=gap)
