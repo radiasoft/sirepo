@@ -17,6 +17,7 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import h5py
 import numpy
 import os
 import py.path
@@ -109,10 +110,12 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
         output=True,
         plot=False,
     )
-    data_list.append(main.read_particle(data_file.filename, particle_type, 'w'))
+    with h5py.File(data_file.filename) as f:
+        data_list.append(main.read_species_data(f, particle_type, 'w', ()))
     select = _particle_selection_args(args)
     if select:
-        main.apply_selection(data_list, select, particle_type, data_file.filename)
+        with h5py.File(data_file.filename) as f:
+            main.apply_selection(f, data_list, select, particle_type, ())
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
     if len(data_list[0]) < 2:
