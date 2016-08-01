@@ -176,11 +176,11 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['k'] = 1
         data['l'] = 1
         try:
-            data['energy'] = obj.energy
+            data['energy'] = obj.aux_energy
         except:
             data['energy'] = None
         try:
-            data['grazingAngle'] = obj.ang_dif_pl
+            data['grazingAngle'] = obj.aux_ang_dif_pl
         except:
             data['grazingAngle'] = 0.0
         data['asymmetryAngle'] = obj.angAs
