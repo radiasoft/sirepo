@@ -349,7 +349,8 @@ def app_run():
     res = _cached_simulation_results(run_dir, data)
 
     if not res:
-        err = _start_simulation(data).run_and_read()
+        simulation = _start_simulation(data)
+        err = simulation.run_and_read()
         if err:
             sid = simulation_db.parse_sid(data)
             pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
@@ -358,6 +359,9 @@ def app_run():
                 'simulationId': sid,
             })
         res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+        res['report'] = str(run_dir.basename)
+        res['duration'] = simulation.duration
+        pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
     return flask.jsonify(res)
 
 
@@ -906,14 +910,17 @@ class _Command(threading.Thread):
         self.process = None
         self.out = ''
         self.background_simulation_id = ''
+        self.duration = 0.0
 
     def run(self):
+        start_time = time.time()
         self.process = subprocess.Popen(
             self.cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
         self.out = self.process.communicate()[0]
+        self.duration = time.time() - start_time
 
     def run_and_read(self):
         self.start()
