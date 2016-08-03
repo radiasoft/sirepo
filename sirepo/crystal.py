@@ -10,7 +10,7 @@ import requests
 X0H_SERVER = 'http://x-server.gmca.aps.anl.gov/cgi/X0h_form.exe'
 
 
-def srw_crystal_x0h(material, energy_eV, h, k, l):
+def get_crystal_parameters(material, energy_eV, h, k, l):
     energy_keV = energy_eV / 1000.0
     content = _get_server_data(energy_keV, material, h, k, l)
     d, xr0, xi0, xrh, xih = _get_crystal_parameters(content, [h, k, l])

@@ -726,8 +726,8 @@ def _compute_crystal_init(model):
         energy = model['energy']
 
         if re.search('(X0h)', material_raw):
-            from sirepo.srw_crystal_x0h import srw_crystal_x0h
-            dc, xr0, xi0, xrh, xih = srw_crystal_x0h(material, energy, h, k, l)
+            from sirepo.crystal import get_crystal_parameters
+            dc, xr0, xi0, xrh, xih = get_crystal_parameters(material, energy, h, k, l)
         elif re.search('(SRW)', material_raw):
             from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
             dc = srwl_uti_cryst_pl_sp(millerIndices, material)
