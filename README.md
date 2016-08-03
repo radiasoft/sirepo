@@ -120,13 +120,13 @@ Install node globally as root:
 
 ```bash
 curl -s -S -L https://rpm.nodesource.com/setup_4.x | bash
-yum -y install nodejs
+yum install -y nodejs
 ```
 
 Install Xvfb globally as root. It runs as vagrant:
 
 ```bash
-yum install xorg-x11-server-Xvfb
+yum install -y xorg-x11-server-Xvfb xorg-x11-server-utils
 cat > /etc/systemd/system/Xvfb.service <<'EOF'
 [Unit]
 Description=Xvfb
@@ -199,11 +199,17 @@ npm install --save-dev protractor-snapshot
 ./node_modules/protractor/bin/webdriver-manager update
 ```
 
+Verify the X11 server is running:
+
+```bash
+DISPLAY=:0 xset q > /dev/null && echo OK
+```
+
 To run tests:
 
 ```bash
 cd ~/src/radiasoft/sirepo
-# Starts server on http://localhost:4444/wd/hub.
+# Starts server on http://localhost:4444/wd/hub
 DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
 # Starts server on 8000 by default
 sirepo service http >& http.log &

@@ -2,6 +2,9 @@ exports.config = {
     framework: 'jasmine',
     seleniumAddress: 'http://localhost:4444/wd/hub',
     specs: ['tests/protractor/**/*.js'],
+    jasmineNodeOpts: {
+        showColors: 0
+    },
     protractorSnapshotOpts: {
 
         // base format for created files
