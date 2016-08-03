@@ -453,9 +453,9 @@
             "verticalSymmetry": -1
         },
         "trajectoryReport": {
-            "finalTimeMoment": 3,
+            "finalTimeMoment": 0,
             "initialTimeMoment": 0,
-            "magneticField": 1,
+            "magneticField": 2,
             "numberOfPoints": 10000,
             "plotAxis": "x",
             "timeMomentEstimation": "auto"
