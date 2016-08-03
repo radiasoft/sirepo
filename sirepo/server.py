@@ -194,7 +194,8 @@ def app_error_logging():
     try:
         print('javascript error: {}'.format(_json_input()))
     except ValueError:
-        print('unparsable javascript error: {}'.format(_read_http_input()))
+        print('unparsable javascript error: {}'.format(
+            flask.request.data.decode('unicode-escape')))
     return '{}'
 
 
@@ -624,16 +625,12 @@ def _job_id(sid, model_name):
 
 
 def _json_input():
-    return json.loads(_read_http_input())
+    return flask.request.get_json(cache=False)
 
 
 def _no_cache(response):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
-
-
-def _read_http_input():
-    return flask.request.data.decode('unicode-escape')
 
 
 def _save_new_and_reply(*args):
