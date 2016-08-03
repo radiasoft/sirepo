@@ -435,12 +435,8 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['userDefinedElectronBeam'] = 1
     if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
         v['userDefinedElectronBeam'] = 0
-    v['fluxNumberOfMacroElectrons'] = 1
     if 'report' in data:
         v[data['report']] = 1
-        if data['report'] == 'fluxAnimation':
-            if int(v['fluxAnimation_method']) == 1:
-                v['fluxNumberOfMacroElectrons'] = 1000000
     return pkjinja.render_resource('srw.py', v)
 
 
