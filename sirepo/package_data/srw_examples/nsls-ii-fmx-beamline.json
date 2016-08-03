@@ -2,20 +2,32 @@
     "models": {
         "beamline": [
             {
-                "id": 9,
+                "horizontalOffset": 0,
+                "horizontalSize": 1.5,
+                "id": 14,
                 "position": 20,
-                "title": "Watchpoint",
-                "type": "watch"
+                "shape": "r",
+                "title": "Aperture",
+                "type": "aperture",
+                "verticalOffset": 0,
+                "verticalSize": 1.5
             },
             {
-                "horizontalFocalLength": 9.92727,
-                "horizontalOffset": 0,
-                "id": 2,
+                "heightAmplification": 1,
+                "heightProfileFile": null,
+                "id": 13,
+                "normalVectorX": 0.9999025244842406,
+                "normalVectorY": 0,
+                "normalVectorZ": -0.013962146326506367,
+                "orientation": "x",
                 "position": 42,
+                "radius": 1410,
+                "sagittalSize": 0.11,
+                "tangentialSize": 0.5,
+                "tangentialVectorX": 0.013962146326506367,
+                "tangentialVectorY": 0,
                 "title": "HFM",
-                "type": "lens",
-                "verticalFocalLength": 1e+23,
-                "verticalOffset": 0
+                "type": "sphericalMirror"
             },
             {
                 "horizontalOffset": 0,
@@ -227,27 +239,51 @@
             "verticalRange": "15"
         },
         "propagation": {
-            "2": [
+            "13": [
                 [
                     0,
                     0,
                     1,
                     0,
                     0,
+                    1,
                     "1",
-                    "1",
-                    "1",
-                    "1"
+                    1,
+                    1
                 ],
                 [
                     0,
                     0,
                     1,
-                    "1",
+                    1,
                     0,
                     1,
                     1,
                     1,
+                    1
+                ]
+            ],
+            "14": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    "4",
+                    "4",
+                    "3",
+                    "3"
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    "1",
+                    "1",
+                    "1",
                     "1"
                 ]
             ],
@@ -370,30 +406,6 @@
                     1,
                     1
                 ]
-            ],
-            "9": [
-                [
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    1,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                    "4",
-                    "4",
-                    "3",
-                    "3"
-                ]
             ]
         },
         "simulation": {
@@ -407,9 +419,9 @@
             "name": "NSLS-II FMX beamline",
             "outOfSessionSimulationId": "",
             "photonEnergy": 12707.91,
-            "sampleFactor": 0.4,
+            "sampleFactor": 1,
             "samplingMethod": "1",
-            "simulationId": "tpny73JF",
+            "simulationId": "oHtil1vz",
             "sourceType": "u",
             "verticalPointCount": 201,
             "verticalPosition": 0,
@@ -461,12 +473,6 @@
             "verticalSymmetry": -1
         },
         "watchpointReport7": {
-            "characteristic": 0,
-            "fieldUnits": 1,
-            "polarization": 6,
-            "precision": 0.01
-        },
-        "watchpointReport9": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
