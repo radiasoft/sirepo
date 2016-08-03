@@ -794,36 +794,26 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         );
     }
 
-    function processTrajectoryReport(fieldsToDisable) {
+    function processTrajectoryReport() {
         if (! appState.isLoaded())
             return;
-        var und;
-        if (appState.models.simulation.sourceType === 't') {
-            und = 'tabulatedUndulator';
-        } else {
-            und = 'undulator';
-        }
-        requestSender.getApplicationData(
-            {
-                method: 'process_trajectory_report',
-                report_model: appState.models.trajectoryReport,
-                longitudinal_position: appState.models[und].longitudinalPosition,
-                length: appState.models[und].length,
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-            },
-            function(data) {
-                for (var i = 0; i < fieldsToDisable.length; i++) {
-                    var true_false = true;
-                    var value = data[fieldsToDisable[i]];
-                    if (appState.models.trajectoryReport.timeMomentEstimation == 'manual' && fieldsToDisable[i] !== 'magneticField') {
-                        true_false = false;
-                        value = 'skip';
-                    }
-                    disableField('trajectoryReport', fieldsToDisable[i], value, true_false);
-                }
+        var fieldsOfManualMethod = ['initialTimeMoment', 'finalTimeMoment'];
+        var reportName = 'trajectoryReport';
+        var modelReport = '.model-' + reportName + '-';
+        var i;
+        // Hide initial and final c*t fields in case of automatic set of limits:
+        if (appState.models[reportName].timeMomentEstimation == 'auto') {
+            for (i = 0; i < fieldsOfManualMethod.length; i++) {
+                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').hide(0);
             }
-        );
+        } else {
+            for (i = 0; i < fieldsOfManualMethod.length; i++) {
+                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').show(0);
+            }
+        }
+        if (appState.models.simulation.sourceType !== 't' || appState.models.tabulatedUndulator.undulatorType !== 'u_t') {
+            disableField(reportName, 'magneticField', 1, true);
+        }
     }
 
     function processUndulatorDefinition(reportName, undulatorDefinition) {
@@ -908,7 +898,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             } else if (name === 'sourceIntensityReport') {
                 processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
             } else if (name === 'trajectoryReport') {
-                processTrajectoryReport(['initialTimeMoment', 'finalTimeMoment', 'magneticField']);
+                processTrajectoryReport();
             } else if (name === 'electronBeam') {
                 processBeamParameters();
             }
@@ -987,14 +977,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         });
     });
 
-    var trajectoryWatchFields = [
-        'timeMomentEstimation',
-        'undulatorType',
-    ];
-    $scope.$watchCollection(wrapFields(['trajectoryReport', 'tabulatedUndulator'], trajectoryWatchFields), function (newValues, oldValues) {
+    $scope.$watch('appState.models.trajectoryReport.timeMomentEstimation', function (newValues, oldValues) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
-                processTrajectoryReport(['initialTimeMoment', 'finalTimeMoment', 'magneticField']);
+                processTrajectoryReport();
             }
         });
     });
