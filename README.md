@@ -213,9 +213,34 @@ cd ~/src/radiasoft/sirepo
 DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
 # Starts server on 8000 by default
 sirepo service http >& http.log &
-#
 ./node_modules/protractor/bin/protractor protractor-conf.js
 ```
+
+Output will look like:
+
+```bash
+./node_modules/protractor/bin/protractor protractor-conf.js
+[16:20:30] I/hosted - Using the selenium server at http://localhost:4444/wd/hub
+[16:20:30] I/launcher - Running 1 instances of WebDriver
+Started
+.
+
+
+1 spec, 0 failures
+Finished in 6.88 seconds
+[16:20:40] I/launcher - 0 instance(s) of WebDriver still running
+[16:20:40] I/launcher - chrome #01 passed
+```
+
+If you would like to see what the browser (webdriver) is doing, you
+must have X11 running, and start the webdriver this way:
+
+```bash
+/node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
+```
+
+This will use the `$DISPLAY` forwarded through your ssh session via
+Vagrant.
 
 ### License
 
