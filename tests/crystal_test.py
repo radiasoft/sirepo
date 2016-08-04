@@ -11,35 +11,54 @@ import pytest
 pytest.importorskip('srwl_bl')
 
 
+def test_calc_bragg_angle():
+    from sirepo import crystal
+    for case in (
+            ((3.135531576941939, 20368, 1), (0.06087205076590731, 0.09722123437454372, 5.570366408713557)),
+            ((3.1355, 20368, 1), (0.06087205076590731, 0.09722221656509854, 5.570422684087026)),
+    ):
+        angle_data = crystal.calc_bragg_angle(
+            d=case[0][0],
+            energy_eV=case[0][1],
+            n=case[0][2],
+        )
+        assert angle_data['lamda'] == case[1][0]
+        assert angle_data['bragg_angle'] == case[1][1]
+        assert angle_data['bragg_angle_deg'] == case[1][2]
+
+
 def test_get_crystal_parameters():
     from sirepo import crystal
     for case in (
-            (('Silicon', 20368, 1, 1, 1), (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09)),
-            (('Silicon', 20368, '1', '1', '1'), (None, None, None, None, None)),
-            (('Silicon', 12700, 1, 1, 1), (3.135531576941939, -6.0335e-06, 5.7615e-08, 3.1821e-06, 4.0182e-08)),
+            (('Silicon', 20368, 1, 1, 1), (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
+            (('Silicon', 20368, '1', '1', '1'),
+             (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
+            (('Silicon', '20368', 1, 1, 1),
+             (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
+            (('Silicon', 12700, 1, 1, 1), (3.135531576941939, -6.0335e-06, 5.7615e-08, 3.1821e-06, 4.0182e-08, 8.9561)),
     ):
-        d, xr0, xi0, xrh, xih = crystal.get_crystal_parameters(
+        crystal_parameters = crystal.get_crystal_parameters(
             material=case[0][0],
             energy_eV=case[0][1],
             h=case[0][2],
             k=case[0][3],
             l=case[0][4],
         )
-        assert d == case[1][0]
-        assert xr0 == case[1][1]
-        assert xi0 == case[1][2]
-        assert xrh == case[1][3]
-        assert xih == case[1][4]
+        assert crystal_parameters['d'] == case[1][0]
+        assert crystal_parameters['xr0'] == case[1][1]
+        assert crystal_parameters['xi0'] == case[1][2]
+        assert crystal_parameters['xrh'] == case[1][3]
+        assert crystal_parameters['xih'] == case[1][4]
+        assert crystal_parameters['bragg_angle_deg'] == case[1][5]
 
 
 def test_get_crystal_parameters_str():
     from sirepo import crystal
-    case = (('Silicon', '20368', 1, 1, 1), (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09))
-    with pytest.raises(TypeError):
-        d, xr0, xi0, xrh, xih = crystal.get_crystal_parameters(
-            material=case[0][0],
-            energy_eV=case[0][1],
-            h=case[0][2],
-            k=case[0][3],
-            l=case[0][4],
+    with pytest.raises(AssertionError):
+        _ = crystal.get_crystal_parameters(
+            material='Si',
+            energy_eV='20368',
+            h=1,
+            k=1,
+            l=1,
         )

@@ -577,7 +577,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                         optical_element: item,
                     },
                     function(data) {
-                        var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'];
+                        var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle'];
                         for (var i = 0; i < fields.length; i++) {
                             item[fields[i]] = data[fields[i]];
                         }

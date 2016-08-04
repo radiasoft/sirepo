@@ -22,8 +22,10 @@ from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp
 from pykern import pkjinja
 from pykern import pkresource
+from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
+from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 import bnlcrl.pkcli.simulate
 import uti_plot_com
 
@@ -711,7 +713,7 @@ def _compute_crl_focus(model):
 
 
 def _compute_crystal_init(model):
-    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
+    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle']
     try:
         material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
         material = material_raw.split()[0]  # short name for SRW (e.g., Si), long name for X0h (e.g., Silicon)
@@ -720,16 +722,23 @@ def _compute_crystal_init(model):
         l = int(model['l'])
         millerIndices = [h, k, l]
         energy = model['energy']
-
+        grazingAngle = None
         if re.search('(X0h)', material_raw):
-            from sirepo.crystal import get_crystal_parameters
-            dc, xr0, xi0, xrh, xih = get_crystal_parameters(material, energy, h, k, l)
+            crystal_parameters = crystal.get_crystal_parameters(material, energy, h, k, l)
+            dc = crystal_parameters['d']
+            xr0 = crystal_parameters['xr0']
+            xi0 = crystal_parameters['xi0']
+            xrh = crystal_parameters['xrh']
+            xih = crystal_parameters['xih']
         elif re.search('(SRW)', material_raw):
-            from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
             dc = srwl_uti_cryst_pl_sp(millerIndices, material)
             xr0, xi0, xrh, xih = srwl_uti_cryst_pol_f(energy, millerIndices, material)
         else:
             dc = xr0 = xi0 = xrh = xih = None
+
+        if dc:
+            angles_data = crystal.calc_bragg_angle(d=dc, energy_eV=energy, n=1)
+            grazingAngle = angles_data['bragg_angle']
         model['dSpacing'] = dc
         model['psi0r'] = xr0
         model['psi0i'] = xi0
@@ -737,6 +746,7 @@ def _compute_crystal_init(model):
         model['psiHi'] = xih
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
+        model['grazingAngle'] = grazingAngle
     except Exception:
         pkdp('\n{}', traceback.format_exc())
         for key in parms_list:
