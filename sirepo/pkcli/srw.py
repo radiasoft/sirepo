@@ -57,14 +57,15 @@ def run_background(cfg_dir):
         if pkconfig.channel_in('dev'):
             p['particles_per_slave'] = 1
         p['slaves'] = mpi.cfg.slaves
+        #TODO(pjm): move parameters/config to template/srw.py and set directly in srw.py.jinja
         script += '''
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
 source_type, mag = srwl_bl.setup_source(v)
-v.wm_nm = {total_particles}
-v.wm_na = {particles_per_slave}
+v.wm_nm = v.sm_nm = {total_particles}
+v.wm_na = v.sm_na = {particles_per_slave}
 # Number of "iterations" per save is best set to num processes
-v.wm_ns = {slaves}
+v.wm_ns = v.sm_ns = {slaves}
 op = set_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
