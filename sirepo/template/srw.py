@@ -550,7 +550,7 @@ def run_all_text(data):
     if 'report' not in data or data['report'] == 'intensityReport':
         content.append('v.ss = True')
         content.append("v.ss_pl = 'e'")
-    elif data['report'] == 'fluxReport':
+    elif data['report'] in ['fluxReport', 'fluxAnimation']:
         content.append('v.sm = True')
         content.append("v.sm_pl = 'e'")
     elif data['report'] == 'powerDensityReport':
