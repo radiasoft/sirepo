@@ -1,3 +1,5 @@
+# output from protractor
+reports/
 node_modules/
 run/
 .eggs/

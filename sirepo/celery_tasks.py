@@ -8,14 +8,13 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 pkconfig.append_load_path('sirepo')
 
+from celery import Celery
+from pykern import pkcollections
+from pykern.pkdebug import pkdc, pkdp
 import importlib
+import kombu
 import os
 import sys
-
-from pykern.pkdebug import pkdc, pkdp
-from pykern import pkcollections
-
-from celery import Celery
 
 celery = Celery('sirepo')
 
@@ -39,6 +38,10 @@ celery.conf.update(
     CELERY_RESULT_PERSISTENT=True,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
+#    CELERY_QUEUES=(
+#        kombu.Queue('mpi', kombu.Exchange('default'), routing_key='mpi'),
+#        kombu.Queue('sequential', kombu.Exchange('default'), routing_key='sequential'),
+#    ),
 )
 
 @celery.task

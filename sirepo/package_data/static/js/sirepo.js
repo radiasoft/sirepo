@@ -32,7 +32,7 @@ SIREPO.appDefaultSimulationValues = {
     simulationFolder: {},
 };
 
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'underscore']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -722,10 +722,11 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $tim
     return self;
 });
 
-SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
+SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender, _) {
     var self = {};
     var runQueue = [];
     var queueId = 1;
+    var poller = null;
     $rootScope.$on('clearCache', function() {
         runQueue = [];
         queueId++;
@@ -735,24 +736,58 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         var queueItem = runQueue[0];
         if (! queueItem)
             return;
-
-        requestSender.sendRequest(
-            'runSimulation',
-            function(data) {
-                handleQueueResult(queueItem, data);
-            },
-            {
-                report: queueItem.item[0],
-                models: queueItem.item[1],
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            },
-            function(data, status) {
+        var request = {
+            report: queueItem.item[0],
+            models: queueItem.item[1],
+            simulationType: SIREPO.APP_SCHEMA.simulationType,
+        };
+        console.log('starting: ' + request.report);
+        var startTime = new Date().getTime();
+        console.log(startTime);
+        var process = function(data, status) {
+            if (poller) {
+                $interval.cancel(poller);
+                poller = null;
+            }
+            // handle errors
+            if (data === null || status != 200) {
+                console.log('error: ' + request.report + ' ' + status + ' data=' + data);
                 handleQueueResult(queueItem, {
                     error: (data === null && status === 0)
                         ? 'the server is unavailable'
                         : 'a server error occurred',
                 });
-            });
+                return;
+            }
+            // TODO(robnagler) better status result
+            if (!_.isEmpty(data)) {
+                console.log('done: ' + request.report + ' data=' + data);
+                handleQueueResult(queueItem, data);
+                return;
+            }
+            // TODO(robnagler) server manages timeouts?
+            var elapsed = (new Date().getTime()) - startTime;
+            console.log('elapsed ' + elapsed);
+            if (elapsed > 2 * 60000) {
+                console.log('timeout: ' + request.report);
+                handleQueueResult(queueItem, {
+                    error: 'simulation timed out after 2 minutes'
+                });
+                return
+            }
+            console.log('polling: ' + request.report);
+            poller = $interval(
+                function () {
+                    console.log('wakeup: ' + request.report);
+                    requestSender.sendRequest(
+                        'zrunResult', process, request, process);
+                },
+                1000,
+                1
+            );
+        };
+        console.log('sending: ' + request.report);
+        requestSender.sendRequest('zrunSimulation', process, request, process);
     }
 
     function handleQueueResult(queueItem, data) {

@@ -193,9 +193,9 @@ def app_download_file(simulation_type, simulation_id, filename):
 @app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
 def app_error_logging():
     try:
-        print('javascript error: {}'.format(_json_input()))
+        pkdp('javascript error: {}', _json_input())
     except ValueError:
-        print('unparsable javascript error: {}'.format(
+        pkdp('unparsable javascript error: {}'.format(
             flask.request.data.decode('unicode-escape')))
     return '{}'
 
@@ -320,7 +320,7 @@ def app_python_source(simulation_type, simulation_id):
                 data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type), run_async=True),
+            template.generate_parameters_file(data, _schema_cache(simulation_type), run_async=True, is_sequential=False),
             template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
         mimetype='text/plain',
     )
@@ -351,7 +351,7 @@ def app_run():
     res = _cached_simulation_results(run_dir, data)
 
     if not res:
-        simulation = _start_simulation(data)
+        simulation = _start_simulation(data, run_async=False, is_sequential=True)
         err = simulation.run_and_read()
         if err:
             sid = simulation_db.parse_sid(data)
@@ -367,19 +367,60 @@ def app_run():
     return flask.jsonify(res)
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
-def app_run_background():
+@app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
+def app_zrun_simulation():
     data = _json_input()
+    run_dir = simulation_db.simulation_run_dir(data)
+    res = _cached_simulation_results(run_dir, data)
+    if res:
+        return flask.jsonify(res)
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
     if cfg.job_queue.is_running(_job_id(sid, data['report'])):
         #TODO(robnagler) return error to user if in different window
-        pkdp('ignoring second call to runBackground: {}'.format(sid))
+        pkdp('ignoring second call to runBackground: {}', sid)
+        return '{}'
+    _start_simulation(data, run_async=True, is_sequential=True)
+    return flask.jsonify({})
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['zrunResult'], methods=('GET', 'POST'))
+def app_zrun_result():
+    data = _json_input()
+    sid = simulation_db.parse_sid(data)
+    simulation_type = data['simulationType']
+    template = sirepo.template.import_module(simulation_type)
+    run_dir = simulation_db.simulation_run_dir(data)
+    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+        return '{}'
+    res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+    res['report'] = str(run_dir.basename)
+    # TODO(robnagler) duration isn't available for run foreground
+    # res['duration'] = simulation.duration
+    res['duration'] = 0.0
+    pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
+    return flask.jsonify(res)
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
+def app_run_background():
+    data = _json_input()
+    '''
+    run_dir = simulation_db.simulation_run_dir(data)
+    res = _cached_simulation_results(run_dir, data)
+    if res:
+        return flask.jsonify(res)
+    '''
+    sid = simulation_db.parse_sid(data)
+    #TODO(robnagler) race condition. Need to lock the simulation
+    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+        #TODO(robnagler) return error to user if in different window
+        pkdp('ignoring second call to runBackground: {}', sid)
         return '{}'
     status = data['models']['simulationStatus'][data['report']] = {}
     status['state'] = 'running'
     status['startTime'] = int(time.time())
-    _start_simulation(data, run_async=True)
+    _start_simulation(data, run_async=True, is_sequential=False)
     return flask.jsonify({
         'state': status['state'],
         'startTime': status['startTime'],
@@ -563,6 +604,7 @@ def sr_landing_page():
 def _cached_simulation_results(run_dir, data):
     if not run_dir.check():
         return False
+    #TODO(robnagler) Lock
     try:
         old_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         template = sirepo.template.import_module(data['simulationType'])
@@ -572,7 +614,7 @@ def _cached_simulation_results(run_dir, data):
         pass
     except Exception as e:
         # log non-IOErrors
-        print('exception during _cached_simulation_available(): {}'.format(e))
+        pkdp('exception during _cached_simulation_available({}): {}', run_dir, e)
     return False
 
 
@@ -585,10 +627,10 @@ def _cfg_job_queue(value):
         from sirepo import celery_tasks
         try:
             if not celery_tasks.celery.control.ping():
-                print('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
+                pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
                 sys.exit(1)
         except Exception:
-            print('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
+            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
             sys.exit(1)
         return _Celery
     elif value == 'Background':
@@ -663,13 +705,13 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
-def _start_simulation(data, run_async=False):
+def _start_simulation(data, run_async=False, is_sequential=False):
     """Setup and start the simulation.
 
     Args:
         data (dict): app data
-        run_async (bool): run-background or run
-
+        run_async (bool): run asynchronously or not
+        is_sequential (bool): run or run-background
     Returns:
         object: _Command or daemon instance
     """
@@ -693,7 +735,7 @@ def _start_simulation(data, run_async=False):
     template.write_parameters(
         data, _schema_cache(simulation_type), run_dir=run_dir, run_async=run_async)
     cmd = [_ROOT_CMD, simulation_type] \
-        + ['run-background' if run_async else 'run'] + [str(run_dir)]
+        + ['run' if is_sequential else 'run-background'] + [str(run_dir)]
     if run_async:
         return cfg.job_queue(_job_id(sid, data['report']), run_dir, cmd)
     return _Command(cmd, cfg.foreground_time_limit)
