@@ -31,9 +31,15 @@ import uti_plot_com
 
 WANT_BROWSER_FRAME_CACHE = False
 
-_MULTI_ELECTRON_FILENAME_FOR_MODEL = {
+_DATA_FILE_FOR_MODEL = {
     'fluxAnimation': 'res_spec_me.dat',
+    'fluxReport': 'res_spec_me.dat',
+    'initialIntensityReport': 'res_int_se.dat',
+    'intensityReport': 'res_spec_se.dat',
     'multiElectronAnimation': 'res_int_pr_me.dat',
+    'powerDensityReport': 'res_pow.dat',
+    'sourceIntensityReport': 'res_int_se.dat',
+    'trajectoryReport': 'res_trj.dat',
 }
 
 _EXAMPLE_FOLDERS = {
@@ -72,7 +78,7 @@ with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    filename = str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[report]))
+    filename = str(run_dir.join(_DATA_FILE_FOR_MODEL[report]))
     if os.path.isfile(filename):
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         return {
@@ -475,15 +481,14 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame):
-    for path in glob.glob(str(run_dir.join('res_*.dat'))):
-        path = str(py.path.local(path))
-        with open(path) as f:
-            return os.path.basename(path), f.read(), 'text/plain'
-    raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
+    filename = 'res_int_pr_se.dat' if 'watchpointReport' in model else _DATA_FILE_FOR_MODEL[model]
+    with open(str(run_dir.join(filename))) as f:
+        return filename, f.read(), 'application/octet-stream'
+    raise RuntimeError('output file unknown for model: {}'.format(model))
 
 
 def get_simulation_frame(run_dir, data, model_data):
-    return extract_report_data(str(run_dir.join(_MULTI_ELECTRON_FILENAME_FOR_MODEL[data['report']])), data)
+    return extract_report_data(str(run_dir.join(_DATA_FILE_FOR_MODEL[data['report']])), data)
 
 
 def import_file(request, lib_dir, tmp_dir):

@@ -166,6 +166,7 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
     data = {
         'simulationType': simulation_type,
         'simulationId': simulation_id,
+        'modelName': model,
     }
     frame = int(frame)
     template = sirepo.template.import_module(simulation_type)
