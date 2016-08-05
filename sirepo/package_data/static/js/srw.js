@@ -297,7 +297,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
 
     self.cancelBeamlineChanges = function() {
         self.dismissPopup();
-        appState.cancelChanges('beamline');
+        appState.cancelChanges(['beamline', 'propagation', 'postPropagation']);
     };
 
     self.checkIfDirty = function() {
