@@ -85,15 +85,20 @@ def _get_crystal_parameters(content, miller_indices=None):
     Returns:
         dict: crystal parameters.
     """
-    d = []
+    a1_list = []  # lattice parameter
+    d_server_list = []  # d-spacing from the server
+    bragg_angle_list = []
     xr0_list = []
     xi0_list = []
     xrh_list = []
     xih_list = []
-    bragg_angle_list = []
     for row in content:
         if re.search('a1=', row):
-            d.append(row)
+            a1_list.append(row)
+        elif re.search(' d=', row):
+            d_server_list.append(row)
+        elif re.search('QB=', row):
+            bragg_angle_list.append(row)
         elif re.search('xr0=', row):
             xr0_list.append(row)
         elif re.search('xi0=', row):
@@ -102,27 +107,34 @@ def _get_crystal_parameters(content, miller_indices=None):
             xrh_list.append(row)
         elif re.search('xih', row):
             xih_list.append(row)
-        elif re.search('QB=', row):
-            bragg_angle_list.append(row)
-    assert len(d) > 0
-    d = _parse_xr_xi(d[0])
+    assert len(a1_list) > 0
+    a1 = _parse_xr_xi(a1_list[0])
+    d_calculated = a1
     if miller_indices:
-        d /= (sum(n ** 2 for n in miller_indices)) ** 0.5
+        d_calculated /= (sum(n ** 2 for n in miller_indices)) ** 0.5
+
+    assert len(d_server_list) > 0
+    d_server = _parse_xr_xi(d_server_list[0])
+
+    assert len(bragg_angle_list) > 0
+    bragg_angle_deg = _parse_xr_xi(bragg_angle_list[0])
 
     assert len(xr0_list) > 0
     xr0 = _parse_xr_xi(xr0_list[0])
     xi0 = _parse_xr_xi(xi0_list[0])
     xrh = _parse_xr_xi(xrh_list[0])
     xih = _parse_xr_xi(xih_list[0])
-    bragg_angle_deg = _parse_xr_xi(bragg_angle_list[0])
 
     return {
-        'd': d,
+        'a1': a1,
+        'd': d_calculated,
+        'd_calculated': d_calculated,
+        'd_server': d_server,
+        'bragg_angle_deg': bragg_angle_deg,
         'xr0': xr0,
         'xi0': xi0,
         'xrh': xrh,
         'xih': xih,
-        'bragg_angle_deg': bragg_angle_deg,
     }
 
 

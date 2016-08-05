@@ -29,13 +29,15 @@ def test_calc_bragg_angle():
 
 def test_get_crystal_parameters():
     from sirepo import crystal
+    expected = (
+        (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704),
+        (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -6.0335e-06, 5.7615e-08, 3.1821e-06, 4.0182e-08, 8.9561),
+    )
     for case in (
-            (('Silicon', 20368, 1, 1, 1), (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
-            (('Silicon', 20368, '1', '1', '1'),
-             (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
-            (('Silicon', '20368', 1, 1, 1),
-             (3.135531576941939, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704)),
-            (('Silicon', 12700, 1, 1, 1), (3.135531576941939, -6.0335e-06, 5.7615e-08, 3.1821e-06, 4.0182e-08, 8.9561)),
+            (('Silicon', 20368, 1, 1, 1), expected[0]),
+            (('Silicon', 20368, '1', '1', '1'), expected[0]),
+            (('Silicon', '20368', 1, 1, 1), expected[0]),
+            (('Silicon', 12700, 1, 1, 1), expected[1]),
     ):
         crystal_parameters = crystal.get_crystal_parameters(
             material=case[0][0],
@@ -44,12 +46,15 @@ def test_get_crystal_parameters():
             k=case[0][3],
             l=case[0][4],
         )
-        assert crystal_parameters['d'] == case[1][0]
-        assert crystal_parameters['xr0'] == case[1][1]
-        assert crystal_parameters['xi0'] == case[1][2]
-        assert crystal_parameters['xrh'] == case[1][3]
-        assert crystal_parameters['xih'] == case[1][4]
-        assert crystal_parameters['bragg_angle_deg'] == case[1][5]
+        assert crystal_parameters['a1'] == case[1][0]
+        assert crystal_parameters['d'] == case[1][1]
+        assert crystal_parameters['d_calculated'] == case[1][2]
+        assert crystal_parameters['d_server'] == case[1][3]
+        assert crystal_parameters['xr0'] == case[1][4]
+        assert crystal_parameters['xi0'] == case[1][5]
+        assert crystal_parameters['xrh'] == case[1][6]
+        assert crystal_parameters['xih'] == case[1][7]
+        assert crystal_parameters['bragg_angle_deg'] == case[1][8]
 
 
 def test_get_crystal_parameters_str():
