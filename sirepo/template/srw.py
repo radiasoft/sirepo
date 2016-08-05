@@ -310,6 +310,7 @@ def fixup_old_data(data):
             'phase': 0,
             'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILE,
             'longitudinalPosition': 1.305,
+            'magnMeasFolder': '',
             'indexFile': '',
         }
     if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
@@ -534,6 +535,8 @@ def prepare_aux_files(run_dir, data):
     zip_file = zipfile.ZipFile(str(filepath))
     zip_file.extractall(str(run_dir))
     index_dir, index_file = _find_index_file(zip_file)
+    if not index_dir:
+        index_dir = './'
     data['models']['tabulatedUndulator']['magnMeasFolder'] = index_dir
     data['models']['tabulatedUndulator']['indexFile'] = index_file
 
