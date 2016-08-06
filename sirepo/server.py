@@ -32,9 +32,6 @@ import werkzeug
 import werkzeug.exceptions
 
 
-#: Cache of schemas keyed by app name
-_SCHEMA_CACHE = {}
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
@@ -112,7 +109,7 @@ def init(db_dir):
 @app.route(simulation_db.SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
 def app_clear_frames():
     """Clear animation frames for the simulation."""
-    data = _json_input()
+    data = _parse_data_input()
     simulation_db.simulation_run_dir(data, remove_dir=True)
     return '{}'
 
@@ -120,14 +117,14 @@ def app_clear_frames():
 @app.route(simulation_db.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
 def app_copy_nonsession_simulation():
     req = _json_input()
-    simulation_type = req['simulationType']
-    global_path = simulation_db.find_global_simulation(simulation_type, req['simulationId'])
+    sim_type = req['simulationType']
+    global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
     if global_path:
-        data = simulation_db.open_json_file(simulation_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
+        data = simulation_db.open_json_file(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
         data['models']['simulation']['isExample'] = ''
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
-        res = _save_new_and_reply(simulation_type, data)
-        sirepo.template.import_module(simulation_type).copy_related_files(data, global_path, str(simulation_db.simulation_dir(simulation_type, simulation_db.parse_sid(data))))
+        res = _save_new_and_reply(sim_type, data)
+        sirepo.template.import_module(sim_type).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
 
@@ -136,12 +133,12 @@ def app_copy_nonsession_simulation():
 def app_copy_simulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = _json_input()
-    simulation_type = req['simulationType']
+    sim_type = req['simulationType']
     name = req['name'] if 'name' in req else None
-    data = simulation_db.open_json_file(simulation_type, sid=req['simulationId'])
+    data = simulation_db.open_json_file(sim_type, sid=req['simulationId'])
     if not name:
         base_name = data['models']['simulation']['name']
-        names = simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_name)
+        names = simulation_db.iterate_simulation_datafiles(sim_type, _simulation_name)
         count = 0
         while True:
             count += 1
@@ -152,12 +149,12 @@ def app_copy_simulation():
     data['models']['simulation']['name'] = name
     data['models']['simulation']['isExample'] = ''
     data['models']['simulation']['outOfSessionSimulationId'] = ''
-    return _save_new_and_reply(simulation_type, data)
+    return _save_new_and_reply(sim_type, data)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
-    data = _json_input()
+    data = _parse_data_input()
     pkio.unchecked_remove(simulation_db.simulation_dir(data['simulationType'], data['simulationId']))
     return '{}'
 
@@ -193,11 +190,11 @@ def app_download_file(simulation_type, simulation_id, filename):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
 def app_error_logging():
+    ip = flask.request.remote_addr
     try:
-        pkdp('javascript error: {}', _json_input())
-    except ValueError:
-        pkdp('unparsable javascript error: {}'.format(
-            flask.request.data.decode('unicode-escape')))
+        pkdp('{}: javascript app_error: {}', ip, _json_input())
+    except ValueError as e:
+        pkdp('{}: error parsing javascript app_error: {} input={}', ip, e, flask.request.data.decode('unicode-escape')))
     return '{}'
 
 
@@ -278,7 +275,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['getApplicationData'], methods=('GET', 'POST'))
 def app_get_application_data():
-    data = _json_input()
+    data = _parse_data_input()
     return _json_response(sirepo.template.import_module(data['simulationType']).get_application_data(data))
 
 
@@ -294,16 +291,16 @@ def app_import_file(simulation_type):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
-    new_simulation_data = _json_input()
-    simulation_type = new_simulation_data['simulationType']
+    new_simulation_data = _parse_data_input(validate=True)
+    sim_type = new_simulation_data['simulationType']
     data = simulation_db.open_json_file(
-        simulation_type,
-        simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(simulation_type, simulation_db.JSON_SUFFIX)),
+        sim_type,
+        simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(sim_type, simulation_db.JSON_SUFFIX)),
     )
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    sirepo.template.import_module(simulation_type).new_simulation(data, new_simulation_data)
-    return _save_new_and_reply(simulation_type, data)
+    sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
+    return _save_new_and_reply(sim_type, data)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
@@ -321,7 +318,7 @@ def app_python_source(simulation_type, simulation_id):
                 data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, _schema_cache(simulation_type), run_async=True, is_sequential=False),
+            template.generate_parameters_file(data, simulation_db.get_schema(simulation_type), run_async=True, is_sequential=False),
             template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
         mimetype='text/plain',
     )
@@ -347,16 +344,17 @@ def app_route_favicon():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run():
-    data = _json_input()
+    data = _parse_data_input(validate=True)
     run_dir = simulation_db.simulation_run_dir(data)
     res = _cached_simulation_results(run_dir, data)
 
     if not res:
         simulation = _start_simulation(data, run_async=False, is_sequential=True)
         err = simulation.run_and_read()
+        jid = _job_id(data)
         if err:
             sid = simulation_db.parse_sid(data)
-            pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
+            pkdp('{}: error: dir={}, out={}', jid, run_dir, err)
             return _json_response({
                 'error': _error_text(err),
                 'simulationId': sid,
@@ -364,22 +362,23 @@ def app_run():
         res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
         res['report'] = str(run_dir.basename)
         res['duration'] = simulation.duration
-        pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
+        pkdp('{}: duration: {}s', jid, res['duration'])
     return _json_response(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
 def app_zrun_simulation():
-    data = _json_input()
+    data = _parse_data_input(validate=True)
     run_dir = simulation_db.simulation_run_dir(data)
     res = _cached_simulation_results(run_dir, data)
     if res:
         return _json_response(res)
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if cfg.job_queue.is_running(_job_id(data)):
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
         #TODO(robnagler) return error to user if in different window
-        pkdp('{}/{}: ignoring second call to runBackground', sid, data['report'])
+        pkdp('{}: ignoring second call to runBackground', jid)
         return '{}'
     _start_simulation(data, run_async=True, is_sequential=True)
     return _json_response({})
@@ -387,23 +386,24 @@ def app_zrun_simulation():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunResult'], methods=('GET', 'POST'))
 def app_zrun_result():
-    data = _json_input()
+    data = _parse_data_input(validate=True)
     sid = simulation_db.parse_sid(data)
-    if cfg.job_queue.is_running(_job_id(data)):
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
         return '{}'
     try:
         run_dir = simulation_db.simulation_run_dir(data)
-        simulation_type = data['simulationType']
-        template = sirepo.template.import_module(simulation_type)
+        sim_type = data['simulationType']
+        template = sirepo.template.import_module(sim_type)
         res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
         res['report'] = str(run_dir.basename)
         # TODO(robnagler) duration isn't available for run foreground
         # res['duration'] = simulation.duration
         res['duration'] = 0.0
-        pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
+        pkdp('{}: duration: {}s', jid, res['duration'])
         return _json_response(res)
     except Exception as e:
-        pkdp('{}/{}: simulation failed: {}', sid, data['report'], e)
+        pkdp('{}: simulation error: {}', jid, e)
         return _json_response({
             'error': _error_text(str(e)),
             'simulationId': sid,
@@ -412,7 +412,7 @@ def app_zrun_result():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
-    data = _json_input()
+    data = _parse_data_input(validate=True)
     '''
     run_dir = simulation_db.simulation_run_dir(data)
     res = _cached_simulation_results(run_dir, data)
@@ -421,9 +421,10 @@ def app_run_background():
     '''
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if cfg.job_queue.is_running(_job_id(data)):
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
         #TODO(robnagler) return error to user if in different window
-        pkdp('ignoring second call to runBackground: {}', sid)
+        pkdp('{}: ignoring second call to runBackground: {}', jid)
         return '{}'
     status = data['models']['simulationStatus'][data['report']] = {}
     status['state'] = 'running'
@@ -437,39 +438,41 @@ def app_run_background():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
-    data = _json_input()
+    data = _parse_data_input()
     if data['report'] in data['models']['simulationStatus']:
         data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
-    simulation_type = data['simulationType']
-    simulation_db.save_simulation_json(simulation_type, data)
+    sim_type = data['simulationType']
+    simulation_db.save_simulation_json(sim_type, data)
     cfg.job_queue.kill(_job_id(data))
     # the last frame file may not be finished, remove it
-    t = sirepo.template.import_module(simulation_type)
+    t = sirepo.template.import_module(sim_type)
     t.remove_last_frame(simulation_db.simulation_run_dir(data))
     return '{}'
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
-    data = _json_input()
+    data = _parse_data_input()
     sid = simulation_db.parse_sid(data)
-    simulation_type = data['simulationType']
-    template = sirepo.template.import_module(simulation_type)
+    sim_type = data['simulationType']
+    template = sirepo.template.import_module(sim_type)
     run_dir = simulation_db.simulation_run_dir(data)
 
     if cfg.job_queue.is_running(_job_id(data)):
-        completion = template.background_percent_complete(data['report'], run_dir, True, _schema_cache(simulation_type))
+        completion = template.background_percent_complete(
+            data['report'], run_dir, True, simulation_db.get_schema(sim_type))
         state = 'running'
     else:
         report = data['report']
-        data = simulation_db.open_json_file(simulation_type, sid=sid)
+        data = simulation_db.open_json_file(sim_type, sid=sid)
         data['report'] = report
         if report not in data['models']['simulationStatus']:
             data['models']['simulationStatus'][report] = {
                 'state': 'initial',
             }
         state = data['models']['simulationStatus'][report]['state']
-        completion = template.background_percent_complete(data['report'], run_dir, False, _schema_cache(simulation_type))
+        completion = template.background_percent_complete(
+            data['report'], run_dir, False, simulation_db.get_schema(sim_type))
         if state == 'running':
             if completion['percent_complete'] >= 100:
                 state = 'completed'
@@ -497,7 +500,7 @@ def app_run_status():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
 def app_save_simulation_data():
-    data = _json_input()
+    data = _parse_data_input(validate=True)
     simulation_db.save_simulation_json(data['simulationType'], data)
     return '{}'
 
@@ -534,13 +537,13 @@ def app_simulation_frame(frame_id):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
 def app_simulation_list():
-    data = _json_input()
-    simulation_type = data['simulationType']
+    data = _parse_data_input()
+    sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
-    simulation_db.verify_app_directory(simulation_type)
+    simulation_db.verify_app_directory(sim_type)
     return _json_response(
         sorted(
-            simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, search),
+            simulation_db.iterate_simulation_datafiles(sim_type, simulation_db.process_simulation_list, search),
             key=lambda row: row['name'],
         )
     )
@@ -549,12 +552,12 @@ def app_simulation_list():
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationSchema'], methods=('GET', 'POST'))
 def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
-    return _json_response(_schema_cache(sim_type))
+    return _json_response(simulation_db.get_schema(sim_type))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
 def app_update_folder():
-    data = _json_input()
+    data = _parse_data_input()
     old_name = data['oldName']
     new_name = data['newName']
     for row in simulation_db.iterate_simulation_datafiles(data['simulationType'], _simulation_data):
@@ -617,17 +620,14 @@ def _cached_simulation_results(run_dir, data):
     try:
         cache_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         template = sirepo.template.import_module(data['simulationType'])
-        cache_hash = template.report_parameters_hash(cache_data)
-        req_hash = template.report_parameters_hash(data)
-        pkdp('req_hash={} cache_hash={}', req_hash, cache_hash)
-        if req_hash == cache_data:
-            pkdp('{}: cache hit (key={})', run_dir, cache_hash)
+        cache_hash = template.hash_parameters(cache_data)
+        req_hash = template.hash_parameters(data)
+        if req_hash == cache_hash:
             return simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
     except IOError as e:
         pass
     except Exception as e:
-        # log non-IOErrors
-        pkdp('exception during _cached_simulation_available({}): {}', run_dir, e)
+        pkdp('{}: error: {}', run_dir, e)
     return False
 
 
@@ -704,20 +704,14 @@ def _no_cache(response):
     response.headers['Pragma'] = 'no-cache'
 
 
+def _parse_data_input(validate=False):
+    data = _json_input()
+    return simulation_db.fixup_old_data(data['simulationType'], data) if validate else data
+
+
 def _save_new_and_reply(*args):
-    simulation_type, sid = simulation_db.save_new_simulation(*args)
-    return app_simulation_data(simulation_type, sid)
-
-
-def _schema_cache(sim_type):
-    if sim_type in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[sim_type]
-    schema = simulation_db.read_json(
-        simulation_db.STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
-    pkcollections.mapping_merge(schema, simulation_db.SCHEMA_COMMON)
-    schema['simulationType'] = sim_type
-    _SCHEMA_CACHE[sim_type] = schema
-    return schema
+    sim_type, sid = simulation_db.save_new_simulation(*args)
+    return app_simulation_data(sim_type, sid)
 
 
 def _simulation_data(res, path, data):
@@ -746,26 +740,23 @@ def _start_simulation(data, run_async=False, is_sequential=False):
     pkio.mkdir_parent(run_dir)
     #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
     #   probably can only do with celery.
-    simulation_type = data['simulationType']
+    sim_type = data['simulationType']
     sid = simulation_db.parse_sid(data)
-    data = simulation_db.fixup_old_data(simulation_type, data)
-    assert simulation_type in simulation_db.SIMULATION_TYPES, \
-        '{}: invalid simulation type'.format(simulation_type)
-    template = sirepo.template.import_module(simulation_type)
-    for d in simulation_db.simulation_dir(simulation_type, sid), simulation_db.simulation_lib_dir(simulation_type):
+    template = sirepo.template.import_module(sim_type)
+    for d in simulation_db.simulation_dir(sim_type, sid), simulation_db.simulation_lib_dir(sim_type):
         for f in glob.glob(str(d.join('*.*'))):
             if os.path.isfile(f):
                 py.path.local(f).copy(run_dir)
     template.prepare_aux_files(run_dir, data)
-    simulation_db.save_simulation_json(simulation_type, data)
+    simulation_db.save_simulation_json(sim_type, data)
     simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     template.write_parameters(
-        data, _schema_cache(simulation_type), run_dir=run_dir, run_async=run_async)
-    cmd = [_ROOT_CMD, simulation_type] \
+        data, simulation_db.get_schema(sim_type), run_dir=run_dir, run_async=run_async)
+    cmd = [_ROOT_CMD, sim_type] \
         + ['run' if is_sequential else 'run-background'] + [str(run_dir)]
     if run_async:
         return cfg.job_queue(_job_id(data), run_dir, cmd)
-    return _Command(cmd, cfg.foreground_time_limit)
+    return _Command(_job_id(data), cmd, cfg.foreground_time_limit)
 
 
 class _Background(object):
@@ -821,7 +812,7 @@ class _Background(object):
                 pkdp('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
                 return
             self.in_kill = True
-        pkdp('Killing: pid={} jid={}', self.pid, self.jid)
+        pkdp('{}: stopping: pid={}', self.jid, self.pid)
         sig = signal.SIGTERM
         for i in range(3):
             try:
@@ -829,7 +820,7 @@ class _Background(object):
                 time.sleep(1)
                 pid, status = os.waitpid(self.pid, os.WNOHANG)
                 if pid == self.pid:
-                    pkdp('waitpid: pid={} status={}', pid, status)
+                    pkdp('{}: waitpid: status={}', pid, status)
                     break
                 sig = signal.SIGKILL
             except OSError:
@@ -839,7 +830,7 @@ class _Background(object):
             self.in_kill = False
             try:
                 del self._process[self.jid]
-                pkdp('Deleted: jid={}', self.jid)
+                pkdp('{: deleted', self.jid)
             except KeyError:
                 pass
 
@@ -847,16 +838,16 @@ class _Background(object):
     def sigchld_handler(cls, signum=None, frame=None):
         try:
             pid, status = os.waitpid(-1, os.WNOHANG)
-            pkdp('waitpid: pid={} status={}', pid, status)
+            pkdp('{}: waitpid: status={}', pid, status)
             with cls._lock:
                 for self in cls._process.values():
                     if self.pid == pid:
                         del self._process[self.jid]
-                        pkdp('Deleted: jid={}', self.jid)
+                        pkdp('{}: deleted', self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
-                pkdp('waitpid OSError: {} ({})', e.strerror, e.errno)
+                pkdp('waitpid: OSError: {} errno={}', e.strerror, e.errno)
                 # Fall through. Not much to do here
 
     def _create_daemon(self):
@@ -866,10 +857,10 @@ class _Background(object):
         try:
             pid = os.fork()
         except OSError as e:
-            pkdp('fork OSError: {} ({})', e.strerror, e.errno)
+            pkdp('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
             reraise
         if pid != 0:
-            pkdp('Started: pid={} jid={} cmd={}', pid, self.jid, self.cmd)
+            pkdp('{}: started: pid={} cmd={}', pid, self.jid, self.cmd)
             return pid
         try:
             os.chdir(str(self.run_dir))
@@ -889,16 +880,16 @@ class _Background(object):
             sys.stdout = os.fdopen(1, 'a+')
             os.dup2(0, 2)
             sys.stderr = os.fdopen(2, 'a+')
-            pkdp('Starting: cmd={}', self.cmd)
+            pkdp('{}: child will exec: {}', self.jid, self.cmd)
             sys.stderr.flush()
             try:
                 os.execvp(self.cmd[0], self.cmd)
             finally:
-                pkdp('execvp error: {} ({})', e.strerror, e.errno)
+                pkdp('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             err = open(str(self.run_dir.join('background.log')), 'a')
-            err.write('Error starting daemon: {}\n'.format(e))
+            err.write('{}: error starting daemon: {}'.format(self.jid, e))
             err.close()
             reraise
 
@@ -935,7 +926,7 @@ class _Celery(object):
             res = cls._async_result(jid)
             if not res:
                 return
-            pkdp('Killing: tid={} jid={}', res.task_id, jid)
+            pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=1, signal='SIGTERM')
         except TimeoutError as e:
@@ -943,7 +934,7 @@ class _Celery(object):
         with cls._lock:
             try:
                 del cls._task[jid]
-                pkdp('Deleted: jid={}', jid)
+                pkdp('{}: deleted', jid)
             except KeyError:
                 pass
 
@@ -970,7 +961,7 @@ class _Celery(object):
 class _Command(threading.Thread):
     """Run a command in a thread, and kill after timeout"""
 
-    def __init__(self, cmd, timeout):
+    def __init__(self, jid, cmd, timeout):
         super(_Command, self).__init__()
         # Daemon threads are stopped abruptly so won't hang the server
         self.daemon = True
@@ -980,6 +971,7 @@ class _Command(threading.Thread):
         self.out = ''
         self.background_simulation_id = ''
         self.duration = 0.0
+        self.jid = jid
 
     def run(self):
         start_time = time.time()
@@ -996,15 +988,17 @@ class _Command(threading.Thread):
         self.join(self.timeout)
         try:
             self.process.kill()
-            pkdp('Timeout: cmd={}', self.cmd)
+            pkdp('{}: timeout: cmd={}', self.jid, self.cmd)
             # Thread should exit, but make sure
             self.join(2)
             return self.out + '\nError: simulation took too long'
         except OSError as e:
             if e.errno != errno.ESRCH:
+                pkdp('{}: OSError: {} errno={} cmd={}',
+                     self.jid, e.strerror, e.errno, self.cmd)
                 raise
         if self.process.returncode != 0:
-            pkdp('Error: cmd={}, returncode={}', self.cmd, self.process.returncode)
+            pkdp('{}: error: returncode={} cmd={}', self.jid, self.process.returncode, self.cmd)
             return self.out + '\nError: simulation failed'
         return None
 

@@ -6,6 +6,15 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern import pkio
+from pykern import pkjinja
+from pykern import pkresource
+from pykern.pkdebug import pkdc, pkdexc, pkdp
+from sirepo import crystal
+from sirepo import simulation_db
+from sirepo.template import template_common
+from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
+import bnlcrl.pkcli.simulate
 import glob
 import hashlib
 import json
@@ -18,18 +27,8 @@ import re
 import shutil
 import sirepo.importer
 import traceback
-import zipfile
-
-from pykern import pkio
-from pykern.pkdebug import pkdc, pkdp
-from pykern import pkjinja
-from pykern import pkresource
-from sirepo import crystal
-from sirepo import simulation_db
-from sirepo.template import template_common
-from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
-import bnlcrl.pkcli.simulate
 import uti_plot_com
+import zipfile
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -527,7 +526,7 @@ def import_file(request, lib_dir, tmp_dir):
     except ValueError:
         pass
     arguments = str(request.form['arguments'])
-    pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
+    pkdp('{}: arguments={}', f.filename, arguments)
     return sirepo.importer.import_python(
         input_text,
         lib_dir=lib_dir,
@@ -555,7 +554,7 @@ def is_cache_valid(data, old_data):
     return False
 
 
-def report_parameters_hash(data):
+def hash_parameters(data):
     """Compute a hash of the parameters for his report
 
     Args:
@@ -565,11 +564,9 @@ def report_parameters_hash(data):
     """
     res = hashlib.md5()
 
-    pkdp('start')
     def hash_models(*args):
         for m in args:
             j = json.dumps(data['models'][m], sort_keys=True)
-            pkdp(j)
             res.update(j)
 
     r = data['report']
@@ -846,7 +843,7 @@ def _compute_crystal_init(model):
         model['psiHBi'] = xih
         model['grazingAngle'] = grazingAngle
     except Exception:
-        pkdp('\n{}', traceback.format_exc())
+        pkdp('{}: error: {}', material_raw, pkdexc())
         for key in parms_list:
             model[key] = None
 

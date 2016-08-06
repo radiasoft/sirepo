@@ -53,6 +53,9 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
+#: Cache of schemas keyed by app name
+_SCHEMA_CACHE = {}
+
 #: created under dir
 _TMP_DIR = 'tmp'
 
@@ -66,21 +69,8 @@ _USER_ROOT_DIR = 'user'
 _app = None
 
 
-def _json_object_pairs_hook(pairs):
-    """Use OrderedMapping for json objects if possible
-
-    Args:
-        pairs (list): list of 2-tuples
-    Returns:
-        object: OrderedMapping if object keys are valid idents else dict
-    """
-    # if all([pkinspect.is_valid_identifier(p[0]) for p in pairs]):
-    #   return pkcollections.OrderedMapping(pairs)
-    return dict(pairs)
-
-
 with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
-    SCHEMA_COMMON = json.load(f, object_pairs_hook=_json_object_pairs_hook)
+    SCHEMA_COMMON = json.load(f)
 
 
 def examples(app):
@@ -113,13 +103,24 @@ def fixup_old_data(simulation_type, data):
     return data
 
 
+def get_schema(sim_type):
+    if sim_type in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[sim_type]
+    schema = read_json(
+        STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+    pkcollections.mapping_merge(schema, SCHEMA_COMMON)
+    schema['simulationType'] = sim_type
+    _SCHEMA_CACHE[sim_type] = schema
+    return schema
+
+
 def init(app):
     global _app
     _app = app
 
 
 def generate_json(data):
-    return json.dumps(data, cls=_JSONEncoder)
+    return json.dumps(data)
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
@@ -133,8 +134,8 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
             if search and not _search_data(data, search):
                 continue
             op(res, path, data)
-        except ValueError:
-            pkdp('unparseable json file: {}', path)
+        except ValueError as e:
+            pkdp('{}: error: {}', path, e)
     return res
 
 
@@ -157,13 +158,13 @@ def open_json_file(simulation_type, path=None, sid=None):
         raise werkzeug.exceptions.NotFound()
     try:
         with open(str(path)) as f:
-            data = json.load(f, object_pairs_hook=_json_object_pairs_hook)
+            data = json.load(f)
             # ensure the simulationId matches the path
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
             return fixup_old_data(simulation_type, data)
-    except:
-        pkdp('File: {}', path)
+    except Exception as e:
+        pkdp('{}: error: {}', path, e)
         raise
 
 
@@ -175,7 +176,7 @@ def parse_json(string):
     Returns:
         object: json converted to python
     """
-    return json.loads(string, object_pairs_hook=_json_object_pairs_hook)
+    return json.loads(string)
 
 
 def parse_sid(data):
@@ -215,7 +216,7 @@ def read_json(filename):
         object: json converted to python
     """
     with open(_json_filename(filename)) as f:
-        return json.load(f, object_pairs_hook=_json_object_pairs_hook)
+        return json.load(f)
 
 
 def save_new_example(simulation_type, data):
@@ -305,23 +306,7 @@ def write_json(filename, data):
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
     with open(_json_filename(filename), 'w') as f:
-        json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True, cls=_JSONEncoder)
-
-
-class _JSONEncoder(json.JSONEncoder, object):
-    """Encode objects that container OrderedMapping
-    """
-    def default(self, obj):
-        """If OrderedMapping, return dict
-
-        Args:
-            obj (object): Any object to convert to JSON
-        Returns:
-            object: dict if OrderedMapping else super()
-        """
-        # if isinstance(obj, pkcollections.OrderedMapping):
-        #    return pkcollections.map_to_dict(obj)
-        return super(_JSONEncoder, self).default(obj)
+        json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
 
 
 def _create_example_and_lib_files(simulation_type):

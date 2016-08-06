@@ -68,12 +68,15 @@ def validate_model(model_data, model_schema, enum_info):
             #TODO(pjm): need to handle unicode in label better (mu)
             elif re.search('\[\xb5(m|rad)\]', label):
                 v /= 1e6
-            model_data[k] = v
+            model_data[k] = float(v)
         elif field_type == 'Integer':
             if not value:
                 value = 0
             model_data[k] = int(value)
-        elif field_type == 'BeamList' or field_type == 'MirrorFile' or field_type == 'String' or field_type == 'OptionalString' or field_type == 'MagneticZipFile' or field_type == 'ValueList' or field_type == 'Array' or field_type == 'InputFile':
+        elif field_type in (
+                'BeamList', 'MirrorFile', 'String', 'OptionalString', 'MagneticZipFile',
+                'ValueList', 'Array', 'InputFile',
+        ):
             model_data[k] = _escape(value)
         else:
             raise Exception('unknown field type: {}'.format(field_type))
