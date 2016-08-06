@@ -32,7 +32,7 @@ SIREPO.appDefaultSimulationValues = {
     simulationFolder: {},
 };
 
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'underscore']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -55,7 +55,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, requestQueue) {
+SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -66,7 +66,6 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
-        requestQueue.clearQueue();
         if ($route.current.params.simulationId)
             appState.loadModels($route.current.params.simulationId);
     });
@@ -530,7 +529,7 @@ SIREPO.app.factory('panelState', function(appState, requestQueue, $compile, $roo
                 callback(data);
             }
         };
-        requestQueue.addItem([name, appState.applicationState(), responseHandler]);
+        requestQueue.addItem(name, appState.applicationState(), responseHandler);
     }
 
     function setPanelValue(name, key, value) {
@@ -723,90 +722,96 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $tim
     return self;
 });
 
-SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender, _) {
+SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender) {
     var self = {};
     var runQueue = [];
     var queueId = 1;
     var poller = null;
-    $rootScope.$on('clearCache', function() {
-        runQueue = [];
-        queueId++;
-    });
+
+    function cancelPoller() {
+        if (! poller)
+            return;
+        $interval.cancel(poller);
+        poller = null;
+    }
+
+    function clearQueue() {
+        var qi = runQueue[0]
+        cancelPoller();
+        if (! qi)
+            return;
+        console.log('clearQueue: ' + qi.request.report);
+        runQueue.length = 0
+        requestSender.sendRequest('zrunCancel', null, qi.request);
+    }
+
 
     function executeQueue() {
-        var queueItem = runQueue[0];
-        if (! queueItem)
+        var qi = runQueue[0];
+        if (! qi)
             return;
-        var request = {
-            report: queueItem.item[0],
-            models: queueItem.item[1],
-            simulationType: SIREPO.APP_SCHEMA.simulationType,
-        };
-        console.log('starting: ' + request.report);
-        var startTime = new Date().getTime();
-        console.log(startTime);
-        var process = function(data, status) {
-            if (poller) {
-                $interval.cancel(poller);
-                poller = null;
-            }
+        console.log('executeQueue: ' + qi.request.report);
+        var process = function(resp, status) {
+            cancelPoller();
             // handle errors
-            if (data === null || status != 200) {
-                console.log('error: ' + request.report + ' ' + status + ' data=' + data);
-                handleQueueResult(queueItem, {
-                    error: (data === null && status === 0)
+            if ($.isEmptyObject(resp) || resp.error || status != 200) {
+                if (!resp.error)
+                    resp.error = (resp === null && status === 0)
                         ? 'the server is unavailable'
                         : 'a server error occurred',
-                });
+                console.log('error: ' + qi.request.report + ' ' + status + ' resp=' + resp);
+                handleQueueResult(qi, resp);
                 return;
             }
-            // TODO(robnagler) better status result
-            if (!_.isEmpty(data)) {
-                console.log('done: ' + request.report + ' data=' + data);
-                handleQueueResult(queueItem, data);
+            if (resp.state != 'running') {
+                handleQueueResult(qi, resp);
                 return;
             }
-            // itrs ready heres the url to get
-            // signature sent in return;
-            console.log('polling: ' + request.report);
+            if (resp.hasOwnProperty('reportParametersHash'))
+                qi.request = resp
             poller = $interval(
                 function () {
-                    console.log('wakeup: ' + request.report);
                     requestSender.sendRequest(
-                        'zrunResult', process, request, process);
+                        'zrunResult', process, qi.request, process);
                 },
                 1000,
                 1
             );
         };
-        console.log('sending: ' + request.report);
-        requestSender.sendRequest('zrunSimulation', process, request, process);
+        requestSender.sendRequest('zrunSimulation', process, qi.request, process);
     }
 
-    function handleQueueResult(queueItem, data) {
+    function handleQueueResult(qi, resp) {
         if (! runQueue.length)
             return;
-        if (runQueue[0].id != queueItem.id)
+        if (runQueue[0].id != qi.id)
             return;
         runQueue.shift();
-        if (data.error)
-            queueItem.item[2](null, data.error);
+        if (resp.error)
+            qi.responseHandler(null, resp.error);
         else
-            queueItem.item[2](data);
+            qi.responseHandler(resp);
         executeQueue();
     }
 
-    self.addItem = function(item) {
-        var queueItem = {
+    self.addItem = function(report, models, responseHandler) {
+        var qi = {
             id: queueId,
-            item: item,
+            responseHandler: responseHandler,
+            request: {
+                report: report,
+                models: models,
+                simulationType: SIREPO.APP_SCHEMA.simulationType
+            }
         };
-        runQueue.push(queueItem);
+        runQueue.push(qi);
+        console.log('addItem: ' + qi.request.report + ' runqueu: ' + runQueue.length);
         if (runQueue.length == 1)
             executeQueue();
     };
 
-    self.clearQueue = function () { return; }
+    $rootScope.$on('$routeChangeSuccess', clearQueue);
+    $rootScope.$on('clearCache', clearQueue);
 
     return self;
 });

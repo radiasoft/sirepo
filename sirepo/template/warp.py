@@ -278,16 +278,22 @@ def get_data_file(run_dir, model, frame):
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
-def is_cache_valid(data, old_data):
-    related_models = [data['report'], 'electronBeam', 'electronPlasma', 'laserPulse', 'simulationGrid']
+def models_related_to_report(data):
+    """What models are required for this data['report']
 
-    if data['report'] in ['beamPreviewReport', 'laserPreviewReport']:
-        for name in related_models:
-            if data['models'][name] != old_data['models'][name]:
-                return False
-        return True
-
-    return False
+    Args:
+        data (dict): simulation
+    Returns:
+        list: Named models that affect report or [] if don't know
+    """
+    if not (data['report'] in ('beamPreviewReport', 'laserPreviewReport')):
+        return []
+    return [
+        'electronBeam',
+        'electronPlasma',
+        'laserPulse',
+        'simulationGrid',
+    ]
 
 
 def new_simulation(data, new_simulation_data):

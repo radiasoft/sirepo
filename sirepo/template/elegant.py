@@ -367,13 +367,11 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         return e.message, None
 
 
-def is_cache_valid(data, old_data):
-    if 'bunchReport' in data['report']:
-        for name in [data['report'], 'bunch', 'simulation', 'bunchSource', 'bunchFile']:
-            if data['models'][name] != old_data['models'][name]:
-                return False
-        return True
-    return False
+def models_related_to_report(data):
+    r = data['report']
+    if not 'bunchReport' in r:
+        return []
+    return ['bunch', 'simulation', 'bunchSource', 'bunchFile']:
 
 
 def is_rpn_value(value):

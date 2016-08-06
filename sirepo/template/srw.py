@@ -16,7 +16,6 @@ from sirepo.template import template_common
 from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 import bnlcrl.pkcli.simulate
 import glob
-import hashlib
 import json
 import math
 import numpy as np
@@ -536,57 +535,34 @@ def import_file(request, lib_dir, tmp_dir):
     )
 
 
-def is_cache_valid(data, old_data):
-    related_models = [data['report'], 'electronBeam', 'gaussianBeam', 'multipole', 'simulation', 'tabulatedUndulator', 'undulator']
-
-    if data['report'] == 'mirrorReport' or 'watchpointReport' in data['report']:
-        related_models.append('beamline')
-        if 'watchpointReport' in data['report']:
-            related_models.append('postPropagation')
-            related_models.append('propagation')
-
-    if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport', 'trajectoryReport']:
-
-        for name in related_models:
-            if data['models'][name] != old_data['models'][name]:
-                return False
-        return True
-    return False
-
-
-def hash_parameters(data):
-    """Compute a hash of the parameters for his report
+def models_related_to_report(data):
+    """What models are required for this data['report']
 
     Args:
-        data (dict): report and related models
+        data (dict): simulation
     Returns:
-        str: url safe encoded hash
+        list: Named models that affect report or [] if don't know
     """
-    res = hashlib.md5()
-
-    def hash_models(*args):
-        for m in args:
-            j = json.dumps(data['models'][m], sort_keys=True)
-            res.update(j)
-
     r = data['report']
-    hash_models(r, 'electronBeam', 'gaussianBeam', 'multipole', 'simulation', 'tabulatedUndulator', 'undulator')
-    if r == 'mirrorReport' or 'watchpointReport' in r:
-        hash_models('beamline')
-        if 'watchpointReport' in r:
-            hash_models('postPropagation', 'propagation')
+    watchpoint = 'watchpointReport' in r
     if not (
-        'watchpointReport' in r
+        watchpoint
         or r in (
             'fluxReport', 'initialIntensityReport', 'intensityReport',
             'mirrorReport', 'powerDensityReport', 'sourceIntensityReport',
             'trajectoryReport',
         )
     ):
-        # No way to know if this report's parameters so add some
-        # random data to invalidate the signature and make unique
-        res.update(str([random.random()]))
-    return res.hexdigest()
+        return []
+    res = [
+        'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
+        'tabulatedUndulator', 'undulator',
+    ]
+    if watchpoint or r == 'mirrorReport':
+        res.append('beamline')
+        if watchpoint:
+            res.extend(['postPropagation', 'propagation'])
+    return res
 
 
 def new_simulation(data, new_simulation_data):

@@ -6,7 +6,10 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+import hashlib
+import json
 import re
+import sirepo.template
 
 #: Input json file
 INPUT_BASE_NAME = 'in'
@@ -39,6 +42,33 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
+
+
+def report_parameters_hash(data):
+    """Compute a hash of the parameters for his report.
+
+    Only needs to be unique relative to the report, not globally unique
+    so MD5 is adequate. Long and cryptographic hashes make the
+    cache checks slower.
+
+    Args:
+        data (dict): report and related models
+    Returns:
+        str: url safe encoded hash
+    """
+    if not 'reportParametersHash' in data:
+        models = sirepo.template.import_module(data).models_related_to_report(data)
+        res = hashlib.md5()
+        if models:
+            models.append(data['report'])
+            for m in models:
+                j = json.dumps(data['models'][m], sort_keys=True)
+                res.update(j)
+        else:
+            # No related models so force signature unique for this run
+            res.update(str([random.random() for _ in range(5)]))
+        data['reportParametersHash'] = res.hexdigest()
+    return data['reportParametersHash']
 
 
 def validate_model(model_data, model_schema, enum_info):

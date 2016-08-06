@@ -22,6 +22,7 @@
         "zrunSimulation": "/zrun",
         "runStatus": "/run-status",
         "zrunResult": "/zrun-result",
+        "zrunCancel": "/zrun-cancel",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",

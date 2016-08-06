@@ -32,8 +32,8 @@ import werkzeug
 import werkzeug.exceptions
 
 
-#: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+#: Flask app instance, must be bound globally
+app = None
 
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
@@ -41,11 +41,14 @@ _BEAKER_DATA_DIR = 'beaker'
 #: where users live under db_dir
 _BEAKER_LOCK_DIR = 'lock'
 
+#: Empty response
+_EMPTY_JSON_RESPONSE = '{}'
+
 #: What to exec (root_pkg)
 _ROOT_CMD = 'sirepo'
 
-#: Flask app instance, must be bound globally
-app = None
+#: Parsing errors from subprocess
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
@@ -124,7 +127,7 @@ def app_copy_nonsession_simulation():
         data['models']['simulation']['isExample'] = ''
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(sim_type, data)
-        sirepo.template.import_module(sim_type).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
+        sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
 
@@ -167,7 +170,7 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
         'modelName': model,
     }
     frame = int(frame)
-    template = sirepo.template.import_module(simulation_type)
+    template = sirepo.template.import_module(data)
     if frame >= 0:
         data['report'] = template.get_animation_name(data)
     else:
@@ -276,7 +279,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 @app.route(simulation_db.SCHEMA_COMMON['route']['getApplicationData'], methods=('GET', 'POST'))
 def app_get_application_data():
     data = _parse_data_input()
-    return _json_response(sirepo.template.import_module(data['simulationType']).get_application_data(data))
+    return _json_response(sirepo.template.import_module(data).get_application_data(data))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
@@ -299,14 +302,14 @@ def app_new_simulation():
     )
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
+    sirepo.template.import_module(data).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(sim_type, data)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
 def app_python_source(simulation_type, simulation_id):
     data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
-    template = sirepo.template.import_module(simulation_type)
+    template = sirepo.template.import_module(data)
     # ensure the whole source gets generated, not up to the last watchpoint report
     last_watchpoint = None
     if 'beamline' in data['models']:
@@ -341,85 +344,67 @@ def app_route_favicon():
         'favicon.ico', mimetype='image/vnd.microsoft.icon'
     )
 
-
-@app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
-def app_run():
-    data = _parse_data_input(validate=True)
-    run_dir = simulation_db.simulation_run_dir(data)
-    res = _cached_simulation_results(run_dir, data)
-
-    if not res:
-        simulation = _start_simulation(data, run_async=False, is_sequential=True)
-        err = simulation.run_and_read()
-        jid = _job_id(data)
-        if err:
-            sid = simulation_db.parse_sid(data)
-            pkdp('{}: error: dir={}, out={}', jid, run_dir, err)
-            return _json_response({
-                'error': _error_text(err),
-                'simulationId': sid,
-            })
-        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-        res['report'] = str(run_dir.basename)
-        res['duration'] = simulation.duration
-        pkdp('{}: duration: {}s', jid, res['duration'])
-    return _json_response(res)
+@app.route(simulation_db.SCHEMA_COMMON['route']['zrunCancel'], methods=('GET', 'POST'))
+def app_zrun_cancel():
+    data = _parse_data_input()
+    cache_data = _cached_simulation(data)
+    if not cache_data:
+        # Not our job or not run
+        return _EMPTY_JSON_RESPONSE
+    jid = _job_id(data)
+    if not cfg.job_queue.is_running(jid):
+        # Already dead
+        return _EMPTY_JSON_RESPONSE
+    pkdp('{}: canceling', jid)
+    # TODO(robnagler) I think it is a mistake to write data. Too many
+    # race conditions. Can't really trust the state anyway.
+    cfg.job_queue.kill(jid)
+    # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+    # the last frame file may not be finished, remove it
+    t = sirepo.template.import_module(data)
+    t.remove_last_frame(simulation_db.simulation_run_dir(data))
+    return _EMPTY_JSON_RESPONSE
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
 def app_zrun_simulation():
     data = _parse_data_input(validate=True)
-    run_dir = simulation_db.simulation_run_dir(data)
-    res = _cached_simulation_results(run_dir, data)
-    if res:
-        return _json_response(res)
-    sid = simulation_db.parse_sid(data)
-    #TODO(robnagler) race condition. Need to lock the simulation
+    cache_data = _cached_simulation(data)
+    if cache_data:
+        res = _simulation_run_result(cache_data)
+        # If not completed, just fall through and rerun
+        if res['state'] == 'completed':
+            return _json_response(res)
+    #TODO(robnagler) race condition. Neaed to lock the simulation
     jid = _job_id(data)
     if cfg.job_queue.is_running(jid):
         #TODO(robnagler) return error to user if in different window
         pkdp('{}: ignoring second call to runBackground', jid)
-        return '{}'
-    _start_simulation(data, run_async=True, is_sequential=True)
-    return _json_response({})
+        #TODO: reportParametersHash collision
+    else:
+        _start_simulation(data, run_async=True, is_sequential=True)
+        data['models']['simulationStatus'][data['report']] = {
+            'state': 'running',
+            'startTime': int(time.time()),
+        }
+    return _json_response({
+        'report': data['report'],
+        'reportParametersHash': data['reportParametersHash'],
+        'simulationId': simulation_db.parse_sid(data),
+        'simulationType': data['simulationType'],
+        'state': 'running',
+    })
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunResult'], methods=('GET', 'POST'))
 def app_zrun_result():
-    data = _parse_data_input(validate=True)
-    sid = simulation_db.parse_sid(data)
-    jid = _job_id(data)
-    if cfg.job_queue.is_running(jid):
-        return '{}'
-    try:
-        run_dir = simulation_db.simulation_run_dir(data)
-        sim_type = data['simulationType']
-        template = sirepo.template.import_module(sim_type)
-        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-        res['report'] = str(run_dir.basename)
-        # TODO(robnagler) duration isn't available for run foreground
-        # res['duration'] = simulation.duration
-        res['duration'] = 0.0
-        pkdp('{}: duration: {}s', jid, res['duration'])
-        return _json_response(res)
-    except Exception as e:
-        pkdp('{}: simulation error: {}', jid, e)
-        return _json_response({
-            'error': _error_text(str(e)),
-            'simulationId': sid,
-        })
+    data = _parse_data_input()
+    return _json_response(_simulation_run_result(data))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
 def app_run_background():
     data = _parse_data_input(validate=True)
-    '''
-    run_dir = simulation_db.simulation_run_dir(data)
-    res = _cached_simulation_results(run_dir, data)
-    if res:
-        return _json_response(res)
-    '''
-    sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
     jid = _job_id(data)
     if cfg.job_queue.is_running(jid):
@@ -445,7 +430,7 @@ def app_run_cancel():
     simulation_db.save_simulation_json(sim_type, data)
     cfg.job_queue.kill(_job_id(data))
     # the last frame file may not be finished, remove it
-    t = sirepo.template.import_module(sim_type)
+    t = sirepo.template.import_module(data)
     t.remove_last_frame(simulation_db.simulation_run_dir(data))
     return '{}'
 
@@ -455,7 +440,7 @@ def app_run_status():
     data = _parse_data_input()
     sid = simulation_db.parse_sid(data)
     sim_type = data['simulationType']
-    template = sirepo.template.import_module(sim_type)
+    template = sirepo.template.import_module(data)
     run_dir = simulation_db.simulation_run_dir(data)
 
     if cfg.job_queue.is_running(_job_id(data)):
@@ -518,7 +503,7 @@ def app_simulation_data(simulation_type, simulation_id):
 def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('*')))
-    template = sirepo.template.import_module(data['simulationType'])
+    template = sirepo.template.import_module(data)
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.open_json_file(data['simulationType'], sid=data['simulationId'])
@@ -613,22 +598,22 @@ def sr_landing_page():
     return flask.redirect('/light')
 
 
-def _cached_simulation_results(run_dir, data):
-    if not run_dir.check():
-        return False
-    #TODO(robnagler) Lock
-    try:
-        cache_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        template = sirepo.template.import_module(data['simulationType'])
-        cache_hash = template.hash_parameters(cache_data)
-        req_hash = template.hash_parameters(data)
-        if req_hash == cache_hash:
-            return simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-    except IOError as e:
-        pass
-    except Exception as e:
-        pkdp('{}: error: {}', run_dir, e)
-    return False
+def _cached_simulation(data):
+    req_hash = template_common.report_parameters_hash(data)
+    res = None
+    run_dir = simulation_db.simulation_run_dir(data)
+    if run_dir.check():
+        #TODO(robnagler) Lock
+        try:
+            cache_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            cache_hash = template_common.report_parameters_hash(cache_data)
+            if req_hash == cache_hash:
+                res = cache_data
+        except IOError as e:
+            pkdp('{}: ignore IOError: {} errno=', run_dir, e)
+        except Exception as e:
+            pkdp('{}: ignore other error: {}', run_dir, e)
+    return res
 
 
 def _cfg_job_queue(value):
@@ -714,6 +699,25 @@ def _save_new_and_reply(*args):
     return app_simulation_data(sim_type, sid)
 
 
+def _simulation_run_result(data):
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
+        return {'state': 'running'}
+    try:
+        run_dir = simulation_db.simulation_run_dir(data)
+        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+        # TODO(robnagler) duration isn't available for run foreground
+        # res['duration'] = simulation.duration
+        #TODO: reportParametersHash collision: state = 'collisionCompleted'
+        res['state'] = 'completed'
+        return res
+        #res['duration'] = 0.0
+        #pkdp('{}: duration: {}s', jid, res['duration'])
+    except Exception as e:
+        pkdp('{}: simulation error: {}', jid, e)
+        return {'state': 'error', 'error': _error_text(str(e))}
+
+
 def _simulation_data(res, path, data):
     """Iterator function to return entire simulation data
     """
@@ -742,7 +746,7 @@ def _start_simulation(data, run_async=False, is_sequential=False):
     #   probably can only do with celery.
     sim_type = data['simulationType']
     sid = simulation_db.parse_sid(data)
-    template = sirepo.template.import_module(sim_type)
+    template = sirepo.template.import_module(data)
     for d in simulation_db.simulation_dir(sim_type, sid), simulation_db.simulation_lib_dir(sim_type):
         for f in glob.glob(str(d.join('*.*'))):
             if os.path.isfile(f):
@@ -860,7 +864,7 @@ class _Background(object):
             pkdp('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
             reraise
         if pid != 0:
-            pkdp('{}: started: pid={} cmd={}', pid, self.jid, self.cmd)
+            pkdp('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
             return pid
         try:
             os.chdir(str(self.run_dir))
