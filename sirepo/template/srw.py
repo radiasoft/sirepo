@@ -7,11 +7,13 @@ u"""SRW execution template.
 from __future__ import absolute_import, division, print_function
 
 import glob
+import hashlib
 import json
 import math
 import numpy as np
 import os
 import py.path
+import random
 import re
 import shutil
 import sirepo.importer
@@ -545,11 +547,49 @@ def is_cache_valid(data, old_data):
             related_models.append('propagation')
 
     if 'watchpointReport' in data['report'] or data['report'] in ['fluxReport', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'sourceIntensityReport', 'trajectoryReport']:
+
         for name in related_models:
             if data['models'][name] != old_data['models'][name]:
                 return False
         return True
     return False
+
+
+def report_parameters_hash(data):
+    """Compute a hash of the parameters for his report
+
+    Args:
+        data (dict): report and related models
+    Returns:
+        str: url safe encoded hash
+    """
+    res = hashlib.md5()
+
+    pkdp('start')
+    def hash_models(*args):
+        for m in args:
+            j = json.dumps(data['models'][m], sort_keys=True)
+            pkdp(j)
+            res.update(j)
+
+    r = data['report']
+    hash_models(r, 'electronBeam', 'gaussianBeam', 'multipole', 'simulation', 'tabulatedUndulator', 'undulator')
+    if r == 'mirrorReport' or 'watchpointReport' in r:
+        hash_models('beamline')
+        if 'watchpointReport' in r:
+            hash_models('postPropagation', 'propagation')
+    if not (
+        'watchpointReport' in r
+        or r in (
+            'fluxReport', 'initialIntensityReport', 'intensityReport',
+            'mirrorReport', 'powerDensityReport', 'sourceIntensityReport',
+            'trajectoryReport',
+        )
+    ):
+        # No way to know if this report's parameters so add some
+        # random data to invalidate the signature and make unique
+        res.update(str([random.random()]))
+    return res.hexdigest()
 
 
 def new_simulation(data, new_simulation_data):

@@ -55,7 +55,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
+SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, requestQueue) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -66,6 +66,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
+        requestQueue.clearQueue();
         if ($route.current.params.simulationId)
             appState.loadModels($route.current.params.simulationId);
     });
@@ -765,16 +766,8 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
                 handleQueueResult(queueItem, data);
                 return;
             }
-            // TODO(robnagler) server manages timeouts?
-            var elapsed = (new Date().getTime()) - startTime;
-            console.log('elapsed ' + elapsed);
-            if (elapsed > 2 * 60000) {
-                console.log('timeout: ' + request.report);
-                handleQueueResult(queueItem, {
-                    error: 'simulation timed out after 2 minutes'
-                });
-                return
-            }
+            // itrs ready heres the url to get
+            // signature sent in return;
             console.log('polling: ' + request.report);
             poller = $interval(
                 function () {
@@ -812,6 +805,8 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
         if (runQueue.length == 1)
             executeQueue();
     };
+
+    self.clearQueue = function () { return; }
 
     return self;
 });

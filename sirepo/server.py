@@ -5,6 +5,7 @@ u"""Flask routes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
@@ -218,7 +219,7 @@ def app_file_list(simulation_type, simulation_id, file_type):
                 filename = filename[len(file_type) + 1:]
             res.append(filename)
     res.sort()
-    return json.dumps(res)
+    return _json_response(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
@@ -278,7 +279,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
 @app.route(simulation_db.SCHEMA_COMMON['route']['getApplicationData'], methods=('GET', 'POST'))
 def app_get_application_data():
     data = _json_input()
-    return flask.jsonify(sirepo.template.import_module(data['simulationType']).get_application_data(data))
+    return _json_response(sirepo.template.import_module(data['simulationType']).get_application_data(data))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
@@ -286,7 +287,7 @@ def app_import_file(simulation_type):
     template = sirepo.template.import_module(simulation_type)
     error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
     if error:
-        return flask.jsonify({'error': error})
+        return _json_response({'error': error})
     data['models']['simulation']['folder'] = flask.request.form['folder']
     return _save_new_and_reply(simulation_type, data)
 
@@ -356,7 +357,7 @@ def app_run():
         if err:
             sid = simulation_db.parse_sid(data)
             pkdp('error: sid={}, dir={}, out={}', sid, run_dir, err)
-            return flask.jsonify({
+            return _json_response({
                 'error': _error_text(err),
                 'simulationId': sid,
             })
@@ -364,7 +365,7 @@ def app_run():
         res['report'] = str(run_dir.basename)
         res['duration'] = simulation.duration
         pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
-    return flask.jsonify(res)
+    return _json_response(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
@@ -373,33 +374,40 @@ def app_zrun_simulation():
     run_dir = simulation_db.simulation_run_dir(data)
     res = _cached_simulation_results(run_dir, data)
     if res:
-        return flask.jsonify(res)
+        return _json_response(res)
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+    if cfg.job_queue.is_running(_job_id(data)):
         #TODO(robnagler) return error to user if in different window
-        pkdp('ignoring second call to runBackground: {}', sid)
+        pkdp('{}/{}: ignoring second call to runBackground', sid, data['report'])
         return '{}'
     _start_simulation(data, run_async=True, is_sequential=True)
-    return flask.jsonify({})
+    return _json_response({})
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunResult'], methods=('GET', 'POST'))
 def app_zrun_result():
     data = _json_input()
     sid = simulation_db.parse_sid(data)
-    simulation_type = data['simulationType']
-    template = sirepo.template.import_module(simulation_type)
-    run_dir = simulation_db.simulation_run_dir(data)
-    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+    if cfg.job_queue.is_running(_job_id(data)):
         return '{}'
-    res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-    res['report'] = str(run_dir.basename)
-    # TODO(robnagler) duration isn't available for run foreground
-    # res['duration'] = simulation.duration
-    res['duration'] = 0.0
-    pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
-    return flask.jsonify(res)
+    try:
+        run_dir = simulation_db.simulation_run_dir(data)
+        simulation_type = data['simulationType']
+        template = sirepo.template.import_module(simulation_type)
+        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+        res['report'] = str(run_dir.basename)
+        # TODO(robnagler) duration isn't available for run foreground
+        # res['duration'] = simulation.duration
+        res['duration'] = 0.0
+        pkdp('report: {}, duration: {} seconds', res['report'], res['duration'])
+        return _json_response(res)
+    except Exception as e:
+        pkdp('{}/{}: simulation failed: {}', sid, data['report'], e)
+        return _json_response({
+            'error': _error_text(str(e)),
+            'simulationId': sid,
+        })
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
@@ -409,11 +417,11 @@ def app_run_background():
     run_dir = simulation_db.simulation_run_dir(data)
     res = _cached_simulation_results(run_dir, data)
     if res:
-        return flask.jsonify(res)
+        return _json_response(res)
     '''
     sid = simulation_db.parse_sid(data)
     #TODO(robnagler) race condition. Need to lock the simulation
-    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+    if cfg.job_queue.is_running(_job_id(data)):
         #TODO(robnagler) return error to user if in different window
         pkdp('ignoring second call to runBackground: {}', sid)
         return '{}'
@@ -421,7 +429,7 @@ def app_run_background():
     status['state'] = 'running'
     status['startTime'] = int(time.time())
     _start_simulation(data, run_async=True, is_sequential=False)
-    return flask.jsonify({
+    return _json_response({
         'state': status['state'],
         'startTime': status['startTime'],
     })
@@ -434,7 +442,7 @@ def app_run_cancel():
         data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
     simulation_type = data['simulationType']
     simulation_db.save_simulation_json(simulation_type, data)
-    cfg.job_queue.kill(_job_id(simulation_db.parse_sid(data), data['report']))
+    cfg.job_queue.kill(_job_id(data))
     # the last frame file may not be finished, remove it
     t = sirepo.template.import_module(simulation_type)
     t.remove_last_frame(simulation_db.simulation_run_dir(data))
@@ -449,7 +457,7 @@ def app_run_status():
     template = sirepo.template.import_module(simulation_type)
     run_dir = simulation_db.simulation_run_dir(data)
 
-    if cfg.job_queue.is_running(_job_id(sid, data['report'])):
+    if cfg.job_queue.is_running(_job_id(data)):
         completion = template.background_percent_complete(data['report'], run_dir, True, _schema_cache(simulation_type))
         state = 'running'
     else:
@@ -476,7 +484,7 @@ def app_run_status():
         frame_id = completion['last_update_time']
         elapsed_time = int(frame_id) - int(completion['start_time'])
 
-    return flask.jsonify({
+    return _json_response({
         'state': completion['state'] if 'state' in completion else state,
         'percentComplete': completion['percent_complete'],
         'frameCount': completion['frame_count'],
@@ -496,8 +504,9 @@ def app_save_simulation_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
-    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
-    response = flask.jsonify(sirepo.template.import_module(simulation_type).prepare_for_client(data))
+    response = _json_response(
+        sirepo.template.import_module(simulation_type).prepare_for_client(data),
+    )
     _no_cache(response)
     return response
 
@@ -510,7 +519,7 @@ def app_simulation_frame(frame_id):
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.open_json_file(data['simulationType'], sid=data['simulationId'])
-    response = flask.jsonify(template.get_simulation_frame(run_dir, data, model_data))
+    response = _json_response(template.get_simulation_frame(run_dir, data, model_data))
 
     if template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
@@ -529,7 +538,7 @@ def app_simulation_list():
     simulation_type = data['simulationType']
     search = data['search'] if 'search' in data else None
     simulation_db.verify_app_directory(simulation_type)
-    return json.dumps(
+    return _json_response(
         sorted(
             simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, search),
             key=lambda row: row['name'],
@@ -540,7 +549,7 @@ def app_simulation_list():
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationSchema'], methods=('GET', 'POST'))
 def app_simulation_schema():
     sim_type = flask.request.form['simulationType']
-    return flask.jsonify(_schema_cache(sim_type))
+    return _json_response(_schema_cache(sim_type))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
@@ -575,13 +584,13 @@ def app_upload_file(simulation_type, simulation_id, file_type):
         if err:
             pkio.unchecked_remove(p)
     if err:
-        return flask.jsonify({
+        return _json_response({
             'error': err,
             'filename': filename,
             'fileType': file_type,
             'simulationId': simulation_id,
         })
-    return flask.jsonify({
+    return _json_response({
         'filename': filename,
         'fileType': file_type,
         'simulationId': simulation_id,
@@ -606,9 +615,13 @@ def _cached_simulation_results(run_dir, data):
         return False
     #TODO(robnagler) Lock
     try:
-        old_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        cache_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         template = sirepo.template.import_module(data['simulationType'])
-        if template.is_cache_valid(data, old_data):
+        cache_hash = template.report_parameters_hash(cache_data)
+        req_hash = template.report_parameters_hash(data)
+        pkdp('req_hash={} cache_hash={}', req_hash, cache_hash)
+        if req_hash == cache_data:
+            pkdp('{}: cache hit (key={})', run_dir, cache_hash)
             return simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
     except IOError as e:
         pass
@@ -664,12 +677,26 @@ def _error_text(err):
     return 'a system error occurred'
 
 
-def _job_id(sid, model_name):
-    return '{}-{}'.format(sid, model_name)
+def _job_id(data):
+    """A Job is a simulation and report name
+
+    Args:
+        data (dict): extract sid and report
+    Returns:
+        str: unique name
+    """
+    return '{}-{}'.format(simulation_db.parse_sid(data), data['report'])
 
 
 def _json_input():
-    return flask.request.get_json(cache=False)
+    return simulation_db.parse_json(flask.request.get_json(cache=False))
+
+
+def _json_response(value):
+    return app.response_class(
+        simulation_db.generate_json(value),
+        mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+    )
 
 
 def _no_cache(response):
@@ -685,9 +712,9 @@ def _save_new_and_reply(*args):
 def _schema_cache(sim_type):
     if sim_type in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[sim_type]
-    with open(str(simulation_db.STATIC_FOLDER.join('json/{}-schema{}'.format(sim_type, simulation_db.JSON_SUFFIX)))) as f:
-        schema = json.load(f)
-    schema.update(simulation_db.SCHEMA_COMMON)
+    schema = simulation_db.read_json(
+        simulation_db.STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+    pkcollections.mapping_merge(schema, simulation_db.SCHEMA_COMMON)
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
     return schema
@@ -737,36 +764,36 @@ def _start_simulation(data, run_async=False, is_sequential=False):
     cmd = [_ROOT_CMD, simulation_type] \
         + ['run' if is_sequential else 'run-background'] + [str(run_dir)]
     if run_async:
-        return cfg.job_queue(_job_id(sid, data['report']), run_dir, cmd)
+        return cfg.job_queue(_job_id(data), run_dir, cmd)
     return _Command(cmd, cfg.foreground_time_limit)
 
 
 class _Background(object):
 
-    # Map of sid to instance
+    # Map of jid to instance
     _process = {}
 
     # mutex for _process
     _lock = threading.Lock()
 
-    def __init__(self, sid, run_dir, cmd):
+    def __init__(self, jid, run_dir, cmd):
         with self._lock:
-            assert not sid in self._process, \
-                'Simulation already running: sid={}'.format(sid)
+            assert not jid in self._process, \
+                'Simulation already running: jid={}'.format(jid)
             self.in_kill = False
-            self.sid = sid
+            self.jid = jid
             self.cmd = cmd
             self.run_dir = run_dir
-            self._process[sid] = self
+            self._process[jid] = self
             self.pid = None
             # This command may blow up
             self.pid = self._create_daemon()
 
     @classmethod
-    def is_running(cls, sid):
+    def is_running(cls, jid):
         with cls._lock:
             try:
-                self = cls._process[sid]
+                self = cls._process[jid]
             except KeyError:
                 return False
             if self.in_kill:
@@ -777,23 +804,24 @@ class _Background(object):
                 os.kill(self.pid, 0)
             except OSError:
                 # Has to exist so no need to protect
-                del self._process[sid]
+                del self._process[jid]
                 return False
         return True
 
     @classmethod
-    def kill(cls, sid):
+    def kill(cls, jid):
         self = None
         with cls._lock:
             try:
-                self = cls._process[sid]
+                self = cls._process[jid]
             except KeyError:
                 return
             #TODO(robnagler) will this happen?
             if self.in_kill:
+                pkdp('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
                 return
             self.in_kill = True
-        pkdp('Killing: pid={} sid={}', self.pid, self.sid)
+        pkdp('Killing: pid={} jid={}', self.pid, self.jid)
         sig = signal.SIGTERM
         for i in range(3):
             try:
@@ -810,8 +838,8 @@ class _Background(object):
         with cls._lock:
             self.in_kill = False
             try:
-                del self._process[self.sid]
-                pkdp('Deleted: sid={}', self.sid)
+                del self._process[self.jid]
+                pkdp('Deleted: jid={}', self.jid)
             except KeyError:
                 pass
 
@@ -823,8 +851,8 @@ class _Background(object):
             with cls._lock:
                 for self in cls._process.values():
                     if self.pid == pid:
-                        del self._process[self.sid]
-                        pkdp('Deleted: sid={}', self.sid)
+                        del self._process[self.jid]
+                        pkdp('Deleted: jid={}', self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
@@ -841,7 +869,7 @@ class _Background(object):
             pkdp('fork OSError: {} ({})', e.strerror, e.errno)
             reraise
         if pid != 0:
-            pkdp('Started: pid={} sid={} cmd={}', pid, self.sid, self.cmd)
+            pkdp('Started: pid={} jid={} cmd={}', pid, self.jid, self.cmd)
             return pid
         try:
             os.chdir(str(self.run_dir))
@@ -877,57 +905,57 @@ class _Background(object):
 
 class _Celery(object):
 
-    # Map of sid to instance
+    # Map of jid to instance
     _task = {}
 
     # mutex for _task
     _lock = threading.Lock()
 
-    def __init__(self, sid, run_dir, cmd):
+    def __init__(self, jid, run_dir, cmd):
         with self._lock:
-            assert not sid in self._task, \
-                'Simulation already running: sid={}'.format(sid)
-            self.sid = sid
+            assert not jid in self._task, \
+                'Simulation already running: jid={}'.format(jid)
+            self.jid = jid
             self.cmd = cmd
             self.run_dir = run_dir
-            self._task[sid] = self
+            self._task[jid] = self
             self.async_result = None
             # This command may blow up
             self.async_result = self._start_task()
 
     @classmethod
-    def is_running(cls, sid):
+    def is_running(cls, jid):
         with cls._lock:
-            return cls._async_result(sid) is not None
+            return cls._async_result(jid) is not None
 
     @classmethod
-    def kill(cls, sid):
+    def kill(cls, jid):
         from celery.exceptions import TimeoutError
         with cls._lock:
-            res = cls._async_result(sid)
+            res = cls._async_result(jid)
             if not res:
                 return
-            pkdp('Killing: tid={} sid={}', res.task_id, sid)
+            pkdp('Killing: tid={} jid={}', res.task_id, jid)
         try:
             res.revoke(terminate=True, wait=True, timeout=1, signal='SIGTERM')
         except TimeoutError as e:
             res.revoke(terminate=True, signal='SIGKILL')
         with cls._lock:
             try:
-                del cls._task[sid]
-                pkdp('Deleted: sid={}', sid)
+                del cls._task[jid]
+                pkdp('Deleted: jid={}', jid)
             except KeyError:
                 pass
 
     @classmethod
-    def _async_result(cls, sid):
+    def _async_result(cls, jid):
             try:
-                self = cls._task[sid]
+                self = cls._task[jid]
             except KeyError:
                 return None
             res = self.async_result
             if not res or res.ready():
-                del self._task[sid]
+                del self._task[jid]
                 return None
             return res
 
