@@ -200,6 +200,8 @@ def save_new_simulation(simulation_type, data):
 
 def save_simulation_json(simulation_type, data):
     sid = parse_sid(data)
+    if 'version' not in data:
+        data['version'] = SCHEMA_COMMON['version']
     write_json(_simulation_data_file(simulation_type, sid), data)
 
 
