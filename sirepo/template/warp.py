@@ -349,6 +349,10 @@ def prepare_aux_files(run_dir, data):
     pass
 
 
+def prepare_for_client(data):
+    return data
+
+
 def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:

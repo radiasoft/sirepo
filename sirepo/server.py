@@ -455,7 +455,8 @@ def app_save_simulation_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
-    response = flask.jsonify(simulation_db.open_json_file(simulation_type, sid=simulation_id))
+    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
+    response = flask.jsonify(sirepo.template.import_module(simulation_type).prepare_for_client(data))
     _no_cache(response)
     return response
 
