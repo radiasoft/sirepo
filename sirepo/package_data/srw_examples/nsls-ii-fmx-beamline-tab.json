@@ -100,7 +100,7 @@
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Final",
             "current": 0.5,
-            "drift": -0.7927500000000001,
+            "drift": 0.0,
             "driftCalculationMethod": "auto",
             "energy": 3,
             "energyDeviation": 0,
@@ -416,18 +416,26 @@
             "horizontalPosition": 0,
             "horizontalRange": 0.4,
             "isExample": "1",
-            "name": "NSLS-II FMX beamline",
+            "name": "NSLS-II FMX beamline (tabulated)",
             "outOfSessionSimulationId": "",
-            "photonEnergy": 12707.91,
+            "photonEnergy": 12811.401,
             "sampleFactor": 1,
             "samplingMethod": "1",
-            "simulationId": "oHtil1vz",
-            "sourceType": "u",
+            "simulationId": "5xh8so7z",
+            "sourceType": "t",
             "verticalPointCount": 201,
             "verticalPosition": 0,
             "verticalRange": 0.4
         },
-        "simulationStatus": {},
+        "simulationStatus": {
+            "fluxAnimation": {
+                "state": "initial"
+            },
+            "multiElectronAnimation": {
+                "startTime": 1470429746,
+                "state": "running"
+            }
+        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,
@@ -436,14 +444,15 @@
             "precision": 0.01
         },
         "tabulatedUndulator": {
-            "gap": 6.72,
+            "gap": 6.7,
             "horizontalAmplitude": 0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
-            "indexFile": "",
-            "length": 2.500648,
-            "longitudinalPosition": 1.305,
-            "magneticFile": "magnetic_measurements.zip",
+            "indexFile": "ivu21_fmx_sum.txt",
+            "length": 2.500384,
+            "longitudinalPosition": 1.25,
+            "magnMeasFolder": "",
+            "magneticFile": "magn_meas_fmx.zip",
             "period": 21,
             "phase": 0,
             "undulatorParameter": 1.56866479,

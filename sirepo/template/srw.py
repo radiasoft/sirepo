@@ -62,8 +62,6 @@ _EXAMPLE_FOLDERS = {
     'Young\'s Double Slit Experiment': '/Wavefront Propagation',
 }
 
-_PREDEFINED_MAGNETIC_ZIP_FILE = 'magnetic_measurements.zip'
-
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -72,6 +70,9 @@ with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
 
 with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
     _PREDEFINED_MIRRORS = json.load(f)
+
+with open(str(_STATIC_FOLDER.join('json/magnetic_measurements.json'))) as f:
+    _PREDEFINED_MAGNETIC_ZIP_FILES = json.load(f)
 
 with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
     _SCHEMA = json.load(f)
@@ -314,7 +315,7 @@ def fixup_old_data(data):
         data['models']['tabulatedUndulator'] = {
             'gap': 6.72,
             'phase': 0,
-            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILE,
+            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILES[0]['fileName'],
             'longitudinalPosition': 1.305,
             'magnMeasFolder': '',
             'indexFile': '',
@@ -535,8 +536,9 @@ def prepare_aux_files(run_dir, data):
         return
     filename = data['models']['tabulatedUndulator']['magneticFile']
     filepath = run_dir.join(filename)
-    if filename == _PREDEFINED_MAGNETIC_ZIP_FILE and not filepath.check():
-        _STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE).copy(run_dir)
+    for f in _PREDEFINED_MAGNETIC_ZIP_FILES:
+        if filename == f['fileName'] and not filepath.check():
+            _STATIC_FOLDER.join('dat', f['fileName']).copy(run_dir)
     zip_file = zipfile.ZipFile(str(filepath))
     zip_file.extractall(str(run_dir))
     index_dir, index_file = _find_index_file(zip_file)
@@ -607,7 +609,7 @@ def static_lib_files():
         list: py.path.local objects
     """
     res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
-    res.append(_STATIC_FOLDER.join('dat', _PREDEFINED_MAGNETIC_ZIP_FILE))
+    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MAGNETIC_ZIP_FILES]
     return res
 
 
