@@ -582,6 +582,8 @@ def run_all_text(data):
         content.append('op = set_optics()')
         content.append('v.ws = True')
         content.append("v.ws_pl = 'xy'")
+    elif data['report'] == 'multiElectronAnimation':
+        content.append('v.wm = True')
     else:
         raise Exception('unknown report: {}'.format(data['report']))
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
