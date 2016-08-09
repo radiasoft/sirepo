@@ -287,7 +287,7 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
-        elif item['type'] == 'grating':
+        elif item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
             if 'grazingAngle' not in item:
                 angle = 0
                 if item['normalVectorX']:

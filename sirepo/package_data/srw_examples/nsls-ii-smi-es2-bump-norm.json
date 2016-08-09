@@ -62,6 +62,7 @@
                 "type": "crystal"
             },
             {
+                "grazingAngle": 3.141592653998904,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
                 "id": 15,
@@ -79,6 +80,7 @@
                 "type": "sphericalMirror"
             },
             {
+                "grazingAngle": 3.141592653998904,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
                 "id": 16,
@@ -246,23 +248,6 @@
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
-        },
-        "mirrorReport": {
-            "heightAmplification": 1,
-            "heightProfileFile": "HFM_SESO.dat",
-            "id": 15,
-            "normalVectorX": 0,
-            "normalVectorY": 0.9999025244842406,
-            "normalVectorZ": -0.013962146326506367,
-            "orientation": "y",
-            "position": 34.88244,
-            "radius": 7600,
-            "sagittalSize": 0.04,
-            "tangentialSize": 0.2,
-            "tangentialVectorX": 0,
-            "tangentialVectorY": 0.013962146326506367,
-            "title": "HFM",
-            "type": "sphericalMirror"
         },
         "multiElectronAnimation": {
             "horizontalPosition": 0,
@@ -557,7 +542,7 @@
             "photonEnergy": 20358,
             "sampleFactor": 1,
             "samplingMethod": "2",
-            "simulationId": "72LDRj9J",
+            "simulationId": "u7NSU6ve",
             "sourceType": "u",
             "verticalPointCount": 200,
             "verticalPosition": 0,

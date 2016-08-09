@@ -453,6 +453,7 @@
             "radius": ["Radius of Surface Curvature [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal", "Float"],
             "normalVectorY": ["Vertical", "Float"],
             "normalVectorZ": ["Longitudinal", "Float"],
@@ -1023,6 +1024,7 @@
                     "radius",
                     "tangentialSize",
                     "sagittalSize",
+                    "grazingAngle",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",

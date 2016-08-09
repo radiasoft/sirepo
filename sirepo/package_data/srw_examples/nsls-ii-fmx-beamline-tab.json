@@ -13,6 +13,7 @@
                 "verticalSize": 1.5
             },
             {
+                "grazingAngle": 13.962599999998195,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
                 "id": 13,
@@ -421,7 +422,7 @@
             "photonEnergy": 12811.401,
             "sampleFactor": 1,
             "samplingMethod": "1",
-            "simulationId": "5xh8so7z",
+            "simulationId": "oRMyxdtd",
             "sourceType": "t",
             "verticalPointCount": 201,
             "verticalPosition": 0,
@@ -451,7 +452,7 @@
             "indexFile": "ivu21_fmx_sum.txt",
             "length": 2.500384,
             "longitudinalPosition": 1.25,
-            "magnMeasFolder": "",
+            "magnMeasFolder": "magn_meas",
             "magneticFile": "magn_meas_fmx.zip",
             "period": 21,
             "phase": 0,
