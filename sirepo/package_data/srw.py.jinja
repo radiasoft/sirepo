@@ -118,7 +118,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['sm_pra', 'f', {{fluxReport_azimuthalPrecision}}, 'azimuthal integration precision parameter for multi-e spectrum vs photon energy calculation'],
     ['sm_meth', 'i', {{fluxReport_method}}, 'method to use for spectrum vs photon energy calculation in case of arbitrary input magnetic field: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler", -1- dont use this accurate integration method (rather use approximate if possible)'],
     ['sm_prec', 'f', {{fluxReport_precision}}, 'relative precision for spectrum vs photon energy calculation in case of arbitrary input magnetic field (nominal value is 0.01)'],
-    ['sm_nm', 'i', 100000, 'number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field'],
+    ['sm_nm', 'i', {{fluxReport_numberOfMacroElectrons}}, 'number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field'],
     ['sm_na', 'i', 5, 'number of macro-electrons to average on each node at parallel (MPI-based) calculation of spectrum in case of arbitrary input magnetic field'],
     ['sm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons) for intermediate intensity at calculation of multi-electron spectrum in case of arbitrary input magnetic field'],
     ['sm_type', 'i', {{fluxReport_fluxType}}, 'calculate flux (=1) or flux per unit surface (=2)'],

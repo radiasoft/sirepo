@@ -750,7 +750,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             }
         );
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
-        var fieldsOfAccurateMethod = ['precision'];
+        var fieldsOfAccurateMethod = ['precision', 'numberOfMacroElectrons'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
         var i;

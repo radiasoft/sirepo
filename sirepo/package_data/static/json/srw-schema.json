@@ -292,6 +292,7 @@
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -691,6 +692,7 @@
                     "initialEnergy",
                     "finalEnergy",
                     "photonEnergyPointCount",
+                    "numberOfMacroElectrons",
                     [
                         ["Horizontal", [
                             "horizontalPosition",
