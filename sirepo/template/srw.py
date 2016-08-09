@@ -52,7 +52,7 @@ _EXAMPLE_FOLDERS = {
     'Idealized Free Electron Laser Pulse': '/SR Calculator',
     'LCLS SXR beamline - Simplified': '/Light Source Facilities/LCLS',
     'LCLS SXR beamline': '/Light Source Facilities/LCLS',
-    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II',
+    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II/NSLS-II CHX beamline',
     'Polarization of Bending Magnet Radiation': '/Examples',
     'Soft X-Ray Undulator Radiation Containing VLS Grating': '/Examples',
     'Tabulated Undulator Example': '/Examples',
