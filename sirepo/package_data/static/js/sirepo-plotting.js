@@ -392,9 +392,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     function showFocusPoint(isMainFocus) {
         var p = points[focusIndex];
         var domain = xAxisScale.domain();
-
-        $(overlay.node()).parent().find('.focus').not($(circleClass)).hide();
-        $(overlay.node()).parent().find(circleClass).show();
+        $(overlay.node()).parent().find('[class=focus]').hide();
 
         if (p[0] < domain[0] || p[0] > domain[1]) {
             select(circleClass).style('display', 'none');
