@@ -125,7 +125,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         extractUnits: function(scope, axis, label) {
             scope[axis + 'units'] = '';
             var match = label.match(/\[(.*?)\]/);
-            if (match) {
+            if (match && match[1].length < 5) {
                 scope[axis + 'units'] = match[1];
                 label = label.replace(/\[.*?\]/, '');
             }
@@ -534,8 +534,8 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 yAxisScale.domain([d3.min(json.points), d3.max(json.points)]);
                 yDomain = yAxisScale.domain();
                 focusPoint.load(points);
-                select('.y-axis-label').text(json.y_label);
-                select('.x-axis-label').text(json.x_label);
+                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
                 select('.line').datum(points);
                 $scope.resize();
