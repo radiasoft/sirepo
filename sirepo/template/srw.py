@@ -380,7 +380,7 @@ def fixup_old_data(data):
     data['models']['tabulatedUndulator'] = _compute_undulator_length(data['models']['tabulatedUndulator'])
 
 
-def generate_parameters_file(data, schema, run_dir=None, run_async=False):
+def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
     d = _process_intensity_reports(
@@ -696,14 +696,14 @@ def validate_file(file_type, path):
     return None
 
 
-def write_parameters(data, schema, run_dir, run_async):
+def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
         schema (dict): to validate data
         run_dir (py.path): where to write
-        run_async (bool): run in background?
+        is_parallel (bool): run in background?
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -711,7 +711,7 @@ def write_parameters(data, schema, run_dir, run_async):
             data,
             schema,
             run_dir,
-            run_async,
+            is_parallel,
         ),
     )
 

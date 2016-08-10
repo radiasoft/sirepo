@@ -18,7 +18,6 @@ import errno
 import flask
 import flask.sessions
 import glob
-import json
 import os
 import py
 import re
@@ -43,9 +42,6 @@ _BEAKER_LOCK_DIR = 'lock'
 
 #: Empty response
 _EMPTY_JSON_RESPONSE = '{}'
-
-#: What to exec (root_pkg)
-_ROOT_CMD = 'sirepo'
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
@@ -321,7 +317,7 @@ def app_python_source(simulation_type, simulation_id):
                 data['report'] = last_watchpoint
     return flask.Response(
         '{}{}'.format(
-            template.generate_parameters_file(data, simulation_db.get_schema(simulation_type), run_async=True, is_sequential=False),
+            template.generate_parameters_file(data, simulation_db.get_schema(simulation_type), is_parallel=True),
             template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
         mimetype='text/plain',
     )
@@ -382,17 +378,16 @@ def app_zrun_simulation():
         pkdp('{}: ignoring second call to runBackground', jid)
         #TODO: reportParametersHash collision
     else:
-        _start_simulation(data, run_async=True, is_sequential=True)
-        data['models']['simulationStatus'][data['report']] = {
-            'state': 'running',
-            'startTime': int(time.time()),
-        }
+        _start_simulation(data)
+    status = data['models']['simulationStatus'][data['report']]
     return _json_response({
+        'pollSeconds': simulation_db.poll_seconds(data),
         'report': data['report'],
         'reportParametersHash': data['reportParametersHash'],
         'simulationId': simulation_db.parse_sid(data),
         'simulationType': data['simulationType'],
-        'state': 'running',
+        'startTime': status['startTime'],
+        'state': status['state'],
     })
 
 
@@ -402,32 +397,13 @@ def app_zrun_result():
     return _json_response(_simulation_run_result(data))
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runBackground'], methods=('GET', 'POST'))
-def app_run_background():
-    data = _parse_data_input(validate=True)
-    #TODO(robnagler) race condition. Need to lock the simulation
-    jid = _job_id(data)
-    if cfg.job_queue.is_running(jid):
-        #TODO(robnagler) return error to user if in different window
-        pkdp('{}: ignoring second call to runBackground: {}', jid)
-        return '{}'
-    status = data['models']['simulationStatus'][data['report']] = {}
-    status['state'] = 'running'
-    status['startTime'] = int(time.time())
-    _start_simulation(data, run_async=True, is_sequential=False)
-    return _json_response({
-        'state': status['state'],
-        'startTime': status['startTime'],
-    })
-
-
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _parse_data_input()
     if data['report'] in data['models']['simulationStatus']:
         data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
     sim_type = data['simulationType']
-    simulation_db.save_simulation_json(sim_type, data)
+    #TODO_SAVE_SIM simulation_db.save_simulation_json(sim_type, data)
     cfg.job_queue.kill(_job_id(data))
     # the last frame file may not be finished, remove it
     t = sirepo.template.import_module(data)
@@ -438,34 +414,35 @@ def app_run_cancel():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
     data = _parse_data_input()
-    sid = simulation_db.parse_sid(data)
-    sim_type = data['simulationType']
-    template = sirepo.template.import_module(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-
-    if cfg.job_queue.is_running(_job_id(data)):
+    cache_data = _cached_simulation(data)
+need to refresh here the data if the cache is a miss and running
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
         completion = template.background_percent_complete(
             data['report'], run_dir, True, simulation_db.get_schema(sim_type))
-        state = 'running'
+        status = data['models']['simulationStatus'][data['report']]
+    else:
+
+    stateChanged = False
+    if cfg.job_queue.is_running(_job_id(data)):
     else:
         report = data['report']
+this is messed up. two different files are being read. SHould only read the
+job file, not the main simulation file.
         data = simulation_db.open_json_file(sim_type, sid=sid)
         data['report'] = report
-        if report not in data['models']['simulationStatus']:
-            data['models']['simulationStatus'][report] = {
-                'state': 'initial',
-            }
-        state = data['models']['simulationStatus'][report]['state']
-        completion = template.background_percent_complete(
-            data['report'], run_dir, False, simulation_db.get_schema(sim_type))
-        if state == 'running':
-            if completion['percent_complete'] >= 100:
-                state = 'completed'
-            else:
-                state = 'canceled'
-            data['models']['simulationStatus'][report]['state'] = state
-            simulation_db.save_simulation_json(data['simulationType'], data)
+        status = data['models']['simulationStatus'].setdefault(report, {})
 
+        state = status.setdefault('state', 'aborted')
+        status.setdefault('startTime', int(time.time()))
+        # Need to save before template, because t reads the file
+        #TODO_SAVE_SIM simulation_db.save_simulation_json(data['simulationType'], data)
+        completion = template.background_percent_complete(
+            data, run_dir, False, simulation_db.get_schema(sim_type))
+        if state == 'running':
+            state = 'completed' if completion['percent_complete'] >= 100 else 'canceled'
+            status['state'] = state
+            #TODO_SAVE_SIM simulation_db.save_simulation_json(data['simulationType'], data)
     frame_id = ''
     elapsed_time = ''
     if 'last_update_time' in completion and 'start_time' in completion:
@@ -473,13 +450,15 @@ def app_run_status():
         elapsed_time = int(frame_id) - int(completion['start_time'])
 
     return _json_response({
-        'state': completion['state'] if 'state' in completion else state,
-        'percentComplete': completion['percent_complete'],
+        'elapsedTime': elapsed_time,
+        'errors': completion.get('errors'),
         'frameCount': completion['frame_count'],
         'frameId': frame_id,
-        'elapsedTime': elapsed_time,
-        'outputInfo': completion['output_info'] if 'output_info' in completion else None,
-        'errors': completion['errors'] if 'errors' in completion else None,
+        'outputInfo': completion.get('output_info'),
+        'percentComplete': completion['percent_complete'],
+        'pollSeconds': simulation_db.poll_seconds(data),
+        'startTime': startTime,
+        'state': completion.get('state', state)
     })
 
 
@@ -679,7 +658,7 @@ def _json_input():
 
 def _json_response(value):
     return app.response_class(
-        simulation_db.generate_json(value),
+        simulation_db.generate_json_response(value),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
 
@@ -730,37 +709,20 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
-def _start_simulation(data, run_async=False, is_sequential=False):
+def _start_simulation(data):
     """Setup and start the simulation.
 
     Args:
         data (dict): app data
-        run_async (bool): run asynchronously or not
-        is_sequential (bool): run or run-background
     Returns:
         object: _Command or daemon instance
     """
-    run_dir = simulation_db.simulation_run_dir(data, remove_dir=True)
-    pkio.mkdir_parent(run_dir)
-    #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
-    #   probably can only do with celery.
-    sim_type = data['simulationType']
-    sid = simulation_db.parse_sid(data)
-    template = sirepo.template.import_module(data)
-    for d in simulation_db.simulation_dir(sim_type, sid), simulation_db.simulation_lib_dir(sim_type):
-        for f in glob.glob(str(d.join('*.*'))):
-            if os.path.isfile(f):
-                py.path.local(f).copy(run_dir)
-    template.prepare_aux_files(run_dir, data)
-    simulation_db.save_simulation_json(sim_type, data)
-    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
-    template.write_parameters(
-        data, simulation_db.get_schema(sim_type), run_dir=run_dir, run_async=run_async)
-    cmd = [_ROOT_CMD, sim_type] \
-        + ['run' if is_sequential else 'run-background'] + [str(run_dir)]
-    if run_async:
-        return cfg.job_queue(_job_id(data), run_dir, cmd)
-    return _Command(_job_id(data), cmd, cfg.foreground_time_limit)
+    data['models']['simulationStatus'][data['report']] = {
+        'startTime': int(time.time()),
+        'state': 'running',
+    }
+    cmd, run_dir = simulation_db.prepare_simulation(data)
+    return cfg.job_queue(_job_id(data), run_dir, cmd)
 
 
 class _Background(object):

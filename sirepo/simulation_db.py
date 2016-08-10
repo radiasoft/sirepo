@@ -10,6 +10,7 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
+from sirepo.template import template_common
 import datetime
 import flask
 import glob
@@ -37,6 +38,9 @@ SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
 #: Where server files and static files are found
 STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+
+#: Verify ID
+_IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
 
 #: How to find examples in resources
 _EXAMPLE_DIR_FORMAT = '{}_examples'
@@ -119,7 +123,15 @@ def init(app):
     _app = app
 
 
-def generate_json(data):
+def generate_json_response(data):
+    """Convert data to JSON to be send back to client
+
+    Use only for responses. Use `:func:write_json` to save.
+    Args:
+        data (dict): what to format
+    Returns:
+        str: formatted data
+    """
     return json.dumps(data)
 
 
@@ -192,6 +204,62 @@ def parse_sid(data):
         return str(data['simulationId'])
     except KeyError:
         return str(data['models']['simulation']['simulationId'])
+
+
+def poll_seconds(data):
+    """Client poll period for simulation status
+
+    TODO(robnagler) needs to be encapsulated
+
+    Args:
+        data (dict): must container report name
+    Returns:
+        int: number of seconds to poll
+    """
+    return 2 if _IS_PARALLEL_RE.search(_report_name(data)) else 1
+
+
+def prepare_simulation(data):
+    """Create and install files, update parameters, and generate command.
+
+    Copies files into the simulation directory (``run_dir``).
+    Updates the parameters in ``data`` and save.
+    Generate the pkcli command to pass to task runner.
+
+    Args:
+        data (dict): report and model parameters
+    Returns:
+        list, py.path: pkcli command, simulation directory
+    """
+    run_dir = simulation_run_dir(data, remove_dir=True)
+    #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
+    #   probably can only do with celery.
+    pkio.mkdir_parent(run_dir)
+    sim_type = data['simulationType']
+    sid = parse_sid(data)
+    template = sirepo.template.import_module(data)
+    for d in simulation_dir(sim_type, sid), simulation_lib_dir(sim_type):
+        for f in glob.glob(str(d.join('*.*'))):
+            if os.path.isfile(f):
+                py.path.local(f).copy(run_dir)
+    template.prepare_aux_files(run_dir, data)
+    #TODO_SAVE_SIM save_simulation_json(sim_type, data)
+    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    #TODO(robnagler) encapsulate in template
+    is_parallel = bool(_IS_PARALLEL_RE.search(_report_name(data)))
+    template.write_parameters(
+        data,
+        get_schema(sim_type),
+        run_dir=run_dir,
+        is_parallel=is_parallel,
+    )
+    cmd = [
+        pkinspect.root_package(template),
+        pkinspect.module_basename(template),
+        'run-background' if is_parallel else 'run',
+        str(run_dir),
+    ]
+    return cmd, run_dir
 
 
 def process_simulation_list(res, path, data):

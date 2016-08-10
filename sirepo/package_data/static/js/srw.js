@@ -1801,7 +1801,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                                 $scope.dots += '.';
                                 if ($scope.dots.length > 3)
                                     $scope.dots = '.';
-                                $timeout(refreshStatus, 4000);
+                                $timeout(refreshStatus, data.pollSeconds ? data.pollSeconds * 1000 : 4000);
                             }
                         }
                         setSimulationState(data.state);
@@ -1863,7 +1863,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 $scope.timeData.elapsedDays = null;
                 setSimulationState('running');
                 requestSender.sendRequest(
-                    'runBackground',
+                    'zrunSimulation',
                     function(data) {
                         appState.models.simulationStatus[$scope.model].startTime = data.startTime;
                         appState.saveChanges('simulationStatus');

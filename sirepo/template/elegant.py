@@ -253,7 +253,7 @@ def generate_lattice(data, v):
     return res
 
 
-def generate_parameters_file(data, schema, run_dir=None, run_async=False):
+def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
     v['elegantFinalOutput'] = _ELEGANT_FINAL_OUTPUT_FILE
@@ -279,7 +279,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
         v['bunch_beta_y'] = 5
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
-    if run_async:
+    if is_parallel:
         v['lattice'] = generate_lattice(data, v)
     else:
         # use a dummy lattice with a 0 length drift for generating bunches
@@ -346,7 +346,7 @@ def get_data_file(run_dir, model, frame):
 
     if model == 'beamlineReport':
         data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, _SCHEMA, run_async=True)
+        source = generate_parameters_file(data, _SCHEMA, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
     for path in glob.glob(str(run_dir.join('elegant.bun'))):
@@ -371,7 +371,7 @@ def models_related_to_report(data):
     r = data['report']
     if not 'bunchReport' in r:
         return []
-    return ['bunch', 'simulation', 'bunchSource', 'bunchFile']:
+    return ['bunch', 'simulation', 'bunchSource', 'bunchFile']
 
 
 def is_rpn_value(value):
@@ -482,14 +482,14 @@ def validate_file(file_type, path):
     return err
 
 
-def write_parameters(data, schema, run_dir, run_async):
+def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
         schema (dict): to validate data
         run_dir (py.path): where to write
-        run_async (bool): run in background?
+        is_parallel (bool): run in background?
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -497,7 +497,7 @@ def write_parameters(data, schema, run_dir, run_async):
             data,
             schema,
             run_dir,
-            run_async,
+            is_parallel,
         ),
     )
 

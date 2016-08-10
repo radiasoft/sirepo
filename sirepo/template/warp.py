@@ -1,12 +1,12 @@
-#TODO(robnagler) fix up old data(?) probably just remove
-#TODO(robnagler) fix up other simulations to use template_common(?)
-
 # -*- coding: utf-8 -*-
 u"""SRW execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+#TODO(robnagler) fix up old data(?) probably just remove
+#TODO(robnagler) fix up other simulations to use template_common(?)
+
 from __future__ import absolute_import, division, print_function
 from opmd_viewer import OpenPMDTimeSeries
 from opmd_viewer.openpmd_timeseries import main
@@ -232,11 +232,11 @@ def fixup_old_data(data):
         data['models']['simulation']['folder'] = '/'
 
 
-def generate_parameters_file(data, schema, run_dir=None, run_async=False):
+def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
-    v['isAnimationView'] = 1 if run_async else 0
+    v['isAnimationView'] = is_parallel
     v['incSteps'] = 50
     v['diagnosticPeriod'] = 50
     if data['models']['simulation']['sourceType'] == 'electronBeam':
@@ -373,14 +373,14 @@ def validate_file(file_type, path):
     return None
 
 
-def write_parameters(data, schema, run_dir, run_async):
+def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
         schema (dict): to validate data
         run_dir (py.path): where to write
-        run_async (bool): run in background?
+        is_parallel (bool): run in background?
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -388,7 +388,7 @@ def write_parameters(data, schema, run_dir, run_async):
             data,
             schema,
             run_dir,
-            run_async,
+            is_parallel,
         ),
     )
 
