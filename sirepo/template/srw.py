@@ -289,7 +289,7 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
-        elif item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
+        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
             if 'grazingAngle' not in item:
                 angle = 0
                 if item['normalVectorX']:
@@ -297,6 +297,9 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
+        if item['type'] in ['crystal', 'ellipsoidMirror', 'mirror', 'sphericalMirror']:
+            if 'heightProfileDimension' not in item:
+                item['heightProfileDimension'] = 1
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
             if 'fieldUnits' not in data['models'][k]:
@@ -439,7 +442,7 @@ def generate_parameters_file(data, schema, run_dir=None, run_async=False):
     v['tabulatedUndulator_gap'] *= 1000
     v['tabulatedUndulator_phase'] *= 1000
 
-    if 'report' in data and 'distanceFromSource' in data['models'][data['report']]:
+    if 'report' in data and data['report'] in data['models'] and 'distanceFromSource' in data['models'][data['report']]:
         position = data['models'][data['report']]['distanceFromSource']
     else:
         position = _get_first_element_position(data)
@@ -1108,14 +1111,16 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
             return '', ''
     res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
     res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
-    res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t", 0, 1)\n'.format(shift, height_profile_el_name, height_profile_el_name)
+    add_args = ', 0, 1' if int(item['heightProfileDimension']) == 1 else ''
+    res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t"{})\n'.format(shift, height_profile_el_name, height_profile_el_name, add_args)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
     hProfData = 'hProfData{}'.format(height_profile_el_name)
+    surf_height_func = 'srwlib.srwl_opt_setup_surf_height_{}d'.format(item['heightProfileDimension'])
     if 'horizontalTransverseSize' in item:
-        template = 'srwlib.srwl_opt_setup_surf_height_1d(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
+        template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
         fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))
     else:
-        template = 'srwlib.srwl_opt_setup_surf_height_1d(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
+        template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
     el, pp = _beamline_element(template, item, fields, propagation, shift=shift)
     res += el
     pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
