@@ -162,7 +162,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
-        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
+        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         crystalDefaults,
         {type:'watch', title:'Watchpoint'},
@@ -471,7 +471,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
             var item = self.activeItem;
-            if (item.type === 'grating') {
+            if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror') {
                 requestSender.getApplicationData(
                     {
                         method: 'compute_grazing_angle',
@@ -750,7 +750,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             }
         );
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
-        var fieldsOfAccurateMethod = ['precision'];
+        var fieldsOfAccurateMethod = ['precision', 'numberOfMacroElectrons'];
         methodNumber = methodNumber.toString();
         var modelReport = '.model-' + reportName + '-';
         var i;

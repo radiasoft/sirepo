@@ -292,6 +292,7 @@
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -453,6 +454,7 @@
             "radius": ["Radius of Surface Curvature [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float"],
             "sagittalSize": ["Sagittal Size [m]", "Float"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "normalVectorX": ["Horizontal", "Float"],
             "normalVectorY": ["Vertical", "Float"],
             "normalVectorZ": ["Longitudinal", "Float"],
@@ -690,6 +692,7 @@
                     "initialEnergy",
                     "finalEnergy",
                     "photonEnergyPointCount",
+                    "numberOfMacroElectrons",
                     [
                         ["Horizontal", [
                             "horizontalPosition",
@@ -1023,6 +1026,7 @@
                     "radius",
                     "tangentialSize",
                     "sagittalSize",
+                    "grazingAngle",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",

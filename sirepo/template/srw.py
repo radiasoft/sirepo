@@ -52,7 +52,7 @@ _EXAMPLE_FOLDERS = {
     'Idealized Free Electron Laser Pulse': '/SR Calculator',
     'LCLS SXR beamline - Simplified': '/Light Source Facilities/LCLS',
     'LCLS SXR beamline': '/Light Source Facilities/LCLS',
-    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II',
+    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II/NSLS-II CHX beamline',
     'Polarization of Bending Magnet Radiation': '/Examples',
     'Soft X-Ray Undulator Radiation Containing VLS Grating': '/Examples',
     'Tabulated Undulator Example': '/Examples',
@@ -251,12 +251,16 @@ def fixup_old_data(data):
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
             data['models']['fluxReport']['finalHarmonic'] = 15
+        if 'numberOfMacroElectrons' not in data['models']['fluxReport']:
+            data['models']['fluxReport']['numberOfMacroElectrons'] = 1
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
+        if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:
+            data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
             if data['models']['simulation']['sourceType'] in ['u', 't']:
@@ -287,7 +291,7 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
-        elif item['type'] == 'grating':
+        elif item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
             if 'grazingAngle' not in item:
                 angle = 0
                 if item['normalVectorX']:
@@ -337,6 +341,7 @@ def fixup_old_data(data):
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
+        data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
         data['models']['fluxAnimation']['initialEnergy'] = 10000.0
         data['models']['fluxAnimation']['finalEnergy'] = 20000.0
         data['models']['fluxAnimation']['method'] = 1

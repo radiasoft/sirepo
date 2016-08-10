@@ -13,6 +13,7 @@
                 "verticalSize": 1.5
             },
             {
+                "grazingAngle": 13.962599999998195,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
                 "id": 13,
@@ -421,7 +422,7 @@
             "photonEnergy": 12707.91,
             "sampleFactor": 1,
             "samplingMethod": "1",
-            "simulationId": "oHtil1vz",
+            "simulationId": "lh5XxkhL",
             "sourceType": "u",
             "verticalPointCount": 201,
             "verticalPosition": 0,
