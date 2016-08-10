@@ -251,16 +251,12 @@ def fixup_old_data(data):
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
             data['models']['fluxReport']['finalHarmonic'] = 15
-        if 'numberOfMacroElectrons' not in data['models']['fluxReport']:
-            data['models']['fluxReport']['numberOfMacroElectrons'] = 1
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
-        if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:
-            data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
             if data['models']['simulation']['sourceType'] in ['u', 't']:
@@ -287,6 +283,8 @@ def fixup_old_data(data):
             'verticalRange': m['verticalRange'],
             'stokesParameter': '0',
         }
+    if 'numberOfMacroElectrons' not in data['models']['multiElectronAnimation']:  # added 08/10/2016 for ticket #278
+        data['models']['multiElectronAnimation']['numberOfMacroElectrons'] = 100000
     for item in data['models']['beamline']:
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
@@ -341,13 +339,16 @@ def fixup_old_data(data):
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
         data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
-        data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
         data['models']['fluxAnimation']['initialEnergy'] = 10000.0
         data['models']['fluxAnimation']['finalEnergy'] = 20000.0
         data['models']['fluxAnimation']['method'] = 1
         data['models']['fluxAnimation']['precision'] = 0.01
         data['models']['fluxAnimation']['initialHarmonic'] = 1
         data['models']['fluxAnimation']['finalHarmonic'] = 15
+    if 'numberOfMacroElectrons' not in data['models']['fluxReport']:  # added 08/09/2016 for ticket #188
+        data['models']['fluxReport']['numberOfMacroElectrons'] = 1
+    if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:  # added 08/09/2016 for ticket #188
+        data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
     for rep in ['undulator', 'tabulatedUndulator']:
         if 'undulatorParameter' not in data['models'][rep]:
             data['models'][rep]['undulatorParameter'] = round(_process_undulator_definition({

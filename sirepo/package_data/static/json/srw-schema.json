@@ -292,7 +292,7 @@
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
-            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
@@ -391,7 +391,8 @@
         },
         "mirrorReport": {},
         "multiElectronAnimation": {
-            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"]
+            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -893,7 +894,8 @@
             "basic": [],
             "advanced": [
                 "simulation.photonEnergy",
-                "stokesParameter"
+                "stokesParameter",
+                "numberOfMacroElectrons"
             ]
         },
         "obstacle": {
