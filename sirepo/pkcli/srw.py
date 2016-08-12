@@ -73,8 +73,10 @@ srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 def _mirror_plot(model_data):
     mirror = model_data['models']['mirrorReport']
-    element = srwlib.srwl_opt_setup_surf_height_1d(
-        srwlib.srwl_uti_read_data_cols(mirror['heightProfileFile'], "\t", 0, 1),
+    func_name = 'srwl_opt_setup_surf_height_{}d'.format(mirror['heightProfileDimension'])
+    add_args = [0, 1] if int(mirror['heightProfileDimension']) == 1 else []
+    element = getattr(srwlib, func_name)(
+        srwlib.srwl_uti_read_data_cols(mirror['heightProfileFile'], "\t", *add_args),
         _dim=mirror['orientation'],
         _ang=float(mirror['grazingAngle']) / 1e3,
         _amp_coef=float(mirror['heightAmplification']))
