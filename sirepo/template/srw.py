@@ -467,7 +467,19 @@ def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
-        return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
+        return _compute_crl_focus(_compute_crl_characteristics(data['optical_element'], data['photon_energy']))
+    elif data['method'] == 'compute_fiber_characteristics':
+        model = _compute_crl_characteristics(
+            data['optical_element'],
+            data['photon_energy'],
+            prefix='exterior',
+        )
+        model = _compute_crl_characteristics(
+            model,
+            data['photon_energy'],
+            prefix='core',
+        )
+        return model
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -690,9 +702,22 @@ def _beamline_element(template, item, fields, propagation, shift=''):
     ), _propagation_params(propagation[str(item['id'])][0], shift)
 
 
-def _compute_crl_characteristics(model, photon_energy):
-    if model['material'] == 'User-defined':
-        return _compute_crl_focus(model)
+def _compute_crl_characteristics(model, photon_energy, prefix=''):
+    fields_with_prefix = {
+        'material': 'material',
+        'refractiveIndex': 'refractiveIndex',
+        'attenuationLength': 'attenuationLength',
+    }
+    if prefix:
+        for k in fields_with_prefix.keys():
+            fields_with_prefix[k] = '{}{}{}'.format(
+                prefix,
+                fields_with_prefix[k][0].upper(),
+                fields_with_prefix[k][1:],
+            )
+
+    if model[fields_with_prefix['material']] == 'User-defined':
+        return model
 
     # Index of refraction:
     kwargs = {
@@ -700,29 +725,29 @@ def _compute_crl_characteristics(model, photon_energy):
     }
     if model['method'] == 'server':
         kwargs['precise'] = True
-        kwargs['formula'] = model['material']
+        kwargs['formula'] = model[fields_with_prefix['material']]
     elif model['method'] == 'file':
         kwargs['precise'] = True
-        kwargs['data_file'] = '{}_delta.dat'.format(model['material'])
+        kwargs['data_file'] = '{}_delta.dat'.format(model[fields_with_prefix['material']])
     else:
         kwargs['calc_delta'] = True
-        kwargs['formula'] = model['material']
+        kwargs['formula'] = model[fields_with_prefix['material']]
     delta = bnlcrl.pkcli.simulate.find_delta(**kwargs)
-    model['refractiveIndex'] = delta['characteristic_value']
+    model[fields_with_prefix['refractiveIndex']] = delta['characteristic_value']
 
     # Attenuation length:
     kwargs['characteristic'] = 'atten'
     if model['method'] == 'file':
         kwargs['precise'] = True
-        kwargs['data_file'] = '{}_atten.dat'.format(model['material'])
+        kwargs['data_file'] = '{}_atten.dat'.format(model[fields_with_prefix['material']])
     if model['method'] == 'calculation':
         # The method 'calculation' in bnlcrl library is not supported yet for attenuation length calculation.
         pass
     else:
         atten = bnlcrl.pkcli.simulate.find_delta(**kwargs)
-        model['attenuationLength'] = atten['characteristic_value']
+        model[fields_with_prefix['attenuationLength']] = atten['characteristic_value']
 
-    return _compute_crl_focus(model)
+    return model
 
 
 def _compute_crl_focus(model):
@@ -1022,6 +1047,14 @@ def _generate_beamline_optics(models, last_id):
             )
             if pp:
                 height_profile_counter += 1
+            res_el += el
+            res_pp += pp
+        elif item['type'] == 'fiber':
+            el, pp = _beamline_element(
+                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=\'{}\', _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
+                item,
+                ['focusingPlane', 'exteriorRefractiveIndex', 'coreRefractiveIndex', 'exteriorAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
+                propagation)
             res_el += el
             res_pp += pp
         elif item['type'] == 'grating':

@@ -32,6 +32,7 @@
             ["User-defined", "User-defined"],
             ["Al", "Al"],
             ["Be", "Be"],
+            ["B", "B"],
             ["C", "C"],
             ["Cu", "Cu"],
             ["Li", "Li"],
@@ -82,6 +83,11 @@
             ["1", "Horizontal"],
             ["2", "Vertical"],
             ["3", "Both"]
+        ],
+        "FocusingPlane": [
+            ["h", "Horizontal"],
+            ["v", "Vertical"],
+            ["hv", "Both"]
         ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
@@ -206,7 +212,7 @@
             "focalPlane": ["Focal Plane", "FocalPlane"],
             "material": ["Material of the CRL", "CRLMaterial"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
-            "refractiveIndex": ["Refractive Index Decrements of Material", "Float", "", "Tooltip"],
+            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", "", "Tooltip"],
             "attenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
             "focalDistance": ["CRL Focal Distance [m]", "Float"],
             "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float"],
@@ -292,6 +298,20 @@
             "heightProfileDimension": ["Dimension of Data in Height Profile Data File", "HeightProfileDimension"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
+        },
+        "fiber": {
+            "focusingPlane": ["Focusing Plane", "FocusingPlane"],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
+            "exteriorMaterial": ["Exterior Material", "CRLMaterial"],
+            "exteriorRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],
+            "exteriorAttenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "externalDiameter": ["Exterior Diameter [m]", "Float"],
+            "coreMaterial": ["Core Material", "CRLMaterial"],
+            "coreRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],
+            "coreAttenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "coreDiameter": ["Core Diameter [m]", "Float"],
+            "horizontalCenterPosition": ["Horizontal Center Position [m]", "Float"],
+            "verticalCenterPosition": ["Vertical Center Position [m]", "Float"]
         },
         "fluxAnimation": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -692,6 +712,30 @@
                     "orientation",
                     "heightAmplification"
                 ]]
+            ]
+        },
+        "fiber": {
+            "title": "Fiber",
+            "basic": [],
+            "advanced": [
+                "focusingPlane",
+                "horizontalCenterPosition",
+                "verticalCenterPosition",
+                "method",
+                [
+                    ["Exterior", [
+                        "exteriorMaterial",
+                        "exteriorRefractiveIndex",
+                        "exteriorAttenuationLength",
+                        "externalDiameter"
+                    ]],
+                    ["Core", [
+                        "coreMaterial",
+                        "coreRefractiveIndex",
+                        "coreAttenuationLength",
+                        "coreDiameter"
+                    ]]
+                ]
             ]
         },
         "fluxAnimation": {

@@ -159,6 +159,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
+        {type:'fiber', title:'Fiber', focusingPlane:'hv', method:'server', exteriorMaterial:'User-defined', exteriorRefractiveIndex:4.20756805e-06, exteriorAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, heightProfileDimension:1, orientation:'x', heightAmplification:1},
@@ -289,6 +290,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
                 SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.exteriorRefractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.exteriorAttenuationLength[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.coreRefractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.coreAttenuationLength[3] = msg;
         }
     }
 
@@ -558,6 +563,44 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         }
         if (checkDefined(newValues)) {
             computeCRLCharacteristics();
+        }
+    });
+
+    var fiberFields = [
+        'method',
+        'exteriorMaterial',
+        'coreMaterial',
+    ];
+    function computeFiberCharacteristics() {
+        var item = self.activeItem;
+        if (item.type === 'fiber') {
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_fiber_characteristics',
+                    optical_element: item,
+                    photon_energy: appState.models.simulation.photonEnergy,
+                },
+                function(data) {
+                    var fields = [
+                        'exteriorRefractiveIndex', 'exteriorAttenuationLength',
+                        'coreRefractiveIndex', 'coreAttenuationLength',
+                    ];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
+                    }
+                }
+            );
+        }
+    }
+    $scope.$watchCollection(wrapActiveItem(fiberFields), function (newValues, oldValues) {
+        var fiberMethodFormGroup = $('div.model-fiber-method').closest('.form-group');
+        if (newValues[1] === 'User-defined' && newValues[2] === 'User-defined') {
+            fiberMethodFormGroup.hide(0);
+        } else {
+            fiberMethodFormGroup.show(0);
+        }
+        if (checkDefined(newValues)) {
+            computeFiberCharacteristics();
         }
     });
 
@@ -1323,6 +1366,13 @@ SIREPO.app.directive('beamlineIcon', function() {
               '</g>',
               '<g data-ng-switch-when="crystal">',
                 '<rect x="8" y="25" width="50", height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
+              '</g>',
+              '<g data-ng-switch-when="fiber" transform="translate(0) rotate(20 20 40)">',
+                '<path d="M-10,35 L10,35" class="srw-fiber"/>',
+                '<ellipse cx="10" cy="35" rx="3" ry="5" class="srw-fiber" />',
+                '<path d="M10,30 L40,29 40,41 L10,40" class="srw-fiber"/>',
+                '<ellipse cx="40" cy="35" rx="3"  ry="6" class="srw-fiber-right" />',
+                '<path d="M40,35 L60,35" class="srw-fiber"/>',
               '</g>',
               '<g data-ng-switch-when="watch">',
                 '<path d="M5 30 C 15 45 35 45 45 30" class="srw-watch" />',

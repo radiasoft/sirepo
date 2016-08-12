@@ -332,6 +332,16 @@ rect.srw-mirror, path.srw-mirror, polygon.srw-mirror, rect.srw-crystal {
   stroke: #000;
   fill: #bdd7ee;
 }
+path.srw-fiber, ellipse.srw-fiber {
+  stroke: #000;
+  stroke-width: 1;
+  fill: #c4c7ce;
+}
+ellipse.srw-fiber-right {
+  stroke: #000;
+  stroke-width: 1;
+  fill: #9498a1;
+}
 path.srw-lens {
   stroke: #000;
   fill: #ddee00;
