@@ -519,7 +519,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $timeout) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $interval) {
     var self = this;
     var simulationModel = 'animation';
     var progress;
@@ -611,11 +611,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     function refreshStatus() {
         if (! appState.isLoaded())
             return;
+        if (!appState.runStatusParams[$scope.model])
+            appState.runStatusParams[$scope.model] = {
+                report: $scope.model,
+                models: appState.applicationState(),
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
+            };
         requestSender.sendRequest(
             'runStatus',
             function(data) {
                 if (self.isAborting)
                     return;
+                appState.runStatusParams[$scope.model] = data;
                 self.simulationErrors = data.errors || '';
                 if (data.frameCount) {
                     frameCache.setFrameCount(parseInt(data.frameCount));
@@ -652,16 +659,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                         self.dots += '.';
                         if (self.dots.length > 3)
                             self.dots = '.';
-                        $timeout(refreshStatus, 2000);
+                        //TODO(robnagler) cancel timer
+                        $interval(
+                            refreshStatus,
+                            data.pollSeconds ? data.pollSeconds * 1000 : 4000,
+                            1
+                        );
                     }
                 }
                 setSimulationState(data.state);
             },
-            {
-                report: simulationModel,
-                simulationId: appState.models.simulation.simulationId,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            appState.runStatusParams[$scope.model]
+        );
     }
 
     //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
@@ -778,9 +787,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         self.outputFiles = [];
         setSimulationState('running');
         requestSender.sendRequest(
-            'runBackground',
+            'zrunSimulation',
             function(data) {
                 appState.models.simulationStatus[simulationModel].startTime = data.startTime;
+                appState.runStatusParams[$scope.model] = data;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },

@@ -101,7 +101,8 @@ def background_percent_complete(report, run_dir, is_running, schema):
         'percentComplete': 100,
         'frameCount': 1,
         'outputInfo': output_info,
-        'lastUpdateTime': output_info[0]['last_update_time'],
+        #TODO(robnagler) why isn't this working?
+        #'lastUpdateTime': output_info[0]['last_update_time'],
         'errors': errors,
     }
 
