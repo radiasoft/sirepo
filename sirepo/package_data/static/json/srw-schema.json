@@ -300,6 +300,8 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "fiber": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
             "focusingPlane": ["Focusing Plane", "FocusingPlane"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
             "exteriorMaterial": ["Exterior Material", "CRLMaterial"],
@@ -718,6 +720,8 @@
             "title": "Fiber",
             "basic": [],
             "advanced": [
+                "title",
+                "position",
                 "focusingPlane",
                 "horizontalCenterPosition",
                 "verticalCenterPosition",
