@@ -5,7 +5,7 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
+from pykern.pkdebug import pkdc, pkdp
 import hashlib
 import json
 import random
@@ -60,6 +60,14 @@ def report_parameters_hash(data):
     if not 'reportParametersHash' in data:
         models = sirepo.template.import_module(data).models_related_to_report(data)
         res = hashlib.md5()
+        #TODO(robnagler) need to eliminate non-models from data['models']
+        if not models:
+            models = data['models'].keys()
+            for k in 'panelState', 'rpnCache', 'simulationStatus':
+                try:
+                    del models[k]
+                except KeyError:
+                    pass
         if models:
             models.append(data['report'])
             for m in models:

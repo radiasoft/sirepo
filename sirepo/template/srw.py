@@ -82,17 +82,18 @@ def background_percent_complete(report, run_dir, is_running, schema):
     filename = str(run_dir.join(_DATA_FILE_FOR_MODEL[report]))
     if os.path.isfile(filename):
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        t = os.path.getmtime(filename)
         return {
-            'percent_complete': 100,
-            'frame_count': 1,
-            'total_frames': 1,
-            'last_update_time': os.path.getmtime(filename),
-            'start_time': data['models']['simulationStatus'][report]['startTime'] if report in data['models']['simulationStatus'] else None,
+            'frameCount': 1,
+            'frameId': t,
+            'lastUpdateTime': t,
+            'percentComplete': 100,
+            'totalFrames': 1,
         }
     return {
-        'percent_complete': 0,
-        'frame_count': 0,
-        'total_frames': 0,
+        'percentComplete': 0,
+        'frameCount': 0,
+        'totalFrames': 0,
     }
 
 
@@ -553,7 +554,7 @@ def models_related_to_report(data):
             'trajectoryReport',
         )
     ):
-        return []
+        return data['models'].keys()
     res = [
         'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',

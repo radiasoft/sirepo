@@ -151,6 +151,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     return res
 
 
+#TODO(robnagler) should just be "data"
 def open_json_file(simulation_type, path=None, sid=None):
     if not path:
         path = _simulation_data_file(simulation_type, sid)

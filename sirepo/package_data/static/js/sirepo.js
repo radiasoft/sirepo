@@ -74,8 +74,10 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 });
 
 SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
-    var self = {};
-    self.models = {};
+    var self = {
+        models: {},
+        runStatusParams: {}
+    };
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};

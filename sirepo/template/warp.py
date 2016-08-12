@@ -39,8 +39,8 @@ def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir)
     if len(files) < 2:
         return {
-            'percent_complete': 0,
-            'frame_count': 0,
+            'percentComplete': 0,
+            'frameCount': 0,
         }
     file_index = len(files) - 1
     # look at 2nd to last file if running, last one may be incomplete
@@ -56,8 +56,9 @@ def background_percent_complete(report, run_dir, is_running, schema):
     elif percent_complete > 1.0:
         percent_complete = 1.0
     return {
-        'percent_complete': percent_complete * 100,
-        'frame_count': file_index + 1,
+        'lastUpdateTime':
+        'percentComplete': percent_complete * 100,
+        'frameCount': file_index + 1,
     }
 
 

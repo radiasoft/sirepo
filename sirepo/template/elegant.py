@@ -83,29 +83,25 @@ _SCHEMA = simulation_db.read_json(_STATIC_FOLDER.join('json/elegant-schema'))
 def background_percent_complete(report, run_dir, is_running, schema):
     errors, last_element = _parse_elegant_log(run_dir)
     res = {
-        'percent_complete': 100,
-        'frame_count': 0,
+        'percentComplete': 100,
+        'frameCount': 0,
         'errors': errors,
     }
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res['last_update_time'] = int(time.time())
-        res['percent_complete'] = _compute_percent_complete(data, last_element)
-        res['start_time'] = data['models']['simulationStatus'][report]['startTime']
+        res['percentComplete'] = _compute_percent_complete(data, last_element)
         return res
     if not errors and not _has_elegant_output(run_dir):
-        res['state'] = 'initial'
         return res
     if not _has_valid_elegant_output(run_dir):
         return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     output_info = _output_info(run_dir, data, schema)
     return {
-        'percent_complete': 100,
-        'frame_count': 1,
-        'output_info': output_info,
-        'last_update_time': output_info[0]['last_update_time'],
-        'start_time': data['models']['simulationStatus'][report]['startTime'],
+        'percentComplete': 100,
+        'frameCount': 1,
+        'outputInfo': output_info,
+        'lastUpdateTime': output_info[0]['last_update_time'],
         'errors': errors,
     }
 
@@ -565,7 +561,7 @@ def _file_info(filename, run_dir, id, output_index):
         'id': '{}-{}'.format(id, output_index),
         'page_count': page_count,
         'columns': column_names,
-        'last_update_time': os.path.getmtime(str(file_path)),
+        '': os.path.getmtime(str(file_path)),
     }
 
 

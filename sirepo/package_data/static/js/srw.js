@@ -1705,7 +1705,7 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, requestSender, $timeout) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, requestSender, $interval) {
     return {
         restrict: 'A',
         scope: {
@@ -1773,13 +1773,20 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             function refreshStatus() {
                 if (! appState.isLoaded())
                     return;
+                if (!appState.runStatusParams[$scope.model])
+                    appState.runStatusParams[$scope.model] = {
+                        report: $scope.model,
+                        models: appState.applicationState(),
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    };
                 isReadyForModelChanges = true;
                 requestSender.sendRequest(
                     'runStatus',
                     function(data) {
                         if (isAborting)
                             return;
-
+                        appState.runStatusParams[$scope.model] = data;
+                        console.log(data);
                         if (data.frameId && (data.frameId != frameId)) {
                             frameId = data.frameId;
                             frameCount++;
@@ -1801,16 +1808,18 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                                 $scope.dots += '.';
                                 if ($scope.dots.length > 3)
                                     $scope.dots = '.';
-                                $timeout(refreshStatus, data.pollSeconds ? data.pollSeconds * 1000 : 4000);
+                                //TODO(robnagler) cancel timer
+                                $interval(
+                                    refreshStatus,
+                                    data.pollSeconds ? data.pollSeconds * 1000 : 4000,
+                                    1
+                                );
                             }
                         }
                         setSimulationState(data.state);
                     },
-                    {
-                        report: $scope.model,
-                        simulationId: appState.models.simulation.simulationId,
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
+                    appState.runStatusParams[$scope.model]
+                );
             }
 
             function setSimulationState(state) {
@@ -1866,6 +1875,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     'zrunSimulation',
                     function(data) {
                         appState.models.simulationStatus[$scope.model].startTime = data.startTime;
+                        console.log($scope.model);
+                        appState.runStatusParams[$scope.model] = data;
                         appState.saveChanges('simulationStatus');
                         refreshStatus();
                     },
