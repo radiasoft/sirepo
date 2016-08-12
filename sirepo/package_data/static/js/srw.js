@@ -1786,7 +1786,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                         if (isAborting)
                             return;
                         appState.runStatusParams[$scope.model] = data;
-                        console.log(data);
                         if (data.frameId && (data.frameId != frameId)) {
                             frameId = data.frameId;
                             frameCount++;
@@ -1875,7 +1874,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     'zrunSimulation',
                     function(data) {
                         appState.models.simulationStatus[$scope.model].startTime = data.startTime;
-                        console.log($scope.model);
                         appState.runStatusParams[$scope.model] = data;
                         appState.saveChanges('simulationStatus');
                         refreshStatus();

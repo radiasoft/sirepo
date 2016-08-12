@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
 import hashlib
 import json
-import random
 import re
 import sirepo.template
 
@@ -59,23 +58,20 @@ def report_parameters_hash(data):
     """
     if not 'reportParametersHash' in data:
         models = sirepo.template.import_module(data).models_related_to_report(data)
-        res = hashlib.md5()
         #TODO(robnagler) need to eliminate non-models from data['models']
         if not models:
             models = data['models'].keys()
             for k in 'panelState', 'rpnCache', 'simulationStatus':
-                try:
-                    del models[k]
-                except KeyError:
-                    pass
-        if models:
+                if k in models:
+                    models.remove(k)
+        assert models, \
+            '{}: models is empty'.format(data)
+        res = hashlib.md5()
+        if data['report'] in data['models']:
             models.append(data['report'])
-            for m in models:
-                j = json.dumps(data['models'][m], sort_keys=True)
-                res.update(j)
-        else:
-            # No related models so force signature unique for this run
-            res.update(str([random.random() for _ in range(5)]))
+        for m in sorted(models):
+            j = json.dumps(data['models'][m], sort_keys=True)
+            res.update(j)
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 

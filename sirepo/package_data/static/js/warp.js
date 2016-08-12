@@ -53,7 +53,7 @@ SIREPO.app.factory('warpService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, panelState, requestSender, warpService, $scope, $timeout) {
+SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, panelState, requestSender, warpService, $scope, $interval) {
     var self = this;
     var simulationModel = 'animation';
     self.panelState = panelState;
@@ -78,12 +78,19 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
     function refreshStatus() {
         if (! appState.isLoaded())
             return;
+        if (!appState.runStatusParams[$scope.model])
+            appState.runStatusParams[$scope.model] = {
+                report: $scope.model,
+                models: appState.applicationState(),
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
+            };
         requestSender.sendRequest(
             'runStatus',
             function(data) {
                 frameCache.setFrameCount(data.frameCount);
                 if (self.isAborting)
                     return;
+                appState.runStatusParams[$scope.model] = data;
                 if (data.state != 'running') {
                     if (data.state != simulationState())
                         appState.saveChanges('simulationStatus');
@@ -94,16 +101,18 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
                         self.dots += '.';
                         if (self.dots.length > 3)
                             self.dots = '.';
-                        $timeout(refreshStatus, 2000);
+                        //TODO(robnagler) cancel timer
+                        $interval(
+                            refreshStatus,
+                            data.pollSeconds ? data.pollSeconds * 1000 : 4000,
+                            1
+                        );
                     }
                 }
                 setSimulationState(data.state);
             },
-            {
-                report: simulationModel,
-                simulationId: appState.models.simulation.simulationId,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            appState.runStatusParams[$scope.model]
+        );
     }
 
     function setSimulationState(state) {
@@ -168,9 +177,10 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
         frameCache.setFrameCount(0);
         setSimulationState('running');
         requestSender.sendRequest(
-            'runBackground',
+            'zrunSimulation',
             function(data) {
                 appState.models.simulationStatus[simulationModel].startTime = data.startTime;
+                appState.runStatusParams[$scope.model] = data;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
