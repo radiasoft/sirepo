@@ -121,7 +121,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
     return self;
 });
 
-SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope) {
+SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
 
     var crystalDefaults = {
@@ -440,6 +440,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     };
 
     self.setSingleElectron = function(value) {
+        value = !!value;
+        if (value != self.singleElectron)
+            simulationQueue.clearTransientItems();
         self.singleElectron = value;
     };
 
@@ -1773,19 +1776,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             function refreshStatus() {
                 if (! appState.isLoaded())
                     return;
-                if (!appState.runStatusParams[$scope.model])
-                    appState.runStatusParams[$scope.model] = {
-                        report: $scope.model,
-                        models: appState.applicationState(),
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    };
                 isReadyForModelChanges = true;
                 requestSender.sendRequest(
                     'runStatus',
                     function(data) {
+                        setSimulationStatus(data);
                         if (isAborting)
                             return;
-                        appState.runStatusParams[$scope.model] = data;
                         if (data.frameId && (data.frameId != frameId)) {
                             frameId = data.frameId;
                             frameCount++;
@@ -1797,12 +1794,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                             $scope.timeData.elapsedTime = new Date(1970, 0, 1);
                             $scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
                         }
-
-                        if (data.state != 'running') {
-                            if (data.state != simulationState())
-                                appState.saveChanges('simulationStatus');
-                        }
-                        else {
+                        if (data.state == 'running') {
                             if (! isDestroyed) {
                                 $scope.dots += '.';
                                 if ($scope.dots.length > 3)
@@ -1815,40 +1807,55 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                                 );
                             }
                         }
-                        setSimulationState(data.state);
+                        setSimulationStatus(data);
                     },
-                    appState.runStatusParams[$scope.model]
+                    simulationStatus()
                 );
             }
 
-            function setSimulationState(state) {
-                if (! appState.models.simulationStatus[$scope.model])
-                    appState.models.simulationStatus[$scope.model] = {};
-                appState.models.simulationStatus[$scope.model].state = state;
+            function setSimulationStatus(data) {
+                if (!data)
+                    data = {}
+                //TODO(robnagler) should this be a copy?
+                appState.models.simulationStatus[$scope.model] = data;
+                //TODO(robnagler) Hacky, because we know reportParametersHash is a substitute
+                //  for models. Our goal is not to pass models, unless we really need them.
+                if (!data.models && !data.reportParametersHash)
+                    data.models = appState.applicationState();
+                if (!data.report)
+                    data.report = $scope.model;
+                if (!data.simulationType)
+                    data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+                if (!data.state)
+                    data.state = 'initial';
+                if (!data.startTime)
+                    data.startTime = new Date().getTime();
+                appState.saveChanges('simulationStatus');
             }
 
             function simulationState() {
-                if (appState.models.simulationStatus[$scope.model])
-                    return appState.models.simulationStatus[$scope.model].state;
-                return 'initial';
+                return simulationStatus().state;
+            }
+
+            function simulationStatus() {
+                // Ensure all fields are initialized
+                setSimulationStatus(appState.models.simulationStatus[$scope.model]);
+                return appState.models.simulationStatus[$scope.model];
             }
 
             $scope.cancelSimulation = function() {
                 if (simulationState() != 'running')
                     return;
-                setSimulationState('canceled');
                 isAborting = true;
                 requestSender.sendRequest(
-                    'runCancel',
+                    'zrunCancel',
                     function(data) {
                         isAborting = false;
-                        appState.saveChanges('simulationStatus');
+                        setSimulationStatus(data);
                     },
-                    {
-                        report: $scope.model,
-                        models: appState.applicationState(),
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
+                    simulationStatus()
+                );
+                setSimulationStatus({state: 'canceled'});
             };
 
             $scope.isInitializing = function() {
@@ -1866,23 +1873,20 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             $scope.runSimulation = function() {
                 if (simulationState() == 'running')
                     return;
+                //TODO(robnagler) should be part of simulationStatus
                 frameCache.setFrameCount(0);
                 $scope.timeData.elapsedTime = null;
                 $scope.timeData.elapsedDays = null;
-                setSimulationState('running');
+                // Clear the state, new run
+                setSimulationStatus();
                 requestSender.sendRequest(
                     'zrunSimulation',
                     function(data) {
-                        appState.models.simulationStatus[$scope.model].startTime = data.startTime;
-                        appState.runStatusParams[$scope.model] = data;
-                        appState.saveChanges('simulationStatus');
+                        setSimulationStatus(data);
                         refreshStatus();
                     },
-                    {
-                        report: $scope.model,
-                        models: appState.applicationState(),
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
+                    simulationStatus()
+                );
             };
 
             $scope.$on($scope.model + '.changed', function() {

@@ -88,12 +88,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'frameId': t,
             'lastUpdateTime': t,
             'percentComplete': 100,
-            'totalFrames': 1,
         }
     return {
         'percentComplete': 0,
         'frameCount': 0,
-        'totalFrames': 0,
     }
 
 

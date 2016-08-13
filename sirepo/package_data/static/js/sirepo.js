@@ -207,7 +207,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.isAnimationModelName = function(name) {
-        return name.indexOf('Animation') >= 0;
+        return name == 'animation' || name.indexOf('Animation') >= 0;
     };
 
     self.isLoaded = function() {
@@ -343,7 +343,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
             updateReports();
     };
 
-    self.setActiveFolderPath = function(path) {
+             self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
     };
 
@@ -412,6 +412,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         if (! appState.isLoaded())
             return;
         var isHidden = panelState.isHidden(modelName);
+        //TODO(robnagler) why doesn't this come from the server?
         var startTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
@@ -496,7 +497,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('panelState', function(appState, requestQueue, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -531,7 +532,7 @@ SIREPO.app.factory('panelState', function(appState, requestQueue, $compile, $roo
                 callback(data);
             }
         };
-        requestQueue.addItem(name, appState.applicationState(), responseHandler);
+        simulationQueue.addTransientItem(name, appState.applicationState(), responseHandler);
     }
 
     function setPanelValue(name, key, value) {
@@ -724,10 +725,9 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $tim
     return self;
 });
 
-SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender) {
+SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender) {
     var self = {};
     var runQueue = [];
-    var queueId = 1;
     var poller = null;
 
     function cancelPoller() {
@@ -737,22 +737,10 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
         poller = null;
     }
 
-    function clearQueue() {
-        var qi = runQueue[0]
-        cancelPoller();
-        if (! qi)
-            return;
-        console.log('clearQueue: ' + qi.request.report);
-        runQueue.length = 0
-        requestSender.sendRequest('zrunCancel', null, qi.request);
-    }
-
-
-    function executeQueue() {
+    function runFirstItem() {
         var qi = runQueue[0];
         if (! qi)
             return;
-        console.log('executeQueue: ' + qi.request.report);
         var process = function(resp, status) {
             cancelPoller();
             // handle errors
@@ -761,12 +749,12 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
                     resp.error = (resp === null && status === 0)
                         ? 'the server is unavailable'
                         : 'a server error occurred',
-                console.log('error: ' + qi.request.report + ' ' + status + ' resp=' + resp);
-                handleQueueResult(qi, resp);
+                handleResult(qi, resp);
                 return;
             }
             if (resp.state != 'running') {
-                handleQueueResult(qi, resp);
+                console.log(resp);
+                handleResult(qi, resp);
                 return;
             }
             if (resp.hasOwnProperty('reportParametersHash'))
@@ -783,22 +771,19 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
         requestSender.sendRequest('zrunSimulation', process, qi.request, process);
     }
 
-    function handleQueueResult(qi, resp) {
+    function handleResult(qi, resp) {
         if (! runQueue.length)
-            return;
-        if (runQueue[0].id != qi.id)
             return;
         runQueue.shift();
         if (resp.error)
             qi.responseHandler(null, resp.error);
         else
             qi.responseHandler(resp);
-        executeQueue();
+        runFirstItem();
     }
 
-    self.addItem = function(report, models, responseHandler) {
+    self.addTransientItem = function(report, models, responseHandler) {
         var qi = {
-            id: queueId,
             responseHandler: responseHandler,
             request: {
                 report: report,
@@ -807,13 +792,21 @@ SIREPO.app.factory('requestQueue', function($rootScope, $interval, requestSender
             }
         };
         runQueue.push(qi);
-        console.log('addItem: ' + qi.request.report + ' runqueu: ' + runQueue.length);
         if (runQueue.length == 1)
-            executeQueue();
+            runFirstItem();
     };
 
-    $rootScope.$on('$routeChangeSuccess', clearQueue);
-    $rootScope.$on('clearCache', clearQueue);
+    self.clearTransientItems = function() {
+        var qi = runQueue[0]
+        cancelPoller();
+        if (! qi)
+            return;
+        runQueue.length = 0
+        requestSender.sendRequest('zrunCancel', null, qi.request);
+    };
+
+    $rootScope.$on('$routeChangeSuccess', self.clearTransientItems);
+    $rootScope.$on('clearCache', self.clearTransientItems);
 
     return self;
 });

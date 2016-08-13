@@ -61,7 +61,7 @@ def report_parameters_hash(data):
         #TODO(robnagler) need to eliminate non-models from data['models']
         if not models:
             models = data['models'].keys()
-            for k in 'panelState', 'rpnCache', 'simulationStatus':
+            for k in 'panelState', 'rpnCache', 'simulationStatus', 'simulation':
                 if k in models:
                     models.remove(k)
         assert models, \

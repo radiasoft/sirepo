@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import beaker.middleware
+import copy
 import datetime
 import errno
 import flask
@@ -344,13 +345,14 @@ def app_route_favicon():
 def app_zrun_cancel():
     data = _parse_data_input()
     cache_data = _cached_simulation(data)
+    data['state'] = 'canceled'
     if not cache_data:
         # Not our job or not run
-        return _EMPTY_JSON_RESPONSE
+        return _json_response(data)
     jid = _job_id(data)
     if not cfg.job_queue.is_running(jid):
         # Already dead
-        return _EMPTY_JSON_RESPONSE
+        return _json_response(data)
     pkdp('{}: canceling', jid)
     # TODO(robnagler) I think it is a mistake to write data. Too many
     # race conditions. Can't really trust the state anyway.
@@ -359,7 +361,7 @@ def app_zrun_cancel():
     # the last frame file may not be finished, remove it
     t = sirepo.template.import_module(data)
     t.remove_last_frame(simulation_db.simulation_run_dir(data))
-    return _EMPTY_JSON_RESPONSE
+    return _json_response(data)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
@@ -380,7 +382,7 @@ def app_zrun_simulation():
         #TODO: reportParametersHash collision
     else:
         _start_simulation(data)
-    status = data['models']['simulationStatus'][data['report']]
+    status = data['simulationStatus']
     return _json_response({
         'pollSeconds': simulation_db.poll_seconds(data),
         'report': data['report'],
@@ -397,20 +399,6 @@ def app_zrun_result():
     return _json_response(_simulation_run_result(_parse_data_input()))
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
-def app_run_cancel():
-    data = _parse_data_input()
-    if data['report'] in data['models']['simulationStatus']:
-        data['models']['simulationStatus'][data['report']]['state'] = 'canceled'
-    sim_type = data['simulationType']
-    #TODO_SAVE_SIM simulation_db.save_simulation_json(sim_type, data)
-    cfg.job_queue.kill(_job_id(data))
-    # the last frame file may not be finished, remove it
-    t = sirepo.template.import_module(data)
-    t.remove_last_frame(simulation_db.simulation_run_dir(data))
-    return '{}'
-
-
 @app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
     data = _parse_data_input()
@@ -425,16 +413,16 @@ def app_run_status():
         #TODO(robnagler) REMOVE once clients are up to date (need to force client refresh)
         cached_data = None
         pkdp('out of date client: {}', flask.request.headers)
-    if cached_data:
-        data = cached_data
-    else:
-        # data = simulation_db.open_json_file(sim_type, sid=sid)
-        old = simulation_db.open_json_file(sim_type, sid=sid)
-        old.update(data)
-        data = old
-        if is_running:
-            #TODO(robnagler) not our job
-            pass
+#   if cached_data:
+#        data = cached_data
+#    else:
+#        # data = simulation_db.open_json_file(sim_type, sid=sid)
+#        old = simulation_db.open_json_file(sim_type, sid=sid)
+#        old.update(data)
+#        data = old
+#        if is_running:
+#            #TODO(robnagler) not our job
+#            pass
     run_dir = simulation_db.simulation_run_dir(data)
     template = sirepo.template.import_module(data)
     schema = simulation_db.get_schema(sim_type)
@@ -445,14 +433,9 @@ def app_run_status():
     new.setdefault('lastUpdateTime', int(time.time()))
     new.setdefault('percentComplete', 0.0)
     #TODO(robnagler) merge
-    new.setdefault('totalFrames', 0)
     new.setdefault('frameCount', 0)
     new.setdefault('errors', None)
     new.setdefault('pollSeconds', simulation_db.poll_seconds(data))
-    new.setdefault('simulationType', sim_type)
-    new.setdefault('simulationId', sid)
-    new.setdefault('report', report)
-    new.setdefault('reportParametersHash', data['reportParametersHash'])
     if is_running:
         new['state'] = 'running'
     else:
@@ -461,9 +444,9 @@ def app_run_status():
         new.setdefault('state', 'canceled')
         if new['state'] == 'running':
             new['state'] = 'completed' if new['percentComplete'] >= 100 else 'canceled'
-    status = data['models']['simulationStatus'].setdefault(report, {})
+    status = data.setdefault('simulationStatus', {})
     status.update(new)
-    return _json_response(status)
+    return _json_response(_simulation_run_status(data, status))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
@@ -683,26 +666,6 @@ def _save_new_and_reply(*args):
     return app_simulation_data(sim_type, sid)
 
 
-def _simulation_run_result(data):
-    #TODO(robnagler) cache result
-    jid = _job_id(data)
-    if cfg.job_queue.is_running(jid):
-        return {'state': 'running'}
-    try:
-        run_dir = simulation_db.simulation_run_dir(data)
-        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-        # TODO(robnagler) duration isn't available for run foreground
-        # res['duration'] = simulation.duration
-        #TODO: reportParametersHash collision: state = 'collisionCompleted'
-        res['state'] = 'completed'
-        return res
-        #res['duration'] = 0.0
-        #pkdp('{}: duration: {}s', jid, res['duration'])
-    except Exception as e:
-        pkdp('{}: simulation error: {}', jid, e)
-        return {'state': 'error', 'error': _error_text(str(e))}
-
-
 def _simulation_data(res, path, data):
     """Iterator function to return entire simulation data
     """
@@ -715,6 +678,58 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
+def _simulation_run_result(data):
+    #TODO(robnagler) cache result
+    data = _parse_data_input()
+    try:
+        data = _cached_simulation(data)
+    except KeyError:
+        #TODO(robnagler) REMOVE once clients are up to date (need to force client refresh)
+        pkdp('out of date client: {}', flask.request.headers)
+    jid = _job_id(data)
+    if cfg.job_queue.is_running(jid):
+        return _simulation_run_status(data, {'state': 'running'})
+    try:
+        run_dir = simulation_db.simulation_run_dir(data)
+        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
+        # TODO(robnagler) duration isn't available for run foreground
+        # res['duration'] = simulation.duration
+        #TODO: reportParametersHash collision: state = 'collisionCompleted'
+        res.setdefault('state', 'completed')
+        return _simulation_run_status(data, res)
+        #res['duration'] = 0.0
+        #pkdp('{}: duration: {}s', jid, res['duration'])
+    except Exception as e:
+        pkdp('{}: simulation error: {}', jid, e)
+        return _simulation_run_status(
+            data, {'state': 'error', 'error': _error_text(str(e))})
+
+
+def _simulation_run_status(data, other):
+    try:
+        status = data['simulationStatus']
+    except KeyError:
+        status = {
+            'state': 'error',
+            'error': 'invalid input; no simulationStatus (aborted run?)',
+            'startTime': 0,
+        }
+    resp = copy.deepcopy(status)
+    resp = {
+        'pollSeconds': simulation_db.poll_seconds(data),
+        'report': data['report'],
+        'reportParametersHash': data['reportParametersHash'],
+        'simulationId': simulation_db.parse_sid(data),
+        'simulationType': data['simulationType'],
+    }
+    resp.setdefault('simulationType', data['simulationType'])
+    resp.setdefault('simulationId', simulation_db.parse_sid(data))
+    resp.setdefault('report', data['report'])
+    resp.setdefault('reportParametersHash', data['reportParametersHash'])
+    resp.update(other)
+    return resp
+
+
 def _start_simulation(data):
     """Setup and start the simulation.
 
@@ -723,7 +738,7 @@ def _start_simulation(data):
     Returns:
         object: _Command or daemon instance
     """
-    data['models']['simulationStatus'][data['report']] = {
+    data['simulationStatus'] = {
         'startTime': int(time.time()),
         'state': 'running',
     }
@@ -802,7 +817,7 @@ class _Background(object):
             self.in_kill = False
             try:
                 del self._process[self.jid]
-                pkdp('{: deleted', self.jid)
+                pkdp('{}: deleted', self.jid)
             except KeyError:
                 pass
 

@@ -611,9 +611,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     function refreshStatus() {
         if (! appState.isLoaded())
             return;
-        if (!appState.runStatusParams[$scope.model])
-            appState.runStatusParams[$scope.model] = {
-                report: $scope.model,
+        if (!appState.runStatusParams[simulationModel])
+            appState.runStatusParams[simulationModel] = {
+                report: simulationModel,
                 models: appState.applicationState(),
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             };
@@ -622,7 +622,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             function(data) {
                 if (self.isAborting)
                     return;
-                appState.runStatusParams[$scope.model] = data;
+                appState.runStatusParams[simulationModel] = data;
                 self.simulationErrors = data.errors || '';
                 if (data.frameCount) {
                     frameCache.setFrameCount(parseInt(data.frameCount));
@@ -669,7 +669,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 }
                 setSimulationState(data.state);
             },
-            appState.runStatusParams[$scope.model]
+            appState.runStatusParams[simulationModel]
         );
     }
 
@@ -703,16 +703,14 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         setSimulationState('canceled');
         self.isAborting = true;
         requestSender.sendRequest(
-            'runCancel',
+            'zrunCancel',
             function(data) {
                 self.isAborting = false;
                 appState.saveChanges('simulationStatus');
             },
-            {
-                report: simulationModel,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            appState.runStatusParams[simulationModel]
+        );
+
     };
 
     self.displayPercentComplete = function() {
@@ -786,19 +784,21 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         self.timeData.elapsedDays = null;
         self.outputFiles = [];
         setSimulationState('running');
+        appState.runStatusParams[simulationModel] = {
+            report: simulationModel,
+            models: appState.applicationState(),
+            simulationType: SIREPO.APP_SCHEMA.simulationType
+        };
         requestSender.sendRequest(
             'zrunSimulation',
             function(data) {
                 appState.models.simulationStatus[simulationModel].startTime = data.startTime;
-                appState.runStatusParams[$scope.model] = data;
+                appState.runStatusParams[simulationModel] = data;
                 appState.saveChanges('simulationStatus');
                 refreshStatus();
             },
-            {
-                report: simulationModel,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            appState.runStatusParams[simulationModel]
+        );
     };
 
     $scope.$on('$destroy', function () {

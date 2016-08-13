@@ -123,6 +123,18 @@ def init(app):
     _app = app
 
 
+def is_parallel(data):
+    """Is this report a parallel (long) simulation?
+
+    Args:
+        data (dict): report and models
+
+    Returns:
+        bool: True if parallel job
+    """
+    return bool(_IS_PARALLEL_RE.search(_report_name(data)))
+
+
 def generate_json_response(data):
     """Convert data to JSON to be send back to client
 
@@ -247,17 +259,17 @@ def prepare_simulation(data):
     #TODO_SAVE_SIM save_simulation_json(sim_type, data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
-    is_parallel = bool(_IS_PARALLEL_RE.search(_report_name(data)))
+    is_p = is_parallel(data)
     template.write_parameters(
         data,
         get_schema(sim_type),
         run_dir=run_dir,
-        is_parallel=is_parallel,
+        is_parallel=is_p,
     )
     cmd = [
         pkinspect.root_package(template),
         pkinspect.module_basename(template),
-        'run-background' if is_parallel else 'run',
+        'run-background' if is_p else 'run',
         str(run_dir),
     ]
     return cmd, run_dir

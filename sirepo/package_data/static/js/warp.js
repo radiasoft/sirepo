@@ -78,24 +78,14 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
     function refreshStatus() {
         if (! appState.isLoaded())
             return;
-        if (!appState.runStatusParams[$scope.model])
-            appState.runStatusParams[$scope.model] = {
-                report: $scope.model,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            };
         requestSender.sendRequest(
             'runStatus',
             function(data) {
+                setSimulationStatus(data);
                 frameCache.setFrameCount(data.frameCount);
                 if (self.isAborting)
                     return;
-                appState.runStatusParams[$scope.model] = data;
-                if (data.state != 'running') {
-                    if (data.state != simulationState())
-                        appState.saveChanges('simulationStatus');
-                }
-                else {
+                if (data.state == 'running') {
                     self.percentComplete = data.percentComplete;
                     if (! self.isDestroyed) {
                         self.dots += '.';
@@ -109,40 +99,57 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
                         );
                     }
                 }
-                setSimulationState(data.state);
             },
-            appState.runStatusParams[$scope.model]
+            simulationStatus(),
+            function() {
+                setSimulationStatus({state: 'canceled'});
+            }
         );
     }
 
-    function setSimulationState(state) {
-        if (! appState.models.simulationStatus[simulationModel])
-            appState.models.simulationStatus[simulationModel] = {};
-        appState.models.simulationStatus[simulationModel].state = state;
+    function setSimulationStatus(data) {
+        if (!data)
+            data = {}
+        //TODO(robnagler) should this be a copy?
+        appState.models.simulationStatus[simulationModel] = data;
+        //TODO(robnagler) Hacky, because we know reportParametersHash is a substitute
+        //  for models. Our goal is not to pass models, unless we really need them.
+        if (!data.models && !data.reportParametersHash)
+            data.models = appState.applicationState();
+        if (!data.report)
+            data.report = simulationModel;
+        if (!data.simulationType)
+            data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        if (!data.state)
+            data.state = 'initial';
+        if (!data.startTime)
+            data.startTime = new Date().getTime();
+        appState.saveChanges('simulationStatus');
     }
 
     function simulationState() {
-        if (appState.models.simulationStatus[simulationModel])
-            return appState.models.simulationStatus[simulationModel].state;
-        return 'initial';
+        return simulationStatus().state;
+    }
+
+    function simulationStatus() {
+        // Ensure all fields are initialized
+        setSimulationStatus(appState.models.simulationStatus[simulationModel]);
+        return appState.models.simulationStatus[simulationModel];
     }
 
     self.cancelSimulation = function() {
         if (simulationState() != 'running')
             return;
-        setSimulationState('canceled');
         self.isAborting = true;
         requestSender.sendRequest(
-            'runCancel',
+            'zrunCancel',
             function(data) {
                 self.isAborting = false;
-                appState.saveChanges('simulationStatus');
+                setSimulationStatus(data);
             },
-            {
-                report: simulationModel,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            simulationStatus()
+        );
+        setSimulationStatus({state: 'canceled'});
     };
 
     self.displayPercentComplete = function() {
@@ -174,22 +181,20 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
     self.runSimulation = function() {
         if (simulationState() == 'running')
             return;
+        //TODO(robnagler) should be part of simulationStatus
         frameCache.setFrameCount(0);
-        setSimulationState('running');
+        // Clear the state, new run
+        setSimulationStatus();
         requestSender.sendRequest(
             'zrunSimulation',
             function(data) {
-                appState.models.simulationStatus[simulationModel].startTime = data.startTime;
-                appState.runStatusParams[$scope.model] = data;
-                appState.saveChanges('simulationStatus');
+                setSimulationStatus(data);
                 refreshStatus();
             },
-            {
-                report: simulationModel,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            simulationStatus()
+        );
     };
+
     appState.whenModelsLoaded(refreshStatus);
 });
 
