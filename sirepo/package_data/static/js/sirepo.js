@@ -76,7 +76,6 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     var self = {
         models: {},
-        runStatusParams: {}
     };
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
@@ -522,6 +521,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(data, error) {
+            if (data.state
             setPanelValue(name, 'loading', false);
             if (error) {
                 setPanelValue(name, 'error', error);
@@ -637,7 +637,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $timeout) {
+SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval) {
     var self = {};
     var getApplicationDataTimeout;
 
@@ -669,12 +669,12 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $tim
     self.getApplicationData = function(data, callback) {
         // debounce the method so server calls don't go on every keystroke
         if (getApplicationDataTimeout)
-            $timeout.cancel(getApplicationDataTimeout);
-        getApplicationDataTimeout = $timeout(function() {
+            $interval.cancel(getApplicationDataTimeout);
+        getApplicationDataTimeout = $interval(function() {
             getApplicationDataTimeout = null;
             data.simulationType = SIREPO.APP_SCHEMA.simulationType;
             self.sendRequest('getApplicationData', callback, data);
-        }, 350);
+        }, 350, 1);
     };
 
     self.getAuxiliaryData = function(name) {
@@ -728,22 +728,49 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $tim
 SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender) {
     var self = {};
     var runQueue = [];
-    var poller = null;
 
-    function cancelPoller() {
-        if (! poller)
-            return;
-        $interval.cancel(poller);
-        poller = null;
+    function addItem(report, models, responseHandler, statusHandler, persistent) {
+        var qi = {
+            qState: 'pending',
+            responseHandler: responseHandler,
+            statusHandler: statusHandler,
+            persistent: persistent,
+            request: {
+                forceRun: true,
+                report: report,
+                models: models,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
+                simulationId: models.simulation.simulationId
+            },
+        }
+        runQueue.push(qi);
+        runNextItem();
+        return qi
     }
 
-    function runFirstItem() {
+    function handleResult(qi, resp) {
+        qi.qState = 'done';
+        if (resp.error)
+            qi.responseHandler(null, resp.error);
+        else
+            qi.responseHandler(resp);
+        runFirstItem();
+    }
+
+    function runNextItem() {
         var qi = runQueue[0];
         if (! qi)
             return;
+    }
+
+    function runItem(qi) {
+        if (qi.interval) {
+            $interval.cancel(qi.interval);
+            qi.interval = null;
+        }
         var process = function(resp, status) {
-            cancelPoller();
-            // handle errors
+            if (qi.qState == 'canceling')
+                return;
             if ($.isEmptyObject(resp) || resp.error || status != 200) {
                 if (!resp.error)
                     resp.error = (resp === null && status === 0)
@@ -753,42 +780,47 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 return;
             }
             if (resp.state != 'running') {
-                console.log(resp);
                 handleResult(qi, resp);
                 return;
             }
-            if (resp.hasOwnProperty('reportParametersHash'))
-                qi.request = resp
-            poller = $interval(
+            qi.request = resp.nextRequest;
+            qi.interval = $interval(
                 function () {
                     requestSender.sendRequest(
-                        'zrunResult', process, qi.request, process);
+                        'runStatus', process, qi.request, process);
                 },
-                1000,
+                Math.max(1, resp.nextRequestSeconds) * 1000,
                 1
             );
+            if (qi.statusHandler)
+                qi.statusHandler(resp, qi);
         };
-        requestSender.sendRequest('zrunSimulation', process, qi.request, process);
+        qi.qState = 'processing';
+        requestSender.sendRequest('runSimulation', process, qi.request, process);
     }
 
-    function handleResult(qi, resp) {
-        if (! runQueue.length)
-            return;
-        runQueue.shift();
-        if (resp.error)
-            qi.responseHandler(null, resp.error);
-        else
-            qi.responseHandler(resp);
-        runFirstItem();
-    }
-
-    self.addTransientItem = function(report, models, responseHandler) {
-        var qi = {
+    self.addTransientItem = function(report, models, responseHandler, statusHandler) {
+        var qi = addItem(report, models, responseHandler, statusHandler)
+            {
             responseHandler: responseHandler,
             request: {
                 report: report,
                 models: models,
-                simulationType: SIREPO.APP_SCHEMA.simulationType
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
+                simulationId: models.simulation.simulationId
+            }
+        };
+    };
+
+    self.addPersistentItem = function(report, models, responseHandler) {
+        var qi = {
+            responseHandler: responseHandler,
+            request: {
+                forceRun: true,
+                report: report,
+                models: models,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
+                simulationId: models.simulation.simulationId
             }
         };
         runQueue.push(qi);
@@ -796,13 +828,26 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             runFirstItem();
     };
 
-    self.clearTransientItems = function() {
-        var qi = runQueue[0]
-        cancelPoller();
-        if (! qi)
-            return;
-        runQueue.length = 0
-        requestSender.sendRequest('zrunCancel', null, qi.request);
+    self.cancelItem = function (qi) {
+        var qs = qi.qState;
+        qi.qState = 'canceling';
+        if (qi.interval) {
+            $interval.cancel(qi.interval);
+            qi.interval = null;
+        }
+        var i = runQueue.indexOf(qi);
+        if (index > -1)
+            runQueue.splice(i, 1);
+        if (qs == 'processing' && ! qi.persistent)
+            requestSender.sendRequest('runCancel', null, qi.request);
+    };
+
+    self.clearItems = function() {
+        var rq = runQueue;
+        runQueue = [];
+        while (rq.length > 0) {
+            self.cancelItem(rq.shift());
+        }
     };
 
     $rootScope.$on('$routeChangeSuccess', self.clearTransientItems);

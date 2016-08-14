@@ -81,6 +81,7 @@ _SCHEMA = simulation_db.read_json(_STATIC_FOLDER.join('json/elegant-schema'))
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
+    #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     errors, last_element = _parse_elegant_log(run_dir)
     res = {
         'percentComplete': 100,
@@ -101,7 +102,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
         'percentComplete': 100,
         'frameCount': 1,
         'outputInfo': output_info,
-        #TODO(robnagler) why isn't this working?
+        #TODO(robnagler) why isn't this working
         #'lastUpdateTime': output_info[0]['last_update_time'],
         'errors': errors,
     }

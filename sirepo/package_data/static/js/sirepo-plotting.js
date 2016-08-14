@@ -1,6 +1,6 @@
 'use strict';
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $timeout, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $window) {
 
     var INITIAL_HEIGHT = 400;
 
@@ -12,19 +12,15 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
     // Returns a function, that, as long as it continues to be invoked, will not
     // be triggered. The function will be called after it stops being called for
-    // N milliseconds. If `immediate` is passed, trigger the function on the
-    // leading edge, instead of the trailing.
+    // N milliseconds.
     // taken from http://davidwalsh.name/javascript-debounce-function
-    function debounce(func, wait) {
-        var timeout;
+    function debounce(delayedFunc, milliseconds) {
+        var timeout = null;
         return function() {
             var context = this, args = arguments;
-            var later = function() {
-                timeout = null;
-                func.apply(context, args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+            if (timeout)
+                $interval.cancel(timeout)
+            timeout = $interval(function() {delayedFunc.apply(context, args)}, milliseconds, 1);
         };
     }
 
@@ -160,14 +156,14 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 else {
                     requestData = function() {
                         //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
-                        $timeout(function() {
+                        $interval(function() {
                             if (! scope.element)
                                 return;
                             panelState.requestData(scope.modelName, function(data) {
                                 if (scope.element)
                                     scope.load(data);
                             });
-                        }, 50);
+                        }, 50, 1);
                     };
                 }
 
@@ -1143,7 +1139,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
     };
 });
 
-SIREPO.app.directive('lattice', function(appState, plotting, rpnService, $timeout, $window) {
+SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $interval, $window) {
     return {
         restrict: 'A',
         scope: {

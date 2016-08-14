@@ -300,6 +300,25 @@ def read_json(filename):
         return json.load(f)
 
 
+def read_result(run_dir):
+    """Read result data file from simulation
+
+    Args:
+        run_dir (py.path): where to find output
+
+    Returns:
+        dict: result or describes error
+    """
+    fn = run_dir.join(template_common.OUTPUT_BASE_NAME)
+    try:
+        res = simulation_db.read_json(fn)
+        assert 'state' in res
+    except Exception as e:
+        res = {'state': 'error', 'error': 'terminated unexpectedly'}
+        pkdp('{}: error reading output: {}'.format(fn, e)
+    return res
+
+
 def save_new_example(simulation_type, data):
     data['models']['simulation']['isExample'] = '1'
     return save_new_simulation(simulation_type, data)
@@ -371,6 +390,15 @@ def tmp_dir():
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
 
 
+def user_id():
+    """Get user id
+
+    Returns:
+        str: user id from session
+    """
+    return flask.session[_UID_ATTR]
+
+
 def verify_app_directory(simulation_type):
     """Ensure the app directory is present. If not, create it and add example files.
     """
@@ -388,6 +416,23 @@ def write_json(filename, data):
     """
     with open(_json_filename(filename), 'w') as f:
         json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
+
+
+def write_result(result, run_dir=None):
+    """Write simulation result to standard output.
+
+    Args:
+        result (dict): will set state to completed
+        run_dir (py.path): Defaults to current dir
+    """
+    fn = py.path.local(pytemplate_common.OUTPUT_BASE_NAME)
+    if run_dir:
+        fn = run_dir.join(fn)
+    if fn.exists():
+        # Don't overwrite first written file, because closest to the error
+        return
+    info.setdefault('state', 'completed')
+    write_json(fn, info)
 
 
 def _create_example_and_lib_files(simulation_type):
@@ -496,23 +541,30 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    if not _UID_ATTR in flask.session:
-        _user_dir_create()
-    d = _user_dir_name(flask.session[_UID_ATTR])
+    try:
+        uid = user_id()
+    except KeyError:
+        uid = _user_dir_create()
+    d = _user_dir_name(uid)
     if d.check():
         return d
     # Beaker session might have been deleted (in dev) so "logout" and "login"
     _user_dir_create()
-    return _user_dir_name(flask.session[_UID_ATTR])
+    return _user_dir_name(uid)
 
 
 def _user_dir_create():
-    """Create a user and initialize the directory"""
+    """Create a user and initialize the directory
+
+    Returns:
+        str: New user id
+    """
     uid = _random_id(_user_dir_name())['id']
     # Must set before calling simulation_dir
     flask.session[_UID_ATTR] = uid
     for simulation_type in SIMULATION_TYPES:
         _create_example_and_lib_files(simulation_type)
+    return uid
 
 
 def _user_dir_name(uid=None):

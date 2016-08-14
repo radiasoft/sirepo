@@ -36,7 +36,7 @@ def run(cfg_dir):
         elif data['report'] == 'beamPreviewReport':
             res = template.extract_particle_report([model['x'], model['y'], model['histogramBins']], 'beam', cfg_dir, data_file)
 
-        simulation_db.write_json(template_common.OUTPUT_BASE_NAME, res)
+        simulation_db.write_result(res)
 
 
 def run_background(cfg_dir):
@@ -47,6 +47,7 @@ def run_background(cfg_dir):
     """
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(_script())
+        simulation_db.write_result({})
 
 
 def _run_warp():

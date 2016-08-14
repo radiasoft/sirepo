@@ -41,6 +41,7 @@ def run_background(cfg_dir):
     """
     with pkio.save_chdir(cfg_dir):
         _run_elegant(with_mpi=True);
+        simulation_db.write_result({})
 
 
 def _run_elegant(bunch_report=False, with_mpi=False):
@@ -72,4 +73,4 @@ def _extract_bunch_report():
     else:
         file = 'elegant.bun'
     info = extract_report_data(file, data['models'][data['report']], data['models']['bunch']['p_central_mev'], 0)
-    simulation_db.write_json(template_common.OUTPUT_BASE_NAME, info)
+    simulation_db.write_result(info)

@@ -1736,10 +1736,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                   '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
                 '</div>',
               '</div>',
-              '<div data-ng-if="isState(\'completed\') || isState(\'canceled\')">',
+              '<div data-ng-if="isState(\'completed\') || isStateStopped()">',
                 '<div class="col-sm-6">',
                   'Simulation ',
-                  '<span data-ng-if="isState(\'completed\')">Completed</span><span data-ng-if="isState(\'canceled\')">Stopped</span>',
+                  '<span data-ng-if="isState(\'completed\')">Completed</span><span data-ng-if="isStateStopped()">Stopped</span>',
                   '<div>',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
@@ -1864,14 +1864,22 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 return false;
             };
 
-            $scope.isState = function(state) {
-                if (appState.isLoaded())
-                    return simulationState() == state;
-                return false;
+            $scope.isState = function() {
+                if (! appState.isLoaded())
+                    return false;
+                var s = simulationState();
+                for (var i = 0; i < arguments.length; i++)
+                    if (s == arguments[i])
+                        return true
+                return false
+            };
+
+            $scope.isStateStopped = function() {
+                return ! $scope.isState('initial', 'running');
             };
 
             $scope.runSimulation = function() {
-                if (simulationState() == 'running')
+                if ($scope.isStateStopped())
                     return;
                 //TODO(robnagler) should be part of simulationStatus
                 frameCache.setFrameCount(0);

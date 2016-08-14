@@ -344,109 +344,48 @@ def app_route_favicon():
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunCancel'], methods=('GET', 'POST'))
 def app_zrun_cancel():
     data = _parse_data_input()
-    cache_data = _cached_simulation(data)
-    data['state'] = 'canceled'
-    if not cache_data:
-        # Not our job or not run
-        return _json_response(data)
     jid = _job_id(data)
-    if not cfg.job_queue.is_running(jid):
-        # Already dead
-        return _json_response(data)
-    pkdp('{}: canceling', jid)
-    # TODO(robnagler) I think it is a mistake to write data. Too many
-    # race conditions. Can't really trust the state anyway.
-    cfg.job_queue.kill(jid)
-    # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-    # the last frame file may not be finished, remove it
-    t = sirepo.template.import_module(data)
-    t.remove_last_frame(simulation_db.simulation_run_dir(data))
-    return _json_response(data)
+    # TODO(robnagler) need to have a way of listing jobs
+    # Don't bother with cache_hit check. We don't have any way of canceling
+    # if the parameters don't match so for now, always kill.
+    if cfg.job_queue.is_running(jid):
+        pkdp('{}: canceling', jid)
+        simulation_db.simulation_run_dir(data)
+        # Write first, since results are write once, and we want to
+        # indicate the cancel instead of the termination error that
+        # will happen as a result of the kill.
+        simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+        cfg.job_queue.kill(jid)
+        # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+        # the last frame file may not be finished, remove it
+        t = sirepo.template.import_module(data)
+        t.remove_last_frame(run_dir)
+    # Always true from the client's perspective
+    return _json_response({'state': 'canceled'})
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
 def app_zrun_simulation():
     data = _parse_data_input(validate=True)
-    cache_data = _cached_simulation(data)
-    if cache_data:
-        data = cache_data
+    jid = _job_id(data)
+    is_running = cfg.job_queue.is_running(jid):
+    if is_running or not data.get('forceRun', False):
+
+        _start_simulation(data)
+        if cached_data:
+        data = cached_data
         res = _simulation_run_result(data)
         # If not completed, just fall through and rerun
-        if res['state'] == 'completed':
+        if res['state'] == 'completed' and not data.get('forceRun', False):
             return _json_response(res)
     #TODO(robnagler) race condition. Neaed to lock the simulation
-    jid = _job_id(data)
-    if cfg.job_queue.is_running(jid):
-        #TODO(robnagler) return error to user if in different window
-        pkdp('{}: ignoring second call to runBackground', jid)
-        #TODO: reportParametersHash collision
-    else:
-        _start_simulation(data)
-    status = data['simulationStatus']
-    return _json_response({
-        'pollSeconds': simulation_db.poll_seconds(data),
-        'report': data['report'],
-        'reportParametersHash': data['reportParametersHash'],
-        'simulationId': simulation_db.parse_sid(data),
-        'simulationType': data['simulationType'],
-        'startTime': status['startTime'],
-        'state': status['state'],
-    })
+    return _json_response(_simulation_run_status(data))
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['zrunResult'], methods=('GET', 'POST'))
-def app_zrun_result():
-    return _json_response(_simulation_run_result(_parse_data_input()))
-
-
-@app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
-def app_run_status():
+@app.route(simulation_db.SCHEMA_COMMON['route']['zrunStatus'], methods=('GET', 'POST'))
+def app_zrun_status():
     data = _parse_data_input()
-    sim_type = data['simulationType']
-    sid = simulation_db.parse_sid(data)
-    report = data['report']
-    is_running = cfg.job_queue.is_running(_job_id(data))
-    #TODO(robnagler) need to refresh here the data if the cache is a miss and running
-    try:
-        cached_data = _cached_simulation(data)
-    except KeyError:
-        #TODO(robnagler) REMOVE once clients are up to date (need to force client refresh)
-        cached_data = None
-        pkdp('out of date client: {}', flask.request.headers)
-#   if cached_data:
-#        data = cached_data
-#    else:
-#        # data = simulation_db.open_json_file(sim_type, sid=sid)
-#        old = simulation_db.open_json_file(sim_type, sid=sid)
-#        old.update(data)
-#        data = old
-#        if is_running:
-#            #TODO(robnagler) not our job
-#            pass
-    run_dir = simulation_db.simulation_run_dir(data)
-    template = sirepo.template.import_module(data)
-    schema = simulation_db.get_schema(sim_type)
-    new = template.background_percent_complete(report, run_dir, is_running, schema)
-    #TODO(robnagler) Not the right way. Should always find in the cache or return
-    # the report hash with a note that may not be the right values.
-    new.setdefault('startTime', int(time.time()))
-    new.setdefault('lastUpdateTime', int(time.time()))
-    new.setdefault('percentComplete', 0.0)
-    #TODO(robnagler) merge
-    new.setdefault('frameCount', 0)
-    new.setdefault('errors', None)
-    new.setdefault('pollSeconds', simulation_db.poll_seconds(data))
-    if is_running:
-        new['state'] = 'running'
-    else:
-        # TODO(robnagler) this should be "aborted", b/c we don't know what's
-        # going on.
-        new.setdefault('state', 'canceled')
-        if new['state'] == 'running':
-            new['state'] = 'completed' if new['percentComplete'] >= 100 else 'canceled'
-    status = data.setdefault('simulationStatus', {})
-    status.update(new)
-    return _json_response(_simulation_run_status(data, status))
+    return _json_response(res)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
@@ -565,22 +504,37 @@ def sr_landing_page():
 
 
 def _cached_simulation(data):
-    # Updates data['reportParametersHash']
+    """Read the run_dir and return cached_data.
+
+    Only a hit if the models between data and cache match exactly. Otherwise,
+    return cached data if it's there and valid.
+
+    Args:
+        data (dict): parameters identifying run_dir and models or reportParametersHash
+
+    Returns:
+        bool: cache hit and matches data models?
+        dict: cached data
+    """
+    # Sets data['reportParametersHash']
     req_hash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
     if not run_dir.check():
-        return None
+        return False, None
     #TODO(robnagler) Lock
+    cached_data = None
     try:
-        cache_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        cache_hash = template_common.report_parameters_hash(cache_data)
-        if req_hash == cache_hash:
-            return cache_data
+        cached_data = simulation_db.read_json(_simulation_input(run_dir))
+        cached_hash = template_common.report_parameters_hash(cached_data)
+        if req_hash == cached_hash:
+            return True, cached_data
     except IOError as e:
-        pkdp('{}: ignore IOError: {} errno=', run_dir, e)
+        pkdp('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
     except Exception as e:
-        pkdp('{}: ignore other error: {}', run_dir, str(e))
-    return None
+        pkdp('{}: ignore other error: {}', run_dir, e)
+        # No idea if cache is valid or not so throw away
+        cached_data = None
+    return False, cached_data
 
 
 def _cfg_job_queue(value):
@@ -637,7 +591,7 @@ def _job_id(data):
     Returns:
         str: unique name
     """
-    return '{}-{}'.format(simulation_db.parse_sid(data), data['report'])
+    return '{}-{}-{}'.format(simulation_db.user_id(), data['simulationId'], data['report'])
 
 
 def _json_input():
@@ -649,6 +603,18 @@ def _json_response(value):
         simulation_db.generate_json_response(value),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
+
+
+def _mtime_or_now(path):
+    """mtime for path if exists else time.time()
+
+    Args:
+        path (py.path):
+
+    Returns:
+        int: modification time
+    """
+    return path.mtime() if path.exists() else int(time.time())
 
 
 def _no_cache(response):
@@ -666,10 +632,15 @@ def _save_new_and_reply(*args):
     return app_simulation_data(sim_type, sid)
 
 
-def _simulation_data(res, path, data):
-    """Iterator function to return entire simulation data
+def _simulation_input(run_dir):
+    """Fully qualified input file
+
+    Args:
+        run_dir (py.path): simulation directory
+    Returns:
+        py.path: path to simulation input
     """
-    res.append(data)
+    return run_dir.join(template_common.INPUT_BASE_NAME)
 
 
 def _simulation_name(res, path, data):
@@ -678,56 +649,55 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_run_result(data):
-    #TODO(robnagler) cache result
-    data = _parse_data_input()
+def _simulation_run_status(data):
+    """Look for simulation status and output
+
+    Returns:
+        dict: status response
+    """
     try:
-        data = _cached_simulation(data)
-    except KeyError:
-        #TODO(robnagler) REMOVE once clients are up to date (need to force client refresh)
-        pkdp('out of date client: {}', flask.request.headers)
-    jid = _job_id(data)
-    if cfg.job_queue.is_running(jid):
-        return _simulation_run_status(data, {'state': 'running'})
-    try:
+        jid = _job_id(data)
+        #TODO(robnagler): Lock
+        cache_hit, cached_data = _cached_simulation(data)
+        is_running = cfg.job_queue.is_running(jid)
         run_dir = simulation_db.simulation_run_dir(data)
-        res = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME))
-        # TODO(robnagler) duration isn't available for run foreground
-        # res['duration'] = simulation.duration
-        #TODO: reportParametersHash collision: state = 'collisionCompleted'
-        res.setdefault('state', 'completed')
-        return _simulation_run_status(data, res)
-        #res['duration'] = 0.0
-        #pkdp('{}: duration: {}s', jid, res['duration'])
+        input_file = _simulation_input(run_dir)
+        if is_running:
+            if cached_data:
+                res = {'state': 'running'}
+            else:
+                res = {
+                    'state': 'error'
+                    'error': 'output file not found, but job is running',
+                }
+                pkdp('{}: {}'.format(input_file, res['error']))
+
+        else:
+            res = simulation_db.read_result(run_dir)
+        if data['state'] in ('running', 'completed') and simulation_db.is_parallel(data):
+            new = sirepo.template.import_module(data).background_percent_complete(
+                data['report'],
+                run_dir,
+                is_running,
+                simulation_db.get_schema(data['simulationType']),
+            )
+            new.setdefault('percentComplete', 0.0)
+            new.setdefault('frameCount', 0)
+            res.update(new)
+        res['requestCollision'] = not cache_hit and cached_data
+        res.setdefault('startTime', _mtime_or_now(input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
+        if res['state'] == 'running':
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(data)
+            res['nextRequest'] = {
+                'report': cached_data['report'],
+                'reportParametersHash': cached_data['reportParametersHash']
+                'simulationId': cached_data['simulationId'],
+                'simulationType': cached_data['simulationType'],
+            }
     except Exception as e:
         pkdp('{}: simulation error: {}', jid, e)
-        return _simulation_run_status(
-            data, {'state': 'error', 'error': _error_text(str(e))})
-
-
-def _simulation_run_status(data, other):
-    try:
-        status = data['simulationStatus']
-    except KeyError:
-        status = {
-            'state': 'error',
-            'error': 'invalid input; no simulationStatus (aborted run?)',
-            'startTime': 0,
-        }
-    resp = copy.deepcopy(status)
-    resp = {
-        'pollSeconds': simulation_db.poll_seconds(data),
-        'report': data['report'],
-        'reportParametersHash': data['reportParametersHash'],
-        'simulationId': simulation_db.parse_sid(data),
-        'simulationType': data['simulationType'],
-    }
-    resp.setdefault('simulationType', data['simulationType'])
-    resp.setdefault('simulationId', simulation_db.parse_sid(data))
-    resp.setdefault('report', data['report'])
-    resp.setdefault('reportParametersHash', data['reportParametersHash'])
-    resp.update(other)
-    return resp
+        return {'state': 'error', 'error': _error_text(str(e))}
 
 
 def _start_simulation(data):
@@ -903,7 +873,7 @@ class _Celery(object):
 
     @classmethod
     def is_running(cls, jid):
-        with cls._lock:
+        with cls._nelock:
             return cls._async_result(jid) is not None
 
     @classmethod

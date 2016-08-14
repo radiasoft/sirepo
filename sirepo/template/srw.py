@@ -79,20 +79,20 @@ with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    filename = str(run_dir.join(_DATA_FILE_FOR_MODEL[report]))
-    if os.path.isfile(filename):
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        t = os.path.getmtime(filename)
-        return {
+    res = {
+        'percentComplete': 0,
+        'frameCount': 0,
+    }
+    filename = run_dir.join(_DATA_FILE_FOR_MODEL[report])
+    if filename.exists():
+        t = filename.mtime()
+        res.update({
             'frameCount': 1,
             'frameId': t,
             'lastUpdateTime': t,
             'percentComplete': 100,
-        }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+        })
+    return res
 
 
 def copy_related_files(data, source_path, target_path):

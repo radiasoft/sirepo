@@ -49,6 +49,10 @@ def run_program(cmd, output='mpi_run.out', env=None):
             raise RuntimeError('child terminated: retcode={}'.format(rc))
         pkdp('Stopped: {} {}', pid, cmd)
         p = None
+    except Exception as e:
+        #TODO: Clean result?? Just an exception as string
+        simulation_db.write_result({'state': 'error', 'error': str(e)})
+        raise
     finally:
         if not p is None:
             pkdp('Terminating: {} {}', p.pid, cmd)

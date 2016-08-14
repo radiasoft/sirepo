@@ -69,6 +69,7 @@ op = set_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
         mpi.run_script(script)
+        simulation_db.write_result()
 
 
 def _mirror_plot(model_data):
@@ -90,8 +91,7 @@ def _mirror_plot(model_data):
 
 
 def _process_output(filename, model_data):
-    info = extract_report_data(filename, model_data)
-    simulation_db.write_json(template_common.OUTPUT_BASE_NAME, info)
+    simulation_db.write_result(extract_report_data(filename, model_data))
 
 
 def _run_srw():
