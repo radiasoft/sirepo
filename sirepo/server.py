@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import beaker.middleware
@@ -28,6 +28,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import werkzeug
 import werkzeug.exceptions
 
@@ -192,7 +193,11 @@ def app_download_file(simulation_type, simulation_id, filename):
 def app_error_logging():
     ip = flask.request.remote_addr
     try:
-        pkdp('{}: javascript app_error: {}', ip, _json_input())
+        pkdp(
+            '{}: javascript error: {}',
+            ip,
+            simulation_db.generate_pretty_json(_json_input()),
+        )
     except ValueError as e:
         pkdp('{}: error parsing javascript app_error: {} input={}', ip, e, flask.request.data.decode('unicode-escape')))
     return '{}'
@@ -341,8 +346,8 @@ def app_route_favicon():
         'favicon.ico', mimetype='image/vnd.microsoft.icon'
     )
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['zrunCancel'], methods=('GET', 'POST'))
-def app_zrun_cancel():
+@app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
+def app_run_cancel():
     data = _parse_data_input()
     jid = _job_id(data)
     # TODO(robnagler) need to have a way of listing jobs
@@ -364,28 +369,23 @@ def app_zrun_cancel():
     return _json_response({'state': 'canceled'})
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['zrunSimulation'], methods=('GET', 'POST'))
-def app_zrun_simulation():
+@app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
+def app_run_simulation():
     data = _parse_data_input(validate=True)
-    jid = _job_id(data)
-    is_running = cfg.job_queue.is_running(jid):
-    if is_running or not data.get('forceRun', False):
-
+    res = _simulation_run_status(data)
+    if (
+        res['state'] != 'running'
+        and (res['state'] != 'completed' or data.get('forceRun', False))
+    ):
         _start_simulation(data)
-        if cached_data:
-        data = cached_data
-        res = _simulation_run_result(data)
-        # If not completed, just fall through and rerun
-        if res['state'] == 'completed' and not data.get('forceRun', False):
-            return _json_response(res)
-    #TODO(robnagler) race condition. Neaed to lock the simulation
-    return _json_response(_simulation_run_status(data))
-
-
-@app.route(simulation_db.SCHEMA_COMMON['route']['zrunStatus'], methods=('GET', 'POST'))
-def app_zrun_status():
-    data = _parse_data_input()
+        res = _simulation_run_status(data)
     return _json_response(res)
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
+def app_run_status():
+    data = _parse_data_input()
+    return _json_response(_simulation_run_status(data))
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
@@ -575,14 +575,6 @@ def _cfg_time_limit(value):
     return v
 
 
-def _error_text(err):
-    """Parses error from subprocess"""
-    m = re.search(_SUBPROCESS_ERROR_RE, err)
-    if m:
-        return m.group(1)
-    return 'a system error occurred'
-
-
 def _job_id(data):
     """A Job is a simulation and report name
 
@@ -632,6 +624,23 @@ def _save_new_and_reply(*args):
     return app_simulation_data(sim_type, sid)
 
 
+def _simulation_error(err, *args):
+    """Something unexpected went wrong.
+
+    Parses ``err`` for error
+
+    Args:
+        err (str): exception or run_log
+    Returns:
+        dict: error response
+    """
+    pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
+    if '\n' in err and not pkconfig.channel_in_internal_test():
+        m = re.search(_SUBPROCESS_ERROR_RE, str(exc))
+        err = m.group(1) if m else 'unexpected error (see logs)'
+    return {'state': 'error', 'error': err}
+
+
 def _simulation_input(run_dir):
     """Fully qualified input file
 
@@ -652,6 +661,9 @@ def _simulation_name(res, path, data):
 def _simulation_run_status(data):
     """Look for simulation status and output
 
+    Args:
+        data (dict): request
+
     Returns:
         dict: status response
     """
@@ -666,20 +678,18 @@ def _simulation_run_status(data):
             if cached_data:
                 res = {'state': 'running'}
             else:
-                res = {
-                    'state': 'error'
-                    'error': 'output file not found, but job is running',
-                }
-                pkdp('{}: {}'.format(input_file, res['error']))
-
+                return _simulation_error('input file not found, but job is running', input_file)
         else:
-            res = simulation_db.read_result(run_dir)
-        if data['state'] in ('running', 'completed') and simulation_db.is_parallel(data):
-            new = sirepo.template.import_module(data).background_percent_complete(
-                data['report'],
+            res, err = simulation_db.read_result(run_dir)
+            if err:
+                return _simulation_error(err)
+        if res['state'] in ('running', 'completed') and simulation_db.is_parallel(cached_data):
+            template = sirepo.template.import_module(cached_data)
+            new = template.background_percent_complete(
+                cached_data['report'],
                 run_dir,
                 is_running,
-                simulation_db.get_schema(data['simulationType']),
+                simulation_db.get_schema(cached_data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
@@ -688,16 +698,16 @@ def _simulation_run_status(data):
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         if res['state'] == 'running':
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(data)
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
             res['nextRequest'] = {
                 'report': cached_data['report'],
-                'reportParametersHash': cached_data['reportParametersHash']
+                'reportParametersHash': cached_data['reportParametersHash'],
                 'simulationId': cached_data['simulationId'],
                 'simulationType': cached_data['simulationType'],
             }
-    except Exception as e:
-        pkdp('{}: simulation error: {}', jid, e)
-        return {'state': 'error', 'error': _error_text(str(e))}
+    except Exception:
+        return _simulation_error(pkdexc())
+    return res
 
 
 def _start_simulation(data):
@@ -831,7 +841,7 @@ class _Background(object):
                     os.close(fd)
                 except OSError:
                     pass
-            sys.stdin = open('background.log', 'a+')
+            sys.stdin = open(template_common.RUN_LOG, 'a+')
             assert sys.stdin.fileno() == 0
             os.dup2(0, 1)
             sys.stdout = os.fdopen(1, 'a+')
@@ -845,10 +855,9 @@ class _Background(object):
                 pkdp('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
-            err = open(str(self.run_dir.join('background.log')), 'a')
-            err.write('{}: error starting daemon: {}'.format(self.jid, e))
-            err.close()
-            reraise
+            with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
+                f.write('{}: error starting daemon: {}'.format(self.jid, e))
+            raise
 
 
 class _Celery(object):

@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
 import datetime
 import flask
@@ -135,6 +135,17 @@ def is_parallel(data):
     return bool(_IS_PARALLEL_RE.search(_report_name(data)))
 
 
+def generate_pretty_json(data):
+    """Convert data to JSON to human readable
+
+    Args:
+        data (object): what to format
+    Returns:
+        str: human readable data
+    """
+    return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
+
+
 def generate_json_response(data):
     """Convert data to JSON to be send back to client
 
@@ -256,7 +267,6 @@ def prepare_simulation(data):
             if os.path.isfile(f):
                 py.path.local(f).copy(run_dir)
     template.prepare_aux_files(run_dir, data)
-    #TODO_SAVE_SIM save_simulation_json(sim_type, data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -310,13 +320,22 @@ def read_result(run_dir):
         dict: result or describes error
     """
     fn = run_dir.join(template_common.OUTPUT_BASE_NAME)
+    res = None
+    err = None
     try:
-        res = simulation_db.read_json(fn)
+        res = read_json(fn)
         assert 'state' in res
     except Exception as e:
-        res = {'state': 'error', 'error': 'terminated unexpectedly'}
-        pkdp('{}: error reading output: {}'.format(fn, e)
-    return res
+        err = pkdexc()
+        if isinstance(e, IOError):
+            rl = run_dir.join(template_common.RUN_LOG)
+            try:
+                return None, pkio.read_text(rl)
+            except:
+                pkdp('{}: error reading log: {}', rl, pkdexc())
+        else:
+            pkdp('{}: error reading output: {}', fn, err)
+    return res, err
 
 
 def save_new_example(simulation_type, data):
@@ -415,7 +434,7 @@ def write_json(filename, data):
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
     with open(_json_filename(filename), 'w') as f:
-        json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True)
+        f.write(generate_pretty_json(data))
 
 
 def write_result(result, run_dir=None):
@@ -425,14 +444,15 @@ def write_result(result, run_dir=None):
         result (dict): will set state to completed
         run_dir (py.path): Defaults to current dir
     """
-    fn = py.path.local(pytemplate_common.OUTPUT_BASE_NAME)
+    fn = py.path.local(template_common.OUTPUT_BASE_NAME)
     if run_dir:
         fn = run_dir.join(fn)
     if fn.exists():
-        # Don't overwrite first written file, because closest to the error
+        # Don't overwrite first written file, because first write is
+        # closest to the error.
         return
-    info.setdefault('state', 'completed')
-    write_json(fn, info)
+    result.setdefault('state', 'completed')
+    write_json(fn, result)
 
 
 def _create_example_and_lib_files(simulation_type):

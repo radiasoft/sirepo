@@ -20,6 +20,9 @@ OUTPUT_BASE_NAME = 'out'
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = 'parameters.py'
 
+#: stderr and stdout
+RUN_LOG = 'run.log'
+
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""

@@ -11,6 +11,7 @@ pkconfig.append_load_path('sirepo')
 from celery import Celery
 from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdp
+from sirepo.template import template_common
 import importlib
 import kombu
 import os
@@ -52,8 +53,20 @@ def start_simulation(simulation_type, run_dir):
         simulation_type (str): currently must be warp
         run_dir (py.path.local): directory
     """
-    # [2016-01-27 13:59:54,133: WARNING/Worker-1] celery: error: no such option: -A
-    # srw_bl.py assumes it can parse sys.argv so we have to clear sys.argv
-    sys.argv[:] = [simulation_type]
-    importlib.import_module('sirepo.pkcli.' + simulation_type).run_background(run_dir)
-    # Doesn't return anything
+    try:
+        sys.stdin = open(template_common.RUN_LOG, 'a+')
+        assert sys.stdin.fileno() == 0
+        os.dup2(0, 1)
+        sys.stdout = os.fdopen(1, 'a+')
+        os.dup2(0, 2)
+        sys.stderr = os.fdopen(2, 'a+')
+        pkdp('{}.run_background: starting in: {}', simulation_type, run_dir)
+        # [2016-01-27 13:59:54,133: WARNING/Worker-1] celery: error: no such option: -A
+        # srw_bl.py assumes it can parse sys.argv so we have to clear sys.argv
+        sys.argv[:] = [simulation_type]
+        importlib.import_module('sirepo.pkcli.' + simulation_type).run_background(run_dir)
+        # Doesn't return anything
+    except BaseException as e:
+        with open(template_common.RUN_LOG, 'a') as f:
+            f.write('ERROR: {}'.format(e))
+        raise

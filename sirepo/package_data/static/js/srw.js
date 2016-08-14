@@ -442,7 +442,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.setSingleElectron = function(value) {
         value = !!value;
         if (value != self.singleElectron)
-            simulationQueue.clearTransientItems();
+            simulationQueue.clearQueue();
         self.singleElectron = value;
     };
 
