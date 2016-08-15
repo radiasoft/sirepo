@@ -1708,7 +1708,7 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {
@@ -1751,8 +1751,27 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             '</form>',
         ].join(''),
         controller: function($scope) {
+            $scope.handleStatus = function(data) {
+                if (data.frameId && (data.frameId != $scope.frameId)) {
+                    $scope.frameId = data.frameId;
+                    $scope.frameCount++;
+                    frameCache.setFrameCount($scope.frameCount);
+                    frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                }
+            };
+
             persistentSimulation.init($scope);
-            $scope.persistentSimulationInit();
+            frameCache.setAnimationArgs({
+                multiElectronAnimation: [],
+                fluxAnimation: ['fluxType'],
+            });
+            $scope.$on($scope.model + '.changed', function() {
+                if ($scope.isReadyForModelChanges) {
+                    frameCache.setFrameCount(0);
+                    frameCache.clearFrames($scope.model);
+                }
+            });
+            $scope.persistentSimulationInit($scope);
         },
     };
 });

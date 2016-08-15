@@ -874,21 +874,15 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         scope.isReadyForModelChanges = false;
         scope.simulationQueueItem = null;
         scope.dots = '.';
-        scope.simulationErrors = '';
         scope.timeData = {
             elapsedDays: null,
             elapsedTime: null,
         };
         scope.panelState = panelState;
 
-        scope.handleStatus = function(data) {
-            scope.setSimulationStatus(data);
-            if (data.frameId && (data.frameId != scope.frameId)) {
-                scope.frameId = data.frameId;
-                scope.frameCount++;
-                frameCache.setFrameCount(scope.frameCount);
-                frameCache.setCurrentFrame(scope.model, scope.frameCount - 1);
-            }
+        function handleStatus(data) {
+            setSimulationStatus(data);
+            scope.handleStatus(data);
             if (data.elapsedTime) {
                 scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
                 scope.timeData.elapsedTime = new Date(1970, 0, 1);
@@ -904,16 +898,18 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             }
         }
 
-        scope.runStatus = function() {
+        function runStatus() {
             scope.isReadyForModelChanges = true;
             scope.simulationQueueItem = simulationQueue.addPersistentStatusItem(
                 scope.model,
                 appState.models,
-                scope.handleStatus
+                handleStatus
             );
         }
 
-        scope.setSimulationStatus = function(data) {
+        function setSimulationStatus(data) {
+            if (!appState.models.simulationStatus)
+                appState.models.simulationStatus = {};
             appState.models.simulationStatus[scope.model] = data;
             appState.saveChanges('simulationStatus');
         }
@@ -927,7 +923,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         }
 
         scope.cancelSimulation = function() {
-            scope.setSimulationStatus({state: 'stopped'});
+            setSimulationStatus({state: 'stopped'});
             simulationQueue.cancelItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
         };
@@ -960,11 +956,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             frameCache.setFrameCount(0);
             scope.timeData.elapsedTime = null;
             scope.timeData.elapsedDays = null;
-            scope.setSimulationStatus({state: 'running'});
+            setSimulationStatus({state: 'running'});
             scope.simulationQueueItem = simulationQueue.addPersistentItem(
                 scope.model,
                 appState.models,
-                scope.handleStatus
+                handleStatus
             );
         };
 
@@ -973,23 +969,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             return s.charAt(0).toUpperCase() + s.slice(1);
         };
 
-        scope.persistentSimulationInit = function() {
-            frameCache.setAnimationArgs({
-                multiElectronAnimation: [],
-                fluxAnimation: ['fluxType'],
-            });
+        scope.persistentSimulationInit = function($scope) {
+            setSimulationStatus({state: 'stopped'});
             frameCache.setFrameCount(0);
-
-            scope.setSimulationStatus({state: 'stopped'});
-            scope.$on(scope.model + '.changed', function() {
-                if (scope.isReadyForModelChanges) {
-                    frameCache.setFrameCount(0);
-                    frameCache.clearFrames(scope.model);
-                }
-            });
-            scope.$on('$destroy', scope.cancelSimulation);
-
-            appState.whenModelsLoaded(scope.runStatus);
+            $scope.$on('$destroy', scope.cancelSimulation);
+            appState.whenModelsLoaded(runStatus);
         };
     };
     return self;

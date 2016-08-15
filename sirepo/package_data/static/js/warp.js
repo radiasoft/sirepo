@@ -53,77 +53,16 @@ SIREPO.app.factory('warpService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, panelState, requestSender, warpService, $scope, $interval) {
+SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService, $scope, persistentSimulation, appState) {
     var self = this;
-    var simulationModel = 'animation';
-    self.panelState = panelState;
+    self.model = 'animation';
     self.percentComplete = 0;
-    self.isDestroyed = false;
-    self.isAborting = false;
-    self.dots = '.';
 
-    frameCache.setAnimationArgs(
-        {
-            fieldAnimation: ['field', 'coordinate', 'mode'],
-            particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax'],
-            beamAnimation: ['x', 'y', 'histogramBins'],
-        },
-        simulationModel);
-    frameCache.setFrameCount(0);
-
-    $scope.$on('$destroy', function () {
-        self.isDestroyed = true;
-    });
-
-    function refreshStatus() {
-        if (! appState.isLoaded())
-            return;
-        requestSender.sendRequest(
-            'runStatus',
-            function(data) {
-                setSimulationStatus(data);
-                frameCache.setFrameCount(data.frameCount);
-                if (self.isAborting)
-                    return;
-                if (data.state == 'running') {
-                    self.percentComplete = data.percentComplete;
-                    if (! self.isDestroyed) {
-                        self.dots += '.';
-                        if (self.dots.length > 3)
-                            self.dots = '.';
-                        //TODO(robnagler) cancel timer
-                        $interval(
-                            refreshStatus,
-                            data.pollSeconds ? data.pollSeconds * 1000 : 4000,
-                            1
-                        );
-                    }
-                }
-            },
-            simulationStatus(),
-            function() {
-                setSimulationStatus({state: 'canceled'});
-            }
-        );
-    }
-
-    function setSimulationStatus(data) {
-        appState.models.simulationStatus[simulationModel] = data;
-        appState.saveChanges('simulationStatus');
-    }
-
-    function simulationState() {
-        return simulationStatus().state;
-    }
-
-    function simulationStatus() {
-        return appState.models.simulationStatus[simulationModel];
-    }
-
-    self.cancelSimulation = function() {
-        setSimulationStatus({state: 'stopped'});
-        simulationQueue.cancelItem(simulationQueueItem);
-        simulationQueueItem = null;
+    console.log(appState);
+    self.handleStatus = function(data) {
+        frameCache.setFrameCount(data.frameCount);
+        if (data.state == 'running')
+            self.percentComplete = data.percentComplete;
     };
 
     self.displayPercentComplete = function() {
@@ -136,40 +75,28 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
         return frameCache.getFrameCount();
     };
 
+    self.isElectronBeam = function() {
+        return warpService.isElectronBeam();
+    };
+
+    persistentSimulation.init(self);
+
     self.isInitializing = function() {
         if (self.isState('running'))
             return self.percentComplete < 1;
         return false;
     };
 
-    self.isElectronBeam = function() {
-        return warpService.isElectronBeam();
-    };
-
-    self.isState = function(state) {
-        if (appState.isLoaded())
-            return simulationState() == state;
-        return false;
-    };
-
-    self.runSimulation = function() {
-        if (simulationState() == 'running')
-            return;
-        //TODO(robnagler) should be part of simulationStatus
-        frameCache.setFrameCount(0);
-        // Clear the state, new run
-        setSimulationStatus();
-        requestSender.sendRequest(
-            'zrunSimulation',
-            function(data) {
-                setSimulationStatus(data);
-                refreshStatus();
-            },
-            simulationStatus()
-        );
-    };
-
-    appState.whenModelsLoaded(refreshStatus);
+    frameCache.setAnimationArgs(
+        {
+            fieldAnimation: ['field', 'coordinate', 'mode'],
+            particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax'],
+            beamAnimation: ['x', 'y', 'histogramBins'],
+        },
+        self.model
+    );
+    frameCache.setFrameCount(0);
+    self.persistentSimulationInit($scope);
 });
 
 SIREPO.app.controller('WARPSourceController', function(appState, frameCache, warpService, $document, $scope) {
