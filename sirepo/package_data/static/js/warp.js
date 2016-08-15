@@ -58,7 +58,6 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
     self.model = 'animation';
     self.percentComplete = 0;
 
-    console.log(appState);
     self.handleStatus = function(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.state == 'running')
@@ -81,12 +80,6 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
 
     persistentSimulation.init(self);
 
-    self.isInitializing = function() {
-        if (self.isState('running'))
-            return self.percentComplete < 1;
-        return false;
-    };
-
     frameCache.setAnimationArgs(
         {
             fieldAnimation: ['field', 'coordinate', 'mode'],
@@ -95,7 +88,6 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
         },
         self.model
     );
-    frameCache.setFrameCount(0);
     self.persistentSimulationInit($scope);
 });
 

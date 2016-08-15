@@ -4,17 +4,12 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="simulationStatus"></div>
         <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('initial')">
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-primary" data-ng-click="dynamics.runSimulation()">Start Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('running')">
+          <form name="form" class="form-horizontal" novalidate data-ng-hide="dynamics.isStateStopped()">
             <div class="col-sm-12">
               <div data-ng-show="dynamics.isInitializing()">
                 Initializing Laser Pulse and Plasma {{ dynamics.dots }}
               </div>
-              <div data-ng-hide="dynamics.isInitializing()">
+              <div data-ng-show="dynamics.getFrameCount() > 0">
                 Completed frame: {{ dynamics.getFrameCount() }}
               </div>
               <div class="progress">
@@ -26,10 +21,10 @@
               <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">End Simulation</button>
             </div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isState('completed') || dynamics.isState('canceled')">
-            <div class="col-sm-12">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isStateStopped()">
+            <div class="col-sm-12" data-ng-show="dynamics.getFrameCount() >= 1">
               Simulation
-              <span data-ng-show="dynamics.isState('completed')">Completed</span><span data-ng-show="dynamics.isState('canceled')">Stopped</span><span data-ng-show="dynamics.getFrameCount()">:
+              <span>{{ dynamics.stateAsText() }}</span><span>:
                 {{ dynamics.getFrameCount() }} animation frames
               </span>
               <br><br>

@@ -85,7 +85,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
     filename = run_dir.join(_DATA_FILE_FOR_MODEL[report])
     if filename.exists():
-        t = filename.mtime()
+        t = int(filename.mtime())
         res.update({
             'frameCount': 1,
             'frameId': t,

@@ -762,22 +762,9 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
 
     function handleResult(qi, resp) {
         qi.qState = 'done';
-        removeItem(qi);
+        self.removeItem(qi);
         qi.responseHandler(resp);
         runFirstTransientItem();
-    }
-
-    function removeItem(qi) {
-        var qs = qi.qState;
-        if (qs == 'removing')
-            return;
-        qi.qState = 'removing';
-        var i = runQueue.indexOf(qi);
-        if (i > -1)
-            runQueue.splice(i, 1);
-        cancelInterval(qi);
-        if (qs == 'processing' && ! qi.persistent)
-            requestSender.sendRequest('runCancel', null, qi.request);
     }
 
     function runFirstTransientItem() {
@@ -812,13 +799,11 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var process = function(resp, status) {
             if (qi.qState == 'removing')
                 return;
-            if ($.isEmptyObject(resp) || resp.error || status != 200) {
-                if (!resp.error)
-                    resp.error = (resp === null && status === 0)
-                        ? 'the server is unavailable'
-                        : 'a server error occurred',
-                handleResult(qi, resp);
-                return;
+            if (($.isEmptyObject(resp) || status != 200) && ! resp.error) {
+                resp.error = (resp === null && status === 0)
+                    ? 'the server is unavailable'
+                    : 'a server error occurred';
+                resp.state = 'error';
             }
             if (resp.state != 'running') {
                 handleResult(qi, resp);
@@ -848,7 +833,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var rq = runQueue;
         runQueue = [];
         while (rq.length > 0) {
-            removeItem(rq.shift());
+            self.removeItem(rq.shift());
         }
     };
 
@@ -857,7 +842,20 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             return;
         qi.persistent = false;
         qi.qMode = 'transient';
-        removeItem(qi);
+        self.removeItem(qi);
+    };
+
+    self.removeItem = function(qi) {
+        var qs = qi.qState;
+        if (qs == 'removing')
+            return;
+        qi.qState = 'removing';
+        var i = runQueue.indexOf(qi);
+        if (i > -1)
+            runQueue.splice(i, 1);
+        cancelInterval(qi);
+        if (qs == 'processing' && ! qi.persistent)
+            requestSender.sendRequest('runCancel', null, qi.request);
     };
 
     $rootScope.$on('$routeChangeSuccess', self.cancelAllItems);
@@ -910,6 +908,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         function setSimulationStatus(data) {
             if (!appState.models.simulationStatus)
                 appState.models.simulationStatus = {};
+            data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
             appState.saveChanges('simulationStatus');
         }
@@ -925,6 +924,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         scope.cancelSimulation = function() {
             setSimulationStatus({state: 'stopped'});
             simulationQueue.cancelItem(scope.simulationQueueItem);
+            scope.simulationQueueItem = null;
+        };
+
+        scope.clearSimulation = function() {
+            simulationQueue.removeItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
         };
 
@@ -972,7 +976,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         scope.persistentSimulationInit = function($scope) {
             setSimulationStatus({state: 'stopped'});
             frameCache.setFrameCount(0);
-            $scope.$on('$destroy', scope.cancelSimulation);
+            $scope.$on('$destroy', scope.clearSimulation);
             appState.whenModelsLoaded(runStatus);
         };
     };

@@ -102,7 +102,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName))
                 scope.firstFrame();
             // go to the next last frame, if the current frame was the previous last frame
-            else if (frameCache.getCurrentFrame(scope.modelName) == oldFrameCount - 1)
+            else if (frameCache.getCurrentFrame(scope.modelName) >= oldFrameCount - 1)
                 scope.lastFrame();
         });
         return requestData;

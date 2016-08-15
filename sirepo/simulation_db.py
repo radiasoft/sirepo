@@ -446,10 +446,10 @@ def write_result(result, run_dir=None):
     """
     if not run_dir:
         run_dir = py.path.local()
-    fn = run_dir.join(template_common.OUTPUT_BASE_NAME)
+    fn = run_dir.join(_json_filename(template_common.OUTPUT_BASE_NAME))
     if fn.exists():
         # Don't overwrite first written file, because first write is
-        # closest to the error.
+        # closest to the reason is stopped (e.g. canceled)
         return
     result.setdefault('state', 'completed')
     write_json(fn, result)

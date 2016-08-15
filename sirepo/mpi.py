@@ -50,7 +50,6 @@ def run_program(cmd, output='mpi_run.out', env=None):
         pkdp('Stopped: {} {}', pid, cmd)
         p = None
     except Exception as e:
-        assert simulation_db
         #TODO: Clean result?? Just an exception as string
         simulation_db.write_result({'state': 'error', 'error': str(e)})
         raise

@@ -354,7 +354,6 @@ def app_run_cancel():
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
     if cfg.job_queue.is_running(jid):
-        pkdp('{}: canceling', jid)
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
@@ -373,8 +372,6 @@ def app_run_cancel():
 def app_run_simulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data)
-    pkdp(res['state'])
-    pkdp(data['forceRun'])
     if (
         (
             res['state'] != 'running'
@@ -610,7 +607,7 @@ def _mtime_or_now(path):
     Returns:
         int: modification time
     """
-    return path.mtime() if path.exists() else int(time.time())
+    return int(path.mtime() if path.exists() else time.time())
 
 
 def _no_cache(response):
@@ -687,7 +684,7 @@ def _simulation_run_status(data):
             res, err = simulation_db.read_result(run_dir)
             if err:
                 return _simulation_error(err, 'error in read_result')
-        if res['state'] in ('running', 'completed') and simulation_db.is_parallel(cached_data):
+        if simulation_db.is_parallel(cached_data):
             template = sirepo.template.import_module(cached_data)
             new = template.background_percent_complete(
                 cached_data['report'],

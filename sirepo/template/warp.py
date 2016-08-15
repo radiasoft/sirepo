@@ -44,7 +44,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'frameCount': 0,
         }
     file_index = len(files) - 1
-    last_update_time = os.path.getmtime(str(files[file_index]))
+    last_update_time = int(os.path.getmtime(str(files[file_index])))
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1

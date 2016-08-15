@@ -102,8 +102,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
         'percentComplete': 100,
         'frameCount': 1,
         'outputInfo': output_info,
-        #TODO(robnagler) why isn't this working
-        #'lastUpdateTime': output_info[0]['last_update_time'],
+        'lastUpdateTime': output_info[0]['lastUpdateTime'],
         'errors': errors,
     }
 
@@ -563,7 +562,7 @@ def _file_info(filename, run_dir, id, output_index):
         'id': '{}-{}'.format(id, output_index),
         'page_count': page_count,
         'columns': column_names,
-        '': os.path.getmtime(str(file_path)),
+        'lastUpdateTime': int(os.path.getmtime(str(file_path))),
     }
 
 
