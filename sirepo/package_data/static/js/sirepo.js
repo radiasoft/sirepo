@@ -957,7 +957,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             var search = path.shift();
             var folder = null;
             for (var i = 0; i < currentFolder.children.length; i++) {
-                if (search == currentFolder.children[i].name) {
+                if (search == currentFolder.children[i].name && currentFolder.children[i].isFolder) {
                     folder = currentFolder.children[i];
                     break;
                 }
