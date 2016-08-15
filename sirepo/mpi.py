@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdp
-from sirepo.template import template_common
 import os
 import re
 import signal
@@ -50,6 +49,8 @@ def run_program(cmd, output='mpi_run.out', env=None):
         pkdp('Stopped: {} {}', pid, cmd)
         p = None
     except Exception as e:
+        from sirepo import simulation_db
+        assert simulation_db
         #TODO: Clean result?? Just an exception as string
         simulation_db.write_result({'state': 'error', 'error': str(e)})
         raise

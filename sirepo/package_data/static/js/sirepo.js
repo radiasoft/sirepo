@@ -522,15 +522,15 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         appState.resetAutoSaveTimer();
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
-        var responseHandler = function(data, error) {
+        var responseHandler = function(resp) {
             setPanelValue(name, 'loading', false);
-            if (error) {
-                setPanelValue(name, 'error', error);
+            if (resp.error) {
+                setPanelValue(name, 'error', resp.error);
             }
             else {
-                setPanelValue(name, 'data', data);
+                setPanelValue(name, 'data', resp);
                 setPanelValue(name, 'error', null);
-                callback(data);
+                callback(resp);
             }
         };
         simulationQueue.addTransientItem(name, appState.applicationState(), responseHandler);
@@ -730,22 +730,23 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     var self = {};
     var runQueue = [];
 
-    function addItem(report, models, responseHandler, statusHandler, persistent) {
+    function addItem(report, models, responseHandler, qMode) {
         var qi = {
+            firstRoute: qMode == 'persistentStatus' ? 'runStatus' : 'runSimulation',
+            qMode: qMode,
+            persistent: qMode.indexOf('persistent') > -1,
             qState: 'pending',
-            responseHandler: responseHandler,
-            statusHandler: statusHandler,
-            persistent: persistent,
             request: {
-                forceRun: persistent,
+                forceRun: qMode == 'persistent',
                 report: report,
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 simulationId: models.simulation.simulationId
             },
+            responseHandler: responseHandler,
         }
         runQueue.push(qi);
-        if (persistent)
+        if (qi.persistent)
             runItem(qi);
         else
             runFirstTransientItem();
@@ -760,16 +761,16 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     }
 
     function handleResult(qi, resp) {
+        qi.qState = 'done';
         removeItem(qi);
-        if (resp.error)
-            qi.responseHandler(null, resp.error, qi);
-        else
-            qi.responseHandler(resp, null, qi);
+        qi.responseHandler(resp);
         runFirstTransientItem();
     }
 
     function removeItem(qi) {
         var qs = qi.qState;
+        if (qs == 'removing')
+            return;
         qi.qState = 'removing';
         var i = runQueue.indexOf(qi);
         if (i > -1)
@@ -804,8 +805,8 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 Math.max(1, resp.nextRequestSeconds) * 1000,
                 1
             );
-            if (qi.statusHandler)
-                qi.statusHandler(resp, qi);
+            if (qi.persistent)
+                qi.responseHandler(resp);
         };
 
         var process = function(resp, status) {
@@ -828,26 +829,34 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
 
         cancelInterval(qi);
         qi.qState = 'processing';
-        requestSender.sendRequest('runSimulation', process, qi.request, process);
+        requestSender.sendRequest(qi.firstRoute, process, qi.request, process);
     }
 
-    self.addPersistentItem = function(report, models, responseHandler, statusHandler) {
-        return addItem(report, models, responseHandler, statusHandler, true);
+    self.addPersistentStatusItem = function(report, models, responseHandler) {
+        return addItem(report, models, responseHandler, 'persistentStatus');
     };
 
-    self.addTransientItem = function(report, models, responseHandler, statusHandler) {
-        return addItem(report, models, responseHandler, statusHandler, false);
+    self.addPersistentItem = function(report, models, responseHandler) {
+        return addItem(report, models, responseHandler, 'persistent');
+    };
+
+    self.addTransientItem = function(report, models, responseHandler) {
+        return addItem(report, models, responseHandler, 'transient');
     };
 
     self.cancelAllItems = function() {
         var rq = runQueue;
         runQueue = [];
         while (rq.length > 0) {
-            self.cancelItem(rq.shift());
+            removeItem(rq.shift());
         }
     };
 
     self.cancelItem = function (qi) {
+        if (!qi)
+            return;
+        qi.persistent = false;
+        qi.qMode = 'transient';
         removeItem(qi);
     };
 

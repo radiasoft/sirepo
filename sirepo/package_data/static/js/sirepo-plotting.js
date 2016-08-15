@@ -14,13 +14,20 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     // be triggered. The function will be called after it stops being called for
     // N milliseconds.
     // taken from http://davidwalsh.name/javascript-debounce-function
+    var debounceInterval = null;
     function debounce(delayedFunc, milliseconds) {
-        var timeout = null;
         return function() {
             var context = this, args = arguments;
-            if (timeout)
-                $interval.cancel(timeout)
-            timeout = $interval(function() {delayedFunc.apply(context, args)}, milliseconds, 1);
+            var later = function() {
+                if (debounceInterval) {
+                    $interval.cancel(debounceInterval);
+                    debounceInterval = null;
+                }
+                delayedFunc.apply(context, args);
+            };
+            if (debounceInterval)
+                $interval.cancel(debounceInterval);
+            debounceInterval = $interval(later, milliseconds, 1);
         };
     }
 

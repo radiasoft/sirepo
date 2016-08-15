@@ -444,9 +444,9 @@ def write_result(result, run_dir=None):
         result (dict): will set state to completed
         run_dir (py.path): Defaults to current dir
     """
-    fn = py.path.local(template_common.OUTPUT_BASE_NAME)
-    if run_dir:
-        fn = run_dir.join(fn)
+    if not run_dir:
+        run_dir = py.path.local()
+    fn = run_dir.join(template_common.OUTPUT_BASE_NAME)
     if fn.exists():
         # Don't overwrite first written file, because first write is
         # closest to the error.
