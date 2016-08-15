@@ -1708,7 +1708,7 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, simulationQueue) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {
@@ -1751,125 +1751,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             '</form>',
         ].join(''),
         controller: function($scope) {
-            var frameId = '-1';
-            var frameCount = 1;
-            var isReadyForModelChanges = false;
-            var simulationQueueItem = null;
-            $scope.dots = '.';
-            $scope.timeData = {
-                elapsedDays: null,
-                elapsedTime: null,
-            };
-            $scope.panelState = panelState;
-
-            function handleStatus(data) {
-                setSimulationStatus(data);
-                if (data.frameId && (data.frameId != frameId)) {
-                    frameId = data.frameId;
-                    frameCount++;
-                    frameCache.setFrameCount(frameCount);
-                    frameCache.setCurrentFrame($scope.model, frameCount - 1);
-                }
-                if (data.elapsedTime) {
-                    $scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                    $scope.timeData.elapsedTime = new Date(1970, 0, 1);
-                    $scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
-                }
-                if (data.state == 'running') {
-                    $scope.dots += '.';
-                    if ($scope.dots.length > 3)
-                        $scope.dots = '.';
-                }
-                else {
-                    simulationQueueItem = null;
-                }
-            }
-
-            function runStatus() {
-                isReadyForModelChanges = true;
-                simulationQueueItem = simulationQueue.addPersistentStatusItem(
-                    $scope.model,
-                    appState.models,
-                    handleStatus
-                );
-            }
-
-            function setSimulationStatus(data) {
-                appState.models.simulationStatus[$scope.model] = data;
-                appState.saveChanges('simulationStatus');
-            }
-
-            function simulationState() {
-                return simulationStatus().state;
-            }
-
-            function simulationStatus() {
-                return appState.models.simulationStatus[$scope.model];
-            }
-
-            $scope.cancelSimulation = function() {
-                setSimulationStatus({state: 'stopped'});
-                simulationQueue.cancelItem(simulationQueueItem);
-                simulationQueueItem = null;
-            };
-
-            $scope.isInitializing = function() {
-                if ($scope.isState('running'))
-                    return frameCache.getFrameCount() < 1;
-                return false;
-            };
-
-            $scope.isState = function() {
-                if (! appState.isLoaded())
-                    return false;
-                var s = simulationState();
-                for (var i = 0; i < arguments.length; i++)
-                    if (s == arguments[i])
-                        return true;
-                return false;
-            };
-
-            $scope.isStateStopped = function() {
-                return ! $scope.isState('running');
-            };
-
-            $scope.runSimulation = function() {
-                if (! $scope.isStateStopped())
-                    //TODO(robnagler) this shouldn't happen? (double click?)
-                    return;
-                //TODO(robnagler) should be part of simulationStatus
-                frameCache.setFrameCount(0);
-                $scope.timeData.elapsedTime = null;
-                $scope.timeData.elapsedDays = null;
-                setSimulationStatus({state: 'running'});
-                simulationQueueItem = simulationQueue.addPersistentItem(
-                    $scope.model,
-                    appState.models,
-                    handleStatus
-                );
-            };
-
-            $scope.stateAsText = function() {
-                var s = simulationState();
-                return s.charAt(0).toUpperCase() + s.slice(1);
-            };
-
-            frameCache.setAnimationArgs({
-                multiElectronAnimation: [],
-                fluxAnimation: ['fluxType'],
-            });
-            frameCache.setFrameCount(0);
-
-            setSimulationStatus({state: 'stopped'});
-            $scope.$on($scope.model + '.changed', function() {
-                if (isReadyForModelChanges) {
-                    frameCache.setFrameCount(0);
-                    frameCache.clearFrames($scope.model);
-                }
-            });
-            $scope.$on('$destroy', $scope.cancelSimulation);
-
-            appState.whenModelsLoaded(runStatus);
+            persistentSimulation.init($scope);
+            $scope.persistentSimulationInit();
         },
     };
 });

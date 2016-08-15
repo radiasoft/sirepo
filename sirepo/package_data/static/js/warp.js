@@ -108,22 +108,7 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
     }
 
     function setSimulationStatus(data) {
-        if (!data)
-            data = {}
-        //TODO(robnagler) should this be a copy?
         appState.models.simulationStatus[simulationModel] = data;
-        //TODO(robnagler) Hacky, because we know reportParametersHash is a substitute
-        //  for models. Our goal is not to pass models, unless we really need them.
-        if (!data.models && !data.reportParametersHash)
-            data.models = appState.applicationState();
-        if (!data.report)
-            data.report = simulationModel;
-        if (!data.simulationType)
-            data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        if (!data.state)
-            data.state = 'initial';
-        if (!data.startTime)
-            data.startTime = new Date().getTime();
         appState.saveChanges('simulationStatus');
     }
 
@@ -132,24 +117,13 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, p
     }
 
     function simulationStatus() {
-        // Ensure all fields are initialized
-        setSimulationStatus(appState.models.simulationStatus[simulationModel]);
         return appState.models.simulationStatus[simulationModel];
     }
 
     self.cancelSimulation = function() {
-        if (simulationState() != 'running')
-            return;
-        self.isAborting = true;
-        requestSender.sendRequest(
-            'zrunCancel',
-            function(data) {
-                self.isAborting = false;
-                setSimulationStatus(data);
-            },
-            simulationStatus()
-        );
-        setSimulationStatus({state: 'canceled'});
+        setSimulationStatus({state: 'stopped'});
+        simulationQueue.cancelItem(simulationQueueItem);
+        simulationQueueItem = null;
     };
 
     self.displayPercentComplete = function() {

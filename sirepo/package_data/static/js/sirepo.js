@@ -866,6 +866,135 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     return self;
 });
 
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
+    var self = {};
+    self.init = function(scope) {
+        scope.frameId = '-1';
+        scope.frameCount = 1;
+        scope.isReadyForModelChanges = false;
+        scope.simulationQueueItem = null;
+        scope.dots = '.';
+        scope.simulationErrors = '';
+        scope.timeData = {
+            elapsedDays: null,
+            elapsedTime: null,
+        };
+        scope.panelState = panelState;
+
+        scope.handleStatus = function(data) {
+            scope.setSimulationStatus(data);
+            if (data.frameId && (data.frameId != scope.frameId)) {
+                scope.frameId = data.frameId;
+                scope.frameCount++;
+                frameCache.setFrameCount(scope.frameCount);
+                frameCache.setCurrentFrame(scope.model, scope.frameCount - 1);
+            }
+            if (data.elapsedTime) {
+                scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                scope.timeData.elapsedTime = new Date(1970, 0, 1);
+                scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
+            }
+            if (data.state == 'running') {
+                scope.dots += '.';
+                if (scope.dots.length > 3)
+                    scope.dots = '.';
+                }
+            else {
+                scope.simulationQueueItem = null;
+            }
+        }
+
+        scope.runStatus = function() {
+            scope.isReadyForModelChanges = true;
+            scope.simulationQueueItem = simulationQueue.addPersistentStatusItem(
+                scope.model,
+                appState.models,
+                scope.handleStatus
+            );
+        }
+
+        scope.setSimulationStatus = function(data) {
+            appState.models.simulationStatus[scope.model] = data;
+            appState.saveChanges('simulationStatus');
+        }
+
+        scope.simulationState = function() {
+            return scope.simulationStatus().state;
+        }
+
+        scope.simulationStatus = function() {
+            return appState.models.simulationStatus[scope.model];
+        }
+
+        scope.cancelSimulation = function() {
+            scope.setSimulationStatus({state: 'stopped'});
+            simulationQueue.cancelItem(scope.simulationQueueItem);
+            scope.simulationQueueItem = null;
+        };
+
+        scope.isInitializing = function() {
+            if (scope.isState('running'))
+                return frameCache.getFrameCount() < 1;
+            return false;
+        };
+
+        scope.isState = function() {
+            if (! appState.isLoaded())
+                return false;
+            var s = scope.simulationState();
+            for (var i = 0; i < arguments.length; i++)
+                if (s == arguments[i])
+                    return true;
+            return false;
+        };
+
+        scope.isStateStopped = function() {
+            return ! scope.isState('running');
+        };
+
+        scope.runSimulation = function() {
+            if (! scope.isStateStopped())
+                //TODO(robnagler) this shouldn't happen? (double click?)
+                return;
+            //TODO(robnagler) should be part of simulationStatus
+            frameCache.setFrameCount(0);
+            scope.timeData.elapsedTime = null;
+            scope.timeData.elapsedDays = null;
+            scope.setSimulationStatus({state: 'running'});
+            scope.simulationQueueItem = simulationQueue.addPersistentItem(
+                scope.model,
+                appState.models,
+                scope.handleStatus
+            );
+        };
+
+        scope.stateAsText = function() {
+            var s = scope.simulationState();
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        };
+
+        scope.persistentSimulationInit = function() {
+            frameCache.setAnimationArgs({
+                multiElectronAnimation: [],
+                fluxAnimation: ['fluxType'],
+            });
+            frameCache.setFrameCount(0);
+
+            scope.setSimulationStatus({state: 'stopped'});
+            scope.$on(scope.model + '.changed', function() {
+                if (scope.isReadyForModelChanges) {
+                    frameCache.setFrameCount(0);
+                    frameCache.clearFrames(scope.model);
+                }
+            });
+            scope.$on('$destroy', scope.cancelSimulation);
+
+            appState.whenModelsLoaded(scope.runStatus);
+        };
+    };
+    return self;
+});
+
 // Exception logging from
 // http://engineering.talis.com/articles/client-side-error-logging/
 SIREPO.app.factory('traceService', function() {
