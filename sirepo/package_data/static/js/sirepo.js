@@ -796,25 +796,13 @@ SIREPO.app.provider('$exceptionHandler', {
 });
 
 SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceService) {
-
-    function cleanText(obj) {
-        if (obj) {
-            var text = obj.toString();
-            text = text.replace(/"/g, '');
-            text = text.replace(/\n+/g, ' ');
-            return text;
-        }
-        return '';
-    }
-
     function error(exception, cause) {
         // preserve the default behaviour which will log the error
         // to the console, and allow the application to continue running.
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try{
-            // escaped quotes confuse flask json parser
-            var errorMessage = cleanText(exception);
+            var errorMessage = exception.toString();
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
@@ -829,7 +817,7 @@ SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceServi
                     message: errorMessage,
                     type: 'exception',
                     stackTrace: stackTrace,
-                    cause: cleanText(cause),
+                    cause: cause || '',
                 })
             });
         }
