@@ -516,10 +516,18 @@ def get_simulation_frame(run_dir, data, model_data):
 
 def import_file(request, lib_dir, tmp_dir):
     f = request.files['file']
+    input_text = f.read()
+    # attempt to decode the input as json first, if invalid try python
+    try:
+        data = json.loads(input_text)
+        data['models']['simulation']['name'] += ' (imported)'
+        return None, data
+    except ValueError:
+        pass
     arguments = str(request.form['arguments'])
     pkdp('\n\tFile: {}\n\tArguments: {}', f.filename, arguments)
     return sirepo.importer.import_python(
-        f.read(),
+        input_text,
         lib_dir=lib_dir,
         tmp_dir=tmp_dir,
         user_filename=f.filename,
