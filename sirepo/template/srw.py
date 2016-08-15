@@ -1162,7 +1162,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
 
 def _intensity_units(is_gaussian, model_data):
     if is_gaussian:
-        if 'report' in model_data:
+        if 'report' in model_data and 'fieldUnits' in model_data['models'][model_data['report']]:
             i = model_data['models'][model_data['report']]['fieldUnits']
         else:
             i = model_data['models']['initialIntensityReport']['fieldUnits']
