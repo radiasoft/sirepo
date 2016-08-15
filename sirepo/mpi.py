@@ -24,6 +24,7 @@ def run_program(cmd, output='mpi_run.out', env=None):
         env (dict): what to pass as env
     """
     p = None
+    from sirepo import simulation_db
     try:
         cmd = [
             'mpiexec',
@@ -49,7 +50,6 @@ def run_program(cmd, output='mpi_run.out', env=None):
         pkdp('Stopped: {} {}', pid, cmd)
         p = None
     except Exception as e:
-        from sirepo import simulation_db
         assert simulation_db
         #TODO: Clean result?? Just an exception as string
         simulation_db.write_result({'state': 'error', 'error': str(e)})

@@ -1808,13 +1808,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             }
 
             $scope.cancelSimulation = function() {
-                setSimulationStatus({state: 'canceling'});
+                setSimulationStatus({state: 'stopped'});
                 simulationQueue.cancelItem(simulationQueueItem);
                 simulationQueueItem = null;
             };
 
             $scope.isInitializing = function() {
-                if ($scope.isState('running', 'initializing'))
+                if ($scope.isState('running'))
                     return frameCache.getFrameCount() < 1;
                 return false;
             };
@@ -1860,7 +1860,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             });
             frameCache.setFrameCount(0);
 
-            setSimulationStatus({state: 'initializing'});
+            setSimulationStatus({state: 'stopped'});
             $scope.$on($scope.model + '.changed', function() {
                 if (isReadyForModelChanges) {
                     frameCache.setFrameCount(0);
