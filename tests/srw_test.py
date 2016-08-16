@@ -16,9 +16,9 @@ def test_find_tab_undulator_length():
     from sirepo.template import srw
     magnet = pkresource.filename('static/dat/magnetic_measurements.zip', srw)
     for case in (
-        (6.82, 'ivu21_srx_g6_8c.dat', 6.8),
-        ('3', 'ivu21_srx_g6_2c.dat', 6.2),
-        (45, 'ivu21_srx_g40_0c.dat', 40),
+            (6.82, 'ivu21_srx_g6_8c.dat', 6.8),
+            ('3', 'ivu21_srx_g6_2c.dat', 6.2),
+            (45, 'ivu21_srx_g40_0c.dat', 40),
     ):
         res = srw.find_tab_undulator_length(zip_file=magnet, gap=case[0])
         assert res['dat_file'] == case[1]
@@ -26,7 +26,7 @@ def test_find_tab_undulator_length():
         assert abs(res['found_length'] - 2.5) < 1e-3
 
 
-def test_prepare_aux_files_1():
+def test_prepare_aux_files():
     from sirepo.template import srw
     data = {
         'models': {
@@ -41,5 +41,5 @@ def test_prepare_aux_files_1():
         }
     }
     srw.prepare_aux_files(pkunit.empty_work_dir(), data)
-    assert data['models']['tabulatedUndulator']['magnMeasFolder'] == ''
+    assert data['models']['tabulatedUndulator']['magnMeasFolder'] == './'
     assert data['models']['tabulatedUndulator']['indexFile'] == 'ivu21_srx_sum.txt'
