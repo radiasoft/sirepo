@@ -84,10 +84,9 @@
             ["2", "Vertical"],
             ["3", "Both"]
         ],
-        "FocusingPlane": [
-            ["h", "Horizontal"],
-            ["v", "Vertical"],
-            ["hv", "Both"]
+        "FiberFocusingPlane": [
+            ["1", "Horizontal (fiber is parallel to vertical axis)"],
+            ["2", "Vertical (fiber is parallel to horizontal axis)"]
         ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
@@ -302,7 +301,7 @@
         "fiber": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "focusingPlane": ["Focusing Plane", "FocusingPlane"],
+            "focusingPlane": ["Focusing Plane", "FiberFocusingPlane"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
             "exteriorMaterial": ["Exterior Material", "CRLMaterial"],
             "exteriorRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],

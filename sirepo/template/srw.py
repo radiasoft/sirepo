@@ -1059,7 +1059,7 @@ def _generate_beamline_optics(models, last_id):
             res_pp += pp
         elif item['type'] == 'fiber':
             el, pp = _beamline_element(
-                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=\'{}\', _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
+                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane={}, _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
                 item,
                 ['focusingPlane', 'exteriorRefractiveIndex', 'coreRefractiveIndex', 'exteriorAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
                 propagation)
