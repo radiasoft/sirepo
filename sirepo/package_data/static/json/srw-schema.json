@@ -84,9 +84,10 @@
             ["2", "Vertical"],
             ["3", "Both"]
         ],
-        "FiberFocusingPlane": [
+        "FiberFocalPlane": [
             ["1", "Horizontal (fiber is parallel to vertical axis)"],
-            ["2", "Vertical (fiber is parallel to horizontal axis)"]
+            ["2", "Vertical (fiber is parallel to horizontal axis)"],
+            ["3", "Both"]
         ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
@@ -301,12 +302,12 @@
         "fiber": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "focusingPlane": ["Focusing Plane", "FiberFocusingPlane"],
+            "focalPlane": ["Plane of Focusing", "FiberFocalPlane"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
-            "exteriorMaterial": ["Exterior Material", "CRLMaterial"],
-            "exteriorRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],
-            "exteriorAttenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
-            "externalDiameter": ["Exterior Diameter [m]", "Float"],
+            "externalMaterial": ["External Material", "CRLMaterial"],
+            "externalRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],
+            "externalAttenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "externalDiameter": ["External Diameter [m]", "Float"],
             "coreMaterial": ["Core Material", "CRLMaterial"],
             "coreRefractiveIndex": ["Refractive Index Decrement", "Float", "", "Tooltip"],
             "coreAttenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
@@ -721,15 +722,15 @@
             "advanced": [
                 "title",
                 "position",
-                "focusingPlane",
+                "focalPlane",
                 "horizontalCenterPosition",
                 "verticalCenterPosition",
                 "method",
                 [
-                    ["Exterior", [
-                        "exteriorMaterial",
-                        "exteriorRefractiveIndex",
-                        "exteriorAttenuationLength",
+                    ["External", [
+                        "externalMaterial",
+                        "externalRefractiveIndex",
+                        "externalAttenuationLength",
                         "externalDiameter"
                     ]],
                     ["Core", [
