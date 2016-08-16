@@ -21,6 +21,7 @@ _TESTS = {  # Values are optional arguments:
     'amx_bl3': ('amx', '--op_BL=3'),
     'amx_bl4': ('amx', '--op_BL=4'),
     'chx': ('chx', None),
+    'chx_fiber': ('chx_fiber', None),
     'exported_chx': ('exported_chx', None),
     'exported_undulator_radiation': ('exported_undulator_radiation', None),
     'lcls_simplified': ('lcls_simplified', None),
