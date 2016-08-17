@@ -1830,8 +1830,8 @@
 "S9B:P5": MONI
 "RC": RECIRC
 "RECIRC": RECIRC
-"RF": RFCA,volt="12e6",phase="153.523332475068",freq="351930275.844894"
-"RF0": RFCA,volt="12e6",phase="180",freq="351930275.844894"
+"RF": RFCA,volt="12e6",phase="180 5.35 12 / dasin -",freq="7e3 mev / beta.p c_mks * 1104 / 1296 *"
+"RF0": RFCA,volt="12e6",phase="180",freq="7e3 mev / beta.p c_mks * 1104 / 1296 *"
 "S10A:H1M1": SBEN,angle="0.0005",e1="0.001",l="0.08",edge_order="1",order="1"
 "S10A:H1M2": SBEN,angle="0.0005",l="0.08",edge_order="1",order="1"
 "S10A:M": SBEN,angle="0.0775398163397",e1="0.03876990816985",e2="0.03876990816985",l="3.05568",edge_order="1",order="1"
@@ -1999,8 +1999,8 @@
 "S35A:M": SBEN,angle="0.0775398163397",e1="0.03876990816985",e2="0.03876990816985",l="3.05568",edge_order="1",order="1"
 "S35B:H1M1": SBEN,angle="0.0005",l="0.08",edge_order="1",order="1"
 "S35B:H1M2": SBEN,angle="0.0005",e2="0.001",l="0.08",edge_order="1",order="1"
-"S35B:M1": SBEN,angle="0.0096924770424625",e1="0.03876990816985",l="0.38196",edge_order="1",order="1"
-"S35B:M2": SBEN,angle="0.0678473392972375",e2="0.03876990816985",l="2.67372",edge_order="1",order="1"
+"S35B:M1": SBEN,angle="0.0775398163397 8 /",e1="0.03876990816985",l="3.05568 8 /",edge_order="1",order="1"
+"S35B:M2": SBEN,angle="0.0775398163397 8 / 7 *",e2="0.03876990816985",l="3.05568 8 / 7 *",edge_order="1",order="1"
 "S36A:M": SBEN,angle="0.078539816",e1="0.039269908",e2="0.039269908",l="3.05568",edge_order="1",order="1"
 "S36B:M": SBEN,angle="0.078539816",e1="0.039269908",e2="0.039269908",l="3.05568",edge_order="1",order="1"
 "S37A:M": SBEN,angle="0.078539816",e1="0.039269908",e2="0.039269908",l="3.05568",edge_order="1",order="1"
