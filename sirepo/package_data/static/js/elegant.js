@@ -153,7 +153,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $tim
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, panelState, $rootScope, $scope, $timeout, $window) {
+SIREPO.app.controller('LatticeController', function(appState, panelState, rpnService, $rootScope, $scope, $timeout, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -334,7 +334,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, $rootS
     };
 
     self.angleFormat = function(angle) {
-        var degrees = angle * 180 / Math.PI;
+        var degrees = rpnService.getRpnValue(angle) * 180 / Math.PI;
         degrees = Math.round(degrees * 10) / 10;
         degrees %= 360;
         return degrees.toFixed(1);
@@ -455,7 +455,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, $rootS
     self.numFormat = function(num, units) {
         if (! angular.isDefined(num))
             return '';
-        num = parseFloat(num);
+        num = rpnService.getRpnValue(num);
         if (num < 1) {
             num *= 1000;
             units = 'm' + units;
@@ -469,6 +469,13 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, $rootS
         if (num >= 10)
             return num.toFixed(2) + units;
         return num.toFixed(3) + units;
+    };
+
+    self.showRpnVariables = function() {
+        appState.models.rpnVariables = appState.models.rpnVariables.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+        $('#elegant-rpn-variables').modal('show');
     };
 
     self.setActiveTab = function(name) {
@@ -1201,7 +1208,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                 //TODO(pjm): merge new tree with existing to avoid un-needed UI updates
                 $scope.tree = [];
                 var category = null;
-                var elements = appState.models.elements;
+                var elements = appState.applicationState().elements;
 
                 for (var i = 0; i < elements.length; i++) {
                     var element = elements[i];
@@ -1225,7 +1232,8 @@ SIREPO.app.directive('elementTable', function(appState) {
             };
 
             $scope.editElement = function(type, item) {
-                return $scope.lattice.editElement(type, item);
+                var el = $scope.lattice.elementForId(item._id);
+                return $scope.lattice.editElement(type, el);
             };
 
             $scope.elementBend = function(element, defaultValue) {
@@ -1263,10 +1271,11 @@ SIREPO.app.directive('elementTable', function(appState) {
                 collapsedElements[category.name] = ! collapsedElements[category.name];
             };
 
-            $scope.$on('cancelChanges', function(e, name) {
+            $scope.$on('modelChanged', function(e, name) {
                 if (name == 'elements')
                     loadTree();
             });
+
             $scope.$on('elementDeleted', function(e, name) {
                 if (name == 'elements')
                     loadTree();
@@ -1562,6 +1571,137 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
             $(element).on('show.bs.modal', function() {
                 $('#elegant-lattice-file-import').val(null);
                 scope.resetState();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('rpnEditor', function(appState) {
+    return {
+        scope: {},
+        template: [
+            '<div class="modal fade" data-backdrop="static" id="elegant-rpn-variables" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">RPN Variables</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="form" class="form-horizontal">',
+                        '<div class="row">',
+                          '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Name</h5></div>',
+                          '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
+                          '<div data-ng-if="hasSecondColumn()" class="col-sm-offset-2 col-sm-2 text-center"><h5>Name</h5></div>',
+                          '<div data-ng-if="hasSecondColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
+                        '</div>',
+                        '<div class="row">',
+                          '<div class="form-group-sm" data-ng-repeat="rpnVar in appState.models.rpnVariables">',
+                            '<div data-field-editor="\'value\'" data-field-size="2" data-label-size="2" data-custom-label="rpnVar.name" data-model-name="\'rpnVariable\'" data-model="appState.models.rpnVariables[$index]"></div>',
+                          '</div>',
+                        '</div>',
+                      '</form>',
+
+                      '<div data-ng-hide="showAddNewFields" class="row">',
+                        '<div class="col-sm-3">',
+                          '<button data-ng-click="showAddNewFields = true" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span> Add New</button>',
+                        '</div>',
+                      '</div>',
+
+                      '<div data-ng-show="showAddNewFields" class="row">',
+                        '<br />',
+                        '<form name="addNewForm" class="form-horizontal">',
+                          '<div class="form-group-sm">',
+                            '<div class="col-sm-2">',
+                              '<input class="form-control" required data-ng-model="newRpn.name" />',
+                            '</div>',
+                            '<div data-field-editor="\'value\'" data-field-size="2" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newRpn"></div>',
+                            '<div class="col-sm-4">',
+                              '<button formnovalidate data-ng-click="saveVariable()" data-ng-class="{\'disabled\': ! addNewForm.$valid}" class="btn btn-default">Add Variable</button> ',
+                              '<button formnovalidate data-ng-click="cancelVariable()" class="btn btn-default">Cancel</button>',
+                            '</div>',
+                          '</div>',
+                        '</form>',
+                      '</div>',
+
+                      '<div data-ng-hide="showAddNewFields" class="col-sm-6 pull-right">',
+                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+                        '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
+                      '</div>',
+
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showAddNewFields = false;
+            $scope.appState = appState;
+            $scope.newRpn = {};
+            $scope.originalRpnCache = {};
+            $scope.isSaved = false;
+
+            $scope.cancelChanges = function() {
+                $scope.isSaved = false;
+                $('#elegant-rpn-variables').modal('hide');
+            };
+
+            $scope.cancelVariable = function() {
+                $scope.newRpn = {};
+                $scope.showAddNewFields = false;
+                $scope.addNewForm.$setPristine();
+            };
+
+            $scope.hasFirstColumn = function() {
+                if ($scope.showAddNewFields)
+                    return true;
+                if (appState.isLoaded())
+                    return appState.models.rpnVariables.length > 0;
+                return false;
+            };
+
+            $scope.hasSecondColumn = function() {
+                if (appState.isLoaded())
+                    return appState.models.rpnVariables.length > 1;
+                return false;
+            };
+
+            $scope.saveVariable = function() {
+                appState.models.rpnVariables.push({
+                    name: $scope.newRpn.name,
+                    value: $scope.newRpn.value,
+                });
+                $scope.cancelVariable();
+            };
+
+            $scope.saveChanges = function() {
+                $('#elegant-rpn-variables').modal('hide');
+                $scope.isSaved = true;
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                scope.isSaved = false;
+                scope.originalRpnCache = appState.clone(appState.models.rpnCache);
+            });
+            $(element).on('hidden.bs.modal', function() {
+                if (scope.isSaved) {
+                    for (var i = 0; i < appState.models.rpnVariables.length; i++) {
+                        var v = appState.models.rpnVariables[i];
+                        appState.models.rpnCache[v.name] = v.value in appState.models.rpnCache
+                            ? appState.models.rpnCache[v.value] : parseFloat(v.value);
+                    }
+                    appState.saveChanges('rpnVariables');
+                    scope.isSaved = false;
+                }
+                else {
+                    appState.cancelChanges('rpnVariables');
+                    appState.models.rpnCache = scope.originalRpnCache;
+                }
+                scope.cancelVariable();
+                scope.$applyAsync();
             });
         },
     };

@@ -11,7 +11,7 @@ import ntpath
 import os
 import py.path
 import re
-import subprocess
+import sirepo.template.elegant
 
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
@@ -22,7 +22,6 @@ _BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPO
 _DRIFT_TYPES = ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT']
 _IGNORE_LENGTH_TYPES = ['ILMATRIX', 'STRAY', 'SCRIPT']
 _LENGTH_FIELDS = ['l', 'xmax', 'length']
-_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
 with open(str(_STATIC_FOLDER.join('json/elegant-default.json'))) as f:
@@ -48,12 +47,13 @@ def import_file(text):
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
     element_names = {}
+    rpn_cache = {}
 
     for el in models['elements']:
         el['type'] = _validate_type(el, element_names)
         element_names[el['name'].upper()] = el
         for field in el.copy():
-            _validate_field(el, field)
+            _validate_field(el, field, rpn_cache, models['rpnVariables'])
         for field in _SCHEMA['model'][el['type']]:
             if field not in el:
                 el[field] = _SCHEMA['model'][el['type']][field][2]
@@ -63,12 +63,13 @@ def import_file(text):
 
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
-    _calculate_beamline_metrics(models)
+    _calculate_beamline_metrics(models, rpn_cache)
 
     data = _DEFAULTS.copy()
     data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
     data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
     data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
+    data['models']['rpnVariables'] = models['rpnVariables']
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id
@@ -77,12 +78,12 @@ def import_file(text):
     return data
 
 
-def _calculate_beamline_metrics(models):
+def _calculate_beamline_metrics(models, rpn_cache):
     metrics = {}
     for el in models['elements']:
         metrics[el['_id']] = {
-            'length': _element_length(el),
-            'angle': _element_angle(el),
+            'length': _element_length(el, rpn_cache),
+            'angle': _element_angle(el, rpn_cache),
             'count': _element_count(el),
         }
     for bl in models['beamlines']:
@@ -143,11 +144,11 @@ def _create_name_map(models):
     return name_to_id, last_beamline_id
 
 
-def _element_angle(el):
+def _element_angle(el, rpn_cache):
     if el['type'] in _BEND_TYPES:
         for f in _ANGLE_FIELDS:
             if f in el:
-                return float(el[f])
+                return _rpn_value(el[f], rpn_cache)
     return 0
 
 
@@ -157,13 +158,19 @@ def _element_count(el):
     return 1
 
 
-def _element_length(el):
+def _element_length(el, rpn_cache):
     if el['type'] in _IGNORE_LENGTH_TYPES:
         return 0
     for f in _LENGTH_FIELDS:
         if f in el:
-            return float(el[f])
+            return _rpn_value(el[f], rpn_cache)
     return 0
+
+
+def _rpn_value(v, rpn_cache):
+    if v in rpn_cache:
+        return float(rpn_cache[v])
+    return float(v)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
@@ -183,7 +190,7 @@ def _validate_beamline(bl, name_to_id, element_names):
     return items
 
 
-def _validate_field(el, field):
+def _validate_field(el, field, rpn_cache, rpn_variables):
     if field in ['_id', 'type']:
         return
     field_type = None
@@ -208,20 +215,11 @@ def _validate_field(el, field):
                 el[field + 'Y'] = m.group(3)
             else:
                 el[field] = fullname
-        elif field_type == 'Float':
-            if re.search(r'\S\s+\S', el[field]):
-                my_env = os.environ.copy()
-                my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
-                #TODO(pjm): security - need to scrub field value
-                out = ''
-                try:
-                    out = subprocess.check_output(['rpnl', el[field]], env=my_env)
-                except subprocess.CalledProcessError as e:
-                    raise IOError('invalid rpn "{}"'.format(el[field]))
-                if len(out):
-                    el[field] = out.strip()
-                else:
-                    raise IOError('invalid rpn: "{}"'.format(el[field]))
+        elif field_type == 'RPNValue' and sirepo.template.elegant.is_rpn_value(el[field]):
+            value, error = sirepo.template.elegant.parse_rpn_value(el[field], rpn_variables)
+            if error:
+                raise IOError('invalid rpn: "{}"'.format(el[field]))
+            rpn_cache[el[field]] = value
 
 
 def _validate_type(el, element_names):

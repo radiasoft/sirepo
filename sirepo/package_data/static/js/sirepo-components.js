@@ -1,5 +1,7 @@
 'use strict';
 
+SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
+
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         scope: {
@@ -252,7 +254,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
+SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender, rpnService) {
     return {
         restirct: 'A',
         scope: {
@@ -286,10 +288,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
-                '<input string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
                 '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
@@ -320,6 +322,12 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly" />',
               '</div>',
+              '<div data-ng-switch-when="RPNValue">',
+                '<div data-ng-class="fieldClass">',
+                  '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                '</div>',
+                '<div class="col-sm-2"><div class="form-control-static pull-right">{{ getComputedRpnValue(); }}</div></div>',
+              '</div>',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
@@ -349,6 +357,15 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             };
             $scope.fieldY = function() {
                 return $scope.field + 'Y';
+            };
+            $scope.getComputedRpnValue = function() {
+                if (appState.isLoaded() && $scope.model && $scope.field) {
+                    var v = $scope.model[$scope.field];
+                    if (SIREPO.NUMBER_REGEXP.test(v))
+                        return '';
+                    return rpnService.getRpnValue(v);
+                }
+                return '';
             };
             $scope.newUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
@@ -943,6 +960,95 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
+SIREPO.app.service('rpnService', function(appState, requestSender) {
+
+    this.computeRpnValue = function(value, callback) {
+        if (value in appState.models.rpnCache) {
+            callback(appState.models.rpnCache[value]);
+            return;
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'rpn_value',
+                value: value,
+                variables: appState.models.rpnVariables,
+            },
+            function(data) {
+                if (! data.error) {
+                    if (appState.isLoaded())
+                        appState.models.rpnCache[value] = data.result;
+                }
+                callback(data.result, data.error);
+            });
+    };
+
+    this.getRpnValue = function(v) {
+        if (angular.isUndefined(v))
+            return v;
+        if (v in appState.models.rpnCache)
+            return appState.models.rpnCache[v];
+        var value = parseFloat(v);
+        if (isNaN(value))
+            return undefined;
+        return value;
+    };
+
+    this.recomputeCache = function(varName, value) {
+        var recomputeRequired = false;
+        var re = new RegExp("\\b" + varName + "\\b");
+        for (var k in appState.models.rpnCache) {
+            if (k == varName)
+                appState.models.rpnCache[k] = value;
+            else if (k.match(re))
+                recomputeRequired = true;
+        }
+        if (! recomputeRequired)
+            return;
+        requestSender.getApplicationData(
+            {
+                method: 'recompute_rpn_cache_values',
+                cache: appState.models.rpnCache,
+                variables: appState.models.rpnVariables,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.cache)
+                    appState.models.rpnCache = data.cache;
+            });
+    };
+});
+
+SIREPO.app.directive('rpnValue', function(appState, rpnService) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+            var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return null;
+                if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    ngModel.$setValidity('', true);
+                    var v = parseFloat(value)
+                    if (rpnVariableName)
+                        rpnService.recomputeCache(rpnVariableName, v);
+                    return v;
+                }
+                rpnService.computeRpnValue(value, function(v, err) {
+                    ngModel.$setValidity('', err ? false : true);
+                    if (rpnVariableName && ! err)
+                        rpnService.recomputeCache(rpnVariableName, v);
+                });
+                return value;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return value;
+                return value.toString();
+            });
+        }
+    };
+});
+
 SIREPO.app.directive('appHeaderLeft', function(panelState) {
     return {
         restrict: 'A',
@@ -983,7 +1089,6 @@ SIREPO.app.directive('simulationStatusTimer', function() {
 });
 
 SIREPO.app.directive('stringToNumber', function() {
-    var NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
     return {
         restrict: 'A',
         require: 'ngModel',
@@ -994,7 +1099,7 @@ SIREPO.app.directive('stringToNumber', function() {
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))
                     return null;
-                if (NUMBER_REGEXP.test(value)) {
+                if (SIREPO.NUMBER_REGEXP.test(value)) {
                     if (scope.numberType == 'integer') {
                         var v = parseInt(value);
                         if (v != value) {

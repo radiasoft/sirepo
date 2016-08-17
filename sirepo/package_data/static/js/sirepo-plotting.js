@@ -94,9 +94,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             scope.$on('framesCleared', scope.clearData);
         scope.$on('modelsLoaded', requestData);
         scope.$on('framesLoaded', function(event, oldFrameCount) {
-            if (scope.prevFrameIndex < 0)
-                scope.firstFrame();
-            else if (oldFrameCount === 0)
+            if (scope.prevFrameIndex < 0 || oldFrameCount === 0)
                 scope.lastFrame();
             else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName))
                 scope.firstFrame();
@@ -175,7 +173,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
                 scope.windowResize = debounce(function() {
                     scope.resize();
-                    scope.$apply();
+                    scope.$digest();
                 }, 250);
 
                 scope.$on('$destroy', function() {
@@ -1145,7 +1143,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
     };
 });
 
-SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) {
+SIREPO.app.directive('lattice', function(appState, plotting, rpnService, $timeout, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1180,6 +1178,10 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
             $scope.svgBounds = null;
             var picTypeCache = null;
 
+            function rpnValue(num) {
+                return rpnService.getRpnValue(num);
+            }
+
             function applyGroup(items, pos) {
                 var group = {
                     rotate: pos.angle,
@@ -1196,10 +1198,10 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var picType = $scope.getPicType(item.type);
-                    var length = parseFloat(item.l || item.xmax || 0);
+                    var length = rpnValue(item.l || item.xmax || 0);
                     if (picType == 'zeroLength')
                         length = 0;
-                    var elRadius = parseFloat(item.rx || item.x_max || 0);
+                    var elRadius = rpnValue(item.rx || item.x_max || 0);
                     pos.length += length;
                     if (length < 0) {
                         // negative length, back up
@@ -1209,7 +1211,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var radius = length / 2;
-                        var angle = parseFloat(item.angle || item.kick || item.hkick || 0);
+                        var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
                         maxHeight = Math.max(maxHeight, length);
                         var height = 0.75;
                         var enter = [pos.radius + pos.x + x, pos.y];
@@ -1222,8 +1224,8 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
                             length = 0.1;
                             enter[0] -= 0.05;
                         }
-                        var enterEdge = parseFloat(item.e1 || 0);
-                        var exitEdge = parseFloat(item.e2 || 0);
+                        var enterEdge = rpnValue(item.e1 || 0);
+                        var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type == 'RBEN') {
                             enterEdge = 0;
                             exitEdge = 0;
@@ -1298,7 +1300,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
                             groupItem.height = 0.25;
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = $scope.getPicColor(item.type, 'gray');
-                            var periods = Math.round(parseFloat(item.periods || item.poles || 0));
+                            var periods = Math.round(rpnValue(item.periods || item.poles || 0));
                             if (periods <= 0)
                                 periods = Math.round(5 * length);
                             groupItem.blockWidth = groupItem.width / (2 * periods);
@@ -1514,7 +1516,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
                     $scope.panTranslate = d3.event.translate;
                 }
                 updateZoomAndPan();
-                $scope.$apply();
+                $scope.$digest();
             }
 
             $scope.getPicColor = function(type, defaultColor) {
@@ -1591,6 +1593,8 @@ SIREPO.app.directive('lattice', function(plotting, appState, $timeout, $window) 
             $scope.$on('modelChanged', function(e, name) {
                 if (name == 'beamlines')
                     loadItemsFromBeamline();
+                if (name == 'rpnVariables')
+                    loadItemsFromBeamline(true);
                 if (appState.models[name] && appState.models[name]._id) {
                     if ($scope.items.indexOf(appState.models[name]._id) >= 0)
                         loadItemsFromBeamline(true);

@@ -37,7 +37,10 @@
                 <div class="panel-heading"><span class="s-panel-heading">Beamline Elements</span></div>
                 <div class="panel-body">
 
-                  <button class="btn btn-info btn-xs pull-right" data-ng-click="lattice.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                  <div class="pull-right">
+                    <button class="btn btn-info btn-xs" data-ng-click="lattice.showRpnVariables()">RPN Variables</button>
+                    <button class="btn btn-info btn-xs" data-ng-click="lattice.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                  </div>
 
                   <div data-element-table="" data-controller="lattice"></div>
                 </div>
@@ -106,3 +109,5 @@
 <div data-confirmation-modal="" data-id="s-delete-element-dialog" data-title="{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="lattice.deleteElement()">Delete {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong>?</div>
 
 <div data-modal-editor="" view-name="beamline" data-parent-controller="lattice"></div>
+
+<div data-rpn-editor=""></div>

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
+from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
@@ -19,6 +20,7 @@ import py.path
 import re
 import sdds
 import shutil
+import subprocess
 import time
 import werkzeug
 
@@ -39,6 +41,8 @@ _ELEGANT_PARAMETERS_OUTPUT_FILE = 'elegant-parameters.sdds'
 _ELEGANT_SIGMA_OUTPUT_FILE = 'sigma-matrix.sdds'
 
 _ELEGANT_TWISS_OUTPUT_FILE = 'twiss-parameters.sdds'
+
+_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 
 _STANDARD_OUTPUT_FILE_ID = 0
 
@@ -89,7 +93,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
         res['percent_complete'] = _compute_percent_complete(data, last_element)
         res['start_time'] = data['models']['simulationStatus'][report]['startTime']
         return res
-    if not _has_elegant_output(run_dir):
+    if not errors and not _has_elegant_output(run_dir):
         res['state'] = 'initial'
         return res
     if not _has_valid_elegant_output(run_dir):
@@ -194,10 +198,11 @@ def fixup_old_data(data):
         }
     if 'folder' not in data['models']['simulation']:
         data['models']['simulation']['folder'] = '/'
-
+    if 'rpnVariables' not in data['models']:
+        data['models']['rpnVariables'] = []
 
 def generate_lattice(data, v):
-    res = ''
+    res = _generate_variables(data)
     names = {}
     beamlines = {}
 
@@ -290,6 +295,23 @@ def get_animation_name(data):
     return 'animation'
 
 
+def get_application_data(data):
+    if data['method'] == 'rpn_value':
+        value, error = parse_rpn_value(data['value'], data['variables'])
+        if error:
+            data['error'] = error
+        else:
+            data['result'] = value
+        return data
+    if data['method'] == 'recompute_rpn_cache_values':
+        for k in data['cache']:
+            value, error = parse_rpn_value(k, data['variables'])
+            if not error:
+                data['cache'][k] = value
+        return data
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
+
+
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     args = data['animationArgs'].split('_')
@@ -354,8 +376,35 @@ def is_cache_valid(data, old_data):
     return False
 
 
+def is_rpn_value(value):
+    if (value):
+        if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
+            return False
+        return True
+    return False
+
+
 def new_simulation(data, new_simulation_data):
     pass
+
+
+def parse_rpn_value(value, variable_list):
+    variables = {x['name']: x['value'] for x in variable_list}
+    my_env = os.environ.copy()
+    my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
+    depends = _build_variable_dependency(value, variables, [])
+    var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
+    #TODO(pjm): security - need to scrub field value
+    out = ''
+    try:
+        with open(os.devnull, 'w') as devnull:
+            pkdc('rpnl "{}" "{}"'.format(var_list, value))
+            out = subprocess.check_output(['rpnl', '{} {}'.format(var_list, value)], env=my_env, stderr=devnull)
+    except subprocess.CalledProcessError as e:
+        return None, 'invalid'
+    if len(out):
+        return float(out.strip()), None
+    return None, 'empty'
 
 
 def prepare_aux_files(run_dir, data):
@@ -363,6 +412,25 @@ def prepare_aux_files(run_dir, data):
 
 
 def prepare_for_client(data):
+    # evaluate rpn values into model.rpnCache
+    cache = {}
+    data['models']['rpnCache'] = cache
+
+    for el in data['models']['elements']:
+        model_schema = _SCHEMA['model'][el['type']]
+        for k in el:
+            if k not in model_schema:
+                continue
+            element_schema = model_schema[k]
+            if element_schema[1] == 'RPNValue' and is_rpn_value(el[k]):
+                v, err = parse_rpn_value(el[k], data['models']['rpnVariables'])
+                if not err:
+                    cache[el[k]] = v
+    for rpn_var in data['models']['rpnVariables']:
+        v, err = parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
+        if not err:
+            cache[rpn_var['value']] = v
+            cache[rpn_var['name']] = v
     return data
 
 
@@ -446,6 +514,15 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
     ordered_beamlines.append(beamline)
 
 
+def _build_variable_dependency(value, variables, depends):
+    for v in str(value).split(' '):
+        if v in variables:
+            if v not in depends:
+                _build_variable_dependency(variables[v], variables, depends)
+                depends.append(v)
+    return depends
+
+
 def _compute_percent_complete(data, last_element):
     if not last_element:
         return 0
@@ -492,6 +569,26 @@ def _file_info(filename, run_dir, id, output_index):
         'columns': column_names,
         'last_update_time': os.path.getmtime(str(file_path)),
     }
+
+
+def _generate_variable(name, variables, visited):
+    res = ''
+    if name not in visited:
+        res += "% " + '{} sto {}'.format(variables[name], name) + "\n"
+        visited[name] = True
+    return res
+
+
+def _generate_variables(data):
+    res = ''
+    visited = {}
+    variables = {x['name']: x['value'] for x in data['models']['rpnVariables']}
+
+    for name in sorted(variables):
+        for dependency in _build_variable_dependency(variables[name], variables, []):
+            res += _generate_variable(dependency, variables, visited)
+        res += _generate_variable(name, variables, visited)
+    return res
 
 
 def _get_filename_for_element_id(id, data):
@@ -544,7 +641,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig', text, re.IGNORECASE)
 
 
 def _output_info(run_dir, data, schema):

@@ -16,6 +16,7 @@ def parse_file(lattice_text):
             'elements': [],
             'default_beamline_name': None,
         },
+        'rpnVariables': {},
         'line_number': 0,
         'id': 0,
     }
@@ -29,6 +30,7 @@ def parse_file(lattice_text):
         if not _parse_line(prev_line + line, state):
             break
         prev_line = ''
+    state['models']['rpnVariables'] = map(lambda x: { 'name': x, 'value': state['rpnVariables'][x] }, state['rpnVariables'].keys())
     return state['models']
 
 
@@ -127,6 +129,11 @@ def _parse_line(line, state):
     state['line'] = line
     state['index'] = 0
     name = _parse_value(state, r'[:\s,=)*]')
+    if name == '%':
+        # rpn value
+        line = re.sub(r'\s*%\s*', '', line)
+        _save_rpn_variables(line, state['rpnVariables'])
+        return True
     if not name or not re.search(r'[A-Z]', name[0], re.IGNORECASE):
         if name and name.upper() == '#INCLUDE':
             _raise_error(state, '#INCLUDE files not supported')
@@ -183,3 +190,13 @@ def _read_until(state, regex):
         value += _next_char(state)
     _ignore_whitespace(state)
     return value
+
+
+def _save_rpn_variables(line, rpn_variables):
+    m = re.match(r'(.*) sto ((\S+).*)', line)
+    if m:
+        val = _save_rpn_variables(m.group(1), rpn_variables)
+        var = m.group(3)
+        rpn_variables[var] = val
+        return m.group(2)
+    return line
