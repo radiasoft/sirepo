@@ -13,11 +13,9 @@ import traceback
 
 import py
 import requests
-from pykern import pkio
-from pykern import pkrunpy
+from pykern import pkio, pkrunpy
 from pykern.pkdebug import pkdp
-from srwl_bl import srwl_uti_parse_options
-from srwl_bl import srwl_uti_std_options
+from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 
 try:
     import cPickle as pickle
@@ -216,6 +214,16 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['tangentialVectorX'] = obj.tvx
         data['tangentialVectorY'] = obj.tvy
 
+    elif elem_type == 'fiber':
+        data['method'] = 'server'
+        data['externalMaterial'] = 'User-defined'
+        data['coreMaterial'] = 'User-defined'
+        keys = ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength',
+                'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition',
+                'verticalCenterPosition']
+        for key in keys:
+            data[key] = obj.input_parms[key]
+
     elif elem_type == 'grating':
         # Fixed values in srw.js:
         data['grazingAngle'] = 12.9555790185373
@@ -306,6 +314,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         'M': 0,  # mirror
         'G': 0,  # grating
         'Crystal': 0,
+        'Fiber': 0,
         'Sample': '',
     }
 
@@ -368,7 +377,6 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
                 elem_type = 'sphericalMirror'
 
             elif name == 'SRWLOptT':
-                # Check the type based on focal lengths of the element:
                 if type(obj_arOpt[i].input_parms) == tuple:
                     elem_type = obj_arOpt[i].input_parms[0]['type']
                 else:
@@ -379,6 +387,10 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
 
                 elif elem_type == 'crl':  # CRL
                     key = 'CRL'
+
+                elif elem_type == 'cyl_fiber':
+                    elem_type = 'fiber'
+                    key = 'Fiber'
 
             # Last element is Sample:
             if name == 'SRWLOptD' and (i + 1) == num_elements:

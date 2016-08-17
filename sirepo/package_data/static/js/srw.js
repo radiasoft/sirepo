@@ -159,7 +159,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
          horizontalApertureSize:1, verticalApertureSize:1, radius:1.5e-03, numberOfLenses:3, wallThickness:80.e-06},
-        {type:'fiber', title:'Fiber', focusingPlane:'hv', method:'server', exteriorMaterial:'User-defined', exteriorRefractiveIndex:4.20756805e-06, exteriorAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
+        {type:'fiber', title:'Fiber', focusingPlane:1, method:'server', externalMaterial:'User-defined', externalRefractiveIndex:4.20756805e-06, externalAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, heightProfileDimension:1, orientation:'x', heightAmplification:1},
@@ -290,8 +290,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
                 SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
-                SIREPO.APP_SCHEMA.model.fiber.exteriorRefractiveIndex[3] = msg;
-                SIREPO.APP_SCHEMA.model.fiber.exteriorAttenuationLength[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.externalRefractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.fiber.externalAttenuationLength[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.coreRefractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.coreAttenuationLength[3] = msg;
         }
@@ -568,7 +568,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
 
     var fiberFields = [
         'method',
-        'exteriorMaterial',
+        'externalMaterial',
         'coreMaterial',
     ];
     function computeFiberCharacteristics() {
@@ -582,7 +582,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 },
                 function(data) {
                     var fields = [
-                        'exteriorRefractiveIndex', 'exteriorAttenuationLength',
+                        'externalRefractiveIndex', 'externalAttenuationLength',
                         'coreRefractiveIndex', 'coreAttenuationLength',
                     ];
                     for (var i = 0; i < fields.length; i++) {

@@ -472,7 +472,7 @@ def get_application_data(data):
         model = _compute_crl_characteristics(
             data['optical_element'],
             data['photon_energy'],
-            prefix='exterior',
+            prefix='external',
         )
         model = _compute_crl_characteristics(
             model,
@@ -1059,9 +1059,9 @@ def _generate_beamline_optics(models, last_id):
             res_pp += pp
         elif item['type'] == 'fiber':
             el, pp = _beamline_element(
-                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=\'{}\', _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
+                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane={}, _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
                 item,
-                ['focusingPlane', 'exteriorRefractiveIndex', 'coreRefractiveIndex', 'exteriorAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
+                ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
                 propagation)
             res_el += el
             res_pp += pp

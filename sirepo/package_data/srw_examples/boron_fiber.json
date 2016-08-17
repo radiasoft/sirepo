@@ -2,18 +2,18 @@
     "models": {
         "beamline": [
             {
-                "absoluteFocusPosition": "36.0767",
-                "attenuationLength": "7.312960e-3",
-                "focalDistance": "8.9125",
-                "focalPlane": "3",
+                "absoluteFocusPosition": "56.9673",
+                "attenuationLength": "6.257350e-3",
+                "focalDistance": "13.2501",
+                "focalPlane": 2,
                 "horizontalApertureSize": 1,
                 "id": 2,
                 "material": "Be",
                 "method": "server",
-                "numberOfLenses": 20,
-                "position": 20,
-                "radius": 0.0015,
-                "refractiveIndex": "4.207570e-6",
+                "numberOfLenses": 4,
+                "position": 36,
+                "radius": 0.0005,
+                "refractiveIndex": "4.716943e-6",
                 "shape": 1,
                 "title": "CRL",
                 "type": "crl",
@@ -21,8 +21,36 @@
                 "wallThickness": 8e-05
             },
             {
-                "id": 3,
-                "position": 36.0767,
+                "id": 4,
+                "position": 71,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "coreAttenuationLength": "3.637510e-6",
+                "coreDiameter": 1e-05,
+                "coreMaterial": "W",
+                "coreRefractiveIndex": "4.129923e-5",
+                "exteriorAttenuationLength": "2.412290e-3",
+                "exteriorMaterial": "B",
+                "exteriorRefractiveIndex": "6.228746e-6",
+                "externalAttenuationLength": "2.412290e-3",
+                "externalDiameter": 0.0001,
+                "externalMaterial": "B",
+                "externalRefractiveIndex": "6.228746e-6",
+                "focalPlane": "2",
+                "focusingPlane": "2",
+                "horizontalCenterPosition": 0,
+                "id": 5,
+                "method": "server",
+                "position": 71,
+                "title": "Fiber",
+                "type": "fiber",
+                "verticalCenterPosition": 0
+            },
+            {
+                "id": 6,
+                "position": 75,
                 "title": "Watchpoint",
                 "type": "watch"
             }
@@ -71,6 +99,7 @@
             "longitudinalPrecision": 1,
             "magneticField": 2,
             "method": 1,
+            "numberOfMacroElectrons": 100000,
             "photonEnergyPointCount": 1000,
             "polarization": 6,
             "precision": 0.01,
@@ -90,6 +119,7 @@
             "longitudinalPrecision": 1,
             "magneticField": 1,
             "method": -1,
+            "numberOfMacroElectrons": 1,
             "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
@@ -130,6 +160,7 @@
         "multiElectronAnimation": {
             "horizontalPosition": 0,
             "horizontalRange": "0.4",
+            "numberOfMacroElectrons": 100000,
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": "0.6"
@@ -140,16 +171,19 @@
             "length": 3,
             "order": 1
         },
+        "panelState": {
+            "hidden": []
+        },
         "postPropagation": [
             0,
             0,
-            "1",
-            "0",
+            1,
             0,
-            "1",
-            "1",
-            "1",
-            "1"
+            0,
+            1,
+            "2",
+            "0.5",
+            "4"
         ],
         "powerDensityReport": {
             "distanceFromSource": 20,
@@ -167,8 +201,8 @@
                 [
                     0,
                     0,
-                    "1",
-                    "0",
+                    1,
+                    0,
                     0,
                     "1",
                     "1",
@@ -178,16 +212,64 @@
                 [
                     0,
                     0,
-                    "1",
-                    "1",
+                    1,
+                    1,
                     0,
-                    "1",
-                    "1",
-                    "1",
-                    "1"
+                    1,
+                    1,
+                    1,
+                    1
                 ]
             ],
-            "3": [
+            "4": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "5": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "6": [
                 [
                     0,
                     0,
@@ -218,18 +300,18 @@
             "folder": "/Examples",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 0.4,
+            "horizontalRange": 0.7,
             "isExample": "1",
-            "name": "Compound Refractive Lens (CRL)",
+            "name": "Boron Fiber",
             "outOfSessionSimulationId": "",
-            "photonEnergy": "9000",
-            "sampleFactor": 3,
+            "photonEnergy": 8500.63,
+            "sampleFactor": 2,
             "samplingMethod": 1,
-            "simulationId": "Y2NkGu9C",
+            "simulationId": "JsY2pJMo",
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 0.4
+            "verticalRange": 0.7
         },
         "simulationStatus": {},
         "sourceIntensityReport": {
@@ -245,7 +327,7 @@
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "indexFile": "",
-            "length": 1.5,
+            "length": 2.500648,
             "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",
             "period": 21,
@@ -256,26 +338,40 @@
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
+        "trajectoryReport": {
+            "finalTimeMoment": 0,
+            "initialTimeMoment": 0,
+            "magneticField": 2,
+            "numberOfPoints": 10000,
+            "plotAxis": "x",
+            "timeMomentEstimation": "auto"
+        },
         "undulator": {
             "horizontalAmplitude": "0",
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "length": 3,
-            "longitudinalPosition": 1.305,
+            "longitudinalPosition": 1.25,
             "period": "20",
-            "undulatorParameter": 1.65776086,
-            "verticalAmplitude": "0.88770981",
+            "undulatorParameter": 1.73972395,
+            "verticalAmplitude": 0.9316,
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
-        "watchpointReport3": {
+        "watchpointReport4": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        },
+        "watchpointReport6": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01
         }
     },
-    "report": "watchpointReport3",
+    "report": "watchpointReport6",
     "simulationType": "srw",
-    "version": "20160719"
+    "version": "20160814"
 }
