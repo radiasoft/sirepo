@@ -333,7 +333,7 @@ def app_python_source(simulation_type, simulation_id):
 def app_root(simulation_type):
     return flask.render_template(
         'html/index.html',
-        version=simulation_db.SCHEMA_COMMON['version'],
+        version=simulation_db.app_version(),
         app_name=simulation_type,
     )
 
@@ -495,7 +495,7 @@ def app_upload_file(simulation_type, simulation_id, file_type):
 def light_landing_page():
     return flask.render_template(
         'html/sr-landing-page.html',
-        version=simulation_db.SCHEMA_COMMON['version'],
+        version=simulation_db.app_version(),
     )
 
 
@@ -650,7 +650,7 @@ def _simulation_input(run_dir):
     Returns:
         py.path: path to simulation input
     """
-    return run_dir.join(template_common.INPUT_BASE_NAME)
+    return simulation_db.json_filename(template_common.INPUT_BASE_NAME, run_dir)
 
 
 def _simulation_name(res, path, data):
@@ -680,17 +680,20 @@ def _simulation_run_status(data):
                 res = {'state': 'running'}
             else:
                 return _simulation_error('input file not found, but job is running', input_file)
-        else:
+        elif run_dir.exists():
             res, err = simulation_db.read_result(run_dir)
             if err:
                 return _simulation_error(err, 'error in read_result')
-        if simulation_db.is_parallel(cached_data):
-            template = sirepo.template.import_module(cached_data)
+        else:
+            # Was never run
+            res = {'state': 'stopped'}
+        if simulation_db.is_parallel(data):
+            template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
-                cached_data['report'],
+                data['report'],
                 run_dir,
                 is_running,
-                simulation_db.get_schema(cached_data['simulationType']),
+                simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
@@ -698,6 +701,7 @@ def _simulation_run_status(data):
         res['parametersChanged'] = not cache_hit and cached_data
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
+        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
         if res['state'] == 'running':
             res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
             res['nextRequest'] = {

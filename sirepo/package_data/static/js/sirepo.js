@@ -866,7 +866,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
 
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
     var self = {};
-    self.init = function(scope) {
+    self.initProperties = function(scope) {
         scope.frameId = '-1';
         scope.frameCount = 1;
         scope.isReadyForModelChanges = false;
@@ -880,7 +880,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
 
         function handleStatus(data) {
             setSimulationStatus(data);
-            scope.handleStatus(data);
             if (data.elapsedTime) {
                 scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
                 scope.timeData.elapsedTime = new Date(1970, 0, 1);
@@ -894,6 +893,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             else {
                 scope.simulationQueueItem = null;
             }
+            scope.handleStatus(data);
         }
 
         function runStatus() {
@@ -930,6 +930,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         scope.clearSimulation = function() {
             simulationQueue.removeItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
+        };
+
+        scope.hasTimeData = function () {
+            return scope.timeData && scope.timeData.elapsedTime != null;
         };
 
         scope.isInitializing = function() {

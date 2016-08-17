@@ -6,6 +6,7 @@ u"""Simulation database
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
@@ -24,9 +25,6 @@ import re
 import sirepo.template
 import werkzeug.exceptions
 
-#: Implemented apps
-SIMULATION_TYPES = ['srw', 'warp', 'elegant']
-
 #: Json files
 JSON_SUFFIX = '.json'
 
@@ -35,6 +33,9 @@ SCHEMA_COMMON = None
 
 #: Simulation file name is globally unique to avoid collisions with simulation output
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
+
+#: Implemented apps
+SIMULATION_TYPES = ['srw', 'warp', 'elegant']
 
 #: Where server files and static files are found
 STATIC_FOLDER = py.path.local(pkresource.filename('static'))
@@ -72,9 +73,19 @@ _USER_ROOT_DIR = 'user'
 #: Flask app (init() must be called to set this)
 _app = None
 
-
 with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
     SCHEMA_COMMON = json.load(f)
+
+
+def app_version():
+    """Force the version to be dynamic if running in dev channel
+
+    Returns:
+        str: chronological version
+    """
+    if pkconfig.channel_in('dev'):
+        return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
+    return simulation_db.SCHEMA_COMMON['version']
 
 
 def examples(app):
@@ -172,6 +183,23 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
         except ValueError as e:
             pkdp('{}: error: {}', path, e)
     return res
+
+
+def json_filename(filename, run_dir=None):
+    """Append JSON_SUFFIX if necessary and convert to str
+
+    Args:
+        filename (py.path or str): to convert
+        run_dir (py.path): which directory to joing
+    Returns:
+        py.path: filename.json
+    """
+    filename = str(filename)
+    if not filename.endswith(JSON_SUFFIX):
+        filename += JSON_SUFFIX
+    if run_dir and not os.path.isabs(filename):
+        filename = run_dir.join(filename)
+    return py.path.local(filename)
 
 
 #TODO(robnagler) should just be "data"
@@ -306,7 +334,7 @@ def read_json(filename):
     Returns:
         object: json converted to python
     """
-    with open(_json_filename(filename)) as f:
+    with open(str(json_filename(filename))) as f:
         return json.load(f)
 
 
@@ -319,7 +347,7 @@ def read_result(run_dir):
     Returns:
         dict: result or describes error
     """
-    fn = run_dir.join(template_common.OUTPUT_BASE_NAME)
+    fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     res = None
     err = None
     try:
@@ -433,7 +461,7 @@ def write_json(filename, data):
     Args:
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
-    with open(_json_filename(filename), 'w') as f:
+    with open(str(json_filename(filename)), 'w') as f:
         f.write(generate_pretty_json(data))
 
 
@@ -446,7 +474,7 @@ def write_result(result, run_dir=None):
     """
     if not run_dir:
         run_dir = py.path.local()
-    fn = run_dir.join(_json_filename(template_common.OUTPUT_BASE_NAME))
+    fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         # Don't overwrite first written file, because first write is
         # closest to the reason is stopped (e.g. canceled)
@@ -473,20 +501,6 @@ def _find_user_simulation_copy(simulation_type, sid):
     if len(rows):
         return rows[0]['simulationId']
     return None
-
-
-def _json_filename(filename):
-    """Append JSON_SUFFIX if necessary and convert to str
-
-    Args:
-        filename (py.path or str): to convert
-    Returns:
-        str: filename.json
-    """
-    filename = str(filename)
-    if not filename.endswith(JSON_SUFFIX):
-        filename += JSON_SUFFIX
-    return filename
 
 
 def _random_id(parent_dir, simulation_type=None):

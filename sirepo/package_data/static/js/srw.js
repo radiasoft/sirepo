@@ -1760,7 +1760,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                 }
             };
 
-            persistentSimulation.init($scope);
+            persistentSimulation.initProperties($scope);
             frameCache.setAnimationArgs({
                 multiElectronAnimation: [],
                 fluxAnimation: ['fluxType'],

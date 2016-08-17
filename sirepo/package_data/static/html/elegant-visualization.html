@@ -19,12 +19,12 @@
           </div>
         </div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('initial')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.iStopped()">
             <div data-run-simulation-fields=""></div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('running')">
+          <form name="form" class="form-horizontal" novalidate data-ng-hide="visualization.isStateStopped()">
             <div class="col-sm-12">
-              <div data-ng-show="visualization.isState('running')">
+              <div>
                 Running {{ visualization.dots }}
                 <div data-simulation-status-timer="visualization.timeData"></div>
               </div>
@@ -37,11 +37,12 @@
               <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
             </div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isState('completed') || visualization.isState('canceled')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateStopped()">
             <div class="col-sm-12">
               Simulation
-              <span data-ng-show="visualization.isState('completed')">Completed</span><span data-ng-show="visualization.isState('canceled')">Stopped</span>,
+              <span>{{ visualization.stateAsText() }}</span><span data-ng-show="visualization.hasTimeData()">:
               <span data-simulation-status-timer="visualization.timeData"></span>
+              </span>
               <br><br>
               <div data-ng-if="visualization.simulationErrors" class="well well-lg">
                 <div class="text-warning"><strong>elegant Errors:</strong></div>

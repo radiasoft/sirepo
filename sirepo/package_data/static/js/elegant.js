@@ -519,25 +519,19 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, $interval) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, persistentSimulation) {
     var self = this;
-    var simulationModel = 'animation';
-    var progress;
+    self.model = 'animation';
+    self.progress = null;
     self.appState = appState;
     self.panelState = panelState;
-    self.isAborting = false;
-    self.isDestroyed = false;
     self.dots = '.';
     self.simulationErrors = '';
     self.timeData = {
         elapsedDays: null,
         elapsedTime: null,
     };
-
     self.outputFiles = [];
-
-    frameCache.setAnimationArgs({});
-    frameCache.setFrameCount(0);
 
     function defaultYColumn(columns) {
         for (var i = 1; i < columns.length; i++) {
@@ -554,7 +548,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': simulationModel,
+            '<model>': self.model,
             '<frame>': index,
         });
     }
@@ -605,72 +599,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.page_count, modelKey);
         }
-        frameCache.setAnimationArgs(animationArgs, simulationModel);
-    }
-
-    function refreshStatus() {
-        if (! appState.isLoaded())
-            return;
-        if (!appState.runStatusParams[simulationModel])
-            appState.runStatusParams[simulationModel] = {
-                report: simulationModel,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            };
-        requestSender.sendRequest(
-            'runStatus',
-            function(data) {
-                if (self.isAborting)
-                    return;
-                appState.runStatusParams[simulationModel] = data;
-                self.simulationErrors = data.errors || '';
-                if (data.frameCount) {
-                    frameCache.setFrameCount(parseInt(data.frameCount));
-                    loadElementReports(data.outputInfo);
-                }
-                if (data.elapsedTime) {
-                    self.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                    self.timeData.elapsedTime = new Date(1970, 0, 1);
-                    self.timeData.elapsedTime.setSeconds(data.elapsedTime);
-                }
-                if (data.state != 'running') {
-                    if (! data.frameCount) {
-                        if (data.state == 'completed' && ! self.simulationErrors) {
-                            // completed with no output, show link to elegant log
-                            self.simulationErrors = 'No output produced. View the elegant log for more information.';
-                        }
-                        self.outputFiles = [];
-                    }
-                    if (data.state != simulationState())
-                        appState.saveChanges('simulationStatus');
-                }
-                else {
-                    if (! self.isDestroyed) {
-                        if (data.percentComplete) {
-                            // don't regress
-                            if (progress && progress.percentComplete > data.percentComplete)
-                                ;
-                            else {
-                                progress = {
-                                    percentComplete: data.percentComplete,
-                                };
-                            }
-                        }
-                        self.dots += '.';
-                        if (self.dots.length > 3)
-                            self.dots = '.';
-                        //TODO(robnagler) cancel timer
-                        $interval(
-                            refreshStatus,
-                            data.pollSeconds ? data.pollSeconds * 1000 : 4000,
-                            1
-                        );
-                    }
-                }
-                setSimulationState(data.state);
-            },
-            appState.runStatusParams[simulationModel]
-        );
+        frameCache.setAnimationArgs(animationArgs, self.model);
     }
 
     //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
@@ -682,41 +611,20 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return '2d';
     }
 
-    function setSimulationState(state) {
-        if (! appState.models.simulationStatus[simulationModel])
-            appState.models.simulationStatus[simulationModel] = {};
-        appState.models.simulationStatus[simulationModel].state = state;
-    }
-
     function showField(modelName, field) {
         $('.model-' + modelName + '-' + field).closest('.form-group').show();
     }
 
-    function simulationState() {
-        return appState.models.simulationStatus[simulationModel].state;
-    }
-
+    var originalCancelSimulation = self.cancelSimulation;
     self.cancelSimulation = function() {
-        if (simulationState() != 'running')
-            return;
-        progress = null;
-        setSimulationState('canceled');
-        self.isAborting = true;
-        requestSender.sendRequest(
-            'zrunCancel',
-            function(data) {
-                self.isAborting = false;
-                appState.saveChanges('simulationStatus');
-            },
-            appState.runStatusParams[simulationModel]
-        );
-
+        self.progress = null;
+        return originalCancelSimulation.apply(this, arguments);
     };
 
     self.displayPercentComplete = function() {
         if (self.isInitializing())
             return 100;
-        return progress.percentComplete;
+        return self.progress.percentComplete;
     };
 
     self.getBeamlines = function() {
@@ -750,20 +658,35 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     };
 
+    self.handleStatus = function(data) {
+        self.simulationErrors = data.errors || '';
+        if (data.frameCount) {
+            frameCache.setFrameCount(parseInt(data.frameCount));
+            loadElementReports(data.outputInfo);
+        }
+        if (data.state != 'running') {
+            if (! data.frameCount) {
+                if (data.state == 'completed' && ! self.simulationErrors) {
+                    // completed with no output, show link to elegant log
+                    self.simulationErrors = 'No output produced. View the elegant log for more information.';
+                }
+                self.outputFiles = [];
+            }
+        }
+        else if (data.percentComplete) {
+            // don't regress
+            if (self.progress && self.progress.percentComplete > data.percentComplete)
+                ;
+            else {
+                self.progress = {
+                    percentComplete: data.percentComplete,
+                };
+            }
+        }
+    };
+
     self.hasOutput = function() {
-        return self.isState('completed') || self.isState('canceled');
-    };
-
-    self.isInitializing = function() {
-        if (progress && progress.percentComplete > 0)
-            return false;
-        return true;
-    };
-
-    self.isState = function(state) {
-        if (appState.isLoaded())
-            return simulationState() == state;
-        return false;
+        return self.isStateStopped();
     };
 
     self.logFileURL = function() {
@@ -774,37 +697,35 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return fileURL(-2);
     };
 
-    self.runSimulation = function() {
-        if (simulationState() == 'running')
-            return;
-        progress = null;
-        appState.saveQuietly('simulation');
-        frameCache.setFrameCount(0);
-        self.timeData.elapsedTime = null;
-        self.timeData.elapsedDays = null;
-        self.outputFiles = [];
-        setSimulationState('running');
-        appState.runStatusParams[simulationModel] = {
-            report: simulationModel,
-            models: appState.applicationState(),
-            simulationType: SIREPO.APP_SCHEMA.simulationType
-        };
-        requestSender.sendRequest(
-            'zrunSimulation',
-            function(data) {
-                appState.models.simulationStatus[simulationModel].startTime = data.startTime;
-                appState.runStatusParams[simulationModel] = data;
-                appState.saveChanges('simulationStatus');
-                refreshStatus();
-            },
-            appState.runStatusParams[simulationModel]
-        );
+    persistentSimulation.initProperties(self);
+
+    // Overrides
+    self.isInitializing = function() {
+        if (self.progress && self.progress.percentComplete > 0)
+            return false;
+        return true;
     };
 
-    $scope.$on('$destroy', function () {
-        self.isDestroyed = true;
-    });
-    appState.whenModelsLoaded(refreshStatus);
+    self.originalCancelSimulation = self.cancelSimulation;
+    self.cancelSimulation = function() {
+        self.progress = null;
+        return self.originalCancelSimulation.apply(this, arguments);
+    };
+
+    self.originalRunSimulation = self.runSimulation;
+    self.runSimulation = function() {
+        if (! self.isStateStopped())
+            return;
+        self.progress = null;
+        self.outputFiles = [];
+        appState.saveQuietly('simulation');
+        return self.originalRunSimulation.apply(this, arguments);
+    };
+
+    frameCache.setAnimationArgs({});
+    frameCache.setFrameCount(0);
+
+    self.persistentSimulationInit($scope);
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -1727,10 +1648,7 @@ SIREPO.app.directive('runSimulationFields', function() {
               '<div class="col-sm-4">',
                 '<select class="form-control" data-ng-model="visualization.appState.models.simulation.visualizationBeamlineId" data-ng-options="item.id as item.name for item in visualization.getBeamlines()"></select>',
               '</div>',
-              '<div class="col-sm-5" data-ng-show="visualization.isState(\'initial\')">',
-               '<button class="btn btn-primary" data-ng-click="visualization.runSimulation()">Start Simulation</button>',
-              '</div>',
-              '<div class="col-sm-5" data-ng-hide="visualization.isState(\'initial\')">',
+              '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
                 '<button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>',
               '</div>',
             '</div>',

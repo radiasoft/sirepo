@@ -78,7 +78,7 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
         return warpService.isElectronBeam();
     };
 
-    persistentSimulation.init(self);
+    persistentSimulation.initProperties(self);
 
     frameCache.setAnimationArgs(
         {

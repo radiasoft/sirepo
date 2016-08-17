@@ -1081,7 +1081,7 @@ SIREPO.app.directive('simulationStatusTimer', function() {
             timeData: '=simulationStatusTimer',
         },
         template: [
-            '<span data-ng-if="timeData.elapsedTime">',
+            '<span data-ng-if="timeData.elapsedTime != null">',
               'Elapsed time: {{ timeData.elapsedDays }} {{ timeData.elapsedTime | date:\'HH:mm:ss\' }}',
             '</span>',
         ].join(''),
