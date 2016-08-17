@@ -1028,7 +1028,7 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     return null;
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
                     ngModel.$setValidity('', true);
-                    var v = parseFloat(value)
+                    var v = parseFloat(value);
                     if (rpnVariableName)
                         rpnService.recomputeCache(rpnVariableName, v);
                     return v;
