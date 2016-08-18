@@ -354,16 +354,17 @@ def read_result(run_dir):
     err = None
     try:
         res = read_json(fn)
-        assert 'state' in res
+        if res and not 'state' in res:
+            # Old simulation, just say is canceled so restarts
+            return {'state': 'canceled'}, None
     except Exception as e:
         err = pkdexc()
         if isinstance(e, IOError):
             rl = run_dir.join(template_common.RUN_LOG)
             try:
                 e = pkio.read_text(rl)
-                if not e:
-                    e = err
-                return None, e
+                if e:
+                    err = e
             except:
                 pkdp('{}: error reading log: {}', rl, pkdexc())
         else:

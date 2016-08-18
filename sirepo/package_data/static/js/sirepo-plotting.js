@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $window) {
 
     var INITIAL_HEIGHT = 400;
@@ -161,26 +164,39 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 else if (scope.isClientOnly)
                     requestData = function() {};
                 else {
-                    requestData = function() {
+                    var interval = null;
+                    requestData = function(forceRunCount) {
                         //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
-                        $interval(function() {
+                        interval = $interval(function() {
+                            if (interval) {
+                                $interval.cancel(interval);
+                                interval = null;
+                            }
                             if (! scope.element)
                                 return;
                             panelState.requestData(scope.modelName, function(data) {
-                                if (!scope.element)
+                                if (! scope.element)
                                     return;
-                                if (data.x_points)
+                                forceRunCount = forceRunCount || 0;
+                                if (data.x_range)
                                     scope.load(data);
-                                else
+                                else if (forceRunCount++ <= 2) {
+                                    // try again, probably bad data
+                                    panelState.clear(scope.modelName);
+                                    requestData(forceRunCount);
+                                }
+                                else {
                                     panelState.setError(scope.modelName, 'server error: incomplete result');
-                            });
+                                    srlog('incomplete response: ', data);
+                                }
+                            }, forceRunCount ? true : false);
                         }, 50, 1);
                     };
                 }
 
                 scope.windowResize = debounce(function() {
                     scope.resize();
-                    scope.$digest();
+                    //scope.$digest();
                 }, 250);
 
                 scope.$on('$destroy', function() {
@@ -1370,7 +1386,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $interv
                         maxHeight = Math.max(maxHeight, groupItem.height);
                         //groupItem.x = pos.radius + pos.x + x;
                         group.items.push(groupItem);
-                        //console.log(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
+                        //srdbg(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
                     }
                 }
@@ -1382,7 +1398,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $interv
                     pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
                 }
                 updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
-                //console.log('bounds: ', pos.bounds);
+                //srdbg('bounds: ', pos.bounds);
                 pos.angle += newAngle;
             }
 

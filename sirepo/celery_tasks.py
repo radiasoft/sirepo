@@ -63,9 +63,9 @@ def start_simulation(cmd, run_dir):
         run_dir (py.path.local): directory
     """
     import subprocess
-    pkdp('{}: starting', cmd)
-    subprocess.check_call(
-        cmd,
-        stdout=open(str(run_dir.join(template_common.RUN_LOG)), 'a+'),
-        stderr=subprocess.STDOUT,
-    )
+    f = open(str(run_dir.join(template_common.RUN_LOG)), 'a+')
+    msg = '{}: starting'.format(cmd)
+    pkdp('{}', msg)
+    f.write(msg + "\n")
+    f.flush()
+    subprocess.check_call(cmd, stdout=f, stderr=subprocess.STDOUT)

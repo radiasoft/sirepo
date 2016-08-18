@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 
@@ -324,7 +327,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.dropBetween = function(index, data) {
         if (! data)
             return;
-        //console.log('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
+        //srdbg('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
         var item;
         if (data.id) {
             self.dismissPopup();
