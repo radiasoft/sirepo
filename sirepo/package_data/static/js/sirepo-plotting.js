@@ -167,8 +167,12 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                             if (! scope.element)
                                 return;
                             panelState.requestData(scope.modelName, function(data) {
-                                if (scope.element)
+                                if (!scope.element)
+                                    return;
+                                if (data.x_points)
                                     scope.load(data);
+                                else
+                                    panelState.setError(scope.modelName, 'server error: incomplete result');
                             });
                         }, 50, 1);
                     };

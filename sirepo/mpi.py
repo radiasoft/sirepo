@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp
 import os
 import re
 import signal
@@ -31,7 +31,7 @@ def run_program(cmd, output='mpi_run.out', env=None):
             '--bind-to',
             'none',
             '-n',
-            str(cfg.slaves),
+            str(cfg.cores),
 
         ] + cmd
         p = subprocess.Popen(
@@ -47,11 +47,12 @@ def run_program(cmd, output='mpi_run.out', env=None):
         if rc != 0:
             p = None
             raise RuntimeError('child terminated: retcode={}'.format(rc))
-        pkdp('Stopped: {} {}', pid, cmd)
+        pkdp('Stopped: {} {}', p.pid, cmd)
         p = None
-    except Exception as e:
+    except BaseException as e:
         #TODO: Clean result?? Just an exception as string
         simulation_db.write_result({'state': 'error', 'error': str(e)})
+        pkdp('Exception: {} {}: ', p.pid, cmd, pkdexc())
         raise
     finally:
         if not p is None:
@@ -82,5 +83,5 @@ if MPI.COMM_WORLD.Get_rank():
 
 
 cfg = pkconfig.init(
-    slaves=(1, int, 'cores to use per run'),
+    cores=(1, int, 'cores to use per run'),
 )

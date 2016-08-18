@@ -52,7 +52,7 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     ele = 'elegant.ele'
     pkio.write_text(ele, elegant_file)
     # TODO(robnagler) Need to handle this specially, b/c different binary
-    if with_mpi and mpi.cfg.slaves > 1:
+    if with_mpi and mpi.cfg.cores > 1:
         return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE)
     with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
         env = copy.deepcopy(os.environ)
