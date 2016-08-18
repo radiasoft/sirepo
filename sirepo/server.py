@@ -301,7 +301,7 @@ def app_import_file(simulation_type):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
 def app_new_simulation():
-    new_simulation_data = _parse_data_input(validate=True)
+    new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.open_json_file(
         sim_type,
