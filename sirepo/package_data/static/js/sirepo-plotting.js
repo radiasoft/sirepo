@@ -14,20 +14,16 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     // be triggered. The function will be called after it stops being called for
     // N milliseconds.
     // taken from http://davidwalsh.name/javascript-debounce-function
-    var debounceInterval = null;
-    function debounce(delayedFunc, milliseconds) {
+    function debounce(func, wait) {
+        var timeout;
         return function() {
             var context = this, args = arguments;
             var later = function() {
-                if (debounceInterval) {
-                    $interval.cancel(debounceInterval);
-                    debounceInterval = null;
-                }
-                delayedFunc.apply(context, args);
+                timeout = null;
+                func.apply(context, args);
             };
-            if (debounceInterval)
-                $interval.cancel(debounceInterval);
-            debounceInterval = $interval(later, milliseconds, 1);
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
         };
     }
 
@@ -1146,7 +1142,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
     };
 });
 
-SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $interval, $window) {
+SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window) {
     return {
         restrict: 'A',
         scope: {
