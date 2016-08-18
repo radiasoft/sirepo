@@ -199,7 +199,12 @@ def app_error_logging():
             simulation_db.generate_pretty_json(_json_input()),
         )
     except ValueError as e:
-        pkdp('{}: error parsing javascript app_error: {} input={}', ip, e, flask.request.data.decode('unicode-escape')))
+        pkdp(
+            '{}: error parsing javascript app_error: {} input={}',
+            ip,
+            e,
+            flask.request.data.decode('unicode-escape'),
+        )
     return '{}'
 
 
@@ -398,6 +403,7 @@ def app_save_simulation_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
+    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
     response = _json_response(
         sirepo.template.import_module(simulation_type).prepare_for_client(data),
     )
@@ -588,7 +594,7 @@ def _job_id(data):
 
 
 def _json_input():
-    return simulation_db.parse_json(flask.request.get_json(cache=False))
+    return flask.request.get_json(cache=False)
 
 
 def _json_response(value):

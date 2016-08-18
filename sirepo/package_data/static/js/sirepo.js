@@ -838,7 +838,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     };
 
     self.cancelItem = function (qi) {
-        if (!qi)
+        if (! qi)
             return;
         qi.persistent = false;
         qi.qMode = 'transient';
@@ -846,6 +846,8 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     };
 
     self.removeItem = function(qi) {
+        if (! qi)
+            return;
         var qs = qi.qState;
         if (qs == 'removing')
             return;

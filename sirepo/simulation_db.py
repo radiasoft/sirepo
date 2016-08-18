@@ -232,17 +232,6 @@ def open_json_file(simulation_type, path=None, sid=None):
         raise
 
 
-def parse_json(string):
-    """Read data from json string
-
-    Args:
-        string (str): valid json
-    Returns:
-        object: json converted to python
-    """
-    return json.loads(string)
-
-
 def parse_sid(data):
     """Extract id from data file
 
