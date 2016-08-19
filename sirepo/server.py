@@ -840,7 +840,7 @@ class _Background(object):
             return pid
         try:
             os.chdir(str(self.run_dir))
-            os.setsid()
+            #os.setsid()
             import resource
             maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
             if (maxfd == resource.RLIM_INFINITY):
@@ -905,7 +905,7 @@ class _Celery(object):
                 return
             pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
         try:
-            res.revoke(terminate=True, wait=True, timeout=1, signal='SIGTERM')
+            res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
             res.revoke(terminate=True, signal='SIGKILL')
         with cls._lock:
