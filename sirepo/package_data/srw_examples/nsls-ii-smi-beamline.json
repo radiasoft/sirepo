@@ -105,7 +105,7 @@
                 "grazingAngle": 3.1415926,
                 "heightAmplification": 1,
                 "heightProfileDimension": 1,
-                "heightProfileFile": "VDM.DAT",
+                "heightProfileFile": "VDM.dat",
                 "id": 20,
                 "normalVectorX": 0,
                 "normalVectorY": 0.9999950652020265,
