@@ -807,9 +807,12 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var process = function(resp, status) {
             if (qi.qState == 'removing')
                 return;
-            if (($.isEmptyObject(resp) || status != 200) && ! resp.error) {
-                resp.error = (resp === null && status === 0)
-                    ? 'the server is unavailable'
+            if ($.isEmptyObject(resp))
+                resp = {};
+            if (! resp.state)
+                resp.state = 'error';
+            if (! resp.error && (status != 200 || resp.state == 'error')) {
+                resp.error = status === 0 ? 'the server is unavailable'
                     : 'a server error occurred';
                 resp.state = 'error';
             }
