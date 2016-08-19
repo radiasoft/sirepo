@@ -416,7 +416,7 @@
             "horizontalPointCount": 201,
             "horizontalPosition": 0,
             "horizontalRange": 0.4,
-            "isExample": "1",
+            "isExample": "",
             "name": "NSLS-II FMX beamline",
             "outOfSessionSimulationId": "",
             "photonEnergy": 12707.91,
