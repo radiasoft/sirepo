@@ -52,7 +52,7 @@ def run_program(cmd, output='mpi_run.out', env=None):
     except BaseException as e:
         #TODO: Clean result?? Just an exception as string
         simulation_db.write_result({'state': 'error', 'error': str(e)})
-        pkdp('Exception: {} {}: ', p.pid, cmd, pkdexc())
+        pkdp('Exception: {} {} {}: ', p.pid if p else None, cmd, pkdexc())
         raise
     finally:
         if not p is None:
@@ -84,4 +84,6 @@ if MPI.COMM_WORLD.Get_rank():
 
 cfg = pkconfig.init(
     cores=(1, int, 'cores to use per run'),
+    slaves=(1, int, 'DEPRECATED: set $SIREPO_MPI_CORES'),
 )
+cfg.cores = max(cfg.cores, cfg.slaves)
