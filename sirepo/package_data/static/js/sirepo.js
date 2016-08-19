@@ -854,7 +854,8 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                     : 'a server error occurred';
                 resp.state = 'error';
             }
-            if (resp.state != 'running') {
+            resp.isStateRunning = resp.state == 'running' || resp.state == 'pending';
+            if (! resp.isStateRunning) {
                 handleResult(qi, resp);
                 return;
             }
@@ -936,7 +937,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 scope.timeData.elapsedTime = new Date(1970, 0, 1);
                 scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
             }
-            if (data.state == 'running') {
+            if (data.isStateRunning) {
                 scope.dots += '.';
                 if (scope.dots.length > 3)
                     scope.dots = '.';
@@ -946,6 +947,15 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             }
             scope.handleStatus(data);
         }
+
+        function isState(state) {
+            if (! appState.isLoaded())
+                return false;
+            for (var i = 1; i < arguments.length; i++)
+                if (state == arguments[i])
+                    return true;
+            return false;
+        };
 
         function runStatus() {
             scope.isReadyForModelChanges = true;
@@ -969,6 +979,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.simulationStatus = function() {
+            console.log(appState.models.simulationStatus[scope.model].state);
+            console.log(appState.models.simulationStatus[scope.model].isStateRunning);
             return appState.models.simulationStatus[scope.model];
         };
 
@@ -987,35 +999,34 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             return scope.timeData && scope.timeData.elapsedTime !== null;
         };
 
+        scope.isStatePending = function() {
+            var s = scope.simulationStatus();
+            return s.state == 'pending';
+        };
+
         scope.isInitializing = function() {
-            if (! scope.isStateStopped())
+            if (scope.isStateRunning() && ! scope.isStatePending())
                 return frameCache.getFrameCount() < 1;
             return false;
         };
 
-        scope.isState = function() {
-            if (! appState.isLoaded())
-                return false;
-            var s = scope.simulationState();
-            for (var i = 0; i < arguments.length; i++)
-                if (s == arguments[i])
-                    return true;
-            return false;
+        scope.isStateRunning = function() {
+            scope.simulationStatus().isStateRunning;
         };
 
         scope.isStateStopped = function() {
-            return ! scope.isState('running');
+            return ! scope.isStateRunning();
         };
 
         scope.runSimulation = function() {
-            if (! scope.isStateStopped())
+            if (scope.isStateRunning())
                 //TODO(robnagler) this shouldn't happen? (double click?)
                 return;
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
             scope.timeData.elapsedTime = null;
             scope.timeData.elapsedDays = null;
-            setSimulationStatus({state: 'running'});
+            setSimulationStatus({state: 'pending'});
             scope.simulationQueueItem = simulationQueue.addPersistentItem(
                 scope.model,
                 appState.models,

@@ -63,7 +63,7 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
 
     self.handleStatus = function(data) {
         frameCache.setFrameCount(data.frameCount);
-        if (data.state == 'running')
+        if (self.isStateRunning())
             self.percentComplete = data.percentComplete;
     };
 
