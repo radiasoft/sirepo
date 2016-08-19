@@ -17,16 +17,20 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     // be triggered. The function will be called after it stops being called for
     // N milliseconds.
     // taken from http://davidwalsh.name/javascript-debounce-function
-    function debounce(func, wait) {
-        var timeout;
+    function debounce(delayedFunc, milliseconds) {
+        var debounceInterval = null;
         return function() {
             var context = this, args = arguments;
             var later = function() {
-                timeout = null;
-                func.apply(context, args);
+                if (debounceInterval) {
+                    $interval.cancel(debounceInterval);
+                    debounceInterval = null;
+                }
+                delayedFunc.apply(context, args);
             };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+            if (debounceInterval)
+                $interval.cancel(debounceInterval);
+            debounceInterval = $interval(later, milliseconds, 1);
         };
     }
 
@@ -192,7 +196,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
                 scope.windowResize = debounce(function() {
                     scope.resize();
-                    //scope.$digest();
                 }, 250);
 
                 scope.$on('$destroy', function() {
