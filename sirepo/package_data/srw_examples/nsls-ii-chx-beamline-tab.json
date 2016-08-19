@@ -504,7 +504,7 @@
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": "0.4",
-            "isExample": "1",
+            "isExample": "",
             "name": "NSLS-II CHX beamline (tabulated)",
             "outOfSessionSimulationId": "",
             "photonEnergy": "9000",
