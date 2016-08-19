@@ -667,7 +667,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
-        if (data.state != 'running') {
+        if (self.isStateStopped()) {
             if (! data.frameCount) {
                 if (data.state == 'completed' && ! self.simulationErrors) {
                     // completed with no output, show link to elegant log
@@ -717,7 +717,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     self.originalRunSimulation = self.runSimulation;
     self.runSimulation = function() {
-        if (! self.isStateStopped())
+        if (self.isStateRunning())
             return;
         self.progress = null;
         self.outputFiles = [];

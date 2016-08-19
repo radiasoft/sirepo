@@ -22,10 +22,15 @@
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.iStopped()">
             <div data-run-simulation-fields=""></div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-hide="visualization.isStateStopped()">
-            <div class="col-sm-12">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateRunning()">
+            <div class="col-sm-12" data-ng-show="visualization.isStatePending()">
               <div>
-                Running {{ visualization.dots }}
+                {{ visualization.stateAsText() }}  {{ visualization.dots }}
+              </div>
+            </div>
+            <div class="col-sm-12" data-ng-hide="visualization.isStatePending()">
+              <div>
+                {{ visualization.stateAsText() }}  {{ visualization.dots }}
                 <div data-simulation-status-timer="visualization.timeData"></div>
               </div>
               <div class="progress">
