@@ -3,6 +3,8 @@
 SIREPO.srlog = console.log;
 SIREPO.srdbug = console.log;
 
+SIREPO.http_timeout = 10000;
+
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
@@ -541,7 +543,12 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
                 callback(resp);
             }
         };
-        simulationQueue.addTransientItem(name, appState.applicationState(), responseHandler, forceRun);
+        simulationQueue.addTransientItem(
+            name,
+            appState.applicationState(),
+            responseHandler,
+            forceRun
+        );
     }
 
     function setPanelValue(name, key, value) {
@@ -646,7 +653,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval) {
+SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout;
 
@@ -717,18 +724,49 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
     };
 
     self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
+        if (! errorCallback)
+            errorCallback = logError;
+        if (! successCallback)
+            successCallback = function () {};
         var url = urlOrName.indexOf('/') >= 0
             ? urlOrName
             : self.formatUrl(urlOrName);
-        var promise = data
-            ? $http.post(url, data)
-            : $http.get(url);
-        if (successCallback)
-            promise.success(successCallback);
-        if (errorCallback)
-            promise.error(errorCallback);
-        else
-            promise.error(logError);
+        var timeout = $q.defer();
+        var interval, t;
+        var timed_out = false;
+        t = {timeout: timeout.promise};
+        interval = $interval(
+            function () {
+                timed_out = true;
+                timeout.resolve();
+            },
+            SIREPO.http_timeout,
+            1
+        );
+        var req = data
+            ? $http.post(url, data, t)
+            : $http.get(url, t);
+        req.success(
+            function(resp, status) {
+                $interval.cancel(interval);
+                successCallback(resp, status);
+            }
+        );
+        req.error(
+            function(resp, status) {
+                $interval.cancel(interval);
+                if (timed_out) {
+                    resp = {
+                        state: 'error',
+                        error: 'request timed out after '
+                            + Math.round(SIREPO.http_timeout/1000)
+                            + ' seconds',
+                    };
+                    status = 503;
+                }
+                errorCallback(resp, status);
+            }
+        );
     };
 
     return self;
@@ -902,7 +940,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 scope.dots += '.';
                 if (scope.dots.length > 3)
                     scope.dots = '.';
-                }
+            }
             else {
                 scope.simulationQueueItem = null;
             }
@@ -935,7 +973,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.cancelSimulation = function() {
-            setSimulationStatus({state: 'stopped'});
+            setSimulationStatus({state: 'canceled'});
             simulationQueue.cancelItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
         };
@@ -987,7 +1025,14 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
 
         scope.stateAsText = function() {
             var s = scope.simulationState();
-            return s.charAt(0).toUpperCase() + s.slice(1);
+            var msg;
+            msg = s.charAt(0).toUpperCase() + s.slice(1);
+            if (s == 'error') {
+                var e = scope.simulationStatus().error;
+                if (e)
+                    msg += ': ' + e.split(/[\n\r]+/)[0];
+            }
+            return msg;
         };
 
         scope.persistentSimulationInit = function($scope) {

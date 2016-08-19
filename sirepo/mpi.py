@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 import os
 import re
@@ -23,7 +24,6 @@ def run_program(cmd, output='mpi_run.out', env=None):
         output (str): where to write stdout and stderr
         env (dict): what to pass as env
     """
-    p = None
     from sirepo import simulation_db
     try:
         cmd = [
@@ -34,30 +34,15 @@ def run_program(cmd, output='mpi_run.out', env=None):
             str(cfg.cores),
 
         ] + cmd
-        p = subprocess.Popen(
+        pksubprocess.check_call_with_signals(
             cmd,
-            stdin=open(os.devnull),
-            stdout=open(output, 'w'),
-            stderr=subprocess.STDOUT,
+            msg=pkdp,
+            output=str(output),
             env=env,
         )
-        pkdp('Started: {} {}', p.pid, cmd)
-        signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
-        rc = p.wait()
-        if rc != 0:
-            p = None
-            raise RuntimeError('child terminated: retcode={}'.format(rc))
-        pkdp('Stopped: {} {}', p.pid, cmd)
-        p = None
-    except BaseException as e:
-        #TODO: Clean result?? Just an exception as string
+    except Exception as e:
         simulation_db.write_result({'state': 'error', 'error': str(e)})
-        pkdp('Exception: {} {} {}: ', p.pid if p else None, cmd, pkdexc())
         raise
-    finally:
-        if not p is None:
-            pkdp('Terminating: {} {}', p.pid, cmd)
-            p.terminate()
 
 
 def run_script(script):

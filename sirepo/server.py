@@ -376,7 +376,7 @@ def app_run_cancel():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run_simulation():
     data = _parse_data_input(validate=True)
-    res = _simulation_run_status(data)
+    res = _simulation_run_status(data, quiet=True)
     if (
         (
             res['state'] != 'running'
@@ -631,17 +631,19 @@ def _save_new_and_reply(*args):
     return app_simulation_data(sim_type, sid)
 
 
-def _simulation_error(err, *args):
+def _simulation_error(err, *args, **kwargs):
     """Something unexpected went wrong.
 
     Parses ``err`` for error
 
     Args:
         err (str): exception or run_log
+        quiet (bool): don't write errors to log
     Returns:
         dict: error response
     """
-    pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
+    if not kwargs.get('quiet'):
+        pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
     if '\n' in err and not pkconfig.channel_in_internal_test():
         m = re.search(_SUBPROCESS_ERROR_RE, str(err))
         err = m.group(1) if m else 'unexpected error (see logs)'
@@ -665,11 +667,12 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_run_status(data):
+def _simulation_run_status(data, quiet=False):
     """Look for simulation status and output
 
     Args:
         data (dict): request
+        quiet (bool): don't write errors to log
 
     Returns:
         dict: status response
@@ -717,7 +720,7 @@ def _simulation_run_status(data):
                 'simulationType': cached_data['simulationType'],
             }
     except Exception:
-        return _simulation_error(pkdexc())
+        return _simulation_error(pkdexc(), quiet=quiet)
     return res
 
 
@@ -744,7 +747,7 @@ class _Background(object):
     # mutex for _job
     _lock = threading.Lock()
 
-    def __init__(self):
+    def __init__(self, data):
         with self._lock:
             self.jid = _job_id(data)
             assert not self.jid in self._job, \
@@ -829,6 +832,9 @@ class _Background(object):
     def _start_job(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
+
+        We don't use pksubprocess. This method is not called from the MainThread
+        so can't set signals.
         """
         try:
             pid = os.fork()
@@ -840,7 +846,7 @@ class _Background(object):
             return pid
         try:
             os.chdir(str(self.run_dir))
-            #os.setsid()
+            #Don't os.setsid() so signals propagate properly
             import resource
             maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
             if (maxfd == resource.RLIM_INFINITY):

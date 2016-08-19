@@ -10,13 +10,10 @@ pkconfig.append_load_path('sirepo')
 
 from celery import Celery
 from pykern import pkcollections
+from pykern import pkio
+from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
-import importlib
-import os
-import signal
-import subprocess
-import sys
 
 celery = Celery('sirepo')
 
@@ -64,30 +61,9 @@ def start_simulation(cmd, run_dir):
         cmd (list): simulation command line
         run_dir (py.path.local): directory
     """
-    try:
-        f = open(str(run_dir.join(template_common.RUN_LOG)), 'w')
-        msg = '{}: starting'.format(cmd)
-        pkdp('{}', msg)
-        f.write(msg + "\n")
-        f.flush()
-        p = subprocess.Popen(
+    with pkio.save_chdir(run_dir):
+        pksubprocess.check_call_with_signals(
             cmd,
-            stdin=open(os.devnull),
-            stdout=f,
-            stderr=subprocess.STDOUT,
+            msg=pkdp,
+            output=str(run_dir.join(template_common.RUN_LOG)),
         )
-        pkdp('Started: {} {}', p.pid, cmd)
-        signal.signal(signal.SIGTERM, lambda x, y: p.terminate())
-        rc = p.wait()
-        if rc != 0:
-            p = None
-            raise RuntimeError('child terminated: retcode={}'.format(rc))
-        pkdp('Stopped: {} {}', p.pid, cmd)
-        p = None
-    except BaseException as e:
-        pkdp('Exception: {} {} {}: ', p.pid if p else None, cmd, pkdexc())
-        raise
-    finally:
-        if not p is None:
-            pkdp('Terminating: {} {}', p.pid, cmd)
-            p.terminate()

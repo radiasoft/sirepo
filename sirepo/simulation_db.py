@@ -360,6 +360,7 @@ def read_result(run_dir):
     except Exception as e:
         err = pkdexc()
         if isinstance(e, IOError):
+            # Not found so return run.log as err
             rl = run_dir.join(template_common.RUN_LOG)
             try:
                 e = pkio.read_text(rl)
