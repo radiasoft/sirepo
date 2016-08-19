@@ -9,15 +9,15 @@
         "fileName": "mirror_2d.dat"
     },
     {
-        "fileName": "HFM_SESO.dat"
+        "fileName": "HFM_Rh7.6km.dat"
     },
     {
         "fileName": "Si_heat204.dat"
     },
     {
-        "fileName": "VFM_SESO.dat"
+        "fileName": "VFM_Rh5.4km.dat"
     },
     {
-        "fileName": "VM03rms.dat"
+        "fileName": "VDM.DAT"
     }
 ]
