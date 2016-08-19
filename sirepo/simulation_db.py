@@ -88,6 +88,19 @@ def app_version():
     return simulation_db.SCHEMA_COMMON['version']
 
 
+def celery_queue(data):
+    """Which queue to execute simulation in
+
+    Args:
+        data (dict): simulation parameters
+
+    Returns:
+        str: celery queue name
+    """
+    from sirepo import celery_tasks
+    return celery_tasks.queue_name(is_parallel(data))
+
+
 def examples(app):
     files = pkio.walk_tree(
         pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
@@ -341,17 +354,24 @@ def read_result(run_dir):
     err = None
     try:
         res = read_json(fn)
-        assert 'state' in res
+        if res and not 'state' in res:
+            # Old simulation, just say is canceled so restarts
+            return {'state': 'canceled'}, None
     except Exception as e:
         err = pkdexc()
         if isinstance(e, IOError):
+            # Not found so return run.log as err
             rl = run_dir.join(template_common.RUN_LOG)
             try:
-                return None, pkio.read_text(rl)
+                e = pkio.read_text(rl)
+                if e:
+                    err = e
             except:
                 pkdp('{}: error reading log: {}', rl, pkdexc())
         else:
             pkdp('{}: error reading output: {}', fn, err)
+    assert res or err, \
+        '{}: res or err must be truthy'.format(run_dir)
     return res, err
 
 

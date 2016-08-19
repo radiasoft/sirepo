@@ -13,8 +13,8 @@
     <link href="/static/css/sirepo.css?{{ version }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
-      <script src="/static/js/msie/html5shiv-3.7.2.min.js"></script>
-      <script src="/static/js/msie/respond-1.4.2.min.js"></script>
+      <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js"></script>
+      <script src="/static/js/ext/msie/respond-1.4.2.min.js"></script>
     <![endif]-->
   </head>
   <body>
@@ -25,25 +25,25 @@
     </nav>
     <div data-ng-view></div>
     <div data-app-footer="nav"></div>
-    <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/angular-1.4.2.min.js"></script>
-    <script src="/static/js/angular-route-1.4.2.min.js"></script>
+    <script src="/static/js/ext/ie10-viewport-bug-workaround.js"></script>
+    <script src="/static/js/ext/angular-1.4.2.min.js"></script>
+    <script src="/static/js/ext/angular-route-1.4.2.min.js"></script>
     <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
-    <script src="/static/js/jquery-2.1.4.min.js"></script>
-    <script src="/static/js/bootstrap-3.3.4.min.js"></script>
-    <script src="/static/js/ngDraggable.js"></script>
-    <script src="/static/js/modernizr-touch-2.8.3.min.js"></script>
-    <script src="/static/js/angular-d3.js?{{ version }}"></script>
-    <script src="/static/js/colorbar.js"></script>
-    <script src="/static/js/Blob.js"></script>
-    <script src="/static/js/canvas-toBlob.js"></script>
-    <script src="/static/js/FileSaver.js"></script>
-    <script src="/static/js/rgbcolor.js"></script>
-    <script src="/static/js/StackBlur.js"></script>
-    <script src="/static/js/canvg.js"></script>
-    <script src="/static/js/stacktrace-0.6.4.js"></script>
-    <script src="/static/js/split-pane-0.6.1.min.js"></script>
-    <script src="/static/js/angular-split-pane-1.2.0.js"></script>
+    <script src="/static/js/ext/jquery-2.1.4.min.js"></script>
+    <script src="/static/js/ext/bootstrap-3.3.4.min.js"></script>
+    <script src="/static/js/ext/ngDraggable.js"></script>
+    <script src="/static/js/ext/modernizr-touch-2.8.3.min.js"></script>
+    <script src="/static/js/ext/angular-d3.js?{{ version }}"></script>
+    <script src="/static/js/ext/colorbar.js"></script>
+    <script src="/static/js/ext/Blob.js"></script>
+    <script src="/static/js/ext/canvas-toBlob.js"></script>
+    <script src="/static/js/ext/FileSaver.js"></script>
+    <script src="/static/js/ext/rgbcolor.js"></script>
+    <script src="/static/js/ext/StackBlur.js"></script>
+    <script src="/static/js/ext/canvg.js"></script>
+    <script src="/static/js/ext/stacktrace-0.6.4.js"></script>
+    <script src="/static/js/ext/split-pane-0.6.1.min.js"></script>
+    <script src="/static/js/ext/angular-split-pane-1.2.0.js"></script>
     <script>
         var SIREPO = {
             APP_NAME:  '{{ app_name }}',

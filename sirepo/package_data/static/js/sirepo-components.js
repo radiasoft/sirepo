@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
 
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {

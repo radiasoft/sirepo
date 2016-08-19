@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 
