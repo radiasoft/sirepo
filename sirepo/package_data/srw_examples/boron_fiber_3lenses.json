@@ -1,375 +1,375 @@
 {
-  "models": {
-    "beamline": [
-      {
-        "absoluteFocusPosition": "70.6915", 
-        "attenuationLength": "6.257350e-3", 
-        "focalDistance": "17.6668", 
-        "focalPlane": 2, 
-        "horizontalApertureSize": 1, 
-        "id": 2, 
-        "material": "Be", 
-        "method": "server", 
-        "numberOfLenses": 3, 
-        "position": 36, 
-        "radius": 0.0005, 
-        "refractiveIndex": "4.716943e-6", 
-        "shape": 1, 
-        "title": "CRL", 
-        "type": "crl", 
-        "verticalApertureSize": 1, 
-        "wallThickness": 8e-05
-      }, 
-      {
-        "id": 4, 
-        "position": 70.1915, 
-        "title": "Watchpoint", 
-        "type": "watch"
-      }, 
-      {
-        "coreAttenuationLength": "3.637510e-6", 
-        "coreDiameter": 1e-05, 
-        "coreMaterial": "W", 
-        "coreRefractiveIndex": "4.129923e-5", 
-        "exteriorAttenuationLength": "2.412290e-3", 
-        "exteriorMaterial": "B", 
-        "exteriorRefractiveIndex": "6.228746e-6", 
-        "externalAttenuationLength": "2.412290e-3", 
-        "externalDiameter": 0.0001, 
-        "externalMaterial": "B", 
-        "externalRefractiveIndex": "6.228746e-6", 
-        "focalPlane": "2", 
-        "horizontalCenterPosition": 0,
-        "id": 5, 
-        "method": "server", 
-        "position": 70.1915, 
-        "title": "Fiber", 
-        "type": "fiber", 
-        "verticalCenterPosition": 0
-      }, 
-      {
-        "id": 6, 
-        "position": 70.85, 
-        "title": "Watchpoint", 
-        "type": "watch"
-      }
-    ], 
-    "electronBeam": {
-      "beamDefinition": "t", 
-      "beamSelector": "NSLS-II Low Beta Final", 
-      "current": 0.5, 
-      "drift": -1.54, 
-      "driftCalculationMethod": "auto", 
-      "energy": 3, 
-      "energyDeviation": 0, 
-      "horizontalAlpha": 0, 
-      "horizontalBeta": 2.02, 
-      "horizontalDispersion": 0, 
-      "horizontalDispersionDerivative": 0, 
-      "horizontalEmittance": 0.55, 
-      "horizontalPosition": 0, 
-      "isReadOnly": true, 
-      "name": "NSLS-II Low Beta Final", 
-      "rmsDivergX": 16.50082506188016, 
-      "rmsDivergY": 2.7472112789737806, 
-      "rmsSizeX": 33.33166662499792, 
-      "rmsSizeY": 2.9120439557122078, 
-      "rmsSpread": 0.00089, 
-      "verticalAlpha": 0, 
-      "verticalBeta": 1.06, 
-      "verticalDispersion": 0, 
-      "verticalDispersionDerivative": 0, 
-      "verticalEmittance": 0.008, 
-      "verticalPosition": 0, 
-      "xxprX": 0, 
-      "xxprY": 0
-    }, 
-    "electronBeams": [], 
-    "fluxAnimation": {
-      "azimuthalPrecision": 1, 
-      "distanceFromSource": 20, 
-      "finalEnergy": 20000, 
-      "finalHarmonic": 15, 
-      "fluxType": 1, 
-      "horizontalApertureSize": "1", 
-      "horizontalPosition": 0, 
-      "initialEnergy": 10000, 
-      "initialHarmonic": 1, 
-      "longitudinalPrecision": 1, 
-      "magneticField": 2, 
-      "method": 1, 
-      "numberOfMacroElectrons": 100000, 
-      "photonEnergyPointCount": 1000, 
-      "polarization": 6, 
-      "precision": 0.01, 
-      "verticalApertureSize": "1", 
-      "verticalPosition": 0
-    }, 
-    "fluxReport": {
-      "azimuthalPrecision": 1, 
-      "distanceFromSource": 20, 
-      "finalEnergy": 20000, 
-      "finalHarmonic": 15, 
-      "fluxType": 1, 
-      "horizontalApertureSize": "1", 
-      "horizontalPosition": 0, 
-      "initialEnergy": "100", 
-      "initialHarmonic": 1, 
-      "longitudinalPrecision": 1, 
-      "magneticField": 1, 
-      "method": -1, 
-      "numberOfMacroElectrons": 1, 
-      "photonEnergyPointCount": 10000, 
-      "polarization": 6, 
-      "precision": 0.01, 
-      "verticalApertureSize": "1", 
-      "verticalPosition": 0
-    }, 
-    "gaussianBeam": {
-      "energyPerPulse": "0.001", 
-      "polarization": 1, 
-      "rmsPulseDuration": 0.1, 
-      "rmsSizeX": "9.78723", 
-      "rmsSizeY": "9.78723", 
-      "waistAngleX": 0, 
-      "waistAngleY": 0, 
-      "waistX": 0, 
-      "waistY": 0, 
-      "waistZ": 0
-    }, 
-    "initialIntensityReport": {
-      "characteristic": 0, 
-      "fieldUnits": 1, 
-      "polarization": 6, 
-      "precision": 0.01
-    }, 
-    "intensityReport": {
-      "distanceFromSource": 20, 
-      "fieldUnits": "1", 
-      "finalEnergy": "20000", 
-      "horizontalPosition": "0", 
-      "initialEnergy": "100", 
-      "magneticField": "1", 
-      "method": "1", 
-      "photonEnergyPointCount": 10000, 
-      "polarization": 6, 
-      "precision": 0.01, 
-      "verticalPosition": 0
-    }, 
-    "multiElectronAnimation": {
-      "horizontalPosition": 0, 
-      "horizontalRange": "0.4", 
-      "numberOfMacroElectrons": 100000, 
-      "stokesParameter": "0", 
-      "verticalPosition": 0, 
-      "verticalRange": "0.6"
-    }, 
-    "multipole": {
-      "distribution": "n", 
-      "field": 0.4, 
-      "length": 3, 
-      "order": 1
-    }, 
-    "panelState": {
-      "hidden": []
-    }, 
-    "postPropagation": [
-      0, 
-      0, 
-      1, 
-      0, 
-      0, 
-      "0.7", 
-      "2", 
-      "0.2", 
-      "10"
-    ], 
-    "powerDensityReport": {
-      "distanceFromSource": 20, 
-      "horizontalPointCount": 100, 
-      "horizontalPosition": "0", 
-      "horizontalRange": "15", 
-      "method": 1, 
-      "precision": "1", 
-      "verticalPointCount": 100, 
-      "verticalPosition": 0, 
-      "verticalRange": "15"
-    }, 
-    "propagation": {
-      "2": [
-        [
-          0, 
-          0, 
-          1, 
-          0, 
-          0, 
-          "1", 
-          "1", 
-          "1", 
-          "1"
-        ], 
-        [
-          0, 
-          0, 
-          1, 
-          1, 
-          0, 
-          "1", 
-          1, 
-          1, 
-          1
-        ]
-      ], 
-      "4": [
-        [
-          0, 
-          0, 
-          1, 
-          0, 
-          0, 
-          1, 
-          1, 
-          1, 
-          1
-        ], 
-        [
-          0, 
-          0, 
-          1, 
-          1, 
-          0, 
-          1, 
-          1, 
-          1, 
-          1
-        ]
-      ], 
-      "5": [
-        [
-          0, 
-          0, 
-          1, 
-          0, 
-          0, 
-          1, 
-          1, 
-          1, 
-          1
-        ], 
-        [
-          0, 
-          0, 
-          1, 
-          1, 
-          0, 
-          1, 
-          1, 
-          1, 
-          "1"
-        ]
-      ], 
-      "6": [
-        [
-          0, 
-          0, 
-          1, 
-          0, 
-          0, 
-          1, 
-          1, 
-          1, 
-          1
-        ], 
-        [
-          0, 
-          0, 
-          1, 
-          1, 
-          0, 
-          1, 
-          1, 
-          1, 
-          1
-        ]
-      ]
-    }, 
-    "simulation": {
-      "documentationUrl": "https://github.com/radiasoft/sirepo/wiki/SRW-Fiber", 
-      "facility": "", 
-      "folder": "/Examples", 
-      "horizontalPointCount": 100, 
-      "horizontalPosition": 0, 
-      "horizontalRange": 0.8, 
-      "isExample": "1",
-      "name": "Boron Fiber (CRL with 3 lenses)", 
-      "outOfSessionSimulationId": "",
-      "photonEnergy": 8500.63, 
-      "sampleFactor": 0.7, 
-      "samplingMethod": 1, 
-      "simulationId": "5FZBa7pv", 
-      "sourceType": "u", 
-      "verticalPointCount": 100, 
-      "verticalPosition": 0, 
-      "verticalRange": 0.7
-    }, 
-    "simulationStatus": {}, 
-    "sourceIntensityReport": {
-      "characteristic": 0, 
-      "distanceFromSource": 20, 
-      "fieldUnits": 1, 
-      "polarization": 6, 
-      "precision": 0.01
-    }, 
-    "tabulatedUndulator": {
-      "gap": 6.72, 
-      "horizontalAmplitude": 0, 
-      "horizontalInitialPhase": 0, 
-      "horizontalSymmetry": 1, 
-      "indexFile": "", 
-      "length": 2.500648, 
-      "longitudinalPosition": 1.305, 
-      "magneticFile": "magnetic_measurements.zip", 
-      "period": 21, 
-      "phase": 0, 
-      "undulatorParameter": 1.56866479, 
-      "undulatorType": "u_t", 
-      "verticalAmplitude": 0.8, 
-      "verticalInitialPhase": 0, 
-      "verticalSymmetry": -1
-    }, 
-    "trajectoryReport": {
-      "finalTimeMoment": 0, 
-      "initialTimeMoment": 0, 
-      "magneticField": 2, 
-      "numberOfPoints": 10000, 
-      "plotAxis": "x", 
-      "timeMomentEstimation": "auto"
-    }, 
-    "undulator": {
-      "horizontalAmplitude": "0", 
-      "horizontalInitialPhase": 0, 
-      "horizontalSymmetry": 1, 
-      "length": 3, 
-      "longitudinalPosition": 1.25, 
-      "period": "20", 
-      "undulatorParameter": 1.73972395, 
-      "verticalAmplitude": 0.9316, 
-      "verticalInitialPhase": 0, 
-      "verticalSymmetry": -1
-    }, 
-    "watchpointReport4": {
-      "characteristic": 0, 
-      "fieldUnits": 1, 
-      "polarization": 6, 
-      "precision": 0.01
-    }, 
-    "watchpointReport6": {
-      "characteristic": "1", 
-      "fieldUnits": 1, 
-      "polarization": 6, 
-      "precision": 0.01
-    }
-  }, 
-  "simulationType": "srw", 
-  "version": "20160814"
+    "models": {
+        "beamline": [
+            {
+                "absoluteFocusPosition": "70.6915",
+                "attenuationLength": "6.257350e-3",
+                "focalDistance": "17.6668",
+                "focalPlane": 2,
+                "horizontalApertureSize": 1,
+                "id": 2,
+                "material": "Be",
+                "method": "server",
+                "numberOfLenses": 3,
+                "position": 36,
+                "radius": 0.0005,
+                "refractiveIndex": "4.716943e-6",
+                "shape": 1,
+                "title": "CRL",
+                "type": "crl",
+                "verticalApertureSize": 1,
+                "wallThickness": 8e-05
+            },
+            {
+                "id": 4,
+                "position": 70.1915,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "coreAttenuationLength": "3.637510e-6",
+                "coreDiameter": 1e-05,
+                "coreMaterial": "W",
+                "coreRefractiveIndex": "4.129923e-5",
+                "exteriorAttenuationLength": "2.412290e-3",
+                "exteriorMaterial": "B",
+                "exteriorRefractiveIndex": "6.228746e-6",
+                "externalAttenuationLength": "2.412290e-3",
+                "externalDiameter": 0.0001,
+                "externalMaterial": "B",
+                "externalRefractiveIndex": "6.228746e-6",
+                "focalPlane": "2",
+                "horizontalCenterPosition": 0,
+                "id": 5,
+                "method": "server",
+                "position": 70.1915,
+                "title": "Fiber",
+                "type": "fiber",
+                "verticalCenterPosition": 0
+            },
+            {
+                "id": 6,
+                "position": 70.85,
+                "title": "Watchpoint",
+                "type": "watch"
+            }
+        ],
+        "electronBeam": {
+            "beamDefinition": "t",
+            "beamSelector": "NSLS-II Low Beta Final",
+            "current": 0.5,
+            "drift": -1.54,
+            "driftCalculationMethod": "auto",
+            "energy": 3,
+            "energyDeviation": 0,
+            "horizontalAlpha": 0,
+            "horizontalBeta": 2.02,
+            "horizontalDispersion": 0,
+            "horizontalDispersionDerivative": 0,
+            "horizontalEmittance": 0.55,
+            "horizontalPosition": 0,
+            "isReadOnly": true,
+            "name": "NSLS-II Low Beta Final",
+            "rmsDivergX": 16.50082506188016,
+            "rmsDivergY": 2.7472112789737806,
+            "rmsSizeX": 33.33166662499792,
+            "rmsSizeY": 2.9120439557122078,
+            "rmsSpread": 0.00089,
+            "verticalAlpha": 0,
+            "verticalBeta": 1.06,
+            "verticalDispersion": 0,
+            "verticalDispersionDerivative": 0,
+            "verticalEmittance": 0.008,
+            "verticalPosition": 0,
+            "xxprX": 0,
+            "xxprY": 0
+        },
+        "electronBeams": [],
+        "fluxAnimation": {
+            "azimuthalPrecision": 1,
+            "distanceFromSource": 20,
+            "finalEnergy": 20000,
+            "finalHarmonic": 15,
+            "fluxType": 1,
+            "horizontalApertureSize": "1",
+            "horizontalPosition": 0,
+            "initialEnergy": 10000,
+            "initialHarmonic": 1,
+            "longitudinalPrecision": 1,
+            "magneticField": 2,
+            "method": 1,
+            "numberOfMacroElectrons": 100000,
+            "photonEnergyPointCount": 1000,
+            "polarization": 6,
+            "precision": 0.01,
+            "verticalApertureSize": "1",
+            "verticalPosition": 0
+        },
+        "fluxReport": {
+            "azimuthalPrecision": 1,
+            "distanceFromSource": 20,
+            "finalEnergy": 20000,
+            "finalHarmonic": 15,
+            "fluxType": 1,
+            "horizontalApertureSize": "1",
+            "horizontalPosition": 0,
+            "initialEnergy": "100",
+            "initialHarmonic": 1,
+            "longitudinalPrecision": 1,
+            "magneticField": 1,
+            "method": -1,
+            "numberOfMacroElectrons": 1,
+            "photonEnergyPointCount": 10000,
+            "polarization": 6,
+            "precision": 0.01,
+            "verticalApertureSize": "1",
+            "verticalPosition": 0
+        },
+        "gaussianBeam": {
+            "energyPerPulse": "0.001",
+            "polarization": 1,
+            "rmsPulseDuration": 0.1,
+            "rmsSizeX": "9.78723",
+            "rmsSizeY": "9.78723",
+            "waistAngleX": 0,
+            "waistAngleY": 0,
+            "waistX": 0,
+            "waistY": 0,
+            "waistZ": 0
+        },
+        "initialIntensityReport": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        },
+        "intensityReport": {
+            "distanceFromSource": 20,
+            "fieldUnits": "1",
+            "finalEnergy": "20000",
+            "horizontalPosition": "0",
+            "initialEnergy": "100",
+            "magneticField": "1",
+            "method": "1",
+            "photonEnergyPointCount": 10000,
+            "polarization": 6,
+            "precision": 0.01,
+            "verticalPosition": 0
+        },
+        "multiElectronAnimation": {
+            "horizontalPosition": 0,
+            "horizontalRange": "0.4",
+            "numberOfMacroElectrons": 100000,
+            "stokesParameter": "0",
+            "verticalPosition": 0,
+            "verticalRange": "0.6"
+        },
+        "multipole": {
+            "distribution": "n",
+            "field": 0.4,
+            "length": 3,
+            "order": 1
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "postPropagation": [
+            0,
+            0,
+            1,
+            0,
+            0,
+            "0.7",
+            "2",
+            "0.2",
+            "10"
+        ],
+        "powerDensityReport": {
+            "distanceFromSource": 20,
+            "horizontalPointCount": 100,
+            "horizontalPosition": "0",
+            "horizontalRange": "15",
+            "method": 1,
+            "precision": "1",
+            "verticalPointCount": 100,
+            "verticalPosition": 0,
+            "verticalRange": "15"
+        },
+        "propagation": {
+            "2": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    "1",
+                    "1",
+                    "1",
+                    "1"
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    "1",
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "4": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "5": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    "1"
+                ]
+            ],
+            "6": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ]
+        },
+        "simulation": {
+            "documentationUrl": "https://github.com/radiasoft/sirepo/wiki/SRW-Fiber",
+            "facility": "",
+            "folder": "/Examples",
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0,
+            "horizontalRange": 0.8,
+            "isExample": "1",
+            "name": "Boron Fiber (CRL with 3 lenses)",
+            "outOfSessionSimulationId": "",
+            "photonEnergy": 8500.63,
+            "sampleFactor": 0.7,
+            "samplingMethod": 1,
+            "simulationId": "5FZBa7pv",
+            "sourceType": "u",
+            "verticalPointCount": 100,
+            "verticalPosition": 0,
+            "verticalRange": 0.7
+        },
+        "simulationStatus": {},
+        "sourceIntensityReport": {
+            "characteristic": 0,
+            "distanceFromSource": 20,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        },
+        "tabulatedUndulator": {
+            "gap": 6.72,
+            "horizontalAmplitude": 0,
+            "horizontalInitialPhase": 0,
+            "horizontalSymmetry": 1,
+            "indexFile": "",
+            "length": 2.500648,
+            "longitudinalPosition": 1.305,
+            "magneticFile": "magnetic_measurements.zip",
+            "period": 21,
+            "phase": 0,
+            "undulatorParameter": 1.56866479,
+            "undulatorType": "u_t",
+            "verticalAmplitude": 0.8,
+            "verticalInitialPhase": 0,
+            "verticalSymmetry": -1
+        },
+        "trajectoryReport": {
+            "finalTimeMoment": 0,
+            "initialTimeMoment": 0,
+            "magneticField": 2,
+            "numberOfPoints": 10000,
+            "plotAxis": "x",
+            "timeMomentEstimation": "auto"
+        },
+        "undulator": {
+            "horizontalAmplitude": "0",
+            "horizontalInitialPhase": 0,
+            "horizontalSymmetry": 1,
+            "length": 3,
+            "longitudinalPosition": 1.25,
+            "period": "20",
+            "undulatorParameter": 1.73972395,
+            "verticalAmplitude": 0.9316,
+            "verticalInitialPhase": 0,
+            "verticalSymmetry": -1
+        },
+        "watchpointReport4": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        },
+        "watchpointReport6": {
+            "characteristic": "1",
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
+        }
+    },
+    "simulationType": "srw",
+    "version": "20160814"
 }
