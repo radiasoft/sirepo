@@ -599,7 +599,7 @@ def _json_input():
 
 def _json_response(value):
     return app.response_class(
-        simulation_db.generate_json_response(value),
+        simulation_db.generate_pretty_json(value),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
 
