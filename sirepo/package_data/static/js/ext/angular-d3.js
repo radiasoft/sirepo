@@ -14,7 +14,7 @@ angular.module('d3', [])
         var scriptTag = $document[0].createElement('script');
         scriptTag.type = 'text/javascript';
         scriptTag.async = true;
-        scriptTag.src = '/static/js/d3-3.5.9.min.js';
+        scriptTag.src = '/static/js/ext/d3-3.5.9.min.js';
         scriptTag.onreadystatechange = function () {
             if (this.readyState == 'complete') onScriptLoad();
         };
