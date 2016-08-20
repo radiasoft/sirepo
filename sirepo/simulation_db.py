@@ -85,7 +85,7 @@ def app_version():
     """
     if pkconfig.channel_in('dev'):
         return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
-    return simulation_db.SCHEMA_COMMON['version']
+    return SCHEMA_COMMON['version']
 
 
 def celery_queue(data):

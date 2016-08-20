@@ -67,17 +67,17 @@
                 "grazingAngle": 3.141592653998904,
                 "heightAmplification": 1,
                 "heightProfileDimension": 1,
-                "heightProfileFile": null,
+                "heightProfileFile": "HFM_Rh7.6km.dat",
                 "id": 15,
                 "normalVectorX": 0.9999950652018569,
                 "normalVectorY": 0,
-                "normalVectorZ": -0.003141587486288672,
-                "orientation": "y",
+                "normalVectorZ": -0.003141587486289768,
+                "orientation": "x",
                 "position": 34.88244,
                 "radius": 7100,
                 "sagittalSize": 0.04,
                 "tangentialSize": 0.5,
-                "tangentialVectorX": 0.003141587486288672,
+                "tangentialVectorX": 0.003141587486289768,
                 "tangentialVectorY": 0,
                 "title": "HFM",
                 "type": "sphericalMirror"
@@ -86,19 +86,38 @@
                 "grazingAngle": 3.141592653998904,
                 "heightAmplification": 1,
                 "heightProfileDimension": 1,
-                "heightProfileFile": null,
+                "heightProfileFile": "VFM_Rh5.4km.dat",
                 "id": 16,
                 "normalVectorX": 0,
                 "normalVectorY": 0.9999950652018569,
-                "normalVectorZ": -0.003141587486289768,
-                "orientation": "x",
+                "normalVectorZ": -0.003141587486288672,
+                "orientation": "y",
                 "position": 38.30244,
                 "radius": 6100,
                 "sagittalSize": 0.04,
                 "tangentialSize": 0.4,
                 "tangentialVectorX": 0,
-                "tangentialVectorY": 0.003141587486289768,
+                "tangentialVectorY": 0.003141587486288672,
                 "title": "VFM",
+                "type": "sphericalMirror"
+            },
+            {
+                "grazingAngle": 3.1415926,
+                "heightAmplification": 1,
+                "heightProfileDimension": 1,
+                "heightProfileFile": "VDM.dat",
+                "id": 20,
+                "normalVectorX": 0,
+                "normalVectorY": 0.9999950652020265,
+                "normalVectorZ": -0.003141587432290035,
+                "orientation": "y",
+                "position": 39,
+                "radius": 300000,
+                "sagittalSize": 0.04,
+                "tangentialSize": 0.4,
+                "tangentialVectorX": 0,
+                "tangentialVectorY": 0.003141587432290035,
+                "title": "VDM",
                 "type": "sphericalMirror"
             },
             {
@@ -248,19 +267,19 @@
             "grazingAngle": 3.141592653998904,
             "heightAmplification": 1,
             "heightProfileDimension": 1,
-            "heightProfileFile": "VFM_SESO.dat",
-            "id": 16,
-            "normalVectorX": 0,
-            "normalVectorY": 0.9999950652018569,
+            "heightProfileFile": "HFM_Rh7.6km.dat",
+            "id": 15,
+            "normalVectorX": 0.9999950652018569,
+            "normalVectorY": 0,
             "normalVectorZ": -0.003141587486289768,
             "orientation": "x",
-            "position": 38.30244,
-            "radius": 6100,
+            "position": 34.88244,
+            "radius": 7100,
             "sagittalSize": 0.04,
-            "tangentialSize": 0.4,
-            "tangentialVectorX": 0,
-            "tangentialVectorY": 0.003141587486289768,
-            "title": "VFM",
+            "tangentialSize": 0.5,
+            "tangentialVectorX": 0.003141587486289768,
+            "tangentialVectorY": 0,
+            "title": "HFM",
             "type": "sphericalMirror"
         },
         "multiElectronAnimation": {
@@ -348,9 +367,9 @@
                     1,
                     0,
                     0,
+                    "3",
                     "1",
-                    "1",
-                    "1",
+                    "3",
                     "1"
                 ],
                 [
@@ -485,6 +504,30 @@
                     1
                 ]
             ],
+            "20": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
             "8": [
                 [
                     0,
@@ -520,13 +563,13 @@
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 0.4,
-            "isExample": "",
+            "isExample": "0",
             "name": "NSLS-II SMI beamline",
             "outOfSessionSimulationId": "",
             "photonEnergy": 20358,
             "sampleFactor": 1.5,
             "samplingMethod": "1",
-            "simulationId": "Ebrm1jOZ",
+            "simulationId": "Jz3f8nYM",
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
@@ -534,8 +577,14 @@
         },
         "simulationStatus": {
             "multiElectronAnimation": {
-                "startTime": 1471584105,
-                "state": "running"
+                "elapsedTime": 0,
+                "frameCount": 0,
+                "lastUpdateTime": 1471633722,
+                "parametersChanged": null,
+                "percentComplete": 0,
+                "report": "multiElectronAnimation",
+                "startTime": 1471633722,
+                "state": "stopped"
             }
         },
         "sourceIntensityReport": {
@@ -583,21 +632,20 @@
             "verticalSymmetry": -1
         },
         "watchpointReport18": {
-            "characteristic": 0,
+            "characteristic": "0",
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.008,
             "sampleFactor": 0
         },
         "watchpointReport19": {
-            "characteristic": 0,
+            "characteristic": "0",
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.008,
             "sampleFactor": 0
         }
     },
-    "report": "watchpointReport19",
     "simulationType": "srw",
-    "version": "20160814"
+    "version": "20160817.000000"
 }
