@@ -13,6 +13,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
 import datetime
+import errno
 import flask
 import glob
 import json
@@ -360,6 +361,9 @@ def read_result(run_dir):
     except Exception as e:
         err = pkdexc()
         if isinstance(e, IOError):
+            if e.errno == errno.ENOENT:
+                #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
+                err = 'ERROR: Terminated unexpectedly'
             # Not found so return run.log as err
             rl = run_dir.join(template_common.RUN_LOG)
             try:

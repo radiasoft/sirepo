@@ -46,7 +46,7 @@ _BEAKER_LOCK_DIR = 'lock'
 _EMPTY_JSON_RESPONSE = '{}'
 
 #: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
@@ -644,9 +644,13 @@ def _simulation_error(err, *args, **kwargs):
     """
     if not kwargs.get('quiet'):
         pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
-    if '\n' in err and not pkconfig.channel_in_internal_test():
-        m = re.search(_SUBPROCESS_ERROR_RE, str(err))
-        err = m.group(1) if m else 'unexpected error (see logs)'
+    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
+    if m:
+        err = m.group(1)
+        if re.search(r'error exit\(-15\)', err):
+            err = 'Terminated'
+    elif not pkconfig.channel_in_internal_test():
+        err = 'unexpected error (see logs)'
     return {'state': 'error', 'error': err}
 
 
@@ -907,6 +911,8 @@ class _Celery(object):
     def is_processing(cls, jid):
         """Job is either in the queue or running"""
         with cls._lock:
+            res = cls._async_result(jid)
+            pkdp('{} {} {}', jid, res, res.state if res else None)
             return cls._async_result(jid) is not None
 
     @classmethod
@@ -917,7 +923,7 @@ class _Celery(object):
             res = cls._async_result(jid)
             if res is None:
                 return False
-            pkdp('{} res.status', res.status)
+            pkdp('{} {} {}', jid, res, res.state)
             return res.status in (celery.states.STARTED, celery.states.RECEIVED)
 
 
@@ -947,6 +953,8 @@ class _Celery(object):
             except KeyError:
                 return None
             res = self.async_result
+            if res:
+                pkdp('{} {} {} {}', jid, res, res.ready(), res.state)
             if not res or res.ready():
                 del self._job[jid]
                 return None

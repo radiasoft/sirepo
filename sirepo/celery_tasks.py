@@ -33,12 +33,12 @@ celery.conf.update(
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_SOFT_TIME_LIMIT=celery.conf['CELERYD_TASK_TIME_LIMIT'] - 10,
     CELERY_ACKS_LATE=True,
+    CELERY_REDIRECT_STDOUTS=not pkconfig.channel_in('dev'),
     CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
-#TODO(robnagler) stdout/error to a log file but for dev this makes sense
-    CELERY_REDIRECT_STDOUTS=False,
+    CELERY_TRACK_STARTED=True,
 )
 
 def queue_name(is_parallel):

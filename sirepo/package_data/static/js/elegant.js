@@ -717,7 +717,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     self.originalRunSimulation = self.runSimulation;
     self.runSimulation = function() {
-        if (self.isStateRunning())
+        if (self.isStateProcessing())
             return;
         self.progress = null;
         self.outputFiles = [];
