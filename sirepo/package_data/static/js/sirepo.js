@@ -3,7 +3,7 @@
 SIREPO.srlog = console.log;
 SIREPO.srdbug = console.log;
 
-SIREPO.http_timeout = 10000;
+SIREPO.http_timeout = 60000;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
