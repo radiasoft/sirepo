@@ -955,7 +955,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 if (state == arguments[i])
                     return true;
             return false;
-        };
+        }
 
         function runStatus() {
             scope.isReadyForModelChanges = true;
