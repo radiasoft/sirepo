@@ -694,7 +694,10 @@ def _simulation_run_status(data, quiet=False):
                     'state': 'running' if cfg.job_queue.is_running(jid) else 'pending'
                 }
             else:
-                return _simulation_error('input file not found, but job is running', input_file)
+                return _simulation_error(
+                    'input file not found, but job is running',
+                    input_file,
+                )
         elif run_dir.exists():
             res, err = simulation_db.read_result(run_dir)
             if err:
@@ -911,29 +914,26 @@ class _Celery(object):
     def is_processing(cls, jid):
         """Job is either in the queue or running"""
         with cls._lock:
-            res = cls._async_result(jid)
-            pkdp('{} {} {}', jid, res, res.state if res else None)
-            return cls._async_result(jid) is not None
+            return bool(cls._find_job(jid))
 
     @classmethod
     def is_running(cls, jid):
         """Job is actually running"""
-        import celery.states
         with cls._lock:
-            res = cls._async_result(jid)
-            if res is None:
+            self = cls._find_job(jid)
+            if self is None:
                 return False
-            pkdp('{} {} {}', jid, res, res.state)
-            return res.status in (celery.states.STARTED, celery.states.RECEIVED)
+            return 'running' == simulation_db.read_status(self.run_dir)
 
 
     @classmethod
     def kill(cls, jid):
         from celery.exceptions import TimeoutError
         with cls._lock:
-            res = cls._async_result(jid)
-            if not res:
+            self = cls._find_job(jid)
+            if not self:
                 return
+            res = self.async_result
             pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
@@ -947,18 +947,16 @@ class _Celery(object):
                 pass
 
     @classmethod
-    def _async_result(cls, jid):
+    def _find_job(cls, jid):
             try:
                 self = cls._job[jid]
             except KeyError:
                 return None
             res = self.async_result
-            if res:
-                pkdp('{} {} {} {}', jid, res, res.ready(), res.state)
             if not res or res.ready():
                 del self._job[jid]
                 return None
-            return res
+            return self
 
     def _start_job(self):
         """Detach a process from the controlling terminal and run it in the

@@ -62,6 +62,9 @@ _LIB_DIR = 'lib'
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
+#: Status file name
+_STATUS_FILE = 'status'
+
 #: created under dir
 _TMP_DIR = 'tmp'
 
@@ -290,6 +293,7 @@ def prepare_simulation(data):
     #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
     #   probably can only do with celery.
     pkio.mkdir_parent(run_dir)
+    write_status('pending', run_dir)
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
@@ -377,6 +381,18 @@ def read_result(run_dir):
     assert res or err, \
         '{}: res or err must be truthy'.format(run_dir)
     return res, err
+
+
+def read_status(run_dir):
+    """Read status from simulation dir
+
+    Args:
+        run_dir (py.path): where to read
+    """
+    try:
+        return pkio.read_text(run_dir.join(_STATUS_FILE))
+    except IOError:
+        return 'error'
 
 
 def save_new_example(simulation_type, data):
@@ -494,6 +510,17 @@ def write_result(result, run_dir=None):
         return
     result.setdefault('state', 'completed')
     write_json(fn, result)
+    write_status(result['state'], run_dir)
+
+
+def write_status(status, run_dir):
+    """Write status to simulation
+
+    Args:
+        status (str): pending, running, completed, canceled
+        run_dir (py.path): where to write the file
+    """
+    pkio.write_text(run_dir.join(_STATUS_FILE), status)
 
 
 def _create_example_and_lib_files(simulation_type):

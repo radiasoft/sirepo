@@ -38,7 +38,6 @@ celery.conf.update(
     CELERY_RESULT_PERSISTENT=True,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
-    CELERY_TRACK_STARTED=True,
 )
 
 def queue_name(is_parallel):
@@ -61,6 +60,9 @@ def start_simulation(cmd, run_dir):
         cmd (list): simulation command line
         run_dir (py.path.local): directory
     """
+    # Avoid circular import
+    from sirepo import simulation_db
+    simulation_db.write_status('running', run_dir)
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(
             cmd,
