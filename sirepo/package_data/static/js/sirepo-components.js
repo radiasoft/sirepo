@@ -750,7 +750,10 @@ SIREPO.app.directive('modalEditor', function(appState) {
             }
             if (! $scope.modalTitle)
                 $scope.modalTitle = viewInfo.title;
-            $scope.$on('modelChanged', hideModal);
+            $scope.$on('modelChanged', function (e, name) {
+                if (name == $scope.modelName)
+                    hideModal();
+            });
             $scope.$on('cancelChanges', hideModal);
         },
         link: function(scope, element) {

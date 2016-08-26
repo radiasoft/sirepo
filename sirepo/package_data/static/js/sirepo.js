@@ -1,9 +1,10 @@
 'use strict';
 
 SIREPO.srlog = console.log;
-SIREPO.srdbug = console.log;
+SIREPO.srdbg = console.log;
 
-SIREPO.http_timeout = 60000;
+// No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
+SIREPO.http_timeout = 0;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
@@ -40,6 +41,26 @@ SIREPO.appDefaultSimulationValues = {
     simulationFolder: {},
 };
 
+angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
+    $provide.decorator('$rootScope', function ($delegate) {
+        var _emit = $delegate.$emit;
+        var _broadcast = $delegate.$broadcast;
+
+        $delegate.$emit = function () {
+            srdbg("[$emit] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
+            return _emit.apply(this, arguments);
+        };
+
+        $delegate.$broadcast = function () {
+            srdbg("[$broadcast] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
+            return _broadcast.apply(this, arguments);
+        };
+
+        return $delegate;
+    });
+}]);
+
+// Add "log-broadcasts" in dependencies if you want to see all broadcasts
 SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
@@ -432,7 +453,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             index,
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('*');
-
         var requestFunction = function() {
             requestSender.sendRequest(
                 requestSender.formatUrl(
@@ -735,14 +755,15 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         var interval, t;
         var timed_out = false;
         t = {timeout: timeout.promise};
-        interval = $interval(
-            function () {
-                timed_out = true;
-                timeout.resolve();
-            },
-            SIREPO.http_timeout,
-            1
-        );
+        if (SIREPO.http_timeout > 0) {
+            interval = $interval(
+                function () {
+                    timed_out = true;
+                    timeout.resolve();
+                },
+                SIREPO.http_timeout,
+                1
+            );
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
@@ -838,6 +859,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 Math.max(1, resp.nextRequestSeconds) * 1000,
                 1
             );
+
             if (qi.persistent)
                 qi.responseHandler(resp);
         };
