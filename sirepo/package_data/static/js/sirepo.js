@@ -764,6 +764,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
                 SIREPO.http_timeout,
                 1
             );
+        }
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
