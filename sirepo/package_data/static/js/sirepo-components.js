@@ -1200,7 +1200,7 @@ SIREPO.app.service('fileUpload', function($http) {
             .success(callback)
             .error(function(){
                 //TODO(pjm): error handling
-                console.log('file upload failed');
+                srlog('file upload failed');
             });
     };
 });

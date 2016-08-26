@@ -4,16 +4,23 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="simulationStatus"></div>
         <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-hide="dynamics.isStateStopped()">
-            <div class="col-sm-12">
-              <div data-ng-show="dynamics.isInitializing()">
-                Initializing Laser Pulse and Plasma {{ dynamics.dots }}
+          <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isStateProcessing()">
+            <div data-ng-show="dynamics.isStatePending()">
+              <div data-ng-class="col-sm-12">
+                 {{ dynamics.stateAsText() }} {{ dynamics.dots }}
               </div>
-              <div data-ng-show="dynamics.getFrameCount() > 0">
-                Completed frame: {{ dynamics.getFrameCount() }}
-              </div>
-              <div class="progress">
-                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.displayPercentComplete() }}%">
+            </div>
+            <div data-ng-show="dynamics.isStateRunning()">
+              <div data-ng-class="col-sm-12">
+                <div data-ng-show="dynamics.isInitializing()">
+                  Initializing Laser Pulse and Plasma {{ dynamics.dots }}
+                </div>
+                <div data-ng-show="dynamics.getFrameCount() > 0">
+                  Completed frame: {{ dynamics.getFrameCount() }}
+                </div>
+                <div class="progress">
+                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.displayPercentComplete() }}%">
+                  </div>
                 </div>
               </div>
             </div>

@@ -242,6 +242,20 @@ must have X11 running, and start the webdriver this way:
 This will use the `$DISPLAY` forwarded through your ssh session via
 Vagrant.
 
+### Monitoring Celery
+
+To start the [Flower: Celery Monitoring Tool](http://flower.readthedocs.io/en/latest/):
+
+```sh
+celery flower -A sirepo.celery_tasks
+```
+
+You can then visit [[http://localhost:5555]] to see various things about Celery.
+
+You can also visit [RabbitMQ's Management Plugin](https://www.rabbitmq.com/management.html)
+by visiting [[http://localhost:15672]]. This assumes you start the `rabbitmq:management`
+Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sirepo service http`).
+
 ### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html

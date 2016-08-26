@@ -33,12 +33,11 @@ celery.conf.update(
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_SOFT_TIME_LIMIT=celery.conf['CELERYD_TASK_TIME_LIMIT'] - 10,
     CELERY_ACKS_LATE=True,
+    CELERY_REDIRECT_STDOUTS=not pkconfig.channel_in('dev'),
     CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
-#TODO(robnagler) stdout/error to a log file but for dev this makes sense
-    CELERY_REDIRECT_STDOUTS=False,
 )
 
 def queue_name(is_parallel):
@@ -61,6 +60,9 @@ def start_simulation(cmd, run_dir):
         cmd (list): simulation command line
         run_dir (py.path.local): directory
     """
+    # Avoid circular import
+    from sirepo import simulation_db
+    simulation_db.write_status('running', run_dir)
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(
             cmd,

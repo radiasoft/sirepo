@@ -46,7 +46,7 @@ _BEAKER_LOCK_DIR = 'lock'
 _EMPTY_JSON_RESPONSE = '{}'
 
 #: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
@@ -358,7 +358,7 @@ def app_run_cancel():
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
-    if cfg.job_queue.is_running(jid):
+    if cfg.job_queue.is_processing(jid):
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
@@ -379,7 +379,7 @@ def app_run_simulation():
     res = _simulation_run_status(data, quiet=True)
     if (
         (
-            res['state'] != 'running'
+            res['state'] != ('running', 'pending')
             and (res['state'] != 'completed' or data.get('forceRun', False))
         ) or res.get('parametersChanged', True)
     ):
@@ -556,7 +556,7 @@ def _cfg_job_queue(value):
                 pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
                 sys.exit(1)
         except Exception:
-            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
+            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
             sys.exit(1)
         return _Celery
     elif value == 'Background':
@@ -644,9 +644,13 @@ def _simulation_error(err, *args, **kwargs):
     """
     if not kwargs.get('quiet'):
         pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
-    if '\n' in err and not pkconfig.channel_in_internal_test():
-        m = re.search(_SUBPROCESS_ERROR_RE, str(err))
-        err = m.group(1) if m else 'unexpected error (see logs)'
+    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
+    if m:
+        err = m.group(1)
+        if re.search(r'error exit\(-15\)', err):
+            err = 'Terminated'
+    elif not pkconfig.channel_in_internal_test():
+        err = 'unexpected error (see logs)'
     return {'state': 'error', 'error': err}
 
 
@@ -681,18 +685,23 @@ def _simulation_run_status(data, quiet=False):
         jid = _job_id(data)
         #TODO(robnagler): Lock
         cache_hit, cached_data = _cached_simulation(data)
-        is_running = cfg.job_queue.is_running(jid)
+        is_processing = cfg.job_queue.is_processing(jid)
         run_dir = simulation_db.simulation_run_dir(data)
         input_file = _simulation_input(run_dir)
-        if is_running:
+        if is_processing:
             if cached_data:
-                res = {'state': 'running'}
+                res = {
+                    'state': 'running' if cfg.job_queue.is_running(jid) else 'pending'
+                }
             else:
-                return _simulation_error('input file not found, but job is running', input_file)
+                return _simulation_error(
+                    'input file not found, but job is running',
+                    input_file,
+                )
         elif run_dir.exists():
             res, err = simulation_db.read_result(run_dir)
             if err:
-                return _simulation_error(err, 'error in read_result')
+                return _simulation_error(err, 'error in read_result', run_dir)
         else:
             # Was never run
             res = {'state': 'stopped'}
@@ -701,7 +710,7 @@ def _simulation_run_status(data, quiet=False):
             new = template.background_percent_complete(
                 data['report'],
                 run_dir,
-                is_running,
+                cfg.job_queue.is_running(jid),
                 simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
@@ -711,7 +720,7 @@ def _simulation_run_status(data, quiet=False):
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-        if res['state'] == 'running':
+        if is_processing:
             res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
             res['nextRequest'] = {
                 'report': cached_data['report'],
@@ -734,9 +743,9 @@ def _start_simulation(data):
     """
     data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': 'running',
+        'state': 'pending',
     }
-    return cfg.job_queue(data)
+    cfg.job_queue(data)
 
 
 class _Background(object):
@@ -760,7 +769,7 @@ class _Background(object):
             self.pid = self._start_job()
 
     @classmethod
-    def is_running(cls, jid):
+    def is_processing(cls, jid):
         with cls._lock:
             try:
                 self = cls._job[jid]
@@ -777,6 +786,10 @@ class _Background(object):
                 del self._job[jid]
                 return False
         return True
+
+    @classmethod
+    def is_running(cls, jid):
+        return cls.is_processing(jid)
 
     @classmethod
     def kill(cls, jid):
@@ -898,17 +911,29 @@ class _Celery(object):
             self.async_result = self._start_job()
 
     @classmethod
-    def is_running(cls, jid):
+    def is_processing(cls, jid):
+        """Job is either in the queue or running"""
         with cls._lock:
-            return cls._async_result(jid) is not None
+            return bool(cls._find_job(jid))
+
+    @classmethod
+    def is_running(cls, jid):
+        """Job is actually running"""
+        with cls._lock:
+            self = cls._find_job(jid)
+            if self is None:
+                return False
+            return 'running' == simulation_db.read_status(self.run_dir)
+
 
     @classmethod
     def kill(cls, jid):
         from celery.exceptions import TimeoutError
         with cls._lock:
-            res = cls._async_result(jid)
-            if not res:
+            self = cls._find_job(jid)
+            if not self:
                 return
+            res = self.async_result
             pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
@@ -922,7 +947,7 @@ class _Celery(object):
                 pass
 
     @classmethod
-    def _async_result(cls, jid):
+    def _find_job(cls, jid):
             try:
                 self = cls._job[jid]
             except KeyError:
@@ -931,7 +956,7 @@ class _Celery(object):
             if not res or res.ready():
                 del self._job[jid]
                 return None
-            return res
+            return self
 
     def _start_job(self):
         """Detach a process from the controlling terminal and run it in the

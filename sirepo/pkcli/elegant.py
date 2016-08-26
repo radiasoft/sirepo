@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkresource
+from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
@@ -54,16 +55,14 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     # TODO(robnagler) Need to handle this specially, b/c different binary
     if with_mpi and mpi.cfg.cores > 1:
         return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE)
-    with open(ELEGANT_LOG_FILE, 'w') as elegant_stdout:
-        env = copy.deepcopy(os.environ)
-        env['RPN_DEFNS'] = pkresource.filename('defns.rpn')
-        p = subprocess.Popen(
-            ['elegant', ele],
-            stdout=elegant_stdout,
-            stderr=subprocess.STDOUT,
-            env=env,
-        )
-        p.wait()
+    env = copy.deepcopy(os.environ)
+    env['RPN_DEFNS'] = pkresource.filename('defns.rpn')
+    pksubprocess.check_call_with_signals(
+        ['elegant', ele],
+        output=ELEGANT_LOG_FILE,
+        env=env,
+        msg=pkdp,
+    )
 
 
 def _extract_bunch_report():
