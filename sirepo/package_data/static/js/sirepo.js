@@ -3,7 +3,8 @@
 SIREPO.srlog = console.log;
 SIREPO.srdbg = console.log;
 
-SIREPO.http_timeout = 60000;
+// No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
+SIREPO.http_timeout = 0;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
@@ -754,14 +755,15 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         var interval, t;
         var timed_out = false;
         t = {timeout: timeout.promise};
-        interval = $interval(
-            function () {
-                timed_out = true;
-                timeout.resolve();
-            },
-            SIREPO.http_timeout,
-            1
-        );
+        if (SIREPO.http_timeout > 0) {
+            interval = $interval(
+                function () {
+                    timed_out = true;
+                    timeout.resolve();
+                },
+                SIREPO.http_timeout,
+                1
+            );
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
