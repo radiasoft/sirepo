@@ -218,7 +218,7 @@
             "distanceFromSource": 27.5,
             "finalEnergy": 1100,
             "finalHarmonic": 15,
-            "fluxType": "2",
+            "fluxType": "1",
             "horizontalApertureSize": 3,
             "horizontalPosition": 0,
             "initialEnergy": 400,
