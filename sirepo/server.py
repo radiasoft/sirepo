@@ -948,15 +948,15 @@ class _Celery(object):
 
     @classmethod
     def _find_job(cls, jid):
-            try:
-                self = cls._job[jid]
-            except KeyError:
-                return None
-            res = self.async_result
-            if not res or res.ready():
-                del self._job[jid]
-                return None
-            return self
+        try:
+            self = cls._job[jid]
+        except KeyError:
+            return None
+        res = self.async_result
+        if not res or res.ready():
+            del self._job[jid]
+            return None
+        return self
 
     def _start_job(self):
         """Detach a process from the controlling terminal and run it in the
