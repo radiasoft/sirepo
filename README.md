@@ -1,6 +1,6 @@
 # sirepo
 
-# THIS IS ALPHA SOFTWARE
+# THIS IS GREAT SOFTWARE
 
 Sirepo is a scientific application framework, currently for particle accelator codes.
 Sirepo runs inside a Python web server.
@@ -260,4 +260,4 @@ Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sir
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2015-2016 RadiaSoft LLC.  All Rights Reserved.
