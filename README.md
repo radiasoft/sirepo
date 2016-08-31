@@ -1,6 +1,6 @@
 # sirepo
 
-# THIS IS ALPHA SOFTWARE
+# THIS IS BETA SOFTWARE
 
 Sirepo is a scientific application framework, currently for particle accelator codes.
 Sirepo runs inside a Python web server.
