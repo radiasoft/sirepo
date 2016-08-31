@@ -30,28 +30,10 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_ME_EV = 0.51099906e6
 
-_ELEGANT_CENTROID_OUTPUT_FILE = 'centroid-output.sdds'
-
-_ELEGANT_FINAL_OUTPUT_FILE = 'elegant-final-output.sdds'
-
-_ELEGANT_PARAMETERS_FRAME_ID = -2
-
-_ELEGANT_PARAMETERS_OUTPUT_FILE = 'elegant-parameters.sdds'
-
-_ELEGANT_SIGMA_OUTPUT_FILE = 'sigma-matrix.sdds'
-
-_ELEGANT_TWISS_OUTPUT_FILE = 'twiss-parameters.sdds'
+#TODO(pjm): find filename in commands
+_ELEGANT_FINAL_OUTPUT_FILE = 'run_setup.output.sdds'
 
 _RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
-
-_STANDARD_OUTPUT_FILE_ID = 0
-
-_STANDARD_OUTPUT_FILE_INDEX = {
-    _ELEGANT_FINAL_OUTPUT_FILE: 1,
-    _ELEGANT_TWISS_OUTPUT_FILE: 2,
-    _ELEGANT_CENTROID_OUTPUT_FILE: 3,
-    _ELEGANT_SIGMA_OUTPUT_FILE: 4,
-}
 
 _FIELD_LABEL = {
     'x': 'x [m]',
@@ -74,6 +56,10 @@ _PLOT_TITLE = {
 }
 
 _SDDS_INDEX = 0
+
+_SDDS_DOUBLE_TYPE = 1
+
+_SDDS_STRING_TYPE = 7
 
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -137,12 +123,14 @@ def copy_related_files(data, source_path, target_path):
 
 
 def extract_report_data(filename, data, p_central_mev, page_index):
+    print('report filename: {}'.format(filename))
     xfield = data['x']
     yfield = data['y']
     bins = data['histogramBins']
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
         return _sdds_error()
     column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
+    print('column_names: {}'.format(column_names))
     count = page_index
     while count >= 0:
         if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
@@ -151,7 +139,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
     try:
         x = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(xfield))
     except SystemError as e:
-        return _sdds_error()
+        return _sdds_error('no data for page {}'.format(page_index))
 
     if xfield == 'p':
         x = _scale_p(x, p_central_mev)
@@ -197,67 +185,47 @@ def fixup_old_data(data):
         data['models']['simulation']['folder'] = '/'
     if 'rpnVariables' not in data['models']:
         data['models']['rpnVariables'] = []
-
-def generate_lattice(data, v):
-    res = _generate_variables(data)
-    names = {}
-    beamlines = {}
-
-    for bl in data['models']['beamlines']:
-        if 'visualizationBeamlineId' in data['models']['simulation']:
-            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
-                v['use_beamline'] = bl['name']
-        names[bl['id']] = bl['name']
-        beamlines[bl['id']] = bl
-
-    ordered_beamlines = []
-
-    for id in beamlines:
-        _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
-
-    for el in data['models']['elements']:
-        res += '"{}": {},'.format(el['name'].upper(), el['type'])
-        names[el['_id']] = el['name']
-
-        for k in el:
-            if k in ['name', 'type', '_id'] or re.search('(X|Y)$', k):
-                continue
-            value = el[k]
-            element_schema = _SCHEMA['model'][el['type']][k]
-            default_value = element_schema[2]
-            if value is not None and default_value is not None:
-                if str(value) != str(default_value):
-                    if element_schema[1].startswith('InputFile'):
-                        value = '{}-{}.{}'.format(el['type'], k, value)
-                        if element_schema[1] == 'InputFileXY':
-                            value += '={}+{}'.format(el[k + 'X'], el[k + 'Y'])
-                    res += '{}="{}",'.format(k, value)
-        res = res[:-1]
-        res += "\n"
-
-    for bl in ordered_beamlines:
-        if len(bl['items']):
-            res += '"{}": LINE=('.format(bl['name'].upper())
-            for id in bl['items']:
-                sign = ''
-                if id < 0:
-                    sign = '-'
-                    id = abs(id)
-                res += '{},'.format(sign + names[id].upper())
-            res = res[:-1]
-            res += ")\n"
-
-    return res
+    if 'commands' not in data['models']:
+        data['models']['commands'] = [
+            {
+                '_type': 'run_setup',
+                'lattice': 'elegant.lte',
+                #TODO(pjm): get beamline from visualizationBeamlineId
+                'use_beamline': 'BL1',
+                'p_central_mev': 1001.0,
+                #TODO(pjm): not correct file names
+                'output': 'elegant-final-output.sdds',
+                'centroid': 'centroid-output.sdds',
+                'sigma': 'sigma-matrix.sdds',
+                'parameters': 'elegant-parameters.sdds',
+                'concat_order': 2,
+                'tracking_updates': 1,
+                'print_statistics': 1,
+            },
+            {
+                '_type': 'run_control',
+            },
+            {
+                '_type': 'twiss_output',
+                'matched': 0,
+                #TODO(pjm): derive from bunched beam info
+                'beta_x': 10,
+                'beta_y': 10,
+                'alpha_x': 1,
+                'alpha_y': 1,
+                'statistics': 1,
+                'output_at_each_step': 1,
+                'filename': 'twiss-parameters.sdds',
+            },
+            {
+                '_type': 'track',
+            },
+        ]
 
 
 def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
     _validate_data(data, schema)
     v = template_common.flatten_data(data['models'], {})
-    v['elegantFinalOutput'] = _ELEGANT_FINAL_OUTPUT_FILE
-    v['elegantCentroidOutput'] = _ELEGANT_CENTROID_OUTPUT_FILE
-    v['elegantSigmaOutput'] = _ELEGANT_SIGMA_OUTPUT_FILE
-    v['elegantParameterOutput'] = _ELEGANT_PARAMETERS_OUTPUT_FILE
-    v['elegantTwissOutput'] = _ELEGANT_TWISS_OUTPUT_FILE
     longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
     if longitudinal_method == 1:
         v['bunch_emit_z'] = 0
@@ -276,16 +244,16 @@ def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
         v['bunch_beta_y'] = 5
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
+
+    v['commands'] = _generate_commands(data, v)
+    v['rpn_variables'] = _generate_variables(data)
+
     if is_parallel:
-        v['lattice'] = generate_lattice(data, v)
-    else:
-        # use a dummy lattice with a 0 length drift for generating bunches
-        v['use_beamline'] = 'bl'
-        v['lattice'] = '''
-d: drift,l=0
-bl: line=(d)
-'''
-    return pkjinja.render_resource('elegant.py', v)
+        v['lattice'] = _generate_lattice(data, v)
+        return pkjinja.render_resource('elegant.py', v)
+
+    v['rpn_variables'] = _generate_variables(data)
+    return pkjinja.render_resource('elegant_bunch.py', v)
 
 
 def get_animation_name(data):
@@ -333,10 +301,6 @@ def get_data_file(run_dir, model, frame):
             return os.path.basename(path), f.read(), 'application/octet-stream'
 
     if model == 'animation':
-        if frame == _ELEGANT_PARAMETERS_FRAME_ID:
-            path = str(run_dir.join(_ELEGANT_PARAMETERS_OUTPUT_FILE))
-            with open(path) as f:
-                return _ELEGANT_PARAMETERS_OUTPUT_FILE, f.read(), 'application/octet-stream'
         path = str(run_dir.join(ELEGANT_LOG_FILE))
         with open(path) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
@@ -407,6 +371,8 @@ def prepare_aux_files(run_dir, data):
 
 
 def prepare_for_client(data):
+    if 'models' not in data:
+        return data
     # evaluate rpn values into model.rpnCache
     cache = {}
     data['models']['rpnCache'] = cache
@@ -424,8 +390,9 @@ def prepare_for_client(data):
     for rpn_var in data['models']['rpnVariables']:
         v, err = parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
         if not err:
-            cache[rpn_var['value']] = v
             cache[rpn_var['name']] = v
+            if is_rpn_value(rpn_var['value']):
+                cache[rpn_var['value']] = v
     return data
 
 
@@ -549,8 +516,15 @@ def _file_info(filename, run_dir, id, output_index):
         sdds.sddsdata.Terminate(_SDDS_INDEX)
         return {}
     column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
+    plottable_columns = []
+    double_column_count = 0
+    for col in column_names:
+        col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
+        if col_type < _SDDS_STRING_TYPE:
+            plottable_columns.append(col)
+        if col_type == _SDDS_DOUBLE_TYPE:
+            double_column_count += 1
     page_count = 1
-
     page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
     while page > 0:
         page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
@@ -558,12 +532,94 @@ def _file_info(filename, run_dir, id, output_index):
             page_count += 1
     sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
+        'isAuxFile': False if double_column_count > 1 else True,
         'filename': filename,
         'id': '{}-{}'.format(id, output_index),
-        'page_count': page_count,
+        'pageCount': page_count,
         'columns': column_names,
+        'plottableColumns': plottable_columns,
         'lastUpdateTime': int(os.path.getmtime(str(file_path))),
     }
+
+
+def _generate_commands(data, v):
+    res = ''
+
+    for cmd in data['models']['commands']:
+        res += "\n" + '&{}'.format(cmd['_type']) + "\n"
+        for k in sorted(cmd):
+            if k in ['_type', '_id']:
+                continue
+            value = cmd[k]
+            command_schema = _SCHEMA['model']['command_{}'.format(cmd['_type'])][k]
+            default_value = command_schema[2]
+            if value is not None and default_value is not None:
+                if str(value) != str(default_value):
+                    if command_schema[1] == 'RPNValue' and is_rpn_value(value):
+                        res += '  {} = "({})",'.format(k, value) + "\n"
+                    elif command_schema[1] == 'StringArray':
+                        res += '  {}[0] = {},'.format(k, value) + "\n"
+                    elif command_schema[1] == 'OutputFile':
+                        value = '{}.{}.sdds'.format(cmd['_type'], k)
+                        res += '  {} = {},'.format(k, value) + "\n"
+                    else:
+                        res += '  {} = {},'.format(k, value) + "\n"
+        res += '&end' + "\n"
+    return res
+
+
+def _generate_lattice(data, v):
+    res = ''
+    names = {}
+    beamlines = {}
+
+    for bl in data['models']['beamlines']:
+        if 'visualizationBeamlineId' in data['models']['simulation']:
+            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
+                v['use_beamline'] = bl['name']
+        names[bl['id']] = bl['name']
+        beamlines[bl['id']] = bl
+
+    ordered_beamlines = []
+
+    for id in beamlines:
+        _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
+
+    for el in data['models']['elements']:
+        res += '"{}": {},'.format(el['name'].upper(), el['type'])
+        names[el['_id']] = el['name']
+
+        for k in el:
+            if k in ['name', 'type', '_id'] or re.search('(X|Y)$', k):
+                continue
+            value = el[k]
+            element_schema = _SCHEMA['model'][el['type']][k]
+            default_value = element_schema[2]
+            if value is not None and default_value is not None:
+                if str(value) != str(default_value):
+                    if element_schema[1].startswith('InputFile'):
+                        value = '{}-{}.{}'.format(el['type'], k, value)
+                        if element_schema[1] == 'InputFileXY':
+                            value += '={}+{}'.format(el[k + 'X'], el[k + 'Y'])
+                    elif element_schema[1] == 'OutputFile':
+                        value = '{}.{}.sdds'.format(el['name'], k)
+                    res += '{}="{}",'.format(k, value)
+        res = res[:-1]
+        res += "\n"
+
+    for bl in ordered_beamlines:
+        if len(bl['items']):
+            res += '"{}": LINE=('.format(bl['name'].upper())
+            for id in bl['items']:
+                sign = ''
+                if id < 0:
+                    sign = '-'
+                    id = abs(id)
+                res += '{},'.format(sign + names[id].upper())
+            res = res[:-1]
+            res += ")\n"
+
+    return res
 
 
 def _generate_variable(name, variables, visited):
@@ -587,21 +643,27 @@ def _generate_variables(data):
 
 
 def _get_filename_for_element_id(id, data):
-    filename = _ELEGANT_FINAL_OUTPUT_FILE
-    if id[0] == str(_STANDARD_OUTPUT_FILE_ID):
-        for k in _STANDARD_OUTPUT_FILE_INDEX:
-            if id[1] == str(_STANDARD_OUTPUT_FILE_INDEX[k]):
-                return k
+    print('id: {}'.format(id))
 
-    for el in data['models']['elements']:
-        if str(el['_id']) != id[0]:
+    filename = None
+    model_type = 'elements' if id[0] == 'e' else 'commands'
+
+    for el in data['models'][model_type]:
+        if str(el['_id']) != id[1]:
             continue
         field_index = 0
         for k in sorted(el.iterkeys()):
             field_index += 1
-            if str(field_index) == id[1]:
-                filename = el[k]
+            if str(field_index) == id[2]:
+                #filename = el[k]
+                if model_type == 'elements':
+                    filename = '{}.{}.sdds'.format(el['name'], k)
+                else:
+                    filename = '{}.{}.sdds'.format(el['_type'], k)
                 break
+    print('filename: {}'.format(filename))
+    if not filename:
+        raise RuntimeError('unknown filename for id: {}'.format(id))
     return filename
 
 
@@ -611,6 +673,7 @@ def _has_elegant_output(run_dir):
 
 
 def _has_valid_elegant_output(run_dir):
+    #TODO(pjm): consider using run_setup.semaphore_file to determine run result
     path = run_dir.join(_ELEGANT_FINAL_OUTPUT_FILE)
     if not path.exists():
         return False
@@ -636,16 +699,25 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion', text, re.IGNORECASE)
 
 
 def _output_info(run_dir, data, schema):
-    res = [
-        _standard_file_info(_ELEGANT_FINAL_OUTPUT_FILE, run_dir),
-        _standard_file_info(_ELEGANT_TWISS_OUTPUT_FILE, run_dir),
-        _standard_file_info(_ELEGANT_CENTROID_OUTPUT_FILE, run_dir),
-        _standard_file_info(_ELEGANT_SIGMA_OUTPUT_FILE, run_dir),
-    ]
+    res = []
+    #TODO(pjm): combine with loop below
+    for cmd in data['models']['commands']:
+        model_schema = schema['model']['command_' + cmd['_type']]
+        field_index = 0
+        for k in sorted(cmd):
+            field_index += 1
+            value = cmd[k]
+            if not value or k not in model_schema:
+                continue
+            element_schema = model_schema[k]
+            value = '{}.{}.sdds'.format(cmd['_type'], k)
+            if element_schema[1] == 'OutputFile' and run_dir.join(value).exists():
+                res.append(_file_info(value, run_dir, 'c-{}'.format(cmd['_id']), field_index))
+
     for el in data['models']['elements']:
         model_schema = schema['model'][el['type']]
         field_index = 0
@@ -655,9 +727,10 @@ def _output_info(run_dir, data, schema):
             if not value or k not in model_schema:
                 continue
             element_schema = model_schema[k]
+            value = '{}.{}.sdds'.format(el['name'], k)
             #TODO(pjm): iterate active beamline elements and remove exists() check
             if element_schema[1] == 'OutputFile' and run_dir.join(value).exists():
-                res.append(_file_info(value, run_dir, el['_id'], field_index))
+                res.append(_file_info(value, run_dir, 'e-{}'.format(el['_id']), field_index))
     return res
 
 
@@ -703,15 +776,12 @@ def _scale_p(points, p_central_mev):
     return (np.array(points) * _ELEGANT_ME_EV - p_central_ev).tolist()
 
 
-def _sdds_error():
+def _sdds_error(error_text='invalid data file'):
+    print('sdds error: ', error_text)
     sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
-        'error': 'invalid data file',
+        'error': error_text,
     }
-
-
-def _standard_file_info(filename, run_dir):
-    return _file_info(filename, run_dir, _STANDARD_OUTPUT_FILE_ID, int(_STANDARD_OUTPUT_FILE_INDEX[filename]))
 
 
 def _validate_data(data, schema):

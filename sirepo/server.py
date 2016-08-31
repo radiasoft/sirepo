@@ -418,7 +418,7 @@ def app_simulation_frame(frame_id):
     template = sirepo.template.import_module(data)
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    model_data = simulation_db.open_json_file(data['simulationType'], sid=data['simulationId'])
+    model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     response = _json_response(template.get_simulation_frame(run_dir, data, model_data))
 
     if template.WANT_BROWSER_FRAME_CACHE:

@@ -1043,11 +1043,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     var self = this;
 
     function openSection(name, search) {
-        requestSender.localRedirect(name, {
+        requestSender.localRedirect(name, sectionArgs(), search);
+    }
+
+    function sectionArgs() {
+        return {
             ':simulationId': appState.isLoaded()
                 ? appState.models.simulation.simulationId
                 : null,
-        }, search);
+        };
     }
 
     self.isActive = function(name) {
@@ -1099,6 +1103,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         if (appState.isLoaded())
             return appState.models.simulation.name;
         return null;
+    };
+
+    self.sectionURL = function(name) {
+        return '#' + requestSender.formatLocalUrl(name, sectionArgs());
     };
 });
 

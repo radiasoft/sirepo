@@ -1,6 +1,7 @@
 'use strict';
 
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
+SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -12,12 +13,84 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION + Math.random(),
+        })
+        .when(localRoutes.control, {
+            controller: 'CommandController as control',
+            templateUrl: '/static/html/elegant-control.html?' + SIREPO.APP_VERSION + Math.random(),
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
             templateUrl: '/static/html/elegant-visualization.html?' + SIREPO.APP_VERSION,
         });
+});
+
+SIREPO.app.controller('CommandController', function(appState) {
+    var self = this;
+    self.activeTab = 'basic';
+    self.basicNames = [
+        'alter_elements', 'bunched_beam', 'chromaticity',
+        'error_control', 'error_element', 'load_parameters',
+        'matrix_output', 'optimization_setup', 'optimization_term',
+        'optimization_variable', 'optimize', 'run_control',
+        'run_setup', 'twiss_output', 'track',
+        'vary_element',
+    ];
+    self.advancedNames = [
+        'amplification_factors', 'analyze_map', 'aperture_data', 'change_particle',
+        'closed_orbit', 'correct', 'correct_tunes', 'correction_matrix_output',
+        'coupled_twiss_output', 'divide_elements', 'find_aperture', 'floor_coordinates',
+        'frequency_map', 'global_settings', 'insert_elements', 'insert_sceffects',
+        'linear_chromatic_tracking_setup', 'link_control', 'link_elements',
+        'modulate_elements', 'moments_output', 'momentum_aperture', 'optimization_constraint',
+        'optimization_covariable', 'parallel_optimization_setup', 'print_dictionary', 'ramp_elements',
+        'replace_elements', 'rf_setup', 'rpn_expression', 'rpn_load',
+        'sasefel', 'save_lattice', 'sdds_beam', 'semaphores', 'slice_analysis',
+        'steering_element', 'subprocess', 'touschek_scatter', 'transmute_elements',
+        'tune_footprint', 'tune_shift_with_amplitude', 'twiss_analysis',
+    ];
+    self.allNames = self.basicNames.concat(self.advancedNames).sort();
+
+    function commandTable() {
+        var el =$('.elegant-cmd-table')[0];
+        if (el)
+            return angular.element(el).scope();
+        return null;
+    }
+
+    self.createElement = function(name) {
+        $('#s-newCommand-editor').modal('hide');
+        var schema = SIREPO.APP_SCHEMA.model['command_' + name];
+        var model = {
+            _id: appState.maxId(appState.models.commands, '_id') + 1,
+            _type: name,
+        };
+        // set model defaults from schema
+        var fields = Object.keys(schema);
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            if (schema[f][2] !== undefined)
+                model[f] = schema[f][2];
+        }
+        commandTable().editCommand(model, true);
+    };
+
+    self.deleteSelected = function() {
+        var cmdTable = commandTable();
+        if (cmdTable)
+            return cmdTable.deleteSelected();
+    };
+
+    self.selectedItemName = function() {
+        var cmdTable = commandTable();
+        if (cmdTable)
+            return cmdTable.selectedItemName();
+        return '';
+    };
+
+    self.titleForName = function(name) {
+        return SIREPO.APP_SCHEMA.view['command_' + name].description;
+    };
 });
 
 SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
@@ -142,10 +215,11 @@ SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $tim
         if (newValue && oldValue && (newValue != oldValue)) {
             //TODO(pjm): rework this
             $timeout(function() {
-                var el = $('#s-bunch-basicEditor')[0];
-                if (el)
+                var el = $('#s-bunch-basicEditor form')[0];
+                if (el) {
                     angular.element(el).scope().form.$setDirty();
-                el = $('#s-bunchFile-basicEditor')[0];
+                }
+                el = $('#s-bunchFile-basicEditor form')[0];
                 if (el)
                     angular.element(el).scope().form.$setDirty();
             });
@@ -153,7 +227,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $tim
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, panelState, rpnService, $rootScope, $scope, $timeout, $window) {
+SIREPO.app.controller('LatticeController', function(appState, panelState, rpnService, $rootScope, $scope, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -563,11 +637,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
         for (var i = 0; i < outputInfo.length; i++) {
             var info = outputInfo[i];
-            if (! info.columns)
+            if (! info.columns || info.isAuxFile)
                 continue;
             var modelKey = 'elementAnimation' + info.id;
             self.outputFiles.push({
-                reportType: reportTypeForColumns(info.columns),
+                reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
@@ -577,27 +651,27 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId'];
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
-                if (info.columns.indexOf(m.x) < 0)
-                    m.x = info.columns[0];
-                if (info.columns.indexOf(m.y) < 0)
-                    m.y = info.columns[1];
+                if (info.plottableColumns.indexOf(m.x) < 0)
+                    m.x = info.plottableColumns[0];
+                if (info.plottableColumns.indexOf(m.y) < 0)
+                    m.y = info.plottableColumns[1];
                 m.fileId = info.id;
-                m.values = info.columns;
+                m.values = info.plottableColumns;
             }
             else {
                 appState.models[modelKey] = {
-                    x: info.columns[0],
-                    y: defaultYColumn(info.columns),
+                    x: info.plottableColumns[0],
+                    y: defaultYColumn(info.plottableColumns),
                     histogramBins: 200,
                     fileId: info.id,
-                    values: info.columns,
+                    values: info.plottableColumns,
                     framesPerSecond: 2,
                 };
                 if (i > 0 && ! panelState.isHidden(modelKey))
                     panelState.toggleHidden(modelKey);
             }
             appState.saveQuietly(modelKey);
-            frameCache.setFrameCount(info.page_count, modelKey);
+            frameCache.setFrameCount(info.pageCount, modelKey);
         }
         frameCache.setAnimationArgs(animationArgs, self.model);
     }
@@ -748,14 +822,15 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">elegant</a></div>',
+              '<a class="navbar-brand" data-ng-href="{{ nav.sectionURL(\'simulations\') }}"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand"><a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">elegant</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
+              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
@@ -1096,6 +1171,274 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
     };
 });
 
+SIREPO.app.directive('commandTable', function(appState, panelState) {
+    return {
+        restirct: 'A',
+        scope: {},
+        template: [
+            '<div class="elegant-cmd-table">',
+              '<div class="pull-right">',
+                '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
+              '</div>',
+              '<p class="lead text-center"><small><em>drag and drop commands to reorder the list</em></small></p>',
+              '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
+                '<tr data-ng-repeat="cmd in commands">',
+                  '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
+                    '<div class="s-button-bar-parent pull-right"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="elegant-cmd-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
+                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge elegant-icon" data-ng-class="{\'elegant-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
+                    '</div>',
+                    '<div data-ng-show="! isExpanded(cmd) && cmd.description" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ cmd.description }}</div>',
+                    '<div data-ng-show="isExpanded(cmd) && cmd.description" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ cmd.description }}</div>',
+                  '</td>',
+                '</tr>',
+                '<tr><td style="height: 3em" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> </td></tr>',
+              '</table>',
+              '<div data-ng-show="commands.length > 2" class="pull-right">',
+                '<button class="btn btn-info btn-xs" data-ng-click="newCommand(true)" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var addCommandToBottom = false;
+            var selectedItemId = null;
+            var expanded = {};
+            $scope.commands = [];
+
+            function commandDescription(cmd) {
+                var schema = SIREPO.APP_SCHEMA.model[commandModelName(cmd._type)];
+                var res = '';
+                var model = commandForId(cmd._id);
+                var fields = Object.keys(model).sort();
+                for (var i = 0; i < fields.length; i++) {
+                    var f = fields[i];
+                    if (angular.isDefined(model[f]) && angular.isDefined(schema[f])) {
+                        if (schema[f][2] != model[f]) {
+                            if (schema[f][1] == 'OutputFile')
+                                res += (res.length ? ",\n" : '') + f + '=' + cmd._type + '.' + f + '.sdds';
+                            else
+                                res += (res.length ? ",\n" : '') + f + ' = ' + model[f];
+                        }
+                    }
+                }
+                return res;
+            }
+
+            function commandForId(id) {
+                for (var i = 0; i < appState.models.commands.length; i++) {
+                    var c = appState.models.commands[i];
+                    if (c._id == id)
+                        return c;
+                }
+                return null;
+            }
+
+            function commandIndex(data) {
+                return $scope.commands.indexOf(data);
+            }
+
+            function commandModelName(type) {
+                return 'command_' + type;
+            }
+
+            function isCommandModelName(name) {
+                return name.indexOf('command_') === 0;
+            }
+
+            function loadCommands() {
+                var commands = appState.applicationState().commands;
+                $scope.commands = [];
+                for (var i = 0; i < commands.length; i++) {
+                    var cmd = commands[i];
+                    $scope.commands.push({
+                        _type: cmd._type,
+                        _id: cmd._id,
+                        description: commandDescription(cmd),
+                    });
+                    if (!(cmd._id in expanded))
+                        expanded[cmd._id] = true;
+                }
+            }
+
+            function saveCommands() {
+                var commands = [];
+                for (var i = 0; i < $scope.commands.length; i++)
+                    commands.push(commandForId($scope.commands[i]._id));
+                appState.models.commands = commands;
+                appState.saveChanges('commands');
+            }
+
+            $scope.deleteCommand = function(data) {
+                if (! data)
+                    return;
+                $scope.selectItem(data);
+                $('#elegant-delete-command-confirmation').modal('show');
+            };
+
+            $scope.deleteSelected = function() {
+                if (selectedItemId) {
+                    for (var i = 0; i < $scope.commands.length; i++) {
+                        if ($scope.commands[i]._id == selectedItemId) {
+                            selectedItemId = null;
+                            $scope.commands.splice(i, 1);
+                            saveCommands();
+                            break;
+                        }
+                    }
+                }
+            };
+
+            $scope.dropItem = function(index, data) {
+                if (! data)
+                    return;
+                var i = commandIndex(data);
+                data = $scope.commands.splice(i, 1)[0];
+                if (i < index)
+                    index--;
+                $scope.commands.splice(index, 0, data);
+                saveCommands();
+            };
+
+            $scope.dropLast = function(data) {
+                if (! data)
+                    return;
+                data = $scope.commands.splice(commandIndex(data), 1)[0];
+                $scope.commands.push(data);
+                saveCommands();
+            };
+
+            $scope.editCommand = function(cmd, isNew) {
+                var modelName = commandModelName(cmd._type);
+                appState.models[modelName] = isNew ? cmd : commandForId(cmd._id);
+                panelState.showModalEditor(modelName);
+            };
+
+            $scope.isExpanded = function(cmd) {
+                return expanded[cmd._id];
+            };
+
+            $scope.expandCommand = function(cmd) {
+                expanded[cmd._id] = ! expanded[cmd._id];
+            };
+
+            $scope.isExpandDisabled = function(cmd) {
+                if (cmd.description && cmd.description.indexOf("\n") > 0)
+                    return false;
+                return true;
+            };
+
+            $scope.isSelected = function(cmd) {
+                return selectedItemId == cmd._id;
+            };
+
+            $scope.newCommand = function(addToBottom) {
+                addCommandToBottom = addToBottom;
+                $('#s-newCommand-editor').modal('show');
+            };
+
+            $scope.selectItem = function(cmd) {
+                selectedItemId = cmd._id;
+            };
+
+            $scope.selectedItemName = function() {
+                if (selectedItemId)
+                    return commandForId(selectedItemId)._type;
+                return '';
+            };
+
+            $scope.$on('modelChanged', function(e, name) {
+                if (name == 'commands')
+                    loadCommands();
+                if (isCommandModelName(name)) {
+                    var foundIt = false;
+                    for (var i = 0; i < $scope.commands.length; i++) {
+                        if ($scope.commands[i]._id == appState.models[name]._id) {
+                            foundIt = true;
+                            break;
+                        }
+                    }
+                    if (! foundIt) {
+                        if (addCommandToBottom)
+                            appState.models.commands.push(appState.models[name]);
+                        else
+                            appState.models.commands.unshift(appState.models[name]);
+                        $scope.selectItem(appState.models[name]);
+                    }
+                    appState.saveChanges('commands');
+                }
+            });
+
+            $scope.$on('cancelChanges', function(e, name) {
+                if (isCommandModelName(name)) {
+                    appState.removeModel(name);
+                    appState.cancelChanges('commands');
+                }
+            });
+
+            appState.whenModelsLoaded(loadCommands);
+        },
+    };
+});
+
+SIREPO.app.directive('elementPicker', function() {
+    return {
+        restirct: 'A',
+        scope: {
+            controller: '=',
+            title: '@',
+            id: '@',
+            smallElementClass: '@',
+        },
+        template: [
+            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<div class="col-sm-12">',
+                          '<ul class="nav nav-tabs">',
+                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'basic\'}"><a href data-ng-click="controller.activeTab = \'basic\'">Basic</a></li>',
+                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'advanced\'}"><a href data-ng-click="controller.activeTab = \'advanced\'">Advanced</a></li>',
+                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'all\'}"><a href data-ng-click="controller.activeTab = \'all\'">All Elements</a></li>',
+                          '</ul>',
+                        '</div>',
+                      '</div>',
+                      '<br />',
+                      '<div data-ng-if="controller.activeTab == \'basic\'" class="row">',
+                        '<div data-ng-repeat="name in controller.basicNames" class="col-sm-4">',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                        '</div>',
+                      '</div>',
+                      '<div data-ng-if="controller.activeTab == \'advanced\'" class="row">',
+                        '<div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                        '</div>',
+                      '</div>',
+                      '<div data-ng-if="controller.activeTab == \'all\'" class="row">',
+                        '<div data-ng-repeat="name in controller.allNames" class="{{ smallElementClass }}">',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                        '</div>',
+                      '</div>',
+                      '<br />',
+                      '<div class="row">',
+                        '<div class="col-sm-offset-6 col-sm-3">',
+                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
+                        '</div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('elementTable', function(appState) {
     return {
         restirct: 'A',
@@ -1183,9 +1526,12 @@ SIREPO.app.directive('elementTable', function(appState) {
                     var f = fields[i];
                     if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0)
                         continue;
-                    if (angular.isDefined(element[f]) && angular.isDefined(schema[f]))
-                        if (schema[f][2] != element[f])
+                    if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
+                        if (schema[f][1] == 'OutputFile')
+                            res += (res.length ? ',' : '') + f + '=' + element.name + '.' + f + '.sdds';
+                        else if (schema[f][2] != element[f])
                             res += (res.length ? ',' : '') + f + '=' + element[f];
+                    }
                 }
                 return res;
             };

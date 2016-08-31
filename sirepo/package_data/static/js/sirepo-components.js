@@ -302,6 +302,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
               '</div>',
+              '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
+                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
+              '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
@@ -408,12 +411,12 @@ SIREPO.app.directive('outputFileField', function() {
             $scope.items = function() {
                 if (! $scope.model)
                     return items;
-                var name = $scope.model.name + '.' + $scope.field + '.sdds';
+                var name = ($scope.model.name || $scope.model._type) + '.' + $scope.field + '.sdds';
                 if (name != filename) {
                     filename = name;
                     items = [
                         ['', 'None'],
-                        [name, name],
+                        ['1', name],
                     ];
                 }
                 return items;

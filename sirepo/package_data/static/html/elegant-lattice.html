@@ -57,52 +57,7 @@
 
 <div data-ng-drag-clone=""><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>
 
-<!-- New beamline element modal -->
-<div class="modal fade" id="s-newBeamlineElement-editor" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-info">
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <span class="lead modal-title text-info">New Beamline Element</span>
-      </div>
-      <div class="modal-body">
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-sm-12">
-              <ul class="nav nav-tabs">
-                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'basic'}"><a href data-ng-click="lattice.activeTab = 'basic'">Basic</a></li>
-                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'advanced'}"><a href data-ng-click="lattice.activeTab = 'advanced'">Advanced</a></li>
-                <li role="presentation" data-ng-class="{active: lattice.activeTab == 'all'}"><a href data-ng-click="lattice.activeTab = 'all'">All Elements</a></li>
-              </ul>
-            </div>
-          </div>
-          <br />
-          <div data-ng-if="lattice.activeTab == 'basic'" class="row">
-            <div data-ng-repeat="name in lattice.basicNames" class="col-sm-4">
-              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
-            </div>
-          </div>
-          <div data-ng-if="lattice.activeTab == 'advanced'" class="row">
-            <div data-ng-repeat="name in lattice.advancedNames" class="col-sm-2">
-              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
-            </div>
-          </div>
-          <div data-ng-if="lattice.activeTab == 'all'" class="row">
-            <div data-ng-repeat="name in lattice.allNames" class="col-sm-2">
-              <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="lattice.createElement(name)" data-ng-attr-title="{{ lattice.titleForName(name) }}">{{ name }}</button>
-            </div>
-          </div>
-          <br />
-          <div class="row">
-            <div class="col-sm-offset-6 col-sm-3">
-              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<div data-element-picker="" data-controller="lattice" data-title="New Beamline Element" data-id="s-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>
 
 <div data-confirmation-modal="" data-id="s-element-in-use-dialog" data-title="{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong> is used by the <strong>{{ lattice.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>
 
