@@ -401,10 +401,19 @@ def app_save_simulation_data():
     return '{}'
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id):
     data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
     response = _json_response(
+        sirepo.template.import_module(simulation_type).prepare_for_client(data),
+    )
+    _no_cache(response)
+    return response
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
+def app_simulation_data_export(simulation_type, simulation_id):
+    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
+    response = _json_response_for_export(
         sirepo.template.import_module(simulation_type).prepare_for_client(data),
     )
     _no_cache(response)
@@ -598,6 +607,13 @@ def _json_input():
 
 
 def _json_response(value):
+    return app.response_class(
+        simulation_db.generate_json_response(value),
+        mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+    )
+
+
+def _json_response_for_export(value):
     return app.response_class(
         simulation_db.generate_pretty_json(value),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
