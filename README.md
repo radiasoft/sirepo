@@ -260,4 +260,4 @@ Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sir
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2015-2016 RadiaSoft LLC.  All Rights Reserved.
