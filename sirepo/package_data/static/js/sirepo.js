@@ -841,7 +841,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     var runQueue = [];
 
     function addItem(report, models, responseHandler, qMode, forceRun) {
-        models = angular.copy(models)
+        models = angular.copy(models);
         // Not used server side and contains a lot of stuff
         delete models.simulationStatus;
         var qi = {
