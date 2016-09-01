@@ -196,7 +196,7 @@ def app_error_logging():
         pkdp(
             '{}: javascript error: {}',
             ip,
-            simulation_db.generate_json(_json_input(), pretty=pretty),
+            simulation_db.generate_json(_json_input(), pretty=True),
         )
     except ValueError as e:
         pkdp(
@@ -727,7 +727,7 @@ def _simulation_run_status(data, quiet=False):
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
             res.update(new)
-        res['parametersChanged'] = not cache_hit and cached_data
+        res['parametersChanged'] = bool(not cache_hit and cached_data)
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])

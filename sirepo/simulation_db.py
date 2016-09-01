@@ -132,6 +132,10 @@ def fixup_old_data(simulation_type, data):
         return data
     sirepo.template.import_module(simulation_type).fixup_old_data(data)
     data['version'] = SCHEMA_COMMON['version']
+    try:
+        del data['models']['simulationStatus']
+    except:
+        pass
     return data
 
 
@@ -400,9 +404,20 @@ def save_new_simulation(simulation_type, data):
 
 
 def save_simulation_json(simulation_type, data):
+    """Prepare data and save to json db
+
+    Args:
+        simulation_type (str): srw, warp, ...
+        data (dict): what to write (contains simulationId)
+    """
     sid = parse_sid(data)
-    if 'version' not in data:
-        data['version'] = SCHEMA_COMMON['version']
+    try:
+        # Never save this
+        del data['simulationStatus']
+    except:
+        pass
+    data.setdefault('version', SCHEMA_COMMON['version'])
+    data.setdefault('simulationType', simulation_type)
     write_json(_simulation_data_file(simulation_type, sid), data)
 
 

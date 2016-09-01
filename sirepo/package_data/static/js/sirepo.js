@@ -177,7 +177,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.clone = function(obj) {
-        return JSON.parse(JSON.stringify(obj));
+        return angular.copy(obj);
     };
 
     self.cloneModel = function(name) {
@@ -279,6 +279,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     return;
                 }
                 self.models = data.models;
+                self.models.simulationStatus = {};
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
@@ -370,9 +371,11 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
 
         if (requireReportUpdate)
             updateReports();
+
+        self.autoSave();
     };
 
-             self.setActiveFolderPath = function(path) {
+    self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
     };
 
@@ -549,7 +552,6 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     }
 
     function sendRequest(name, callback, forceRun) {
-        appState.resetAutoSaveTimer();
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
@@ -839,6 +841,9 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     var runQueue = [];
 
     function addItem(report, models, responseHandler, qMode, forceRun) {
+        models = angular.copy(models)
+        // Not used server side and contains a lot of stuff
+        delete models.simulationStatus;
         var qi = {
             firstRoute: qMode == 'persistentStatus' ? 'runStatus' : 'runSimulation',
             qMode: qMode,
