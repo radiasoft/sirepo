@@ -1189,7 +1189,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         if (requestSender.isRouteParameter(name, ':simulationId') && appState.isLoaded()) {
             return {
                 ':simulationId': appState.models.simulation.simulationId,
-            }
+            };
         }
         return {};
     }
