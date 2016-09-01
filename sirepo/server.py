@@ -414,16 +414,6 @@ def app_simulation_data(simulation_type, simulation_id, pretty):
     return response
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
-def app_simulation_data_export(simulation_type, simulation_id):
-    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
-    response = _json_response_for_export(
-        sirepo.template.import_module(simulation_type).prepare_for_client(data),
-    )
-    _no_cache(response)
-    return response
-
-
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationFrame'])
 def app_simulation_frame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
@@ -621,13 +611,6 @@ def _json_response(value, pretty=False):
     """
     return app.response_class(
         simulation_db.generate_json(value, pretty=pretty),
-        mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-    )
-
-
-def _json_response_for_export(value):
-    return app.response_class(
-        simulation_db.generate_pretty_json(value),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
 
