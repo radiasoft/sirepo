@@ -708,7 +708,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
                     encodeURIComponent(serializeValue(params[k], k)));
             }
         }
-        var missing = url.match(/\<[^>]+\>/g);
+        var missing = url.match(/<[^>]+>/g);
         if (missing)
             throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         return url;
@@ -722,10 +722,11 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         if (typeof v == 'boolean')
             //TODO(robnagler) probably needs to be true/false with test
             return v ? '1' : '0';
-        if (angular.isString(v))
-            if (v == '')
+        if (angular.isString(v)) {
+            if (v === '')
                 throw param + ': may not be empty string';
             return v;
+        }
         if (angular.isNumber(v))
             return v.toString();
         if (angular.isDate(v))
