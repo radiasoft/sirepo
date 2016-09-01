@@ -1043,7 +1043,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 appState.models.simulationStatus = {};
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
-            appState.saveChanges('simulationStatus');
+            if (appState.isLoaded())
+                appState.saveChanges('simulationStatus');
         }
 
         scope.simulationState = function() {
@@ -1051,7 +1052,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.simulationStatus = function() {
-            return appState.models.simulationStatus[scope.model];
+            return appState.models.simulationStatus[scope.model] || {state: 'pending'};
         };
 
         scope.cancelSimulation = function() {
