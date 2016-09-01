@@ -177,7 +177,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.clone = function(obj) {
-        return JSON.parse(JSON.stringify(obj));
+        return angular.copy(obj);
     };
 
     self.cloneModel = function(name) {
@@ -262,12 +262,12 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
             return;
         self.clearModels();
         requestSender.sendRequest(
-            requestSender.formatUrl(
-                'simulationData',
-                {
-                    '<simulation_id>': simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                }),
+            {
+                routeName: 'simulationData',
+                '<simulation_id>': simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<pretty>': false
+            },
             function(data, status) {
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
@@ -279,13 +279,15 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     return;
                 }
                 self.models = data.models;
+                self.models.simulationStatus = {};
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
                 self.resetAutoSaveTimer();
                 if (callback)
                     callback();
-            });
+            }
+        );
     };
 
     self.maxId = function(items, idField) {
@@ -369,9 +371,11 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
 
         if (requireReportUpdate)
             updateReports();
+
+        self.autoSave();
     };
 
-             self.setActiveFolderPath = function(path) {
+    self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
     };
 
@@ -455,11 +459,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         ].join('*');
         var requestFunction = function() {
             requestSender.sendRequest(
-                requestSender.formatUrl(
-                    'simulationFrame',
-                    {
-                        '<frame_id>': frameId,
-                    }),
+                {
+                    'routeName': 'simulationFrame',
+                    '<frame_id>': frameId,
+                },
                 function(data) {
                     var endTime = new Date().getTime();
                     var elapsed = endTime - startTime;
@@ -549,7 +552,6 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     }
 
     function sendRequest(name, callback, forceRun) {
-        appState.resetAutoSaveTimer();
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
@@ -683,18 +685,58 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             self.localRedirect('notFound');
     }
 
-    function formatUrl(map, routeName, params) {
+    function formatUrl(map, routeOrParams, params) {
+        var routeName = routeOrParams;
+        if (angular.isObject(routeOrParams)) {
+            routeName = routeOrParams.routeName;
+            if (! routeName)
+                throw routeOrParams + ': routeName must be supplied';
+            if (angular.isDefined(params)) {
+                srlog(arguments);
+                throw params + ': params must be null if routeOrParams is an object: ' + routeOrParams;
+            }
+            params = angular.copy(routeOrParams);
+            delete params.routeName;
+        }
         if (! map[routeName])
-            throw 'unknown routeName: ' + routeName;
+            throw routeName + ': routeName not found';
         var url = map[routeName];
         if (params) {
-            for (var k in params)
-                url = url.replace(k, params[k]);
+            for (var k in params) {
+                if (url.indexOf(k) < 0)
+                    throw k + ': param not found in route: ' + map[routeName];
+                url = url.replace(
+                    k,
+                    encodeURIComponent(serializeValue(params[k], k)));
+            }
         }
+        var missing = url.match(/<[^>]+>/g);
+        if (missing)
+            throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         return url;
     }
 
-    self.formatLocalUrl = function(routeName, params) {
+    // Started from serializeValue in angular, but need more specialization.
+    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
+    function serializeValue(v, param) {
+        if (v === null)
+            throw param + ': may not be null';
+        if (typeof v == 'boolean')
+            //TODO(robnagler) probably needs to be true/false with test
+            return v ? '1' : '0';
+        if (angular.isString(v)) {
+            if (v === '')
+                throw param + ': may not be empty string';
+            return v;
+        }
+        if (angular.isNumber(v))
+            return v.toString();
+        if (angular.isDate(v))
+            return v.toISOString();
+        throw param + ': ' + (typeof v) + ' type cannot be serialized';
+    }
+
+    self.formatUrlLocal = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
     };
 
@@ -738,19 +780,19 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
     };
 
     self.localRedirect = function(routeName, params, search) {
-        $location.path(self.formatLocalUrl(routeName, params));
+        $location.path(self.formatUrlLocal(routeName, params));
         if (search)
             $location.search(search);
     };
 
-    self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
+    self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback)
             errorCallback = logError;
         if (! successCallback)
             successCallback = function () {};
-        var url = urlOrName.indexOf('/') >= 0
-            ? urlOrName
-            : self.formatUrl(urlOrName);
+        var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
+            ? urlOrParams
+            : self.formatUrl(urlOrParams);
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
@@ -799,6 +841,9 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     var runQueue = [];
 
     function addItem(report, models, responseHandler, qMode, forceRun) {
+        models = angular.copy(models);
+        // Not used server side and contains a lot of stuff
+        delete models.simulationStatus;
         var qi = {
             firstRoute: qMode == 'persistentStatus' ? 'runStatus' : 'runSimulation',
             qMode: qMode,
@@ -1173,7 +1218,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         var url = requestSender.formatUrl(
             'findByName',
             {
-                '<simulation_name>': encodeURIComponent(name),
+                '<simulation_name>': name,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<application_mode>': applicationMode,
             });

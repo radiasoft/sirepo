@@ -132,6 +132,10 @@ def fixup_old_data(simulation_type, data):
         return data
     sirepo.template.import_module(simulation_type).fixup_old_data(data)
     data['version'] = SCHEMA_COMMON['version']
+    try:
+        del data['models']['simulationStatus']
+    except:
+        pass
     return data
 
 
@@ -163,26 +167,18 @@ def is_parallel(data):
     return bool(_IS_PARALLEL_RE.search(_report_name(data)))
 
 
-def generate_pretty_json(data):
-    """Convert data to JSON to human readable
-
-    Args:
-        data (object): what to format
-    Returns:
-        str: human readable data
-    """
-    return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
-
-
-def generate_json_response(data):
+def generate_json(data, pretty=False):
     """Convert data to JSON to be send back to client
 
     Use only for responses. Use `:func:write_json` to save.
     Args:
         data (dict): what to format
+        pretty (bool): pretty print [False]
     Returns:
         str: formatted data
     """
+    if pretty:
+        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
     return json.dumps(data)
 
 
@@ -408,9 +404,20 @@ def save_new_simulation(simulation_type, data):
 
 
 def save_simulation_json(simulation_type, data):
+    """Prepare data and save to json db
+
+    Args:
+        simulation_type (str): srw, warp, ...
+        data (dict): what to write (contains simulationId)
+    """
     sid = parse_sid(data)
-    if 'version' not in data:
-        data['version'] = SCHEMA_COMMON['version']
+    try:
+        # Never save this
+        del data['simulationStatus']
+    except:
+        pass
+    data.setdefault('version', SCHEMA_COMMON['version'])
+    data.setdefault('simulationType', simulation_type)
     write_json(_simulation_data_file(simulation_type, sid), data)
 
 
@@ -491,7 +498,7 @@ def write_json(filename, data):
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
     with open(str(json_filename(filename)), 'w') as f:
-        f.write(generate_pretty_json(data))
+        f.write(generate_json(data, pretty=True))
 
 
 def write_result(result, run_dir=None):

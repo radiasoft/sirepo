@@ -751,7 +751,7 @@ SIREPO.app.directive('modalEditor', function(appState) {
             if (! $scope.modalTitle)
                 $scope.modalTitle = viewInfo.title;
             $scope.$on('modelChanged', function (e, name) {
-                if (name == $scope.modelName)
+                if (name == $scope.modelKey)
                     hideModal();
             });
             $scope.$on('cancelChanges', hideModal);
