@@ -759,6 +759,10 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         return self[name];
     };
 
+    self.isRouteParameter = function(routeName, paramName) {
+        return (localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName]).indexOf(paramName) >= 0;
+    };
+
     self.loadAuxiliaryData = function(name, path, callback) {
         if (self[name] || self[name + ".loading"]) {
             if (callback)
@@ -1177,11 +1181,16 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     var self = this;
 
     function openSection(name, search) {
-        requestSender.localRedirect(name, {
-            ':simulationId': appState.isLoaded()
-                ? appState.models.simulation.simulationId
-                : null,
-        }, search);
+        requestSender.localRedirect(name, sectionParams(name), search);
+    }
+
+    function sectionParams(name) {
+        if (requestSender.isRouteParameter(name, ':simulationId') && appState.isLoaded()) {
+            return {
+                ':simulationId': appState.models.simulation.simulationId,
+            }
+        }
+        return {};
     }
 
     self.isActive = function(name) {
@@ -1233,6 +1242,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         if (appState.isLoaded())
             return appState.models.simulation.name;
         return null;
+    };
+
+    self.sectionURL = function(name) {
+        return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 });
 
