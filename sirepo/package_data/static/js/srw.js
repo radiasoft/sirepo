@@ -1252,6 +1252,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
                 $window.open(requestSender.formatUrl('simulationData', {
                     '<simulation_id>': simulationId(),
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<pretty>': true,
                 }), '_blank');
             };
 

@@ -20,7 +20,7 @@
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveSimulationData": "/save-simulation",
-        "simulationData": "/simulation/<simulation_type>/<simulation_id>",
+        "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
         "updateFolder": "/update-folder",

@@ -196,7 +196,7 @@ def app_error_logging():
         pkdp(
             '{}: javascript error: {}',
             ip,
-            simulation_db.generate_pretty_json(_json_input()),
+            simulation_db.generate_json(_json_input(), pretty=pretty),
         )
     except ValueError as e:
         pkdp(
@@ -402,10 +402,13 @@ def app_save_simulation_data():
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
-def app_simulation_data(simulation_type, simulation_id):
+def app_simulation_data(simulation_type, simulation_id, pretty):
+    #TODO(robnagler) need real type transform
+    pretty = bool(int(pretty))
     data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
     response = _json_response(
         sirepo.template.import_module(simulation_type).prepare_for_client(data),
+        pretty=pretty,
     )
     _no_cache(response)
     return response
@@ -597,9 +600,17 @@ def _json_input():
     return flask.request.get_json(cache=False)
 
 
-def _json_response(value):
+def _json_response(value, pretty=False):
+    """Generate JSON flask response
+
+    Args:
+        value (dict): what to format
+        pretty (bool): pretty print [False]
+    Returns:
+        Response: flask response
+    """
     return app.response_class(
-        simulation_db.generate_json_response(value),
+        simulation_db.generate_json(value, pretty=pretty),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
 

@@ -163,26 +163,18 @@ def is_parallel(data):
     return bool(_IS_PARALLEL_RE.search(_report_name(data)))
 
 
-def generate_pretty_json(data):
-    """Convert data to JSON to human readable
-
-    Args:
-        data (object): what to format
-    Returns:
-        str: human readable data
-    """
-    return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
-
-
-def generate_json_response(data):
+def generate_json(data, pretty=False):
     """Convert data to JSON to be send back to client
 
     Use only for responses. Use `:func:write_json` to save.
     Args:
         data (dict): what to format
+        pretty (bool): pretty print [False]
     Returns:
         str: formatted data
     """
+    if pretty:
+        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
     return json.dumps(data)
 
 
@@ -491,7 +483,7 @@ def write_json(filename, data):
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
     with open(str(json_filename(filename)), 'w') as f:
-        f.write(generate_pretty_json(data))
+        f.write(generate_json(data, pretty=True))
 
 
 def write_result(result, run_dir=None):
