@@ -410,27 +410,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     }
 
     self.clearFrames = function(modelName) {
-        if (! appState.isLoaded())
-            return;
-        requestSender.sendRequest(
-            'runCancel',
-            function() {
-                requestSender.sendRequest(
-                    'clearFrames',
-                    function() {
-                        self.setFrameCount(0);
-                    },
-                    {
-                        report: self.animationModelName || modelName,
-                        simulationId: appState.models.simulation.simulationId,
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
-            },
-            {
-                report: self.animationModelName || modelName,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+        // TODO(robnagler) if there are locally cached frames, they
+        // would be cleared here, but right now they are in the browser
+        // cache so do nothing.
+        return;
     };
 
     self.getCurrentFrame = function(modelName) {
