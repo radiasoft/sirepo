@@ -250,10 +250,10 @@ To start the [Flower: Celery Monitoring Tool](http://flower.readthedocs.io/en/la
 celery flower -A sirepo.celery_tasks
 ```
 
-You can then visit [[http://localhost:5555]] to see various things about Celery.
+You can then visit [http://localhost:5555](http://localhost:5555) to see various things about Celery.
 
 You can also visit [RabbitMQ's Management Plugin](https://www.rabbitmq.com/management.html)
-by visiting [[http://localhost:15672]]. This assumes you start the `rabbitmq:management`
+by visiting [http://localhost:15672](http://localhost:15672). This assumes you start the `rabbitmq:management`
 Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sirepo service http`).
 
 ### License
