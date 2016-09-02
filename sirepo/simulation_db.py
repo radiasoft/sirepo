@@ -128,15 +128,19 @@ def find_global_simulation(simulation_type, sid):
 
 
 def fixup_old_data(simulation_type, data):
-    if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
-        return data
-    sirepo.template.import_module(simulation_type).fixup_old_data(data)
-    data['version'] = SCHEMA_COMMON['version']
     try:
-        del data['models']['simulationStatus']
-    except:
-        pass
-    return data
+        if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+            return data
+        sirepo.template.import_module(simulation_type).fixup_old_data(data)
+        data['version'] = SCHEMA_COMMON['version']
+        try:
+            del data['models']['simulationStatus']
+        except KeyError:
+            pass
+        return data
+    except Exception as e:
+        pkdp('data={}: error: {}', data, pkdexc())
+        raise
 
 
 def get_schema(sim_type):
@@ -233,16 +237,17 @@ def open_json_file(simulation_type, path=None, sid=None):
                 },
             }
         raise werkzeug.exceptions.NotFound()
+    data = None
     try:
         with open(str(path)) as f:
             data = json.load(f)
             # ensure the simulationId matches the path
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
-            return fixup_old_data(simulation_type, data)
     except Exception as e:
-        pkdp('{}: error: {}', path, e)
+        pkdp('{}: error: {}', path, pkdexc())
         raise
+    return fixup_old_data(simulation_type, data)
 
 
 def parse_sid(data):
