@@ -137,7 +137,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.autoSave = function(callback) {
-        if (! self.isLoaded)
+        if (! self.isLoaded())
             return;
         self.resetAutoSaveTimer();
         if (lastAutoSaveData && self.deepEquals(lastAutoSaveData, savedModelValues)) {
