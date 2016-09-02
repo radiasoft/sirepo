@@ -887,6 +887,8 @@ def _compute_grazing_angle(model):
 
 
 def _compute_undulator_length(model):
+    if model['undulatorType'] == 'u_i':
+        return model
     zip_file = simulation_db.simulation_lib_dir('srw').join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
