@@ -236,7 +236,7 @@ If you would like to see what the browser (webdriver) is doing, you
 must have X11 running, and start the webdriver this way:
 
 ```bash
-/node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
+./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
 ```
 
 This will use the `$DISPLAY` forwarded through your ssh session via
