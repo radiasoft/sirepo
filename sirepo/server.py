@@ -639,7 +639,7 @@ def _parse_data_input(validate=False):
 
 def _save_new_and_reply(*args):
     sim_type, sid = simulation_db.save_new_simulation(*args)
-    return app_simulation_data(sim_type, sid)
+    return app_simulation_data(sim_type, sid, pretty=False)
 
 
 def _simulation_error(err, *args, **kwargs):
@@ -945,7 +945,7 @@ class _Celery(object):
             if not self:
                 return
             res = self.async_result
-            pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
+            pkdp('{}: killing: tid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
