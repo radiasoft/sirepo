@@ -693,6 +693,12 @@ def _simulation_input(run_dir):
     return simulation_db.json_filename(template_common.INPUT_BASE_NAME, run_dir)
 
 
+def _simulation_data(res, path, data):
+    """Iterator function to return entire simulation data
+    """
+    res.append(data)
+
+
 def _simulation_name(res, path, data):
     """Iterator function to return simulation name
     """
