@@ -12,6 +12,7 @@ from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
+import copy
 import datetime
 import errno
 import flask
@@ -25,6 +26,7 @@ import random
 import re
 import sirepo.template
 import threading
+import time
 import werkzeug.exceptions
 
 #: Json files
@@ -82,7 +84,7 @@ _app = None
 _serial_prev = 0
 
 #: Locking of _serial_prev test/update
-_serial_lock = threading.Lock()
+_serial_lock = threading.RLock()
 
 with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
     SCHEMA_COMMON = json.load(f)
@@ -140,8 +142,8 @@ def fixup_old_data(simulation_type, data):
             return data
         sirepo.template.import_module(simulation_type).fixup_old_data(data)
         data['version'] = SCHEMA_COMMON['version']
-        if 'simulationSerial' not in data:
-            data['simulationSerial'] = _serial_new()
+        if not 'simulationSerial' in data['models']['simulation']:
+            data['models']['simulation']['simulationSerial'] = 0
         try:
             del data['models']['simulationStatus']
         except KeyError:
@@ -264,18 +266,36 @@ def open_json_file(simulation_type, path=None, sid=None):
 
 
 def parse_sid(data):
-    """Extract id from data file
+    """Extract id from data
 
     Args:
-        data (dict): data file parsed
+        data (dict): models or request
 
     Returns:
-        str: simulationId from data fiel
+        str: simulationId from data
     """
     try:
         return str(data['simulationId'])
     except KeyError:
         return str(data['models']['simulation']['simulationId'])
+
+
+def parse_sim_ser(data):
+    """Extract simulationStatus from data
+
+    Args:
+        data (dict): models or request
+
+    Returns:
+        int: simulationSerial
+    """
+    try:
+        return int(data['simulationSerial'])
+    except KeyError:
+        try:
+            return int(data['models']['simulation']['simulationSerial'])
+        except KeyError:
+            return None
 
 
 def poll_seconds(data):
@@ -404,9 +424,9 @@ def read_simulation_json(*args, **kwargs):
         data (dict): simulation data
     """
     data = open_json_file(*args, **kwargs)
-    new = fixup_old_data(data)
+    new = fixup_old_data(data['simulationType'], copy.deepcopy(data))
     if new != data:
-        return save_simulation_json(data['simulationType'], data)
+        return save_simulation_json(data['simulationType'], new)
     return data
 
 
@@ -440,16 +460,18 @@ def save_simulation_json(simulation_type, data):
         simulation_type (str): srw, warp, ...
         data (dict): what to write (contains simulationId)
     """
-    sid = parse_sid(data)
-    try:
-        # Never save this
-        del data['simulationStatus']
-    except:
-        pass
-    data = fixup_old_data(simulation_type, data)
-    data['simulationSerial'] = _serial_new()
-    write_json(_simulation_data_file(simulation_type, sid), data)
-    return data
+    with _serial_lock:
+        sid = parse_sid(data)
+        try:
+            # Never save this
+            #TODO(robnagler) have "_private" fields that don't get saved
+            del data['simulationStatus']
+        except:
+            pass
+        data = fixup_old_data(simulation_type, data)
+        data['models']['simulation']['simulationSerial'] = _serial_new()
+        write_json(_simulation_data_file(simulation_type, sid), data)
+        return data
 
 
 def simulation_dir(simulation_type, sid=None):
@@ -522,17 +544,24 @@ def validate_serial(data):
     Returns:
         object: None if all ok, or json response (bad)
     """
-    if 'simulationSerial' in data:
-
-
-
-    sim_type = data['simulationType']
-    sid = parse_sid(data)
-    return {
-        'simulationId': simulationId,
-        'simulationType': sim_type,
-        'simulationSerial': newerSerial,
-    }
+    with _serial_lock:
+        sim_type = data['simulationType']
+        sid = parse_sid(data)
+        req_ser = parse_sim_ser(data)
+        curr = read_simulation_json(sim_type, sid=sid)
+        curr_ser = curr['models']['simulation']['simulationSerial']
+        if not req_ser is None:
+            if req_ser == curr_ser:
+                return None
+            status = 'newer' if req_ser > curr_ser else 'older'
+            pkdp(
+                '{}: incoming serial {} than stored serial={} sid={}, resetting client',
+                req_ser,
+                status,
+                curr_ser,
+                sid,
+            )
+        return curr
 
 
 def verify_app_directory(simulation_type):
@@ -653,7 +682,7 @@ def _search_data(data, search):
         for key in path:
             if key in v:
                 v = v[key]
-        if v != search[field]:p
+        if v != search[field]:
             return False
     return True
 
@@ -668,6 +697,7 @@ def _serial_new():
     Timestamps are not guaranteed to be sequential. If the
     system clock is adjusted, we'll throw an exception here.
     """
+    global _serial_prev
     res = int(time.time() * 1000000)
     with _serial_lock:
         # Good enough assertion. Any collisions will also be detected

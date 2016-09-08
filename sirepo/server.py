@@ -349,9 +349,6 @@ def app_route_favicon():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _parse_data_input()
-    res = _validate_serial(data)
-    if res:
-        return res
     jid = _job_id(data)
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
@@ -374,9 +371,6 @@ def app_run_cancel():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run_simulation():
     data = _parse_data_input(validate=True)
-    res = _validate_serial(data)
-    if res:
-        return res
     res = _simulation_run_status(data, quiet=True)
     if (
         (
@@ -392,9 +386,6 @@ def app_run_simulation():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
 def app_run_status():
     data = _parse_data_input()
-    res = _validate_serial(data)
-    if res:
-        return res
     return _json_response(_simulation_run_status(data))
 
 
@@ -751,6 +742,7 @@ def _simulation_run_status(data, quiet=False):
             new.setdefault('frameCount', 0)
             res.update(new)
         res['parametersChanged'] = bool(not cache_hit and cached_data)
+        #TODO(robnagler) verify serial number to see what's newer
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
@@ -761,6 +753,8 @@ def _simulation_run_status(data, quiet=False):
                 'reportParametersHash': cached_data['reportParametersHash'],
                 'simulationId': cached_data['simulationId'],
                 'simulationType': cached_data['simulationType'],
+                #TODO(robnagler) serial on disk??
+                #### 'simulationSerial': simulation_db.parse_sim_ser(data),
             }
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)
@@ -796,8 +790,9 @@ def _validate_serial(data):
         return None
     return _json_response({
         'msgType': 'invalidSerial',
-        'simulationId': res['simulationId'],
+        'simulationData': res,
     })
+
 
 class _Background(object):
 
@@ -805,7 +800,7 @@ class _Background(object):
     _job = {}
 
     # mutex for _job
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self, data):
         with self._lock:
@@ -945,7 +940,7 @@ class _Celery(object):
     _job = {}
 
     # mutex for _job
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self, data):
         with self._lock:
