@@ -438,6 +438,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             modelName,
             animationArgs(modelName),
             index,
+            //TODO(robnagler) startTime should be reportParametersHash
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('*');
         var requestFunction = function() {
@@ -841,7 +842,8 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 report: report,
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
-                simulationId: models.simulation.simulationId
+                simulationId: models.simulation.simulationId,
+                simulationSerial: models.simulation.simulationSerial,
             },
             responseHandler: responseHandler,
         };
