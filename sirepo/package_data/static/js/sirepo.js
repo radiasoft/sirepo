@@ -149,7 +149,20 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         lastAutoSaveData = self.clone(savedModelValues);
         requestSender.sendRequest(
             'saveSimulationData',
-            callback,
+            function (resp) {
+                if (resp.msgType == 'invalidSerial')
+                    //TODO(robnagler) need to indicate error
+                    self.saveSimulationData(resp.simulationData);
+                else {
+                    var s = self.models.simulationStatus;
+                    self.models = resp.models;
+                    self.models.simulationStatus = s || {};
+                    savedModelValues = self.cloneModel();
+                    lastAutoSaveData = self.clone(savedModelValues);
+                }
+                if (callback)
+                    callback(resp);
+            },
             {
                 models: savedModelValues,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
@@ -278,12 +291,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     });
                     return;
                 }
-                self.models = data.models;
-                self.models.simulationStatus = {};
-                savedModelValues = self.cloneModel();
-                updateReports();
-                broadcastLoaded();
-                self.resetAutoSaveTimer();
+                self.saveSimulationData(data);
                 if (callback)
                     callback();
             }
@@ -346,33 +354,45 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
             name = [name];
-        var updatedModels = [];
-        var requireReportUpdate = false;
+        self.autoSave(function() {
+            var updatedModels = [];
+            var requireReportUpdate = false;
 
-        for (var i = 0; i < name.length; i++) {
-            if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
-                // let the UI know the primary model has changed, even if it hasn't
-                if (i === 0)
+            for (var i = 0; i < name.length; i++) {
+                if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
+                    // let the UI know the primary model has changed, even if it hasn't
+                    if (i === 0)
+                        updatedModels.push(name[i]);
+                }
+                else {
+                    self.saveQuietly(name[i]);
                     updatedModels.push(name[i]);
+                    if (! self.isReportModelName(name[i]))
+                        requireReportUpdate = true;
+                }
             }
-            else {
-                self.saveQuietly(name[i]);
-                updatedModels.push(name[i]);
-                if (! self.isReportModelName(name[i]))
-                    requireReportUpdate = true;
+
+            for (i = 0; i < updatedModels.length; i++) {
+                if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
+                    continue;
+                broadcastChanged(updatedModels[i]);
             }
-        }
 
-        for (i = 0; i < updatedModels.length; i++) {
-            if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
-                continue;
-            broadcastChanged(updatedModels[i]);
-        }
+            if (requireReportUpdate)
+                updateReports();
+        });
+    };
 
-        if (requireReportUpdate)
-            updateReports();
-
-        self.autoSave();
+    self.saveSimulationData = function(data, callback) {
+        self.models = data.models;
+        self.models.simulationStatus = {};
+        savedModelValues = self.cloneModel();
+        lastAutoSaveData = self.clone(savedModelValues);
+        updateReports();
+        broadcastLoaded();
+        self.resetAutoSaveTimer();
+        if (callback)
+            callback();
     };
 
     self.setActiveFolderPath = function(path) {
@@ -843,7 +863,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 simulationId: models.simulation.simulationId,
-                simulationSerial: models.simulation.simulationSerial,
+                simulationSerial: models.simulation.simulationSerial
             },
             responseHandler: responseHandler,
         };
@@ -1028,8 +1048,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 appState.models.simulationStatus = {};
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
-            if (appState.isLoaded())
+            if (appState.isLoaded()) {
+                srdbg('hello');
                 appState.saveChanges('simulationStatus');
+            }
         }
 
         scope.simulationState = function() {
@@ -1374,6 +1396,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                     self.openItem(showItem.parent);
                 else
                     self.openItem(rootFolder());
+                srdbg('here');
             });
     }
 
