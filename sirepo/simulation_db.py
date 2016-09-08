@@ -24,6 +24,7 @@ import py
 import random
 import re
 import sirepo.template
+import threading
 import werkzeug.exceptions
 
 #: Json files
@@ -77,6 +78,12 @@ _USER_ROOT_DIR = 'user'
 #: Flask app (init() must be called to set this)
 _app = None
 
+#: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
+_serial_prev = 0
+
+#: Locking of _serial_prev test/update
+_serial_lock = threading.Lock()
+
 with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
     SCHEMA_COMMON = json.load(f)
 
@@ -110,7 +117,7 @@ def examples(app):
         pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
         re.escape(JSON_SUFFIX) + '$',
     )
-    return [open_json_file(app, str(f)) for f in files]
+    return [open_json_file(app, path=str(f)) for f in files]
 
 
 def find_global_simulation(simulation_type, sid):
@@ -133,13 +140,15 @@ def fixup_old_data(simulation_type, data):
             return data
         sirepo.template.import_module(simulation_type).fixup_old_data(data)
         data['version'] = SCHEMA_COMMON['version']
+        if 'simulationSerial' not in data:
+            data['simulationSerial'] = _serial_new()
         try:
             del data['models']['simulationStatus']
         except KeyError:
             pass
         return data
     except Exception as e:
-        pkdp('data={}: error: {}', data, pkdexc())
+        pkdp('{}: error: {}', data, pkdexc())
         raise
 
 
@@ -226,6 +235,9 @@ def open_json_file(simulation_type, path=None, sid=None):
     if not os.path.isfile(str(path)):
         global_sid = None
         if sid:
+            #TODO(robnagler) workflow should be in server.py,
+            # because only valid in one case, not e.g. for opening examples
+            # which are not found.
             user_copy_sid = _find_user_simulation_copy(simulation_type, sid)
             if find_global_simulation(simulation_type, sid):
                 global_sid = sid
@@ -236,6 +248,7 @@ def open_json_file(simulation_type, path=None, sid=None):
                     'userCopySimulationId': user_copy_sid,
                 },
             }
+        #TODO(robnagler) should be a regular exception or abstraction, not bound to werkzeug
         raise werkzeug.exceptions.NotFound()
     data = None
     try:
@@ -247,7 +260,7 @@ def open_json_file(simulation_type, path=None, sid=None):
     except Exception as e:
         pkdp('{}: error: {}', path, pkdexc())
         raise
-    return fixup_old_data(simulation_type, data)
+    return data
 
 
 def parse_sid(data):
@@ -384,6 +397,19 @@ def read_result(run_dir):
     return res, err
 
 
+def read_simulation_json(*args, **kwargs):
+    """Calls `open_json_file` and fixes up data, possibly saving
+
+    Returns:
+        data (dict): simulation data
+    """
+    data = open_json_file(*args, **kwargs)
+    new = fixup_old_data(data)
+    if new != data:
+        return save_simulation_json(data['simulationType'], data)
+    return data
+
+
 def read_status(run_dir):
     """Read status from simulation dir
 
@@ -397,15 +423,14 @@ def read_status(run_dir):
 
 
 def save_new_example(simulation_type, data):
-    data['models']['simulation']['isExample'] = '1'
+    data['models']['simulation']['isExample'] = True
     return save_new_simulation(simulation_type, data)
 
 
 def save_new_simulation(simulation_type, data):
     sid = _random_id(simulation_dir(simulation_type), simulation_type)['id']
     data['models']['simulation']['simulationId'] = sid
-    save_simulation_json(simulation_type, data)
-    return simulation_type, sid
+    return save_simulation_json(simulation_type, data)
 
 
 def save_simulation_json(simulation_type, data):
@@ -421,9 +446,10 @@ def save_simulation_json(simulation_type, data):
         del data['simulationStatus']
     except:
         pass
-    data.setdefault('version', SCHEMA_COMMON['version'])
-    data.setdefault('simulationType', simulation_type)
+    data = fixup_old_data(simulation_type, data)
+    data['simulationSerial'] = _serial_new()
     write_json(_simulation_data_file(simulation_type, sid), data)
+    return data
 
 
 def simulation_dir(simulation_type, sid=None):
@@ -485,6 +511,28 @@ def user_id():
         str: user id from session
     """
     return flask.session[_UID_ATTR]
+
+
+def validate_serial(data):
+    """Verify serial in data validates
+
+    Args:
+        data (dict): request with serial and possibly models
+
+    Returns:
+        object: None if all ok, or json response (bad)
+    """
+    if 'simulationSerial' in data:
+
+
+
+    sim_type = data['simulationType']
+    sid = parse_sid(data)
+    return {
+        'simulationId': simulationId,
+        'simulationType': sim_type,
+        'simulationSerial': newerSerial,
+    }
 
 
 def verify_app_directory(simulation_type):
@@ -605,9 +653,29 @@ def _search_data(data, search):
         for key in path:
             if key in v:
                 v = v[key]
-        if v != search[field]:
+        if v != search[field]:p
             return False
     return True
+
+
+def _serial_new():
+    """Generate a serial number
+
+    Serial numbers are 16 digits (time represented in microseconds
+    since epoch) which are always less than Javascript's
+    Number.MAX_SAFE_INTEGER (9007199254740991=2*53-1).
+
+    Timestamps are not guaranteed to be sequential. If the
+    system clock is adjusted, we'll throw an exception here.
+    """
+    res = int(time.time() * 1000000)
+    with _serial_lock:
+        # Good enough assertion. Any collisions will also be detected
+        # by parameter hash so order isn't only validation
+        assert res > _serial_prev, \
+            '{}: serial did not increase: prev={}'.format(res, _serial_prev)
+        _serial_prev = res
+    return res
 
 
 def _sid_from_path(path):
