@@ -55,7 +55,7 @@ def run_background(cfg_dir):
         script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
         p = dict(pkcollections.map_items(cfg))
         if pkconfig.channel_in('dev'):
-            p['particles_per_core'] = 1
+            p['particles_per_core'] = 5
         p['cores'] = mpi.cfg.cores
         #TODO(pjm): move parameters/config to template/srw.py and set directly in srw.py.jinja
         script += '''
