@@ -312,6 +312,17 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
+    for item in data['models']['beamline']:
+        if item['type'] == 'crl':
+            key_value_pairs = {
+                'material': 'User-defined',
+                'method': 'server',
+                'absoluteFocusPosition': None,
+                'focalDistance': None,
+            }
+            for field in key_value_pairs.keys():
+                if field not in item:
+                    item[field] = key_value_pairs[field]
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
             if 'fieldUnits' not in data['models'][k]:
