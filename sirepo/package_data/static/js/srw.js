@@ -1035,12 +1035,20 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         });
     });
 
-    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
+    function processUndulatorWithTimeout(undType) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
-                processUndulator(newValue);
+                processUndulator(undType);
             }
         });
+    }
+
+    $scope.$on('simulation.changed', function() {
+        processUndulatorWithTimeout('u_t');
+    });
+
+    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
+        processUndulatorWithTimeout(newValue);
     });
 
     $scope.$watch('appState.models.tabulatedUndulator.magneticFile', function (newValue, oldValue) {
