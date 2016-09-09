@@ -12,7 +12,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data
+from sirepo.template.srw import extract_report_data, find_height_profile_dimension
 import os
 import re
 import srwl_bl
@@ -74,8 +74,10 @@ srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 def _mirror_plot(model_data):
     mirror = model_data['models']['mirrorReport']
-    func_name = 'srwl_opt_setup_surf_height_{}d'.format(mirror['heightProfileDimension'])
-    add_args = [0, 1] if int(mirror['heightProfileDimension']) == 1 else []
+    dat_file = mirror['heightProfileFile']
+    dimension = find_height_profile_dimension(dat_file)
+    func_name = 'srwl_opt_setup_surf_height_{}d'.format(dimension)
+    add_args = [0, 1] if dimension == 1 else []
     element = getattr(srwlib, func_name)(
         srwlib.srwl_uti_read_data_cols(mirror['heightProfileFile'], "\t", *add_args),
         _dim=mirror['orientation'],
