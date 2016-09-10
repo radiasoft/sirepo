@@ -1191,7 +1191,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     }
 
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
@@ -1671,7 +1671,7 @@ SIREPO.app.directive('mobileAppTitle', function(srwService) {
     }
 
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=mobileAppTitle',
         },

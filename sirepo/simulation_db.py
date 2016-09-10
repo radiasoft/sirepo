@@ -535,19 +535,19 @@ def user_id():
     return flask.session[_UID_ATTR]
 
 
-def validate_serial(data):
+def validate_serial(req_data):
     """Verify serial in data validates
 
     Args:
-        data (dict): request with serial and possibly models
+        req_data (dict): request with serial and possibly models
 
     Returns:
         object: None if all ok, or json response (bad)
     """
     with _serial_lock:
-        sim_type = data['simulationType']
-        sid = parse_sid(data)
-        req_ser = parse_sim_ser(data)
+        sim_type = req_data['simulationType']
+        sid = parse_sid(req_data)
+        req_ser = req_data['models']['simulation']['simulationSerial']
         curr = read_simulation_json(sim_type, sid=sid)
         curr_ser = curr['models']['simulation']['simulationSerial']
         if not req_ser is None:

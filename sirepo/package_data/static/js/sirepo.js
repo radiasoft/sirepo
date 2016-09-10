@@ -110,6 +110,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     var autoSaveTimer = null;
     var savedModelValues = {};
     var activeFolderPath = null;
+    var alertText = null;
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -132,6 +133,13 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         }
     }
 
+    self.alertText = function(value) {
+        if (angular.isDefined(value)) {
+            alertText = value;
+        }
+        return alertText;
+    };
+
     self.applicationState = function() {
         return savedModelValues;
     };
@@ -150,18 +158,14 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         requestSender.sendRequest(
             'saveSimulationData',
             function (resp) {
-                if (resp.msgType == 'invalidSerial')
-                    //TODO(robnagler) need to indicate error
-                    self.saveSimulationData(resp.simulationData);
-                else {
-                    var s = self.models.simulationStatus;
-                    self.models = resp.models;
-                    self.models.simulationStatus = s || {};
-                    savedModelValues = self.cloneModel();
-                    lastAutoSaveData = self.clone(savedModelValues);
-                }
-                if (callback)
+                var s = self.models.simulationStatus;
+                self.models = resp.models;
+                self.models.simulationStatus = s || {};
+                savedModelValues = self.cloneModel();
+                lastAutoSaveData = self.clone(savedModelValues);
+                if (callback) {
                     callback(resp);
+                }
             },
             {
                 models: savedModelValues,
@@ -409,6 +413,15 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         else
             $rootScope.$on('modelsLoaded', callback);
     };
+
+    requestSender.registerMsgType(
+        'invalidSerial',
+        function(msg) {
+            //TODO(robnagler) need to indicate error
+            self.saveSimulationData(msg.simulationData);
+            self.alertText('Another browser updated this simulation; refreshing local state');
+        }
+    );
 
     return self;
 });
@@ -682,6 +695,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout;
+    var msgTypes = {};
 
     function logError(data, status) {
         srlog('request failed: ', data);
@@ -793,6 +807,22 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             $location.search(search);
     };
 
+    function msgTypeDispatch(msg) {
+        var f = msgTypes[msg.msgType];
+        if (! f) {
+            srlog(msg.msgType, ': unknown msgType; msg=', msg)
+        }
+        return f(msg);
+    };
+
+    self.registerMsgType = function(msgType, callback) {
+        if (msgTypes[msgType]) {
+            srlog(msgType, ': duplicate msgType, ignoring callback=', callback);
+            return;
+        }
+        msgTypes[msgType] = callback;
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback)
             errorCallback = logError;
@@ -821,6 +851,10 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         req.success(
             function(resp, status) {
                 $interval.cancel(interval);
+                if (resp.msgType) {
+                    self.msgTypeDispatch(resp);
+                    return;
+                }
                 successCallback(resp, status);
             }
         );
@@ -863,7 +897,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 simulationId: models.simulation.simulationId,
-                simulationSerial: models.simulation.simulationSerial
             },
             responseHandler: responseHandler,
         };

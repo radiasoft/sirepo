@@ -753,8 +753,6 @@ def _simulation_run_status(data, quiet=False):
                 'reportParametersHash': cached_data['reportParametersHash'],
                 'simulationId': cached_data['simulationId'],
                 'simulationType': cached_data['simulationType'],
-                #TODO(robnagler) serial on disk??
-                #### 'simulationSerial': simulation_db.parse_sim_ser(data),
             }
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)
