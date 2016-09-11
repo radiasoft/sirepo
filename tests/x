@@ -1,0 +1,23 @@
+===================================== test session starts =====================================
+platform linux2 -- Python 2.7.10, pytest-2.9.2, py-1.4.31, pluggy-0.3.1
+rootdir: /home/vagrant/src/radiasoft/sirepo/tests, inifile: pytest.ini
+plugins: xdist-1.14
+collected 1 items
+
+serial_test.py E
+
+=========================================== ERRORS ============================================
+_________________________________ ERROR at setup of test_new __________________________________
+
+    @pytest.yield_fixture(scope='module')
+    def flask_client():
+        """Return Flask test_client fixture -6D2A(scope=module).
+    
+        Creates a new run directory every test file so can assume
+        sharing of state on the server within a file (module).
+        """
+>       assert False
+E       assert False
+
+conftest.py:20: AssertionError
+=================================== 1 error in 0.25 seconds ===================================
