@@ -635,7 +635,7 @@ def _user_dir():
     if d.check():
         return d
     # Beaker session might have been deleted (in dev) so "logout" and "login"
-    _user_dir_create()
+    uid = _user_dir_create()
     return _user_dir_name(uid)
 
 
