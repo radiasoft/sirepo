@@ -1604,8 +1604,9 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
                         '<div class="form-group">',
                           '<label>Select File</label>',
                           '<input id="srw-python-file-import" type="file" data-file-model="pythonFile">',
+                          '<div data-ng-if="fileType(pythonFile)"></div>',
                           '<br />',
-                          'Optional arguments: <input id="srw-python-file-import-args" type="text" style="width: 100%" data-ng-model="importArgs"><br>',
+                          '<div class="srw-python-file-import-args"><label>Optional arguments:</label><input type="text" style="width: 100%" data-ng-model="importArgs"></div><br>',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
@@ -1624,7 +1625,18 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = 'Import Python Beamline File';
+            $scope.title = 'Import Python or JSON Simulation File';
+            var import_args = $('.srw-python-file-import-args');
+            import_args.hide(0);
+            $scope.fileType = function(pythonFile) {
+                if (typeof(pythonFile) === 'undefined')
+                    return;
+                if (pythonFile.name.search('.py') >= 0) {
+                    import_args.show(0);
+                } else {
+                    import_args.hide(0);
+                }
+            }
             $scope.importPythonFile = function(pythonFile, importArgs) {
                 if (typeof(importArgs) === 'undefined')
                     importArgs = '';
