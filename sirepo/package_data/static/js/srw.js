@@ -1636,7 +1636,7 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
                 } else {
                     import_args.hide(0);
                 }
-            }
+            };
             $scope.importPythonFile = function(pythonFile, importArgs) {
                 if (typeof(importArgs) === 'undefined')
                     importArgs = '';
