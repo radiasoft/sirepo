@@ -11,7 +11,8 @@
               <ul class="dropdown-menu dropdown-menu-right">
                 <li class="dropdown-header">Download</li>
                 <li><a href data-ng-href="{{ visualization.logFileURL() }}" target="_blank">Elegant Log File</a></li>
-                <li><a href data-ng-href="{{ visualization.parametersFileURL() }}">Output Parameters File</a></li>
+                <!--<li><a href data-ng-href="{{ visualization.parametersFileURL() }}">Output Parameters File</a></li>-->
+                <li data-ng-repeat="item in visualization.auxFiles"><a data-ng-href="{{ visualization.downloadFileUrl(item) }}">{{ item.filename }}</a></li>
               </ul>
             </div>
             <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-hide="visualization.panelState.isHidden('simulationStatus')" title="Hide"><span class="s-panel-heading glyphicon glyphicon-triangle-top"></span></a>
