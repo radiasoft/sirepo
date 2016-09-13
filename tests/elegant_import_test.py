@@ -35,7 +35,13 @@ def test_importer():
             if error:
                 actual = error
             else:
-                actual = elegant.generate_lattice(data, {})
+                data['models']['commands'] = []
+                actual = '{}{}'.format(
+                    elegant._generate_variables(data),
+                    elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), {}))
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
-            assert expect == actual
+            #TODO(pjm): this takes too long if there are a lot of diffs
+            #assert expect == actual
+            if expect != actual:
+                assert False
