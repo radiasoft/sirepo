@@ -900,17 +900,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return fileURL(1, modelKey);
     };
 
-    // self.getBeamlines = function() {
-    //     if (! appState.isLoaded())
-    //         return null;
-    //     if (! appState.models.simulation.visualizationBeamlineId
-    //         && appState.models.beamlines
-    //         && appState.models.beamlines.length) {
-    //         appState.models.simulation.visualizationBeamlineId = appState.models.beamlines[0].id;
-    //     }
-    //     return appState.models.beamlines;
-    // };
-
     self.handleModalShown = function(name, modelKey) {
         for (var i = 0; i < self.outputFiles.length; i++) {
             var info = self.outputFiles[i];
@@ -937,7 +926,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
-        if (self.isStateProcessing()) {
+        if (self.isStateStopped()) {
             if (! data.frameCount) {
                 if (data.state == 'completed' && ! self.simulationErrors) {
                     // completed with no output, show link to elegant log
@@ -983,11 +972,11 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.originalRunSimulation = self.runSimulation;
     self.runSimulation = function() {
-        if (! self.isStateStopped())
+        if (self.isStateProcessing())
             return;
         self.progress = null;
         self.outputFiles = [];
-        appState.saveChanges('simulation');
+        appState.saveQuietly('simulation');
         return self.originalRunSimulation.apply(this, arguments);
     };
 
