@@ -1,5 +1,14 @@
 'use strict';
 
+SIREPO.srlog = console.log;
+SIREPO.srdbg = console.log;
+
+// No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
+SIREPO.http_timeout = 0;
+
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
     $.ajax({
@@ -13,7 +22,7 @@ angular.element(document).ready(function() {
         },
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA)
-                console.log("schema load failed: ", err);
+                srlog("schema load failed: ", err);
         },
         method: 'POST',
         dataType: 'json',
@@ -32,6 +41,26 @@ SIREPO.appDefaultSimulationValues = {
     simulationFolder: {},
 };
 
+angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
+    $provide.decorator('$rootScope', function ($delegate) {
+        var _emit = $delegate.$emit;
+        var _broadcast = $delegate.$broadcast;
+
+        $delegate.$emit = function () {
+            srdbg("[$emit] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
+            return _emit.apply(this, arguments);
+        };
+
+        $delegate.$broadcast = function () {
+            srdbg("[$broadcast] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
+            return _broadcast.apply(this, arguments);
+        };
+
+        return $delegate;
+    });
+}]);
+
+// Add "log-broadcasts" in dependencies if you want to see all broadcasts
 SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
@@ -108,7 +137,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.autoSave = function(callback) {
-        if (! self.isLoaded)
+        if (! self.isLoaded())
             return;
         self.resetAutoSaveTimer();
         if (lastAutoSaveData && self.deepEquals(lastAutoSaveData, savedModelValues)) {
@@ -148,7 +177,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.clone = function(obj) {
-        return JSON.parse(JSON.stringify(obj));
+        return angular.copy(obj);
     };
 
     self.cloneModel = function(name) {
@@ -233,12 +262,12 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
             return;
         self.clearModels();
         requestSender.sendRequest(
-            requestSender.formatUrl(
-                'simulationData',
-                {
-                    '<simulation_id>': simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                }),
+            {
+                routeName: 'simulationData',
+                '<simulation_id>': simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<pretty>': false
+            },
             function(data, status) {
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
@@ -250,13 +279,15 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     return;
                 }
                 self.models = data.models;
+                self.models.simulationStatus = {};
                 savedModelValues = self.cloneModel();
                 updateReports();
                 broadcastLoaded();
                 self.resetAutoSaveTimer();
                 if (callback)
                     callback();
-            });
+            }
+        );
     };
 
     self.maxId = function(items, idField) {
@@ -340,9 +371,11 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
 
         if (requireReportUpdate)
             updateReports();
+
+        self.autoSave();
     };
 
-             self.setActiveFolderPath = function(path) {
+    self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
     };
 
@@ -377,27 +410,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     }
 
     self.clearFrames = function(modelName) {
-        if (! appState.isLoaded())
-            return;
-        requestSender.sendRequest(
-            'runCancel',
-            function() {
-                requestSender.sendRequest(
-                    'clearFrames',
-                    function() {
-                        self.setFrameCount(0);
-                    },
-                    {
-                        report: self.animationModelName || modelName,
-                        simulationId: appState.models.simulation.simulationId,
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
-            },
-            {
-                report: self.animationModelName || modelName,
-                models: appState.applicationState(),
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+        // TODO(robnagler) if there are locally cached frames, they
+        // would be cleared here, but right now they are in the browser
+        // cache so do nothing.
+        return;
     };
 
     self.getCurrentFrame = function(modelName) {
@@ -424,14 +440,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             index,
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('*');
-
         var requestFunction = function() {
             requestSender.sendRequest(
-                requestSender.formatUrl(
-                    'simulationFrame',
-                    {
-                        '<frame_id>': frameId,
-                    }),
+                {
+                    'routeName': 'simulationFrame',
+                    '<frame_id>': frameId,
+                },
                 function(data) {
                     var endTime = new Date().getTime();
                     var elapsed = endTime - startTime;
@@ -520,8 +534,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return null;
     }
 
-    function sendRequest(name, callback) {
-        appState.resetAutoSaveTimer();
+    function sendRequest(name, callback, forceRun) {
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
@@ -535,7 +548,12 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
                 callback(resp);
             }
         };
-        simulationQueue.addTransientItem(name, appState.applicationState(), responseHandler);
+        simulationQueue.addTransientItem(
+            name,
+            appState.applicationState(),
+            responseHandler,
+            forceRun
+        );
     }
 
     function setPanelValue(name, key, value) {
@@ -576,22 +594,22 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return getPanelValue(name, 'loading') ? true : false;
     };
 
-    self.requestData = function(name, callback) {
+    self.requestData = function(name, callback, forceRun) {
         if (! appState.isLoaded())
             return;
         var data = getPanelValue(name, 'data');
         if (data) {
             callback(data);
-            //console.log('cached: ', name);
+            //srdbg('cached: ', name);
             return;
         }
         if (self.isHidden(name)) {
             self.addPendingRequest(name, function() {
-                sendRequest(name, callback);
+                sendRequest(name, callback, forceRun);
             });
         }
         else
-            sendRequest(name, callback);
+            sendRequest(name, callback, forceRun);
     };
 
     self.setError = function(name, error) {
@@ -640,28 +658,68 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval) {
+SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout;
 
     function logError(data, status) {
-        console.log('request failed: ', data);
+        srlog('request failed: ', data);
         if (status == 404)
             self.localRedirect('notFound');
     }
 
-    function formatUrl(map, routeName, params) {
+    function formatUrl(map, routeOrParams, params) {
+        var routeName = routeOrParams;
+        if (angular.isObject(routeOrParams)) {
+            routeName = routeOrParams.routeName;
+            if (! routeName)
+                throw routeOrParams + ': routeName must be supplied';
+            if (angular.isDefined(params)) {
+                srlog(arguments);
+                throw params + ': params must be null if routeOrParams is an object: ' + routeOrParams;
+            }
+            params = angular.copy(routeOrParams);
+            delete params.routeName;
+        }
         if (! map[routeName])
-            throw 'unknown routeName: ' + routeName;
+            throw routeName + ': routeName not found';
         var url = map[routeName];
         if (params) {
-            for (var k in params)
-                url = url.replace(k, params[k]);
+            for (var k in params) {
+                if (url.indexOf(k) < 0)
+                    throw k + ': param not found in route: ' + map[routeName];
+                url = url.replace(
+                    k,
+                    encodeURIComponent(serializeValue(params[k], k)));
+            }
         }
+        var missing = url.match(/<[^>]+>/g);
+        if (missing)
+            throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         return url;
     }
 
-    self.formatLocalUrl = function(routeName, params) {
+    // Started from serializeValue in angular, but need more specialization.
+    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
+    function serializeValue(v, param) {
+        if (v === null)
+            throw param + ': may not be null';
+        if (typeof v == 'boolean')
+            //TODO(robnagler) probably needs to be true/false with test
+            return v ? '1' : '0';
+        if (angular.isString(v)) {
+            if (v === '')
+                throw param + ': may not be empty string';
+            return v;
+        }
+        if (angular.isNumber(v))
+            return v.toString();
+        if (angular.isDate(v))
+            return v.toISOString();
+        throw param + ': ' + (typeof v) + ' type cannot be serialized';
+    }
+
+    self.formatUrlLocal = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
     };
 
@@ -684,6 +742,10 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         return self[name];
     };
 
+    self.isRouteParameter = function(routeName, paramName) {
+        return (localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName]).indexOf(paramName) >= 0;
+    };
+
     self.loadAuxiliaryData = function(name, path, callback) {
         if (self[name] || self[name + ".loading"]) {
             if (callback)
@@ -699,30 +761,63 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
                     callback(data);
             })
             .error(function() {
-                console.log(path, ' load failed!');
+                srlog(path, ' load failed!');
                 delete self[name + ".loading"];
             });
     };
 
     self.localRedirect = function(routeName, params, search) {
-        $location.path(self.formatLocalUrl(routeName, params));
+        $location.path(self.formatUrlLocal(routeName, params));
         if (search)
             $location.search(search);
     };
 
-    self.sendRequest = function(urlOrName, successCallback, data, errorCallback) {
-        var url = urlOrName.indexOf('/') >= 0
-            ? urlOrName
-            : self.formatUrl(urlOrName);
-        var promise = data
-            ? $http.post(url, data)
-            : $http.get(url);
-        if (successCallback)
-            promise.success(successCallback);
-        if (errorCallback)
-            promise.error(errorCallback);
-        else
-            promise.error(logError);
+    self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
+        if (! errorCallback)
+            errorCallback = logError;
+        if (! successCallback)
+            successCallback = function () {};
+        var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
+            ? urlOrParams
+            : self.formatUrl(urlOrParams);
+        var timeout = $q.defer();
+        var interval, t;
+        var timed_out = false;
+        t = {timeout: timeout.promise};
+        if (SIREPO.http_timeout > 0) {
+            interval = $interval(
+                function () {
+                    timed_out = true;
+                    timeout.resolve();
+                },
+                SIREPO.http_timeout,
+                1
+            );
+        }
+        var req = data
+            ? $http.post(url, data, t)
+            : $http.get(url, t);
+        req.success(
+            function(resp, status) {
+                $interval.cancel(interval);
+                successCallback(resp, status);
+            }
+        );
+        req.error(
+            function(resp, status) {
+                $interval.cancel(interval);
+                if (timed_out) {
+                    resp = {
+                        state: 'error',
+                        error: 'request timed out after '
+                            + Math.round(SIREPO.http_timeout/1000)
+                            + ' seconds',
+                    };
+                    status = 503;
+                }
+                errorCallback(resp, status);
+            }
+        );
     };
 
     return self;
@@ -732,14 +827,17 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     var self = {};
     var runQueue = [];
 
-    function addItem(report, models, responseHandler, qMode) {
+    function addItem(report, models, responseHandler, qMode, forceRun) {
+        models = angular.copy(models);
+        // Not used server side and contains a lot of stuff
+        delete models.simulationStatus;
         var qi = {
             firstRoute: qMode == 'persistentStatus' ? 'runStatus' : 'runSimulation',
             qMode: qMode,
             persistent: qMode.indexOf('persistent') > -1,
             qState: 'pending',
             request: {
-                forceRun: qMode == 'persistent',
+                forceRun: qMode == 'persistent' || forceRun ? true : false,
                 report: report,
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
@@ -794,6 +892,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 Math.max(1, resp.nextRequestSeconds) * 1000,
                 1
             );
+
             if (qi.persistent)
                 qi.responseHandler(resp);
         };
@@ -801,13 +900,17 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var process = function(resp, status) {
             if (qi.qState == 'removing')
                 return;
-            if (($.isEmptyObject(resp) || status != 200) && ! resp.error) {
-                resp.error = (resp === null && status === 0)
-                    ? 'the server is unavailable'
+            if ($.isEmptyObject(resp))
+                resp = {};
+            if (! resp.state)
+                resp.state = 'error';
+            if (! resp.error && (status != 200 || resp.state == 'error')) {
+                resp.error = status === 0 ? 'the server is unavailable'
                     : 'a server error occurred';
                 resp.state = 'error';
             }
-            if (resp.state != 'running') {
+            resp.isStateProcessing = resp.state == 'running' || resp.state == 'pending';
+            if (! resp.isStateProcessing) {
                 handleResult(qi, resp);
                 return;
             }
@@ -827,8 +930,8 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         return addItem(report, models, responseHandler, 'persistent');
     };
 
-    self.addTransientItem = function(report, models, responseHandler) {
-        return addItem(report, models, responseHandler, 'transient');
+    self.addTransientItem = function(report, models, responseHandler, forceRun) {
+        return addItem(report, models, responseHandler, 'transient', forceRun);
     };
 
     self.cancelAllItems = function() {
@@ -889,15 +992,24 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 scope.timeData.elapsedTime = new Date(1970, 0, 1);
                 scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
             }
-            if (data.state == 'running') {
+            if (data.isStateProcessing) {
                 scope.dots += '.';
                 if (scope.dots.length > 3)
                     scope.dots = '.';
-                }
+            }
             else {
                 scope.simulationQueueItem = null;
             }
             scope.handleStatus(data);
+        }
+
+        function isState(state) {
+            if (! appState.isLoaded())
+                return false;
+            for (var i = 1; i < arguments.length; i++)
+                if (state == arguments[i])
+                    return true;
+            return false;
         }
 
         function runStatus() {
@@ -914,7 +1026,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 appState.models.simulationStatus = {};
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
-            appState.saveChanges('simulationStatus');
+            if (appState.isLoaded())
+                appState.saveChanges('simulationStatus');
         }
 
         scope.simulationState = function() {
@@ -922,11 +1035,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.simulationStatus = function() {
-            return appState.models.simulationStatus[scope.model];
+            return appState.models.simulationStatus[scope.model] || {state: 'pending'};
         };
 
         scope.cancelSimulation = function() {
-            setSimulationStatus({state: 'stopped'});
+            setSimulationStatus({state: 'canceled'});
             simulationQueue.cancelItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
         };
@@ -941,34 +1054,36 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.isInitializing = function() {
-            if (scope.isState('running'))
+            if (scope.isStateProcessing() && ! scope.isStatePending())
                 return frameCache.getFrameCount() < 1;
             return false;
         };
 
-        scope.isState = function() {
-            if (! appState.isLoaded())
-                return false;
-            var s = scope.simulationState();
-            for (var i = 0; i < arguments.length; i++)
-                if (s == arguments[i])
-                    return true;
-            return false;
+        scope.isStatePending = function() {
+            return scope.simulationStatus().state == 'pending';
+        };
+
+        scope.isStateProcessing = function() {
+            return scope.simulationStatus().isStateProcessing;
+        };
+
+        scope.isStateRunning = function() {
+            return scope.simulationStatus().state == 'running';
         };
 
         scope.isStateStopped = function() {
-            return ! scope.isState('running');
+            return ! scope.isStateProcessing();
         };
 
         scope.runSimulation = function() {
-            if (! scope.isStateStopped())
+            if (scope.isStateProcessing())
                 //TODO(robnagler) this shouldn't happen? (double click?)
                 return;
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
             scope.timeData.elapsedTime = null;
             scope.timeData.elapsedDays = null;
-            setSimulationStatus({state: 'running'});
+            setSimulationStatus({state: 'pending'});
             scope.simulationQueueItem = simulationQueue.addPersistentItem(
                 scope.model,
                 appState.models,
@@ -978,7 +1093,14 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
 
         scope.stateAsText = function() {
             var s = scope.simulationState();
-            return s.charAt(0).toUpperCase() + s.slice(1);
+            var msg;
+            msg = s.charAt(0).toUpperCase() + s.slice(1);
+            if (s == 'error') {
+                var e = scope.simulationStatus().error;
+                if (e)
+                    msg += ': ' + e.split(/[\n\r]+/)[0];
+            }
+            return msg;
         };
 
         scope.persistentSimulationInit = function($scope) {
@@ -1043,15 +1165,16 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     var self = this;
 
     function openSection(name, search) {
-        requestSender.localRedirect(name, sectionArgs(), search);
+        requestSender.localRedirect(name, sectionParams(name), search);
     }
 
-    function sectionArgs() {
-        return {
-            ':simulationId': appState.isLoaded()
-                ? appState.models.simulation.simulationId
-                : null,
-        };
+    function sectionParams(name) {
+        if (requestSender.isRouteParameter(name, ':simulationId') && appState.isLoaded()) {
+            return {
+                ':simulationId': appState.models.simulation.simulationId,
+            };
+        }
+        return {};
     }
 
     self.isActive = function(name) {
@@ -1088,7 +1211,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         var url = requestSender.formatUrl(
             'findByName',
             {
-                '<simulation_name>': encodeURIComponent(name),
+                '<simulation_name>': name,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<application_mode>': applicationMode,
             });
@@ -1106,7 +1229,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     };
 
     self.sectionURL = function(name) {
-        return '#' + requestSender.formatLocalUrl(name, sectionArgs());
+        return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 });
 

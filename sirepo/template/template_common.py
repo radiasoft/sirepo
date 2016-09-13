@@ -91,8 +91,8 @@ def validate_model(model_data, model_schema, enum_info):
         else:
             raise Exception('no value for field "{}" and no default value in schema'.format(k))
         if field_type in enum_info:
-            if not enum_info[field_type][str(value)]:
-                raise Exception('invalid enum value: {}'.format(value))
+            if str(value) not in enum_info[field_type]:
+                raise Exception('invalid enum value: {} for {}'.format(value, k))
         elif field_type == 'Float':
             if not value:
                 value = 0
@@ -113,11 +113,13 @@ def validate_model(model_data, model_schema, enum_info):
             model_data[k] = int(value)
         elif field_type in (
                 'BeamList', 'MirrorFile', 'String', 'OptionalString', 'MagneticZipFile',
-                'ValueList', 'Array', 'InputFile',
+                'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
+                'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
+                'RPNBoolean',
         ):
             model_data[k] = _escape(value)
         else:
-            raise Exception('unknown field type: {}'.format(field_type))
+            raise Exception('unknown field type: {} for {}'.format(field_type, k))
 
 def _escape(v):
     return re.sub("['()]", '', str(v))

@@ -162,6 +162,22 @@ def extract_report_data(filename, model_data):
     return info
 
 
+def find_height_profile_dimension(dat_file):
+    """Find the dimension of the provided height profile .dat file.
+    1D files have 2 columns, 2D - 8 columns.
+
+    Args:
+        dat_file (str): full path to height profile .dat file.
+
+    Returns:
+        dimension (int): found dimension.
+    """
+    with open(dat_file, 'r') as f:
+        header = f.readline().strip().split()
+        dimension = 1 if len(header) == 2 else 2
+    return dimension
+
+
 def find_tab_undulator_length(zip_file, gap):
     """Find undulator length from the specified zip-archive with the magnetic measurements data.
 
@@ -296,9 +312,17 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
-        if item['type'] in ['crystal', 'ellipsoidMirror', 'mirror', 'sphericalMirror']:
-            if 'heightProfileDimension' not in item:
-                item['heightProfileDimension'] = 1
+    for item in data['models']['beamline']:
+        if item['type'] == 'crl':
+            key_value_pairs = {
+                'material': 'User-defined',
+                'method': 'server',
+                'absoluteFocusPosition': None,
+                'focalDistance': None,
+            }
+            for field in key_value_pairs.keys():
+                if field not in item:
+                    item[field] = key_value_pairs[field]
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
             if 'fieldUnits' not in data['models'][k]:
@@ -887,6 +911,8 @@ def _compute_grazing_angle(model):
 
 
 def _compute_undulator_length(model):
+    if model['undulatorType'] == 'u_i':
+        return model
     zip_file = simulation_db.simulation_lib_dir('srw').join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
@@ -1162,13 +1188,17 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
             propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
         else:
             return '', ''
+
+    dat_file = str(simulation_db.simulation_lib_dir('srw').join(item['heightProfileFile']))
+    dimension = find_height_profile_dimension(dat_file)
+
     res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
     res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
-    add_args = ', 0, 1' if int(item['heightProfileDimension']) == 1 else ''
+    add_args = ', 0, 1' if dimension == 1 else ''
     res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t"{})\n'.format(shift, height_profile_el_name, height_profile_el_name, add_args)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
     hProfData = 'hProfData{}'.format(height_profile_el_name)
-    surf_height_func = 'srwlib.srwl_opt_setup_surf_height_{}d'.format(item['heightProfileDimension'])
+    surf_height_func = 'srwlib.srwl_opt_setup_surf_height_{}d'.format(dimension)
     if 'horizontalTransverseSize' in item:
         template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
         fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))

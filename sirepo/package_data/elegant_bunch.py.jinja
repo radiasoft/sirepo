@@ -1,0 +1,53 @@
+# {{simulation_name}}
+
+lattice_file = """
+{{rpn_variables}}
+d: drift,l=0
+bl: line=(d)
+"""
+
+elegant_file = """
+
+&run_setup
+  concat_order = 2,
+  lattice = elegant.lte,
+  output = run_setup.output.sdds,
+  p_central_mev = {{bunch_p_central_mev}},
+  use_beamline = bl,
+&end
+
+&run_control
+&end
+
+{% if bunchSource_inputSource == 'bunched_beam' %}
+&bunched_beam
+  n_particles_per_bunch = {{bunch_n_particles_per_bunch}},
+  one_random_bunch=0,
+  emit_x = {{bunch_emit_x}},
+  emit_y = {{bunch_emit_y}},
+  beta_x = {{bunch_beta_x}},
+  alpha_x = {{bunch_alpha_x}},
+  beta_y = {{bunch_beta_y}},
+  alpha_y = {{bunch_alpha_y}},
+  sigma_dp = {{bunch_sigma_dp}},
+  sigma_s = {{bunch_sigma_s}},
+  dp_s_coupling = {{bunch_dp_s_coupling}},
+  emit_z = {{bunch_emit_z}},
+  beta_z = {{bunch_beta_z}},
+  alpha_z = {{bunch_alpha_z}},
+  distribution_type[0] = 3*"gaussian",
+  distribution_cutoff[0] = 3*3,
+  symmetrize = 1,
+  enforce_rms_values[0] = 1,1,1,
+  bunch = %s.bun
+&end
+{% endif %}
+
+{% if bunchSource_inputSource == 'sdds_beam' %}
+&sdds_beam
+  input = "bunchFile-sourceFile.{{bunchFile_sourceFile}}",
+&end
+{% endif %}
+
+&track &end
+"""

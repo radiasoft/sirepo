@@ -13,6 +13,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
 import datetime
+import errno
 import flask
 import glob
 import json
@@ -61,6 +62,9 @@ _LIB_DIR = 'lib'
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
+#: Status file name
+_STATUS_FILE = 'status'
+
 #: created under dir
 _TMP_DIR = 'tmp'
 
@@ -85,7 +89,20 @@ def app_version():
     """
     if pkconfig.channel_in('dev'):
         return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
-    return simulation_db.SCHEMA_COMMON['version']
+    return SCHEMA_COMMON['version']
+
+
+def celery_queue(data):
+    """Which queue to execute simulation in
+
+    Args:
+        data (dict): simulation parameters
+
+    Returns:
+        str: celery queue name
+    """
+    from sirepo import celery_tasks
+    return celery_tasks.queue_name(is_parallel(data))
 
 
 def examples(app):
@@ -111,11 +128,19 @@ def find_global_simulation(simulation_type, sid):
 
 
 def fixup_old_data(simulation_type, data):
-    if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+    try:
+        if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+            return data
+        sirepo.template.import_module(simulation_type).fixup_old_data(data)
+        data['version'] = SCHEMA_COMMON['version']
+        try:
+            del data['models']['simulationStatus']
+        except KeyError:
+            pass
         return data
-    sirepo.template.import_module(simulation_type).fixup_old_data(data)
-    data['version'] = SCHEMA_COMMON['version']
-    return data
+    except Exception as e:
+        pkdp('data={}: error: {}', data, pkdexc())
+        raise
 
 
 def get_schema(sim_type):
@@ -146,26 +171,18 @@ def is_parallel(data):
     return bool(_IS_PARALLEL_RE.search(_report_name(data)))
 
 
-def generate_pretty_json(data):
-    """Convert data to JSON to human readable
-
-    Args:
-        data (object): what to format
-    Returns:
-        str: human readable data
-    """
-    return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
-
-
-def generate_json_response(data):
+def generate_json(data, pretty=False):
     """Convert data to JSON to be send back to client
 
     Use only for responses. Use `:func:write_json` to save.
     Args:
         data (dict): what to format
+        pretty (bool): pretty print [False]
     Returns:
         str: formatted data
     """
+    if pretty:
+        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
     return json.dumps(data)
 
 
@@ -220,16 +237,17 @@ def open_json_file(simulation_type, path=None, sid=None):
                 },
             }
         raise werkzeug.exceptions.NotFound()
+    data = None
     try:
         with open(str(path)) as f:
             data = json.load(f)
             # ensure the simulationId matches the path
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
-            return fixup_old_data(simulation_type, data)
     except Exception as e:
-        pkdp('{}: error: {}', path, e)
+        pkdp('{}: error: {}', path, pkdexc())
         raise
+    return fixup_old_data(simulation_type, data)
 
 
 def parse_sid(data):
@@ -276,6 +294,7 @@ def prepare_simulation(data):
     #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
     #   probably can only do with celery.
     pkio.mkdir_parent(run_dir)
+    write_status('pending', run_dir)
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
@@ -341,18 +360,40 @@ def read_result(run_dir):
     err = None
     try:
         res = read_json(fn)
-        assert 'state' in res
+        if res and not 'state' in res:
+            # Old simulation, just say is canceled so restarts
+            return {'state': 'canceled'}, None
     except Exception as e:
         err = pkdexc()
         if isinstance(e, IOError):
+            if e.errno == errno.ENOENT:
+                #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
+                err = 'ERROR: Terminated unexpectedly'
+            # Not found so return run.log as err
             rl = run_dir.join(template_common.RUN_LOG)
             try:
-                return None, pkio.read_text(rl)
+                e = pkio.read_text(rl)
+                if e:
+                    err = e
             except:
                 pkdp('{}: error reading log: {}', rl, pkdexc())
         else:
             pkdp('{}: error reading output: {}', fn, err)
+    assert res or err, \
+        '{}: res or err must be truthy'.format(run_dir)
     return res, err
+
+
+def read_status(run_dir):
+    """Read status from simulation dir
+
+    Args:
+        run_dir (py.path): where to read
+    """
+    try:
+        return pkio.read_text(run_dir.join(_STATUS_FILE))
+    except IOError:
+        return 'error'
 
 
 def save_new_example(simulation_type, data):
@@ -368,9 +409,20 @@ def save_new_simulation(simulation_type, data):
 
 
 def save_simulation_json(simulation_type, data):
+    """Prepare data and save to json db
+
+    Args:
+        simulation_type (str): srw, warp, ...
+        data (dict): what to write (contains simulationId)
+    """
     sid = parse_sid(data)
-    if 'version' not in data:
-        data['version'] = SCHEMA_COMMON['version']
+    try:
+        # Never save this
+        del data['simulationStatus']
+    except:
+        pass
+    data.setdefault('version', SCHEMA_COMMON['version'])
+    data.setdefault('simulationType', simulation_type)
     write_json(_simulation_data_file(simulation_type, sid), data)
 
 
@@ -451,7 +503,7 @@ def write_json(filename, data):
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
     with open(str(json_filename(filename)), 'w') as f:
-        f.write(generate_pretty_json(data))
+        f.write(generate_json(data, pretty=True))
 
 
 def write_result(result, run_dir=None):
@@ -470,6 +522,17 @@ def write_result(result, run_dir=None):
         return
     result.setdefault('state', 'completed')
     write_json(fn, result)
+    write_status(result['state'], run_dir)
+
+
+def write_status(status, run_dir):
+    """Write status to simulation
+
+    Args:
+        status (str): pending, running, completed, canceled
+        run_dir (py.path): where to write the file
+    """
+    pkio.write_text(run_dir.join(_STATUS_FILE), status)
 
 
 def _create_example_and_lib_files(simulation_type):
@@ -572,7 +635,7 @@ def _user_dir():
     if d.check():
         return d
     # Beaker session might have been deleted (in dev) so "logout" and "login"
-    _user_dir_create()
+    uid = _user_dir_create()
     return _user_dir_name(uid)
 
 

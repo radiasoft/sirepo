@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 
@@ -149,7 +152,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             tvx: null,  // 1.0,
             tvy: null,  // 0.0,
             heightProfileFile: null,
-            heightProfileDimension: 1,
             orientation: 'x',
             heightAmplification: 1,
     };
@@ -162,9 +164,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'fiber', title:'Fiber', focalPlane:1, method:'server', externalMaterial:'User-defined', externalRefractiveIndex:4.20756805e-06, externalAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
-        {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, heightProfileDimension:1, orientation:'x', heightAmplification:1},
-        {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat', heightProfileDimension:1},
-        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, heightProfileDimension:1, orientation:'x', heightAmplification:1},
+        {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
+        {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
+        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         crystalDefaults,
         {type:'watch', title:'Watchpoint'},
@@ -324,7 +326,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.dropBetween = function(index, data) {
         if (! data)
             return;
-        //console.log('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
+        //srdbg('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
         var item;
         if (data.id) {
             self.dismissPopup();
@@ -1032,12 +1034,20 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         });
     });
 
-    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
+    function processUndulatorWithTimeout(undType) {
         $timeout(function() {
             if (srwService.isElectronBeam()) {
-                processUndulator(newValue);
+                processUndulator(undType);
             }
         });
+    }
+
+    $scope.$on('simulation.changed', function() {
+        processUndulatorWithTimeout('u_t');
+    });
+
+    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
+        processUndulatorWithTimeout(newValue);
     });
 
     $scope.$watch('appState.models.tabulatedUndulator.magneticFile', function (newValue, oldValue) {
@@ -1249,6 +1259,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
                 $window.open(requestSender.formatUrl('simulationData', {
                     '<simulation_id>': simulationId(),
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<pretty>': true,
                 }), '_blank');
             };
 
@@ -1593,8 +1604,9 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
                         '<div class="form-group">',
                           '<label>Select File</label>',
                           '<input id="srw-python-file-import" type="file" data-file-model="pythonFile">',
+                          '<div data-ng-if="fileType(pythonFile)"></div>',
                           '<br />',
-                          'Optional arguments: <input id="srw-python-file-import-args" type="text" style="width: 100%" data-ng-model="importArgs"><br>',
+                          '<div class="srw-python-file-import-args"><label>Optional arguments:</label><input type="text" style="width: 100%" data-ng-model="importArgs"></div><br>',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
@@ -1613,7 +1625,18 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = 'Import Python Beamline File';
+            $scope.title = 'Import Python or JSON Simulation File';
+            var import_args = $('.srw-python-file-import-args');
+            import_args.hide(0);
+            $scope.fileType = function(pythonFile) {
+                if (typeof(pythonFile) === 'undefined')
+                    return;
+                if (pythonFile.name.search('.py') >= 0) {
+                    import_args.show(0);
+                } else {
+                    import_args.hide(0);
+                }
+            };
             $scope.importPythonFile = function(pythonFile, importArgs) {
                 if (typeof(importArgs) === 'undefined')
                     importArgs = '';
@@ -1717,18 +1740,16 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
         },
         template: [
             '<form name="form" class="form-horizontal" novalidate>',
-              '<div data-ng-if="isState(\'initial\')">',
-                '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-primary" data-ng-click="runSimulation()">Start Simulation</button>',
-                '</div>',
-              '</div>',
-              '<div data-ng-if="! isStateStopped()">',
+              '<div data-ng-if="isStateProcessing()">',
                 '<div class="col-sm-6">',
-                  '<div data-ng-if="isInitializing()">',
+                  '<div data-ng-show="isStatePending()">',
+                    '<span class="glyphicon glyphicon-hourglass"></span> {{ stateAsText() }} {{ dots }}',
+                  '</div>',
+                  '<div data-ng-show="isInitializing()">',
                     '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ dots }}',
                   '</div>',
-                  '<div data-ng-hide="isInitializing()">',
-                    'Simulation Running {{ dots }}',
+                  '<div data-ng-show="isStateRunning() && ! isInitializing()">',
+                    '{{ stateAsText() }} {{ dots }}',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
                 '</div>',
@@ -1736,7 +1757,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                   '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
                 '</div>',
               '</div>',
-              '<div data-ng-if="isStateStopped()">',
+              '<div data-ng-show="isStateStopped()">',
                 '<div class="col-sm-6">',
                   'Simulation ',
                   '<span>{{ stateAsText() }}</span>',

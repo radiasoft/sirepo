@@ -46,7 +46,7 @@ _BEAKER_LOCK_DIR = 'lock'
 _EMPTY_JSON_RESPONSE = '{}'
 
 #: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:Warning|Exception|Error): ([^\n]+)')
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
@@ -196,7 +196,7 @@ def app_error_logging():
         pkdp(
             '{}: javascript error: {}',
             ip,
-            simulation_db.generate_pretty_json(_json_input()),
+            simulation_db.generate_json(_json_input(), pretty=True),
         )
     except ValueError as e:
         pkdp(
@@ -358,7 +358,7 @@ def app_run_cancel():
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
-    if cfg.job_queue.is_running(jid):
+    if cfg.job_queue.is_processing(jid):
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
@@ -376,10 +376,10 @@ def app_run_cancel():
 @app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
 def app_run_simulation():
     data = _parse_data_input(validate=True)
-    res = _simulation_run_status(data)
+    res = _simulation_run_status(data, quiet=True)
     if (
         (
-            res['state'] != 'running'
+            res['state'] != ('running', 'pending')
             and (res['state'] != 'completed' or data.get('forceRun', False))
         ) or res.get('parametersChanged', True)
     ):
@@ -402,10 +402,13 @@ def app_save_simulation_data():
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
-def app_simulation_data(simulation_type, simulation_id):
+def app_simulation_data(simulation_type, simulation_id, pretty):
+    #TODO(robnagler) need real type transform
+    pretty = bool(int(pretty))
     data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
     response = _json_response(
         sirepo.template.import_module(simulation_type).prepare_for_client(data),
+        pretty=pretty,
     )
     _no_cache(response)
     return response
@@ -553,10 +556,10 @@ def _cfg_job_queue(value):
         from sirepo import celery_tasks
         try:
             if not celery_tasks.celery.control.ping():
-                pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1')
+                pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
                 sys.exit(1)
         except Exception:
-            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq')
+            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
             sys.exit(1)
         return _Celery
     elif value == 'Background':
@@ -597,9 +600,17 @@ def _json_input():
     return flask.request.get_json(cache=False)
 
 
-def _json_response(value):
+def _json_response(value, pretty=False):
+    """Generate JSON flask response
+
+    Args:
+        value (dict): what to format
+        pretty (bool): pretty print [False]
+    Returns:
+        Response: flask response
+    """
     return app.response_class(
-        simulation_db.generate_json_response(value),
+        simulation_db.generate_json(value, pretty=pretty),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
 
@@ -628,23 +639,29 @@ def _parse_data_input(validate=False):
 
 def _save_new_and_reply(*args):
     sim_type, sid = simulation_db.save_new_simulation(*args)
-    return app_simulation_data(sim_type, sid)
+    return app_simulation_data(sim_type, sid, pretty=False)
 
 
-def _simulation_error(err, *args):
+def _simulation_error(err, *args, **kwargs):
     """Something unexpected went wrong.
 
     Parses ``err`` for error
 
     Args:
         err (str): exception or run_log
+        quiet (bool): don't write errors to log
     Returns:
         dict: error response
     """
-    pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
-    if '\n' in err and not pkconfig.channel_in_internal_test():
-        m = re.search(_SUBPROCESS_ERROR_RE, str(exc))
-        err = m.group(1) if m else 'unexpected error (see logs)'
+    if not kwargs.get('quiet'):
+        pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
+    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
+    if m:
+        err = m.group(1)
+        if re.search(r'error exit\(-15\)', err):
+            err = 'Terminated'
+    elif not pkconfig.channel_in_internal_test():
+        err = 'unexpected error (see logs)'
     return {'state': 'error', 'error': err}
 
 
@@ -659,17 +676,24 @@ def _simulation_input(run_dir):
     return simulation_db.json_filename(template_common.INPUT_BASE_NAME, run_dir)
 
 
+def _simulation_data(res, path, data):
+    """Iterator function to return entire simulation data
+    """
+    res.append(data)
+
+
 def _simulation_name(res, path, data):
     """Iterator function to return simulation name
     """
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_run_status(data):
+def _simulation_run_status(data, quiet=False):
     """Look for simulation status and output
 
     Args:
         data (dict): request
+        quiet (bool): don't write errors to log
 
     Returns:
         dict: status response
@@ -678,18 +702,23 @@ def _simulation_run_status(data):
         jid = _job_id(data)
         #TODO(robnagler): Lock
         cache_hit, cached_data = _cached_simulation(data)
-        is_running = cfg.job_queue.is_running(jid)
+        is_processing = cfg.job_queue.is_processing(jid)
         run_dir = simulation_db.simulation_run_dir(data)
         input_file = _simulation_input(run_dir)
-        if is_running:
+        if is_processing:
             if cached_data:
-                res = {'state': 'running'}
+                res = {
+                    'state': 'running' if cfg.job_queue.is_running(jid) else 'pending'
+                }
             else:
-                return _simulation_error('input file not found, but job is running', input_file)
+                return _simulation_error(
+                    'input file not found, but job is running',
+                    input_file,
+                )
         elif run_dir.exists():
             res, err = simulation_db.read_result(run_dir)
             if err:
-                return _simulation_error(err, 'error in read_result')
+                return _simulation_error(err, 'error in read_result', run_dir)
         else:
             # Was never run
             res = {'state': 'stopped'}
@@ -698,17 +727,17 @@ def _simulation_run_status(data):
             new = template.background_percent_complete(
                 data['report'],
                 run_dir,
-                is_running,
+                cfg.job_queue.is_running(jid),
                 simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
             res.update(new)
-        res['parametersChanged'] = not cache_hit and cached_data
+        res['parametersChanged'] = bool(not cache_hit and cached_data)
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-        if res['state'] == 'running':
+        if is_processing:
             res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
             res['nextRequest'] = {
                 'report': cached_data['report'],
@@ -717,7 +746,7 @@ def _simulation_run_status(data):
                 'simulationType': cached_data['simulationType'],
             }
     except Exception:
-        return _simulation_error(pkdexc())
+        return _simulation_error(pkdexc(), quiet=quiet)
     return res
 
 
@@ -727,42 +756,40 @@ def _start_simulation(data):
     Args:
         data (dict): app data
     Returns:
-        object: _Command or daemon instance
+        object: _Background or _Celery instance
     """
     data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': 'running',
+        'state': 'pending',
     }
-    cmd, run_dir = simulation_db.prepare_simulation(data)
-    return cfg.job_queue(_job_id(data), run_dir, cmd)
+    cfg.job_queue(data)
 
 
 class _Background(object):
 
     # Map of jid to instance
-    _process = {}
+    _job = {}
 
-    # mutex for _process
+    # mutex for _job
     _lock = threading.Lock()
 
-    def __init__(self, jid, run_dir, cmd):
+    def __init__(self, data):
         with self._lock:
-            assert not jid in self._process, \
-                'Simulation already running: jid={}'.format(jid)
+            self.jid = _job_id(data)
+            assert not self.jid in self._job, \
+                '{}: simulation already running'.format(self.jid)
             self.in_kill = False
-            self.jid = jid
-            self.cmd = cmd
-            self.run_dir = run_dir
-            self._process[jid] = self
+            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
+            self._job[self.jid] = self
             self.pid = None
             # This command may blow up
-            self.pid = self._create_daemon()
+            self.pid = self._start_job()
 
     @classmethod
-    def is_running(cls, jid):
+    def is_processing(cls, jid):
         with cls._lock:
             try:
-                self = cls._process[jid]
+                self = cls._job[jid]
             except KeyError:
                 return False
             if self.in_kill:
@@ -773,16 +800,20 @@ class _Background(object):
                 os.kill(self.pid, 0)
             except OSError:
                 # Has to exist so no need to protect
-                del self._process[jid]
+                del self._job[jid]
                 return False
         return True
+
+    @classmethod
+    def is_running(cls, jid):
+        return cls.is_processing(jid)
 
     @classmethod
     def kill(cls, jid):
         self = None
         with cls._lock:
             try:
-                self = cls._process[jid]
+                self = cls._job[jid]
             except KeyError:
                 return
             #TODO(robnagler) will this happen?
@@ -807,7 +838,7 @@ class _Background(object):
         with cls._lock:
             self.in_kill = False
             try:
-                del self._process[self.jid]
+                del self._job[self.jid]
                 pkdp('{}: deleted', self.jid)
             except KeyError:
                 pass
@@ -818,9 +849,9 @@ class _Background(object):
             pid, status = os.waitpid(-1, os.WNOHANG)
             pkdp('{}: waitpid: status={}', pid, status)
             with cls._lock:
-                for self in cls._process.values():
+                for self in cls._job.values():
                     if self.pid == pid:
-                        del self._process[self.jid]
+                        del self._job[self.jid]
                         pkdp('{}: deleted', self.jid)
                         return
         except OSError as e:
@@ -828,9 +859,12 @@ class _Background(object):
                 pkdp('waitpid: OSError: {} errno={}', e.strerror, e.errno)
                 # Fall through. Not much to do here
 
-    def _create_daemon(self):
+    def _start_job(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
+
+        We don't use pksubprocess. This method is not called from the MainThread
+        so can't set signals.
         """
         try:
             pid = os.fork()
@@ -842,7 +876,7 @@ class _Background(object):
             return pid
         try:
             os.chdir(str(self.run_dir))
-            os.setsid()
+            #Don't os.setsid() so signals propagate properly
             import resource
             maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
             if (maxfd == resource.RLIM_INFINITY):
@@ -874,110 +908,84 @@ class _Background(object):
 class _Celery(object):
 
     # Map of jid to instance
-    _task = {}
+    _job = {}
 
-    # mutex for _task
+    # mutex for _job
     _lock = threading.Lock()
 
-    def __init__(self, jid, run_dir, cmd):
+    def __init__(self, data):
         with self._lock:
-            assert not jid in self._task, \
-                'Simulation already running: jid={}'.format(jid)
-            self.jid = jid
-            self.cmd = cmd
-            self.run_dir = run_dir
-            self._task[jid] = self
+            self.jid = _job_id(data)
+            assert not self.jid in self._job, \
+                '{}: simulation already running'.format(self.jid)
+            self.in_kill = False
+            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
+            self._job[self.jid] = self
+            self.data = data
+            self._job[self.jid] = self
             self.async_result = None
             # This command may blow up
-            self.async_result = self._start_task()
+            self.async_result = self._start_job()
+
+    @classmethod
+    def is_processing(cls, jid):
+        """Job is either in the queue or running"""
+        with cls._lock:
+            return bool(cls._find_job(jid))
 
     @classmethod
     def is_running(cls, jid):
-        with cls._nelock:
-            return cls._async_result(jid) is not None
+        """Job is actually running"""
+        with cls._lock:
+            self = cls._find_job(jid)
+            if self is None:
+                return False
+            return 'running' == simulation_db.read_status(self.run_dir)
+
 
     @classmethod
     def kill(cls, jid):
         from celery.exceptions import TimeoutError
         with cls._lock:
-            res = cls._async_result(jid)
-            if not res:
+            self = cls._find_job(jid)
+            if not self:
                 return
-            pkdp('{}: killing: tid={} jid={}', jid, res.task_id)
+            res = self.async_result
+            pkdp('{}: killing: tid={}', jid, res.task_id)
         try:
-            res.revoke(terminate=True, wait=True, timeout=1, signal='SIGTERM')
+            res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
             res.revoke(terminate=True, signal='SIGKILL')
         with cls._lock:
             try:
-                del cls._task[jid]
+                del cls._job[jid]
                 pkdp('{}: deleted', jid)
             except KeyError:
                 pass
 
     @classmethod
-    def _async_result(cls, jid):
-            try:
-                self = cls._task[jid]
-            except KeyError:
-                return None
-            res = self.async_result
-            if not res or res.ready():
-                del self._task[jid]
-                return None
-            return res
+    def _find_job(cls, jid):
+        try:
+            self = cls._job[jid]
+        except KeyError:
+            return None
+        res = self.async_result
+        if not res or res.ready():
+            del self._job[jid]
+            return None
+        return self
 
-    def _start_task(self):
+    def _start_job(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
         from sirepo import celery_tasks
-        return celery_tasks.start_simulation.apply_async([self.cmd[1], self.run_dir])
-
-
-class _Command(threading.Thread):
-    """Run a command in a thread, and kill after timeout"""
-
-    def __init__(self, jid, cmd, timeout):
-        super(_Command, self).__init__()
-        # Daemon threads are stopped abruptly so won't hang the server
-        self.daemon = True
-        self.cmd = cmd
-        self.timeout = timeout
-        self.process = None
-        self.out = ''
-        self.background_simulation_id = ''
-        self.duration = 0.0
-        self.jid = jid
-
-    def run(self):
-        start_time = time.time()
-        self.process = subprocess.Popen(
-            self.cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+        self.celery_queue = simulation_db.celery_queue(self.data)
+        pkdp('{}: starting queue={}', self.run_dir, self.celery_queue)
+        return celery_tasks.start_simulation.apply_async(
+            args=[self.cmd, self.run_dir],
+            queue=self.celery_queue,
         )
-        self.out = self.process.communicate()[0]
-        self.duration = time.time() - start_time
-
-    def run_and_read(self):
-        self.start()
-        self.join(self.timeout)
-        try:
-            self.process.kill()
-            pkdp('{}: timeout: cmd={}', self.jid, self.cmd)
-            # Thread should exit, but make sure
-            self.join(2)
-            return self.out + '\nError: simulation took too long'
-        except OSError as e:
-            if e.errno != errno.ESRCH:
-                pkdp('{}: OSError: {} errno={} cmd={}',
-                     self.jid, e.strerror, e.errno, self.cmd)
-                raise
-        if self.process.returncode != 0:
-            pkdp('{}: error: returncode={} cmd={}', self.jid, self.process.returncode, self.cmd)
-            return self.out + '\nError: simulation failed'
-        return None
 
 
 cfg = pkconfig.init(

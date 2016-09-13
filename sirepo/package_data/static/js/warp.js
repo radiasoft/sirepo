@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.appLocalRoutes.dynamics = '/dynamics/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
@@ -60,7 +63,7 @@ SIREPO.app.controller('WARPDynamicsController', function(frameCache, warpService
 
     self.handleStatus = function(data) {
         frameCache.setFrameCount(data.frameCount);
-        if (data.state == 'running')
+        if (self.isStateProcessing())
             self.percentComplete = data.percentComplete;
     };
 

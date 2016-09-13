@@ -10,12 +10,10 @@ pkconfig.append_load_path('sirepo')
 
 from celery import Celery
 from pykern import pkcollections
-from pykern.pkdebug import pkdc, pkdp
+from pykern import pkio
+from pykern import pksubprocess
+from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
-import importlib
-import kombu
-import os
-import sys
 
 celery = Celery('sirepo')
 
@@ -35,38 +33,39 @@ celery.conf.update(
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_SOFT_TIME_LIMIT=celery.conf['CELERYD_TASK_TIME_LIMIT'] - 10,
     CELERY_ACKS_LATE=True,
+    CELERY_REDIRECT_STDOUTS=not pkconfig.channel_in('dev'),
     CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
-#    CELERY_QUEUES=(
-#        kombu.Queue('mpi', kombu.Exchange('default'), routing_key='mpi'),
-#        kombu.Queue('sequential', kombu.Exchange('default'), routing_key='sequential'),
-#    ),
 )
 
+def queue_name(is_parallel):
+    """Which queue to execute in
+
+    Args:
+        is_parallel (bool): is it a parallel job?
+
+    Returns:
+        str: name of queue to route task
+    """
+    return 'parallel' if is_parallel else 'sequential'
+
+
 @celery.task
-def start_simulation(simulation_type, run_dir):
+def start_simulation(cmd, run_dir):
     """Call simulation's in run_background with run_dir
 
     Args:
-        simulation_type (str): currently must be warp
+        cmd (list): simulation command line
         run_dir (py.path.local): directory
     """
-    try:
-        sys.stdin = open(template_common.RUN_LOG, 'a+')
-        assert sys.stdin.fileno() == 0
-        os.dup2(0, 1)
-        sys.stdout = os.fdopen(1, 'a+')
-        os.dup2(0, 2)
-        sys.stderr = os.fdopen(2, 'a+')
-        pkdp('{}.run_background: starting in: {}', simulation_type, run_dir)
-        # [2016-01-27 13:59:54,133: WARNING/Worker-1] celery: error: no such option: -A
-        # srw_bl.py assumes it can parse sys.argv so we have to clear sys.argv
-        sys.argv[:] = [simulation_type]
-        importlib.import_module('sirepo.pkcli.' + simulation_type).run_background(run_dir)
-        # Doesn't return anything
-    except BaseException as e:
-        with open(template_common.RUN_LOG, 'a') as f:
-            f.write('ERROR: {}'.format(e))
-        raise
+    # Avoid circular import
+    from sirepo import simulation_db
+    simulation_db.write_status('running', run_dir)
+    with pkio.save_chdir(run_dir):
+        pksubprocess.check_call_with_signals(
+            cmd,
+            msg=pkdp,
+            output=str(run_dir.join(template_common.RUN_LOG)),
+        )

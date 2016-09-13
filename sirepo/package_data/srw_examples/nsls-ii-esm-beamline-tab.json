@@ -2,6 +2,12 @@
     "models": {
         "beamline": [
             {
+                "id": 14,
+                "position": 27.5,
+                "title": "Diagon",
+                "type": "watch"
+            },
+            {
                 "grazingAngle": 43.6332,
                 "heightAmplification": 1,
                 "heightProfileFile": "mirror_1d.dat",
@@ -143,24 +149,24 @@
         ],
         "electronBeam": {
             "beamDefinition": "t",
-            "beamSelector": "NSLS-II Low Beta Final",
+            "beamSelector": "Beam Name",
             "current": 0.5,
-            "drift": -1.8667500000000001,
-            "driftCalculationMethod": "auto",
+            "drift": 0,
+            "driftCalculationMethod": "manual",
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
             "horizontalBeta": 2.02,
             "horizontalDispersion": 0,
             "horizontalDispersionDerivative": 0,
-            "horizontalEmittance": 0.55,
+            "horizontalEmittance": 0.9,
             "horizontalPosition": 0,
-            "isReadOnly": true,
-            "name": "NSLS-II Low Beta Final",
-            "rmsDivergX": 16.50082506188016,
-            "rmsDivergY": 2.7472112789737806,
-            "rmsSizeX": 33.33166662499792,
-            "rmsSizeY": 2.9120439557122078,
+            "id": 2,
+            "name": "Beam Name",
+            "rmsDivergX": 21.10792634,
+            "rmsDivergY": 2.74721128,
+            "rmsSizeX": 42.63801121,
+            "rmsSizeY": 2.91204396,
             "rmsSpread": 0.00089,
             "verticalAlpha": 0,
             "verticalBeta": 1.06,
@@ -171,25 +177,56 @@
             "xxprX": 0,
             "xxprY": 0
         },
-        "electronBeams": [],
+        "electronBeams": [
+            {
+                "beamDefinition": "t",
+                "beamSelector": "Beam Name",
+                "current": 0.5,
+                "drift": 0,
+                "driftCalculationMethod": "manual",
+                "energy": 3,
+                "energyDeviation": 0,
+                "horizontalAlpha": 0,
+                "horizontalBeta": 2.02,
+                "horizontalDispersion": 0,
+                "horizontalDispersionDerivative": 0,
+                "horizontalEmittance": 0.9,
+                "horizontalPosition": 0,
+                "id": 2,
+                "name": "Beam Name",
+                "rmsDivergX": 21.10792634,
+                "rmsDivergY": 2.74721128,
+                "rmsSizeX": 42.63801121,
+                "rmsSizeY": 2.91204396,
+                "rmsSpread": 0.00089,
+                "verticalAlpha": 0,
+                "verticalBeta": 1.06,
+                "verticalDispersion": 0,
+                "verticalDispersionDerivative": 0,
+                "verticalEmittance": 0.008,
+                "verticalPosition": 0,
+                "xxprX": 0,
+                "xxprY": 0
+            }
+        ],
         "fluxAnimation": {
             "azimuthalPrecision": 1,
-            "distanceFromSource": 20,
-            "finalEnergy": 20000,
+            "distanceFromSource": 27.5,
+            "finalEnergy": 1100,
             "finalHarmonic": 15,
-            "fluxType": 1,
-            "horizontalApertureSize": "1",
+            "fluxType": "1",
+            "horizontalApertureSize": 3,
             "horizontalPosition": 0,
-            "initialEnergy": 10000,
+            "initialEnergy": 400,
             "initialHarmonic": 1,
             "longitudinalPrecision": 1,
             "magneticField": 2,
             "method": 1,
             "numberOfMacroElectrons": 100000,
-            "photonEnergyPointCount": 1000,
+            "photonEnergyPointCount": 500,
             "polarization": 6,
             "precision": 0.01,
-            "verticalApertureSize": "1",
+            "verticalApertureSize": 3,
             "verticalPosition": 0
         },
         "fluxReport": {
@@ -231,14 +268,14 @@
             "precision": 0.01
         },
         "intensityReport": {
-            "distanceFromSource": 20,
+            "distanceFromSource": 27.5,
             "fieldUnits": "1",
-            "finalEnergy": "20000",
+            "finalEnergy": 2000,
             "horizontalPosition": "0",
-            "initialEnergy": "100",
-            "magneticField": "1",
+            "initialEnergy": 10,
+            "magneticField": 2,
             "method": "1",
-            "photonEnergyPointCount": 10000,
+            "photonEnergyPointCount": 1000,
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
@@ -259,7 +296,7 @@
         },
         "panelState": {
             "hidden": [
-                "watchpointReport14"
+                "powerDensityReport"
             ]
         },
         "postPropagation": [
@@ -274,7 +311,7 @@
             "6"
         ],
         "powerDensityReport": {
-            "distanceFromSource": 20,
+            "distanceFromSource": 27.5,
             "horizontalPointCount": 100,
             "horizontalPosition": "0",
             "horizontalRange": "15",
@@ -358,6 +395,30 @@
                 ]
             ],
             "13": [
+                [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    0,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ],
+            "14": [
                 [
                     0,
                     0,
@@ -532,37 +593,56 @@
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II ESM beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 2,
-            "isExample": "",
-            "name": "NSLS-II ESM beamline",
+            "horizontalRange": 10,
+            "isExample": "1",
+            "name": "NSLS-II ESM beamline (tabulated undulator)",
             "outOfSessionSimulationId": "",
-            "photonEnergy": 1000,
-            "sampleFactor": 1,
-            "samplingMethod": 1,
-            "simulationId": "XXtbYRzy",
-            "sourceType": "u",
+            "photonEnergy": 695.5,
+            "sampleFactor": 0.08,
+            "samplingMethod": "1",
+            "simulationId": "71u3K5Ye",
+            "sourceType": "t",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 2
+            "verticalRange": 10
         },
-        "simulationStatus": {},
+        "simulationStatus": {
+            "fluxAnimation": {
+                "elapsedTime": 2,
+                "frameCount": 0,
+                "isStateProcessing": true,
+                "lastUpdateTime": 1472577470,
+                "nextRequest": {
+                    "report": "fluxAnimation",
+                    "reportParametersHash": "f79375c75969156885395383bad92db0",
+                    "simulationId": "71u3K5Ye",
+                    "simulationType": "srw"
+                },
+                "nextRequestSeconds": 2,
+                "parametersChanged": false,
+                "percentComplete": 0,
+                "report": "fluxAnimation",
+                "startTime": 1472577468,
+                "state": "running"
+            }
+        },
         "sourceIntensityReport": {
-            "characteristic": 0,
-            "distanceFromSource": 34.366,
+            "characteristic": "1",
+            "distanceFromSource": 27.5,
             "fieldUnits": 1,
-            "magneticField": 1,
+            "magneticField": 2,
             "polarization": 6,
             "precision": 0.01
         },
         "tabulatedUndulator": {
-            "gap": 6.72,
+            "gap": 35.75,
             "horizontalAmplitude": 0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "indexFile": "",
-            "length": 2.500648,
-            "longitudinalPosition": 1.305,
-            "magneticFile": "magnetic_measurements.zip",
+            "length": 2.371,
+            "longitudinalPosition": -1.5,
+            "magneticFile": "magn_meas_esm.zip",
             "period": 21,
             "phase": 0,
             "undulatorParameter": 1.56866479,
@@ -596,9 +676,14 @@
             "fieldUnits": 1,
             "polarization": 6,
             "precision": 0.01
+        },
+        "watchpointReport14": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01
         }
     },
-    "report": "watchpointReport12",
     "simulationType": "srw",
-    "version": "20160814"
+    "version": "20160817.000000"
 }

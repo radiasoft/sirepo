@@ -12,7 +12,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data
+from sirepo.template.srw import extract_report_data, find_height_profile_dimension
 import os
 import re
 import srwl_bl
@@ -55,16 +55,16 @@ def run_background(cfg_dir):
         script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
         p = dict(pkcollections.map_items(cfg))
         if pkconfig.channel_in('dev'):
-            p['particles_per_slave'] = 1
-        p['slaves'] = mpi.cfg.slaves
+            p['particles_per_core'] = 5
+        p['cores'] = mpi.cfg.cores
         #TODO(pjm): move parameters/config to template/srw.py and set directly in srw.py.jinja
         script += '''
 import srwl_bl
 v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
 source_type, mag = srwl_bl.setup_source(v)
-v.wm_na = v.sm_na = {particles_per_slave}
+v.wm_na = v.sm_na = {particles_per_core}
 # Number of "iterations" per save is best set to num processes
-v.wm_ns = v.sm_ns = {slaves}
+v.wm_ns = v.sm_ns = {cores}
 op = set_optics()
 srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 '''.format(**p)
@@ -74,8 +74,10 @@ srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 def _mirror_plot(model_data):
     mirror = model_data['models']['mirrorReport']
-    func_name = 'srwl_opt_setup_surf_height_{}d'.format(mirror['heightProfileDimension'])
-    add_args = [0, 1] if int(mirror['heightProfileDimension']) == 1 else []
+    dat_file = mirror['heightProfileFile']
+    dimension = find_height_profile_dimension(dat_file)
+    func_name = 'srwl_opt_setup_surf_height_{}d'.format(dimension)
+    add_args = [0, 1] if dimension == 1 else []
     element = getattr(srwlib, func_name)(
         srwlib.srwl_uti_read_data_cols(mirror['heightProfileFile'], "\t", *add_args),
         _dim=mirror['orientation'],
@@ -143,5 +145,5 @@ def _cfg_int(lower, upper):
 
 
 cfg = pkconfig.init(
-    particles_per_slave=(5, int, 'particles for each core to process'),
+    particles_per_core=(5, int, 'particles for each core to process'),
 )

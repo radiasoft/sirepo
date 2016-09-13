@@ -1,6 +1,6 @@
 # sirepo
 
-# THIS IS ALPHA SOFTWARE
+# THIS IS BETA SOFTWARE
 
 Sirepo is a scientific application framework, currently for particle accelator codes.
 Sirepo runs inside a Python web server.
@@ -236,14 +236,28 @@ If you would like to see what the browser (webdriver) is doing, you
 must have X11 running, and start the webdriver this way:
 
 ```bash
-/node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
+./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
 ```
 
 This will use the `$DISPLAY` forwarded through your ssh session via
 Vagrant.
 
+### Monitoring Celery
+
+To start the [Flower: Celery Monitoring Tool](http://flower.readthedocs.io/en/latest/):
+
+```sh
+celery flower -A sirepo.celery_tasks
+```
+
+You can then visit [http://localhost:5555](http://localhost:5555) to see various things about Celery.
+
+You can also visit [RabbitMQ's Management Plugin](https://www.rabbitmq.com/management.html)
+by visiting [http://localhost:15672](http://localhost:15672). This assumes you start the `rabbitmq:management`
+Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sirepo service http`).
+
 ### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2015-2016 RadiaSoft LLC.  All Rights Reserved.

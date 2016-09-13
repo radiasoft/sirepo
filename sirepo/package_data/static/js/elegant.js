@@ -1,5 +1,8 @@
 'use strict';
 
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
@@ -13,11 +16,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION + Math.random(),
+            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.control, {
             controller: 'CommandController as control',
-            templateUrl: '/static/html/elegant-control.html?' + SIREPO.APP_VERSION + Math.random(),
+            templateUrl: '/static/html/elegant-control.html?' + SIREPO.APP_VERSION,
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
@@ -25,7 +28,220 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.controller('CommandController', function(appState) {
+SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) {
+    var self = {};
+
+    function bunchChanged() {
+        // update bunched_beam fields
+        var bunch = appState.models.bunch;
+        var cmd = self.findFirstCommand('bunched_beam');
+        if (cmd)
+            updateCommandFromBunch(cmd, bunch);
+        cmd = self.findFirstCommand('run_setup');
+        if (cmd) {
+            if (rpnService.getRpnValue(cmd.p_central) === 0)
+                cmd.p_central_mev = bunch.p_central_mev;
+            else
+                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+        }
+        appState.saveQuietly('commands');
+    }
+
+    function bunchFileChanged() {
+        var cmd = self.findFirstCommand('sdds_beam');
+        if (cmd) {
+            cmd.input = appState.models.bunchFile.sourceFile;
+            appState.saveQuietly('commands');
+        }
+    }
+
+    function bunchSourceChanged() {
+        // replace first sdds_beam/bunched_beam if necessary
+        var cmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
+        if (! cmd)
+            return;
+        var type = appState.models.bunchSource.inputSource;
+        if (cmd._type == type)
+            return;
+        if (type == 'bunched_beam') {
+            delete cmd.inputSource;
+            cmd._type = type;
+            self.setModelDefaults(cmd, 'command_bunched_beam');
+            updateCommandFromBunch(cmd, appState.models.bunch);
+        }
+        else if (type == 'sdds_beam') {
+            for (var k in cmd) {
+                if (k != '_id')
+                    delete cmd[k];
+            }
+            cmd._type = type;
+            cmd.input = appState.models.bunchFile.sourceFile;
+        }
+        appState.saveQuietly('commands');
+    }
+
+    function commandsChanged() {
+        var cmd = self.findFirstCommand('run_setup');
+        if (cmd) {
+            appState.models.simulation.visualizationBeamlineId = cmd.use_beamline;
+            appState.saveQuietly('simulation');
+        }
+
+        // update bunchSource, bunchFile, bunch models
+        cmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
+        if (! cmd)
+            return;
+        appState.models.bunchSource.inputSource = cmd._type;
+        appState.saveQuietly('bunchSource');
+        if (cmd._type == 'bunched_beam') {
+            var bunch = appState.models.bunch;
+            updateBunchFromCommand(bunch, cmd);
+
+            // p_central_mev
+            cmd = self.findFirstCommand('run_setup');
+            if (cmd) {
+                if (rpnService.getRpnValue(cmd.p_central_mev) !== 0)
+                    bunch.p_central_mev = cmd.p_central_mev;
+                else
+                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+            }
+            // need to update source reports.
+            appState.saveChanges('bunch');
+        }
+        else {
+            appState.models.bunchFile.sourceFile = cmd.input;
+            appState.saveQuietly('bunchFile');
+        }
+    }
+
+    function simulationChanged() {
+        var cmd = self.findFirstCommand('run_setup');
+        if (! cmd)
+            return;
+        cmd.use_beamline = appState.models.simulation.visualizationBeamlineId;
+        appState.saveQuietly('commands');
+    }
+
+    function updateBunchFromCommand(bunch, cmd) {
+        bunch.n_particles_per_bunch = cmd.n_particles_per_bunch;
+        bunch.emit_x = cmd.emit_x * 1e9;
+        bunch.beta_x = cmd.beta_x;
+        bunch.alpha_x = cmd.alpha_x;
+        bunch.emit_y = cmd.emit_y * 1e9;
+        bunch.beta_y = cmd.beta_y;
+        bunch.alpha_y = cmd.alpha_y;
+        bunch.longitudinalMethod = cmd.dp_s_coupling !== 0
+            ? 1 // sigma s, sigma dp, dp s coupling
+            : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
+               ? 3 // emit z, beta z, alpha z
+               : 2); // sigma s, sigma dp, alpha z
+        bunch.sigma_s = cmd.sigma_s * 1e6;
+        bunch.sigma_dp = cmd.sigma_dp;
+        bunch.dp_s_coupling = cmd.dp_s_coupling;
+        bunch.emit_z = cmd.emit_z * 1e9;
+        bunch.beta_z = cmd.beta_z;
+        bunch.alpha_z = cmd.alpha_z;
+    }
+
+    function updateCommandFromBunch(cmd, bunch) {
+        cmd.n_particles_per_bunch = bunch.n_particles_per_bunch;
+        cmd.emit_x = bunch.emit_x / 1e9;
+        cmd.beta_x = bunch.beta_x;
+        cmd.alpha_x = bunch.alpha_x;
+        cmd.emit_y = bunch.emit_y / 1e9;
+        cmd.beta_y = bunch.beta_y;
+        cmd.alpha_y = bunch.alpha_y;
+        cmd.sigma_s = bunch.sigma_s / 1e6;
+        cmd.sigma_dp = bunch.sigma_dp;
+        cmd.dp_s_coupling = bunch.dp_s_coupling;
+        cmd.emit_z = bunch.emit_z / 1e9;
+        cmd.beta_z = bunch.beta_z;
+        cmd.alpha_z = bunch.alpha_z;
+        if (bunch.longitudinalMethod == 1) {
+            cmd.emit_z = 0;
+            cmd.beta_z = 0;
+            cmd.alpha_z = 0;
+        }
+        else if (bunch.longitudinalMethod == 2) {
+            cmd.emit_z = 0;
+            cmd.beta_z = 0;
+            cmd.dp_s_coupling = 0;
+        }
+        else if (bunch.longitudinalMethod == 3) {
+            cmd.sigma_dp = 0;
+            cmd.sigma_s = 0;
+            cmd.dp_s_coupling = 0;
+        }
+    }
+
+    self.elementForId = function(id) {
+        var i;
+        id = Math.abs(id);
+        for (i = 0; i < appState.models.beamlines.length; i++) {
+            var b = appState.models.beamlines[i];
+            if (b.id == id)
+                return b;
+        }
+        for (i = 0; i < appState.models.elements.length; i++) {
+            var e = appState.models.elements[i];
+            if (e._id == id)
+                return e;
+        }
+        return null;
+    };
+
+    self.findFirstCommand = function(types) {
+        if (! appState.isLoaded())
+            return null;
+        if (typeof(types) == 'string')
+            types = [types];
+        for (var i = 0; i < appState.models.commands.length; i++) {
+            var cmd = appState.models.commands[i];
+            for (var j = 0; j < types.length; j++) {
+                if (cmd._type == types[j])
+                    return cmd;
+            }
+        }
+        return null;
+    };
+
+    self.nextId = function() {
+        return Math.max(
+            appState.maxId(appState.models.elements, '_id'),
+            appState.maxId(appState.models.beamlines),
+            appState.maxId(appState.models.commands, '_id')) + 1;
+    };
+
+    self.setModelDefaults = function(model, modelName) {
+        // set model defaults from schema
+        var schema = SIREPO.APP_SCHEMA.model[modelName];
+        var fields = Object.keys(schema);
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            if (schema[f][2] !== undefined)
+                model[f] = schema[f][2];
+        }
+    };
+
+    // keep source page items in sync with the associated control command
+    $rootScope.$on('modelChanged', function(e, name) {
+        var cmd, bunch;
+        if (name == 'bunchSource')
+            bunchSourceChanged();
+        else if (name == 'bunchFile')
+            bunchFileChanged();
+        else if (name == 'bunch')
+            bunchChanged();
+        else if (name == 'simulation')
+            simulationChanged();
+        else if (name == 'commands')
+            commandsChanged();
+    });
+
+    return self;
+});
+
+SIREPO.app.controller('CommandController', function(appState, elegantService) {
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
@@ -41,13 +257,13 @@ SIREPO.app.controller('CommandController', function(appState) {
         'closed_orbit', 'correct', 'correct_tunes', 'correction_matrix_output',
         'coupled_twiss_output', 'divide_elements', 'find_aperture', 'floor_coordinates',
         'frequency_map', 'global_settings', 'insert_elements', 'insert_sceffects',
-        'linear_chromatic_tracking_setup', 'link_control', 'link_elements',
-        'modulate_elements', 'moments_output', 'momentum_aperture', 'optimization_constraint',
-        'optimization_covariable', 'parallel_optimization_setup', 'print_dictionary', 'ramp_elements',
-        'replace_elements', 'rf_setup', 'rpn_expression', 'rpn_load',
-        'sasefel', 'save_lattice', 'sdds_beam', 'semaphores', 'slice_analysis',
-        'steering_element', 'subprocess', 'touschek_scatter', 'transmute_elements',
-        'tune_footprint', 'tune_shift_with_amplitude', 'twiss_analysis',
+        'linear_chromatic_tracking_setup', 'link_control', 'link_elements', 'modulate_elements',
+        'moments_output', 'momentum_aperture', 'optimization_constraint', 'optimization_covariable',
+        'parallel_optimization_setup', 'print_dictionary', 'ramp_elements', 'replace_elements',
+        'rf_setup', 'rpn_expression', 'rpn_load', 'sasefel',
+        'save_lattice', 'sdds_beam', 'slice_analysis', 'steering_element',
+        'touschek_scatter', 'transmute_elements','tune_footprint', 'tune_shift_with_amplitude',
+        'twiss_analysis',
     ];
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
@@ -60,18 +276,11 @@ SIREPO.app.controller('CommandController', function(appState) {
 
     self.createElement = function(name) {
         $('#s-newCommand-editor').modal('hide');
-        var schema = SIREPO.APP_SCHEMA.model['command_' + name];
         var model = {
-            _id: appState.maxId(appState.models.commands, '_id') + 1,
+            _id: elegantService.nextId(),
             _type: name,
         };
-        // set model defaults from schema
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
-            if (schema[f][2] !== undefined)
-                model[f] = schema[f][2];
-        }
+        elegantService.setModelDefaults(model, 'command_' + name);
         commandTable().editCommand(model, true);
     };
 
@@ -93,7 +302,7 @@ SIREPO.app.controller('CommandController', function(appState) {
     };
 });
 
-SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $timeout) {
+SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, $scope, $timeout) {
     var self = this;
     var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
@@ -216,9 +425,8 @@ SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $tim
             //TODO(pjm): rework this
             $timeout(function() {
                 var el = $('#s-bunch-basicEditor form')[0];
-                if (el) {
+                if (el)
                     angular.element(el).scope().form.$setDirty();
-                }
                 el = $('#s-bunchFile-basicEditor form')[0];
                 if (el)
                     angular.element(el).scope().form.$setDirty();
@@ -227,7 +435,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, $scope, $tim
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, panelState, rpnService, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -333,12 +541,6 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
         return res;
     }
 
-    function nextId() {
-        return Math.max(
-            appState.maxId(appState.models.elements, '_id'),
-            appState.maxId(appState.models.beamlines)) + 1;
-    }
-
     function showDeleteWarning(type, element, beamlines) {
         var names = {};
         for (var i = 0; i < beamlines.length; i++) {
@@ -399,6 +601,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
             appState.models[containerName].push(m);
         }
         sortMethod();
+        appState.removeModel(name);
         appState.saveChanges(containerName);
     }
 
@@ -416,19 +619,12 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
 
     self.createElement = function(type) {
         $('#s-newBeamlineElement-editor').modal('hide');
-        var schema = SIREPO.APP_SCHEMA.model[type];
         var model = {
-            _id: nextId(),
+            _id: elegantService.nextId(),
             type: type,
             name: uniqueNameForType(type.charAt(0)),
         };
-        // set model defaults from schema
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
-            if (schema[f][2] !== undefined)
-                model[f] = schema[f][2];
-        }
+        elegantService.setModelDefaults(model, type);
         self.editElement(type, model);
     };
 
@@ -468,19 +664,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     };
 
     self.elementForId = function(id) {
-        var i;
-        id = Math.abs(id);
-        for (i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
-            if (b.id == id)
-                return b;
-        }
-        for (i = 0; i < appState.models.elements.length; i++) {
-            var e = appState.models.elements[i];
-            if (e._id == id)
-                return e;
-        }
-        return null;
+        return elegantService.elementForId(id);
     };
 
     self.getActiveBeamline = function() {
@@ -510,7 +694,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     self.newBeamline = function() {
         appState.models.beamline = {
             name: uniqueNameForType('BL'),
-            id: nextId(),
+            id: elegantService.nextId(),
             l: 0,
             count: 0,
             items: [],
@@ -580,8 +764,9 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'beamline') {
             fixModelName(name);
+            var id = appState.models.beamline.id;
             updateModels('beamline', 'id', 'beamlines', sortBeamlines);
-            self.editBeamline(appState.models.beamline);
+            self.editBeamline({ id: id });
         }
         if (self.isElementModel(name)) {
             fixModelName(name);
@@ -593,7 +778,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, rpnSer
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, requestSender, $scope, persistentSimulation) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, requestSender, $scope, persistentSimulation) {
     var self = this;
     self.model = 'animation';
     self.progress = null;
@@ -606,6 +791,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         elapsedTime: null,
     };
     self.outputFiles = [];
+    self.auxFiles = [];
 
     function defaultYColumn(columns) {
         for (var i = 1; i < columns.length; i++) {
@@ -616,13 +802,13 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return columns[1];
     }
 
-    function fileURL(index) {
+    function fileURL(index, model) {
         if (! appState.isLoaded())
             return '';
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.model,
+            '<model>': model || self.model,
             '<frame>': index,
         });
     }
@@ -633,11 +819,19 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
+        self.auxFiles = [];
         var animationArgs = {};
 
         for (var i = 0; i < outputInfo.length; i++) {
             var info = outputInfo[i];
-            if (! info.columns || info.isAuxFile)
+            if (info.isAuxFile) {
+                self.auxFiles.push({
+                    filename: info.filename,
+                    id: info.id,
+                });
+                continue;
+            }
+            if (! info.columns)
                 continue;
             var modelKey = 'elementAnimation' + info.id;
             self.outputFiles.push({
@@ -701,15 +895,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return self.progress.percentComplete;
     };
 
-    self.getBeamlines = function() {
-        if (! appState.isLoaded())
-            return null;
-        if (! appState.models.simulation.visualizationBeamlineId
-            && appState.models.beamlines
-            && appState.models.beamlines.length) {
-            appState.models.simulation.visualizationBeamlineId = appState.models.beamlines[0].id;
-        }
-        return appState.models.beamlines;
+    self.downloadFileUrl = function(item) {
+        var modelKey = 'elementAnimation' + item.id;
+        return fileURL(1, modelKey);
     };
 
     self.handleModalShown = function(name, modelKey) {
@@ -738,7 +926,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
-        if (data.state != 'running') {
+        if (self.isStateStopped()) {
             if (! data.frameCount) {
                 if (data.state == 'completed' && ! self.simulationErrors) {
                     // completed with no output, show link to elegant log
@@ -767,10 +955,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         return fileURL(-1);
     };
 
-    self.parametersFileURL = function() {
-        return fileURL(-2);
-    };
-
     persistentSimulation.initProperties(self);
 
     // Overrides
@@ -788,7 +972,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     self.originalRunSimulation = self.runSimulation;
     self.runSimulation = function() {
-        if (! self.isStateStopped())
+        if (self.isStateProcessing())
             return;
         self.progress = null;
         self.outputFiles = [];
@@ -827,10 +1011,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '</div>',
             '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
               '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+              '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
@@ -839,11 +1023,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '</ul>',
         ].join(''),
         controller: function($scope) {
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations'))
-                    return false;
-                return appState.isLoaded();
-            };
             $scope.hasBeamlines = function() {
                 if (! $scope.isLoaded())
                     return false;
@@ -853,6 +1032,26 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                         return true;
                 }
                 return false;
+            };
+            $scope.hasBeamlinesAndCommands = function() {
+                if (! $scope.hasBeamlines())
+                    return false;
+                return appState.models.commands.length > 0;
+            };
+            $scope.hasSourceCommand = function() {
+                if (! $scope.isLoaded())
+                    return false;
+                for (var i = 0; i < appState.models.commands.length; i++) {
+                    var cmd = appState.models.commands[i];
+                    if (cmd._type == 'bunched_beam' || cmd._type == 'sdds_beam')
+                        return true;
+                }
+                return false;
+            };
+            $scope.isLoaded = function() {
+                if ($scope.nav.isActive('simulations'))
+                    return false;
+                return appState.isLoaded();
             };
             $scope.showImportModal = function() {
                 $('#elegant-lattice-import').modal('show');
@@ -1171,7 +1370,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
     };
 });
 
-SIREPO.app.directive('commandTable', function(appState, panelState) {
+SIREPO.app.directive('commandTable', function(appState, elegantService, panelState) {
     return {
         restirct: 'A',
         scope: {},
@@ -1195,17 +1394,16 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                 '<tr><td style="height: 3em" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> </td></tr>',
               '</table>',
               '<div data-ng-show="commands.length > 2" class="pull-right">',
-                '<button class="btn btn-info btn-xs" data-ng-click="newCommand(true)" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
+                '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var addCommandToBottom = false;
             var selectedItemId = null;
             var expanded = {};
             $scope.commands = [];
 
-            function commandDescription(cmd) {
+            function commandDescription(cmd, commandIndex) {
                 var schema = SIREPO.APP_SCHEMA.model[commandModelName(cmd._type)];
                 var res = '';
                 var model = commandForId(cmd._id);
@@ -1214,10 +1412,17 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                     var f = fields[i];
                     if (angular.isDefined(model[f]) && angular.isDefined(schema[f])) {
                         if (schema[f][2] != model[f]) {
-                            if (schema[f][1] == 'OutputFile')
-                                res += (res.length ? ",\n" : '') + f + '=' + cmd._type + '.' + f + '.sdds';
+                            res += (res.length ? ",\n" : '') + f + ' = ';
+                            if (schema[f][1] == 'OutputFile') {
+                                res += cmd._type
+                                    + (commandIndex > 1 ? commandIndex : '')
+                                    + '.' + f + fileExtension(model);
+                            }
+                            else if (schema[f][1] == 'ElegantBeamlineList') {
+                                res += elegantService.elementForId(model[f]).name;
+                            }
                             else
-                                res += (res.length ? ",\n" : '') + f + ' = ' + model[f];
+                                res += model[f];
                         }
                     }
                 }
@@ -1241,6 +1446,10 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                 return 'command_' + type;
             }
 
+            function fileExtension(model) {
+                return model._type == 'save_lattice' ? '.lte' : '.sdds';
+            }
+
             function isCommandModelName(name) {
                 return name.indexOf('command_') === 0;
             }
@@ -1248,15 +1457,18 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
             function loadCommands() {
                 var commands = appState.applicationState().commands;
                 $scope.commands = [];
+                var commandIndex = {};
                 for (var i = 0; i < commands.length; i++) {
                     var cmd = commands[i];
+                    if (cmd._type in commandIndex)
+                        commandIndex[cmd._type]++;
+                    else
+                        commandIndex[cmd._type] = 1;
                     $scope.commands.push({
                         _type: cmd._type,
                         _id: cmd._id,
-                        description: commandDescription(cmd),
+                        description: commandDescription(cmd, commandIndex[cmd._type]),
                     });
-                    if (!(cmd._id in expanded))
-                        expanded[cmd._id] = true;
                 }
             }
 
@@ -1268,6 +1480,16 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                 appState.saveChanges('commands');
             }
 
+            function selectedItemIndex() {
+                if (selectedItemId) {
+                    for (var i = 0; i < $scope.commands.length; i++) {
+                        if ($scope.commands[i]._id == selectedItemId)
+                            return i;
+                    }
+                }
+                return -1;
+            }
+
             $scope.deleteCommand = function(data) {
                 if (! data)
                     return;
@@ -1276,15 +1498,11 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
             };
 
             $scope.deleteSelected = function() {
-                if (selectedItemId) {
-                    for (var i = 0; i < $scope.commands.length; i++) {
-                        if ($scope.commands[i]._id == selectedItemId) {
-                            selectedItemId = null;
-                            $scope.commands.splice(i, 1);
-                            saveCommands();
-                            break;
-                        }
-                    }
+                var index = selectedItemIndex();
+                if (index >= 0) {
+                    selectedItemId = null;
+                    $scope.commands.splice(index, 1);
+                    saveCommands();
                 }
             };
 
@@ -1331,8 +1549,7 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                 return selectedItemId == cmd._id;
             };
 
-            $scope.newCommand = function(addToBottom) {
-                addCommandToBottom = addToBottom;
+            $scope.newCommand = function() {
                 $('#s-newCommand-editor').modal('show');
             };
 
@@ -1358,12 +1575,14 @@ SIREPO.app.directive('commandTable', function(appState, panelState) {
                         }
                     }
                     if (! foundIt) {
-                        if (addCommandToBottom)
-                            appState.models.commands.push(appState.models[name]);
+                        var index = selectedItemIndex();
+                        if (index >= 0)
+                            appState.models.commands.splice(index + 1, 0, appState.models[name]);
                         else
-                            appState.models.commands.unshift(appState.models[name]);
+                            appState.models.commands.push(appState.models[name]);
                         $scope.selectItem(appState.models[name]);
                     }
+                    appState.removeModel(name);
                     appState.saveChanges('commands');
                 }
             });
@@ -1527,7 +1746,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                     if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0)
                         continue;
                     if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
-                        if (schema[f][1] == 'OutputFile')
+                        if (schema[f][1] == 'OutputFile' && element[f])
                             res += (res.length ? ',' : '') + f + '=' + element.name + '.' + f + '.sdds';
                         else if (schema[f][2] != element[f])
                             res += (res.length ? ',' : '') + f + '=' + element[f];
@@ -1988,12 +2207,7 @@ SIREPO.app.directive('runSimulationFields', function() {
     return {
         template: [
             '<div>',
-              '<div class="col-sm-3 control-label">',
-                '<label>Beamline</label>',
-              '</div>',
-              '<div class="col-sm-4">',
-                '<select class="form-control" data-ng-model="visualization.appState.models.simulation.visualizationBeamlineId" data-ng-options="item.id as item.name for item in visualization.getBeamlines()"></select>',
-              '</div>',
+              '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
               '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
                 '<button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>',
               '</div>',
