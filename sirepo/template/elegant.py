@@ -723,7 +723,7 @@ def _iterate_model_fields(data, state, callback):
 
 
 def _iterator_commands(state, model, element_schema=None, field_name=None):
-    # only interated in commands, not elements
+    # only interested in commands, not elements
     if '_type' not in model:
         return
     if element_schema:

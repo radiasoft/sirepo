@@ -235,7 +235,7 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
             elif close_match:
                 el[field] = close_match
             else:
-                raise IOError('Xunknown value: "{}"'.format(search))
+                raise IOError('unknown value: "{}"'.format(search))
 
 
 def _validate_type(el, element_names):
