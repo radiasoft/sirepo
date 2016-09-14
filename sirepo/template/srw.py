@@ -74,8 +74,7 @@ with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
 with open(str(_STATIC_FOLDER.join('json/magnetic_measurements.json'))) as f:
     _PREDEFINED_MAGNETIC_ZIP_FILES = json.load(f)
 
-with open(str(_STATIC_FOLDER.join('json/srw-schema.json'))) as f:
-    _SCHEMA = json.load(f)
+_SCHEMA = simulation_db.get_schema('srw')
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -96,7 +95,21 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def copy_related_files(data, source_path, target_path):
-    pass
+    # copy required MirrorFile and MagneticZipFile data to target lib
+    source_lib = py.path.local(os.path.dirname(source_path)).join('lib')
+    target_lib = py.path.local(os.path.dirname(target_path)).join('lib')
+    lib_files = []
+    if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
+        lib_files.append(data['models']['tabulatedUndulator']['magneticFile'])
+    for model in data['models']['beamline']:
+        for f in _SCHEMA['model'][model['type']]:
+            field_type = _SCHEMA['model'][model['type']][f][1]
+            if model[f] and (field_type == 'MirrorFile' or field_type == 'MagneticZipFile'):
+                lib_files.append(model[f])
+    for f in lib_files:
+        target = target_lib.join(f)
+        if not target.exists():
+            shutil.copy(str(source_lib.join(f)), str(target))
 
 
 def extract_report_data(filename, model_data):
