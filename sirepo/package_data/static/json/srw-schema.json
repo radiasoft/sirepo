@@ -216,8 +216,10 @@
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
             "radius": ["Radius on Tip of Parabola [m]", "Float"],
+            "tipRadius": ["Radius on Tip of Parabola [µm]", "Float"],
             "numberOfLenses": ["Number of Lenses", "Integer"],
-            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]
+            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"],
+            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float"]
         },
         "crystal": {
             "title": ["Element Name", "String"],
@@ -570,9 +572,9 @@
                 "shape",
                 "horizontalApertureSize",
                 "verticalApertureSize",
-                "radius",
+                "tipRadius",
                 "numberOfLenses",
-                "wallThickness"
+                "tipWallThickness"
             ]
         },
         "crystal": {

@@ -332,6 +332,8 @@ def fixup_old_data(data):
                 'method': 'server',
                 'absoluteFocusPosition': None,
                 'focalDistance': None,
+                'tipRadius': float(item['radius']) * 1e6,  # m -> um
+                'tipWallThickness': float(item['wallThickness']) * 1e6,  # m -> um
             }
             for field in key_value_pairs.keys():
                 if field not in item:
@@ -809,7 +811,7 @@ def _compute_crl_characteristics(model, photon_energy, prefix=''):
 
 def _compute_crl_focus(model):
     d = bnlcrl.pkcli.simulate.calc_ideal_focus(
-        radius=model['radius'],
+        radius=float(model['tipRadius']) * 1e-6,  # um -> m
         n=model['numberOfLenses'],
         delta=model['refractiveIndex'],
         p0=model['position']
@@ -1066,7 +1068,7 @@ def _generate_beamline_optics(models, last_id):
             el, pp = _beamline_element(
                 'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
                 item,
-                ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'radius', 'numberOfLenses', 'wallThickness'],
+                ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness'],
                 propagation)
             res_el += el
             res_pp += pp
