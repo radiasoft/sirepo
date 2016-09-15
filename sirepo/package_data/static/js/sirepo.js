@@ -137,6 +137,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         if (angular.isDefined(value)) {
             alertText = value;
         }
+        srdbg('here', alertText);
         return alertText;
     };
 
@@ -852,7 +853,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             function(resp, status) {
                 $interval.cancel(interval);
                 if (resp.msgType) {
-                    self.msgTypeDispatch(resp);
+                    msgTypeDispatch(resp);
                     return;
                 }
                 successCallback(resp, status);
@@ -1082,7 +1083,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
             if (appState.isLoaded()) {
-                srdbg('hello');
                 appState.saveChanges('simulationStatus');
             }
         }
