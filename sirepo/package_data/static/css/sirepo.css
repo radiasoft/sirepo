@@ -584,7 +584,7 @@ ul.s-nav-sidebar-root {
   background-color: lightcyan;
 }
 .s-drop-left {
-  background-color: #82caff;
+  background-color: #d9edf7;
   width: 0;
   display: inline-block;
 }
@@ -615,4 +615,14 @@ ul.s-nav-sidebar-root {
 }
 .elegant-beamline-editor-panel {
   overflow: auto;
+}
+.elegant-cmd-table table tr td.drag-enter {
+  background-color: #d9edf7;
+}
+.elegant-cmd-table table tr td.drag-enter div.elegant-cmd-icon-holder {
+  transition: padding 0.5s ease 0s;
+  padding-top: 2em;
+}
+.elegant-cmd-table table tr td.drag-enter div.dragging {
+  padding-top: 0;
 }

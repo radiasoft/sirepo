@@ -215,11 +215,27 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
                 el[field + 'Y'] = m.group(3)
             else:
                 el[field] = fullname
-        elif field_type == 'RPNValue' and sirepo.template.elegant.is_rpn_value(el[field]):
+        elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and sirepo.template.elegant.is_rpn_value(el[field]):
             value, error = sirepo.template.elegant.parse_rpn_value(el[field], rpn_variables)
             if error:
                 raise IOError('invalid rpn: "{}"'.format(el[field]))
             rpn_cache[el[field]] = value
+        elif field_type in _SCHEMA['enum']:
+            search = el[field].lower()
+            exact_match = ''
+            close_match = ''
+            for v in _SCHEMA['enum'][field_type]:
+                if v[0] == search:
+                    exact_match = v[0]
+                    break
+                if search.startswith(v[0]) or v[0].startswith(search):
+                    close_match = v[0]
+            if exact_match:
+                el[field] = exact_match
+            elif close_match:
+                el[field] = close_match
+            else:
+                raise IOError('unknown value: "{}"'.format(search))
 
 
 def _validate_type(el, element_names):

@@ -97,10 +97,6 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
-        "HeightProfileDimension": [
-            ["1", "One-dimensional"],
-            ["2", "Two-dimensional"]
-        ],
         "IntensityMethod": [
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
@@ -220,8 +216,10 @@
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
             "radius": ["Radius on Tip of Parabola [m]", "Float"],
+            "tipRadius": ["Radius on Tip of Parabola [µm]", "Float"],
             "numberOfLenses": ["Number of Lenses", "Integer"],
-            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"]
+            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float"],
+            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float"]
         },
         "crystal": {
             "title": ["Element Name", "String"],
@@ -248,7 +246,6 @@
             "tvx": ["Horizontal coordinate", "Float"],
             "tvy": ["Vertical coordinate", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
-            "heightProfileDimension": ["Dimension of Data in Height Profile Data File", "HeightProfileDimension"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
@@ -295,7 +292,6 @@
             "tangentialVectorX": ["Horizontal", "Float"],
             "tangentialVectorY": ["Vertical", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
-            "heightProfileDimension": ["Dimension of Data in Height Profile Data File", "HeightProfileDimension"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
@@ -411,7 +407,6 @@
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
-            "heightProfileDimension": ["Dimension of Data in Height Profile Data File", "HeightProfileDimension"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"],
@@ -491,7 +486,6 @@
             "tangentialVectorX": ["Horizontal", "Float"],
             "tangentialVectorY": ["Vertical", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile"],
-            "heightProfileDimension": ["Dimension of Data in Height Profile Data File", "HeightProfileDimension"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation"],
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
@@ -578,9 +572,9 @@
                 "shape",
                 "horizontalApertureSize",
                 "verticalApertureSize",
-                "radius",
+                "tipRadius",
                 "numberOfLenses",
-                "wallThickness"
+                "tipWallThickness"
             ]
         },
         "crystal": {
@@ -632,7 +626,6 @@
                 ]],
                 ["Height Profile", [
                     "heightProfileFile",
-                    "heightProfileDimension",
                     "orientation",
                     "heightAmplification"
                 ]]
@@ -710,7 +703,6 @@
                 ]],
                 ["Mirror Error", [
                     "heightProfileFile",
-                    "heightProfileDimension",
                     "orientation",
                     "heightAmplification"
                 ]]
@@ -926,7 +918,6 @@
                 "title",
                 "position",
                 "heightProfileFile",
-                "heightProfileDimension",
                 "orientation",
                 "grazingAngle",
                 "heightAmplification",
@@ -1102,7 +1093,6 @@
                 ]],
                 ["Mirror Error", [
                     "heightProfileFile",
-                    "heightProfileDimension",
                     "orientation",
                     "heightAmplification"
                 ]]

@@ -6,10 +6,19 @@ u"""PyTest for :mod:`sirepo.template.srw.py`
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+
 pytest.importorskip('srwl_bl')
 
 from pykern import pkresource
 from pykern import pkunit
+
+
+def test_find_height_profile_dimension():
+    from sirepo.template import srw
+    for dimension in (1, 2):
+        dat_file = pkresource.filename('static/dat/mirror_{}d.dat'.format(dimension), srw)
+        found_dimension = srw.find_height_profile_dimension(dat_file)
+        assert found_dimension == dimension
 
 
 def test_find_tab_undulator_length():

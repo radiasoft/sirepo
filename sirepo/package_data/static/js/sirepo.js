@@ -879,7 +879,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
     return self;
 });
 
-SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender) {
+SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender, exceptionLoggingService) {
     var self = {};
     var runQueue = [];
 
@@ -956,14 +956,20 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var process = function(resp, status) {
             if (qi.qState == 'removing')
                 return;
-            if ($.isEmptyObject(resp))
+            if (status != 200) {
+                exceptionLoggingService(resp, 'error status=' + status);
                 resp = {};
-            if (! resp.state)
+            }
+            else if ($.isEmptyObject(resp) || ! angular.isObject(resp)) {
+                exceptionLoggingService(resp, 'unexpected response type or empty');
+                resp = {};
+            }
+            if (! resp.state) {
                 resp.state = 'error';
-            if (! resp.error && (status != 200 || resp.state == 'error')) {
+            }
+            if (! resp.error && resp.state == 'error') {
                 resp.error = status === 0 ? 'the server is unavailable'
-                    : 'a server error occurred';
-                resp.state = 'error';
+                    : ('a server error occurred; status=' + status);
             }
             resp.isStateProcessing = resp.state == 'running' || resp.state == 'pending';
             if (! resp.isStateProcessing) {
@@ -1191,7 +1197,7 @@ SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceServi
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try{
-            var errorMessage = exception.toString();
+            var errorMessage = $.isEmptyObject(exception) ? '<no message>' : exception.toString();
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT

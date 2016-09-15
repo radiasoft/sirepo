@@ -304,14 +304,14 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                   '<ul class="dropdown-menu">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
                     '<li data-ng-repeat="item in requestSender.getAuxiliaryData(\'beams\') track by item.name">',
-                      '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
+                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
                     '</li>',
                     '<li class="divider"></li>',
                     '<li class="dropdown-header">User Defined Electron Beams</li>',
                     '<li data-ng-repeat="item in appState.models.electronBeams track by item.name">',
-                      '<a href data-ng-click="selectBeam(item)">{{ item.name }}</a>',
+                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
                     '</li>',
-                    '<li><a href data-ng-click="newUserDefinedBeam()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
+                    '<li><a href data-ng-click="srwNewUserDefinedBeam()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                   '</ul>',
                 '</div>',
               '</div>',
@@ -330,6 +330,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
               '</div>',
+              '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
+                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
+              '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
@@ -339,6 +342,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                   '<input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />',
                   ' <label style="margin: 0 1ex">Y</label> ',
                   '<input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />',
+              '</div>',
+              '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
+                '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
               '</div>',
               '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
                 '<div data-output-file-field="field" data-model="model"></div>',
@@ -353,8 +359,17 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="RPNValue">',
                 '<div data-ng-class="fieldClass">',
                   '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
-                '</div>',
-                '<div class="col-sm-2"><div class="form-control-static pull-right">{{ getComputedRpnValue(); }}</div></div>',
+                 '</div>',
+                '<div class="col-sm-2"><div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div></div>',
+              '</div>',
+              '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
+                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in elegantRpnBooleanValues()"></select>',
+              '</div>',
+              '<div data-ng-switch-when="ElegantBeamlineList" data-ng-class="fieldClass">',
+                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elegantBeamlineList()"></select>',
+              '</div>',
+              '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
+                '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>',
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -374,10 +389,41 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             function isNumber(type) {
                 return type == 'Integer' || type == 'Float';
             }
-            $scope.selectBeam = function(item) {
-                appState.models.electronBeam = item;
-                item[$scope.field] = item.name;
-                $scope.$parent.$parent.form.$setDirty();
+            $scope.elegantBeamlineList = function() {
+                if (! appState.isLoaded() || ! $scope.model)
+                    return null;
+                if (! $scope.model[$scope.field]
+                    && appState.models.beamlines
+                    && appState.models.beamlines.length) {
+                    $scope.model[$scope.field] = appState.models.beamlines[0].id;
+                }
+                return appState.models.beamlines;
+            };
+            $scope.elegantLatticeList = function() {
+                if (! appState.isLoaded() || ! $scope.model)
+                    return null;
+                var runSetupId = $scope.model._id;
+                var res = ['Lattice'];
+                var index = 0;
+                for (var i = 0; i < appState.models.commands.length; i++) {
+                    var cmd = appState.models.commands[i];
+                    if (cmd._id == runSetupId)
+                        break;
+                    if (cmd._type == 'save_lattice') {
+                        index++;
+                        if (cmd.filename)
+                            res.push('save_lattice' + (index > 1 ? ('.' + index) : ''));
+                    }
+                }
+                if (! $scope.model[$scope.field])
+                    $scope.model[$scope.field] = res[0];
+                return res;
+            };
+            $scope.elegantComputedRpnValue = function() {
+                return rpnService.getRpnValueForField($scope.model, $scope.field);
+            };
+            $scope.elegantRpnBooleanValues = function() {
+                return rpnService.getRpnBooleanForField($scope.model, $scope.field);
             };
             $scope.emptyList = [];
             $scope.fieldX = function() {
@@ -386,16 +432,12 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.fieldY = function() {
                 return $scope.field + 'Y';
             };
-            $scope.getComputedRpnValue = function() {
-                if (appState.isLoaded() && $scope.model && $scope.field) {
-                    var v = $scope.model[$scope.field];
-                    if (SIREPO.NUMBER_REGEXP.test(v))
-                        return '';
-                    return rpnService.getRpnValue(v);
-                }
-                return '';
+            $scope.showLabel = function() {
+                if ($scope.labelSize === '')
+                    return true;
+                return $scope.labelSize > 0;
             };
-            $scope.newUserDefinedBeam = function() {
+            $scope.srwNewUserDefinedBeam = function() {
                 // copy the current beam, rename and show editor
                 var newBeam = appState.clone(appState.models.electronBeam);
                 delete newBeam.isReadOnly;
@@ -405,10 +447,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 appState.models.electronBeam = newBeam;
                 panelState.showModalEditor('electronBeam');
             };
-            $scope.showLabel = function() {
-                if ($scope.labelSize === '')
-                    return true;
-                return $scope.labelSize > 0;
+            $scope.srwSelectBeam = function(item) {
+                appState.models.electronBeam = item;
+                item[$scope.field] = item.name;
+                $scope.$parent.$parent.form.$setDirty();
             };
         },
         link: function link(scope, element) {
@@ -419,7 +461,8 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
     };
 });
 
-SIREPO.app.directive('outputFileField', function() {
+//TODO(pjm): directive specific to elegant
+SIREPO.app.directive('outputFileField', function(appState) {
     return {
         restirct: 'A',
         scope: {
@@ -433,15 +476,34 @@ SIREPO.app.directive('outputFileField', function() {
             var items = [];
             var filename = '';
 
+            function fileExtension() {
+                if ($scope.model && $scope.model._type == 'save_lattice')
+                    return '.lte';
+                return '.sdds';
+            }
+
             $scope.items = function() {
                 if (! $scope.model)
                     return items;
-                var name = $scope.model.name + '.' + $scope.field + '.sdds';
+                var prefix = $scope.model.name;
+                if ($scope.model._type) {
+                    var index = 0;
+                    for (var i = 0; i < appState.models.commands.length; i++) {
+                        var m = appState.models.commands[i];
+                        if (m._type == $scope.model._type) {
+                            index++;
+                            if (m == $scope.model)
+                                break;
+                        }
+                    }
+                    prefix = $scope.model._type + (index > 1 ? index : '');
+                }
+                var name = prefix + '.' + $scope.field + fileExtension();
                 if (name != filename) {
                     filename = name;
                     items = [
                         ['', 'None'],
-                        [name, name],
+                        ['1', name],
                     ];
                 }
                 return items;
@@ -991,7 +1053,8 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
-SIREPO.app.service('rpnService', function(appState, requestSender) {
+SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
+    var rpnBooleanValues = null;
 
     this.computeRpnValue = function(value, callback) {
         if (value in appState.models.rpnCache) {
@@ -1013,6 +1076,28 @@ SIREPO.app.service('rpnService', function(appState, requestSender) {
             });
     };
 
+    this.getRpnBooleanForField = function(model, field) {
+        if (appState.isLoaded() && model && field) {
+            if (! rpnBooleanValues) {
+                rpnBooleanValues = [];
+                if (appState.models.rpnVariables) {
+                    for (var i = 0; i < appState.models.rpnVariables.length; i++) {
+                        var v = appState.models.rpnVariables[i];
+                        rpnBooleanValues.push([v.name, 'var: ' + v.name]);
+                    }
+                    rpnBooleanValues = rpnBooleanValues.sort(function(a, b) {
+                        return a[1].localeCompare(b[1]);
+                    });
+                }
+                rpnBooleanValues.unshift(
+                    ['0', 'No'],
+                    ['1', 'Yes']);
+            }
+            return rpnBooleanValues;
+        }
+        return null;
+    };
+
     this.getRpnValue = function(v) {
         if (angular.isUndefined(v))
             return v;
@@ -1022,6 +1107,16 @@ SIREPO.app.service('rpnService', function(appState, requestSender) {
         if (isNaN(value))
             return undefined;
         return value;
+    };
+
+    this.getRpnValueForField = function(model, field) {
+        if (appState.isLoaded() && model && field) {
+            var v = model[field];
+            if (SIREPO.NUMBER_REGEXP.test(v))
+                return '';
+            return this.getRpnValue(v);
+        }
+        return '';
     };
 
     this.recomputeCache = function(varName, value) {
@@ -1046,9 +1141,14 @@ SIREPO.app.service('rpnService', function(appState, requestSender) {
                     appState.models.rpnCache = data.cache;
             });
     };
+
+    $rootScope.$on('rpnVariables.changed', function() {
+        rpnBooleanValues = null;
+    });
 });
 
 SIREPO.app.directive('rpnValue', function(appState, rpnService) {
+    var requestIndex = 0;
     return {
         restrict: 'A',
         require: 'ngModel',
@@ -1064,7 +1164,12 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     return v;
                 }
+                requestIndex++;
+                var currentRequestIndex = requestIndex;
                 rpnService.computeRpnValue(value, function(v, err) {
+                    // check for a stale request
+                    if (requestIndex != currentRequestIndex)
+                        return;
                     ngModel.$setValidity('', err ? false : true);
                     if (rpnVariableName && ! err)
                         rpnService.recomputeCache(rpnVariableName, v);
