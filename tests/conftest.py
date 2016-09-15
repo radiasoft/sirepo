@@ -10,8 +10,8 @@ import json
 import pytest
 
 
-@pytest.yield_fixture(scope='module')
-def flask_client():
+@pytest.yield_fixture(scope='function')
+def sr_client():
     """Return Flask test_client fixture -6D2A(scope=module).
 
     Creates a new run directory every test file so can assume
@@ -19,7 +19,7 @@ def flask_client():
     """
     from pykern import pkunit, pkio
     from sirepo import server
-    with pkunit.save_chdir_work():
+    with pkio.save_chdir(pkunit.work_dir()):
         db = pkio.mkdir_parent('db')
         server.app.config['TESTING'] = True
         server.app.test_client_class = _TestClient

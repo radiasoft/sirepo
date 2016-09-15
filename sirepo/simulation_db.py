@@ -424,6 +424,7 @@ def read_simulation_json(*args, **kwargs):
         data (dict): simulation data
     """
     data = open_json_file(*args, **kwargs)
+    pkdp(data)
     new = fixup_old_data(data['simulationType'], copy.deepcopy(data))
     if new != data:
         return save_simulation_json(data['simulationType'], new)

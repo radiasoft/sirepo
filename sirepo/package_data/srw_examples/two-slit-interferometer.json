@@ -331,5 +331,6 @@
             "verticalRange": "1"
         }
     },
-    "report": "intensityReport"
+    "report": "intensityReport",
+    "simulationType": "srw"
 }
