@@ -227,7 +227,12 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         linspace: function(start, stop, nsteps) {
             var delta = (stop - start) / (nsteps - 1);
-            return d3.range(start, stop, delta).slice(0, nsteps);
+            var res = d3.range(nsteps).map(function(d) { return start + d * delta; });
+
+            if (res.length != nsteps) {
+                throw "invalid linspace steps: " + nsteps + " != " + res.length;
+            }
+            return res;
         },
 
         recalculateDomainFromPoints: function(yScale, points, xDomain, invertAxis) {
@@ -650,13 +655,10 @@ SIREPO.app.directive('plot3d', function(plotting) {
             function drawImage() {
                 var fullWidth = fullDomain[0][1] - fullDomain[0][0];
                 var fullHeight = fullDomain[1][1] - fullDomain[1][0];
-                // align on half pixels
-                var pixelXSize = fullWidth / imageObj.width;
-                var pixelYSize = fullHeight / imageObj.height;
                 var sx = fullWidth / (xAxisScale.domain()[1] - xAxisScale.domain()[0]);
                 var sy = fullHeight / (yAxisScale.domain()[1] - yAxisScale.domain()[0]);
-                var tx = -(pixelXSize / 2 + xAxisScale.domain()[0] - fullDomain[0][0]) / fullWidth;
-                var ty = -(- pixelYSize / 2 + fullDomain[1][1] - yAxisScale.domain()[1]) / fullHeight;
+                var tx = -(xAxisScale.domain()[0] - fullDomain[0][0]) / fullWidth;
+                var ty = -(fullDomain[1][1] - yAxisScale.domain()[1]) / fullHeight;
                 ctx.drawImage(
                     imageObj,
                     tx * sx * imageObj.width,

@@ -213,7 +213,11 @@ SIREPO.app.directive('buttons', function(appState) {
                 appState.cancelChanges(modelNames);
             };
             $scope.$on(modelKey + '.changed', changeDone);
-            $scope.$on('cancelChanges', changeDone);
+            $scope.$on('cancelChanges', function(e, name) {
+                if (name == modelKey) {
+                    changeDone();
+                }
+            });
         }
     };
 });
