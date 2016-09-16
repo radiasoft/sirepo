@@ -19,6 +19,7 @@ import errno
 import flask
 import flask.sessions
 import glob
+import json
 import os
 import py
 import re
@@ -601,7 +602,18 @@ def _job_id(data):
 
 
 def _json_input():
-    return flask.request.get_json(cache=False)
+    req = flask.request
+    if req.mimetype != 'application/json':
+        pkdp('{}: req.mimetype is not application/json', req.mimetype)
+        raise werkzeug.Eexceptions.BadRequest('expecting application/json')
+    # Adapted from flask.wrappers.Request.get_json
+    # We accept a request charset against the specification as
+    # certain clients have been using this in the past.  This
+    # fits our general approach of being nice in what we accept
+    # and strict in what we send out.
+    charset = req.mimetype_params.get('charset')
+    data = req.get_data(cache=False)
+    return pkcollections.json_load_any(data, encoding=charset)
 
 
 def _json_response(value, pretty=False):

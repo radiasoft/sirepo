@@ -86,9 +86,6 @@ _serial_prev = 0
 #: Locking of _serial_prev test/update
 _serial_lock = threading.RLock()
 
-with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
-    SCHEMA_COMMON = json.load(f)
-
 
 def app_version():
     """Force the version to be dynamic if running in dev channel
@@ -230,6 +227,10 @@ def json_filename(filename, run_dir=None):
     return py.path.local(filename)
 
 
+def json_load(*args, **kwargs):
+    return pkcollections.json_load_any(*args, **kwargs)
+
+
 #TODO(robnagler) should just be "data"
 def open_json_file(simulation_type, path=None, sid=None):
     if not path:
@@ -255,7 +256,7 @@ def open_json_file(simulation_type, path=None, sid=None):
     data = None
     try:
         with open(str(path)) as f:
-            data = json.load(f)
+            data = json_load(f)
             # ensure the simulationId matches the path
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
@@ -376,7 +377,7 @@ def read_json(filename):
         object: json converted to python
     """
     with open(str(json_filename(filename))) as f:
-        return json.load(f)
+        return json_load(f)
 
 
 def read_result(run_dir):
@@ -424,7 +425,6 @@ def read_simulation_json(*args, **kwargs):
         data (dict): simulation data
     """
     data = open_json_file(*args, **kwargs)
-    pkdp(data)
     new = fixup_old_data(data['simulationType'], copy.deepcopy(data))
     if new != data:
         return save_simulation_json(data['simulationType'], new)
@@ -633,6 +633,12 @@ def _find_user_simulation_copy(simulation_type, sid):
     return None
 
 
+def _init():
+    global SCHEMA_COMMON
+    with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
+        SCHEMA_COMMON = json_load(f)
+
+
 def _random_id(parent_dir, simulation_type=None):
     """Create a random id in parent_dir
 
@@ -764,3 +770,5 @@ def _user_dir_name(uid=None):
     if not uid:
         return d
     return d.join(uid)
+
+_init()
