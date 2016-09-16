@@ -8,10 +8,6 @@ from __future__ import absolute_import, division, print_function
 import pytest
 pytest.importorskip('srwl_bl')
 
-from pykern import pkio
-from pykern import pkunit
-import json
-
 #: Used for a sanity check on serial numbers
 _MIN_SERIAL = 10000000
 
