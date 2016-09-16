@@ -304,6 +304,11 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         return formatter(v);
     }
 
+    function hideFocusPoint() {
+        select(circleClass).style('display', 'none');
+        select('.focus-text').text('');
+    }
+
     function init() {
         focusIndex = -1;
         formatter = d3.format('.3f');
@@ -341,8 +346,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             load: function(axisPoints) {
                 points = axisPoints;
                 focusIndex = -1;
-                select(circleClass).style('display', 'none');
-                select('.focus-text').text('');
+                hideFocusPoint();
             },
             refresh: function() {
                 if (focusIndex >= 0)
@@ -399,6 +403,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         if (! points || focusIndex < 0)
             return;
         var keyCode = d3.event.keyCode;
+        if (keyCode == 27) { // escape
+            hideFocusPoint();
+        }
         if (keyCode == 37 || keyCode == 40) { // left & down
             moveFocus(-1);
             d3.event.preventDefault();
@@ -420,8 +427,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         $(overlay.node()).parent().find('[class=focus]').hide();
 
         if (p[0] < domain[0] || p[0] > domain[1]) {
-            select(circleClass).style('display', 'none');
-            select('.focus-text').text('');
+            hideFocusPoint();
             return;
         }
         var focus = select(circleClass);
@@ -604,6 +610,25 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 '20': 'mouse-move-n',
                 '02': 'mouse-move-s',
             };
+
+            function adjustZoomToCenter(scale) {
+                // if the domain is almost centered on 0.0 (within 10%) adjust zoom and offset to center
+                var domain = scale.domain();
+                if (domain[0] < 0 && domain[1] > 0) {
+                    var width = domain[1] - domain[0];
+                    var diff = (domain[0] + domain[1]) / width;
+                    if (diff > 0 && diff < 0.1) {
+                        domain[1] = -domain[0];
+                    }
+                    else if (diff > -0.1 && diff < 0) {
+                        domain[0] = -domain[1];
+                    }
+                    else {
+                        return;
+                    }
+                    scale.domain(domain);
+                }
+            }
 
             function clipDomain(scale, axisName) {
                 var domain = fullDomain[axisName == 'x' ? 0 : 1];
@@ -818,6 +843,8 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 xIndexScale.domain(fullDomain[0]);
                 yAxisScale.domain(fullDomain[1]);
                 yIndexScale.domain(fullDomain[1]);
+                adjustZoomToCenter(xAxisScale);
+                adjustZoomToCenter(yAxisScale);
                 var zmin = json.z_matrix[0][0];
                 var zmax = json.z_matrix[0][0];
 
