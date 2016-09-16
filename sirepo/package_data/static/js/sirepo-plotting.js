@@ -653,18 +653,23 @@ SIREPO.app.directive('plot3d', function(plotting) {
             }
 
             function drawImage() {
-                var fullWidth = fullDomain[0][1] - fullDomain[0][0];
-                var fullHeight = fullDomain[1][1] - fullDomain[1][0];
-                var sx = fullWidth / (xAxisScale.domain()[1] - xAxisScale.domain()[0]);
-                var sy = fullHeight / (yAxisScale.domain()[1] - yAxisScale.domain()[0]);
-                var tx = -(xAxisScale.domain()[0] - fullDomain[0][0]) / fullWidth;
-                var ty = -(fullDomain[1][1] - yAxisScale.domain()[1]) / fullHeight;
+                var xZoomDomain = xAxisScale.domain();
+                var xDomain = fullDomain[0];
+                var yZoomDomain = yAxisScale.domain();
+                var yDomain = fullDomain[1];
+                var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
+                var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
+                canvas.attr('width', $scope.canvasSize)
+                    .attr('height', $scope.canvasSize);
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
                 ctx.drawImage(
                     imageObj,
-                    tx * sx * imageObj.width,
-                    ty * sy * imageObj.height,
-                    sx * imageObj.width,
-                    sy * imageObj.height);
+                    -(xZoomDomain[0] - xDomain[0]) / zoomWidth * $scope.canvasSize,
+                    -(yDomain[1] - yZoomDomain[1]) / zoomHeight * $scope.canvasSize,
+                    (xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize,
+                    (yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize);
             }
 
             function drawRightPanelCut() {
@@ -703,13 +708,6 @@ SIREPO.app.directive('plot3d', function(plotting) {
 	                img.data[++p] = 255;
 	            }
                 }
-                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
-                // without doing more programming) allows us to see how the marginals
-                // line up when zooming in a lot.
-                ctx.mozImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
-                ctx.msImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
                 ctx.putImageData(img, 0, 0);
                 imageObj.src = canvas.node().toDataURL();
             }
@@ -785,10 +783,8 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 canvas = select('canvas');
                 ctx = canvas.node().getContext('2d');
                 imageObj = new Image();
-                imageObj.onload = function() {
-                    // important - the image may not be ready initially
-                    refresh();
-                };
+                // important - the image may not be ready initially
+                imageObj.onload = refresh;
                 bottomPanelCutLine = d3.svg.line()
                     .x(function(d) {return xAxisScale(d[0]);})
                     .y(function(d) {return bottomPanelYScale(d[1]);});
@@ -954,13 +950,6 @@ SIREPO.app.directive('heatmap', function(plotting) {
 	                img.data[++p] = 255;
 	            }
                 }
-                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
-                // without doing more programming) allows us to see how the marginals
-                // line up when zooming in a lot.
-                ctx.mozImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
-                ctx.msImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
                 ctx.putImageData(img, 0, 0);
                 $scope.imageObj.src = canvas.node().toDataURL();
 
@@ -1042,18 +1031,23 @@ SIREPO.app.directive('heatmap', function(plotting) {
                     }
                 }
 
+                canvas.attr('width', $scope.canvasSize)
+                    .attr('height', $scope.canvasSize);
                 ctx.clearRect(0, 0, $scope.canvasSize, $scope.canvasSize);
                 if (s == 1) {
                     tx = 0;
                     ty = 0;
                     $scope.zoom.translate([tx, ty]);
                 }
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
                 ctx.drawImage(
                     $scope.imageObj,
-                    tx*$scope.imageObj.width/$scope.canvasSize,
-                    ty*$scope.imageObj.height/$scope.canvasSize,
-                    $scope.imageObj.width*s,
-                    $scope.imageObj.height*s
+                    tx,
+                    ty,
+                    $scope.canvasSize * s,
+                    $scope.canvasSize * s
                 );
                 select('.x.axis').call(xAxis);
                 select('.y.axis').call(yAxis);
@@ -1103,10 +1097,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 mouseRect.on('mousemove', mouseMove);
                 ctx = canvas.node().getContext('2d');
                 $scope.imageObj = new Image();
-                $scope.imageObj.onload = function() {
-                    // important - the image may not be ready initially
-                    refresh();
-                };
+                $scope.imageObj.onload = refresh;
             };
 
             $scope.load = function(json) {
