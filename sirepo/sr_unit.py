@@ -5,6 +5,7 @@ u"""Support for unit tests
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkunit, pkio
 from sirepo import server
 from sirepo import simulation_db
@@ -76,7 +77,7 @@ def _req(route_name, params, op):
         object: parsed JSON result
     """
     resp = op(_route(route_name, params))
-    return json.loads(resp.data)
+    return pkcollections.json_load_any(resp.data)
 
 
 def _route(route_name, params):
