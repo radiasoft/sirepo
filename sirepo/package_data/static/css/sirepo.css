@@ -361,6 +361,10 @@ circle.srw-pupil {
   stroke: #000;
   fill: #000;
 }
+circle.srw-mask {
+  stroke: #fff;
+  fill: #fff;
+}
 svg.srw-beamline-item-icon {
   width: 50px;
   height: 60px;

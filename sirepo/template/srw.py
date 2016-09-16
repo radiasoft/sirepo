@@ -518,6 +518,8 @@ def get_application_data(data):
             prefix='core',
         )
         return model
+    elif data['method'] == 'compute_mask_characteristics':
+        return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -1131,6 +1133,22 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.SRWLOptL({}, {}, {}, {})',
                 item,
                 ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+            res_el += el
+            res_pp += pp
+        elif item['type'] == 'mask':
+            el, pp = _beamline_element(
+                '''srwlib.srwl_opt_setup_mask(_delta={}, _atten_len={}, _thick={}, _grid_sh={},
+                                         _grid_dx={}, _grid_dy={}, _pitch_x={}, _pitch_y={},
+                                         _grid_nx={}, _grid_ny={}, _mask_Nx={}, _mask_Ny={},
+                                         _grid_angle={}, _hx={}, _hy={},
+                                         _mask_x0={}, _mask_y0={})''',
+                item,
+                ['refractiveIndex', 'attenuationLength', 'maskThickness', 'gridShape',
+                 'horizontalGridDimension', 'verticalGridDimension', 'horizontalGridPitch', 'verticalGridPitch',
+                 'horizontalGridsNumber', 'verticalGridsNumber', 'horizontalPixelsNumber', 'verticalPixelsNumber',
+                 'gridTiltAngle', 'horizontalSamplingInterval', 'verticalSamplingInterval',
+                 'horizontalMaskCoordinate', 'verticalMaskCoordinate'],
                 propagation)
             res_el += el
             res_pp += pp

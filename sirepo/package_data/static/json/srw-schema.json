@@ -97,6 +97,11 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
+        "GridShape" : [
+            ["0", "Circular Grids"],
+            ["1", "Rectangular Grids"],
+            ["2", "2D Phase Grating"]
+        ],
         "IntensityMethod": [
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
@@ -402,6 +407,29 @@
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
             "verticalOffset": ["Vertical Offset [mm]", "Float"]
+        },
+        "mask": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "material": ["Material of the mask", "CRLMaterial"],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
+            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", "", "Tooltip"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"],
+            "maskThickness": ["Thickness of Mask [m]", "Float"],
+            "gridShape": ["Grid Shape", "GridShape"],
+            "gridTiltAngle": ["Tilt Angle of Grid [rad]", "Float"],
+            "horizontalSamplingInterval": ["Horizontal Sampling Interval [µm]", "Float"],
+            "verticalSamplingInterval": ["Vertical Sampling Interval [µm]", "Float"],
+            "horizontalGridPitch": ["Horizontal Grid Pitch [µm]", "Float"],
+            "verticalGridPitch": ["Vertical Grid Pitch [µm]", "Float"],
+            "horizontalPixelsNumber": ["Horizontal Number of Pixels", "Integer"],
+            "verticalPixelsNumber": ["Vertical Number of Pixels", "Integer"],
+            "horizontalGridsNumber": ["Horizontal Number of Grids", "Integer"],
+            "verticalGridsNumber": ["Vertical Number of Grids", "Integer"],
+            "horizontalGridDimension": ["Horizontal Grid Dimension [µm]", "Float", "", "Width and height for rectangular or elliptical grids"],
+            "verticalGridDimension": ["Vertical Grid Dimension [µm]", "Float"],
+            "horizontalMaskCoordinate": ["Horizontal Coordinate of the Mask", "Float"],
+            "verticalMaskCoordinate": ["Vertical Coordinate of the Mask", "Float"]
         },
         "mirror": {
             "title": ["Element Name", "String"],
@@ -907,6 +935,39 @@
                     ["Vertical", [
                         "verticalFocalLength",
                         "verticalOffset"
+                    ]]
+                ]
+            ]
+        },
+        "mask": {
+            "title": "Mask",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "material",
+                "method",
+                "refractiveIndex",
+                "attenuationLength",
+                "maskThickness",
+                "gridShape",
+                "gridTiltAngle",
+                [
+                    ["Horizontal", [
+                        "horizontalSamplingInterval",
+                        "horizontalGridPitch",
+                        "horizontalPixelsNumber",
+                        "horizontalGridsNumber",
+                        "horizontalGridDimension",
+                        "horizontalMaskCoordinate"
+                    ]],
+                    ["Vertical", [
+                        "verticalSamplingInterval",
+                        "verticalGridPitch",
+                        "verticalPixelsNumber",
+                        "verticalGridsNumber",
+                        "verticalGridDimension",
+                        "verticalMaskCoordinate"
                     ]]
                 ]
             ]

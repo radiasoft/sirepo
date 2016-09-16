@@ -169,6 +169,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         crystalDefaults,
+        {type:'mask', title:'Mask', material:'User-defined', method:'server', refractiveIndex:1.0, attenuationLength:1.0,
+         maskThickness:1.0, gridShape:0, gridTiltAngle:0.4363323129985824, horizontalSamplingInterval:7.32e-01, verticalSamplingInterval:7.32e-01,
+         horizontalGridPitch:20, verticalGridPitch:20, horizontalPixelsNumber:1024, verticalPixelsNumber:1024,
+         horizontalGridsNumber:21, verticalGridsNumber:21, horizontalGridDimension:5, verticalGridDimension:5,
+         horizontalMaskCoordinate:0.0, verticalMaskCoordinate:0.0},
         {type:'watch', title:'Watchpoint'},
     ];
     self.panelState = panelState;
@@ -292,6 +297,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
                 SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
+                SIREPO.APP_SCHEMA.model.mask.refractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.mask.attenuationLength[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.externalRefractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.externalAttenuationLength[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.coreRefractiveIndex[3] = msg;
@@ -606,6 +613,50 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         }
         if (checkDefined(newValues)) {
             computeFiberCharacteristics();
+        }
+    });
+
+    var maskFields = [
+        'method',
+        'material',
+    ];
+    function computeMaskCharacteristics() {
+        var item = self.activeItem;
+        if (item.type === 'mask') {
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_mask_characteristics',
+                    optical_element: item,
+                    photon_energy: appState.models.simulation.photonEnergy,
+                },
+                function(data) {
+                    var fields = [
+                        'refractiveIndex', 'attenuationLength',
+                    ];
+                    for (var i = 0; i < fields.length; i++) {
+                        item[fields[i]] = parseFloat(data[fields[i]]);
+                        if (item[fields[i]] < 1e-3) {
+                            item[fields[i]] = item[fields[i]].toExponential(6);
+                        }
+                        else if (item[fields[i]] === 1) {
+                            // pass
+                        } else {
+                            item[fields[i]] = item[fields[i]].toFixed(6);
+                        }
+                    }
+                }
+            );
+        }
+    }
+    $scope.$watchCollection(wrapActiveItem(maskFields), function (newValues, oldValues) {
+        var maskMethodFormGroup = $('div.model-mask-method').closest('.form-group');
+        if (newValues[1] === 'User-defined') {
+            maskMethodFormGroup.hide(0);
+        } else {
+            maskMethodFormGroup.show(0);
+        }
+        if (checkDefined(newValues)) {
+            computeMaskCharacteristics();
         }
     });
 
@@ -1395,6 +1446,25 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M10,30 L40,29 40,41 L10,40" class="srw-fiber"/>',
                 '<ellipse cx="40" cy="35" rx="3"  ry="6" class="srw-fiber-right" />',
                 '<path d="M40,35 L60,35" class="srw-fiber"/>',
+              '</g>',
+              '<g data-ng-switch-when="mask">',
+                '<rect x="2" y="10" width="60", height="60" />',
+                '<circle cx="11" cy="20" r="2" class="srw-mask" />',
+                '<circle cx="21" cy="20" r="2" class="srw-mask" />',
+                '<circle cx="31" cy="20" r="2" class="srw-mask" />',
+                '<circle cx="41" cy="20" r="2" class="srw-mask" />',
+                '<circle cx="11" cy="30" r="2" class="srw-mask" />',
+                '<circle cx="21" cy="30" r="2" class="srw-mask" />',
+                '<circle cx="31" cy="30" r="2" class="srw-mask" />',
+                '<circle cx="41" cy="30" r="2" class="srw-mask" />',
+                '<circle cx="11" cy="40" r="2" class="srw-mask" />',
+                '<circle cx="21" cy="40" r="2" class="srw-mask" />',
+                '<circle cx="31" cy="40" r="2" class="srw-mask" />',
+                '<circle cx="41" cy="40" r="2" class="srw-mask" />',
+                '<circle cx="11" cy="50" r="2" class="srw-mask" />',
+                '<circle cx="21" cy="50" r="2" class="srw-mask" />',
+                '<circle cx="31" cy="50" r="2" class="srw-mask" />',
+                '<circle cx="41" cy="50" r="2" class="srw-mask" />',
               '</g>',
               '<g data-ng-switch-when="watch">',
                 '<path d="M5 30 C 15 45 35 45 45 30" class="srw-watch" />',
