@@ -950,13 +950,6 @@ SIREPO.app.directive('heatmap', function(plotting) {
 	                img.data[++p] = 255;
 	            }
                 }
-                // Keeping pixels as nearest neighbor (as anti-aliased as we can get
-                // without doing more programming) allows us to see how the marginals
-                // line up when zooming in a lot.
-                ctx.mozImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
-                ctx.msImageSmoothingEnabled = false;
-                ctx.imageSmoothingEnabled = false;
                 ctx.putImageData(img, 0, 0);
                 $scope.imageObj.src = canvas.node().toDataURL();
 
@@ -1038,18 +1031,23 @@ SIREPO.app.directive('heatmap', function(plotting) {
                     }
                 }
 
+                canvas.attr('width', $scope.canvasSize)
+                    .attr('height', $scope.canvasSize);
                 ctx.clearRect(0, 0, $scope.canvasSize, $scope.canvasSize);
                 if (s == 1) {
                     tx = 0;
                     ty = 0;
                     $scope.zoom.translate([tx, ty]);
                 }
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
                 ctx.drawImage(
                     $scope.imageObj,
-                    tx*$scope.imageObj.width/$scope.canvasSize,
-                    ty*$scope.imageObj.height/$scope.canvasSize,
-                    $scope.imageObj.width*s,
-                    $scope.imageObj.height*s
+                    tx,
+                    ty,
+                    $scope.canvasSize * s,
+                    $scope.canvasSize * s
                 );
                 select('.x.axis').call(xAxis);
                 select('.y.axis').call(yAxis);
@@ -1099,10 +1097,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 mouseRect.on('mousemove', mouseMove);
                 ctx = canvas.node().getContext('2d');
                 $scope.imageObj = new Image();
-                $scope.imageObj.onload = function() {
-                    // important - the image may not be ready initially
-                    refresh();
-                };
+                $scope.imageObj.onload = refresh;
             };
 
             $scope.load = function(json) {
