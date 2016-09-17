@@ -458,9 +458,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.showFileReport = function(type, model) {
         self.mirrorReportShown = true;
         appState.models.mirrorReport = model;
+        appState.saveQuietly('mirrorReport');
         var el = $('#srw-mirror-plot');
         el.modal('show');
         el.on('shown.bs.modal', function() {
+            // this forces the plot to reload
             appState.saveChanges('mirrorReport');
         });
         el.on('hidden.bs.modal', function() {
