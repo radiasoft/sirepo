@@ -811,10 +811,10 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
     function msgTypeDispatch(msg) {
         var f = msgTypes[msg.msgType];
         if (! f) {
-            srlog(msg.msgType, ': unknown msgType; msg=', msg)
+            srlog(msg.msgType, ': unknown msgType; msg=', msg);
         }
         return f(msg);
-    };
+    }
 
     self.registerMsgType = function(msgType, callback) {
         if (msgTypes[msgType]) {
