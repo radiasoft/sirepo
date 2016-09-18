@@ -34,7 +34,7 @@ def test_1_serial_stomp():
             'simulation_id': youngs['simulationId'],
         },
     )
-    prev_serial = data['models']['simulation']['simulationSerial']
+    prev_serial = data.models.simulation.simulationSerial
     prev_data = copy.deepcopy(data)
     pkok(
         prev_serial > _MIN_SERIAL,
@@ -54,7 +54,7 @@ def test_1_serial_stomp():
     prev_data.models.beamline[4].position = '60.5'
     failure = fc.sr_post('saveSimulationData', prev_data)
     pkok(
-        failure['msgType'] == 'invalidSerial',
+        failure.msgType == 'invalidSerial',
         '{}: unexpected status, expected serial failure',
         failure,
     )
