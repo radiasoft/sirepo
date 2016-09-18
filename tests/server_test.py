@@ -8,36 +8,21 @@ from __future__ import absolute_import, division, print_function
 import pytest
 pytest.importorskip('srwl_bl')
 
-from pykern import pkio
-from pykern import pkunit
-import json
-
-@pytest.yield_fixture(scope='module')
-def client():
-    from sirepo import server
-    with pkunit.save_chdir_work():
-        db = pkio.mkdir_parent('db')
-        server.app.config['TESTING'] = True
-        server.init(db)
-        yield server.app.test_client()
-
-
-def test_basic(client):
-    resp = client.get('/')
+def test_basic(flask_client):
+    resp = flask_client.get('/')
     assert resp.status_code == 404, \
         'There should not be a / route'
 
 
-def test_srw(client):
-    resp = client.get('/srw')
+def test_srw(flask_client):
+    from pykern import pkio
+    from pykern.pkdebug import pkdpretty
+    import json
+    resp = flask_client.get('/srw')
     assert '<!DOCTYPE html' in resp.data, \
         'Top level document is html'
-    resp = client.post(
-        '/simulation-list',
-        data=json.dumps({
-            'simulationType': 'srw',
-            'search': '',
-        }),
-        content_type='application/json',
+    data = flask_client.sr_post(
+        'listSimulations',
+        {'simulationType': 'srw', 'search': ''},
     )
-    pkio.write_text('list.json', pkunit.json_reformat(resp.data))
+    pkio.write_text('list.json', pkdpretty(data))
