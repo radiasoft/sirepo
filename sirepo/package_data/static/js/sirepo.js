@@ -143,32 +143,33 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.autoSave = function(callback) {
-        if (! self.isLoaded())
+        //TODO(robnagler) Need collision on multiple autosave calls
+        if (! self.isLoaded() || ! lastAutoSaveData)
             return;
         self.resetAutoSaveTimer();
-        if (lastAutoSaveData && self.deepEquals(lastAutoSaveData, savedModelValues)) {
+        if (self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
             if (callback)
                 callback();
             return;
         }
-        lastAutoSaveData = self.clone(savedModelValues);
+        lastAutoSaveData.models = self.clone(savedModelValues);
+        srdbg('calling ', savedModelValues);
         requestSender.sendRequest(
             'saveSimulationData',
             function (resp) {
-                var s = self.models.simulationStatus;
-                self.models = resp.models;
-                self.models.simulationStatus = s || {};
-                savedModelValues = self.cloneModel();
-                lastAutoSaveData = self.clone(savedModelValues);
+                srdbg('response ', resp);
+                lastAutoSaveData = self.clone(resp);
+                savedModelValues.simulation.simulationSerial
+                    = lastAutoSaveData.models.simulation.simulationSerial;
+                self.models.simulation.simulationSerial
+                    = lastAutoSaveData.models.simulation.simulationSerial;
                 if (callback) {
                     callback(resp);
                 }
             },
-            {
-                models: savedModelValues,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+            lastAutoSaveData
+        );
     };
 
     self.cancelChanges = function(name) {
@@ -356,24 +357,24 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
             name = [name];
-        self.autoSave(function() {
-            var updatedModels = [];
-            var requireReportUpdate = false;
+        var updatedModels = [];
+        var requireReportUpdate = false;
 
-            for (var i = 0; i < name.length; i++) {
-                if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
-                    // let the UI know the primary model has changed, even if it hasn't
-                    if (i === 0)
-                        updatedModels.push(name[i]);
-                }
-                else {
-                    self.saveQuietly(name[i]);
+        for (var i = 0; i < name.length; i++) {
+            if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
+                // let the UI know the primary model has changed, even if it hasn't
+                if (i === 0)
                     updatedModels.push(name[i]);
-                    if (! self.isReportModelName(name[i]))
-                        requireReportUpdate = true;
-                }
             }
+            else {
+                self.saveQuietly(name[i]);
+                updatedModels.push(name[i]);
+                if (! self.isReportModelName(name[i]))
+                    requireReportUpdate = true;
+            }
+        }
 
+        self.autoSave(function() {
             for (i = 0; i < updatedModels.length; i++) {
                 if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
                     continue;
@@ -389,7 +390,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         self.models = data.models;
         self.models.simulationStatus = {};
         savedModelValues = self.cloneModel();
-        lastAutoSaveData = self.clone(savedModelValues);
+        lastAutoSaveData = self.clone(data);
         updateReports();
         broadcastLoaded();
         self.resetAutoSaveTimer();
@@ -416,6 +417,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         'invalidSerial',
         function(msg) {
             //TODO(robnagler) need to indicate error
+            srlog('update collision: ', msg);
             self.saveSimulationData(msg.simulationData);
             self.alertText('Another browser updated this simulation; refreshing local state');
         }

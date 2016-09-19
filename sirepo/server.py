@@ -613,7 +613,7 @@ def _json_input():
     # and strict in what we send out.
     charset = req.mimetype_params.get('charset')
     data = req.get_data(cache=False)
-    return pkcollections.json_load_any(data, encoding=charset)
+    return simulation_db.json_load(data, encoding=charset)
 
 
 def _json_response(value, pretty=False):

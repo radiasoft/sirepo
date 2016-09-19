@@ -10,6 +10,7 @@ from pykern import pkunit, pkio
 from sirepo import server
 from sirepo import simulation_db
 import flask
+import flask.testing
 import json
 
 
@@ -77,7 +78,7 @@ def _req(route_name, params, op):
         object: parsed JSON result
     """
     resp = op(_route(route_name, params))
-    return pkcollections.json_load_any(resp.data)
+    return simulation_db.json_load(resp.data)
 
 
 def _route(route_name, params):

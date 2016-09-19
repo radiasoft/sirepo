@@ -228,6 +228,8 @@ def json_filename(filename, run_dir=None):
 
 
 def json_load(*args, **kwargs):
+    #TODO(robnagler) see https://github.com/radiasoft/sirepo/issues/379
+    kwargs['object_pairs_hook'] = dict
     return pkcollections.json_load_any(*args, **kwargs)
 
 

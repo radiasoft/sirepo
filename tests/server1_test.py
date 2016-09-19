@@ -34,7 +34,7 @@ def test_1_serial_stomp():
             'simulation_id': youngs['simulationId'],
         },
     )
-    prev_serial = data.models.simulation.simulationSerial
+    prev_serial = data['models']['simulation']['simulationSerial']
     prev_data = copy.deepcopy(data)
     pkok(
         prev_serial > _MIN_SERIAL,
@@ -42,26 +42,26 @@ def test_1_serial_stomp():
         prev_serial,
         _MIN_SERIAL,
     )
-    data.models.beamline[4].position = '61'
+    data['models']['beamline'][4]['position'] = '61'
     curr_data = fc.sr_post('saveSimulationData', data)
-    curr_serial = curr_data.models.simulation.simulationSerial
+    curr_serial = curr_data['models']['simulation']['simulationSerial']
     pkok(
         prev_serial < curr_serial,
         '{}: serial not incremented, still < {}',
         prev_serial,
         curr_serial,
     )
-    prev_data.models.beamline[4].position = '60.5'
+    prev_data['models']['beamline'][4]['position'] = '60.5'
     failure = fc.sr_post('saveSimulationData', prev_data)
     pkok(
-        failure.msgType == 'invalidSerial',
+        failure['msgType'] == 'invalidSerial',
         '{}: unexpected status, expected serial failure',
         failure,
     )
-    curr_data.models.beamline[4].position = '60.5'
-    curr_serial = curr_data.models.simulation.simulationSerial
+    curr_data['models']['beamline'][4]['position'] = '60.5'
+    curr_serial = curr_data['models']['simulation']['simulationSerial']
     new_data = fc.sr_post('saveSimulationData', curr_data)
-    new_serial = new_data.models.simulation.simulationSerial
+    new_serial = new_data['models']['simulation']['simulationSerial']
     pkok(
         curr_serial < new_serial,
         '{}: serial not incremented, still < {}',
