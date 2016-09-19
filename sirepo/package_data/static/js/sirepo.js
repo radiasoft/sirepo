@@ -47,12 +47,10 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
         var _broadcast = $delegate.$broadcast;
 
         $delegate.$emit = function () {
-            srdbg("[$emit] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
             return _emit.apply(this, arguments);
         };
 
         $delegate.$broadcast = function () {
-            srdbg("[$broadcast] " + arguments[0] + " (" + JSON.stringify(arguments) + ")");
             return _broadcast.apply(this, arguments);
         };
 
@@ -137,7 +135,6 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         if (angular.isDefined(value)) {
             alertText = value;
         }
-        srdbg('here', alertText);
         return alertText;
     };
 
@@ -1435,7 +1432,6 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                     self.openItem(showItem.parent);
                 else
                     self.openItem(rootFolder());
-                srdbg('here');
             });
     }
 
