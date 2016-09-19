@@ -725,13 +725,13 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 // Compute the pixel colors; scaled by CSS.
                 var img = ctx.createImageData(xValues.length, yValues.length);
                 for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-	            for (var xi = 0; xi <= xmax; ++xi) {
-	                var c = d3.rgb(color(heatmap[yi][xi]));
-	                img.data[++p] = c.r;
-	                img.data[++p] = c.g;
-	                img.data[++p] = c.b;
-	                img.data[++p] = 255;
-	            }
+                for (var xi = 0; xi <= xmax; ++xi) {
+                    var c = d3.rgb(color(heatmap[yi][xi]));
+                    img.data[++p] = c.r;
+                    img.data[++p] = c.g;
+                    img.data[++p] = c.b;
+                    img.data[++p] = 255;
+                }
                 }
                 ctx.putImageData(img, 0, 0);
                 imageObj.src = canvas.node().toDataURL();
@@ -921,8 +921,8 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 var alpha = 2.0 / (length + 1.0);
                 this.compute = function(value) {
                     return avg += avg !== null
-	                ? alpha * (value - avg)
-	                : value;
+                    ? alpha * (value - avg)
+                    : value;
                 };
             };
 
@@ -969,13 +969,13 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 var img = ctx.createImageData(xValueRange.length, yValueRange.length);
 
                 for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-	            for (var xi = 0; xi <= xmax; ++xi) {
-	                var c = d3.rgb(color(heatmap[yi][xi]));
-	                img.data[++p] = c.r;
-	                img.data[++p] = c.g;
-	                img.data[++p] = c.b;
-	                img.data[++p] = 255;
-	            }
+                for (var xi = 0; xi <= xmax; ++xi) {
+                    var c = d3.rgb(color(heatmap[yi][xi]));
+                    img.data[++p] = c.r;
+                    img.data[++p] = c.g;
+                    img.data[++p] = c.b;
+                    img.data[++p] = 255;
+                }
                 }
                 ctx.putImageData(img, 0, 0);
                 $scope.imageObj.src = canvas.node().toDataURL();
@@ -1022,39 +1022,39 @@ SIREPO.app.directive('heatmap', function(plotting) {
                     var ydom = yAxisScale.domain();
                     var resetS = 0;
                     if ((xdom[1] - xdom[0]) >= (xValueMax - xValueMin) * 0.9999) {
-	                $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]));
-	                xdom = xAxisScale.domain();
-	                resetS += 1;
+                        $scope.zoom.x(xAxisScale.domain([xValueMin, xValueMax]));
+                        xdom = xAxisScale.domain();
+                        resetS += 1;
                     }
                     if ((ydom[1] - ydom[0]) >= (yValueMax - yValueMin) * 0.9999) {
-	                $scope.zoom.y(yAxisScale.domain([yValueMin, yValueMax]));
-	                ydom = yAxisScale.domain();
-	                resetS += 1;
+                        $scope.zoom.y(yAxisScale.domain([yValueMin, yValueMax]));
+                        ydom = yAxisScale.domain();
+                        resetS += 1;
                     }
                     if (resetS == 2) {
-	                mouseRect.attr('class', 'mouse-zoom');
-	                // Both axes are full resolution. Reset.
-	                tx = 0;
-	                ty = 0;
+                        mouseRect.attr('class', 'mouse-zoom');
+                        // Both axes are full resolution. Reset.
+                        tx = 0;
+                        ty = 0;
                     }
-                   else {
-	                mouseRect.attr('class', 'mouse-move');
-	                if (xdom[0] < xValueMin) {
-	                    xAxisScale.domain([xValueMin, xdom[1] - xdom[0] + xValueMin]);
-	                    xdom = xAxisScale.domain();
-	                }
-	                if (xdom[1] > xValueMax) {
-	                    xdom[0] -= xdom[1] - xValueMax;
-	                    xAxisScale.domain([xdom[0], xValueMax]);
-	                }
-	                if (ydom[0] < yValueMin) {
-	                    yAxisScale.domain([yValueMin, ydom[1] - ydom[0] + yValueMin]);
-	                    ydom = yAxisScale.domain();
-	                }
-	                if (ydom[1] > yValueMax) {
-	                    ydom[0] -= ydom[1] - yValueMax;
-	                    yAxisScale.domain([ydom[0], yValueMax]);
-	                }
+                    else {
+                        mouseRect.attr('class', 'mouse-move');
+                        if (xdom[0] < xValueMin) {
+                            xAxisScale.domain([xValueMin, xdom[1] - xdom[0] + xValueMin]);
+                            xdom = xAxisScale.domain();
+                        }
+                        if (xdom[1] > xValueMax) {
+                            xdom[0] -= xdom[1] - xValueMax;
+                            xAxisScale.domain([xdom[0], xValueMax]);
+                        }
+                        if (ydom[0] < yValueMin) {
+                            yAxisScale.domain([yValueMin, ydom[1] - ydom[0] + yValueMin]);
+                            ydom = yAxisScale.domain();
+                        }
+                        if (ydom[1] > yValueMax) {
+                            ydom[0] -= ydom[1] - yValueMax;
+                            yAxisScale.domain([ydom[0], yValueMax]);
+                        }
                     }
                 }
 
