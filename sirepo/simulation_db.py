@@ -228,6 +228,8 @@ def json_filename(filename, run_dir=None):
 
 
 def json_load(*args, **kwargs):
+    #TODO(robnagler) see https://github.com/radiasoft/sirepo/issues/379
+    kwargs['object_pairs_hook'] = dict
     return pkcollections.json_load_any(*args, **kwargs)
 
 
@@ -418,16 +420,19 @@ def read_result(run_dir):
     return res, err
 
 
-def read_simulation_json(*args, **kwargs):
+def read_simulation_json(sim_type, *args, **kwargs):
     """Calls `open_json_file` and fixes up data, possibly saving
+
+    Args:
+        sim_type (str): simulation type
 
     Returns:
         data (dict): simulation data
     """
-    data = open_json_file(*args, **kwargs)
-    new = fixup_old_data(data['simulationType'], copy.deepcopy(data))
+    data = open_json_file(sim_type, *args, **kwargs)
+    new = fixup_old_data(sim_type, copy.deepcopy(data))
     if new != data:
-        return save_simulation_json(data['simulationType'], new)
+        return save_simulation_json(sim_type, new)
     return data
 
 

@@ -199,6 +199,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         if (newItem.type == 'watch')
             appState.models[watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
         appState.models.beamline.push(newItem);
+        srdbg('addITem ', appState.models.beamline);
         self.dismissPopup();
     }
 
