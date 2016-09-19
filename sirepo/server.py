@@ -19,6 +19,7 @@ import errno
 import flask
 import flask.sessions
 import glob
+import json
 import os
 import py
 import re
@@ -107,22 +108,14 @@ def init(db_dir):
     simulation_db.init(app)
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['clearFrames'], methods=('GET', 'POST'))
-def app_clear_frames():
-    """Clear animation frames for the simulation."""
-    data = _parse_data_input()
-    simulation_db.simulation_run_dir(data, remove_dir=True)
-    return '{}'
-
-
 @app.route(simulation_db.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
 def app_copy_nonsession_simulation():
     req = _json_input()
     sim_type = req['simulationType']
     global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
     if global_path:
-        data = simulation_db.open_json_file(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
-        data['models']['simulation']['isExample'] = ''
+        data = simulation_db.read_simulation_json(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
+        data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(sim_type, data)
         sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
@@ -136,7 +129,7 @@ def app_copy_simulation():
     req = _json_input()
     sim_type = req['simulationType']
     name = req['name'] if 'name' in req else None
-    data = simulation_db.open_json_file(sim_type, sid=req['simulationId'])
+    data = simulation_db.read_simulation_json(sim_type, sid=req['simulationId'])
     if not name:
         base_name = data['models']['simulation']['name']
         names = simulation_db.iterate_simulation_datafiles(sim_type, _simulation_name)
@@ -148,7 +141,7 @@ def app_copy_simulation():
                 continue
             break
     data['models']['simulation']['name'] = name
-    data['models']['simulation']['isExample'] = ''
+    data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(sim_type, data)
 
@@ -246,11 +239,14 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
                     'simulation.name': s['models']['simulation']['name'],
                 })
                 if len(rows):
-                    id = rows[0]['simulationId']
+                    sid = rows[0]['simulationId']
                 else:
-                    type, id = simulation_db.save_new_example(simulation_type, s)
+                    new_data = simulation_db.save_new_example(simulation_type, s)
+                    sid = new_data['models']['simulation']['simulationId']
                 if not show_item_id:
-                    show_item_id = id
+                    show_item_id = sid
+        #TODO(robnagler) need to format with URI escapes. In general, need to define
+        #  how parameters are passed back
         redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}&show_item_id={}'.format(
             simulation_type, flask.escape(simulation_name), application_mode, show_item_id)
     else:
@@ -315,7 +311,7 @@ def app_new_simulation():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
 def app_python_source(simulation_type, simulation_id):
-    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
+    data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
     # ensure the whole source gets generated, not up to the last watchpoint report
     last_watchpoint = None
@@ -397,15 +393,22 @@ def app_run_status():
 @app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
 def app_save_simulation_data():
     data = _parse_data_input(validate=True)
-    simulation_db.save_simulation_json(data['simulationType'], data)
-    return '{}'
+    res = _validate_serial(data)
+    if res:
+        return res
+    data = simulation_db.save_simulation_json(data['simulationType'], data)
+    return app_simulation_data(
+        data['simulationType'],
+        data['models']['simulation']['simulationId'],
+        pretty=False,
+    )
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
 def app_simulation_data(simulation_type, simulation_id, pretty):
-    #TODO(robnagler) need real type transform
+    #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
-    data = simulation_db.open_json_file(simulation_type, sid=simulation_id)
+    data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     response = _json_response(
         sirepo.template.import_module(simulation_type).prepare_for_client(data),
         pretty=pretty,
@@ -416,6 +419,7 @@ def app_simulation_data(simulation_type, simulation_id, pretty):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['simulationFrame'])
 def app_simulation_frame(frame_id):
+    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
@@ -457,6 +461,7 @@ def app_simulation_schema():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
 def app_update_folder():
+    #TODO(robnagler) Folder should have a serial, or should it be on data
     data = _parse_data_input()
     old_name = data['oldName']
     new_name = data['newName']
@@ -597,7 +602,18 @@ def _job_id(data):
 
 
 def _json_input():
-    return flask.request.get_json(cache=False)
+    req = flask.request
+    if req.mimetype != 'application/json':
+        pkdp('{}: req.mimetype is not application/json', req.mimetype)
+        raise werkzeug.Eexceptions.BadRequest('expecting application/json')
+    # Adapted from flask.wrappers.Request.get_json
+    # We accept a request charset against the specification as
+    # certain clients have been using this in the past.  This
+    # fits our general approach of being nice in what we accept
+    # and strict in what we send out.
+    charset = req.mimetype_params.get('charset')
+    data = req.get_data(cache=False)
+    return pkcollections.json_load_any(data, encoding=charset)
 
 
 def _json_response(value, pretty=False):
@@ -638,8 +654,12 @@ def _parse_data_input(validate=False):
 
 
 def _save_new_and_reply(*args):
-    sim_type, sid = simulation_db.save_new_simulation(*args)
-    return app_simulation_data(sim_type, sid, pretty=False)
+    data = simulation_db.save_new_simulation(*args)
+    return app_simulation_data(
+        data['simulationType'],
+        data['models']['simulation']['simulationId'],
+        pretty=False,
+    )
 
 
 def _simulation_error(err, *args, **kwargs):
@@ -734,6 +754,7 @@ def _simulation_run_status(data, quiet=False):
             new.setdefault('frameCount', 0)
             res.update(new)
         res['parametersChanged'] = bool(not cache_hit and cached_data)
+        #TODO(robnagler) verify serial number to see what's newer
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
@@ -765,13 +786,31 @@ def _start_simulation(data):
     cfg.job_queue(data)
 
 
+def _validate_serial(data):
+    """Verify serial in data validates
+
+    Args:
+        data (dict): request with serial and possibly models
+
+    Returns:
+        object: None if all ok, or json response if invalid
+    """
+    res = simulation_db.validate_serial(data)
+    if not res:
+        return None
+    return _json_response({
+        'msgType': 'invalidSerial',
+        'simulationData': res,
+    })
+
+
 class _Background(object):
 
     # Map of jid to instance
     _job = {}
 
     # mutex for _job
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self, data):
         with self._lock:
@@ -911,7 +950,7 @@ class _Celery(object):
     _job = {}
 
     # mutex for _job
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self, data):
         with self._lock:

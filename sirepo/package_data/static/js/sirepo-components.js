@@ -102,6 +102,31 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     };
 });
 
+SIREPO.app.directive('srAlert', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            alertText: '=',
+        },
+        template: [
+            '<div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">',
+              '<button type="button" class="close" data-dismiss="alert" aria-label="Close">',
+                '<span aria-hidden="true">&times;</span>',
+              '</button>',
+              '<strong>{{ alertText() }}</strong>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            //TODO(robnagler) timeout the alert
+            //TODO(robnagler) bind to value in appState or vice versa
+            $scope.alertText = function() {
+                return appState.alertText();
+            };
+            return;
+        },
+    };
+});
+
 SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     return {
         scope: {

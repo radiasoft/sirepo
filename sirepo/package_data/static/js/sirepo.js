@@ -110,6 +110,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     var autoSaveTimer = null;
     var savedModelValues = {};
     var activeFolderPath = null;
+    var alertText = null;
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -132,6 +133,14 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         }
     }
 
+    self.alertText = function(value) {
+        if (angular.isDefined(value)) {
+            alertText = value;
+        }
+        srdbg('here', alertText);
+        return alertText;
+    };
+
     self.applicationState = function() {
         return savedModelValues;
     };
@@ -149,7 +158,16 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         lastAutoSaveData = self.clone(savedModelValues);
         requestSender.sendRequest(
             'saveSimulationData',
-            callback,
+            function (resp) {
+                var s = self.models.simulationStatus;
+                self.models = resp.models;
+                self.models.simulationStatus = s || {};
+                savedModelValues = self.cloneModel();
+                lastAutoSaveData = self.clone(savedModelValues);
+                if (callback) {
+                    callback(resp);
+                }
+            },
             {
                 models: savedModelValues,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
@@ -278,12 +296,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     });
                     return;
                 }
-                self.models = data.models;
-                self.models.simulationStatus = {};
-                savedModelValues = self.cloneModel();
-                updateReports();
-                broadcastLoaded();
-                self.resetAutoSaveTimer();
+                self.saveSimulationData(data);
                 if (callback)
                     callback();
             }
@@ -346,33 +359,45 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
             name = [name];
-        var updatedModels = [];
-        var requireReportUpdate = false;
+        self.autoSave(function() {
+            var updatedModels = [];
+            var requireReportUpdate = false;
 
-        for (var i = 0; i < name.length; i++) {
-            if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
-                // let the UI know the primary model has changed, even if it hasn't
-                if (i === 0)
+            for (var i = 0; i < name.length; i++) {
+                if (self.deepEquals(savedModelValues[name[i]], self.models[name[i]])) {
+                    // let the UI know the primary model has changed, even if it hasn't
+                    if (i === 0)
+                        updatedModels.push(name[i]);
+                }
+                else {
+                    self.saveQuietly(name[i]);
                     updatedModels.push(name[i]);
+                    if (! self.isReportModelName(name[i]))
+                        requireReportUpdate = true;
+                }
             }
-            else {
-                self.saveQuietly(name[i]);
-                updatedModels.push(name[i]);
-                if (! self.isReportModelName(name[i]))
-                    requireReportUpdate = true;
+
+            for (i = 0; i < updatedModels.length; i++) {
+                if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
+                    continue;
+                broadcastChanged(updatedModels[i]);
             }
-        }
 
-        for (i = 0; i < updatedModels.length; i++) {
-            if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
-                continue;
-            broadcastChanged(updatedModels[i]);
-        }
+            if (requireReportUpdate)
+                updateReports();
+        });
+    };
 
-        if (requireReportUpdate)
-            updateReports();
-
-        self.autoSave();
+    self.saveSimulationData = function(data, callback) {
+        self.models = data.models;
+        self.models.simulationStatus = {};
+        savedModelValues = self.cloneModel();
+        lastAutoSaveData = self.clone(savedModelValues);
+        updateReports();
+        broadcastLoaded();
+        self.resetAutoSaveTimer();
+        if (callback)
+            callback();
     };
 
     self.setActiveFolderPath = function(path) {
@@ -389,6 +414,15 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         else
             $rootScope.$on('modelsLoaded', callback);
     };
+
+    requestSender.registerMsgType(
+        'invalidSerial',
+        function(msg) {
+            //TODO(robnagler) need to indicate error
+            self.saveSimulationData(msg.simulationData);
+            self.alertText('Another browser updated this simulation; refreshing local state');
+        }
+    );
 
     return self;
 });
@@ -438,6 +472,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             modelName,
             animationArgs(modelName),
             index,
+            //TODO(robnagler) startTime should be reportParametersHash
             appState.models.simulationStatus[self.animationModelName || modelName].startTime,
         ].join('*');
         var requestFunction = function() {
@@ -661,6 +696,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout;
+    var msgTypes = {};
 
     function logError(data, status) {
         srlog('request failed: ', data);
@@ -772,6 +808,22 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             $location.search(search);
     };
 
+    function msgTypeDispatch(msg) {
+        var f = msgTypes[msg.msgType];
+        if (! f) {
+            srlog(msg.msgType, ': unknown msgType; msg=', msg);
+        }
+        return f(msg);
+    }
+
+    self.registerMsgType = function(msgType, callback) {
+        if (msgTypes[msgType]) {
+            srlog(msgType, ': duplicate msgType, ignoring callback=', callback);
+            return;
+        }
+        msgTypes[msgType] = callback;
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback)
             errorCallback = logError;
@@ -800,6 +852,10 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         req.success(
             function(resp, status) {
                 $interval.cancel(interval);
+                if (resp.msgType) {
+                    msgTypeDispatch(resp);
+                    return;
+                }
                 successCallback(resp, status);
             }
         );
@@ -841,7 +897,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                 report: report,
                 models: models,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
-                simulationId: models.simulation.simulationId
+                simulationId: models.simulation.simulationId,
             },
             responseHandler: responseHandler,
         };
@@ -1032,8 +1088,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 appState.models.simulationStatus = {};
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
-            if (appState.isLoaded())
+            if (appState.isLoaded()) {
                 appState.saveChanges('simulationStatus');
+            }
         }
 
         scope.simulationState = function() {
@@ -1378,6 +1435,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                     self.openItem(showItem.parent);
                 else
                     self.openItem(rootFolder());
+                srdbg('here');
             });
     }
 
