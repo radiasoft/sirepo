@@ -298,6 +298,26 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
 
     var defaultCircleSize, focusIndex, formatter, keyListener, ordinateFormatter, points;
 
+    function calculateFWHM(xValues, yValues, yHalfMax) {
+        function isPositive(num) {
+            return true ? num > 0 : false;
+        }
+        var positive = isPositive(yValues[0] - yHalfMax);
+        var listOfRoots = [];
+        for (var i = 0; i < yValues.length; i++) {
+            var currentPositive = isPositive(yValues[i] - yHalfMax);
+            if (currentPositive !== positive) {
+                listOfRoots.push(xValues[i - 1] + (xValues[i] - xValues[i - 1]) / (Math.abs(yValues[i]) + Math.abs(yValues[i - 1])) * Math.abs(yValues[i - 1]));
+                positive = !positive;
+            }
+        }
+        var fwhm = null;
+        if (listOfRoots.length >= 2) {
+            fwhm = Math.abs(listOfRoots[listOfRoots.length - 1] - listOfRoots[0]);
+        }
+        return fwhm;
+    }
+
     function formatValue(v) {
         if (v < 1 || v > 1000000)
             return ordinateFormatter(v);
@@ -441,11 +461,41 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         else {
             circle.attr('r', defaultCircleSize - 2);
         }
+
+        var xValues = [];
+        var yValues = [];
+        for (var i = 0; i < points.length; i++) {
+            xValues.push(points[i][0]);
+            yValues.push(points[i][1]);
+        }
+        var yHalfMax = Math.max.apply(null, yValues) / 2.0;
+
+        var fwhm = calculateFWHM(xValues, yValues, yHalfMax);
+
+        var fwhmText = '';
+        if (fwhm !== null) {
+            var fwhmConverted = fwhm;
+            var units = 'm';
+            if (fwhm >= 1e-3 && fwhm < 1e0) {
+                fwhmConverted = fwhm * 1e3;
+                units = 'mm';
+            } else if (fwhm >= 1e-6 && fwhm < 1e-3) {
+                fwhmConverted = fwhm * 1e6;
+                units = 'µm';
+            } else if (fwhm >= 1e-9 && fwhm < 1e-6) {
+                fwhmConverted = fwhm * 1e9;
+                units = 'nm';
+            } else if (fwhm >= 1e-12 && fwhm < 1e-9) {
+                fwhmConverted = fwhm * 1e12;
+                units = 'pm';
+            }
+            fwhmText = ', FWHM = ' + fwhmConverted.toFixed(2) + ' ' + units;
+        }
         if (invertAxis)
             focus.attr('transform', 'translate(' + yAxisScale(p[1]) + ',' + xAxisScale(p[0]) + ')');
         else
             focus.attr('transform', 'translate(' + xAxisScale(p[0]) + ',' + yAxisScale(p[1]) + ')');
-        select('.focus-text').text('[' + formatValue(p[0]) + ', ' + formatValue(p[1]) + ']');
+        select('.focus-text').text('[' + formatValue(p[0]) + ', ' + formatValue(p[1]) + ']' + fwhmText);
     }
 
     return init();
