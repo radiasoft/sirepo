@@ -181,7 +181,7 @@ To run tests:
 
 ```bash
 cd ~/src/radiasoft/sirepo
-./node_modules/karma/bin/karma start
+./node_modules/karma/bin/karma start karma-conf.js
 ```
 
 
