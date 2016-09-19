@@ -408,11 +408,14 @@ def app_save_simulation_data():
 def app_simulation_data(simulation_type, simulation_id, pretty):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
-    data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
-    response = _json_response(
-        sirepo.template.import_module(simulation_type).prepare_for_client(data),
-        pretty=pretty,
-    )
+    try:
+        data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+        response = _json_response(
+            sirepo.template.import_module(simulation_type).prepare_for_client(data),
+            pretty=pretty,
+        )
+    except simulation_db.CopyRedirect as e:
+        response = _json_response(e.sr_response)
     _no_cache(response)
     return response
 

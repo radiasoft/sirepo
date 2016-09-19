@@ -87,6 +87,12 @@ _serial_prev = 0
 _serial_lock = threading.RLock()
 
 
+class CopyRedirect(Exception):
+    def __init__(self, response):
+        super(CopyRedirect, self).__init__()
+        self.sr_response = response
+
+
 def app_version():
     """Force the version to be dynamic if running in dev channel
 
@@ -247,12 +253,12 @@ def open_json_file(simulation_type, path=None, sid=None):
             if find_global_simulation(simulation_type, sid):
                 global_sid = sid
         if global_sid:
-            return {
+            raise CopyRedirect({
                 'redirect': {
                     'simulationId': global_sid,
                     'userCopySimulationId': user_copy_sid,
                 },
-            }
+            })
         #TODO(robnagler) should be a regular exception or abstraction, not bound to werkzeug
         raise werkzeug.exceptions.NotFound()
     data = None
