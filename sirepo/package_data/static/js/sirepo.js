@@ -100,10 +100,11 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
+SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope, $interval) {
     var self = {
         models: {},
     };
+    var QUEUE_NAME = 'saveSimulationData';
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
@@ -146,32 +147,34 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         //TODO(robnagler) Need collision on multiple autosave calls
         if (! self.isLoaded() || ! lastAutoSaveData)
             return;
-        self.resetAutoSaveTimer();
         if (self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
             if (callback)
                 callback();
             return;
         }
-        lastAutoSaveData.models = self.clone(savedModelValues);
-        //srdbg('calling ', savedModelValues);
-        requestSender.sendRequest(
-            'saveSimulationData',
-            function (resp) {
-                //srdbg('response ', resp);
-                lastAutoSaveData = self.clone(resp);
-                savedModelValues.simulation.simulationSerial
-                    = lastAutoSaveData.models.simulation.simulationSerial;
-                self.models.simulation.simulationSerial
-                    = lastAutoSaveData.models.simulation.simulationSerial;
-                if (callback) {
-                    callback(resp);
-                }
-            },
-            lastAutoSaveData
+        requestQueue.addItem(
+            QUEUE_NAME,
+            function() {
+                self.resetAutoSaveTimer();
+                lastAutoSaveData.models = self.clone(savedModelValues);
+                return {
+                    urlOrParams: 'saveSimulationData',
+                    successCallback: function (resp) {
+                        lastAutoSaveData = self.clone(resp);
+                        savedModelValues.simulation.simulationSerial
+                            = lastAutoSaveData.models.simulation.simulationSerial;
+                        self.models.simulation.simulationSerial
+                            = lastAutoSaveData.models.simulation.simulationSerial;
+                        if (callback) {
+                            callback(resp);
+                        }
+                    },
+                    data: lastAutoSaveData
+                };
+            }
         );
     };
-
     self.cancelChanges = function(name) {
         // cancel changes on a model by name, or by an array of names
         if (typeof(name) == 'string')
@@ -185,6 +188,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
     };
 
     self.clearModels = function(emptyValues) {
+        requestQueue.cancelItems(QUEUE_NAME);
         broadcastClear();
         self.models = emptyValues || {};
         savedModelValues = self.clone(self.models);
@@ -294,7 +298,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
                     });
                     return;
                 }
-                self.saveSimulationData(data);
+                self.refreshSimulationData(data);
                 if (callback)
                     callback();
             }
@@ -386,7 +390,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         });
     };
 
-    self.saveSimulationData = function(data, callback) {
+    self.refreshSimulationData = function(data, callback) {
         self.models = data.models;
         self.models.simulationStatus = {};
         savedModelValues = self.cloneModel();
@@ -418,7 +422,7 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         function(msg) {
             //TODO(robnagler) need to indicate error
             srlog('update collision: ', msg);
-            self.saveSimulationData(msg.simulationData);
+            self.refreshSimulationData(msg.simulationData);
             self.alertText('Another browser updated this simulation; refreshing local state');
         }
     );
@@ -634,7 +638,6 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         var data = getPanelValue(name, 'data');
         if (data) {
             callback(data);
-            //srdbg('cached: ', name);
             return;
         }
         if (self.isHidden(name)) {
@@ -1032,6 +1035,63 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     return self;
 });
 
+SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
+    var self = {};
+    var queueMap = {};
+
+    function getQueue(name) {
+        if (! queueMap[name] ) {
+            queueMap[name] = [];
+        }
+        return queueMap[name];
+    }
+
+    function sendNextItem(name) {
+        var q = getQueue(name);
+        if ( q.length <= 0 ) {
+            return;
+        }
+        var qi = q[0];
+        if ( qi.requestSent ) {
+            return;
+        }
+        qi.requestSent = true;
+        qi.params = qi.paramsCallback();
+        var process = function(ok, resp, status) {
+            if (qi.remove) {
+                return;
+            }
+            q.shift();
+            var cb = ok ? qi.params.successCallback : qi.params.errorCallback;
+            if (cb) {
+                cb(resp, status);
+            }
+            sendNextItem(name);
+        };
+        requestSender.sendRequest(
+            qi.params.urlOrParams,
+            function (resp, status) {process(true, resp, status);},
+            qi.params.data,
+            function (resp, status) {process(false, resp, status);}
+        );
+    }
+
+    self.cancelItems = function(queueName) {
+        var q = getQueue(queueName);
+        q.forEach(function(qi) {qi.removed = true;});
+        q.length = 0;
+    };
+
+    self.addItem = function(queueName, paramsCallback) {
+        getQueue(queueName).push({
+            requestSent: false,
+            paramsCallback: paramsCallback
+        });
+        sendNextItem(queueName);
+    };
+    return self;
+});
+
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
     var self = {};
     self.initProperties = function(scope) {
@@ -1196,7 +1256,9 @@ SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceServi
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try{
-            var errorMessage = $.isEmptyObject(exception) ? '<no message>' : exception.toString();
+            var errorMessage = ! exception ? '<no message>'
+                : 'toString' in exception ? exception.toString()
+                : String(exception);
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
