@@ -113,7 +113,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
             self.applicationMode = search.application_mode;
     });
 
-    appState.whenModelsLoaded(function() {
+    appState.whenModelsLoaded($rootScope, function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
         SIREPO.APP_SCHEMA.enum.Characteristic = (self.isApplicationMode('wavefront') || self.isGaussianBeam())
@@ -535,7 +535,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         return '[' + fieldsList.toString() + ']';
     }
 
-    appState.whenModelsLoaded(updatePhotonEnergyHelpText);
+    appState.whenModelsLoaded($scope, updatePhotonEnergyHelpText);
     $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
 
     var CRLFields = [

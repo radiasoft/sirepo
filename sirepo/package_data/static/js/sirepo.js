@@ -406,11 +406,11 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
         return SIREPO.APP_SCHEMA.view[name];
     };
 
-    self.whenModelsLoaded = function(callback) {
+    self.whenModelsLoaded = function($scope, callback) {
         if (self.isLoaded())
             callback();
         else
-            $rootScope.$on('modelsLoaded', callback);
+            $scope.$on('modelsLoaded', callback);
     };
 
     requestSender.registerMsgType(

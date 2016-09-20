@@ -773,7 +773,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
-    appState.whenModelsLoaded(function() {
+    appState.whenModelsLoaded($scope, function() {
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
     });
 });
@@ -1594,7 +1594,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 }
             });
 
-            appState.whenModelsLoaded(loadCommands);
+            appState.whenModelsLoaded($scope, loadCommands);
         },
     };
 });
@@ -1776,7 +1776,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                 if (name == 'elements')
                     loadTree();
             });
-            appState.whenModelsLoaded(loadTree);
+            appState.whenModelsLoaded($scope, loadTree);
         },
     };
 });

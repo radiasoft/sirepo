@@ -19,7 +19,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('warpService', function(appState) {
+SIREPO.app.factory('warpService', function(appState, $rootScope) {
     var self = {};
     self.laserGridDimensions = null;
     self.beamGridDimensions = null;
@@ -47,7 +47,7 @@ SIREPO.app.factory('warpService', function(appState) {
         return isSourceType('laserPulse');
     };
 
-    appState.whenModelsLoaded(function() {
+    appState.whenModelsLoaded($rootScope, function() {
         initGridDimensions();
         SIREPO.APP_SCHEMA.enum.GridDimensions = self.isLaserPulse()
             ? self.laserGridDimensions
@@ -353,7 +353,7 @@ SIREPO.app.controller('WARPSourceController', function(appState, frameCache, war
                 appState.saveQuietly('laserPulse');
             appState.saveQuietly('simulationGrid');
         });
-    appState.whenModelsLoaded(updateFieldState);
+    appState.whenModelsLoaded($scope, updateFieldState);
 });
 
 SIREPO.app.directive('appFooter', function() {
