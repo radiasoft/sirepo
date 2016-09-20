@@ -1,7 +1,7 @@
 'use strict';
 
-SIREPO.srlog = console.log;
-SIREPO.srdbg = console.log;
+SIREPO.srlog = console.log.bind(console);
+SIREPO.srdbg = console.log.bind(console);
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
@@ -154,11 +154,11 @@ SIREPO.app.factory('appState', function(requestSender, $rootScope, $interval) {
             return;
         }
         lastAutoSaveData.models = self.clone(savedModelValues);
-        srdbg('calling ', savedModelValues);
+        //srdbg('calling ', savedModelValues);
         requestSender.sendRequest(
             'saveSimulationData',
             function (resp) {
-                srdbg('response ', resp);
+                //srdbg('response ', resp);
                 lastAutoSaveData = self.clone(resp);
                 savedModelValues.simulation.simulationSerial
                     = lastAutoSaveData.models.simulation.simulationSerial;
