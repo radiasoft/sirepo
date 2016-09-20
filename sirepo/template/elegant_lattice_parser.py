@@ -7,189 +7,121 @@ u"""elegant lattice parser.
 from __future__ import absolute_import, division, print_function
 import re
 
+from sirepo.template.line_parser import LineParser
+
+
 def parse_file(lattice_text):
-    lines = lattice_text.split('\n')
+    parser = LineParser(0)
+    lines = lattice_text.replace('\r', '').split('\n')
     prev_line = ''
-    state = {
-        'models': {
-            'beamlines': [],
-            'elements': [],
-            'default_beamline_name': None,
-        },
+    models = {
+        'beamlines': [],
+        'elements': [],
+        'default_beamline_name': None,
         'rpnVariables': {},
-        'line_number': 0,
-        'id': 0,
     }
     for line in lines:
-        state['line_number'] += 1
-        if re.search(r'^\!', line):
+        parser.increment_line_number()
+        if re.search(r'^\s*\!', line):
             continue
         if re.search(r'\&\s*$', line):
             prev_line += re.sub(r'(\s*\&\s*)$', '', line)
             continue
-        if not _parse_line(prev_line + line, state):
+        if not _parse_line(parser, prev_line + line, models):
             break
         prev_line = ''
-    state['models']['rpnVariables'] = map(lambda x: { 'name': x, 'value': state['rpnVariables'][x] }, state['rpnVariables'].keys())
-    return state['models']
+    models['rpnVariables'] = map(lambda x: { 'name': x, 'value': models['rpnVariables'][x] }, models['rpnVariables'].keys())
+    return models
 
 
-def _assert_char(state, char):
-    if _next_char(state) != char:
-        _raise_error(state, 'expected {}'.format(char))
-    _ignore_whitespace(state)
-
-
-def _assert_end_of_line(state):
-    _ignore_whitespace(state)
-    if _has_char(state) and _peek_char(state) != '!':
-        _raise_error(state, 'left-over input')
-
-
-def _has_char(state):
-    return state['index'] < len(state['line'])
-
-
-def _ignore_whitespace(state):
-    while _has_char(state) and re.search(r'\s', _peek_char(state)):
-        _next_char(state)
-
-
-def _next_char(state):
-    if _has_char(state):
-        c = state['line'][state['index']]
-        state['index'] += 1
-        return c
-    return None
-
-
-def _next_id(state):
-    state['id'] += 1
-    return state['id']
-
-
-def _parse_beamline(name, state):
-    _assert_char(state, '=')
-    state['models']['beamlines'].append({
+def _parse_beamline(parser, name):
+    parser.assert_char('=')
+    return {
         'name': name,
-        'id': _next_id(state),
-        'items': _parse_beamline_items(state),
-    })
+        'id': parser.next_id(),
+        'items': _parse_beamline_items(parser),
+    }
 
 
-def _parse_beamline_items(state):
-    _assert_char(state, '(')
+def _parse_beamline_items(parser):
+    parser.assert_char('(')
     items = []
     while True:
-        value = _parse_value(state)
+        value = parser.parse_value()
         if not value:
-            if _peek_char(state) == ',':
-                _assert_char(state, ',')
+            if parser.peek_char() == ',':
+                parser.assert_char(',')
                 continue
-            _raise_error(state, 'expecting beamline element')
+            parser.raise_error('expecting beamline element')
         if re.search(r'[0-9]', value[0]):
             repeat_count = int(value)
-            _assert_char(state, '*')
-            if _peek_char(state) == '(':
-                repeat_items = _parse_beamline_items(state)
+            parser.assert_char('*')
+            if parser.peek_char() == '(':
+                repeat_items = _parse_beamline_items(parser)
             else:
-                repeat_items = [_parse_value(state)]
+                repeat_items = [parser.parse_value()]
             for _ in range(repeat_count):
                 for item in repeat_items:
                     items.append(item)
         else:
             items.append(value)
 
-        if _peek_char(state) == ',':
-            _assert_char(state, ',')
+        if parser.peek_char() == ',':
+            parser.assert_char(',')
         else:
             break
-    _assert_char(state, ')')
+    parser.assert_char(')')
     return items
 
 
-def _parse_element(name, type, state):
+def _parse_element(parser, name, type):
     el = {
-        '_id': _next_id(state),
+        '_id': parser.next_id(),
         'type': type,
         'name': name,
     }
-    state['models']['elements'].append(el)
-    while _peek_char(state) == ',':
-        _assert_char(state, ',')
-        field = _parse_value(state)
+    while parser.peek_char() == ',':
+        parser.assert_char(',')
+        field = parser.parse_value()
         if not field:
-            _assert_end_of_line(state)
-        if _peek_char(state) == '=':
-            _assert_char(state, '=')
-            el[field.lower()] = _parse_value(state)
+            parser.assert_end_of_line()
+        if parser.peek_char() == '=':
+            parser.assert_char('=')
+            el[field.lower()] = parser.parse_value()
+    return el
 
 
-def _parse_line(line, state):
-    state['line'] = line
-    state['index'] = 0
-    name = _parse_value(state, r'[:\s,=)*]')
+def _parse_line(parser, line, models):
+    parser.set_line(line)
+    name = parser.parse_value(r'[:\s,=)*]')
     if name == '%':
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
-        _save_rpn_variables(line, state['rpnVariables'])
+        _save_rpn_variables(line, models['rpnVariables'])
         return True
     if not name or not re.search(r'[A-Z]', name[0], re.IGNORECASE):
         if name and name.upper() == '#INCLUDE':
-            _raise_error(state, '#INCLUDE files not supported')
+            parser.raise_error('#INCLUDE files not supported')
         return True
-    if _peek_char(state) != ':':
-        if name.upper() == 'USE' and _peek_char(state) == ',':
-            _assert_char(state, ',')
-            state['models']['default_beamline_name'] = _parse_value(state)
+    if parser.peek_char() != ':':
+        if name.upper() == 'USE' and parser.peek_char() == ',':
+            parser.assert_char(',')
+            models['default_beamline_name'] = parser.parse_value()
             return True
         if name.upper() == 'RETURN':
             return False
         # ignore non-definition lines
         return True
-    _assert_char(state, ':')
-    type = _parse_value(state)
+    parser.assert_char(':')
+    type = parser.parse_value()
     if not type:
-        _raise_error(state, 'expected type')
+        parser.raise_error('expected type')
     if type.upper() == 'LINE':
-        _parse_beamline(name, state)
+        models['beamlines'].append(_parse_beamline(parser, name))
     else:
-        _parse_element(name, type, state)
-    _assert_end_of_line(state)
+        models['elements'].append(_parse_element(parser, name, type))
+    parser.assert_end_of_line()
     return True
-
-
-def _parse_quoted_value(state):
-    _assert_char(state, '"')
-    value = _read_until(state, '"')
-    if value is not None:
-        _assert_char(state, '"')
-    return value
-
-
-def _parse_value(state, end_regex=None):
-    if _peek_char(state) == '"':
-        return _parse_quoted_value(state)
-    return _read_until(state, end_regex if end_regex else r'[\s,=\!)*]')
-
-
-def _peek_char(state):
-    if _has_char(state):
-        return state['line'][state['index']]
-    return None
-
-
-def _raise_error(state, message):
-    raise IOError('line {}, {}: {}'.format(state['line_number'], message, state['line'][state['index']:]))
-
-
-def _read_until(state, regex):
-    # Reads until the end-of-line or the character regex is matched
-    value = ''
-    while _has_char(state) and not re.search(regex, _peek_char(state)):
-        value += _next_char(state)
-    _ignore_whitespace(state)
-    return value
 
 
 def _save_rpn_variables(line, rpn_variables):
