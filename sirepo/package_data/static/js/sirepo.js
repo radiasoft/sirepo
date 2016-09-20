@@ -149,7 +149,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
             return;
         if (self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
-            if (callback)
+            if (_.isFunction(callback))
                 callback();
             return;
         }
@@ -166,7 +166,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                             = lastAutoSaveData.models.simulation.simulationSerial;
                         self.models.simulation.simulationSerial
                             = lastAutoSaveData.models.simulation.simulationSerial;
-                        if (callback) {
+                        if (_.isFunction(callback)) {
                             callback(resp);
                         }
                     },
@@ -1256,9 +1256,8 @@ SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceServi
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try{
-            var errorMessage = ! exception ? '<no message>'
-                : 'toString' in exception ? exception.toString()
-                : String(exception);
+            var message = exception ? String(exception) : '<no message>';
+            cause = String(cause || '<no cause>');
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
@@ -1270,10 +1269,10 @@ SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceServi
                 contentType: 'application/json',
                 data: angular.toJson({
                     url: $window.location.href,
-                    message: errorMessage,
+                    message: message,
                     type: 'exception',
                     stackTrace: stackTrace,
-                    cause: cause || '',
+                    cause: cause,
                 })
             });
         }
