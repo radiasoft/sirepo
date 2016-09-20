@@ -1169,7 +1169,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             setSimulationStatus({state: 'stopped'});
             frameCache.setFrameCount(0);
             $scope.$on('$destroy', scope.clearSimulation);
-            appState.whenModelsLoaded(runStatus);
+            appState.whenModelsLoaded($scope, runStatus);
         };
     };
     return self;
