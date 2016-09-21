@@ -1455,7 +1455,6 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                         maxHeight = Math.max(maxHeight, groupItem.height);
                         //groupItem.x = pos.radius + pos.x + x;
                         group.items.push(groupItem);
-                        //srdbg(item.type, ' ', [pos.radius + pos.x + x, pos.y - height / 2]);
                         x += length;
                     }
                 }
@@ -1467,7 +1466,6 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                     pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
                 }
                 updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
-                //srdbg('bounds: ', pos.bounds);
                 pos.angle += newAngle;
             }
 
