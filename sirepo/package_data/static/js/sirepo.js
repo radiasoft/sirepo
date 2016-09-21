@@ -100,7 +100,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope, $interval) {
+SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope, $interval, _) {
     var self = {
         models: {},
     };
