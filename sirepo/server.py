@@ -229,13 +229,9 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
         show_item_id = None
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
-        def _rr(row):
-            pkdp(row['models']['simulation']['simulationId'])
-            return row['models']['simulation']['folder']
         examples = sorted(
             simulation_db.examples(simulation_type),
-            key=_rr,
-            #key=lambda row: row['models']['simulation']['folder'],
+            key=lambda row: row['models']['simulation']['folder'],
         )
         for s in examples:
             if s['models']['simulation']['facility'] == simulation_name:
