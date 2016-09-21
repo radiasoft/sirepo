@@ -666,7 +666,7 @@ def _no_cache(response):
 
 def _parse_data_input(validate=False):
     data = _json_input()
-    return simulation_db.fixup_old_data(data['simulationType'], data) if validate else data
+    return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _save_new_and_reply(*args):
