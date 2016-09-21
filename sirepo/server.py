@@ -202,6 +202,15 @@ def app_error_logging():
     return _json_response_ok();
 
 
+@app.route('/favicon.ico')
+def app_favicon():
+    """Routes to favicon.ico file."""
+    return flask.send_from_directory(
+        str(simulation_db.STATIC_FOLDER.join('img')),
+        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
 def app_file_list(simulation_type, simulation_id, file_type):
     file_type = werkzeug.secure_filename(file_type)
@@ -331,6 +340,15 @@ def app_python_source(simulation_type, simulation_id):
     )
 
 
+@app.route('/robots.txt')
+def app_robots_txt():
+    """Tell robots to go away"""
+    return flask.Response(
+        'User-agent: *\nDisallow: /\n',
+        mimetype='text/plain',
+    )
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['root'])
 def app_root(simulation_type):
     return flask.render_template(
@@ -339,14 +357,6 @@ def app_root(simulation_type):
         app_name=simulation_type,
     )
 
-
-@app.route('/favicon.ico')
-def app_route_favicon():
-    """Routes to favicon.ico file."""
-    return flask.send_from_directory(
-        str(simulation_db.STATIC_FOLDER.join('img')),
-        'favicon.ico', mimetype='image/vnd.microsoft.icon'
-    )
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
