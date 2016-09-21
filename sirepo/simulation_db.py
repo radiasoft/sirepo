@@ -62,6 +62,9 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
+#: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
+_RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
+
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
@@ -122,7 +125,9 @@ def examples(app):
         pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
         re.escape(JSON_SUFFIX) + '$',
     )
-    return [open_json_file(app, path=str(f)) for f in files]
+    #TODO(robnagler) Need to update examples statically before build
+    # and assert on build
+    return [fixup_old_data(app, open_json_file(app, path=str(f))) for f in files]
 
 
 def find_global_simulation(simulation_type, sid):
@@ -402,28 +407,32 @@ def read_result(run_dir):
     err = None
     try:
         res = read_json(fn)
-        if res and not 'state' in res:
-            # Old simulation, just say is canceled so restarts
-            return {'state': 'canceled'}, None
     except Exception as e:
         err = pkdexc()
-        if isinstance(e, IOError):
-            if e.errno == errno.ENOENT:
-                #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
-                err = 'ERROR: Terminated unexpectedly'
+        if pkio.exception_is_not_found(e):
+            #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
+            err = 'ERROR: Terminated unexpectedly'
             # Not found so return run.log as err
             rl = run_dir.join(template_common.RUN_LOG)
             try:
                 e = pkio.read_text(rl)
-                if e:
+                if _RUN_LOG_CANCEL_RE.search(e):
+                    err = None
+                elif e:
                     err = e
-            except:
-                pkdp('{}: error reading log: {}', rl, pkdexc())
+            except Exception as e:
+                if pkio.exception_is_not_found(e):
+                    pkdp('{}: error reading log: {}', rl, pkdexc())
         else:
             pkdp('{}: error reading output: {}', fn, err)
-    assert res or err, \
-        '{}: res or err must be truthy'.format(run_dir)
-    return res, err
+    if err:
+        return None, err
+    if not res:
+        res = {}
+    if not 'state' in res:
+        # Old simulation or other error, just say is canceled so restarts
+        res = {'state': 'canceled'}
+    return res, None
 
 
 def read_simulation_json(sim_type, *args, **kwargs):

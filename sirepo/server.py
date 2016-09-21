@@ -43,11 +43,11 @@ _BEAKER_DATA_DIR = 'beaker'
 #: where users live under db_dir
 _BEAKER_LOCK_DIR = 'lock'
 
-#: Empty response
-_EMPTY_JSON_RESPONSE = '{}'
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
+
+#: Cache for _json_response_ok
+_JSON_RESPONSE_OK = None
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
@@ -150,7 +150,7 @@ def app_copy_simulation():
 def app_delete_simulation():
     data = _parse_data_input()
     pkio.unchecked_remove(simulation_db.simulation_dir(data['simulationType'], data['simulationId']))
-    return '{}'
+    return _json_response_ok();
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
@@ -198,7 +198,7 @@ def app_error_logging():
             e,
             flask.request.data.decode('unicode-escape'),
         )
-    return '{}'
+    return _json_response_ok();
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
@@ -229,9 +229,13 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
         show_item_id = None
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
+        def _rr(row):
+            pkdp(row['models']['simulation']['simulationId'])
+            return row['models']['simulation']['folder']
         examples = sorted(
             simulation_db.examples(simulation_type),
-            key=lambda row: row['models']['simulation']['folder'],
+            key=_rr,
+            #key=lambda row: row['models']['simulation']['folder'],
         )
         for s in examples:
             if s['models']['simulation']['facility'] == simulation_name:
@@ -473,7 +477,7 @@ def app_update_folder():
         if folder.startswith(old_name):
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
             simulation_db.save_simulation_json(data['simulationType'], row)
-    return '{}'
+    return _json_response_ok();
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
@@ -632,6 +636,18 @@ def _json_response(value, pretty=False):
         simulation_db.generate_json(value, pretty=pretty),
         mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
     )
+
+
+def _json_response_ok():
+    """Generate state=ok JSON flask response
+
+    Returns:
+        Response: flask response
+    """
+    global _JSON_RESPONSE_OK
+    if not _JSON_RESPONSE_OK:
+        _JSON_RESPONSE_OK = _json_response({'state': 'ok'})
+    return _JSON_RESPONSE_OK
 
 
 def _mtime_or_now(path):

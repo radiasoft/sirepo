@@ -1,5 +1,4 @@
 'use strict';
-
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
 
@@ -695,10 +694,11 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q) {
+SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q, _, exceptionLoggingService) {
     var self = {};
     var getApplicationDataTimeout;
     var msgTypes = {};
+    var IS_HTML_ERROR_RE = new RegExp('<!DOCTYPE', 'i');
 
     function logError(data, status) {
         srlog('request failed: ', data);
@@ -864,14 +864,29 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         req.error(
             function(resp, status) {
                 $interval.cancel(interval);
+                var msg = null;
                 if (timed_out) {
-                    resp = {
-                        state: 'error',
-                        error: 'request timed out after '
-                            + Math.round(SIREPO.http_timeout/1000)
-                            + ' seconds',
-                    };
+                    msg = 'request timed out after '
+                        + Math.round(SIREPO.http_timeout/1000)
+                        + ' seconds';
                     status = 503;
+                }
+                else if (status === 0) {
+                    msg = 'the server is unavailable';
+                }
+                if (_.isString(resp) && IS_HTML_ERROR_RE.exec(resp)) {
+                    srlog('ERROR: unexpected HTML response: ', resp);
+                    resp = {};
+                }
+                else if (! _.isObject(resp) || _.isEmpty(resp)) {
+                    exceptionLoggingService(resp, 'unexpected response type or empty');
+                    resp = {};
+                }
+                if (! resp.state) {
+                    resp.state = 'error';
+                }
+                if (! resp.error) {
+                    resp.error = msg || 'a server error occured: status=' + status;
                 }
                 errorCallback(resp, status);
             }
@@ -946,11 +961,10 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
                     requestSender.sendRequest(
                         'runStatus', process, qi.request, process);
                 },
-                // Sanity check
+                // Sanity check in case of defect on server
                 Math.max(1, resp.nextRequestSeconds) * 1000,
                 1
             );
-
             if (qi.persistent)
                 qi.responseHandler(resp);
         };
@@ -958,21 +972,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var process = function(resp, status) {
             if (qi.qState == 'removing')
                 return;
-            if (status != 200) {
-                exceptionLoggingService(resp, 'error status=' + status);
-                resp = {};
-            }
-            else if ($.isEmptyObject(resp) || ! angular.isObject(resp)) {
-                exceptionLoggingService(resp, 'unexpected response type or empty');
-                resp = {};
-            }
-            if (! resp.state) {
-                resp.state = 'error';
-            }
-            if (! resp.error && resp.state == 'error') {
-                resp.error = status === 0 ? 'the server is unavailable'
-                    : ('a server error occurred; status=' + status);
-            }
             resp.isStateProcessing = resp.state == 'running' || resp.state == 'pending';
             if (! resp.isStateProcessing) {
                 handleResult(qi, resp);
