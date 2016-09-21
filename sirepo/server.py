@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import beaker.middleware
@@ -186,13 +186,13 @@ def app_download_file(simulation_type, simulation_id, filename):
 def app_error_logging():
     ip = flask.request.remote_addr
     try:
-        pkdp(
+        pkdlog(
             '{}: javascript error: {}',
             ip,
             simulation_db.generate_json(_json_input(), pretty=True),
         )
     except ValueError as e:
-        pkdp(
+        pkdlog(
             '{}: error parsing javascript app_error: {} input={}',
             ip,
             e,
@@ -547,9 +547,9 @@ def _cached_simulation(data):
         if req_hash == cached_hash:
             return True, cached_data
     except IOError as e:
-        pkdp('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
+        pkdlog('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
     except Exception as e:
-        pkdp('{}: ignore other error: {}', run_dir, e)
+        pkdlog('{}: ignore other error: {}', run_dir, e)
         # No idea if cache is valid or not so throw away
         cached_data = None
     return False, cached_data
@@ -564,10 +564,10 @@ def _cfg_job_queue(value):
         from sirepo import celery_tasks
         try:
             if not celery_tasks.celery.control.ping():
-                pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
+                pkdlog('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
                 sys.exit(1)
         except Exception:
-            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
+            pkdlog('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
             sys.exit(1)
         return _Celery
     elif value == 'Background':
@@ -607,7 +607,7 @@ def _job_id(data):
 def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
-        pkdp('{}: req.mimetype is not application/json', req.mimetype)
+        pkdlog('{}: req.mimetype is not application/json', req.mimetype)
         raise werkzeug.Eexceptions.BadRequest('expecting application/json')
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
@@ -689,7 +689,7 @@ def _simulation_error(err, *args, **kwargs):
         dict: error response
     """
     if not kwargs.get('quiet'):
-        pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
+        pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
     m = re.search(_SUBPROCESS_ERROR_RE, str(err))
     if m:
         err = m.group(1)
@@ -872,10 +872,10 @@ class _Background(object):
                 return
             #TODO(robnagler) will this happen?
             if self.in_kill:
-                pkdp('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
+                pkdlog('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
                 return
             self.in_kill = True
-        pkdp('{}: stopping: pid={}', self.jid, self.pid)
+        pkdlog('{}: stopping: pid={}', self.jid, self.pid)
         sig = signal.SIGTERM
         for i in range(3):
             try:
@@ -883,7 +883,7 @@ class _Background(object):
                 time.sleep(1)
                 pid, status = os.waitpid(self.pid, os.WNOHANG)
                 if pid == self.pid:
-                    pkdp('{}: waitpid: status={}', pid, status)
+                    pkdlog('{}: waitpid: status={}', pid, status)
                     break
                 sig = signal.SIGKILL
             except OSError:
@@ -893,7 +893,7 @@ class _Background(object):
             self.in_kill = False
             try:
                 del self._job[self.jid]
-                pkdp('{}: deleted', self.jid)
+                pkdlog('{}: deleted', self.jid)
             except KeyError:
                 pass
 
@@ -901,16 +901,16 @@ class _Background(object):
     def sigchld_handler(cls, signum=None, frame=None):
         try:
             pid, status = os.waitpid(-1, os.WNOHANG)
-            pkdp('{}: waitpid: status={}', pid, status)
+            pkdlog('{}: waitpid: status={}', pid, status)
             with cls._lock:
                 for self in cls._job.values():
                     if self.pid == pid:
                         del self._job[self.jid]
-                        pkdp('{}: deleted', self.jid)
+                        pkdlog('{}: deleted', self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
-                pkdp('waitpid: OSError: {} errno={}', e.strerror, e.errno)
+                pkdlog('waitpid: OSError: {} errno={}', e.strerror, e.errno)
                 # Fall through. Not much to do here
 
     def _start_job(self):
@@ -923,10 +923,10 @@ class _Background(object):
         try:
             pid = os.fork()
         except OSError as e:
-            pkdp('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
+            pkdlog('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
             reraise
         if pid != 0:
-            pkdp('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
+            pkdlog('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
             return pid
         try:
             os.chdir(str(self.run_dir))
@@ -946,12 +946,12 @@ class _Background(object):
             sys.stdout = os.fdopen(1, 'a+')
             os.dup2(0, 2)
             sys.stderr = os.fdopen(2, 'a+')
-            pkdp('{}: child will exec: {}', self.jid, self.cmd)
+            pkdlog('{}: child will exec: {}', self.jid, self.cmd)
             sys.stderr.flush()
             try:
                 os.execvp(self.cmd[0], self.cmd)
             finally:
-                pkdp('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
+                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
@@ -1005,7 +1005,7 @@ class _Celery(object):
             if not self:
                 return
             res = self.async_result
-            pkdp('{}: killing: tid={}', jid, res.task_id)
+            pkdlog('{}: killing: tid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
@@ -1013,7 +1013,7 @@ class _Celery(object):
         with cls._lock:
             try:
                 del cls._job[jid]
-                pkdp('{}: deleted', jid)
+                pkdlog('{}: deleted', jid)
             except KeyError:
                 pass
 
@@ -1035,7 +1035,7 @@ class _Celery(object):
         """
         from sirepo import celery_tasks
         self.celery_queue = simulation_db.celery_queue(self.data)
-        pkdp('{}: starting queue={}', self.run_dir, self.celery_queue)
+        pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
             args=[self.cmd, self.run_dir],
             queue=self.celery_queue,

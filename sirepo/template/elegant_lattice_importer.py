@@ -14,7 +14,7 @@ import re
 import sirepo.template.elegant
 
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import elegant_lattice_parser
 
 _ANGLE_FIELDS = ['angle', 'kick', 'hkick']
@@ -198,7 +198,7 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
         if f == field:
             field_type = _SCHEMA['model'][el['type']][f][1]
     if not field_type:
-        pkdp('{}: unkown field type for {}', field, el['type'])
+        pkdlog('{}: unkown field type for {}', field, el['type'])
         del el[field]
     else:
         if field_type == 'OutputFile':

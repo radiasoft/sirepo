@@ -10,7 +10,7 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import template_common
 import copy
 import datetime
@@ -158,7 +158,7 @@ def fixup_old_data(simulation_type, data):
             pass
         return data
     except Exception as e:
-        pkdp('{}: error: {}', data, pkdexc())
+        pkdlog('{}: error: {}', data, pkdexc())
         raise
 
 
@@ -217,7 +217,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
                 continue
             op(res, path, data)
         except ValueError as e:
-            pkdp('{}: error: {}', path, e)
+            pkdlog('{}: error: {}', path, e)
     return res
 
 
@@ -274,7 +274,7 @@ def open_json_file(simulation_type, path=None, sid=None):
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
     except Exception as e:
-        pkdp('{}: error: {}', path, pkdexc())
+        pkdlog('{}: error: {}', path, pkdexc())
         raise
     return data
 
@@ -422,9 +422,9 @@ def read_result(run_dir):
                     err = e
             except Exception as e:
                 if pkio.exception_is_not_found(e):
-                    pkdp('{}: error reading log: {}', rl, pkdexc())
+                    pkdlog('{}: error reading log: {}', rl, pkdexc())
         else:
-            pkdp('{}: error reading output: {}', fn, err)
+            pkdlog('{}: error reading output: {}', fn, err)
     if err:
         return None, err
     if not res:
@@ -575,7 +575,7 @@ def validate_serial(req_data):
             if req_ser == curr_ser:
                 return None
             status = 'newer' if req_ser > curr_ser else 'older'
-            pkdp(
+            pkdlog(
                 '{}: incoming serial {} than stored serial={} sid={}, resetting client',
                 req_ser,
                 status,

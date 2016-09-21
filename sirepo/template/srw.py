@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -565,7 +565,7 @@ def import_file(request, lib_dir, tmp_dir):
     except ValueError:
         pass
     arguments = str(request.form['arguments'])
-    pkdp('{}: arguments={}', f.filename, arguments)
+    pkdlog('{}: arguments={}', f.filename, arguments)
     return sirepo.importer.import_python(
         input_text,
         lib_dir=lib_dir,
@@ -859,7 +859,7 @@ def _compute_crystal_init(model):
         model['psiHBi'] = xih
         model['grazingAngle'] = grazingAngle
     except Exception:
-        pkdp('{}: error: {}', material_raw, pkdexc())
+        pkdlog('{}: error: {}', material_raw, pkdexc())
         for key in parms_list:
             model[key] = None
 
@@ -897,7 +897,7 @@ def _compute_crystal_orientation(model):
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
     except Exception:
-        pkdp('\n{}', traceback.format_exc())
+        pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
             model[key] = None
 
