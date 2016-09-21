@@ -31,4 +31,3 @@ def test_srw():
         'listSimulations',
         {'simulationType': 'srw', 'search': ''},
     )
-    pkio.write_text('list.json', pkdpretty(data))
