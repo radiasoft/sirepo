@@ -1,4 +1,4 @@
-# sirepo
+# Sirepo
 
 # THIS IS BETA SOFTWARE
 
@@ -65,7 +65,7 @@ Boot the machine:
 vagrant up
 ```
 
-The images is 2.5GB so this will take some time.
+The image is 2.5GB so this will take some time to start.
 
 If it's your first time running Vagrant, it will ask to install VirtualBox.
 
@@ -96,6 +96,7 @@ sirepo service http
 Then visit the following link:
 
 [http://localhost:8000/light](http://localhost:8000/light)
+
 
 #### Sharing Folder with Vagrant VM
 
@@ -183,7 +184,6 @@ To run tests:
 cd ~/src/radiasoft/sirepo
 ./node_modules/karma/bin/karma start karma-conf.js
 ```
-
 
 #### Protractor (Angular end-to-end testing)
 
