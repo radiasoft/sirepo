@@ -30,6 +30,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -832,7 +833,7 @@ class _Background(object):
             self.jid = _job_id(data)
             assert not self.jid in self._job, \
                 '{}: simulation already running'.format(self.jid)
-            self.in_kill = False
+            self.in_kill = None
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.pid = None
@@ -870,11 +871,12 @@ class _Background(object):
                 self = cls._job[jid]
             except KeyError:
                 return
-            #TODO(robnagler) will this happen?
             if self.in_kill:
-                pkdlog('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
+                pkdlog('{}: kill in progress in another thread', jid)
                 return
-            self.in_kill = True
+            nonce = uuid.uuid4()
+            self.in_kill = nonce
+
         pkdlog('{}: stopping: pid={}', self.jid, self.pid)
         sig = signal.SIGTERM
         for i in range(3):
@@ -885,17 +887,23 @@ class _Background(object):
                 if pid == self.pid:
                     pkdlog('{}: waitpid: status={}', pid, status)
                     break
+                else:
+                    pkdlog('{}: unexpected waitpid result; job={} pid={}', pid, self.jid, self.pid)
                 sig = signal.SIGKILL
             except OSError:
-                # Already reaped(?)
-                break
+                pkdlog('{}: already reaped; job={}', self.pid, self.jid)
+                return
         with cls._lock:
-            self.in_kill = False
             try:
-                del self._job[self.jid]
-                pkdlog('{}: deleted', self.jid)
+                self = cls._job[jid]
+                if self.in_kill and self.in_kill == nonce:
+                    self.in_kill = None
+                    del self._job[self.jid]
+                    pkdlog('{}: delete successful', self.jid)
+                    return
             except KeyError:
                 pass
+            pkdlog('{}: job restarted by another thread', jid)
 
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
@@ -906,7 +914,7 @@ class _Background(object):
                 for self in cls._job.values():
                     if self.pid == pid:
                         del self._job[self.jid]
-                        pkdlog('{}: deleted', self.jid)
+                        pkdlog('{}: delete successful', self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
@@ -972,7 +980,6 @@ class _Celery(object):
             self.jid = _job_id(data)
             assert not self.jid in self._job, \
                 '{}: simulation already running'.format(self.jid)
-            self.in_kill = False
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.data = data
