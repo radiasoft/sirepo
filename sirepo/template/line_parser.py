@@ -69,19 +69,18 @@ class LineParser(object):
     def parse_quoted_value(self):
         self.assert_char('"')
         value = self.read_until('"')
-        if value is not None:
-            if self.line[self.index - 1] == '\\':
-                value += '\"' + self.parse_quoted_value()
-            else:
-                self.assert_char('"')
+        if self.line[self.index - 1] == '\\':
+            value += '\"' + self.parse_quoted_value()
+        else:
+            self.assert_char('"')
         return value
 
 
-    def parse_value(self, end_regex=None):
+    def parse_value(self, end_regex=r'[\s,=\!)*]'):
         """Parses a value, possibly quoted."""
         if self.peek_char() == '"':
             return self.parse_quoted_value()
-        return self.read_until(end_regex if end_regex else r'[\s,=\!)*]')
+        return self.read_until(end_regex)
 
 
     def peek_char(self):

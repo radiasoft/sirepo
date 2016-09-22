@@ -20,7 +20,6 @@ import py.path
 import re
 import sdds
 import shutil
-import subprocess
 import werkzeug
 
 ELEGANT_LOG_FILE = 'elegant.log'
@@ -28,8 +27,6 @@ ELEGANT_LOG_FILE = 'elegant.log'
 WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_SEMAPHORE_FILE = 'run_setup.semaphore'
-
-_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 
 _FIELD_LABEL = {
     'x': 'x [m]',
@@ -265,7 +262,7 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'rpn_value':
-        value, error = parse_rpn_value(data['value'], data['variables'])
+        value, error = elegant_lattice_importer.parse_rpn_value(data['value'], data['variables'])
         if error:
             data['error'] = error
         else:
@@ -273,7 +270,7 @@ def get_application_data(data):
         return data
     if data['method'] == 'recompute_rpn_cache_values':
         for k in data['cache']:
-            value, error = parse_rpn_value(k, data['variables'])
+            value, error = elegant_lattice_importer.parse_rpn_value(k, data['variables'])
             if not error:
                 data['cache'][k] = value
         return data
@@ -331,14 +328,6 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         return e.message, None
 
 
-def is_rpn_value(value):
-    if (value):
-        if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
-            return False
-        return True
-    return False
-
-
 def models_related_to_report(data):
     r = data['report']
     if not 'bunchReport' in r:
@@ -348,25 +337,6 @@ def models_related_to_report(data):
 
 def new_simulation(data, new_simulation_data):
     pass
-
-
-def parse_rpn_value(value, variable_list):
-    variables = {x['name']: x['value'] for x in variable_list}
-    my_env = os.environ.copy()
-    my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
-    depends = _build_variable_dependency(value, variables, [])
-    var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
-    #TODO(pjm): security - need to scrub field value
-    out = ''
-    try:
-        with open(os.devnull, 'w') as devnull:
-            pkdc('rpnl "{}" "{}"'.format(var_list, value))
-            out = subprocess.check_output(['rpnl', '{} {}'.format(var_list, value)], env=my_env, stderr=devnull)
-    except subprocess.CalledProcessError as e:
-        return None, 'invalid'
-    if len(out):
-        return float(out.strip()), None
-    return None, 'empty'
 
 
 def prepare_aux_files(run_dir, data):
@@ -386,10 +356,10 @@ def prepare_for_client(data):
     _iterate_model_fields(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
-        v, err = parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
+        v, err = elegant_lattice_importer.parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
         if not err:
             cache[rpn_var['name']] = v
-            if is_rpn_value(rpn_var['value']):
+            if elegant_lattice_importer.is_rpn_value(rpn_var['value']):
                 cache[rpn_var['value']] = v
     return data
 
@@ -510,15 +480,6 @@ def _build_filename_map(data):
                     res[k] = filename
                     res['keys_in_order'].append(k)
     return res
-
-
-def _build_variable_dependency(value, variables, depends):
-    for v in str(value).split(' '):
-        if v in variables:
-            if v not in depends:
-                _build_variable_dependency(variables[v], variables, depends)
-                depends.append(v)
-    return depends
 
 
 def _compute_percent_complete(data, last_element):
@@ -686,7 +647,7 @@ def _generate_variables(data):
     variables = {x['name']: x['value'] for x in data['models']['rpnVariables']}
 
     for name in sorted(variables):
-        for dependency in _build_variable_dependency(variables[name], variables, []):
+        for dependency in elegant_lattice_importer.build_variable_dependency(variables[name], variables, []):
             res += _generate_variable(dependency, variables, visited)
         res += _generate_variable(name, variables, visited)
     return res
@@ -732,7 +693,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if element_schema[1] == 'RPNValue' and is_rpn_value(value):
+                if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(value):
                     state['commands'] += '  {} = "({})",'.format(field_name, value) + "\n"
                 elif element_schema[1] == 'StringArray':
                     state['commands'] += '  {}[0] = {},'.format(field_name, value) + "\n"
@@ -797,8 +758,8 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 
 def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
     if element_schema:
-        if element_schema[1] == 'RPNValue' and is_rpn_value(model[field_name]):
-            v, err = parse_rpn_value(model[field_name], state['rpnVariables'])
+        if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field_name]):
+            v, err = elegant_lattice_importer.parse_rpn_value(model[field_name], state['rpnVariables'])
             if not err:
                 state['cache'][model[field_name]] = v
 

@@ -62,10 +62,11 @@
         "FindApertureMode": [
             ["many-particle", "Many Particle"],
             ["single-particle", "Single Particle"],
-            ["three-lines", "Three Lines"],
+            ["three-line", "Three Lines"],
             ["five-line", "Five Line"],
             ["seven-line", "Seven Line"],
             ["nine-line", "Nine Line"],
+            ["eleven-line", "Nine Line"],
             ["n-lines", "N Lines"]
         ],
         "LinkElementsMode": [
@@ -78,13 +79,7 @@
             ["after", "After"],
             ["adjacent", "Adjacent"],
             ["nearest", "Nearest"],
-            ["same-occurrence", "Same Occurrence"]
-        ],
-        "LoadParametersFilename": [
-            ["absolute", "Absolute"],
-            ["differential", "Differential"],
-            ["ignore", "Ignore"],
-            ["fractional", "Fractional"]
+            ["same-occurence", "Same Occurrence"]
         ],
         "OptimizationSetupMethod": [
             ["simplex", "Simplex"],
@@ -730,7 +725,7 @@
             "exclude_self": ["Exclude Self", "RPNBoolean", "1", "If nonzero, self-links are blocked. It is not recommended to change this."]
         },
         "command_load_parameters": {
-            "filename": ["Filename", "LoadParametersFilename", "", ""],
+            "filename": ["Filename", "InputFile", "", ""],
             "filename_list": ["Filename List", "OptionalString", "", "A list of filenames, which may be given in place of filename. If used, each file in the list is treated as if it was separately supplied with an individual load_parameters command."],
             "include_name_pattern": ["Include Name Pattern", "OptionalString", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which elements to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
             "exclude_name_pattern": ["Exclude Name Pattern", "OptionalString", "", ""],

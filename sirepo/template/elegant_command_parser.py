@@ -9,6 +9,8 @@ import re
 
 from sirepo.template.line_parser import LineParser
 
+_SKIP_COMMANDS = ['subprocess']
+
 def parse_file(command_text):
     parser = LineParser(0)
     lines = command_text.replace('\r', '').split('\n')
@@ -30,11 +32,7 @@ def parse_file(command_text):
             prev_line += ' ' + line
     if prev_line and re.search(r'\&', prev_line):
         parser.raise_error('missing &end for command: {}'.format(prev_line))
-    return {
-        'models': {
-            'commands': commands,
-        }
-    }
+    return commands
 
 
 def _parse_array_value(parser):
@@ -105,5 +103,6 @@ def _parse_line(parser, line, commands):
         else:
             parser.raise_error('trailing input: {}'.format(value))
     parser.assert_end_of_line()
-    commands.append(command)
+    if not command['_type'] in _SKIP_COMMANDS:
+        commands.append(command)
     return True

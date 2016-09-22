@@ -11,11 +11,14 @@ import ntpath
 import os
 import py.path
 import re
-import sirepo.template.elegant
+import subprocess
 
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
+from sirepo import simulation_db
 from sirepo.template import elegant_lattice_parser
+
+_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 
 _ANGLE_FIELDS = ['angle', 'kick', 'hkick']
 _BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND']
@@ -27,8 +30,8 @@ _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 with open(str(_STATIC_FOLDER.join('json/elegant-default.json'))) as f:
     _DEFAULTS = json.load(f)
 
-with open(str(_STATIC_FOLDER.join('json/elegant-schema.json'))) as f:
-    _SCHEMA = json.load(f)
+_SCHEMA = simulation_db.get_schema('elegant')
+
 
 def _init_types():
     res = {}
@@ -39,6 +42,19 @@ def _init_types():
 
 
 _ELEGANT_TYPES = _init_types()
+
+
+def build_variable_dependency(value, variables, depends):
+    for v in str(value).split(' '):
+        if v in variables:
+            if v not in depends:
+                build_variable_dependency(variables[v], variables, depends)
+                depends.append(v)
+    return depends
+
+
+def default_data():
+    return _DEFAULTS.copy()
 
 
 def import_file(text):
@@ -52,11 +68,7 @@ def import_file(text):
     for el in models['elements']:
         el['type'] = _validate_type(el, element_names)
         element_names[el['name'].upper()] = el
-        for field in el.copy():
-            _validate_field(el, field, rpn_cache, models['rpnVariables'])
-        for field in _SCHEMA['model'][el['type']]:
-            if field not in el:
-                el[field] = _SCHEMA['model'][el['type']][field][2]
+        validate_fields(el, rpn_cache, models['rpnVariables'])
 
     for bl in models['beamlines']:
         bl['items'] = _validate_beamline(bl, name_to_id, element_names)
@@ -65,7 +77,7 @@ def import_file(text):
         raise IOError('no beamline elements found in file')
     _calculate_beamline_metrics(models, rpn_cache)
 
-    data = _DEFAULTS.copy()
+    data = default_data()
     data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
     data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
     data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
@@ -76,6 +88,46 @@ def import_file(text):
         data['models']['simulation']['visualizationBeamlineId'] = default_beamline_id
 
     return data
+
+
+def is_rpn_value(value):
+    if (value):
+        if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
+            return False
+        return True
+    return False
+
+
+def parse_rpn_value(value, variable_list):
+    variables = {x['name']: x['value'] for x in variable_list}
+    my_env = os.environ.copy()
+    my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
+    depends = build_variable_dependency(value, variables, [])
+    var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
+    #TODO(pjm): security - need to scrub field value
+    out = ''
+    try:
+        with open(os.devnull, 'w') as devnull:
+            pkdc('rpnl "{}" "{}"'.format(var_list, value))
+            out = subprocess.check_output(['rpnl', '{} {}'.format(var_list, value)], env=my_env, stderr=devnull)
+    except subprocess.CalledProcessError as e:
+        return None, 'invalid'
+    if len(out):
+        return float(out.strip()), None
+    return None, 'empty'
+
+
+def validate_fields(el, rpn_cache, rpn_variables):
+    for field in el.copy():
+        _validate_field(el, field, rpn_cache, rpn_variables)
+    model_name = _model_name_for_data(el)
+    for field in _SCHEMA['model'][model_name]:
+        if field not in el:
+            el[field] = _SCHEMA['model'][model_name][field][2]
+
+
+def _model_name_for_data(model):
+    return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
 def _calculate_beamline_metrics(models, rpn_cache):
@@ -191,18 +243,20 @@ def _validate_beamline(bl, name_to_id, element_names):
 
 
 def _validate_field(el, field, rpn_cache, rpn_variables):
-    if field in ['_id', 'type']:
+    if field in ['_id', 'type', '_type']:
         return
     field_type = None
-    for f in _SCHEMA['model'][el['type']]:
+    model_name = _model_name_for_data(el)
+    for f in _SCHEMA['model'][model_name]:
         if f == field:
-            field_type = _SCHEMA['model'][el['type']][f][1]
+            field_type = _SCHEMA['model'][model_name][f][1]
+            break
     if not field_type:
-        pkdp('{}: unkown field type for {}', field, el['type'])
+        pkdp('{}: unknown field type for {}', field, model_name)
         del el[field]
     else:
         if field_type == 'OutputFile':
-            el[field] = '{}.{}.sdds'.format(el['name'], field)
+            el[field] = '1'
         elif field_type == 'InputFile':
             el[field] = ntpath.basename(el[field])
         elif field_type == "InputFileXY":
@@ -215,11 +269,13 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
                 el[field + 'Y'] = m.group(3)
             else:
                 el[field] = fullname
-        elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and sirepo.template.elegant.is_rpn_value(el[field]):
-            value, error = sirepo.template.elegant.parse_rpn_value(el[field], rpn_variables)
-            if error:
-                raise IOError('invalid rpn: "{}"'.format(el[field]))
-            rpn_cache[el[field]] = value
+        elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and is_rpn_value(el[field]):
+            #TODO(pjm): strip parens from command rpn and validate
+            if '_type' not in el:
+                value, error = parse_rpn_value(el[field], rpn_variables)
+                if error:
+                    raise IOError('invalid rpn: "{}"'.format(el[field]))
+                rpn_cache[el[field]] = value
         elif field_type in _SCHEMA['enum']:
             search = el[field].lower()
             exact_match = ''
@@ -235,7 +291,7 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
             elif close_match:
                 el[field] = close_match
             else:
-                raise IOError('unknown value: "{}"'.format(search))
+                raise IOError('{} {} unknown value: "{}"'.format(model_name, field, search))
 
 
 def _validate_type(el, element_names):
