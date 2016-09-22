@@ -144,12 +144,16 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
 
     self.autoSave = function(callback) {
         //TODO(robnagler) Need collision on multiple autosave calls
-        if (! self.isLoaded())
-            return;
+        if (! self.isLoaded()) {
+            if ($.isFunction(callback)) {
+                callback();
+            }
+        }
         if (lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
-            if (_.isFunction(callback))
+            if ($.isFunction(callback)) {
                 callback();
+            }
             return;
         }
         requestQueue.addItem(
@@ -165,7 +169,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                             = lastAutoSaveData.models.simulation.simulationSerial;
                         self.models.simulation.simulationSerial
                             = lastAutoSaveData.models.simulation.simulationSerial;
-                        if (_.isFunction(callback)) {
+                        if ($.isFunction(callback)) {
                             callback(resp);
                         }
                     },
