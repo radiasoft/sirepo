@@ -144,9 +144,9 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
 
     self.autoSave = function(callback) {
         //TODO(robnagler) Need collision on multiple autosave calls
-        if (! self.isLoaded() || ! lastAutoSaveData)
+        if (! self.isLoaded())
             return;
-        if (self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
+        if (lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
             if (_.isFunction(callback))
                 callback();
@@ -1057,7 +1057,8 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
-            if (qi.remove) {
+            if (qi.canceled) {
+                sendNextItem(name);
                 return;
             }
             q.shift();
@@ -1077,7 +1078,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
     self.cancelItems = function(queueName) {
         var q = getQueue(queueName);
-        q.forEach(function(qi) {qi.removed = true;});
+        q.forEach(function(qi) {qi.canceled = true;});
         q.length = 0;
     };
 
