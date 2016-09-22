@@ -148,6 +148,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
             if ($.isFunction(callback)) {
                 callback();
             }
+            return;
         }
         if (lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
             // no changes
