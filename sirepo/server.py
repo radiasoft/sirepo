@@ -384,6 +384,7 @@ def app_run_cancel():
 def app_run_simulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data, quiet=True)
+    pkdp(res['state'])
     if (
         (
             res['state'] != ('running', 'pending')
@@ -573,13 +574,17 @@ def _cfg_job_queue(value):
         return value
     if value == 'Celery':
         from sirepo import celery_tasks
+        err = None
         try:
             if not celery_tasks.celery.control.ping():
-                pkdlog('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
-                sys.exit(1)
+                err = 'You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -Q parallel,sequential'
         except Exception:
-            pkdlog('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
-            sys.exit(1)
+            err = 'You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management'
+        if err:
+            #TODO(robnagler) really should be pkconfig.Error() or something else
+            # but this prints a nice message. Don't call sys.exit, not nice
+            import pykern.pkcli
+            pykern.pkcli.command_error(err)
         return _Celery
     elif value == 'Background':
         signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
@@ -825,7 +830,8 @@ def _validate_serial(data):
     if not res:
         return None
     return _json_response({
-        'msgType': 'invalidSerial',
+        'state': 'error',
+        'error': 'invalidSerial',
         'simulationData': res,
     })
 
