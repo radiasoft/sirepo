@@ -104,6 +104,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         models: {},
     };
     var QUEUE_NAME = 'saveSimulationData';
+    var AUTO_SAVE_SECONDS = 60;
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
@@ -361,7 +362,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         // auto save data every 60 seconds
         if (autoSaveTimer)
             $interval.cancel(autoSaveTimer);
-        autoSaveTimer = $interval(self.autoSave, 60000);
+        autoSaveTimer = $interval(self.autoSave, AUTO_SAVE_SECONDS * 1000);
     };
 
     self.saveQuietly = function(name) {

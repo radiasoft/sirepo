@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
+import copy
 import hashlib
 import json
 import re
@@ -73,7 +74,13 @@ def report_parameters_hash(data):
         if data['report'] in data['models']:
             models.append(data['report'])
         for m in sorted(models):
-            j = json.dumps(data['models'][m], sort_keys=True)
+            md = data['models'][m]
+            if m == 'simulation':
+                md = copy.deepcopy(md)
+                for k in 'simulationSerial', 'outOfSessionSimulationId', 'simulationId', 'folder', 'documentationUrl', 'facility', 'isExample', 'name':
+                    if k in md:
+                        del md[k]
+            j = json.dumps(md, sort_keys=True)
             res.update(j)
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']

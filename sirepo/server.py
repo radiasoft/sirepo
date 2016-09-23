@@ -384,7 +384,6 @@ def app_run_cancel():
 def app_run_simulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data, quiet=True)
-    pkdp(res['state'])
     if (
         (
             res['state'] != ('running', 'pending')
