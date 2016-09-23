@@ -14,7 +14,7 @@ import traceback
 import py
 import requests
 from pykern import pkio, pkrunpy
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdlog, pkdp
 from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 
 try:
@@ -123,7 +123,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     except Exception as e:
         lineno = _find_line_in_trace(script) if script else None
         # Avoid
-        pkdp(
+        pkdlog(
             'Error: {}; exception={}; script={}; filename={}; stack:\n{}',
             error,
             e,

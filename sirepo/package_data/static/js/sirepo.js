@@ -104,6 +104,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         models: {},
     };
     var QUEUE_NAME = 'saveSimulationData';
+    var AUTO_SAVE_SECONDS = 60;
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
@@ -143,13 +144,13 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
     };
 
     self.autoSave = function(callback) {
-        //TODO(robnagler) Need collision on multiple autosave calls
-        if (! self.isLoaded() || ! lastAutoSaveData)
-            return;
-        if (self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
+        if (! self.isLoaded() ||
+            lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)
+        ) {
             // no changes
-            if (_.isFunction(callback))
-                callback();
+            if ($.isFunction(callback)) {
+                callback({'state': 'noChanges'});
+            }
             return;
         }
         requestQueue.addItem(
@@ -160,12 +161,25 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                 return {
                     urlOrParams: 'saveSimulationData',
                     successCallback: function (resp) {
-                        lastAutoSaveData = self.clone(resp);
-                        savedModelValues.simulation.simulationSerial
-                            = lastAutoSaveData.models.simulation.simulationSerial;
-                        self.models.simulation.simulationSerial
-                            = lastAutoSaveData.models.simulation.simulationSerial;
-                        if (_.isFunction(callback)) {
+                        if (resp.error && resp.error == 'invalidSerial') {
+                            srlog(resp.simulationData.models.simulation.simulationId, ': update collision newSerial=', resp.simulationData.models.simulation.simulationSerial, '; refreshing');
+                            self.refreshSimulationData(resp.simulationData);
+                            self.alertText('Another browser updated this simulation; local state has been refreshed');
+                        }
+                        else {
+                            lastAutoSaveData = self.clone(resp);
+                            savedModelValues.simulation.simulationSerial
+                                = lastAutoSaveData.models.simulation.simulationSerial;
+                            self.models.simulation.simulationSerial
+                                = lastAutoSaveData.models.simulation.simulationSerial;
+                        }
+                        if ($.isFunction(callback)) {
+                            callback(resp);
+                        }
+                    },
+                    errorCallback: function (resp, status) {
+                        if ($.isFunction(callback)) {
+                            //TODO(robnagler) this should be errorCallback
                             callback(resp);
                         }
                     },
@@ -348,7 +362,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         // auto save data every 60 seconds
         if (autoSaveTimer)
             $interval.cancel(autoSaveTimer);
-        autoSaveTimer = $interval(self.autoSave, 60000);
+        autoSaveTimer = $interval(self.autoSave, AUTO_SAVE_SECONDS * 1000);
     };
 
     self.saveQuietly = function(name) {
@@ -415,16 +429,6 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         else
             $scope.$on('modelsLoaded', callback);
     };
-
-    requestSender.registerMsgType(
-        'invalidSerial',
-        function(msg) {
-            //TODO(robnagler) need to indicate error
-            srlog('update collision: ', msg);
-            self.refreshSimulationData(msg.simulationData);
-            self.alertText('Another browser updated this simulation; refreshing local state');
-        }
-    );
 
     return self;
 });
@@ -697,7 +701,6 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q, _, exceptionLoggingService) {
     var self = {};
     var getApplicationDataTimeout;
-    var msgTypes = {};
     var IS_HTML_ERROR_RE = new RegExp('<!DOCTYPE', 'i');
 
     function logError(data, status) {
@@ -810,22 +813,6 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             $location.search(search);
     };
 
-    function msgTypeDispatch(msg) {
-        var f = msgTypes[msg.msgType];
-        if (! f) {
-            srlog(msg.msgType, ': unknown msgType; msg=', msg);
-        }
-        return f(msg);
-    }
-
-    self.registerMsgType = function(msgType, callback) {
-        if (msgTypes[msgType]) {
-            srlog(msgType, ': duplicate msgType, ignoring callback=', callback);
-            return;
-        }
-        msgTypes[msgType] = callback;
-    };
-
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback)
             errorCallback = logError;
@@ -854,10 +841,6 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         req.success(
             function(resp, status) {
                 $interval.cancel(interval);
-                if (resp.msgType) {
-                    msgTypeDispatch(resp);
-                    return;
-                }
                 successCallback(resp, status);
             }
         );
@@ -1057,7 +1040,8 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
-            if (qi.remove) {
+            if (qi.canceled) {
+                sendNextItem(name);
                 return;
             }
             q.shift();
@@ -1077,7 +1061,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
     self.cancelItems = function(queueName) {
         var q = getQueue(queueName);
-        q.forEach(function(qi) {qi.removed = true;});
+        q.forEach(function(qi) {qi.canceled = true;});
         q.length = 0;
     };
 

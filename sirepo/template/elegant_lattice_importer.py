@@ -14,7 +14,7 @@ import re
 import subprocess
 
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_lattice_parser
 
@@ -252,7 +252,7 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
             field_type = _SCHEMA['model'][model_name][f][1]
             break
     if not field_type:
-        pkdp('{}: unknown field type for {}', field, model_name)
+        pkdlog('{}: unknown field type for {}', field, model_name)
         del el[field]
     else:
         if field_type == 'OutputFile':

@@ -10,7 +10,7 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import template_common
 import copy
 import datetime
@@ -127,7 +127,7 @@ def examples(app):
     )
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
-    return [fixup_old_data(app, open_json_file(app, path=str(f))) for f in files]
+    return [open_json_file(app, path=str(f)) for f in files]
 
 
 def find_global_simulation(simulation_type, sid):
@@ -144,21 +144,40 @@ def find_global_simulation(simulation_type, sid):
     return None
 
 
-def fixup_old_data(simulation_type, data):
+def fixup_old_data(data):
+    """Upgrade data to latest schema and updates version.
+
+    Args:
+        data (dict): to be updated (destructively)
+
+    Returns:
+        dict: upgraded `data`
+        bool: True if data changed
+    """
     try:
         if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
-            return data
-        sirepo.template.import_module(simulation_type).fixup_old_data(data)
+            return data, False
         data['version'] = SCHEMA_COMMON['version']
+        if not 'simulationType' in data:
+            if 'sourceIntensityReport' in data['models']:
+                data['simulationType'] = 'srw'
+            elif 'fieldAnimation' in data['models']:
+                data['simulationType'] = 'warp'
+            elif 'bunchSource' in data['models']:
+                data['simulationType'] = 'elegant'
+            else:
+                pkdlog('simulationType: not found; data={}', data)
+                raise AssertionError('must have simulationType')
         if not 'simulationSerial' in data['models']['simulation']:
             data['models']['simulation']['simulationSerial'] = 0
+        sirepo.template.import_module(data['simulationType']).fixup_old_data(data)
         try:
             del data['models']['simulationStatus']
         except KeyError:
             pass
-        return data
+        return data, True
     except Exception as e:
-        pkdp('{}: error: {}', data, pkdexc())
+        pkdlog('{}: error: {}', data, pkdexc())
         raise
 
 
@@ -217,7 +236,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
                 continue
             op(res, path, data)
         except ValueError as e:
-            pkdp('{}: error: {}', path, e)
+            pkdlog('{}: error: {}', path, e)
     return res
 
 
@@ -244,18 +263,30 @@ def json_load(*args, **kwargs):
     return pkcollections.json_load_any(*args, **kwargs)
 
 
-#TODO(robnagler) should just be "data"
-def open_json_file(simulation_type, path=None, sid=None):
+def open_json_file(sim_type, path=None, sid=None, fixup=True):
+    """Read a db file and return result
+
+    Args:
+        sim_type (str): simulation type (app)
+        path (py.path.local): where to read the file
+        sid (str): simulation id
+
+    Returns:
+        dict: data
+
+    Raises:
+        CopyRedirect: if the simulation is in another user's
+    """
     if not path:
-        path = _simulation_data_file(simulation_type, sid)
+        path = _simulation_data_file(sim_type, sid)
     if not os.path.isfile(str(path)):
         global_sid = None
         if sid:
             #TODO(robnagler) workflow should be in server.py,
             # because only valid in one case, not e.g. for opening examples
             # which are not found.
-            user_copy_sid = _find_user_simulation_copy(simulation_type, sid)
-            if find_global_simulation(simulation_type, sid):
+            user_copy_sid = _find_user_simulation_copy(sim_type, sid)
+            if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
             raise CopyRedirect({
@@ -274,9 +305,9 @@ def open_json_file(simulation_type, path=None, sid=None):
             if sid:
                 data['models']['simulation']['simulationId'] = _sid_from_path(path)
     except Exception as e:
-        pkdp('{}: error: {}', path, pkdexc())
+        pkdlog('{}: error: {}', path, pkdexc())
         raise
-    return data
+    return fixup_old_data(data)[0] if fixup else data
 
 
 def parse_sid(data):
@@ -422,9 +453,9 @@ def read_result(run_dir):
                     err = e
             except Exception as e:
                 if pkio.exception_is_not_found(e):
-                    pkdp('{}: error reading log: {}', rl, pkdexc())
+                    pkdlog('{}: error reading log: {}', rl, pkdexc())
         else:
-            pkdp('{}: error reading output: {}', fn, err)
+            pkdlog('{}: error reading output: {}', fn, err)
     if err:
         return None, err
     if not res:
@@ -444,9 +475,9 @@ def read_simulation_json(sim_type, *args, **kwargs):
     Returns:
         data (dict): simulation data
     """
-    data = open_json_file(sim_type, *args, **kwargs)
-    new = fixup_old_data(sim_type, copy.deepcopy(data))
-    if new != data:
+    data = open_json_file(sim_type, fixup=False, *args, **kwargs)
+    new, changed = fixup_old_data(data)
+    if changed:
         return save_simulation_json(sim_type, new)
     return data
 
@@ -489,7 +520,7 @@ def save_simulation_json(simulation_type, data):
             del data['simulationStatus']
         except:
             pass
-        data = fixup_old_data(simulation_type, data)
+        data = fixup_old_data(data)[0]
         data['models']['simulation']['simulationSerial'] = _serial_new()
         write_json(_simulation_data_file(simulation_type, sid), data)
         return data
@@ -575,7 +606,7 @@ def validate_serial(req_data):
             if req_ser == curr_ser:
                 return None
             status = 'newer' if req_ser > curr_ser else 'older'
-            pkdp(
+            pkdlog(
                 '{}: incoming serial {} than stored serial={} sid={}, resetting client',
                 req_ser,
                 status,

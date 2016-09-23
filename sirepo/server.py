@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import beaker.middleware
@@ -30,6 +30,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -186,19 +187,28 @@ def app_download_file(simulation_type, simulation_id, filename):
 def app_error_logging():
     ip = flask.request.remote_addr
     try:
-        pkdp(
+        pkdlog(
             '{}: javascript error: {}',
             ip,
             simulation_db.generate_json(_json_input(), pretty=True),
         )
     except ValueError as e:
-        pkdp(
+        pkdlog(
             '{}: error parsing javascript app_error: {} input={}',
             ip,
             e,
             flask.request.data.decode('unicode-escape'),
         )
     return _json_response_ok();
+
+
+@app.route('/favicon.ico')
+def app_favicon():
+    """Routes to favicon.ico file."""
+    return flask.send_from_directory(
+        str(simulation_db.STATIC_FOLDER.join('img')),
+        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
@@ -229,13 +239,9 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
         show_item_id = None
         # for light-sources application mode, the simulation_name is the facility
         # copy all new examples into the session
-        def _rr(row):
-            pkdp(row['models']['simulation']['simulationId'])
-            return row['models']['simulation']['folder']
         examples = sorted(
             simulation_db.examples(simulation_type),
-            key=_rr,
-            #key=lambda row: row['models']['simulation']['folder'],
+            key=lambda row: row['models']['simulation']['folder'],
         )
         for s in examples:
             if s['models']['simulation']['facility'] == simulation_name:
@@ -334,6 +340,15 @@ def app_python_source(simulation_type, simulation_id):
     )
 
 
+@app.route('/robots.txt')
+def app_robots_txt():
+    """Tell robots to go away"""
+    return flask.Response(
+        'User-agent: *\nDisallow: /\n',
+        mimetype='text/plain',
+    )
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['root'])
 def app_root(simulation_type):
     return flask.render_template(
@@ -342,14 +357,6 @@ def app_root(simulation_type):
         app_name=simulation_type,
     )
 
-
-@app.route('/favicon.ico')
-def app_route_favicon():
-    """Routes to favicon.ico file."""
-    return flask.send_from_directory(
-        str(simulation_db.STATIC_FOLDER.join('img')),
-        'favicon.ico', mimetype='image/vnd.microsoft.icon'
-    )
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
@@ -551,9 +558,9 @@ def _cached_simulation(data):
         if req_hash == cached_hash:
             return True, cached_data
     except IOError as e:
-        pkdp('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
+        pkdlog('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
     except Exception as e:
-        pkdp('{}: ignore other error: {}', run_dir, e)
+        pkdlog('{}: ignore other error: {}', run_dir, e)
         # No idea if cache is valid or not so throw away
         cached_data = None
     return False, cached_data
@@ -566,13 +573,17 @@ def _cfg_job_queue(value):
         return value
     if value == 'Celery':
         from sirepo import celery_tasks
+        err = None
         try:
             if not celery_tasks.celery.control.ping():
-                pkdp('You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -c 1 -Q parallel,sequential')
-                sys.exit(1)
+                err = 'You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -Q parallel,sequential'
         except Exception:
-            pkdp('You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management')
-            sys.exit(1)
+            err = 'You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management'
+        if err:
+            #TODO(robnagler) really should be pkconfig.Error() or something else
+            # but this prints a nice message. Don't call sys.exit, not nice
+            import pykern.pkcli
+            pykern.pkcli.command_error(err)
         return _Celery
     elif value == 'Background':
         signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
@@ -611,7 +622,7 @@ def _job_id(data):
 def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
-        pkdp('{}: req.mimetype is not application/json', req.mimetype)
+        pkdlog('{}: req.mimetype is not application/json', req.mimetype)
         raise werkzeug.Eexceptions.BadRequest('expecting application/json')
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
@@ -669,7 +680,7 @@ def _no_cache(response):
 
 def _parse_data_input(validate=False):
     data = _json_input()
-    return simulation_db.fixup_old_data(data['simulationType'], data) if validate else data
+    return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _save_new_and_reply(*args):
@@ -693,7 +704,7 @@ def _simulation_error(err, *args, **kwargs):
         dict: error response
     """
     if not kwargs.get('quiet'):
-        pkdp('{}', ': '.join([str(a) for a in args] + ['error', err]))
+        pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
     m = re.search(_SUBPROCESS_ERROR_RE, str(err))
     if m:
         err = m.group(1)
@@ -818,7 +829,8 @@ def _validate_serial(data):
     if not res:
         return None
     return _json_response({
-        'msgType': 'invalidSerial',
+        'state': 'error',
+        'error': 'invalidSerial',
         'simulationData': res,
     })
 
@@ -836,7 +848,7 @@ class _Background(object):
             self.jid = _job_id(data)
             assert not self.jid in self._job, \
                 '{}: simulation already running'.format(self.jid)
-            self.in_kill = False
+            self.in_kill = None
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.pid = None
@@ -874,12 +886,13 @@ class _Background(object):
                 self = cls._job[jid]
             except KeyError:
                 return
-            #TODO(robnagler) will this happen?
             if self.in_kill:
-                pkdp('{}: ASSUMPTION ERROR: self.in_kill is already set', jid)
+                pkdlog('{}: kill in progress in another thread', jid)
                 return
-            self.in_kill = True
-        pkdp('{}: stopping: pid={}', self.jid, self.pid)
+            nonce = uuid.uuid4()
+            self.in_kill = nonce
+
+        pkdlog('{}: stopping: pid={}', self.jid, self.pid)
         sig = signal.SIGTERM
         for i in range(3):
             try:
@@ -887,34 +900,40 @@ class _Background(object):
                 time.sleep(1)
                 pid, status = os.waitpid(self.pid, os.WNOHANG)
                 if pid == self.pid:
-                    pkdp('{}: waitpid: status={}', pid, status)
+                    pkdlog('{}: waitpid: status={}', pid, status)
                     break
+                else:
+                    pkdlog('{}: unexpected waitpid result; job={} pid={}', pid, self.jid, self.pid)
                 sig = signal.SIGKILL
             except OSError:
-                # Already reaped(?)
-                break
+                pkdlog('{}: already reaped; job={}', self.pid, self.jid)
+                return
         with cls._lock:
-            self.in_kill = False
             try:
-                del self._job[self.jid]
-                pkdp('{}: deleted', self.jid)
+                self = cls._job[jid]
+                if self.in_kill and self.in_kill == nonce:
+                    self.in_kill = None
+                    del self._job[self.jid]
+                    pkdlog('{}: delete successful', self.jid)
+                    return
             except KeyError:
                 pass
+            pkdlog('{}: job restarted by another thread', jid)
 
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
         try:
             pid, status = os.waitpid(-1, os.WNOHANG)
-            pkdp('{}: waitpid: status={}', pid, status)
+            pkdlog('{}: waitpid: status={}', pid, status)
             with cls._lock:
                 for self in cls._job.values():
                     if self.pid == pid:
                         del self._job[self.jid]
-                        pkdp('{}: deleted', self.jid)
+                        pkdlog('{}: delete successful', self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
-                pkdp('waitpid: OSError: {} errno={}', e.strerror, e.errno)
+                pkdlog('waitpid: OSError: {} errno={}', e.strerror, e.errno)
                 # Fall through. Not much to do here
 
     def _start_job(self):
@@ -927,10 +946,10 @@ class _Background(object):
         try:
             pid = os.fork()
         except OSError as e:
-            pkdp('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
+            pkdlog('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
             reraise
         if pid != 0:
-            pkdp('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
+            pkdlog('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
             return pid
         try:
             os.chdir(str(self.run_dir))
@@ -950,12 +969,12 @@ class _Background(object):
             sys.stdout = os.fdopen(1, 'a+')
             os.dup2(0, 2)
             sys.stderr = os.fdopen(2, 'a+')
-            pkdp('{}: child will exec: {}', self.jid, self.cmd)
+            pkdlog('{}: child will exec: {}', self.jid, self.cmd)
             sys.stderr.flush()
             try:
                 os.execvp(self.cmd[0], self.cmd)
             finally:
-                pkdp('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
+                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
@@ -976,7 +995,6 @@ class _Celery(object):
             self.jid = _job_id(data)
             assert not self.jid in self._job, \
                 '{}: simulation already running'.format(self.jid)
-            self.in_kill = False
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.data = data
@@ -1009,7 +1027,7 @@ class _Celery(object):
             if not self:
                 return
             res = self.async_result
-            pkdp('{}: killing: tid={}', jid, res.task_id)
+            pkdlog('{}: killing: tid={}', jid, res.task_id)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
@@ -1017,7 +1035,7 @@ class _Celery(object):
         with cls._lock:
             try:
                 del cls._job[jid]
-                pkdp('{}: deleted', jid)
+                pkdlog('{}: deleted', jid)
             except KeyError:
                 pass
 
@@ -1039,7 +1057,7 @@ class _Celery(object):
         """
         from sirepo import celery_tasks
         self.celery_queue = simulation_db.celery_queue(self.data)
-        pkdp('{}: starting queue={}', self.run_dir, self.celery_queue)
+        pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
             args=[self.cmd, self.run_dir],
             queue=self.celery_queue,

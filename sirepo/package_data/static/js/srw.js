@@ -160,7 +160,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         //TODO(pjm): move default values to separate area
         {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
         {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
-         horizontalApertureSize:1, verticalApertureSize:1, tipRadius:1.5e3, numberOfLenses:3, tipWallThickness:80},
+         horizontalApertureSize:1, verticalApertureSize:1, tipRadius:1.5e3, radius:1.5e-3, numberOfLenses:3, tipWallThickness:80, wallThickness:80e-6},
         {type:'fiber', title:'Fiber', focalPlane:1, method:'server', externalMaterial:'User-defined', externalRefractiveIndex:4.20756805e-06, externalAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
         {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
         {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
@@ -199,7 +199,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         if (newItem.type == 'watch')
             appState.models[watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
         appState.models.beamline.push(newItem);
-        srdbg('addITem ', appState.models.beamline);
         self.dismissPopup();
     }
 
@@ -334,7 +333,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.dropBetween = function(index, data) {
         if (! data)
             return;
-        //srdbg('dropBetween: ', index, ' ', data, ' ', data.id ? 'old' : 'new');
         var item;
         if (data.id) {
             self.dismissPopup();

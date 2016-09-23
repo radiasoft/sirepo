@@ -2,6 +2,12 @@
 
 var SRW_EXAMPLES;
 
+SIREPO.srlog = console.log.bind(console);
+SIREPO.srdbg = console.log.bind(console);
+
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 angular.element(document).ready(function() {
     $.ajax({
         url: '/static/json/srw-examples.json?' + SIREPO.APP_VERSION,
@@ -11,7 +17,7 @@ angular.element(document).ready(function() {
         },
         error: function(xhr, status, err) {
             if (! SRW_EXAMPLES)
-                console.log("srw examples load failed: ", err);
+                srlog("srw examples load failed: ", err);
         },
         method: 'GET',
         dataType: 'json',
