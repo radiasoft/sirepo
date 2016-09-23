@@ -2,11 +2,12 @@
 // $snapshot.source();
 // e.getText().then(console.log);
 
-describe('SRW-Library', function() {
+describe('srw1', function() {
     it('show-library', function() {
+        var b = require('./base');
         var e;
         var expect_ev = '1.234';
-        browser.get('http://localhost:8000/srw');
+        browser.get(browser.params.uri + '/srw');
         element.all(by.repeater('item in simulations.fileTree'))
             .all(by.cssContainingText('a', 'Wavefront Propagation'))
             .first()
@@ -26,6 +27,7 @@ describe('SRW-Library', function() {
             .first()
             .element(by.xpath('..'))
             .element(by.css('text.main-title'));
+        b.snapshot();
         expect(e.getText()).toBe('E=' + expect_ev + ' eV');
         /*
         /*

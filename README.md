@@ -211,9 +211,10 @@ To run tests:
 cd ~/src/radiasoft/sirepo
 # Starts server on http://localhost:4444/wd/hub
 DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
-# Starts server on 8000 by default
-sirepo service http >& http.log &
-./node_modules/protractor/bin/protractor protractor-conf.js
+# Default is 8000
+SIREPO_PKCLI_SERVICE_PORT=8000 sirepo service http >& http.log &
+# You don't need to pass uri as it is set to 8000 by default, but clearer
+./node_modules/protractor/bin/protractor --params.uri=http://localhost:8000 protractor-conf.js
 ```
 
 Output will look like:

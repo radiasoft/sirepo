@@ -5,11 +5,19 @@ exports.config = {
     jasmineNodeOpts: {
         showColors: 0
     },
+    // Custom parameters for test. You can override on command line --params.sr_uri=https:/...
+    params: {
+        uri: 'http://localhost:8000',
+        save: function() {
+            var $snapshot = require('protractor-snapshot');
+            $snapshot.source();
+        }
+    },
     protractorSnapshotOpts: {
 
         // base format for created files
         // replaces %suiteName%, %suiteId%, %specName%, %specId%, %browser%, %resolution% and %increment% with their respective values
-        basename: '%specId%-%increment%',
+        basename: '%suiteName%-%specName%-%increment%',
 
         image: {
 
@@ -68,7 +76,7 @@ exports.config = {
         },
 
         // write a log of all created snapshots, set to false to disable
-        report: false, // './run/protractor-snapshot/protractor-snapshot/report.json'
+        report: './run/protractor-snapshot/report.json'
     },
 
     onPrepare: function () {
