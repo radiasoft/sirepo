@@ -54,7 +54,7 @@ def test_1_serial_stomp():
     prev_data['models']['beamline'][4]['position'] = '60.5'
     failure = fc.sr_post('saveSimulationData', prev_data)
     pkok(
-        failure['msgType'] == 'invalidSerial',
+        failure['error'] == 'invalidSerial',
         '{}: unexpected status, expected serial failure',
         failure,
     )
