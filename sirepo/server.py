@@ -576,9 +576,9 @@ def _cfg_job_queue(value):
         err = None
         try:
             if not celery_tasks.celery.control.ping():
-                err = 'You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -Q parallel,sequential'
+                err = 'You need to start Celery:\nsirepo server celery'
         except Exception:
-            err = 'You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management'
+            err = 'You need to start Rabbit:\nsirepo server rabbitmq'
         if err:
             #TODO(robnagler) really should be pkconfig.Error() or something else
             # but this prints a nice message. Don't call sys.exit, not nice

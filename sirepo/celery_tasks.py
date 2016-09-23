@@ -19,7 +19,7 @@ celery = Celery('sirepo')
 
 cfg = pkconfig.init(
     broker_url=('amqp://guest@localhost//', str, 'Celery: queue broker url'),
-    celeryd_concurrency=(1, int, 'how many tasks to run in parallel'),
+    celeryd_concurrency=(1, int, 'how many worker processes to start'),
     celeryd_task_time_limit=(3600, int, 'max run time for a task in seconds'),
 )
 
@@ -40,6 +40,11 @@ celery.conf.update(
     CELERY_TASK_RESULT_EXPIRES=None,
 )
 
+
+#: List of queues is indexed by "is_parallel"
+QUEUE_NAMES = ('sequential', 'parallel')
+
+
 def queue_name(is_parallel):
     """Which queue to execute in
 
@@ -49,7 +54,7 @@ def queue_name(is_parallel):
     Returns:
         str: name of queue to route task
     """
-    return 'parallel' if is_parallel else 'sequential'
+    return QUEUE_NAMES[int(bool(is_parallel))]
 
 
 @celery.task
