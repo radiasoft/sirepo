@@ -143,17 +143,12 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
     };
 
     self.autoSave = function(callback) {
-        //TODO(robnagler) Need collision on multiple autosave calls
-        if (! self.isLoaded()) {
-            if ($.isFunction(callback)) {
-                callback();
-            }
-            return;
-        }
-        if (lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)) {
+        if (! self.isLoaded() ||
+            lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)
+        ) {
             // no changes
             if ($.isFunction(callback)) {
-                callback();
+                callback({'state': 'noChanges'});
             }
             return;
         }
@@ -165,12 +160,25 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                 return {
                     urlOrParams: 'saveSimulationData',
                     successCallback: function (resp) {
-                        lastAutoSaveData = self.clone(resp);
-                        savedModelValues.simulation.simulationSerial
-                            = lastAutoSaveData.models.simulation.simulationSerial;
-                        self.models.simulation.simulationSerial
-                            = lastAutoSaveData.models.simulation.simulationSerial;
+                        if (resp.error && resp.error == 'invalidSerial') {
+                            srlog(resp.simulationData.models.simulation.simulationId, ': update collision newSerial=', resp.simulationData.models.simulation.simulationSerial, '; refreshing');
+                            self.refreshSimulationData(resp.simulationData);
+                            self.alertText('Another browser updated this simulation; local state has been refreshed');
+                        }
+                        else {
+                            lastAutoSaveData = self.clone(resp);
+                            savedModelValues.simulation.simulationSerial
+                                = lastAutoSaveData.models.simulation.simulationSerial;
+                            self.models.simulation.simulationSerial
+                                = lastAutoSaveData.models.simulation.simulationSerial;
+                        }
                         if ($.isFunction(callback)) {
+                            callback(resp);
+                        }
+                    },
+                    errorCallback: function (resp, status) {
+                        if ($.isFunction(callback)) {
+                            //TODO(robnagler) this should be errorCallback
                             callback(resp);
                         }
                     },
@@ -420,16 +428,6 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
         else
             $scope.$on('modelsLoaded', callback);
     };
-
-    requestSender.registerMsgType(
-        'invalidSerial',
-        function(msg) {
-            //TODO(robnagler) need to indicate error
-            srlog('update collision: ', msg);
-            self.refreshSimulationData(msg.simulationData);
-            self.alertText('Another browser updated this simulation; refreshing local state');
-        }
-    );
 
     return self;
 });
@@ -702,7 +700,6 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q, _, exceptionLoggingService) {
     var self = {};
     var getApplicationDataTimeout;
-    var msgTypes = {};
     var IS_HTML_ERROR_RE = new RegExp('<!DOCTYPE', 'i');
 
     function logError(data, status) {
@@ -815,22 +812,6 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
             $location.search(search);
     };
 
-    function msgTypeDispatch(msg) {
-        var f = msgTypes[msg.msgType];
-        if (! f) {
-            srlog(msg.msgType, ': unknown msgType; msg=', msg);
-        }
-        return f(msg);
-    }
-
-    self.registerMsgType = function(msgType, callback) {
-        if (msgTypes[msgType]) {
-            srlog(msgType, ': duplicate msgType, ignoring callback=', callback);
-            return;
-        }
-        msgTypes[msgType] = callback;
-    };
-
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback)
             errorCallback = logError;
@@ -859,10 +840,6 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
         req.success(
             function(resp, status) {
                 $interval.cancel(interval);
-                if (resp.msgType) {
-                    msgTypeDispatch(resp);
-                    return;
-                }
                 successCallback(resp, status);
             }
         );
