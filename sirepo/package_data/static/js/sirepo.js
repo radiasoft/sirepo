@@ -694,7 +694,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     var self = {};
     var getApplicationDataTimeout;
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
-    var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i')
+    var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
     function logError(data, status) {
         if (status == 404) {
