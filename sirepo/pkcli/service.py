@@ -28,6 +28,7 @@ _DEFAULT_DB_SUBDIR = 'run'
 
 def celery():
     """Start celery"""
+    assert pkconfig.channel_in('dev')
     import celery.bin.celery
     import sirepo.celery_tasks
     run_dir = _run_dir().join('celery').ensure(dir=True)
@@ -36,7 +37,6 @@ def celery():
             'celery',
             'worker',
             '--app=sirepo.celery_tasks',
-            '--loglevel=info',
             '--no-color',
             '--queue=' + ','.join(sirepo.celery_tasks.QUEUE_NAMES),
         ])
@@ -44,6 +44,7 @@ def celery():
 
 def flower():
     """Start flower"""
+    assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('flower').ensure(dir=True)
     with pkio.save_chdir(run_dir):
         from flower.command import FlowerCommand
@@ -65,7 +66,12 @@ def http():
     db_dir = _db_dir()
     with pkio.save_chdir(_run_dir()):
         server.init(db_dir)
-        server.app.run(host=cfg.ip, port=cfg.port, debug=1, threaded=True)
+        server.app.run(
+            host=cfg.ip,
+            port=cfg.port,
+            threaded=True,
+            use_reloader=1,
+        )
 
 
 def nginx_proxy():
@@ -73,6 +79,7 @@ def nginx_proxy():
 
     Used for development only.
     """
+    assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir):
         f = run_dir.join('default.conf')

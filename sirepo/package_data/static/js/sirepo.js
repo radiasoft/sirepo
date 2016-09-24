@@ -99,7 +99,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope, $interval, _) {
+SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, $rootScope, $interval, _) {
     var self = {
         models: {},
     };
@@ -109,7 +109,6 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
     var autoSaveTimer = null;
     var savedModelValues = {};
     var activeFolderPath = null;
-    var alertText = null;
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -131,13 +130,6 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                 broadcastChanged(key);
         }
     }
-
-    self.alertText = function(value) {
-        if (angular.isDefined(value)) {
-            alertText = value;
-        }
-        return alertText;
-    };
 
     self.applicationState = function() {
         return savedModelValues;
@@ -164,7 +156,7 @@ SIREPO.app.factory('appState', function(requestSender, requestQueue, $rootScope,
                         if (resp.error && resp.error == 'invalidSerial') {
                             srlog(resp.simulationData.models.simulation.simulationId, ': update collision newSerial=', resp.simulationData.models.simulation.simulationSerial, '; refreshing');
                             self.refreshSimulationData(resp.simulationData);
-                            self.alertText('Another browser updated this simulation; local state has been refreshed');
+                            errorService.alertText("Another browser updated this simulation.This window's state has been refreshed. Please retry your action.");
                         }
                         else {
                             lastAutoSaveData = self.clone(resp);
@@ -698,15 +690,19 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $interval, $q, _, exceptionLoggingService) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _) {
     var self = {};
     var getApplicationDataTimeout;
-    var IS_HTML_ERROR_RE = new RegExp('<!DOCTYPE', 'i');
+    var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
+    var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i')
 
     function logError(data, status) {
-        srlog('request failed: ', data);
-        if (status == 404)
+        if (status == 404) {
             self.localRedirect('notFound');
+        }
+        else {
+            errorService.alertText('Request failed: ' + data.error);
+        }
     }
 
     function formatUrl(map, routeOrParams, params) {
@@ -852,17 +848,25 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
                     msg = 'request timed out after '
                         + Math.round(SIREPO.http_timeout/1000)
                         + ' seconds';
-                    status = 503;
+                    status = 504;
                 }
                 else if (status === 0) {
                     msg = 'the server is unavailable';
+                    status = 503;
                 }
                 if (_.isString(resp) && IS_HTML_ERROR_RE.exec(resp)) {
-                    srlog('ERROR: unexpected HTML response: ', resp);
+                    var m = HTML_TITLE_RE.exec(resp);
+                    if (m) {
+                        srlog(m[1], ': error response from server');
+                        resp = {error: m[1]};
+                    }
+                }
+                if (_.isEmpty(resp)) {
                     resp = {};
                 }
-                else if (! _.isObject(resp) || _.isEmpty(resp)) {
-                    exceptionLoggingService(resp, 'unexpected response type or empty');
+                else if (! _.isObject(resp)) {
+                    errorService.logToServer(
+                        'serverResponseError', resp, 'unexpected response type or empty');
                     resp = {};
                 }
                 if (! resp.state) {
@@ -871,6 +875,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
                 if (! resp.error) {
                     resp.error = msg || 'a server error occured: status=' + status;
                 }
+                srlog(resp.error);
                 errorCallback(resp, status);
             }
         );
@@ -879,7 +884,7 @@ SIREPO.app.factory('requestSender', function(localRoutes, $http, $location, $int
     return self;
 });
 
-SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender, exceptionLoggingService) {
+SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender) {
     var self = {};
     var runQueue = [];
 
@@ -1227,44 +1232,76 @@ SIREPO.app.factory('traceService', function() {
 });
 
 SIREPO.app.provider('$exceptionHandler', {
-    $get: function(exceptionLoggingService) {
-        return exceptionLoggingService;
+    $get: function(errorService) {
+        return errorService.exceptionHandler;
     }
 });
 
-SIREPO.app.factory('exceptionLoggingService', function($log, $window, traceService) {
-    function error(exception, cause) {
+SIREPO.app.factory('errorService', function($log, $window, traceService) {
+    var self = this;
+    var alertText = null;
+
+    self.exceptionHandler = function(exception, cause) {
         // preserve the default behaviour which will log the error
         // to the console, and allow the application to continue running.
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
-        try{
-            var message = exception ? String(exception) : '<no message>';
-            cause = String(cause || '<no cause>');
+        try {
+            var message = exception ? String(exception) : '';
+            cause = cause ? String(cause) : '';
             // use our traceService to generate a stack trace
             var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
             // an angular service such as $http
-            $.ajax({
-                type: 'POST',
-                //url: localRoutes.errorLogging,
-                url: '/error-logging',
-                contentType: 'application/json',
-                data: angular.toJson({
-                    url: $window.location.href,
-                    message: message,
-                    type: 'exception',
-                    stackTrace: stackTrace,
-                    cause: cause,
-                })
-            });
+            self.logToServer(
+                'clientException',
+                message || '<no message>',
+                cause || '<no cause>',
+                stackTrace
+            );
+            self.alertText(
+                'Application Error: ' + (message || cause || 'unknown state') +
+                    '. A report was sent to the server.'
+            );
         }
         catch (loggingError) {
-            $log.warn('Error server-side logging failed');
-            $log.log(loggingError);
+            $log.error(loggingError, ': unable to prepare error to logToServer');
         }
-    }
-    return error;
+    };
+
+    self.logToServer = function(errorType, message, cause, stackTrace) {
+        $.ajax({
+            type: 'POST',
+            //url: localRoutes.errorLogging,
+            url: '/error-logging',
+            contentType: 'application/json',
+            data: angular.toJson({
+                url: $window.location.href,
+                message: message,
+                type: errorType,
+                stackTrace: stackTrace,
+                cause: cause,
+            }),
+            error: function(jqXRH, textStatus, errorThrown) {
+                $log.error(
+                    textStatus,
+                    ': logToServer failed: originalMessage=',
+                    message,
+                    '; exception=',
+                    errorThrown
+                );
+            },
+        });
+    };
+
+    self.alertText = function(value) {
+        if (angular.isDefined(value)) {
+            alertText = value;
+        }
+        return alertText;
+    };
+
+    return self;
 });
 
 SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {

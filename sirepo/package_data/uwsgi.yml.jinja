@@ -10,6 +10,3 @@ uwsgi:
   die-on-term: true
   stats: {{ run_dir }}/uwsgi.sock
   pidfile: {{ run_dir }}/uwsgi.pid
-{% if logto %}
-  logto: {{ logto }}
-{% endif %}

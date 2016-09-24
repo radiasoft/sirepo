@@ -102,7 +102,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     };
 });
 
-SIREPO.app.directive('srAlert', function(appState) {
+SIREPO.app.directive('srAlert', function(errorService) {
     return {
         restrict: 'A',
         scope: {
@@ -120,7 +120,7 @@ SIREPO.app.directive('srAlert', function(appState) {
             //TODO(robnagler) timeout the alert
             //TODO(robnagler) bind to value in appState or vice versa
             $scope.alertText = function() {
-                return appState.alertText();
+                return errorService.alertText();
             };
             return;
         },

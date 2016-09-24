@@ -7,13 +7,3 @@ import logging
 # Needs to be explicit
 server.init(db_dir='{{ db_dir }}')
 app = server.app
-
-handler = logging.FileHandler('{{ run_dir }}/app.log')
-handler.setLevel(logging.INFO)
-{% raw %}
-handler.setFormatter(
-    logging.Formatter('%(asctime)s %(pathname)s:%(lineno)d:%(message)s'),
-)
-{% endraw %}
-app.logger.addHandler(handler)
-app.logger.setLevel(logging.INFO)

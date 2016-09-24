@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+# MUST BE FIRST
 from pykern import pkconfig
 pkconfig.append_load_path('sirepo')
 
@@ -14,6 +15,8 @@ from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp
 from sirepo.template import template_common
+import py.path
+
 
 celery = Celery('sirepo')
 
@@ -27,17 +30,22 @@ celery.conf.update(
     pkcollections.map_items(cfg, op=lambda k, v: (k.upper(), v)),
 )
 
+_SERIALIZER = 'json'
+
 celery.conf.update(
     CELERYD_LOG_COLOR=False,
     CELERYD_MAX_TASKS_PER_CHILD=1,
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERYD_TASK_SOFT_TIME_LIMIT=celery.conf['CELERYD_TASK_TIME_LIMIT'] - 10,
+    CELERY_ACCEPT_CONTENT=[_SERIALIZER],
     CELERY_ACKS_LATE=True,
     CELERY_REDIRECT_STDOUTS=not pkconfig.channel_in('dev'),
     CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
+    CELERY_RESULT_SERIALIZER=_SERIALIZER,
     CELERY_TASK_PUBLISH_RETRY=False,
     CELERY_TASK_RESULT_EXPIRES=None,
+    CELERY_TASK_SERIALIZER=_SERIALIZER,
 )
 
 
@@ -63,10 +71,11 @@ def start_simulation(cmd, run_dir):
 
     Args:
         cmd (list): simulation command line
-        run_dir (py.path.local): directory
+        run_dir (str): directory
     """
     # Avoid circular import
     from sirepo import simulation_db
+    run_dir = py.path.local(run_dir)
     simulation_db.write_status('running', run_dir)
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(

@@ -101,6 +101,9 @@ app = flask.Flask(
     static_folder=str(simulation_db.STATIC_FOLDER),
     template_folder=str(simulation_db.STATIC_FOLDER),
 )
+app.config.update(
+    PROPAGATE_EXCEPTIONS=True,
+)
 
 
 def init(db_dir):
@@ -1059,7 +1062,7 @@ class _Celery(object):
         self.celery_queue = simulation_db.celery_queue(self.data)
         pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
-            args=[self.cmd, self.run_dir],
+            args=[self.cmd, str(self.run_dir)],
             queue=self.celery_queue,
         )
 
