@@ -4,6 +4,7 @@ pkconfig.append_load_path('sirepo')
 from sirepo import server
 import logging
 
-# Needs to be explicit
-server.init(db_dir='{{ db_dir }}')
+# Needs to be explicit and pass on uwsgi
+import uwsgi
+server.init(db_dir='{{ db_dir }}', uwsgi=uwsgi)
 app = server.app
