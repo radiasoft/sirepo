@@ -74,9 +74,6 @@ _STATUS_FILE = 'status'
 #: created under dir
 _TMP_DIR = 'tmp'
 
-#: Attribute in session object
-_UID_ATTR = 'uid'
-
 #: where users live under db_dir
 _USER_ROOT_DIR = 'user'
 
@@ -88,6 +85,9 @@ _serial_prev = 0
 
 #: Locking of _serial_prev test/update
 _serial_lock = threading.RLock()
+
+#: sirepo.server module, initialized manually to avoid circularity
+_server = None
 
 
 class CopyRedirect(Exception):
@@ -192,9 +192,17 @@ def get_schema(sim_type):
     return schema
 
 
-def init(app):
+def init_by_server(app, server):
+    """Avoid circular import by explicit call from `sirepo.server`.
+
+    Args:
+        app (Flask): flask instance
+        server (module): sirepo.server
+    """
     global _app
     _app = app
+    global _server
+    _server = server
 
 
 def is_parallel(data):
@@ -578,15 +586,6 @@ def tmp_dir():
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
 
 
-def user_id():
-    """Get user id
-
-    Returns:
-        str: user id from session
-    """
-    return flask.session[_UID_ATTR]
-
-
 def validate_serial(req_data):
     """Verify serial in data validates
 
@@ -784,7 +783,7 @@ def _user_dir():
         str: unique id for user from flask session
     """
     try:
-        uid = user_id()
+        uid = _server.session_user()
     except KeyError:
         uid = _user_dir_create()
     d = _user_dir_name(uid)
@@ -803,7 +802,7 @@ def _user_dir_create():
     """
     uid = _random_id(_user_dir_name())['id']
     # Must set before calling simulation_dir
-    flask.session[_UID_ATTR] = uid
+    _server.session_user(uid)
     for simulation_type in SIMULATION_TYPES:
         _create_example_and_lib_files(simulation_type)
     return uid
