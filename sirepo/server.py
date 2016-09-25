@@ -96,6 +96,27 @@ class _BeakerSession(flask.sessions.SessionInterface):
         pass
 
 
+class _WSGIApp(object):
+    """Wraps Flask's wsgi_app for logging
+
+    Args:
+        app (Flask.app): Flask application being wrapped
+        uwsgi (module): `uwsgi` module passed from ``uwsgi.py.jinja``
+    """
+    def __init__(self, app, uwsgi):
+        self.app = app
+        # Is None if called from sirepo.pkcli.service.http or FlaskClient
+        self.uwsgi = uwsgi
+        self.wsgi_app = app.wsgi_app
+        app.wsgi_app = self
+
+    def __call__(self, environ, start_response):
+        """Called by uwsgi with requests"""
+        if self.uwsgi:
+            self.uwsgi.set_logvar('sirepo_user', '-')
+        return self.wsgi_app(environ, start_response)
+
+
 app = flask.Flask(
     __name__,
     static_folder=str(simulation_db.STATIC_FOLDER),
@@ -106,8 +127,9 @@ app.config.update(
 )
 
 
-def init(db_dir):
+def init(db_dir, uwsgi=None):
     """Initialize globals and populate simulation dir"""
+    _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
     simulation_db.init(app)
 
