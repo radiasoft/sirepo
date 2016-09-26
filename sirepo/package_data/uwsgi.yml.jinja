@@ -10,4 +10,5 @@ uwsgi:
   die-on-term: true
   stats: {{ run_dir }}/uwsgi.sock
   pidfile: {{ run_dir }}/uwsgi.pid
-  logto: {{ run_dir }}/uwsgi.log
+  #TODO(robnagler) does not follow YAML spec, but works...
+  log-format: %(addr) - %(sirepo_user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"

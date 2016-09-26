@@ -3,18 +3,8 @@ from pykern import pkconfig
 pkconfig.append_load_path('sirepo')
 from sirepo import server
 import logging
-import logging.handlers;
 
-# Needs to be explicit
-server.init(db_dir='{{ db_dir }}')
+# Needs to be explicit and pass on uwsgi
+import uwsgi
+server.init(db_dir='{{ db_dir }}', uwsgi=uwsgi)
 app = server.app
-
-handler = logging.handlers.RotatingFileHandler(
-    '{{ run_dir }}/app.log', maxBytes=10000, backupCount=1)
-handler.setLevel(logging.INFO)
-{% raw %}
-handler.setFormatter(logging.Formatter(
-    '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s'))
-{% endraw %}
-app.logger.addHandler(handler)
-app.logger.setLevel(logging.INFO)

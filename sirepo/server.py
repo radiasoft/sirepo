@@ -35,8 +35,8 @@ import werkzeug
 import werkzeug.exceptions
 
 
-#: Flask app instance, must be bound globally
-app = None
+#: Identifies the user in the Beaker session
+SESSION_KEY_USER = 'uid'
 
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
@@ -44,69 +44,38 @@ _BEAKER_DATA_DIR = 'beaker'
 #: where users live under db_dir
 _BEAKER_LOCK_DIR = 'lock'
 
-#: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
+#: What's the key in environ for the session
+_ENVIRON_KEY_BEAKER = 'beaker.session'
 
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
 
+#: Parsing errors from subprocess
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
 
-class _BeakerSession(flask.sessions.SessionInterface):
-    """Session manager for Flask using Beaker.
+#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
+_UWSGI_LOG_KEY_USER = 'sirepo_user'
 
-    Stores session info in files in sirepo.server.data_dir. Minimal info kept
-    in session.
-    """
-    def __init__(self, app=None):
-        if app is None:
-            self.app = None
-        else:
-            self.init_app(app)
+#: WSGIApp instance (see `init_by_server`)
+_wsgi_app = None
 
-    def sirepo_init_app(self, app, db_dir):
-        """Initialize cfg with db_dir and register self with Flask
-
-        Args:
-            app (flask): Flask application object
-            db_dir (py.path.local): db_dir passed on command line
-        """
-        app.sirepo_db_dir = db_dir
-        data_dir = db_dir.join(_BEAKER_DATA_DIR)
-        lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
-        pkio.mkdir_parent(lock_dir)
-        sc = {
-            'session.auto': True,
-            'session.cookie_expires': False,
-            'session.type': 'file',
-            'session.data_dir': str(data_dir),
-            'session.lock_dir': str(lock_dir),
-        }
-        #TODO(robnagler) Generalize? seems like we'll be shadowing lots of config
-        for k in cfg.beaker_session:
-            sc['session.' + k] = cfg.beaker_session[k]
-        app.wsgi_app = beaker.middleware.SessionMiddleware(app.wsgi_app, sc)
-        app.session_interface = self
-
-    def open_session(self, app, request):
-        """Called by flask to create the session"""
-        return request.environ['beaker.session']
-
-    def save_session(self, *args, **kwargs):
-        """Necessary to complete abstraction, but Beaker autosaves"""
-        pass
-
-
+#: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
     static_folder=str(simulation_db.STATIC_FOLDER),
     template_folder=str(simulation_db.STATIC_FOLDER),
 )
+app.config.update(
+    PROPAGATE_EXCEPTIONS=True,
+)
 
 
-def init(db_dir):
+def init(db_dir, uwsgi=None):
     """Initialize globals and populate simulation dir"""
+    global _wsgi_app
+    _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
-    simulation_db.init(app)
+    simulation_db.init_by_server(app, sys.modules[__name__])
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
@@ -527,9 +496,107 @@ def light_landing_page():
     )
 
 
+def session_user(*args, **kwargs):
+    """Get/set the user from the Flask session
+
+    With no positional arguments, is a getter. Else a setter.
+
+    Args:
+        user (str): if args[0], will set the user; else gets
+        checked (bool): if kwargs['checked'], assert the user is truthy
+        environ (dict): session environment to use instead of `flask.session`
+
+    Returns:
+        str: user id
+    """
+    environ = kwargs.get('environ', None)
+    session = environ.get(_ENVIRON_KEY_BEAKER) if environ else flask.session
+    if args:
+        session[SESSION_KEY_USER] = args[0]
+        _wsgi_app.set_log_user(args[0])
+    res = session.get(SESSION_KEY_USER)
+    if not res and kwargs.get('checked', True):
+        raise KeyError(SESSION_KEY_USER)
+    return res
+
+
 @app.route('/sr')
 def sr_landing_page():
     return flask.redirect('/light')
+
+
+class _BeakerSession(flask.sessions.SessionInterface):
+    """Session manager for Flask using Beaker.
+
+    Stores session info in files in sirepo.server.data_dir. Minimal info kept
+    in session.
+    """
+    def __init__(self, app=None):
+        if app is None:
+            self.app = None
+        else:
+            self.init_app(app)
+
+    def sirepo_init_app(self, app, db_dir):
+        """Initialize cfg with db_dir and register self with Flask
+
+        Args:
+            app (flask): Flask application object
+            db_dir (py.path.local): db_dir passed on command line
+        """
+        app.sirepo_db_dir = db_dir
+        data_dir = db_dir.join(_BEAKER_DATA_DIR)
+        lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
+        pkio.mkdir_parent(lock_dir)
+        sc = {
+            'session.auto': True,
+            'session.cookie_expires': False,
+            'session.type': 'file',
+            'session.data_dir': str(data_dir),
+            'session.lock_dir': str(lock_dir),
+        }
+        #TODO(robnagler) Generalize? seems like we'll be shadowing lots of config
+        for k in cfg.beaker_session:
+            sc['session.' + k] = cfg.beaker_session[k]
+        app.wsgi_app = beaker.middleware.SessionMiddleware(app.wsgi_app, sc)
+        app.session_interface = self
+
+    def open_session(self, app, request):
+        """Called by flask to create the session"""
+        return request.environ[_ENVIRON_KEY_BEAKER]
+
+    def save_session(self, *args, **kwargs):
+        """Necessary to complete abstraction, but Beaker autosaves"""
+        pass
+
+
+class _WSGIApp(object):
+    """Wraps Flask's wsgi_app for logging
+
+    Args:
+        app (Flask.app): Flask application being wrapped
+        uwsgi (module): `uwsgi` module passed from ``uwsgi.py.jinja``
+    """
+    def __init__(self, app, uwsgi):
+        self.app = app
+        # Is None if called from sirepo.pkcli.service.http or FlaskClient
+        self.uwsgi = uwsgi
+        self.wsgi_app = app.wsgi_app
+        app.wsgi_app = self
+
+    def set_log_user(self, user):
+        if self.uwsgi:
+            log_user = 'li-' + user if user else '-'
+            # Only works for uWSGI (service.uwsgi). For service.http,
+            # werkzeug.serving.WSGIRequestHandler.log hardwires '%s - - [%s] %s\n',
+            # and no point in overriding, since just for development.
+            self.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, log_user)
+
+    def __call__(self, environ, start_response):
+        """An "app" called by uwsgi with requests.
+        """
+        self.set_log_user(session_user(checked=False, environ=environ))
+        return self.wsgi_app(environ, start_response)
 
 
 def _cached_simulation(data):
@@ -576,9 +643,9 @@ def _cfg_job_queue(value):
         err = None
         try:
             if not celery_tasks.celery.control.ping():
-                err = 'You need to start Celery:\ncelery worker -A sirepo.celery_tasks -l info -Q parallel,sequential'
+                err = 'You need to start Celery:\nsirepo server celery'
         except Exception:
-            err = 'You need to start Rabbit:\ndocker run --rm --hostname rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:management'
+            err = 'You need to start Rabbit:\nsirepo server rabbitmq'
         if err:
             #TODO(robnagler) really should be pkconfig.Error() or something else
             # but this prints a nice message. Don't call sys.exit, not nice
@@ -616,7 +683,7 @@ def _job_id(data):
     Returns:
         str: unique name
     """
-    return '{}-{}-{}'.format(simulation_db.user_id(), data['simulationId'], data['report'])
+    return '{}-{}-{}'.format(session_user(), data['simulationId'], data['report'])
 
 
 def _json_input():
@@ -1059,7 +1126,7 @@ class _Celery(object):
         self.celery_queue = simulation_db.celery_queue(self.data)
         pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
-            args=[self.cmd, self.run_dir],
+            args=[self.cmd, str(self.run_dir)],
             queue=self.celery_queue,
         )
 

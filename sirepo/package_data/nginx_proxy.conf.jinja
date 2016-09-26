@@ -1,0 +1,12 @@
+server {
+    listen {{ ip }}:{{ nginx_proxy_port }};
+    # We know this is empty in the nginx container
+    root /srv;
+    location / {
+        include uwsgi_params;
+        client_max_body_size 50m;
+        uwsgi_read_timeout 300s;
+        uwsgi_send_timeout 300s;
+        uwsgi_pass 127.0.0.1:{{ port }};
+    }
+}

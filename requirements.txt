@@ -1,8 +1,10 @@
 beaker
 celery
 flask
+flower
 numconv
 pykern
 uwsgi
 numpy
 bnlcrl
+pyIsEmail

@@ -211,9 +211,10 @@ To run tests:
 cd ~/src/radiasoft/sirepo
 # Starts server on http://localhost:4444/wd/hub
 DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
-# Starts server on 8000 by default
-sirepo service http >& http.log &
-./node_modules/protractor/bin/protractor protractor-conf.js
+# Default is 8000
+SIREPO_PKCLI_SERVICE_PORT=8000 sirepo service http >& http.log &
+# You don't need to pass uri as it is set to 8000 by default, but clearer
+./node_modules/protractor/bin/protractor --params.uri=http://localhost:8000 protractor-conf.js
 ```
 
 Output will look like:
@@ -242,19 +243,41 @@ must have X11 running, and start the webdriver this way:
 This will use the `$DISPLAY` forwarded through your ssh session via
 Vagrant.
 
-### Monitoring Celery
+### Full Stack Development
 
-To start the [Flower: Celery Monitoring Tool](http://flower.readthedocs.io/en/latest/):
+The `sirepo service http` setup is used for basic application development.
+However, if you want to test the full stack workflow, you'll need to start
+all the support processes and configure your servers.
+
+Set up a few environment variables:
 
 ```sh
-celery flower -A sirepo.celery_tasks
+export SIREPO_SERVER_JOB_QUEUE=Celery
+export SIREPO_MPI_CORES=4
+export PYKERN_PKDEBUG_REDIRECT_LOGGING=1
+export PYKERN_PKDEBUG_WANT_PID_TIME=1
+export SIREPO_CELERY_TASKS_CELERYD_CONCURRENCY=2
 ```
 
-You can then visit [http://localhost:5555](http://localhost:5555) to see various things about Celery.
+Then run each of the following commands in separate windows:
 
-You can also visit [RabbitMQ's Management Plugin](https://www.rabbitmq.com/management.html)
-by visiting [http://localhost:15672](http://localhost:15672). This assumes you start the `rabbitmq:management`
-Docker image (default instructions output by `SIREPO_SERVER_JOB_QUEUE=Celery sirepo service http`).
+```sh
+sirepo service rabbitmq
+sirepo service celery
+sirepo service uwsgi
+sirepo service nginx_proxy
+sirepo service flower
+```
+
+The last process starts [Flower](http://flower.readthedocs.io),
+which allows you to monitor [Celery](http://www.celeryproject.org).
+You can visit [http://localhost:5555](http://localhost:5555)
+to see the workers, tasks, processes, queues, etc.
+
+You can also visit
+[RabbitMQ's Management Plugin](https://www.rabbitmq.com/management.html)
+on this URL:
+[http://localhost:15672](http://localhost:15672).
 
 ### License
 
