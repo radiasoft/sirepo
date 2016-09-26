@@ -447,7 +447,7 @@
             "eta_y": ["Eta Y", "RPNValue", "0.0", ""],
             "etap_y": ["Etap Y", "RPNValue", "0.0", ""],
             "use_twiss_command_values": ["Use Twiss Command Values", "RPNBoolean", "0", "If nonzero, then the values for β, α, η, and η^′ are taken from the twiss_output command. It is an error if no twiss_output command has been given."],
-            "Po": ["Po", "RPNValue", "0.0", "Central momentum of the bunch."],
+            "po": ["Po", "RPNValue", "0.0", "Central momentum of the bunch."],
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
             "sigma_s": ["Sigma S", "RPNValue", "0.0", ""],
             "dp_s_coupling": ["DP S Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ)."],
@@ -489,7 +489,7 @@
             "use_perturbed_matrix": ["Use Perturbed Matrix", "RPNBoolean", "0", "If nonzero, requests use of the perturbed correction matrix in performing correction. For difficult lattices with large errors, this may be necessary to obtain correction. In general, it is not necessary and only slows the simulation."],
             "exit_on_failure": ["Exit On Failure", "RPNBoolean", "0", "If nonzero, then failure to reach the desired chromaticities within the tolerance results in the program exiting."],
             "verbosity": ["Verbosity", "Integer", "1", "Increasing positive values result in increasing amounts of information printed during execution."],
-            "dK2_weight": ["DK2 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_2 values in the event that there are more than two families."]
+            "dk2_weight": ["DK2 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_2 values in the event that there are more than two families."]
         },
         "command_closed_orbit": {
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to which the closed orbits will be written."],
@@ -515,10 +515,10 @@
             "correction_fraction": ["Correction Fraction", "StringArray", "1, 1", "The fraction of the computed correction strength to actually use for any one iteration."],
             "correction_accuracy": ["Correction Accuracy", "StringArray", "1e-6, 1e-6", "The desired accuracy of the correction in terms of the RMS BPM values."],
             "do_correction": ["Do Correction", "StringArray", "1, 1", "Flags to allow disabling correction in one or both planes (if set to zero)."],
-            "remove_smallest_SVs": ["Remove Smallest SVS", "StringArray", "0, 0", "These parameters control the elimination of singular vectors from the inverse response matrix, which can help deal with degeneracy in the correctors and reduce corrector strength. By default, the number of singular vectors is limited to the number of BPMs, which is a basic condition for stability; this can be defeated by setting auto_limit_SVs to 0 for the desired planes. Set remove_smallest_SVs to require removal of a given number of vectors with the smallest singular values; this is ignored if auto_limit_SVs is also requested and would remove more SVs. Set keep_largest_SVs to require keeping at most a given number of the largest SVs. Set minimum_SV_ratio to require removal of any vectors with singular values less than a given factor of the largest singular value."],
-            "keep_largest_SVs": ["Keep Largest SVS", "StringArray", "0, 0", ""],
-            "minimum_SV_ratio": ["Minimum SV Ratio", "StringArray", "0, 0", ""],
-            "auto_limit_SVs": ["Auto Limit SVS", "StringArray", "1, 1", ""],
+            "remove_smallest_svs": ["Remove Smallest SVS", "StringArray", "0, 0", "These parameters control the elimination of singular vectors from the inverse response matrix, which can help deal with degeneracy in the correctors and reduce corrector strength. By default, the number of singular vectors is limited to the number of BPMs, which is a basic condition for stability; this can be defeated by setting auto_limit_SVs to 0 for the desired planes. Set remove_smallest_SVs to require removal of a given number of vectors with the smallest singular values; this is ignored if auto_limit_SVs is also requested and would remove more SVs. Set keep_largest_SVs to require keeping at most a given number of the largest SVs. Set minimum_SV_ratio to require removal of any vectors with singular values less than a given factor of the largest singular value."],
+            "keep_largest_svs": ["Keep Largest SVS", "StringArray", "0, 0", ""],
+            "minimum_sv_ratio": ["Minimum SV Ratio", "StringArray", "0, 0", ""],
+            "auto_limit_svs": ["Auto Limit SVS", "StringArray", "1, 1", ""],
             "remove_pegged": ["Remove Pegged", "StringArray", "0, 0", "If nonzero, then for the plane in question pegged correctors will be removed from the correction matrix. This results in recomputation of the matrix, following which correction continues with the reduced set of correctors. The pegged corrector is left at its last value."],
             "threading_divisor": ["Threading Divisor", "StringArray", "100, 100", "In threading mode trajectory correction, each corrector is varied between 0 and ±θmax, where θmax is the strength limit. This parameter sets the number of steps to divide the corrector range into on the positive and negative sides. A smaller value results in faster execution but is less reliable."],
             "threading_correctors": ["Threading Correctors", "StringArray", "-1, -1", "In threading mode trajectory correction, gives the number of correctors upstream of the loss point to use for threading the beam further through the system."],
@@ -556,13 +556,13 @@
             "strength_log": ["Strength Log", "OutputFile", "", "The name of a SDDS file to which the quadrupole strengths will be written as correction proceeds."],
             "change_defined_values": ["Change Defined Values", "Integer", "0", "Changes the defined values of the quadrupole strengths. This means that when the lattice is saved (using save_lattice), the quadrupoles will have the corrected values. This would be used for correcting the tunes of a design lattice, for example, but not for correcting tunes of a perturbed lattice."],
             "use_perturbed_matrix": ["Use Perturbed Matrix", "RPNBoolean", "0", "If nonzero, requests use of the perturbed correction matrix in performing correction. For difficult lattices with large errors, this may be necessary to obtain correction. In general, it is not necessary and only slows the simulation."],
-            "dK1_weight": ["DK1 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_1 values in the event that there are more than two families."]
+            "dk1_weight": ["DK1 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_1 values in the event that there are more than two families."]
         },
         "command_correction_matrix_output": {
-            "response": ["Response", "StringArray", "NULL, NULL", "Array of filenames for SDDS output of the x and y response matrices, plus the cross-plane response matrices. Recommended values, in order: \"%s.hrm\" (horizontal response to horizontal correctors), \"%s.vrm\" (vertical response to vertical correctors), \"%s.vhrm\" (vertical response to horizontal correctors), and \"%s.hvrm\" (horizontal response to vertical correctors)."],
-            "inverse": ["Inverse", "StringArray", "NULL, NULL", "Array of filenames for SDDS output of the x and y inverse response matrices. Recommended values: \"%s.hirm\" and \"%s.virm\"."],
-            "KnL_units": ["KNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/K0L rather than m/rad. This results in a sign change for the horizontal data."],
-            "BnL_units": ["BNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/(T*m) rather than m/rad. This is useful for linac work in that the responses are automatically scaled with beam momentum."],
+            "response": ["Response", "StringArray", ",,,", "Array of filenames for SDDS output of the x and y response matrices, plus the cross-plane response matrices. Recommended values, in order: \"%s.hrm\" (horizontal response to horizontal correctors), \"%s.vrm\" (vertical response to vertical correctors), \"%s.vhrm\" (vertical response to horizontal correctors), and \"%s.hvrm\" (horizontal response to vertical correctors)."],
+            "inverse": ["Inverse", "StringArray", ",", "Array of filenames for SDDS output of the x and y inverse response matrices. Recommended values: \"%s.hirm\" and \"%s.virm\"."],
+            "knl_units": ["KNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/K0L rather than m/rad. This results in a sign change for the horizontal data."],
+            "bnl_units": ["BNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/(T*m) rather than m/rad. This is useful for linac work in that the responses are automatically scaled with beam momentum."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "Flag that, if set, specifies output of the data at each simulation step. By default, the data is output immediately for the defined lattice."],
             "output_before_tune_correction": ["Output Before Tune Correction", "RPNBoolean", "0", "Flag that, if set, specifies that when output_at_each_step is set, that output shall occur prior to correcting the tunes."],
             "fixed_length": ["Fixed Length", "RPNBoolean", "0", "Flag that, if set, specifies output of the fixed-path-length matrix."],
@@ -634,8 +634,8 @@
         },
         "command_floor_coordinates": {
             "filename": ["Filename", "OutputFile", "", "The name of an SDDS file to send output to."],
-            "X0": ["X0", "RPNValue", "0.0", "Initial X, Z, and angle coordinate of the beamline."],
-            "Z0": ["Z0", "RPNValue", "0.0", ""],
+            "x0": ["X0", "RPNValue", "0.0", "Initial X, Z, and angle coordinate of the beamline."],
+            "z0": ["Z0", "RPNValue", "0.0", ""],
             "theta0": ["Theta0", "RPNValue", "0.0", ""],
             "include_vertices": ["Include Vertices", "RPNBoolean", "0", "Flag that, if set, specifies including in the output the coordinates of the vertices of bending magnets."],
             "vertices_only": ["Vertices Only", "RPNBoolean", "0", "Flag that, if set, specifies that output will contain only the coordinates of the vertices of bending magnets."],
@@ -661,7 +661,7 @@
         "command_global_settings": {
             "inhibit_fsync": ["Inhibit FSYNC", "Integer", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
             "echo_namelists": ["Echo Namelists", "Integer", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
-            "SR_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
+            "sr_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
             "log_file": ["Log File", "OptionalString", "", "By default, elegant writes status information to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "error_log_file": ["Error Log File", "OptionalString", "", "By default, elegant writes error messages to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "mpi_randomization_mode": ["Mpi Randomization Mode", "Integer", "1", "Controls how the random numbers are seeded on multiple processors ( •[1] — This is the original default, which showed issues in some simulations. The seed on the ith processor is s_0+2*i. •[2] — The seed on the ith processor is s_0+2*i^2. •[3] — This is the new default. The seed on the ith processor is s_0+i*(i+1). •[4] — The seed on the ith processor is s_0+R_i, where R_i is the ith random integer returned by the system rand() function. )"],
@@ -748,10 +748,10 @@
             "printout": ["Printout", "OutputFile", "", "The name of a file to which the matrix output will be printed (as text)."],
             "printout_order": ["Printout Order", "Integer", "1", "The order to which the matrix is printed."],
             "full_matrix_only": ["Full Matrix Only", "RPNBoolean", "0", "A flag indicating that only the matrix of the entire accelerator is to be output."],
-            "SDDS_output": ["SDDS Output", "OutputFile", "", "The name of an SDDS file to which the matrix will be written."],
-            "SDDS_output_order": ["SDDS Output Order", "Integer", "1", "The order to which the matrix is output in SDDS format."],
+            "sdds_output": ["SDDS Output", "OutputFile", "", "The name of an SDDS file to which the matrix will be written."],
+            "sdds_output_order": ["SDDS Output Order", "Integer", "1", "The order to which the matrix is output in SDDS format."],
             "individual_matrices": ["Individual Matrices", "RPNBoolean", "0", "If non-zero, the matrices in the SDDS file are the individual on-trajectory matrices of the elements, rather than the concatenated matrix of the beamline."],
-            "SDDS_output_match": ["SDDS Output Match", "OptionalString", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
+            "sdds_output_match": ["SDDS Output Match", "OptionalString", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating whether matrix output is desired at every simulation step."],
             "start_from": ["Start From", "OptionalString", "", "The optional name of the accelerator element from which to begin concatenation and output."],
             "start_from_occurrence": ["Start From Occurrence", "Integer", "1", "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
@@ -899,7 +899,7 @@
         },
         "command_print_dictionary": {
             "filename": ["Filename", "OptionalString", "", "The name of a file to which the dictionary will be written. By default, the output is in LaTeX format."],
-            "SDDS_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
+            "sdds_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
         },
         "command_ramp_elements": {
             "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
@@ -1004,7 +1004,7 @@
             "output": ["Output", "OutputFile", "", "The filename of an SDDS file to which output will be written."],
             "model": ["Model", "OptionalString", "Ming Xie", "The name of the FEL model used. At present, only one model is supported; the \"Ming-Xie\" model is based on the simple parametrization M. Xie."],
             "beta": ["Beta", "RPNValue", "0.0", "The value of the beta function, in meters."],
-            "undulator_K": ["Undulator K", "RPNValue", "3.1", "The K parameter of the undulator."],
+            "undulator_k": ["Undulator K", "RPNValue", "3.1", "The K parameter of the undulator."],
             "undulator_period": ["Undulator Period", "RPNValue", "0.033", "The undulator period, in meters."],
             "slice_fraction": ["Slice Fraction", "RPNValue", "0.0", "The fraction of beam beam contained by each analysis slice and the number of such slices. By default, no slice analysis is done. Instead, the beam is analyzed only as a whole. If slice_fraction*n_slices is less than 1, then the slice analysis is centered on the median of the time distribution. E.g., if n_slices=1 and slice_fraction=0.1, then the central 10% of the beam would be analyzed. More typically, one gives values such that slice_fraction*n_slices is equal to 1, so that every part of the beam is analyzed. There are separate values in the output file for each slice, plus the whole-beam and slice-averaged results."],
             "n_slices": ["N Slices", "Integer", "0", ""]
@@ -1061,13 +1061,13 @@
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", ""],
             "sigma_s": ["Sigma S", "RPNValue", "0.0", ""],
             "distribution_cutoff": ["Distribution Cutoff", "StringArray", "3, 3, 3", ""],
-            "Momentum_Aperture_scale": ["Momentum Aperture Scale", "RPNValue", "0.85", ""],
-            "Momentum_Aperture": ["Momentum Aperture", "OptionalString", "", ""],
-            "XDist": ["Xdist", "OptionalString", "", ""],
-            "YDist": ["Ydist", "OptionalString", "", ""],
-            "ZDist": ["Zdist", "OptionalString", "", ""],
-            "TranDist": ["Trandist", "OptionalString", "", ""],
-            "FullDist": ["Fulldist", "OptionalString", "", ""],
+            "momentum_aperture_scale": ["Momentum Aperture Scale", "RPNValue", "0.85", ""],
+            "momentum_aperture": ["Momentum Aperture", "OptionalString", "", ""],
+            "xdist": ["Xdist", "OptionalString", "", ""],
+            "ydist": ["Ydist", "OptionalString", "", ""],
+            "zdist": ["Zdist", "OptionalString", "", ""],
+            "trandist": ["Trandist", "OptionalString", "", ""],
+            "fulldist": ["Fulldist", "OptionalString", "", ""],
             "bunch": ["Bunch", "OptionalString", "", ""],
             "loss": ["Loss", "OptionalString", "", ""],
             "distribution": ["Distribution", "OptionalString", "", ""],
@@ -3651,7 +3651,7 @@
                 "eta_y",
                 "etap_y",
                 "use_twiss_command_values",
-                "Po",
+                "po",
                 "sigma_dp",
                 "sigma_s",
                 "dp_s_coupling",
@@ -3703,7 +3703,7 @@
                 "use_perturbed_matrix",
                 "exit_on_failure",
                 "verbosity",
-                "dK2_weight"
+                "dk2_weight"
             ]
         },
         "command_closed_orbit": {
@@ -3739,10 +3739,10 @@
                 "correction_fraction",
                 "correction_accuracy",
                 "do_correction",
-                "remove_smallest_SVs",
-                "keep_largest_SVs",
-                "minimum_SV_ratio",
-                "auto_limit_SVs",
+                "remove_smallest_svs",
+                "keep_largest_svs",
+                "minimum_sv_ratio",
+                "auto_limit_svs",
                 "remove_pegged",
                 "threading_divisor",
                 "threading_correctors",
@@ -3785,7 +3785,7 @@
                 "strength_log",
                 "change_defined_values",
                 "use_perturbed_matrix",
-                "dK1_weight"
+                "dk1_weight"
             ]
         },
         "command_correction_matrix_output": {
@@ -3795,8 +3795,8 @@
             "advanced": [
                 "response",
                 "inverse",
-                "KnL_units",
-                "BnL_units",
+                "knl_units",
+                "bnl_units",
                 "output_at_each_step",
                 "output_before_tune_correction",
                 "fixed_length",
@@ -3898,8 +3898,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "filename",
-                "X0",
-                "Z0",
+                "x0",
+                "z0",
                 "theta0",
                 "include_vertices",
                 "vertices_only",
@@ -3935,7 +3935,7 @@
             "advanced": [
                 "inhibit_fsync",
                 "echo_namelists",
-                "SR_gaussian_limit",
+                "sr_gaussian_limit",
                 "log_file",
                 "error_log_file",
                 "mpi_randomization_mode",
@@ -4057,10 +4057,10 @@
                 "printout",
                 "printout_order",
                 "full_matrix_only",
-                "SDDS_output",
-                "SDDS_output_order",
+                "sdds_output",
+                "sdds_output_order",
                 "individual_matrices",
-                "SDDS_output_match",
+                "sdds_output_match",
                 "output_at_each_step",
                 "start_from",
                 "start_from_occurrence"
@@ -4263,7 +4263,7 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "filename",
-                "SDDS_form"
+                "sdds_form"
             ]
         },
         "command_ramp_elements": {
@@ -4408,7 +4408,7 @@
                 "output",
                 "model",
                 "beta",
-                "undulator_K",
+                "undulator_k",
                 "undulator_period",
                 "slice_fraction",
                 "n_slices"
@@ -4490,13 +4490,13 @@
                 "sigma_dp",
                 "sigma_s",
                 "distribution_cutoff",
-                "Momentum_Aperture_scale",
-                "Momentum_Aperture",
-                "XDist",
-                "YDist",
-                "ZDist",
-                "TranDist",
-                "FullDist",
+                "momentum_aperture_scale",
+                "momentum_aperture",
+                "xdist",
+                "ydist",
+                "zdist",
+                "trandist",
+                "fulldist",
                 "bunch",
                 "loss",
                 "distribution",
