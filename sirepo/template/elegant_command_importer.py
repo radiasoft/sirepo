@@ -30,7 +30,7 @@ def import_file(text):
     commands = elegant_command_parser.parse_file(text)
     if not len(commands):
         raise IOError('no commands found in file')
-    lattice_file = _verify_lattice_name(commands)
+    _verify_lattice_name(commands)
     # iterate commands, validate values and set defaults from schema
     for cmd in commands:
         cmd_type = cmd['_type']
@@ -39,7 +39,7 @@ def import_file(text):
         elegant_lattice_importer.validate_fields(cmd, {}, {})
     data = elegant_lattice_importer.default_data()
     #TODO(pjm) javascript needs to set bunch, bunchSource, bunchFile values from commands
-    data['commands'] = commands
+    data['models']['commands'] = commands
     return data
 
 

@@ -18,6 +18,8 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_lattice_parser
 
+_IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
+
 _RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 
 _ANGLE_FIELDS = ['angle', 'kick', 'hkick']
@@ -219,6 +221,22 @@ def _element_length(el, rpn_cache):
     return 0
 
 
+def _field_type_for_field(el, field):
+    if re.search(r'\[\d+\]$', field):
+        field = re.sub(r'\[\d+\]$', '', field)
+    field_type = None
+    model_name = _model_name_for_data(el)
+    for f in _SCHEMA['model'][model_name]:
+        if f == field:
+            field_type = _SCHEMA['model'][model_name][f][1]
+            break
+    if not field_type:
+        if not field in _IGNORE_FIELD:
+            pkdlog('{}: unknown field type for {}', field, model_name)
+        del el[field]
+    return field_type
+
+
 def _rpn_value(v, rpn_cache):
     if v in rpn_cache:
         return float(rpn_cache[v])
@@ -242,56 +260,95 @@ def _validate_beamline(bl, name_to_id, element_names):
     return items
 
 
-def _validate_field(el, field, rpn_cache, rpn_variables):
-    if field in ['_id', 'type', '_type']:
-        return
-    field_type = None
-    model_name = _model_name_for_data(el)
-    for f in _SCHEMA['model'][model_name]:
-        if f == field:
-            field_type = _SCHEMA['model'][model_name][f][1]
+def _validate_enum(el, field, field_type):
+    search = el[field].lower()
+    exact_match = ''
+    close_match = ''
+    for v in _SCHEMA['enum'][field_type]:
+        if v[0] == search:
+            exact_match = v[0]
             break
-    if not field_type:
-        pkdlog('{}: unknown field type for {}', field, model_name)
-        del el[field]
+        if search.startswith(v[0]) or v[0].startswith(search):
+            close_match = v[0]
+    if exact_match:
+        el[field] = exact_match
+    elif close_match:
+        el[field] = close_match
     else:
-        if field_type == 'OutputFile':
-            el[field] = '1'
-        elif field_type == 'InputFile':
-            el[field] = ntpath.basename(el[field])
-        elif field_type == "InputFileXY":
-            # <filename>=<x>+<y>
-            fullname= ntpath.basename(el[field])
-            m = re.search('^(.*?)\=(.*?)\+(.*)$', fullname)
-            if m:
-                el[field] = m.group(1)
-                el[field + 'X'] = m.group(2)
-                el[field + 'Y'] = m.group(3)
-            else:
-                el[field] = fullname
-        elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and is_rpn_value(el[field]):
-            #TODO(pjm): strip parens from command rpn and validate
-            if '_type' not in el:
-                value, error = parse_rpn_value(el[field], rpn_variables)
-                if error:
-                    raise IOError('invalid rpn: "{}"'.format(el[field]))
-                rpn_cache[el[field]] = value
-        elif field_type in _SCHEMA['enum']:
-            search = el[field].lower()
-            exact_match = ''
-            close_match = ''
-            for v in _SCHEMA['enum'][field_type]:
-                if v[0] == search:
-                    exact_match = v[0]
-                    break
-                if search.startswith(v[0]) or v[0].startswith(search):
-                    close_match = v[0]
-            if exact_match:
-                el[field] = exact_match
-            elif close_match:
-                el[field] = close_match
-            else:
-                raise IOError('{} {} unknown value: "{}"'.format(model_name, field, search))
+        raise IOError('{} {} unknown value: "{}"'.format(model_name, field, search))
+
+
+def _validate_field(el, field, rpn_cache, rpn_variables):
+    if field in ['_id', '_type']:
+        return
+    if '_type' not in el and field == 'type':
+        return
+    field_type = _field_type_for_field(el, field)
+    if field_type == 'OutputFile':
+        el[field] = '1'
+    elif field_type == 'InputFile':
+        el[field] = ntpath.basename(el[field])
+    elif field_type == "InputFileXY":
+        _validate_input_file(el, field)
+    elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and is_rpn_value(el[field]):
+        _validate_rpn_field(el, field, rpn_cache, rpn_variables)
+    elif field_type == 'StringArray':
+        _validate_string_array_field(el, field)
+    elif field_type in _SCHEMA['enum']:
+        _validate_enum(el, field, field_type)
+
+
+def _validate_input_file(el, field):
+    # <filename>=<x>+<y>
+    fullname= ntpath.basename(el[field])
+    m = re.search('^(.*?)\=(.*?)\+(.*)$', fullname)
+    if m:
+        el[field] = m.group(1)
+        el[field + 'X'] = m.group(2)
+        el[field + 'Y'] = m.group(3)
+    else:
+        el[field] = fullname
+
+
+def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
+    if '_type' in el:
+        m = re.search('\((.*?)\)$', el[field])
+        if m:
+            el[field] = m.group(1)
+        m = re.search('\{\s*rpnl\s+(.*)\}$', el[field])
+        if m:
+            el[field] = m.group(1)
+    value, error = parse_rpn_value(el[field], rpn_variables)
+    if error:
+        raise IOError('invalid rpn: "{}"'.format(el[field]))
+    rpn_cache[el[field]] = value
+
+
+def _validate_string_array_field(el, field):
+    print('validate {} string array: {} = {}'.format(_model_name_for_data(el), field, el[field]))
+    m = re.search('(.*?)\[(\d+)\]$', field)
+    if not m:
+        return
+    value = el[field]
+    del el[field]
+    field = m.group(1)
+    index = int(m.group(2))
+    if not field in el:
+        model_name = _model_name_for_data(el)
+        el[field] = _SCHEMA['model'][model_name][field][2]
+    value_array = re.split('\s*,\s*', el[field])
+    m = re.search('^(\d+)\*(.*)$', value)
+    if m:
+        count = int(m.group(1))
+        val = m.group(2)
+        for i in range(count):
+            value_array[index + i] = val
+    else:
+        values = re.split('\s*,\s*', value)
+        for v in values:
+            value_array[index] = v
+            index += 1
+    el[field] = ', '.join(value_array)
 
 
 def _validate_type(el, element_names):
