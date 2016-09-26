@@ -10,6 +10,7 @@ from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
+from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
 import glob
@@ -319,10 +320,15 @@ def get_data_file(run_dir, model, frame):
 
 def import_file(request, lib_dir=None, tmp_dir=None):
     f = request.files['file']
+    filename = werkzeug.secure_filename(f.filename)
     try:
-        data = elegant_lattice_importer.import_file(f.read())
-        name = re.sub(r'\.lte$', '', werkzeug.secure_filename(f.filename), re.IGNORECASE)
-        data['models']['simulation']['name'] = name
+        if re.search(r'.ele$', filename, re.IGNORECASE):
+            data = elegant_command_importer.import_file(f.read())
+        elif re.search(r'.lte$', filename, re.IGNORECASE):
+            data = elegant_lattice_importer.import_file(f.read())
+        else:
+            raise IOError('invalid file extension, expecting .ele or .lte')
+        data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
         return None, data
     except IOError as e:
         return e.message, None
