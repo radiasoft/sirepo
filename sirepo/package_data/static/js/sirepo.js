@@ -1413,6 +1413,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 
 SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
     var self = this;
+    var SORT_DESCENDING = '-';
     self.activeFolder = null;
     self.activeFolderPath = [];
     self.listColumns = [
@@ -1629,7 +1630,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     };
 
     self.isSortAscending = function() {
-        return self.sortField.charAt(0) != '-';
+        return self.sortField.charAt(0) != SORT_DESCENDING;
     };
 
     self.moveItem = function(item) {
@@ -1738,7 +1739,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
 
     self.toggleSort = function(field) {
         if (self.sortField.indexOf(field) >= 0) {
-            self.sortField = self.isSortAscending() ? ('-' + field) : field;
+            self.sortField = self.isSortAscending() ? (SORT_DESCENDING + field) : field;
         }
         else {
             self.sortField = field;
