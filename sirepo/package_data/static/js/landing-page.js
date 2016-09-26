@@ -118,7 +118,7 @@ app.directive('pageHeading', function() {
             ].join('');
         }
         return [
-            '<div><a href="/#about">Sirepo</a></div>',
+            '<div>Sirepo</div>',
         ].join('');
     }
     return {
