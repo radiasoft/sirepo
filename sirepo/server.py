@@ -204,51 +204,29 @@ def app_file_list(simulation_type, simulation_id, file_type):
 @app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     redirect_uri = None
-    if application_mode == 'light-sources':
-        show_item_id = None
-        # for light-sources application mode, the simulation_name is the facility
-        # copy all new examples into the session
-        examples = sorted(
-            simulation_db.examples(simulation_type),
-            key=lambda row: row['models']['simulation']['folder'],
-        )
-        for s in examples:
-            if s['models']['simulation']['facility'] == simulation_name:
+    # use the existing named simulation, or copy it from the examples
+    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
+        'simulation.name': simulation_name,
+    })
+    if len(rows) == 0:
+        for s in simulation_db.examples(simulation_type):
+            if s['models']['simulation']['name'] == simulation_name:
+                simulation_db.save_new_example(simulation_type, s)
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                    'simulation.name': s['models']['simulation']['name'],
+                    'simulation.name': simulation_name,
                 })
-                if len(rows):
-                    sid = rows[0]['simulationId']
-                else:
-                    new_data = simulation_db.save_new_example(simulation_type, s)
-                    sid = new_data['models']['simulation']['simulationId']
-                if not show_item_id:
-                    show_item_id = sid
-        #TODO(robnagler) need to format with URI escapes. In general, need to define
-        #  how parameters are passed back
-        redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}&show_item_id={}'.format(
-            simulation_type, flask.escape(simulation_name), application_mode, show_item_id)
-    else:
-        # otherwise use the existing named simulation, or copy it from the examples
-        rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-            'simulation.name': simulation_name,
-        })
-        if len(rows) == 0:
-            for s in simulation_db.examples(simulation_type):
-                if s['models']['simulation']['name'] == simulation_name:
-                    simulation_db.save_new_example(simulation_type, s)
-                    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                        'simulation.name': simulation_name,
-                    })
-                    break
-        if len(rows):
-            if application_mode == 'wavefront':
-                redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
-                    simulation_type, rows[0]['simulationId'], application_mode)
-            else:
-                redirect_uri = '/{}#/source/{}?application_mode={}'.format(
-                    simulation_type, rows[0]['simulationId'], application_mode)
-
+                break
+    if len(rows):
+        if application_mode == 'default':
+            redirect_uri = '/{}#/source/{}'.format(simulation_type, rows[0]['simulationId'])
+        elif application_mode == 'lattice':
+            redirect_uri = '/{}#/lattice/{}'.format(simulation_type, rows[0]['simulationId'])
+        elif application_mode == 'wavefront' or application_mode == 'light-sources':
+            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
+                simulation_type, rows[0]['simulationId'], application_mode)
+        else:
+            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
+                simulation_type, rows[0]['simulationId'], application_mode)
     if redirect_uri:
         # redirect using javascript for safari browser which doesn't support hash redirects
         return flask.render_template(
@@ -488,6 +466,7 @@ def app_upload_file(simulation_type, simulation_id, file_type):
     })
 
 
+@app.route('/')
 @app.route('/light')
 def light_landing_page():
     return flask.render_template(
