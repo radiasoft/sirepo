@@ -1006,7 +1006,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" data-ng-href="{{ nav.sectionURL(\'simulations\') }}"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
               '<div class="navbar-brand"><a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">elegant</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',

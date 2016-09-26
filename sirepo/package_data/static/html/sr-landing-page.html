@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico?{{ version }}">
-    <title data-ng-bind="landingPage.pageTitle()">Synchrotron Radiation Workshop - Radiasoft</title>
+    <title data-ng-bind="landingPage.pageTitle()">Radiasoft</title>
     <link href="/static/css/bootstrap-3.3.4.min.css?{{ version }}" rel="stylesheet">
     <link href="/static/css/bootstrap-colxl.css?{{ version }}" rel="stylesheet">
     <link href="/static/css/landing-page.css?{{ version }}" rel="stylesheet">
@@ -20,11 +20,8 @@
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#/home"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif?{{ version }}" alt="radiasoft"></a>
-          <div class="navbar-brand"><a href="#/home">Synchrotron Radiation Workshop</a>
-            <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span>
-            <span class="hidden-xs" data-ng-if="landingPage.pageName()" data-ng-bind="landingPage.pageName()"></span>
-          </div>
+          <a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif?{{ version }}" alt="radiasoft"></a>
+          <div class="navbar-brand" data-page-heading="" data-landing-page="landingPage"></div>
         </div>
       </div>
     </nav>

@@ -10,8 +10,26 @@
   .btn-group .btn {
     font-size: 7pt;
   }
+  table.lp-example-table {
+    margin: 1em 0;
+  }
+  table.lp-example-table td {
+    padding: 0.5ex 0;
+  }
 }
 
 .lp-big-button {
   padding-bottom: 20px;
+}
+
+.lp-example-table {
+  margin: 1em;
+}
+
+.lp-example-table td {
+  padding: 0.5ex;
+}
+
+body {
+  font-size: 16px;
 }
