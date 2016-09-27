@@ -960,7 +960,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         ].join(''),
         controller: function($scope) {
             $scope.hasEditor = appState.viewInfo($scope.modelKey)
-                && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
+                && appState.viewInfo($scope.modelKey).advanced.length > 0;
             $scope.panelState = panelState;
 
             $scope.dataFileURL = function() {
