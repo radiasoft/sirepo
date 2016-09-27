@@ -22,6 +22,7 @@ celery = Celery('sirepo')
 
 cfg = pkconfig.init(
     broker_url=('amqp://guest@localhost//', str, 'Celery: queue broker url'),
+    celery_result_backend=('rpc://', str, 'configure db other than default'),
     celeryd_concurrency=(1, int, 'how many worker processes to start'),
     celeryd_task_time_limit=(3600, int, 'max run time for a task in seconds'),
 )
@@ -40,7 +41,6 @@ celery.conf.update(
     CELERY_ACCEPT_CONTENT=[_SERIALIZER],
     CELERY_ACKS_LATE=True,
     CELERY_REDIRECT_STDOUTS=not pkconfig.channel_in('dev'),
-    CELERY_RESULT_BACKEND = 'rpc',
     CELERY_RESULT_PERSISTENT=True,
     CELERY_RESULT_SERIALIZER=_SERIALIZER,
     CELERY_TASK_PUBLISH_RETRY=False,
@@ -48,6 +48,17 @@ celery.conf.update(
     CELERY_TASK_SERIALIZER=_SERIALIZER,
 )
 
+# CREATE USER {user} WITH PASSWORD '{pass}';
+# CREATE DATABASE {db} OWNER {user};
+# export SIREPO_CELERY_TASKS_CELERY_RESULT_BACKEND='db+postgresql+psycopg2://{user}:{pass}@{host}/{db}'
+#TODO(robnagler) in case this happens
+#if 'postgresql' in cfg.celery_result_backend:
+#    # db+postgresql+psycopg2://csruser:csrpass@localhost/celery_sirepo
+#    celery.conf.update(
+#        CELERY_RESULT_DB_SHORT_LIVED_SESSIONS=True,
+#        # For debugging: CELERY_RESULT_ENGINE_OPTIONS={'echo': True},
+#    )
+#fi
 
 #: List of queues is indexed by "is_parallel"
 QUEUE_NAMES = ('sequential', 'parallel')
