@@ -959,8 +959,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             '</div>',
         ].join(''),
         controller: function($scope) {
+            // modelKey may not exist in viewInfo, assume it has an editor in that case
             $scope.hasEditor = appState.viewInfo($scope.modelKey)
-                && appState.viewInfo($scope.modelKey).advanced.length > 0;
+                && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
             $scope.panelState = panelState;
 
             $scope.dataFileURL = function() {
