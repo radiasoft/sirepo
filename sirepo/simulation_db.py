@@ -499,7 +499,10 @@ def read_status(run_dir):
     """
     try:
         return pkio.read_text(run_dir.join(_STATUS_FILE))
-    except IOError:
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # simulation may never have been run
+            return 'stopped'
         return 'error'
 
 
