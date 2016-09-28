@@ -85,8 +85,11 @@ app.controller('LandingPageController', function ($location, appRoutes) {
     };
 
     self.pageTitle = function() {
-        var name = self.pageName();
-        return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - Radiasoft';
+        if (SIREPO.IS_SRW_LANDING_PAGE) {
+            var name = self.pageName();
+            return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - Radiasoft';
+        }
+        return 'Sirepo - Radiasoft';
     };
 });
 
