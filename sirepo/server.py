@@ -816,9 +816,10 @@ def _simulation_run_status(data, quiet=False):
         status = simulation_db.read_status(run_dir)
         is_running = status in _RUN_STATES
         res = {'state': status}
+        if is_processing and not is_running:
+            cfg.job_queue.job_is_lost(jid)
+            is_processing = False
         if is_processing:
-            if not is_running:
-                cfg.job_queue.job_is_lost(jid)
             if not cached_data:
                 return _simulation_error(
                     'input file not found, but job is running',
@@ -1103,7 +1104,12 @@ class _Celery(object):
             self = cls._find_job(jid)
             if self:
                 res = self.async_result
-                pkdlog('{}: aborting and deleting job; tid={}', jid, res)
+                pkdlog(
+                    '{}: aborting and deleting job; tid={} celery_state={}',
+                    jid,
+                    res,
+                    res and res.state,
+                )
                 del self._job[self.jid]
                 res.revoke(terminate=True, signal='SIGKILL')
             else:
@@ -1145,14 +1151,15 @@ class _Celery(object):
         try:
             self = cls._job[jid]
         except KeyError:
-            pkdlog('{}: job not found', jid)
+            pkdlog('{}: job not found; len_jobs={}', jid, len(cls._job))
             return None
         res = self.async_result
         pkdc(
-            '{}: job tid={} celery_state={}',
+            '{}: job tid={} celery_state={} len_jobs={}',
             jid,
             res,
             res and res.state,
+            len(cls._job),
         )
         if not res or res.ready():
             del self._job[jid]
