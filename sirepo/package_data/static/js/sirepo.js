@@ -470,8 +470,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             modelName,
             animationArgs(modelName),
             index,
-            //TODO(robnagler) startTime should be reportParametersHash
-            appState.models.simulationStatus[self.animationModelName || modelName].startTime,
+            //TODO(pjm): simulationStatus changes too often, really want the simulation startTime, but this is cleared when saving data
+            appState.models.simulation.simulationSerial,
         ].join('*');
         var requestFunction = function() {
             requestSender.sendRequest(
@@ -1136,7 +1136,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             data.report = scope.model;
             appState.models.simulationStatus[scope.model] = data;
             if (appState.isLoaded()) {
-                appState.saveChanges('simulationStatus');
+                // simulationStatus is not saved to server from client
+                appState.saveQuietly('simulationStatus');
             }
         }
 
