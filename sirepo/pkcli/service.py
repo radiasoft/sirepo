@@ -38,6 +38,7 @@ def celery():
             'worker',
             '--app=sirepo.celery_tasks',
             '--no-color',
+            '-Ofair',
             '--queue=' + ','.join(sirepo.celery_tasks.QUEUE_NAMES),
         ])
 
