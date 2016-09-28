@@ -801,8 +801,14 @@ def _simulation_run_status(data, quiet=False):
         is_processing = cfg.job_queue.is_processing(jid)
         run_dir = simulation_db.simulation_run_dir(data)
         input_file = _simulation_input(run_dir)
+        pkdc(
+            '{}: cache_hit={} cached_data={} is_processing={} status={}',
+            jid, cache_hit, bool(cached_data), is_processing,
+            simulation_db.read_status(run_dir)
+        )
         if is_processing:
             if cached_data:
+                cfg.job_queue.is_running(jid)
                 res = {
                     'state': 'running' if cfg.job_queue.is_running(jid) else 'pending'
                 }
@@ -960,11 +966,11 @@ class _Background(object):
                 if self.in_kill and self.in_kill == nonce:
                     self.in_kill = None
                     del self._job[self.jid]
-                    pkdlog('{}: delete successful', self.jid)
+                    pkdlog('{}: delete successful; pid=', self.jid, pid)
                     return
+                pkdlog('{}: job restarted by another thread', jid)
             except KeyError:
-                pass
-            pkdlog('{}: job restarted by another thread', jid)
+                pkdlog('{}: job reaped by another thread', jid)
 
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
@@ -1039,15 +1045,22 @@ class _Celery(object):
     def __init__(self, data):
         with self._lock:
             self.jid = _job_id(data)
+            pkdc('jid={}', self.jid)
             assert not self.jid in self._job, \
                 '{}: simulation already running'.format(self.jid)
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.data = data
             self._job[self.jid] = self
-            self.async_result = None
-            # This command may blow up
             self.async_result = self._start_job()
+            pkdc(
+                '{}: starting tid={} dir={} queue={} len(_job)={}',
+                self.jid,
+                self.async_result.task_id,
+                self.run_dir,
+                self.celery_queue,
+                len(self._job),
+            )
 
     @classmethod
     def is_processing(cls, jid):
@@ -1073,28 +1086,47 @@ class _Celery(object):
             if not self:
                 return
             res = self.async_result
-            pkdlog('{}: killing: tid={}', jid, res.task_id)
+            tid = res.task_id
+            pkdlog('{}: killing: tid={}', jid, tid)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
+            pkdlog('{}: sending a SIGKILL tid={}', jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
         with cls._lock:
-            try:
-                del cls._job[jid]
-                pkdlog('{}: deleted', jid)
-            except KeyError:
-                pass
+            self = cls._find_job(jid)
+            if not self:
+                return
+            if self.async_result.task_id == tid:
+                del self._job[self.jid]
+                pkdlog('{}: deleted (killed) job; tid={}', jid, tid)
+                return
+            pkdlog(
+                '{}: job reaped by another thread; old_tid={}, new_tid={}',
+                jid,
+                tid,
+                self.async_result.task_id,
+            )
 
     @classmethod
     def _find_job(cls, jid):
         try:
             self = cls._job[jid]
         except KeyError:
+            pkdlog('{}: job not found', jid)
             return None
         res = self.async_result
+        pkdc('{}: found res={}', jid, res)
         if not res or res.ready():
             del self._job[jid]
+            pkdlog(
+                '{}: deleted errant or ready job; ready={} tid={}',
+                jid,
+                res and res.ready(),
+                res and res.task_id,
+            )
             return None
+        pkdc('{}: found tid={}', jid, res.task_id)
         return self
 
     def _start_job(self):
@@ -1103,7 +1135,6 @@ class _Celery(object):
         """
         from sirepo import celery_tasks
         self.celery_queue = simulation_db.celery_queue(self.data)
-        pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
             args=[self.cmd, str(self.run_dir)],
             queue=self.celery_queue,

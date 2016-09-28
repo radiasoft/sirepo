@@ -447,6 +447,7 @@ def read_result(run_dir):
     try:
         res = read_json(fn)
     except Exception as e:
+        pkdc('{}: exception={}', fn, e)
         err = pkdexc()
         if pkio.exception_is_not_found(e):
             #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
@@ -460,7 +461,7 @@ def read_result(run_dir):
                 elif e:
                     err = e
             except Exception as e:
-                if pkio.exception_is_not_found(e):
+                if not pkio.exception_is_not_found(e):
                     pkdlog('{}: error reading log: {}', rl, pkdexc())
         else:
             pkdlog('{}: error reading output: {}', fn, err)
