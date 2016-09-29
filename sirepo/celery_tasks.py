@@ -87,7 +87,7 @@ def start_simulation(cmd, run_dir):
     # Avoid circular import
     from sirepo import simulation_db
     run_dir = py.path.local(run_dir)
-    simulation_db.write_status('running', run_dir)
+    simulation_db.hack_nfs_write_status('running', run_dir)
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(
             cmd,
