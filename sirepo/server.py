@@ -50,6 +50,9 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
 
+#: What is_running?
+_RUN_STATES = ('pending', 'running')
+
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
 
@@ -84,7 +87,7 @@ def app_copy_nonsession_simulation():
     sim_type = req['simulationType']
     global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
     if global_path:
-        data = simulation_db.read_simulation_json(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
+        data = simulation_db.open_json_file(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(sim_type, data)
@@ -204,51 +207,29 @@ def app_file_list(simulation_type, simulation_id, file_type):
 @app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
     redirect_uri = None
-    if application_mode == 'light-sources':
-        show_item_id = None
-        # for light-sources application mode, the simulation_name is the facility
-        # copy all new examples into the session
-        examples = sorted(
-            simulation_db.examples(simulation_type),
-            key=lambda row: row['models']['simulation']['folder'],
-        )
-        for s in examples:
-            if s['models']['simulation']['facility'] == simulation_name:
+    # use the existing named simulation, or copy it from the examples
+    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
+        'simulation.name': simulation_name,
+    })
+    if len(rows) == 0:
+        for s in simulation_db.examples(simulation_type):
+            if s['models']['simulation']['name'] == simulation_name:
+                simulation_db.save_new_example(simulation_type, s)
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                    'simulation.name': s['models']['simulation']['name'],
+                    'simulation.name': simulation_name,
                 })
-                if len(rows):
-                    sid = rows[0]['simulationId']
-                else:
-                    new_data = simulation_db.save_new_example(simulation_type, s)
-                    sid = new_data['models']['simulation']['simulationId']
-                if not show_item_id:
-                    show_item_id = sid
-        #TODO(robnagler) need to format with URI escapes. In general, need to define
-        #  how parameters are passed back
-        redirect_uri = '/{}#/simulations?simulation.facility={}&application_mode={}&show_item_id={}'.format(
-            simulation_type, flask.escape(simulation_name), application_mode, show_item_id)
-    else:
-        # otherwise use the existing named simulation, or copy it from the examples
-        rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-            'simulation.name': simulation_name,
-        })
-        if len(rows) == 0:
-            for s in simulation_db.examples(simulation_type):
-                if s['models']['simulation']['name'] == simulation_name:
-                    simulation_db.save_new_example(simulation_type, s)
-                    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                        'simulation.name': simulation_name,
-                    })
-                    break
-        if len(rows):
-            if application_mode == 'wavefront':
-                redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
-                    simulation_type, rows[0]['simulationId'], application_mode)
-            else:
-                redirect_uri = '/{}#/source/{}?application_mode={}'.format(
-                    simulation_type, rows[0]['simulationId'], application_mode)
-
+                break
+    if len(rows):
+        if application_mode == 'default':
+            redirect_uri = '/{}#/source/{}'.format(simulation_type, rows[0]['simulationId'])
+        elif application_mode == 'lattice':
+            redirect_uri = '/{}#/lattice/{}'.format(simulation_type, rows[0]['simulationId'])
+        elif application_mode == 'wavefront' or application_mode == 'light-sources':
+            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
+                simulation_type, rows[0]['simulationId'], application_mode)
+        else:
+            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
+                simulation_type, rows[0]['simulationId'], application_mode)
     if redirect_uri:
         # redirect using javascript for safari browser which doesn't support hash redirects
         return flask.render_template(
@@ -334,6 +315,7 @@ def app_run_cancel():
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
+    #TODO(robnagler) mutex required
     if cfg.job_queue.is_processing(jid):
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
@@ -355,11 +337,14 @@ def app_run_simulation():
     res = _simulation_run_status(data, quiet=True)
     if (
         (
-            res['state'] != ('running', 'pending')
+            not res['state'] in _RUN_STATES
             and (res['state'] != 'completed' or data.get('forceRun', False))
         ) or res.get('parametersChanged', True)
     ):
-        _start_simulation(data)
+        try:
+            _start_simulation(data)
+        except _RunSimulationCollision:
+            pkdlog('{}: _RunSimulationCollision, ignoring start', _job_id(data))
         res = _simulation_run_status(data)
     return _json_response(res)
 
@@ -488,6 +473,7 @@ def app_upload_file(simulation_type, simulation_id, file_type):
     })
 
 
+@app.route('/')
 @app.route('/light')
 def light_landing_page():
     return flask.render_template(
@@ -570,6 +556,11 @@ class _BeakerSession(flask.sessions.SessionInterface):
         pass
 
 
+class _RunSimulationCollision(Exception):
+    """Avoid using a mutex"""
+    pass
+
+
 class _WSGIApp(object):
     """Wraps Flask's wsgi_app for logging
 
@@ -643,9 +634,9 @@ def _cfg_job_queue(value):
         err = None
         try:
             if not celery_tasks.celery.control.ping():
-                err = 'You need to start Celery:\nsirepo server celery'
+                err = 'You need to start Celery:\nsirepo service celery'
         except Exception:
-            err = 'You need to start Rabbit:\nsirepo server rabbitmq'
+            err = 'You need to start Rabbit:\nsirepo service rabbitmq'
         if err:
             #TODO(robnagler) really should be pkconfig.Error() or something else
             # but this prints a nice message. Don't call sys.exit, not nice
@@ -822,35 +813,43 @@ def _simulation_run_status(data, quiet=False):
         is_processing = cfg.job_queue.is_processing(jid)
         run_dir = simulation_db.simulation_run_dir(data)
         input_file = _simulation_input(run_dir)
+        status = simulation_db.read_status(run_dir)
+        is_running = status in _RUN_STATES
+        res = {'state': status}
+        if is_processing and not is_running:
+            cfg.job_queue.job_is_lost(jid)
+            is_processing = False
         if is_processing:
-            if cached_data:
-                res = {
-                    'state': 'running' if cfg.job_queue.is_running(jid) else 'pending'
-                }
-            else:
+            if not cached_data:
                 return _simulation_error(
                     'input file not found, but job is running',
                     input_file,
                 )
-        elif run_dir.exists():
-            res, err = simulation_db.read_result(run_dir)
-            if err:
-                return _simulation_error(err, 'error in read_result', run_dir)
         else:
-            # Was never run
-            res = {'state': 'stopped'}
+            is_running = False
+            if run_dir.exists():
+                res, err = simulation_db.read_result(run_dir)
+                if err:
+                    return _simulation_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
             template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
                 data['report'],
                 run_dir,
-                cfg.job_queue.is_running(jid),
+                is_running,
                 simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
             res.update(new)
         res['parametersChanged'] = bool(not cache_hit and cached_data)
+        if res['parametersChanged']:
+            pkdlog(
+                '{}: parametersChanged data_hash={} cached_hash={}',
+                jid,
+                data['reportParametersHash'],
+                cached_data['reportParametersHash'],
+            )
         #TODO(robnagler) verify serial number to see what's newer
         res.setdefault('startTime', _mtime_or_now(input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
@@ -863,6 +862,15 @@ def _simulation_run_status(data, quiet=False):
                 'simulationId': cached_data['simulationId'],
                 'simulationType': cached_data['simulationType'],
             }
+        pkdc(
+            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
+            jid,
+            is_processing,
+            res['state'],
+            cache_hit,
+            cached_data and cached_data['reportParametersHash'],
+            data['reportParametersHash'],
+        )
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)
     return res
@@ -913,8 +921,8 @@ class _Background(object):
     def __init__(self, data):
         with self._lock:
             self.jid = _job_id(data)
-            assert not self.jid in self._job, \
-                '{}: simulation already running'.format(self.jid)
+            if self.jid in self._job:
+                raise _RunSimulationCollision(self.jid)
             self.in_kill = None
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
@@ -942,8 +950,8 @@ class _Background(object):
         return True
 
     @classmethod
-    def is_running(cls, jid):
-        return cls.is_processing(jid)
+    def job_is_lost(cls, jid):
+        raise AssertionError('should never happen')
 
     @classmethod
     def kill(cls, jid):
@@ -981,11 +989,11 @@ class _Background(object):
                 if self.in_kill and self.in_kill == nonce:
                     self.in_kill = None
                     del self._job[self.jid]
-                    pkdlog('{}: delete successful', self.jid)
+                    pkdlog('{}: delete successful; pid=', self.jid, pid)
                     return
+                pkdlog('{}: job restarted by another thread', jid)
             except KeyError:
-                pass
-            pkdlog('{}: job restarted by another thread', jid)
+                pkdlog('{}: job reaped by another thread', jid)
 
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
@@ -1060,15 +1068,28 @@ class _Celery(object):
     def __init__(self, data):
         with self._lock:
             self.jid = _job_id(data)
-            assert not self.jid in self._job, \
-                '{}: simulation already running'.format(self.jid)
+            pkdc('{}: created', self.jid)
+            if self.jid in self._job:
+                pkdlog(
+                    '{}: _RunSimulationCollision tid={} celery_state={}',
+                    jid,
+                    self.async_result,
+                    self.async_result and self.async_result.state,
+                )
+                raise _RunSimulationCollision(self.jid)
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
             self._job[self.jid] = self
             self.data = data
             self._job[self.jid] = self
-            self.async_result = None
-            # This command may blow up
             self.async_result = self._start_job()
+            pkdc(
+                '{}: started tid={} dir={} queue={} len_jobs={}',
+                self.jid,
+                self.async_result.task_id,
+                self.run_dir,
+                self.celery_queue,
+                len(self._job),
+            )
 
     @classmethod
     def is_processing(cls, jid):
@@ -1077,13 +1098,22 @@ class _Celery(object):
             return bool(cls._find_job(jid))
 
     @classmethod
-    def is_running(cls, jid):
-        """Job is actually running"""
+    def job_is_lost(cls, jid):
+        """Strange """
         with cls._lock:
             self = cls._find_job(jid)
-            if self is None:
-                return False
-            return 'running' == simulation_db.read_status(self.run_dir)
+            if self:
+                res = self.async_result
+                pkdlog(
+                    '{}: aborting and deleting job; tid={} celery_state={}',
+                    jid,
+                    res,
+                    res and res.state,
+                )
+                del self._job[self.jid]
+                res.revoke(terminate=True, signal='SIGKILL')
+            else:
+                pkdlog('{}: job finished finally', jid)
 
 
     @classmethod
@@ -1094,27 +1124,51 @@ class _Celery(object):
             if not self:
                 return
             res = self.async_result
-            pkdlog('{}: killing: tid={}', jid, res.task_id)
+            tid = res.task_id
+            pkdlog('{}: killing: tid={}', jid, tid)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
+            pkdlog('{}: sending a SIGKILL tid={}', jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
         with cls._lock:
-            try:
-                del cls._job[jid]
-                pkdlog('{}: deleted', jid)
-            except KeyError:
-                pass
+            self = cls._find_job(jid)
+            if not self:
+                return
+            if self.async_result.task_id == tid:
+                del self._job[self.jid]
+                pkdlog('{}: deleted (killed) job; tid={} celery_state={}', jid, tid, self.async_result.state)
+                return
+            pkdlog(
+                '{}: job reaped by another thread; old_tid={}, new_tid={}',
+                jid,
+                tid,
+                self.async_result,
+            )
 
     @classmethod
     def _find_job(cls, jid):
         try:
             self = cls._job[jid]
         except KeyError:
+            pkdlog('{}: job not found; len_jobs={}', jid, len(cls._job))
             return None
         res = self.async_result
+        pkdc(
+            '{}: job tid={} celery_state={} len_jobs={}',
+            jid,
+            res,
+            res and res.state,
+            len(cls._job),
+        )
         if not res or res.ready():
             del self._job[jid]
+            pkdlog(
+                '{}: deleted errant or ready job; tid={} ready={}',
+                jid,
+                res,
+                res and res.ready(),
+            )
             return None
         return self
 
@@ -1124,7 +1178,6 @@ class _Celery(object):
         """
         from sirepo import celery_tasks
         self.celery_queue = simulation_db.celery_queue(self.data)
-        pkdlog('{}: starting queue={}', self.run_dir, self.celery_queue)
         return celery_tasks.start_simulation.apply_async(
             args=[self.cmd, str(self.run_dir)],
             queue=self.celery_queue,

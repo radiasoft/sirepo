@@ -89,6 +89,9 @@ _serial_lock = threading.RLock()
 #: sirepo.server module, initialized manually to avoid circularity
 _server = None
 
+#: configuration
+cfg = None
+
 
 class CopyRedirect(Exception):
     def __init__(self, response):
@@ -230,6 +233,26 @@ def generate_json(data, pretty=False):
     if pretty:
         return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
     return json.dumps(data)
+
+
+def hack_nfs_write_status(status, run_dir):
+    """Verify status file exists before writing.
+
+    NFS doesn't propagate files immediately so there
+    is a race condition when the celery worker starts.
+    This file handles this case.
+
+    Args:
+        status (str): pending, running, completed, canceled
+        run_dir (py.path): where to write the file
+    """
+    fn = run_dir.join(_STATUS_FILE)
+    for i in range(cfg.nfs_tries):
+        if fn.check(file=True):
+            break
+        time.sleep(cfg.nfs_sleep)
+    # Try once always
+    pkio.write_text(fn, status)
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
@@ -447,6 +470,7 @@ def read_result(run_dir):
     try:
         res = read_json(fn)
     except Exception as e:
+        pkdc('{}: exception={}', fn, e)
         err = pkdexc()
         if pkio.exception_is_not_found(e):
             #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
@@ -460,7 +484,7 @@ def read_result(run_dir):
                 elif e:
                     err = e
             except Exception as e:
-                if pkio.exception_is_not_found(e):
+                if not pkio.exception_is_not_found(e):
                     pkdlog('{}: error reading log: {}', rl, pkdexc())
         else:
             pkdlog('{}: error reading output: {}', fn, err)
@@ -498,7 +522,10 @@ def read_status(run_dir):
     """
     try:
         return pkio.read_text(run_dir.join(_STATUS_FILE))
-    except IOError:
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # simulation may never have been run
+            return 'stopped'
         return 'error'
 
 
@@ -687,6 +714,11 @@ def _init():
     global SCHEMA_COMMON
     with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
         SCHEMA_COMMON = json_load(f)
+    global cfg
+    cfg = pkconfig.init(
+        nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
+        nfs_sleep=(0.1, float, 'Seconds sleep per hack_nfs_write_status poll'),
+    )
 
 
 def _random_id(parent_dir, simulation_type=None):

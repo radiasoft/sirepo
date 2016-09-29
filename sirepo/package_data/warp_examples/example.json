@@ -1,7 +1,7 @@
 {
     "models": {
         "beamAnimation": {
-            "framesPerSecond": 20,
+            "framesPerSecond": 5,
             "histogramBins": 131,
             "x": "z",
             "y": "x"
@@ -28,7 +28,7 @@
         "fieldAnimation": {
             "coordinate": "x",
             "field": "E",
-            "framesPerSecond": 20,
+            "framesPerSecond": 5,
             "mode": "1"
         },
         "laserPreviewReport": {
@@ -47,7 +47,7 @@
             "wavelength": 0.8
         },
         "particleAnimation": {
-            "framesPerSecond": 20,
+            "framesPerSecond": 5,
             "histogramBins": 219,
             "uxMax": 0,
             "uxMin": 0,

@@ -375,7 +375,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<a class="navbar-brand" href="/#about" data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
               '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">WARP</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',

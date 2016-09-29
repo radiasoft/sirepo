@@ -20,7 +20,7 @@ def calc_bragg_angle(d, energy_eV, n=1):
     Args:
         d (float): interplanar spacing (d-spacing) [A].
         energy_eV (float): photon energy [eV].
-        n (int): number of diffraciton peak.
+        n (int): number of diffraction peak.
 
     Returns:
         dict: the resulted dictionary with:

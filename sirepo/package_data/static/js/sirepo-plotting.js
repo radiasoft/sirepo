@@ -955,7 +955,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/heatmap.html?' + SIREPO.APP_VERSION,
+        templateUrl: '/static/html/heatplot.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
 
             $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};

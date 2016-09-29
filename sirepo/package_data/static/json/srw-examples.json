@@ -48,11 +48,13 @@
         "examples": [
             {
                 "name": "NSLS-II",
-                "image": "nsls-ii.png"
+                "image": "nsls-ii.png",
+                "simulationName": "NSLS-II CHX beamline"
             },
             {
                 "name": "LCLS",
-                "image": "lcls.png"
+                "image": "lcls.png",
+                "simulationName": "LCLS SXR beamline"
             }
         ]
     }

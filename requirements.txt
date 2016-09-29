@@ -1,10 +1,12 @@
+SQLAlchemy
 beaker
+bnlcrl
 celery
 flask
 flower
 numconv
+numpy
+psycopg2
+pyIsEmail
 pykern
 uwsgi
-numpy
-bnlcrl
-pyIsEmail
