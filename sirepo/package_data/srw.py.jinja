@@ -37,6 +37,8 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_xp', 'f', 0, ''],
     ['ebm_yp', 'f', 0, ''],
 
+{% endif %}
+{% if simulation_sourceType in ['u', 't'] %}
 #---Undulator
     ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
