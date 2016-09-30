@@ -489,9 +489,10 @@ def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
 
-    v['userDefinedElectronBeam'] = 1
-    if 'isReadOnly' in data['models']['electronBeam'] and data['models']['electronBeam']['isReadOnly']:
-        v['userDefinedElectronBeam'] = 0
+    if 'isReadOnly' not in data['models']['electronBeam'] or data['models']['electronBeam']['isReadOnly'] is False:
+        v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
+    if data['models']['electronBeam']['beamDefinition'] == 'm':
+        v['electronBeam_horizontalBeta'] = None
     if 'report' in data:
         v[data['report']] = 1
     return pkjinja.render_resource('srw.py', v)
