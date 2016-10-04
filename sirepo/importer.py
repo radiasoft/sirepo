@@ -586,7 +586,7 @@ def _parsed_dict(v, op):
     }
 
     # Default electron beam:
-    if hasattr(v, 'ebm_nm'):
+    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):
         source_type = 'u'
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
