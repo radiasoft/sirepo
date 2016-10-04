@@ -271,6 +271,21 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     return res
 
 
+def job_id(data):
+    """A Job is a simulation and report name
+
+    Args:
+        data (dict): extract sid and report
+    Returns:
+        str: unique name
+    """
+    return '{}-{}-{}'.format(
+        _server.session_user(),
+        data['simulationId'],
+        data['report'],
+    )
+
+
 def json_filename(filename, run_dir=None):
     """Append JSON_SUFFIX if necessary and convert to str
 
