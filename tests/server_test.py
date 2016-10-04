@@ -11,10 +11,9 @@ pytest.importorskip('srwl_bl')
 def test_basic():
     from sirepo import sr_unit
     fc = sr_unit.flask_client()
-
     resp = fc.get('/')
-    assert resp.status_code == 404, \
-        'There should not be a / route'
+    assert 'LandingPageController' in resp.data, \
+        'Top level document is the landing page'
 
 
 def test_srw():

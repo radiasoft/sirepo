@@ -717,7 +717,7 @@ def _init():
     global cfg
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
-        nfs_sleep=(0.1, float, 'Seconds sleep per hack_nfs_write_status poll'),
+        nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
 
 

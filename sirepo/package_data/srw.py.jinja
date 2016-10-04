@@ -26,17 +26,36 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_nm', 's', '{{electronBeam_name}}', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', {{electronBeam_current}}, 'electron beam current [A]'],
+    ['ebm_e', 'f', {{electronBeam_energy}}, 'electron beam avarage energy [GeV]'],
     ['ebm_de', 'f', {{electronBeam_energyDeviation}}, 'electron beam average energy deviation [GeV]'],
     ['ebm_x', 'f', {{electronBeam_horizontalPosition}}, 'electron beam initial average horizontal position [m]'],
     ['ebm_y', 'f', {{electronBeam_verticalPosition}}, 'electron beam initial average vertical position [m]'],
+    ['ebm_xp', 'f', 0., 'electron beam initial average horizontal angle [rad]'],
+    ['ebm_yp', 'f', 0., 'electron beam initial average vertical angle [rad]'],
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', {{electronBeam_drift}}, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
-    ['ebm_ens', 'f', -1, ''],
-    ['ebm_emx', 'f', -1, ''],
-    ['ebm_emy', 'f', -1, ''],
-    ['ebm_xp', 'f', 0, ''],
-    ['ebm_yp', 'f', 0, ''],
+    ['ebm_ens', 'f', {{electronBeam_rmsSpread}}, 'electron beam relative energy spread'],
+    ['ebm_emx', 'f', {{electronBeam_horizontalEmittance}}, 'electron beam horizontal emittance [m]'],
+    ['ebm_emy', 'f', {{electronBeam_verticalEmittance}}, 'electron beam vertical emittance [m]'],
+    # Definition of the beam through Twiss:
+    ['ebm_betax', 'f', {{electronBeam_horizontalBeta}}, 'horizontal beta-function [m]'],
+    ['ebm_betay', 'f', {{electronBeam_verticalBeta}}, 'vertical beta-function [m]'],
+    ['ebm_alphax', 'f', {{electronBeam_horizontalAlpha}}, 'horizontal alpha-function [rad]'],
+    ['ebm_alphay', 'f', {{electronBeam_verticalAlpha}}, 'vertical alpha-function [rad]'],
+    ['ebm_etax', 'f', {{electronBeam_horizontalDispersion}}, 'horizontal dispersion function [m]'],
+    ['ebm_etay', 'f', {{electronBeam_verticalDispersion}}, 'vertical dispersion function [m]'],
+    ['ebm_etaxp', 'f', {{electronBeam_horizontalDispersionDerivative}}, 'horizontal dispersion function derivative [rad]'],
+    ['ebm_etayp', 'f', {{electronBeam_verticalDispersionDerivative}}, 'vertical dispersion function derivative [rad]'],
+    # Definition of the beam through Moments:
+    ['ebm_sigx', 'f', {{electronBeam_rmsSizeX}}, 'horizontal RMS size of electron beam [m]'],
+    ['ebm_sigy', 'f', {{electronBeam_rmsSizeY}}, 'vertical RMS size of electron beam [m]'],
+    ['ebm_sigxp', 'f', {{electronBeam_rmsDivergX}}, 'horizontal RMS angular divergence of electron beam [rad]'],
+    ['ebm_sigyp', 'f', {{electronBeam_rmsDivergY}}, 'vertical RMS angular divergence of electron beam [rad]'],
+    ['ebm_mxxp', 'f', {{electronBeam_xxprX}}, 'horizontal position-angle mixed 2nd order moment of electron beam [m]'],
+    ['ebm_myyp', 'f', {{electronBeam_xxprY}}, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
 
+{% endif %}
+{% if simulation_sourceType in ['u', 't'] %}
 #---Undulator
     ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],
@@ -53,8 +72,8 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mdir', 's', '{{tabulatedUndulator_magnMeasFolder}}', 'name of magnetic measurements sub-folder'],
     ['und_mfs', 's', '{{tabulatedUndulator_indexFile}}', 'name of magnetic measurements for different gaps summary file'],
-{% endif %}
 
+{% endif %}
 {% if simulation_sourceType == 'g' %}
     ['gbm_x', 'f', {{gaussianBeam_waistX}}, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', {{gaussianBeam_waistY}}, 'average vertical coordinates of waist [m]'],
@@ -196,29 +215,5 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['mp_distribution', 's', '{{multipole_distribution}}', 'normal (n) or skew (s)'],
     ['mp_len', 'f', {{multipole_length}}, 'effective length [m]'],
     ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
-{% endif %}
-
-{% if simulation_sourceType != 'g' %}
-#---User Defined Electron Beam
-    ['ebm_ud', 'i', {{userDefinedElectronBeam}}, 'Use user defined beam'],
-    ['ebm_ud_e', 'f', {{electronBeam_energy}}, 'energy [GeV]'],
-    ['ebm_ud_sig_e', 'f', {{electronBeam_rmsSpread}}, 'RMS energy spread'],
-    ['ebm_ud_beam_definition', 's', '{{electronBeam_beamDefinition}}', 'definition of the beam using Twiss Parameters (t) or Moments (m)'],
-    ['ebm_ud_emit_x', 'f', {{electronBeam_horizontalEmittance}}, 'horizontal emittance [m]'],
-    ['ebm_ud_beta_x', 'f', {{electronBeam_horizontalBeta}}, 'horizontal beta-function [m]'],
-    ['ebm_ud_alpha_x', 'f', {{electronBeam_horizontalAlpha}}, 'horizontal alpha-function [rad]'],
-    ['ebm_ud_eta_x', 'f', {{electronBeam_horizontalDispersion}}, 'horizontal dispersion function [m]'],
-    ['ebm_ud_eta_x_pr', 'f', {{electronBeam_horizontalDispersionDerivative}}, 'horizontal dispersion function derivative [rad]'],
-    ['ebm_ud_emit_y', 'f', {{electronBeam_verticalEmittance}}, 'vertical emittance [m]'],
-    ['ebm_ud_beta_y', 'f', {{electronBeam_verticalBeta}}, 'vertical beta-function [m]'],
-    ['ebm_ud_alpha_y', 'f', {{electronBeam_verticalAlpha}}, 'vertical alpha-function [rad]'],
-    ['ebm_ud_eta_y', 'f', {{electronBeam_verticalDispersion}}, 'vertical dispersion function [m]'],
-    ['ebm_ud_eta_y_pr', 'f', {{electronBeam_verticalDispersionDerivative}}, 'vertical dispersion function derivative [rad]'],
-    ['ebm_ud_rms_size_x', 'f', {{electronBeam_rmsSizeX}}, "horizontal RMS size [m]"],
-    ['ebm_ud_rms_diverg_x', 'f', {{electronBeam_rmsDivergX}}, "horizontal RMS divergence [rad]"],
-    ['ebm_ud_xxpr_x', 'f', {{electronBeam_xxprX}}, "horizontal <(x-<x>)(x'-<x'>)> [m]"],
-    ['ebm_ud_rms_size_y', 'f', {{electronBeam_rmsSizeY}}, "vertical RMS size [m]"],
-    ['ebm_ud_rms_diverg_y', 'f', {{electronBeam_rmsDivergY}}, "vertical RMS divergence [rad]"],
-    ['ebm_ud_xxpr_y', 'f', {{electronBeam_xxprY}}, "vertical <(x-<x>)(x'-<x'>)> [m]"],
 {% endif %}
 ])

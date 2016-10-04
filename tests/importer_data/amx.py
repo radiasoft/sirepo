@@ -280,16 +280,16 @@ varParam = [
     ['ebm_emy', 'f', -1, 'electron beam vertical emittance [m]'],
 
 #---Undulator
-    #['und_per', 'f', 0.021, 'undulator period [m]'],
-    #['und_len', 'f', 1.5, 'undulator length [m]'],
+    ['und_per', 'f', 0.021, 'undulator period [m]'],
+    ['und_len', 'f', 1.5, 'undulator length [m]'],
     ['und_b', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
     #['und_bx', 'f', 0., 'undulator horizontal peak magnetic field [T]'],
     #['und_by', 'f', 1., 'undulator vertical peak magnetic field [T]'],
     #['und_phx', 'f', 1.5708, 'undulator horizontal magnetic field phase [rad]'],
     #['und_phy', 'f', 0., 'undulator vertical magnetic field phase [rad]'],
-    #['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
+    ['und_sx', 'i', 1.0, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     #['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-    #['und_zc', 'f', 0., 'undulator center longitudinal position [m]'],
+    ['und_zc', 'f', 1.305, 'undulator center longitudinal position [m]'],
 
     ['und_mdir', 's', 'magn_meas', 'name of magnetic measurements sub-folder'],
     ['und_mfs', 's', 'ivu21_amx_sum.txt', 'name of magnetic measurements for different gaps summary file'],

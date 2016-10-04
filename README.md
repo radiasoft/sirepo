@@ -269,6 +269,11 @@ sirepo service nginx_proxy
 sirepo service flower
 ```
 
+[nginx](http://nginx.org) will listen on port 8080 so you can browse
+Sirepo at [http://localhost:8080](http://localhost:8080). The
+middle tier [uwsgi](http://uwsgi-docs.readthedocs.io) server
+will start on port 8000.
+
 The last process starts [Flower](http://flower.readthedocs.io),
 which allows you to monitor [Celery](http://www.celeryproject.org).
 You can visit [http://localhost:5555](http://localhost:5555)

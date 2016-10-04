@@ -817,7 +817,7 @@ def _simulation_run_status(data, quiet=False):
         is_running = status in _RUN_STATES
         res = {'state': status}
         if is_processing and not is_running:
-            cfg.job_queue.job_is_lost(jid)
+            cfg.job_queue.race_condition_reap(jid)
             is_processing = False
         if is_processing:
             if not cached_data:
@@ -946,12 +946,9 @@ class _Background(object):
             except OSError:
                 # Has to exist so no need to protect
                 del self._job[jid]
+                pkdlog('{}: pid={} does not exist, removing job', jid, pid)
                 return False
         return True
-
-    @classmethod
-    def job_is_lost(cls, jid):
-        raise AssertionError('should never happen')
 
     @classmethod
     def kill(cls, jid):
@@ -994,6 +991,16 @@ class _Background(object):
                 pkdlog('{}: job restarted by another thread', jid)
             except KeyError:
                 pkdlog('{}: job reaped by another thread', jid)
+
+    @classmethod
+    def race_condition_reap(cls, jid):
+        """Job terminated, but not still in queue.
+
+        This can happen due to race condition in is_processing. Call
+        again to remove the job from the queue.
+        """
+        pkdlog('{}: sigchld_handler in another thread', jid)
+        cls.is_processing(jid)
 
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
@@ -1098,25 +1105,6 @@ class _Celery(object):
             return bool(cls._find_job(jid))
 
     @classmethod
-    def job_is_lost(cls, jid):
-        """Strange """
-        with cls._lock:
-            self = cls._find_job(jid)
-            if self:
-                res = self.async_result
-                pkdlog(
-                    '{}: aborting and deleting job; tid={} celery_state={}',
-                    jid,
-                    res,
-                    res and res.state,
-                )
-                del self._job[self.jid]
-                res.revoke(terminate=True, signal='SIGKILL')
-            else:
-                pkdlog('{}: job finished finally', jid)
-
-
-    @classmethod
     def kill(cls, jid):
         from celery.exceptions import TimeoutError
         with cls._lock:
@@ -1145,6 +1133,25 @@ class _Celery(object):
                 tid,
                 self.async_result,
             )
+
+    @classmethod
+    def race_condition_reap(cls, jid):
+        """Race condition due to lack of mutex and reliable results.
+        """
+        with cls._lock:
+            self = cls._find_job(jid)
+            if self:
+                res = self.async_result
+                pkdlog(
+                    '{}: aborting and deleting job; tid={} celery_state={}',
+                    jid,
+                    res,
+                    res and res.state,
+                )
+                del self._job[self.jid]
+                res.revoke(terminate=True, signal='SIGKILL')
+            else:
+                pkdlog('{}: job finished finally', jid)
 
     @classmethod
     def _find_job(cls, jid):

@@ -1,12 +1,14 @@
 SQLAlchemy
 beaker
 bnlcrl
-celery
+celery==3.1.23
 flask
-flower
+flower==0.8.4
+kombu==3.0.35
 numconv
 numpy
 psycopg2
 pyIsEmail
 pykern
+pytz==2015.7
 uwsgi
