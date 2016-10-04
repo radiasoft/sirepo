@@ -10,3 +10,4 @@ psycopg2
 pyIsEmail
 pykern
 uwsgi
+kombu!=3.0.36
