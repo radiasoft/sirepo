@@ -576,40 +576,6 @@ class _WSGIApp(object):
         return self.wsgi_app(environ, start_response)
 
 
-def _cached_simulation(data):
-    """Read the run_dir and return cached_data.
-
-    Only a hit if the models between data and cache match exactly. Otherwise,
-    return cached data if it's there and valid.
-
-    Args:
-        data (dict): parameters identifying run_dir and models or reportParametersHash
-
-    Returns:
-        bool: cache hit and matches data models?
-        dict: cached data
-    """
-    # Sets data['reportParametersHash']
-    req_hash = template_common.report_parameters_hash(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    if not run_dir.check():
-        return False, None
-    #TODO(robnagler) Lock
-    cached_data = None
-    try:
-        cached_data = simulation_db.read_json(_simulation_input(run_dir))
-        cached_hash = template_common.report_parameters_hash(cached_data)
-        if req_hash == cached_hash:
-            return True, cached_data
-    except IOError as e:
-        pkdlog('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
-    except Exception as e:
-        pkdlog('{}: ignore other error: {}', run_dir, e)
-        # No idea if cache is valid or not so throw away
-        cached_data = None
-    return False, cached_data
-
-
 @pkconfig.parse_none
 def _cfg_session_secret(value):
     """Reads file specified as config value"""
@@ -722,17 +688,6 @@ def _simulation_error(err, *args, **kwargs):
     return {'state': 'error', 'error': err}
 
 
-def _simulation_input(run_dir):
-    """Fully qualified input file
-
-    Args:
-        run_dir (py.path): simulation directory
-    Returns:
-        py.path: path to simulation input
-    """
-    return simulation_db.json_filename(template_common.INPUT_BASE_NAME, run_dir)
-
-
 def _simulation_data(res, path, data):
     """Iterator function to return entire simulation data
     """
@@ -756,69 +711,74 @@ def _simulation_run_status(data, quiet=False):
         dict: status response
     """
     try:
-        jid = simulation_db.job_id(data)
         #TODO(robnagler): Lock
-        cache_hit, cached_data = _cached_simulation(data)
-        is_processing = cfg.job_queue.is_processing(jid)
-        run_dir = simulation_db.simulation_run_dir(data)
-        input_file = _simulation_input(run_dir)
-        status = simulation_db.read_status(run_dir)
-        is_running = status in _RUN_STATES
-        res = {'state': status}
+        rep = simulation_db.report_info(data)
+        is_processing = cfg.job_queue.is_processing(rep.job_id)
+        is_running = rep.job_status in _RUN_STATES
+        res = {'state': rep.job_status}
+        pkdc(
+            '{}: is_processing={} is_running={} state={} cached_data={}',
+            rep.job_id,
+            is_processing,
+            is_running,
+            rep.job_status,
+            bool(rep.cached_data),
+        )
         if is_processing and not is_running:
-            cfg.job_queue.race_condition_reap(jid)
+            cfg.job_queue.race_condition_reap(rep.job_id)
+            pkdc('{}: is_processing and not is_running', rep.job_id)
             is_processing = False
         if is_processing:
-            if not cached_data:
+            if not rep.cached_data:
                 return _simulation_error(
                     'input file not found, but job is running',
-                    input_file,
+                    rep.input_file,
                 )
         else:
             is_running = False
-            if run_dir.exists():
-                res, err = simulation_db.read_result(run_dir)
+            if rep.run_dir.exists():
+                res, err = simulation_db.read_result(rep.run_dir)
                 if err:
-                    return _simulation_error(err, 'error in read_result', run_dir)
+                    return _simulation_error(err, 'error in read_result', rep.run_dir)
         if simulation_db.is_parallel(data):
             template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
-                data['report'],
-                run_dir,
+                rep.data['report'],
+                rep.run_dir,
                 is_running,
                 simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
             res.update(new)
-        res['parametersChanged'] = bool(not cache_hit and cached_data)
+        res['parametersChanged'] = rep.parameters_changed
         if res['parametersChanged']:
             pkdlog(
-                '{}: parametersChanged data_hash={} cached_hash={}',
-                jid,
-                data['reportParametersHash'],
-                cached_data['reportParametersHash'],
+                '{}: parametersChanged=True req_hash={} cached_hash={}',
+                rep.job_id,
+                rep.req_hash,
+                rep.cached_hash,
             )
         #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('startTime', _mtime_or_now(input_file))
-        res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
+        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
         if is_processing:
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
-                'report': cached_data['report'],
-                'reportParametersHash': cached_data['reportParametersHash'],
-                'simulationId': cached_data['simulationId'],
-                'simulationType': cached_data['simulationType'],
+                'report': rep.model_name,
+                'reportParametersHash': rep.cached_hash,
+                'simulationId': rep.cached_data['simulationId'],
+                'simulationType': rep.cached_data['simulationType'],
             }
         pkdc(
             '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
-            jid,
+            rep.job_id,
             is_processing,
             res['state'],
-            cache_hit,
-            cached_data and cached_data['reportParametersHash'],
-            data['reportParametersHash'],
+            rep.cache_hit,
+            rep.cached_hash,
+            rep.req_hash,
         )
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)

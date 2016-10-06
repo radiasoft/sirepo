@@ -8,9 +8,11 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import template_common
 import errno
 import os
 import signal
+import sys
 import threading
 import time
 import uuid
@@ -43,10 +45,12 @@ class Background(object):
             try:
                 self = cls._job[jid]
             except KeyError:
+                pkdc('{}: not found', jid)
                 return False
             if self.in_kill:
                 # Strange but true. The process is alive at this point so we
                 # don't want to do anything like start a new process
+                pkdc('{}: in_kill', jid)
                 return True
             try:
                 os.kill(self.pid, 0)
@@ -167,7 +171,7 @@ class Background(object):
                 sys.exit(1)
         except BaseException as e:
             with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
-                f.write('{}: error starting daemon: {}'.format(self.jid, e))
+                f.write('{}: error starting simulation: {}'.format(self.jid, e))
             raise
 
 

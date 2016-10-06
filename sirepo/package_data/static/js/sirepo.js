@@ -834,51 +834,55 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
+        var thisErrorCallback = function(resp, status) {
+            $interval.cancel(interval);
+            var msg = null;
+            if (timed_out) {
+                msg = 'request timed out after '
+                    + Math.round(SIREPO.http_timeout/1000)
+                    + ' seconds';
+                status = 504;
+            }
+            else if (status === 0) {
+                msg = 'the server is unavailable';
+                status = 503;
+            }
+            if (_.isString(resp) && IS_HTML_ERROR_RE.exec(resp)) {
+                var m = HTML_TITLE_RE.exec(resp);
+                if (m) {
+                    srlog(m[1], ': error response from server');
+                    resp = {error: m[1]};
+                }
+            }
+            if (_.isEmpty(resp)) {
+                resp = {};
+            }
+            else if (! _.isObject(resp)) {
+                errorService.logToServer(
+                    'serverResponseError', resp, 'unexpected response type or empty');
+                resp = {};
+            }
+            if (! resp.state) {
+                resp.state = 'error';
+            }
+            if (! resp.error) {
+                resp.error = msg || 'a server error occured: status=' + status;
+            }
+            srlog(resp.error);
+            errorCallback(resp, status);
+        };
         req.success(
             function(resp, status) {
                 $interval.cancel(interval);
-                successCallback(resp, status);
+                if (_.isObject(resp)) {
+                    successCallback(resp, status);
+                }
+                else {
+                    thisErrorCallback(resp, status);
+                }
             }
         );
-        req.error(
-            function(resp, status) {
-                $interval.cancel(interval);
-                var msg = null;
-                if (timed_out) {
-                    msg = 'request timed out after '
-                        + Math.round(SIREPO.http_timeout/1000)
-                        + ' seconds';
-                    status = 504;
-                }
-                else if (status === 0) {
-                    msg = 'the server is unavailable';
-                    status = 503;
-                }
-                if (_.isString(resp) && IS_HTML_ERROR_RE.exec(resp)) {
-                    var m = HTML_TITLE_RE.exec(resp);
-                    if (m) {
-                        srlog(m[1], ': error response from server');
-                        resp = {error: m[1]};
-                    }
-                }
-                if (_.isEmpty(resp)) {
-                    resp = {};
-                }
-                else if (! _.isObject(resp)) {
-                    errorService.logToServer(
-                        'serverResponseError', resp, 'unexpected response type or empty');
-                    resp = {};
-                }
-                if (! resp.state) {
-                    resp.state = 'error';
-                }
-                if (! resp.error) {
-                    resp.error = msg || 'a server error occured: status=' + status;
-                }
-                srlog(resp.error);
-                errorCallback(resp, status);
-            }
-        );
+        req.error(thisErrorCallback);
     };
 
     return self;
