@@ -1366,7 +1366,15 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             };
 
             $scope.openRelatedSimulation = function(item) {
-                appState.loadModels(item.simulationId);
+                if ($scope.nav.isActive('beamline')) {
+                    requestSender.localRedirect('beamline', {
+                        ':simulationId': item.simulationId,
+                    });
+                    return;
+                }
+                requestSender.localRedirect('source', {
+                    ':simulationId': item.simulationId,
+                });
             };
 
             $scope.showImportModal = function() {
