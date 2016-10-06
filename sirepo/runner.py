@@ -165,6 +165,7 @@ class Background(object):
             pkdlog('{}: child will exec: {}', self.jid, self.cmd)
             sys.stderr.flush()
             try:
+                simulation_db.write_status('running', self.run_dir)
                 os.execvp(self.cmd[0], self.cmd)
             finally:
                 pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)

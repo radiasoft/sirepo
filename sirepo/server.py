@@ -743,7 +743,7 @@ def _simulation_run_status(data, quiet=False):
         if simulation_db.is_parallel(data):
             template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
-                rep.data['report'],
+                rep.model_name,
                 rep.run_dir,
                 is_running,
                 simulation_db.get_schema(data['simulationType']),
