@@ -921,6 +921,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
             };
 
             $scope.resize = function() {
+                //TODO(pjm): occasionally dies here in d3 when switching tabs
                 var width = parseInt(select().style('width')) - 2 * $scope.margin;
                 if (! heatmap || isNaN(width))
                     return;
