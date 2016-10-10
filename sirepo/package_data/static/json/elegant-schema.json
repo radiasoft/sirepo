@@ -447,7 +447,7 @@
             "eta_y": ["Eta Y", "RPNValue", "0.0", ""],
             "etap_y": ["Etap Y", "RPNValue", "0.0", ""],
             "use_twiss_command_values": ["Use Twiss Command Values", "RPNBoolean", "0", "If nonzero, then the values for β, α, η, and η^′ are taken from the twiss_output command. It is an error if no twiss_output command has been given."],
-            "po": ["Po", "RPNValue", "0.0", "Central momentum of the bunch."],
+            "Po": ["Po", "RPNValue", "0.0", "Central momentum of the bunch."],
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
             "sigma_s": ["Sigma S", "RPNValue", "0.0", ""],
             "dp_s_coupling": ["DP S Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ)."],
@@ -489,7 +489,7 @@
             "use_perturbed_matrix": ["Use Perturbed Matrix", "RPNBoolean", "0", "If nonzero, requests use of the perturbed correction matrix in performing correction. For difficult lattices with large errors, this may be necessary to obtain correction. In general, it is not necessary and only slows the simulation."],
             "exit_on_failure": ["Exit On Failure", "RPNBoolean", "0", "If nonzero, then failure to reach the desired chromaticities within the tolerance results in the program exiting."],
             "verbosity": ["Verbosity", "Integer", "1", "Increasing positive values result in increasing amounts of information printed during execution."],
-            "dk2_weight": ["DK2 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_2 values in the event that there are more than two families."]
+            "dK2_weight": ["DK2 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_2 values in the event that there are more than two families."]
         },
         "command_closed_orbit": {
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to which the closed orbits will be written."],
@@ -515,10 +515,10 @@
             "correction_fraction": ["Correction Fraction", "StringArray", "1, 1", "The fraction of the computed correction strength to actually use for any one iteration."],
             "correction_accuracy": ["Correction Accuracy", "StringArray", "1e-6, 1e-6", "The desired accuracy of the correction in terms of the RMS BPM values."],
             "do_correction": ["Do Correction", "StringArray", "1, 1", "Flags to allow disabling correction in one or both planes (if set to zero)."],
-            "remove_smallest_svs": ["Remove Smallest SVS", "StringArray", "0, 0", "These parameters control the elimination of singular vectors from the inverse response matrix, which can help deal with degeneracy in the correctors and reduce corrector strength. By default, the number of singular vectors is limited to the number of BPMs, which is a basic condition for stability; this can be defeated by setting auto_limit_SVs to 0 for the desired planes. Set remove_smallest_SVs to require removal of a given number of vectors with the smallest singular values; this is ignored if auto_limit_SVs is also requested and would remove more SVs. Set keep_largest_SVs to require keeping at most a given number of the largest SVs. Set minimum_SV_ratio to require removal of any vectors with singular values less than a given factor of the largest singular value."],
-            "keep_largest_svs": ["Keep Largest SVS", "StringArray", "0, 0", ""],
-            "minimum_sv_ratio": ["Minimum SV Ratio", "StringArray", "0, 0", ""],
-            "auto_limit_svs": ["Auto Limit SVS", "StringArray", "1, 1", ""],
+            "remove_smallest_SVs": ["Remove Smallest SVS", "StringArray", "0, 0", "These parameters control the elimination of singular vectors from the inverse response matrix, which can help deal with degeneracy in the correctors and reduce corrector strength. By default, the number of singular vectors is limited to the number of BPMs, which is a basic condition for stability; this can be defeated by setting auto_limit_SVs to 0 for the desired planes. Set remove_smallest_SVs to require removal of a given number of vectors with the smallest singular values; this is ignored if auto_limit_SVs is also requested and would remove more SVs. Set keep_largest_SVs to require keeping at most a given number of the largest SVs. Set minimum_SV_ratio to require removal of any vectors with singular values less than a given factor of the largest singular value."],
+            "keep_largest_SVs": ["Keep Largest SVS", "StringArray", "0, 0", ""],
+            "minimum_SV_ratio": ["Minimum SV Ratio", "StringArray", "0, 0", ""],
+            "auto_limit_SVs": ["Auto Limit SVS", "StringArray", "1, 1", ""],
             "remove_pegged": ["Remove Pegged", "StringArray", "0, 0", "If nonzero, then for the plane in question pegged correctors will be removed from the correction matrix. This results in recomputation of the matrix, following which correction continues with the reduced set of correctors. The pegged corrector is left at its last value."],
             "threading_divisor": ["Threading Divisor", "StringArray", "100, 100", "In threading mode trajectory correction, each corrector is varied between 0 and ±θmax, where θmax is the strength limit. This parameter sets the number of steps to divide the corrector range into on the positive and negative sides. A smaller value results in faster execution but is less reliable."],
             "threading_correctors": ["Threading Correctors", "StringArray", "-1, -1", "In threading mode trajectory correction, gives the number of correctors upstream of the loss point to use for threading the beam further through the system."],
@@ -556,13 +556,13 @@
             "strength_log": ["Strength Log", "OutputFile", "", "The name of a SDDS file to which the quadrupole strengths will be written as correction proceeds."],
             "change_defined_values": ["Change Defined Values", "Integer", "0", "Changes the defined values of the quadrupole strengths. This means that when the lattice is saved (using save_lattice), the quadrupoles will have the corrected values. This would be used for correcting the tunes of a design lattice, for example, but not for correcting tunes of a perturbed lattice."],
             "use_perturbed_matrix": ["Use Perturbed Matrix", "RPNBoolean", "0", "If nonzero, requests use of the perturbed correction matrix in performing correction. For difficult lattices with large errors, this may be necessary to obtain correction. In general, it is not necessary and only slows the simulation."],
-            "dk1_weight": ["DK1 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_1 values in the event that there are more than two families."]
+            "dK1_weight": ["DK1 Weight", "RPNValue", "1", "Weighting factor that is used to minimize the mean-square changes in K_1 values in the event that there are more than two families."]
         },
         "command_correction_matrix_output": {
             "response": ["Response", "StringArray", ",,,", "Array of filenames for SDDS output of the x and y response matrices, plus the cross-plane response matrices. Recommended values, in order: \"%s.hrm\" (horizontal response to horizontal correctors), \"%s.vrm\" (vertical response to vertical correctors), \"%s.vhrm\" (vertical response to horizontal correctors), and \"%s.hvrm\" (horizontal response to vertical correctors)."],
             "inverse": ["Inverse", "StringArray", ",", "Array of filenames for SDDS output of the x and y inverse response matrices. Recommended values: \"%s.hirm\" and \"%s.virm\"."],
-            "knl_units": ["KNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/K0L rather than m/rad. This results in a sign change for the horizontal data."],
-            "bnl_units": ["BNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/(T*m) rather than m/rad. This is useful for linac work in that the responses are automatically scaled with beam momentum."],
+            "KnL_units": ["KNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/K0L rather than m/rad. This results in a sign change for the horizontal data."],
+            "BnL_units": ["BNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/(T*m) rather than m/rad. This is useful for linac work in that the responses are automatically scaled with beam momentum."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "Flag that, if set, specifies output of the data at each simulation step. By default, the data is output immediately for the defined lattice."],
             "output_before_tune_correction": ["Output Before Tune Correction", "RPNBoolean", "0", "Flag that, if set, specifies that when output_at_each_step is set, that output shall occur prior to correcting the tunes."],
             "fixed_length": ["Fixed Length", "RPNBoolean", "0", "Flag that, if set, specifies output of the fixed-path-length matrix."],
@@ -576,7 +576,7 @@
             "emit_x": ["Emit X", "RPNValue", "0.0", ""],
             "emittance_ratio": ["Emittance Ratio", "RPNValue", "0.01", "Gives the ratio of the x and y emittances. Used to determine the vertical emittance from the horizontal emittance. Note that the computation is not self-consistent. I.e., the user is free to enter any emittance ratio desired, whether it is consistent with the machine optics or now."],
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", "Gives the momentum spread, if emittances_from_twiss_command=0."],
-            "calculate_3d_coupling": ["Calculate 3D Coupling", "Integer", "1", ""],
+            "calculate_3d_coupling": ["Calculate 3D Coupling", "RPNBoolean", "1", ""],
             "verbosity": ["Verbosity", "Integer", "0", ""],
             "concat_order": ["Concat Order", "Integer", "2", ""]
         },
@@ -589,8 +589,8 @@
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior division specifications are deleted."]
         },
         "command_error_control": {
-            "clear_error_settings": ["Clear Error Settings", "Integer", "1", "Clear all previous error settings."],
-            "summarize_error_settings": ["Summarize Error Settings", "Integer", "0", "Summarize current error settings. If non-zero, then the command has no other function except showing a summary of the current error settings."],
+            "clear_error_settings": ["Clear Error Settings", "RPNBoolean", "1", "Clear all previous error settings."],
+            "summarize_error_settings": ["Summarize Error Settings", "RPNBoolean", "0", "Summarize current error settings. If non-zero, then the command has no other function except showing a summary of the current error settings."],
             "no_errors_for_first_step": ["No Errors For First Step", "RPNBoolean", "0", "If non-zero, then there will be no errors for the first step. This can be useful for fiducialization of phase and momentum profiles."],
             "error_log": ["Error Log", "OutputFile", "", "The name of a SDDS file to which error values will be written."],
             "error_factor": ["Error Factor", "RPNValue", "1", "A value by which to multiply the error amplitudes in all error commands."]
@@ -604,7 +604,7 @@
             "cutoff": ["Cutoff", "RPNValue", "3.0", "The cutoff for the gaussian random distribution in units of the amplitude. Ignored for other distribution types."],
             "bind": ["Bind", "Integer", "1", "These parameters control \"binding\" of errors among elements, which means assigning the same error contribution to several elements. This occurs if bind is nonzero, which it is by default! If bind is negative, then the sign of the error will alternate between successive elements. bind_number can be used to limit the number of elements bound together. In particular, if bind_number is positive, then a positive value of bind indicates that bind_number successive elements having the same name will have the same error value. Finally, by default, elegant only binds the errors of objects having the same name, even if they are assigned errors by the same error_element command (i.e., through a wildcard name). If bind_across_names is nonzero, then binding is done even for elements with different names."],
             "bind_number": ["Bind Number", "Integer", "0", ""],
-            "bind_across_names": ["Bind Across Names", "Integer", "0", ""],
+            "bind_across_names": ["Bind Across Names", "RPNBoolean", "0", ""],
             "post_correction": ["Post Correction", "RPNBoolean", "0", "A flag indicating whether the errors should be added after orbit, tune, and chromaticity correction."],
             "fractional": ["Fractional", "RPNBoolean", "0", "A flag indicating whether the errors are fractional, in which case the amplitude refers to the amplitude of the fractional error."],
             "additive": ["Additive", "RPNBoolean", "1", "A flag indicating that the errors should be added to the prior value of the parameter. If zero, then the errors replace the prior value of the parameter."],
@@ -626,7 +626,7 @@
             "n_splits": ["N Splits", "Integer", "0", "If positive, the number of times to do interval splitting. Interval splitting refers to searching between the original grid points in order to refine the results. This is done only for single-particle and line modes."],
             "split_fraction": ["Split Fraction", "RPNValue", "0.5", "If interval splitting is done, how the interval is split."],
             "desired_resolution": ["Desired Resolution", "RPNValue", "0.01", "If interval splitting is done, fraction of xmax-xmin to which to resolve the aperture. Ignored for all but single-particle mode."],
-            "assume_nonincreasing": ["Assume Nonincreasing", "Integer", "0", "If this variable is non-zero, the search assumes that the aperture at y+sign(y)*Δ y is no larger than that at y. This results in tracking of fewer particles but may give a pessimistic result. Used only for single- and multi-particle modes."],
+            "assume_nonincreasing": ["Assume Nonincreasing", "RPNBoolean", "0", "If this variable is non-zero, the search assumes that the aperture at y+sign(y)*Δ y is no larger than that at y. This results in tracking of fewer particles but may give a pessimistic result. Used only for single- and multi-particle modes."],
             "verbosity": ["Verbosity", "Integer", "0", "A larger value results in more printouts during computations."],
             "offset_by_orbit": ["Offset By Orbit", "RPNBoolean", "0", "A flag indicating whether to offset the transverse beam coordinates by the closed orbit before tracking. The default value is zero for backward compatibility, but the recommended value is 1."],
             "n_lines": ["N Lines", "Integer", "11", "In \"n-lines\" mode, the number of lines to search."],
@@ -634,8 +634,8 @@
         },
         "command_floor_coordinates": {
             "filename": ["Filename", "OutputFile", "", "The name of an SDDS file to send output to."],
-            "x0": ["X0", "RPNValue", "0.0", "Initial X, Z, and angle coordinate of the beamline."],
-            "z0": ["Z0", "RPNValue", "0.0", ""],
+            "X0": ["X0", "RPNValue", "0.0", "Initial X, Z, and angle coordinate of the beamline."],
+            "Z0": ["Z0", "RPNValue", "0.0", ""],
             "theta0": ["Theta0", "RPNValue", "0.0", ""],
             "include_vertices": ["Include Vertices", "RPNBoolean", "0", "Flag that, if set, specifies including in the output the coordinates of the vertices of bending magnets."],
             "vertices_only": ["Vertices Only", "RPNBoolean", "0", "Flag that, if set, specifies that output will contain only the coordinates of the vertices of bending magnets."],
@@ -659,13 +659,13 @@
             "full_grid_output": ["Full Grid Output", "RPNBoolean", "0", "If non-zero, all grid points are represented in the output file, even if tracking or tune determination failed. This makes it possible to plot with programs (e.g., sddscontour) that require a strictly uniform grid."]
         },
         "command_global_settings": {
-            "inhibit_fsync": ["Inhibit FSYNC", "Integer", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
+            "inhibit_fsync": ["Inhibit FSYNC", "RPNBoolean", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
             "echo_namelists": ["Echo Namelists", "Integer", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
-            "sr_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
-            "log_file": ["Log File", "OptionalString", "", "By default, elegant writes status information to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
-            "error_log_file": ["Error Log File", "OptionalString", "", "By default, elegant writes error messages to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
+            "SR_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
+            "log_file": ["Log File", "OutputFile", "", "By default, elegant writes status information to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
+            "error_log_file": ["Error Log File", "OutputFile", "", "By default, elegant writes error messages to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "mpi_randomization_mode": ["Mpi Randomization Mode", "Integer", "1", "Controls how the random numbers are seeded on multiple processors ( •[1] — This is the original default, which showed issues in some simulations. The seed on the ith processor is s_0+2*i. •[2] — The seed on the ith processor is s_0+2*i^2. •[3] — This is the new default. The seed on the ith processor is s_0+i*(i+1). •[4] — The seed on the ith processor is s_0+R_i, where R_i is the ith random integer returned by the system rand() function. )"],
-            "exact_normalized_emittance": ["Exact Normalized Emittance", "Integer", "0", "By default, elegant uses an approximate computation for the normalized emittance, namely, εn = ε⟨βγ⟩, where ε is the geometric emittance computed from the trace-space coordinates. If this variable is set to a non-zero value, elegant instead uses a slower but more accurate method, namely, using the momentum coordinates.. The results will show up in the sigma and final output files, if these are requested in the run_setup command."]
+            "exact_normalized_emittance": ["Exact Normalized Emittance", "RPNBoolean", "0", "By default, elegant uses an approximate computation for the normalized emittance, namely, εn = ε⟨βγ⟩, where ε is the geometric emittance computed from the trace-space coordinates. If this variable is set to a non-zero value, elegant instead uses a slower but more accurate method, namely, using the momentum coordinates.. The results will show up in the sigma and final output files, if these are requested in the run_setup command."]
         },
         "command_insert_elements": {
             "name": ["Name", "OptionalString", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
@@ -689,8 +689,8 @@
             "element_prefix": ["Element Prefix", "OptionalString", "MYSC", "Name under which the space charge kick will appear in the beamline."],
             "skip": ["Skip", "RPNBoolean", "0", "If nonzero, the given number of insertion locations are skipped. If zero, only one space charge kick is inserted at the end of beamline."],
             "vertical": ["Vertical", "RPNBoolean", "0", "If non-zero, then space charge is included in the plane in question."],
-            "horizontal": ["Horizontal", "Integer", "0", ""],
-            "nonlinear": ["Nonlinear", "Integer", "0", ""],
+            "horizontal": ["Horizontal", "RPNBoolean", "0", ""],
+            "nonlinear": ["Nonlinear", "RPNBoolean", "0", ""],
             "uniform_distribution": ["Uniform Distribution", "Integer", "0", "Used for bi-Gaussian distributed beam (coasting beam), i.e., beam that is uniform in z but gaussian in x and y."],
             "verbosity": ["Verbosity", "Integer", "0", "Larger non-zero values request greater amounts of detail in printouts."]
         },
@@ -708,8 +708,8 @@
             "alphac": ["Alphac", "StringArray", "0, 0", "Provide the first and second-order momentum compaction. N.B: if you are tracking with an rf cavity, be sure that your lattice length equal to the actual circumference. See the example below."]
         },
         "command_link_control": {
-            "clear_links": ["Clear Links", "Integer", "1", "Clear all previously set links."],
-            "summarize_links": ["Summarize Links", "Integer", "0", "Summarize all current set links."],
+            "clear_links": ["Clear Links", "RPNBoolean", "1", "Clear all previously set links."],
+            "summarize_links": ["Summarize Links", "RPNBoolean", "0", "Summarize all current set links."],
             "verbosity": ["Verbosity", "Integer", "0", "A larger value results in more output during computations."]
         },
         "command_link_elements": {
@@ -734,24 +734,24 @@
             "include_type_pattern": ["Include Type Pattern", "OptionalString", "", "Wildcard patterns to be used in selecting, respectively, which element types (e.g., QUAD, DRIFT) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
             "exclude_type_pattern": ["Exclude Type Pattern", "OptionalString", "", ""],
             "edit_name_command": ["Edit Name Command", "OptionalString", "", "A command using the syntax of the editstring program, allowing the strings in the ElementName column to be modified before values are assigned."],
-            "change_defined_values": ["Change Defined Values", "Integer", "0", "Changes the defined values of the parameters. This means that when the lattice is saved (using save_lattice), the parameters will have the altered values. Also, if one wants to alter the values for all steps of the simulation, one must set this flag. Note that the ElementOccurence data is normally ignored if change_defined_values is nonzero. This is because there is only one definition of each element, even if it is used multiple times. This behavior can be altered with the next control."],
-            "clear_settings": ["Clear Settings", "Integer", "0", "If set, clear all settings and files being used for loading parameters."],
-            "allow_missing_elements": ["Allow Missing Elements", "Integer", "0", "If set, allow elements in the file that are not in the lattice. In this case, the nonapplicable data is simply ignored."],
-            "allow_missing_parameters": ["Allow Missing Parameters", "Integer", "0", "If set, it is not an error if any element in the lattice lacks a parameter that exists in the file."],
-            "allow_missing_files": ["Allow Missing Files", "Integer", "0", "If set, it is not an error if any listed file is missing."],
-            "force_occurence_data": ["Force Occurence Data", "Integer", "0", "If set, then occurence data is used even in change_defined_values mode."],
+            "change_defined_values": ["Change Defined Values", "RPNBoolean", "0", "Changes the defined values of the parameters. This means that when the lattice is saved (using save_lattice), the parameters will have the altered values. Also, if one wants to alter the values for all steps of the simulation, one must set this flag. Note that the ElementOccurence data is normally ignored if change_defined_values is nonzero. This is because there is only one definition of each element, even if it is used multiple times. This behavior can be altered with the next control."],
+            "clear_settings": ["Clear Settings", "RPNBoolean", "0", "If set, clear all settings and files being used for loading parameters."],
+            "allow_missing_elements": ["Allow Missing Elements", "RPNBoolean", "0", "If set, allow elements in the file that are not in the lattice. In this case, the nonapplicable data is simply ignored."],
+            "allow_missing_parameters": ["Allow Missing Parameters", "RPNBoolean", "0", "If set, it is not an error if any element in the lattice lacks a parameter that exists in the file."],
+            "allow_missing_files": ["Allow Missing Files", "RPNBoolean", "0", "If set, it is not an error if any listed file is missing."],
+            "force_occurence_data": ["Force Occurence Data", "RPNBoolean", "0", "If set, then occurence data is used even in change_defined_values mode."],
             "verbose": ["Verbose", "Integer", "0", "If set, provide informational printouts about changes to parameters."],
             "skip_pages": ["Skip Pages", "Integer", "0", "Specify the number of pages of input to skip."],
-            "use_first": ["Use First", "Integer", "0", "It is possible that the input file will contain multiple lines for any given parameter. In this case, elegant will by default process all lines. For example, if the lines give differential values, then all would be included. However, if the lines give absolute values, then the last one will overwrite the previous values; this flag allows overriding the behavior in this case to force elegant to use the first value. This can have speed advantages for cases where there are many identical occurences of the same element."]
+            "use_first": ["Use First", "RPNBoolean", "0", "It is possible that the input file will contain multiple lines for any given parameter. In this case, elegant will by default process all lines. For example, if the lines give differential values, then all would be included. However, if the lines give absolute values, then the last one will overwrite the previous values; this flag allows overriding the behavior in this case to force elegant to use the first value. This can have speed advantages for cases where there are many identical occurences of the same element."]
         },
         "command_matrix_output": {
             "printout": ["Printout", "OutputFile", "", "The name of a file to which the matrix output will be printed (as text)."],
             "printout_order": ["Printout Order", "Integer", "1", "The order to which the matrix is printed."],
             "full_matrix_only": ["Full Matrix Only", "RPNBoolean", "0", "A flag indicating that only the matrix of the entire accelerator is to be output."],
-            "sdds_output": ["SDDS Output", "OutputFile", "", "The name of an SDDS file to which the matrix will be written."],
-            "sdds_output_order": ["SDDS Output Order", "Integer", "1", "The order to which the matrix is output in SDDS format."],
+            "SDDS_output": ["SDDS Output", "OutputFile", "", "The name of an SDDS file to which the matrix will be written."],
+            "SDDS_output_order": ["SDDS Output Order", "Integer", "1", "The order to which the matrix is output in SDDS format."],
             "individual_matrices": ["Individual Matrices", "RPNBoolean", "0", "If non-zero, the matrices in the SDDS file are the individual on-trajectory matrices of the elements, rather than the concatenated matrix of the beamline."],
-            "sdds_output_match": ["SDDS Output Match", "OptionalString", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
+            "SDDS_output_match": ["SDDS Output Match", "OptionalString", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating whether matrix output is desired at every simulation step."],
             "start_from": ["Start From", "OptionalString", "", "The optional name of the accelerator element from which to begin concatenation and output."],
             "start_from_occurrence": ["Start From Occurrence", "Integer", "1", "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
@@ -764,7 +764,7 @@
             "filename": ["Filename", "OptionalString", "", "Name of SDDS file from which to read modulation data, if expression is not used."],
             "time_column": ["Time Column", "OptionalString", "", "Name of column in filename giving time data for the modulation table."],
             "amplitude_column": ["Amplitude Column", "OptionalString", "", "Name of column in filename giving amplitude data for the modulation. Together, time_column and amplitude_column define a function A(t)."],
-            "refresh_matrix": ["Refresh Matrix", "Integer", "0", "Frequently there is a matrix associated with an element even if tracking through the element does not use the matrix. In this case, elegant doesn't normally update the matrix for the element as it modulates the element, since that may involve a significant time penalty. If this parameter is set to a non-zero value, the matrix will be updated. For elements that use a matrix for tracking, the matrix is always updated."],
+            "refresh_matrix": ["Refresh Matrix", "RPNBoolean", "0", "Frequently there is a matrix associated with an element even if tracking through the element does not use the matrix. In this case, elegant doesn't normally update the matrix for the element as it modulates the element, since that may involve a significant time penalty. If this parameter is set to a non-zero value, the matrix will be updated. For elements that use a matrix for tracking, the matrix is always updated."],
             "differential": ["Differential", "Integer", "1", "Determine how the amplitude function A(t) is used to obtain the new value of the parameter. There are four cases ( • differential=1, multiplicative=0: v(t) = v_0 + A(t) (default). • differential=0, multiplicative=0: v(t) = A(t). • differential=1, multiplicative=1: v(t) = v_0 + v_0 A(t). • differential=0, multiplicative=1: v(t) = v_0 A(t). )"],
             "multiplicative": ["Multiplicative", "Integer", "0", ""],
             "start_occurence": ["Start Occurence", "RPNBoolean", "0", "If nonzero, these give the starting and ending occurrence numbers of elements that will be modulated. N.B.: if wildcards are used, occurrence number counting is for each set of identically-named elements separately, rather than for the sequence of matched elements."],
@@ -819,11 +819,11 @@
             "s_end": ["S End", "RPNValue", "DBL_MAX", ""],
             "include_name_pattern": ["Include Name Pattern", "OptionalString", "", "If given, tracking will start only at the entrance to elements that match the given wildcard pattern."],
             "include_type_pattern": ["Include Type Pattern", "OptionalString", "", "If given, tracking will start only at the entrance to elements whose type matches the given wildcard pattern."],
-            "fiducialize": ["Fiducialize", "Integer", "0", "If given, an initially on-energy particle is tracked before the momentum aperture search begins, in order to fiducialize the reference momentum. This is useful if there are synchrotron radiation losses or energy gain due to cavities in the system."],
+            "fiducialize": ["Fiducialize", "RPNBoolean", "0", "If given, an initially on-energy particle is tracked before the momentum aperture search begins, in order to fiducialize the reference momentum. This is useful if there are synchrotron radiation losses or energy gain due to cavities in the system."],
             "verbosity": ["Verbosity", "Integer", "1", "Larger values result in more detailed printouts as calculations proceed. Mostly for debugging."],
-            "soft_failure": ["Soft Failure", "Integer", "0", "Normally, if elegant fails to find the momentum aperture, it aborts. If soft_failure is non-zero, it instead assigns a momentum aperture equal to the search limit."],
+            "soft_failure": ["Soft Failure", "RPNBoolean", "0", "Normally, if elegant fails to find the momentum aperture, it aborts. If soft_failure is non-zero, it instead assigns a momentum aperture equal to the search limit."],
             "output_mode": ["Output Mode", "Integer", "0", "Normally, elegant puts the values for positive and negative momentum aperture in different columns. Each element thus has a single row of data in the output file. If output_mode=1, elegant instead puts the values for positive and negative apertures in successive rows, with a reduced number of columns. This is mostly advantageous for the parallel version, since it allows using twice as many simultaneous processors. If output_mode=2, elegant tracks many more probe particles simultaneously, which is better for massively parallel systems. The number of particles tracked is the number of elements selected times the number of probe points between delta_negative_limit and delta_positive_limit."],
-            "forbid_resonance_crossing": ["Forbid Resonance Crossing", "Integer", "0", "Normally, elegant allows the momentum aperture search to cross integer and half-integer resonances if no unstable particles are found. If this is undesirable, this flag can be set to 1."]
+            "forbid_resonance_crossing": ["Forbid Resonance Crossing", "RPNBoolean", "0", "Normally, elegant allows the momentum aperture search to cross integer and half-integer resonances if no unstable particles are found. If this is undesirable, this flag can be set to 1."]
         },
         "command_optimization_constraint": {
             "quantity": ["Quantity", "OptionalString", "", "The quantity to be constrained, given as the name of a quantity from among the optimization variables, optimization covariables, and the \"final\" parameters (see the entry for run_setup for the last of these). The optimization (co)variables are referred to as <element-name>.<parameter-name>, in all capital letters. Other quantities, such as Twiss parameters or anything else but what is listed just above, are not recognized. Expressions involving multiple quantities are not supported."],
@@ -849,8 +849,8 @@
             "n_evaluations": ["N Evaluations", "Integer", "500", "The number of allowed evaluations of the optimization function. If simplex optimization is used, this is the number of allowed evaluations per pass."],
             "n_restarts": ["N Restarts", "Integer", "0", "The number of complete restarts of the optimization (simplex only). This is an additional loop around the n_passes loop. The difference is that a restart involves using the optimized result but the original step sizes. It is highly recommended that this feature be used if convergence problems are seen."],
             "matrix_order": ["Matrix Order", "Integer", "1", "Specifies the highest order of matrix elements that should be available for fitting. Elements up to third order are available for the terminal point of the beamline, and up to secod order for interior fit points. Names for first-, second-, and third-order elements are of the form Rij, Tijk, and Uijkl."],
-            "log_file": ["Log File", "OptionalString", "", "A file to which progress reports will be written as optimization proceeds. For SDDS data, use the final output file from the run_setup namelist."],
-            "term_log_file": ["Term Log File", "OptionalString", "", "This names a file to which the values of the optimization terms are written at the completion of optimization, which can be convenient when large numbers of terms are used. For example, by using sddssort one could find which terms are contributing most to the penalty value."],
+            "log_file": ["Log File", "OutputFile", "", "A file to which progress reports will be written as optimization proceeds. For SDDS data, use the final output file from the run_setup namelist."],
+            "term_log_file": ["Term Log File", "OutputFile", "", "This names a file to which the values of the optimization terms are written at the completion of optimization, which can be convenient when large numbers of terms are used. For example, by using sddssort one could find which terms are contributing most to the penalty value."],
             "output_sparsing_factor": ["Output Sparsing Factor", "Integer", "0", "If set to a value larger than 0, results in sparsing of output to the \"final\" file (see run_setup). This can make a significant difference in the optimization speed."],
             "balance_terms": ["Balance Terms", "RPNBoolean", "0", "If nonzero, then all terms of the optimization expression have their weights adjusted so they make equal contributions to the penalty function. This can help prevent optimization of a single term at the expense of others. It is performed only for the initial value of the optimization function."],
             "restart_worst_term_factor": ["Restart Worst Term Factor", "RPNValue", "1", "Often when there are convergence problems, it is because a few terms are causing difficulty. Convergence can often be obtained by increasing the weighting of these terms. If restart_worst_term_factor is positive, then elegant will multiply the weight of the restart_worst_terms largest terms by this factor at the beginning of a restart."],
@@ -860,8 +860,7 @@
             "simplex_pass_range_factor": ["Simplex Pass Range Factor", "RPNValue", "1", "When starting a new pass, the simplex optimizer takes the range over the previous simplex of each variable times this factor as the starting step size for that variable. This can be useful if the optimization brings the system close to an instability. In such a case, the simplex routine may have trouble constructing an initial simplex if the range of the variables is large. Setting this control to a value less than 1 may help."],
             "include_simplex_1d_scans": ["Include Simplex 1D Scans", "RPNBoolean", "1", "If nonzero, optimizer performs single-variable scans prior to starting simplex optimization. This is usually a good idea, but in some cases it will cause problems. For example, if your design is on the edge of being unstable, you may get some many errors from the initial steps that the single-variable optimizer can't continue. Disabling the single-variable scans will sometimes solve this."],
             "start_from_simplex_vertex1": ["Start From Simplex Vertex1", "RPNBoolean", "0", "If nonzero, optimizer uses the initial simplex vertex as the starting point for each new 1d scan. Otherwise, it uses the result of the previous scan."],
-            "restart_random_numbers": ["Restart Random Numbers", "RPNBoolean", "0", "If nonzero, the random number generators used by elegant are reset for each evaluation of the optimization function. This is valuable if one is optimizing tracking results that involve random processes (e.g., ISR or scattering)."],
-            "interrupt_file": ["Interrupt File", "OptionalString", "%s.interrupt", "Gives the name of a file that will be monitored by the program as it runs. If the file is created or modified while optimization is running, the optimizer will complete the present step and cleanly terminate, allowing subsequent commands, if any, to proceed."]
+            "restart_random_numbers": ["Restart Random Numbers", "RPNBoolean", "0", "If nonzero, the random number generators used by elegant are reset for each evaluation of the optimization function. This is valuable if one is optimizing tracking results that involve random processes (e.g., ISR or scattering)."]
         },
         "command_optimization_term": {
             "term": ["Term", "OptionalString", "", "An rpn expression giving one term to be optimized. If more than one optimization_term command is given, then the terms are added. The advantage of using this command over giving an equation via optimization_setup is that elegant will report the value of each term as it performs the optimization (if a log_file is given to optimization_setup). This permits determination of which terms are causing problems for the optimization. Please see the entry for equation under optimization_setup for details on designing optimization terms."],
@@ -899,7 +898,7 @@
         },
         "command_print_dictionary": {
             "filename": ["Filename", "OptionalString", "", "The name of a file to which the dictionary will be written. By default, the output is in LaTeX format."],
-            "sdds_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
+            "SDDS_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
         },
         "command_ramp_elements": {
             "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
@@ -985,7 +984,7 @@
             "wrap_around": ["Wrap Around", "RPNBoolean", "1", "A flag indicating whether the s coordinate should wrap-around or increase monotonically in multipass simulations. If zero, then the centroid and sigma data is computed for each turn with the s coordinate increasing continuously."],
             "final_pass": ["Final Pass", "RPNBoolean", "0", "A flag indicating whether the centroid and sigma output should be computed only from the data from the final pass. By default, the statistics include data from all passes."],
             "default_order": ["Default Order", "Integer", "2", "The default order of transfer matrices used for elements having matrices."],
-            "concat_order": ["Concat Order", "Integer", "0", "If non-zero, the order of matrix concatenation used."],
+            "concat_order": ["Concat Order", "RPNBoolean", "0", "If non-zero, the order of matrix concatenation used."],
             "print_statistics": ["Print Statistics", "RPNBoolean", "0", "A flag indicating whether to print information as each element is tracked. If greater than 0, information is printed after each element from the beginning of tracking. If equal to n with n<0, information is printed only after pass |n|."],
             "show_element_timing": ["Show Element Timing", "RPNBoolean", "0", "A flag indicating whether to collect and report execution time statistics binned by element type."],
             "monitor_memory_usage": ["Monitor Memory Usage", "RPNBoolean", "0", "A flag indicating whether to monitor memory usage during tracking to detect memory leaks."],
@@ -1004,7 +1003,7 @@
             "output": ["Output", "OutputFile", "", "The filename of an SDDS file to which output will be written."],
             "model": ["Model", "OptionalString", "Ming Xie", "The name of the FEL model used. At present, only one model is supported; the \"Ming-Xie\" model is based on the simple parametrization M. Xie."],
             "beta": ["Beta", "RPNValue", "0.0", "The value of the beta function, in meters."],
-            "undulator_k": ["Undulator K", "RPNValue", "3.1", "The K parameter of the undulator."],
+            "undulator_K": ["Undulator K", "RPNValue", "3.1", "The K parameter of the undulator."],
             "undulator_period": ["Undulator Period", "RPNValue", "0.033", "The undulator period, in meters."],
             "slice_fraction": ["Slice Fraction", "RPNValue", "0.0", "The fraction of beam beam contained by each analysis slice and the number of such slices. By default, no slice analysis is done. Instead, the beam is analyzed only as a whole. If slice_fraction*n_slices is less than 1, then the slice analysis is centered on the median of the time distribution. E.g., if n_slices=1 and slice_fraction=0.1, then the central 10% of the beam would be analyzed. More typically, one gives values such that slice_fraction*n_slices is equal to 1, so that every part of the beam is analyzed. There are separate values in the output file for each slice, plus the whole-beam and slice-averaged results."],
             "n_slices": ["N Slices", "Integer", "0", ""]
@@ -1061,13 +1060,13 @@
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", ""],
             "sigma_s": ["Sigma S", "RPNValue", "0.0", ""],
             "distribution_cutoff": ["Distribution Cutoff", "StringArray", "3, 3, 3", ""],
-            "momentum_aperture_scale": ["Momentum Aperture Scale", "RPNValue", "0.85", ""],
-            "momentum_aperture": ["Momentum Aperture", "OptionalString", "", ""],
-            "xdist": ["Xdist", "OptionalString", "", ""],
-            "ydist": ["Ydist", "OptionalString", "", ""],
-            "zdist": ["Zdist", "OptionalString", "", ""],
-            "trandist": ["Trandist", "OptionalString", "", ""],
-            "fulldist": ["Fulldist", "OptionalString", "", ""],
+            "Momentum_Aperture_scale": ["Momentum Aperture Scale", "RPNValue", "0.85", ""],
+            "Momentum_Aperture": ["Momentum Aperture", "OptionalString", "", ""],
+            "XDist": ["Xdist", "OptionalString", "", ""],
+            "YDist": ["Ydist", "OptionalString", "", ""],
+            "ZDist": ["Zdist", "OptionalString", "", ""],
+            "TranDist": ["Trandist", "OptionalString", "", ""],
+            "FullDist": ["Fulldist", "OptionalString", "", ""],
             "bunch": ["Bunch", "OptionalString", "", ""],
             "loss": ["Loss", "OptionalString", "", ""],
             "distribution": ["Distribution", "OptionalString", "", ""],
@@ -3651,7 +3650,7 @@
                 "eta_y",
                 "etap_y",
                 "use_twiss_command_values",
-                "po",
+                "Po",
                 "sigma_dp",
                 "sigma_s",
                 "dp_s_coupling",
@@ -3703,7 +3702,7 @@
                 "use_perturbed_matrix",
                 "exit_on_failure",
                 "verbosity",
-                "dk2_weight"
+                "dK2_weight"
             ]
         },
         "command_closed_orbit": {
@@ -3739,10 +3738,10 @@
                 "correction_fraction",
                 "correction_accuracy",
                 "do_correction",
-                "remove_smallest_svs",
-                "keep_largest_svs",
-                "minimum_sv_ratio",
-                "auto_limit_svs",
+                "remove_smallest_SVs",
+                "keep_largest_SVs",
+                "minimum_SV_ratio",
+                "auto_limit_SVs",
                 "remove_pegged",
                 "threading_divisor",
                 "threading_correctors",
@@ -3785,7 +3784,7 @@
                 "strength_log",
                 "change_defined_values",
                 "use_perturbed_matrix",
-                "dk1_weight"
+                "dK1_weight"
             ]
         },
         "command_correction_matrix_output": {
@@ -3795,8 +3794,8 @@
             "advanced": [
                 "response",
                 "inverse",
-                "knl_units",
-                "bnl_units",
+                "KnL_units",
+                "BnL_units",
                 "output_at_each_step",
                 "output_before_tune_correction",
                 "fixed_length",
@@ -3898,8 +3897,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "filename",
-                "x0",
-                "z0",
+                "X0",
+                "Z0",
                 "theta0",
                 "include_vertices",
                 "vertices_only",
@@ -3935,7 +3934,7 @@
             "advanced": [
                 "inhibit_fsync",
                 "echo_namelists",
-                "sr_gaussian_limit",
+                "SR_gaussian_limit",
                 "log_file",
                 "error_log_file",
                 "mpi_randomization_mode",
@@ -4057,10 +4056,10 @@
                 "printout",
                 "printout_order",
                 "full_matrix_only",
-                "sdds_output",
-                "sdds_output_order",
+                "SDDS_output",
+                "SDDS_output_order",
                 "individual_matrices",
-                "sdds_output_match",
+                "SDDS_output_match",
                 "output_at_each_step",
                 "start_from",
                 "start_from_occurrence"
@@ -4263,7 +4262,7 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "filename",
-                "sdds_form"
+                "SDDS_form"
             ]
         },
         "command_ramp_elements": {
@@ -4408,7 +4407,7 @@
                 "output",
                 "model",
                 "beta",
-                "undulator_k",
+                "undulator_K",
                 "undulator_period",
                 "slice_fraction",
                 "n_slices"
@@ -4490,13 +4489,13 @@
                 "sigma_dp",
                 "sigma_s",
                 "distribution_cutoff",
-                "momentum_aperture_scale",
-                "momentum_aperture",
-                "xdist",
-                "ydist",
-                "zdist",
-                "trandist",
-                "fulldist",
+                "Momentum_Aperture_scale",
+                "Momentum_Aperture",
+                "XDist",
+                "YDist",
+                "ZDist",
+                "TranDist",
+                "FullDist",
                 "bunch",
                 "loss",
                 "distribution",
