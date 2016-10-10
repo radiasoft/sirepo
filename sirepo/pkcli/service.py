@@ -117,9 +117,9 @@ def uwsgi():
     """Starts UWSGI server"""
     in_dev = pkconfig.channel_in('dev')
     if in_dev:
-        from sirepo import server
+        from sirepo import server, runner
         # uwsgi doesn't pass signals right so can't use _Background
-        if not issubclass(server.cfg.job_queue, server._Celery):
+        if not issubclass(server.cfg.job_queue, runner.Celery):
             pkcli.command_error('uwsgi only works if sirepo.server.cfg.job_queue=_Celery')
     db_dir =_db_dir()
     run_dir = _run_dir()

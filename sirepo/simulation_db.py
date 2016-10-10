@@ -277,6 +277,21 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     return res
 
 
+def job_id(data):
+    """A Job is a simulation and report name
+
+    Args:
+        data (dict): extract sid and report
+    Returns:
+        str: unique name
+    """
+    return '{}-{}-{}'.format(
+        _server.session_user(),
+        data['simulationId'],
+        data['report'],
+    )
+
+
 def json_filename(filename, run_dir=None):
     """Append JSON_SUFFIX if necessary and convert to str
 
@@ -533,6 +548,50 @@ def read_status(run_dir):
             # simulation may never have been run
             return 'stopped'
         return 'error'
+
+
+def report_info(data):
+    """Read the run_dir and return cached_data.
+
+    Only a hit if the models between data and cache match exactly. Otherwise,
+    return cached data if it's there and valid.
+
+    Args:
+        data (dict): parameters identifying run_dir and models or reportParametersHash
+
+    Returns:
+        Dict: report parameters and hashes
+    """
+    # Sets data['reportParametersHash']
+    rep = pkcollections.Dict(
+        cache_hit=False,
+        cached_data=None,
+        cached_hash=None,
+        job_id=job_id(data),
+        model_name=data['report'],
+        parameters_changed=False,
+        run_dir=simulation_run_dir(data),
+    )
+    rep.input_file = json_filename(template_common.INPUT_BASE_NAME, rep.run_dir)
+    rep.job_status = read_status(rep.run_dir)
+    rep.req_hash = template_common.report_parameters_hash(data)
+    if not rep.run_dir.check():
+        return rep
+    #TODO(robnagler) Lock
+    try:
+        cd = read_json(rep.input_file)
+        rep.cached_hash = template_common.report_parameters_hash(cd)
+        rep.cached_data = cd
+        if rep.req_hash == rep.cached_hash:
+            rep.cache_hit = True
+            return rep
+        rep.parameters_changed = True
+    except IOError as e:
+        pkdlog('{}: ignore IOError: {} errno={}', rep.run_dir, e, e.errno)
+    except Exception as e:
+        pkdlog('{}: ignore other error: {}', rep.run_dir, e)
+        # No idea if cache is valid or not so throw away
+    return rep
 
 
 def save_new_example(simulation_type, data):

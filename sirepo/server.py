@@ -5,32 +5,23 @@ u"""Flask routes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
-from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo import runner
 from sirepo.template import template_common
 import beaker.middleware
-import copy
 import datetime
-import errno
 import flask
 import flask.sessions
 import glob
-import json
 import os
-import py
+import py.path
 import re
-import signal
 import sirepo.template
-import subprocess
 import sys
-import threading
 import time
-import traceback
-import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -311,7 +302,7 @@ def app_root(simulation_type):
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
 def app_run_cancel():
     data = _parse_data_input()
-    jid = _job_id(data)
+    jid = simulation_db.job_id(data)
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
@@ -343,8 +334,8 @@ def app_run_simulation():
     ):
         try:
             _start_simulation(data)
-        except _RunSimulationCollision:
-            pkdlog('{}: _RunSimulationCollision, ignoring start', _job_id(data))
+        except runner.Collision:
+            pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
         res = _simulation_run_status(data)
     return _json_response(res)
 
@@ -556,11 +547,6 @@ class _BeakerSession(flask.sessions.SessionInterface):
         pass
 
 
-class _RunSimulationCollision(Exception):
-    """Avoid using a mutex"""
-    pass
-
-
 class _WSGIApp(object):
     """Wraps Flask's wsgi_app for logging
 
@@ -590,66 +576,6 @@ class _WSGIApp(object):
         return self.wsgi_app(environ, start_response)
 
 
-def _cached_simulation(data):
-    """Read the run_dir and return cached_data.
-
-    Only a hit if the models between data and cache match exactly. Otherwise,
-    return cached data if it's there and valid.
-
-    Args:
-        data (dict): parameters identifying run_dir and models or reportParametersHash
-
-    Returns:
-        bool: cache hit and matches data models?
-        dict: cached data
-    """
-    # Sets data['reportParametersHash']
-    req_hash = template_common.report_parameters_hash(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    if not run_dir.check():
-        return False, None
-    #TODO(robnagler) Lock
-    cached_data = None
-    try:
-        cached_data = simulation_db.read_json(_simulation_input(run_dir))
-        cached_hash = template_common.report_parameters_hash(cached_data)
-        if req_hash == cached_hash:
-            return True, cached_data
-    except IOError as e:
-        pkdlog('{}: ignore IOError: {} errno={}', run_dir, e, e.errno)
-    except Exception as e:
-        pkdlog('{}: ignore other error: {}', run_dir, e)
-        # No idea if cache is valid or not so throw away
-        cached_data = None
-    return False, cached_data
-
-
-def _cfg_job_queue(value):
-    """Converts string to class"""
-    if isinstance(value, (_Celery, _Background)):
-        # Already initialized but may call initializer with original object
-        return value
-    if value == 'Celery':
-        from sirepo import celery_tasks
-        err = None
-        try:
-            if not celery_tasks.celery.control.ping():
-                err = 'You need to start Celery:\nsirepo service celery'
-        except Exception:
-            err = 'You need to start Rabbit:\nsirepo service rabbitmq'
-        if err:
-            #TODO(robnagler) really should be pkconfig.Error() or something else
-            # but this prints a nice message. Don't call sys.exit, not nice
-            import pykern.pkcli
-            pykern.pkcli.command_error(err)
-        return _Celery
-    elif value == 'Background':
-        signal.signal(signal.SIGCHLD, _Background.sigchld_handler)
-        return _Background
-    else:
-        raise AssertionError('{}: unknown job_queue'.format(value))
-
-
 @pkconfig.parse_none
 def _cfg_session_secret(value):
     """Reads file specified as config value"""
@@ -664,17 +590,6 @@ def _cfg_time_limit(value):
     v = int(value)
     assert v > 0
     return v
-
-
-def _job_id(data):
-    """A Job is a simulation and report name
-
-    Args:
-        data (dict): extract sid and report
-    Returns:
-        str: unique name
-    """
-    return '{}-{}-{}'.format(session_user(), data['simulationId'], data['report'])
 
 
 def _json_input():
@@ -773,17 +688,6 @@ def _simulation_error(err, *args, **kwargs):
     return {'state': 'error', 'error': err}
 
 
-def _simulation_input(run_dir):
-    """Fully qualified input file
-
-    Args:
-        run_dir (py.path): simulation directory
-    Returns:
-        py.path: path to simulation input
-    """
-    return simulation_db.json_filename(template_common.INPUT_BASE_NAME, run_dir)
-
-
 def _simulation_data(res, path, data):
     """Iterator function to return entire simulation data
     """
@@ -807,69 +711,74 @@ def _simulation_run_status(data, quiet=False):
         dict: status response
     """
     try:
-        jid = _job_id(data)
         #TODO(robnagler): Lock
-        cache_hit, cached_data = _cached_simulation(data)
-        is_processing = cfg.job_queue.is_processing(jid)
-        run_dir = simulation_db.simulation_run_dir(data)
-        input_file = _simulation_input(run_dir)
-        status = simulation_db.read_status(run_dir)
-        is_running = status in _RUN_STATES
-        res = {'state': status}
+        rep = simulation_db.report_info(data)
+        is_processing = cfg.job_queue.is_processing(rep.job_id)
+        is_running = rep.job_status in _RUN_STATES
+        res = {'state': rep.job_status}
+        pkdc(
+            '{}: is_processing={} is_running={} state={} cached_data={}',
+            rep.job_id,
+            is_processing,
+            is_running,
+            rep.job_status,
+            bool(rep.cached_data),
+        )
         if is_processing and not is_running:
-            cfg.job_queue.race_condition_reap(jid)
+            cfg.job_queue.race_condition_reap(rep.job_id)
+            pkdc('{}: is_processing and not is_running', rep.job_id)
             is_processing = False
         if is_processing:
-            if not cached_data:
+            if not rep.cached_data:
                 return _simulation_error(
                     'input file not found, but job is running',
-                    input_file,
+                    rep.input_file,
                 )
         else:
             is_running = False
-            if run_dir.exists():
-                res, err = simulation_db.read_result(run_dir)
+            if rep.run_dir.exists():
+                res, err = simulation_db.read_result(rep.run_dir)
                 if err:
-                    return _simulation_error(err, 'error in read_result', run_dir)
+                    return _simulation_error(err, 'error in read_result', rep.run_dir)
         if simulation_db.is_parallel(data):
             template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
-                data['report'],
-                run_dir,
+                rep.model_name,
+                rep.run_dir,
                 is_running,
                 simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
             res.update(new)
-        res['parametersChanged'] = bool(not cache_hit and cached_data)
+        res['parametersChanged'] = rep.parameters_changed
         if res['parametersChanged']:
             pkdlog(
-                '{}: parametersChanged data_hash={} cached_hash={}',
-                jid,
-                data['reportParametersHash'],
-                cached_data['reportParametersHash'],
+                '{}: parametersChanged=True req_hash={} cached_hash={}',
+                rep.job_id,
+                rep.req_hash,
+                rep.cached_hash,
             )
         #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('startTime', _mtime_or_now(input_file))
-        res.setdefault('lastUpdateTime', _mtime_or_now(run_dir))
+        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
         res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
         if is_processing:
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(cached_data)
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
-                'report': cached_data['report'],
-                'reportParametersHash': cached_data['reportParametersHash'],
-                'simulationId': cached_data['simulationId'],
-                'simulationType': cached_data['simulationType'],
+                'report': rep.model_name,
+                'reportParametersHash': rep.cached_hash,
+                'simulationId': rep.cached_data['simulationId'],
+                'simulationType': rep.cached_data['simulationType'],
             }
         pkdc(
             '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
-            jid,
+            rep.job_id,
             is_processing,
             res['state'],
-            cache_hit,
-            cached_data and cached_data['reportParametersHash'],
-            data['reportParametersHash'],
+            rep.cache_hit,
+            rep.cached_hash,
+            rep.req_hash,
         )
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)
@@ -882,7 +791,7 @@ def _start_simulation(data):
     Args:
         data (dict): app data
     Returns:
-        object: _Background or _Celery instance
+        object: runner instance
     """
     data['simulationStatus'] = {
         'startTime': int(time.time()),
@@ -910,293 +819,12 @@ def _validate_serial(data):
     })
 
 
-class _Background(object):
-
-    # Map of jid to instance
-    _job = {}
-
-    # mutex for _job
-    _lock = threading.RLock()
-
-    def __init__(self, data):
-        with self._lock:
-            self.jid = _job_id(data)
-            if self.jid in self._job:
-                raise _RunSimulationCollision(self.jid)
-            self.in_kill = None
-            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            self._job[self.jid] = self
-            self.pid = None
-            # This command may blow up
-            self.pid = self._start_job()
-
-    @classmethod
-    def is_processing(cls, jid):
-        with cls._lock:
-            try:
-                self = cls._job[jid]
-            except KeyError:
-                return False
-            if self.in_kill:
-                # Strange but true. The process is alive at this point so we
-                # don't want to do anything like start a new process
-                return True
-            try:
-                os.kill(self.pid, 0)
-            except OSError:
-                # Has to exist so no need to protect
-                del self._job[jid]
-                pkdlog('{}: pid={} does not exist, removing job', jid, pid)
-                return False
-        return True
-
-    @classmethod
-    def kill(cls, jid):
-        self = None
-        with cls._lock:
-            try:
-                self = cls._job[jid]
-            except KeyError:
-                return
-            if self.in_kill:
-                pkdlog('{}: kill in progress in another thread', jid)
-                return
-            nonce = uuid.uuid4()
-            self.in_kill = nonce
-
-        pkdlog('{}: stopping: pid={}', self.jid, self.pid)
-        sig = signal.SIGTERM
-        for i in range(3):
-            try:
-                os.kill(self.pid, sig)
-                time.sleep(1)
-                pid, status = os.waitpid(self.pid, os.WNOHANG)
-                if pid == self.pid:
-                    pkdlog('{}: waitpid: status={}', pid, status)
-                    break
-                else:
-                    pkdlog('{}: unexpected waitpid result; job={} pid={}', pid, self.jid, self.pid)
-                sig = signal.SIGKILL
-            except OSError:
-                pkdlog('{}: already reaped; job={}', self.pid, self.jid)
-                return
-        with cls._lock:
-            try:
-                self = cls._job[jid]
-                if self.in_kill and self.in_kill == nonce:
-                    self.in_kill = None
-                    del self._job[self.jid]
-                    pkdlog('{}: delete successful; pid=', self.jid, pid)
-                    return
-                pkdlog('{}: job restarted by another thread', jid)
-            except KeyError:
-                pkdlog('{}: job reaped by another thread', jid)
-
-    @classmethod
-    def race_condition_reap(cls, jid):
-        """Job terminated, but not still in queue.
-
-        This can happen due to race condition in is_processing. Call
-        again to remove the job from the queue.
-        """
-        pkdlog('{}: sigchld_handler in another thread', jid)
-        cls.is_processing(jid)
-
-    @classmethod
-    def sigchld_handler(cls, signum=None, frame=None):
-        try:
-            pid, status = os.waitpid(-1, os.WNOHANG)
-            pkdlog('{}: waitpid: status={}', pid, status)
-            with cls._lock:
-                for self in cls._job.values():
-                    if self.pid == pid:
-                        del self._job[self.jid]
-                        pkdlog('{}: delete successful', self.jid)
-                        return
-        except OSError as e:
-            if e.errno != errno.ECHILD:
-                pkdlog('waitpid: OSError: {} errno={}', e.strerror, e.errno)
-                # Fall through. Not much to do here
-
-    def _start_job(self):
-        """Detach a process from the controlling terminal and run it in the
-        background as a daemon.
-
-        We don't use pksubprocess. This method is not called from the MainThread
-        so can't set signals.
-        """
-        try:
-            pid = os.fork()
-        except OSError as e:
-            pkdlog('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
-            reraise
-        if pid != 0:
-            pkdlog('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
-            return pid
-        try:
-            os.chdir(str(self.run_dir))
-            #Don't os.setsid() so signals propagate properly
-            import resource
-            maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-            if (maxfd == resource.RLIM_INFINITY):
-                maxfd = 1024
-            for fd in range(0, maxfd):
-                try:
-                    os.close(fd)
-                except OSError:
-                    pass
-            sys.stdin = open(template_common.RUN_LOG, 'a+')
-            assert sys.stdin.fileno() == 0
-            os.dup2(0, 1)
-            sys.stdout = os.fdopen(1, 'a+')
-            os.dup2(0, 2)
-            sys.stderr = os.fdopen(2, 'a+')
-            pkdlog('{}: child will exec: {}', self.jid, self.cmd)
-            sys.stderr.flush()
-            try:
-                os.execvp(self.cmd[0], self.cmd)
-            finally:
-                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
-                sys.exit(1)
-        except BaseException as e:
-            with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
-                f.write('{}: error starting daemon: {}'.format(self.jid, e))
-            raise
-
-
-class _Celery(object):
-
-    # Map of jid to instance
-    _job = {}
-
-    # mutex for _job
-    _lock = threading.RLock()
-
-    def __init__(self, data):
-        with self._lock:
-            self.jid = _job_id(data)
-            pkdc('{}: created', self.jid)
-            if self.jid in self._job:
-                pkdlog(
-                    '{}: _RunSimulationCollision tid={} celery_state={}',
-                    jid,
-                    self.async_result,
-                    self.async_result and self.async_result.state,
-                )
-                raise _RunSimulationCollision(self.jid)
-            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            self._job[self.jid] = self
-            self.data = data
-            self._job[self.jid] = self
-            self.async_result = self._start_job()
-            pkdc(
-                '{}: started tid={} dir={} queue={} len_jobs={}',
-                self.jid,
-                self.async_result.task_id,
-                self.run_dir,
-                self.celery_queue,
-                len(self._job),
-            )
-
-    @classmethod
-    def is_processing(cls, jid):
-        """Job is either in the queue or running"""
-        with cls._lock:
-            return bool(cls._find_job(jid))
-
-    @classmethod
-    def kill(cls, jid):
-        from celery.exceptions import TimeoutError
-        with cls._lock:
-            self = cls._find_job(jid)
-            if not self:
-                return
-            res = self.async_result
-            tid = res.task_id
-            pkdlog('{}: killing: tid={}', jid, tid)
-        try:
-            res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
-        except TimeoutError as e:
-            pkdlog('{}: sending a SIGKILL tid={}', jid, tid)
-            res.revoke(terminate=True, signal='SIGKILL')
-        with cls._lock:
-            self = cls._find_job(jid)
-            if not self:
-                return
-            if self.async_result.task_id == tid:
-                del self._job[self.jid]
-                pkdlog('{}: deleted (killed) job; tid={} celery_state={}', jid, tid, self.async_result.state)
-                return
-            pkdlog(
-                '{}: job reaped by another thread; old_tid={}, new_tid={}',
-                jid,
-                tid,
-                self.async_result,
-            )
-
-    @classmethod
-    def race_condition_reap(cls, jid):
-        """Race condition due to lack of mutex and reliable results.
-        """
-        with cls._lock:
-            self = cls._find_job(jid)
-            if self:
-                res = self.async_result
-                pkdlog(
-                    '{}: aborting and deleting job; tid={} celery_state={}',
-                    jid,
-                    res,
-                    res and res.state,
-                )
-                del self._job[self.jid]
-                res.revoke(terminate=True, signal='SIGKILL')
-            else:
-                pkdlog('{}: job finished finally', jid)
-
-    @classmethod
-    def _find_job(cls, jid):
-        try:
-            self = cls._job[jid]
-        except KeyError:
-            pkdlog('{}: job not found; len_jobs={}', jid, len(cls._job))
-            return None
-        res = self.async_result
-        pkdc(
-            '{}: job tid={} celery_state={} len_jobs={}',
-            jid,
-            res,
-            res and res.state,
-            len(cls._job),
-        )
-        if not res or res.ready():
-            del self._job[jid]
-            pkdlog(
-                '{}: deleted errant or ready job; tid={} ready={}',
-                jid,
-                res,
-                res and res.ready(),
-            )
-            return None
-        return self
-
-    def _start_job(self):
-        """Detach a process from the controlling terminal and run it in the
-        background as a daemon.
-        """
-        from sirepo import celery_tasks
-        self.celery_queue = simulation_db.celery_queue(self.data)
-        return celery_tasks.start_simulation.apply_async(
-            args=[self.cmd, str(self.run_dir)],
-            queue=self.celery_queue,
-        )
-
-
 cfg = pkconfig.init(
     beaker_session=dict(
         key=('sirepo_{PYKERN_PKCONFIG_CHANNEL}', str, 'Beaker: Name of the cookie key used to save the session under'),
         secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
-    job_queue=('Background', _cfg_job_queue, 'how to run long tasks: Celery or Background'),
+    job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
 )
