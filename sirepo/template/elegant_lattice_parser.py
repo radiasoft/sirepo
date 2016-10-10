@@ -10,8 +10,8 @@ import re
 from sirepo.template.line_parser import LineParser
 
 
-def parse_file(lattice_text):
-    parser = LineParser(0)
+def parse_file(lattice_text, maxId=0):
+    parser = LineParser(maxId)
     lines = lattice_text.replace('\r', '').split('\n')
     prev_line = ''
     models = {

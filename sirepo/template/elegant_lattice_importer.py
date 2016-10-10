@@ -59,8 +59,8 @@ def default_data():
     return _DEFAULTS.copy()
 
 
-def import_file(text):
-    models = elegant_lattice_parser.parse_file(text)
+def import_file(text, data=None):
+    models = elegant_lattice_parser.parse_file(text, max_id(data) if data else 0)
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
@@ -79,7 +79,8 @@ def import_file(text):
         raise IOError('no beamline elements found in file')
     _calculate_beamline_metrics(models, rpn_cache)
 
-    data = default_data()
+    if not data:
+        data = default_data()
     data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
     data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
     data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
@@ -98,6 +99,18 @@ def is_rpn_value(value):
             return False
         return True
     return False
+
+
+def max_id(data):
+    max_id = 1
+    for model_type in ['elements', 'beamlines', 'commands']:
+        if model_type not in data['models']:
+            continue
+        for m in data['models'][model_type]:
+            id = m['_id'] if '_id' in m else m['id']
+            if id > max_id:
+                max_id = id
+    return max_id
 
 
 def parse_rpn_value(value, variable_list):
@@ -312,6 +325,8 @@ def _validate_input_file(el, field):
 
 def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
     if '_type' in el:
+        return
+    if '_type' in el:
         m = re.search('\((.*?)\)$', el[field])
         if m:
             el[field] = m.group(1)
@@ -325,7 +340,6 @@ def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
 
 
 def _validate_string_array_field(el, field):
-    print('validate {} string array: {} = {}'.format(_model_name_for_data(el), field, el[field]))
     m = re.search('(.*?)\[(\d+)\]$', field)
     if not m:
         return

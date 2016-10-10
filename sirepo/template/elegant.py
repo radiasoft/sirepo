@@ -57,7 +57,9 @@ _SDDS_STRING_TYPE = 7
 
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
-_SCHEMA = simulation_db.get_schema('elegant')
+_SIMULATION_TYPE = 'elegant'
+
+_SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
 
 _ELEGANT_ME_EV = _SCHEMA['constant']['ELEGANT_ME_EV']
 
@@ -216,7 +218,6 @@ def generate_lattice(data, filename_map, beamline_map, v):
                 res += '{},'.format(sign + beamline_map[id].upper())
             res = res[:-1]
             res += ")\n"
-
     return res
 
 
@@ -321,14 +322,22 @@ def get_data_file(run_dir, model, frame):
 def import_file(request, lib_dir=None, tmp_dir=None):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
+    input_data = None
+
+    if 'simulationId' in request.form:
+        input_data = simulation_db.read_simulation_json(_SIMULATION_TYPE, sid=request.form['simulationId'])
     try:
         if re.search(r'.ele$', filename, re.IGNORECASE):
             data = elegant_command_importer.import_file(f.read())
         elif re.search(r'.lte$', filename, re.IGNORECASE):
-            data = elegant_lattice_importer.import_file(f.read())
+            data = elegant_lattice_importer.import_file(f.read(), input_data)
+            if input_data:
+                _map_commands_to_lattice(data)
         else:
             raise IOError('invalid file extension, expecting .ele or .lte')
         data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
+        if input_data:
+            simulation_db.delete_simulation(_SIMULATION_TYPE, input_data['models']['simulation']['simulationId'])
         return None, data
     except IOError as e:
         return e.message, None
@@ -516,12 +525,7 @@ def _create_command(model_name, data):
 
 
 def _create_default_commands(data):
-    max_id = 1
-    for model_type in ['elements', 'beamlines']:
-        for m in data['models'][model_type]:
-            id = m['_id'] if '_id' in m else m['id']
-            if id > max_id:
-                max_id = id
+    max_id = elegant_lattice_importer.max_id(data)
     simulation = data['models']['simulation']
     bunch = data['models']['bunch']
     return [
@@ -673,7 +677,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening ', text, re.IGNORECASE)
 
 
 def _iterate_model_fields(data, state, callback):
@@ -736,7 +740,7 @@ def _iterator_input_files(state, model, element_schema=None, field_name=None):
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
     # only interested in elements, not commands
-    if 'type' not in model:
+    if '_type' in model:
         return
     if element_schema:
         state['field_index'] += 1
@@ -768,6 +772,20 @@ def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
             v, err = elegant_lattice_importer.parse_rpn_value(model[field_name], state['rpnVariables'])
             if not err:
                 state['cache'][model[field_name]] = v
+
+
+def _map_commands_to_lattice(data):
+    for cmd in data['models']['commands']:
+        if cmd['_type'] == 'run_setup':
+            cmd['lattice'] = 'Lattice'
+            break
+    for cmd in data['models']['commands']:
+        if cmd['_type'] == 'run_setup':
+            name = cmd['use_beamline'].upper()
+            for bl in data['models']['beamlines']:
+                if bl['name'].upper() == name:
+                    cmd['use_beamline'] = bl['id']
+                    break
 
 
 def _model_name_for_data(model):

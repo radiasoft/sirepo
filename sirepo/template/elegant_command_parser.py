@@ -32,6 +32,7 @@ def parse_file(command_text):
             prev_line += ' ' + line
     if prev_line and re.search(r'\&', prev_line):
         parser.raise_error('missing &end for command: {}'.format(prev_line))
+    _update_lattice_names(commands)
     return commands
 
 
@@ -97,12 +98,33 @@ def _parse_line(parser, line, commands):
         if parser.peek_char() == '=':
             parser.assert_char('=')
             if re.search(r'\[', value):
-                command[value.lower()] = _parse_array_value(parser)
+                command[value] = _parse_array_value(parser)
             else:
-                command[value.lower()] = parser.parse_value(r'[\s,=\!)]')
+                command[value] = parser.parse_value(r'[\s,=\!)]')
         else:
             parser.raise_error('trailing input: {}'.format(value))
     parser.assert_end_of_line()
     if not command['_type'] in _SKIP_COMMANDS:
         commands.append(command)
     return True
+
+
+def _update_lattice_names(commands):
+    # preserve the name of the first run_setup.lattic
+    # others may map to previous save_lattice names
+    is_first_run_setup = True
+    save_lattices = []
+    for cmd in commands:
+        if cmd['_type'] == 'save_lattice':
+            name = re.sub(r'\%s', '', cmd['filename'])
+            save_lattices.append(name)
+        if cmd['_type'] == 'run_setup':
+            if is_first_run_setup:
+                is_first_run_setup = False
+                continue
+            for index in reversed(range(len(save_lattices))):
+                if re.search(re.escape(save_lattices[index]), cmd['lattice'], re.IGNORECASE):
+                    cmd['lattice'] = 'save_lattice' if index == 0 else 'save_lattice.{}'.format(index)
+                    break
+            else:
+                cmd['lattice'] = 'Lattice'
