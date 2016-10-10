@@ -6,6 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
@@ -35,14 +36,17 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         // update bunched_beam fields
         var bunch = appState.models.bunch;
         var cmd = self.findFirstCommand('bunched_beam');
-        if (cmd)
+        if (cmd) {
             updateCommandFromBunch(cmd, bunch);
+        }
         cmd = self.findFirstCommand('run_setup');
         if (cmd) {
-            if (rpnService.getRpnValue(cmd.p_central) === 0)
+            if (rpnService.getRpnValue(cmd.p_central) === 0) {
                 cmd.p_central_mev = bunch.p_central_mev;
-            else
+            }
+            else {
                 cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+            }
         }
         appState.saveQuietly('commands');
     }
@@ -58,11 +62,13 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
     function bunchSourceChanged() {
         // replace first sdds_beam/bunched_beam if necessary
         var cmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
-        if (! cmd)
+        if (! cmd) {
             return;
+        }
         var type = appState.models.bunchSource.inputSource;
-        if (cmd._type == type)
+        if (cmd._type == type) {
             return;
+        }
         if (type == 'bunched_beam') {
             delete cmd.inputSource;
             cmd._type = type;
@@ -71,8 +77,9 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         }
         else if (type == 'sdds_beam') {
             for (var k in cmd) {
-                if (k != '_id')
+                if (k != '_id') {
                     delete cmd[k];
+                }
             }
             cmd._type = type;
             cmd.input = appState.models.bunchFile.sourceFile;
@@ -89,8 +96,9 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
 
         // update bunchSource, bunchFile, bunch models
         cmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
-        if (! cmd)
+        if (! cmd) {
             return;
+        }
         appState.models.bunchSource.inputSource = cmd._type;
         appState.saveQuietly('bunchSource');
         if (cmd._type == 'bunched_beam') {
@@ -100,10 +108,12 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
             // p_central_mev
             cmd = self.findFirstCommand('run_setup');
             if (cmd) {
-                if (rpnService.getRpnValue(cmd.p_central_mev) !== 0)
+                if (rpnService.getRpnValue(cmd.p_central_mev) !== 0) {
                     bunch.p_central_mev = cmd.p_central_mev;
-                else
+                }
+                else {
                     bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                }
             }
             // need to update source reports.
             appState.saveChanges('bunch');
@@ -116,8 +126,9 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
 
     function simulationChanged() {
         var cmd = self.findFirstCommand('run_setup');
-        if (! cmd)
+        if (! cmd) {
             return;
+        }
         cmd.use_beamline = appState.models.simulation.visualizationBeamlineId;
         appState.saveQuietly('commands');
     }
@@ -174,35 +185,51 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         }
     }
 
+    self.commandModelName = function(type) {
+        return SIREPO.ELEGANT_COMMAND_PREFIX + type;
+    };
+
     self.elementForId = function(id) {
         var i;
         id = Math.abs(id);
         for (i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
-            if (b.id == id)
+            if (b.id == id) {
                 return b;
+            }
         }
         for (i = 0; i < appState.models.elements.length; i++) {
             var e = appState.models.elements[i];
-            if (e._id == id)
+            if (e._id == id) {
                 return e;
+            }
         }
         return null;
     };
 
-    self.findFirstCommand = function(types) {
-        if (! appState.isLoaded())
-            return null;
-        if (typeof(types) == 'string')
+    self.findFirstCommand = function(types, commands) {
+        if (! commands) {
+            if (! appState.isLoaded()) {
+                return null;
+            }
+            commands = appState.models.commands;
+        }
+        if (typeof(types) == 'string') {
             types = [types];
-        for (var i = 0; i < appState.models.commands.length; i++) {
-            var cmd = appState.models.commands[i];
+        }
+        for (var i = 0; i < commands.length; i++) {
+            var cmd = commands[i];
             for (var j = 0; j < types.length; j++) {
-                if (cmd._type == types[j])
+                if (cmd._type == types[j]) {
                     return cmd;
+                }
             }
         }
         return null;
+    };
+
+    self.isCommandModelName = function(name) {
+        return name.indexOf(SIREPO.ELEGANT_COMMAND_PREFIX) === 0;
     };
 
     self.nextId = function() {
@@ -218,24 +245,30 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
-            if (schema[f][2] !== undefined)
+            if (schema[f][2] !== undefined) {
                 model[f] = schema[f][2];
+            }
         }
     };
 
     // keep source page items in sync with the associated control command
     $rootScope.$on('modelChanged', function(e, name) {
         var cmd, bunch;
-        if (name == 'bunchSource')
+        if (name == 'bunchSource') {
             bunchSourceChanged();
-        else if (name == 'bunchFile')
+        }
+        else if (name == 'bunchFile') {
             bunchFileChanged();
-        else if (name == 'bunch')
+        }
+        else if (name == 'bunch') {
             bunchChanged();
-        else if (name == 'simulation')
+        }
+        else if (name == 'simulation') {
             simulationChanged();
-        else if (name == 'commands')
+        }
+        else if (name == 'commands') {
             commandsChanged();
+        }
     });
 
     return self;
@@ -269,8 +302,9 @@ SIREPO.app.controller('CommandController', function(appState, elegantService) {
 
     function commandTable() {
         var el =$('.elegant-cmd-table')[0];
-        if (el)
+        if (el) {
             return angular.element(el).scope();
+        }
         return null;
     }
 
@@ -280,25 +314,27 @@ SIREPO.app.controller('CommandController', function(appState, elegantService) {
             _id: elegantService.nextId(),
             _type: name,
         };
-        elegantService.setModelDefaults(model, 'command_' + name);
+        elegantService.setModelDefaults(model, elegantService.commandModelName(name));
         commandTable().editCommand(model, true);
     };
 
     self.deleteSelected = function() {
         var cmdTable = commandTable();
-        if (cmdTable)
-            return cmdTable.deleteSelected();
+        if (cmdTable) {
+            cmdTable.deleteSelected();
+        }
     };
 
     self.selectedItemName = function() {
         var cmdTable = commandTable();
-        if (cmdTable)
+        if (cmdTable) {
             return cmdTable.selectedItemName();
+        }
         return '';
     };
 
     self.titleForName = function(name) {
-        return SIREPO.APP_SCHEMA.view['command_' + name].description;
+        return SIREPO.APP_SCHEMA.view[elegantService.commandModelName(name)].description;
     };
 });
 
@@ -314,8 +350,9 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     };
 
     function validateSaving() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var bunch = appState.models.bunch;
         validateGreaterThanZero(bunch, 'beta_x');
         validateGreaterThanZero(bunch, 'beta_y');
@@ -325,25 +362,30 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     }
 
     function validateGreaterThanZero(model, field) {
-        if (parseFloat(model[field]) <= 0)
+        if (parseFloat(model[field]) <= 0) {
             model[field] = 1;
+        }
     }
 
     function validateGreaterOrEqualToZero(model, field) {
-        if (parseFloat(model[field]) < 0)
+        if (parseFloat(model[field]) < 0) {
             model[field] = 0;
+        }
     }
 
     function validateTyping() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var bunch = appState.models.bunch;
         // dp_s_coupling valid only between -1 and 1
         var v = parseFloat(bunch.dp_s_coupling);
-        if (v > 1)
+        if (v > 1) {
             bunch.dp_s_coupling = 1;
-        else if (v < -1)
+        }
+        else if (v < -1) {
             bunch.dp_s_coupling = -1;
+        }
         validateGreaterOrEqualToZero(bunch, 'emit_x');
         validateGreaterOrEqualToZero(bunch, 'emit_y');
         validateGreaterOrEqualToZero(bunch, 'emit_z');
@@ -354,23 +396,29 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         for (var i = 0; i < longitudinalFields.length; i++) {
             var f = longitudinalFields[i];
             var selector = '.model-bunch-' + f;
-            if (fields.indexOf(f) >= 0)
+            if (fields.indexOf(f) >= 0) {
                 $(selector).closest('.form-group').show(delay);
-            else
+            }
+            else {
                 $(selector).closest('.form-group').hide(delay);
+            }
         }
     }
 
     function updateLongitudinalFields(delay) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var method = appState.models.bunch.longitudinalMethod;
-        if (parseInt(method) == 1)
+        if (parseInt(method) == 1) {
             showFields(['sigma_s', 'sigma_dp', 'dp_s_coupling'], delay);
-        else if (parseInt(method) == 2)
+        }
+        else if (parseInt(method) == 2) {
             showFields(['sigma_s', 'sigma_dp', 'alpha_z'], delay);
-        else
+        }
+        else {
             showFields(['emit_z', 'beta_z', 'alpha_z'], delay);
+        }
     }
 
     self.bunchReports = [
@@ -381,8 +429,9 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     ];
 
     self.bunchReportHeading = function(item) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var bunch = appState.models['bunchReport' + item.id];
         var key = bunch.x + '-' + bunch.y;
         return 'Bunch Report - ' + (plotTitle[key] || (bunch.x + ' / ' + bunch.y));
@@ -393,16 +442,18 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     };
 
     self.isBunchSource = function(name) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return false;
+        }
         return appState.models.bunchSource.inputSource == name;
     };
 
     var modelAccessByItemId = {};
 
     self.modelAccess = function(itemId) {
-        if (modelAccessByItemId[itemId])
+        if (modelAccessByItemId[itemId]) {
             return modelAccessByItemId[itemId];
+        }
         var modelKey = 'bunchReport' + itemId;
         modelAccessByItemId[itemId] = {
             modelKey: modelKey,
@@ -425,11 +476,13 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
             //TODO(pjm): rework this
             $timeout(function() {
                 var el = $('#s-bunch-basicEditor form')[0];
-                if (el)
+                if (el) {
                     angular.element(el).scope().form.$setDirty();
+                }
                 el = $('#s-bunchFile-basicEditor form')[0];
-                if (el)
+                if (el) {
                     angular.element(el).scope().form.$setDirty();
+                }
             });
         }
     });
@@ -534,8 +587,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         for (var i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
             for (var j = 0; j < b.items.length; j++) {
-                if (id == Math.abs(b.items[j]))
+                if (id == Math.abs(b.items[j])) {
                     res.push(b.id);
+                }
             }
         }
         return res;
@@ -569,8 +623,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     function sortElements() {
         appState.models.elements.sort(function(a, b) {
             var res = a.type.localeCompare(b.type);
-            if (res === 0)
+            if (res === 0) {
                 res = a.name.localeCompare(b.name);
+            }
             return res;
         });
     }
@@ -596,8 +651,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             }
         }
         if (! foundIt) {
-            if (elementsByName()[m.name])
+            if (elementsByName()[m.name]) {
                 m.name = uniqueNameForType(m.name + '-');
+            }
             appState.models[containerName].push(m);
         }
         sortMethod();
@@ -671,15 +727,17 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         var id = self.activeBeamlineId;
         for (var i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
-            if (b.id == id)
+            if (b.id == id) {
                 return b;
+            }
         }
         return null;
     };
 
     self.getElements = function() {
-        if (appState.isLoaded)
+        if (appState.isLoaded) {
             return appState.models.elements;
+        }
         return emptyElements;
     };
 
@@ -701,8 +759,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         };
         panelState.showModalEditor('beamline');
         var el = $('#s-beamline-editor form')[0];
-        if (el)
+        if (el) {
             angular.element(el).scope().form.$setDirty();
+        }
     };
 
     self.newElement = function() {
@@ -711,21 +770,26 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     //TODO(pjm): use library for this
     self.numFormat = function(num, units) {
-        if (! angular.isDefined(num))
+        if (! angular.isDefined(num)) {
             return '';
+        }
         num = rpnService.getRpnValue(num);
         if (num < 1) {
             num *= 1000;
             units = 'm' + units;
         }
-        if (Math.round(num * 100) === 0)
+        if (Math.round(num * 100) === 0) {
             return '0';
-        if (num >= 1000)
+        }
+        if (num >= 1000) {
             return num.toFixed(0) + units;
-        if (num >= 100)
+        }
+        if (num >= 100) {
             return num.toFixed(1) + units;
-        if (num >= 10)
+        }
+        if (num >= 10) {
             return num.toFixed(2) + units;
+        }
         return num.toFixed(3) + units;
     };
 
@@ -775,6 +839,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     });
     appState.whenModelsLoaded($scope, function() {
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+        //TODO(pjm): only required for when viewing after import
+        // force update to bunch from command.bunched_beam
+        appState.saveChanges('commands');
     });
 });
 
@@ -795,16 +862,18 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     function defaultYColumn(columns) {
         for (var i = 1; i < columns.length; i++) {
-            if (columns[i].indexOf('Element') >= 0)
+            if (columns[i].indexOf('Element') >= 0) {
                 continue;
+            }
             return columns[i];
         }
         return columns[1];
     }
 
     function fileURL(index, model) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return '';
+        }
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -831,8 +900,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 });
                 continue;
             }
-            if (! info.columns)
+            if (! info.columns) {
                 continue;
+            }
             var modelKey = 'elementAnimation' + info.id;
             self.outputFiles.push({
                 reportType: reportTypeForColumns(info.plottableColumns),
@@ -845,10 +915,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId'];
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
-                if (info.plottableColumns.indexOf(m.x) < 0)
+                if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
-                if (info.plottableColumns.indexOf(m.y) < 0)
+                }
+                if (info.plottableColumns.indexOf(m.y) < 0) {
                     m.y = info.plottableColumns[1];
+                }
                 m.fileId = info.id;
                 m.values = info.plottableColumns;
             }
@@ -861,8 +933,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     values: info.plottableColumns,
                     framesPerSecond: 2,
                 };
-                if (i > 0 && ! panelState.isHidden(modelKey))
+                if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
+                }
             }
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
@@ -874,8 +947,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     function reportTypeForColumns(columns) {
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
-            || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0))
+            || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
             return 'heatmap';
+        }
         return '2d';
     }
 
@@ -890,8 +964,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     };
 
     self.displayPercentComplete = function() {
-        if (self.isInitializing())
+        if (self.isInitializing()) {
             return 100;
+        }
         return self.progress.percentComplete;
     };
 
@@ -910,10 +985,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 }
                 else {
                     hideField(name, 'histogramBins');
-                    if (frameCache.getFrameCount(modelKey) > 1)
+                    if (frameCache.getFrameCount(modelKey) > 1) {
                         showField(name, 'framesPerSecond');
-                    else
+                    }
+                    else {
                         hideField(name, 'framesPerSecond');
+                    }
                 }
                 break;
             }
@@ -937,8 +1014,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         else if (data.percentComplete) {
             // don't regress
-            if (self.progress && self.progress.percentComplete > data.percentComplete)
-                ;
+            if (self.progress && self.progress.percentComplete > data.percentComplete) {
+            }
             else {
                 self.progress = {
                     percentComplete: data.percentComplete,
@@ -959,8 +1036,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     // Overrides
     self.isInitializing = function() {
-        if (self.progress && self.progress.percentComplete > 0)
+        if (self.progress && self.progress.percentComplete > 0) {
             return false;
+        }
         return true;
     };
 
@@ -972,8 +1050,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.originalRunSimulation = self.runSimulation;
     self.runSimulation = function() {
-        if (self.isStateProcessing())
+        if (self.isStateProcessing()) {
             return;
+        }
         self.progress = null;
         self.outputFiles = [];
         appState.saveQuietly('simulation');
@@ -993,7 +1072,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: [
-            '<div data-lattice-import-dialog=""></div>',
+            '<div data-elegant-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -1024,37 +1103,43 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         ].join(''),
         controller: function($scope) {
             $scope.hasBeamlines = function() {
-                if (! $scope.isLoaded())
+                if (! $scope.isLoaded()) {
                     return false;
+                }
                 for (var i = 0; i < appState.models.beamlines.length; i++) {
                     var beamline = appState.models.beamlines[i];
-                    if (beamline.items.length > 0)
+                    if (beamline.items.length > 0) {
                         return true;
+                    }
                 }
                 return false;
             };
             $scope.hasBeamlinesAndCommands = function() {
-                if (! $scope.hasBeamlines())
+                if (! $scope.hasBeamlines()) {
                     return false;
+                }
                 return appState.models.commands.length > 0;
             };
             $scope.hasSourceCommand = function() {
-                if (! $scope.isLoaded())
+                if (! $scope.isLoaded()) {
                     return false;
+                }
                 for (var i = 0; i < appState.models.commands.length; i++) {
                     var cmd = appState.models.commands[i];
-                    if (cmd._type == 'bunched_beam' || cmd._type == 'sdds_beam')
+                    if (cmd._type == 'bunched_beam' || cmd._type == 'sdds_beam') {
                         return true;
+                    }
                 }
                 return false;
             };
             $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations'))
+                if ($scope.nav.isActive('simulations')) {
                     return false;
+                }
                 return appState.isLoaded();
             };
             $scope.showImportModal = function() {
-                $('#elegant-lattice-import').modal('show');
+                $('#elegant-import').modal('show');
             };
             $scope.showNewFolderModal = function() {
                 panelState.showModalEditor('simulationFolder');
@@ -1117,8 +1202,9 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.dragStop = function(data) {
-                if (! data || dragCanceled)
+                if (! data || dragCanceled) {
                     return;
+                }
                 if (data.itemId) {
                     $timeout(function() {
                         if (! dropSuccess) {
@@ -1131,15 +1217,18 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.dropItem = function(index, data) {
-                if (! data)
+                if (! data) {
                     return;
+                }
                 if (data.itemId) {
-                    if (dragCanceled)
+                    if (dragCanceled) {
                         return;
+                    }
                     dropSuccess = true;
                     var curr = $scope.beamlineItems.indexOf(data);
-                    if (curr < index)
+                    if (curr < index) {
                         index--;
+                    }
                     $scope.beamlineItems.splice(curr, 1);
                 }
                 else {
@@ -1150,10 +1239,12 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.dropLast = function(data) {
-                if (! data || ! data.itemId)
+                if (! data || ! data.itemId) {
                     return;
-                if (dragCanceled)
+                }
+                if (dragCanceled) {
                     return;
+                }
                 dropSuccess = true;
                 var curr = $scope.beamlineItems.indexOf(data);
                 $scope.beamlineItems.splice(curr, 1);
@@ -1162,14 +1253,16 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.dropPanel = function(data) {
-                if (! data)
+                if (! data) {
                     return;
+                }
                 if (data.itemId) {
                     dropSuccess = true;
                     return;
                 }
-                if (data.id == activeBeamline.id)
+                if (data.id == activeBeamline.id) {
                     return;
+                }
                 var item = {
                     id: data.id || data._id,
                     itemId: appState.maxId($scope.beamlineItems, 'itemId') + 1,
@@ -1187,8 +1280,9 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
 
             $scope.editItem = function(item) {
                 var el = $scope.lattice.elementForId(item.id);
-                if (el.type)
+                if (el.type) {
                     $scope.lattice.editElement(el.type, el);
+                }
                 else {
                     // reverse the beamline
                     item.id = -item.id;
@@ -1202,8 +1296,9 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.isSelected = function(itemId) {
-                if (selectedItemId)
+                if (selectedItemId) {
                     return itemId == selectedItemId;
+                }
                 return false;
             };
 
@@ -1234,13 +1329,16 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             };
 
             $scope.showEditor = function() {
-                if (! appState.isLoaded())
+                if (! appState.isLoaded()) {
                     return false;
-                if (! $scope.lattice.activeBeamlineId)
+                }
+                if (! $scope.lattice.activeBeamlineId) {
                     return false;
+                }
                 var beamline = $scope.lattice.getActiveBeamline();
-                if (activeBeamline && activeBeamline == beamline && beamline.items.length == $scope.beamlineItems.length)
+                if (activeBeamline && activeBeamline == beamline && beamline.items.length == $scope.beamlineItems.length) {
                     return true;
+                }
                 activeBeamline = beamline;
                 $scope.selectItem();
                 $scope.beamlineItems = [];
@@ -1312,8 +1410,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
                     res += $scope.lattice.nameForId(id);
-                    if (i != items.length - 1)
+                    if (i != items.length - 1) {
                         res += ',';
+                    }
                 }
                 res += ')';
                 return res;
@@ -1324,8 +1423,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
             };
 
             $scope.beamlineBend = function(beamline, defaultValue) {
-                if (angular.isDefined(beamline.angle))
+                if (angular.isDefined(beamline.angle)) {
                     return $scope.lattice.angleFormat(beamline.angle);
+                }
                 return defaultValue;
             };
 
@@ -1350,8 +1450,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
             };
 
             $scope.isActiveBeamline = function(beamline) {
-                if ($scope.lattice.activeBeamlineId)
+                if ($scope.lattice.activeBeamlineId) {
                     return $scope.lattice.activeBeamlineId == beamline.id;
+                }
                 return false;
             };
 
@@ -1404,7 +1505,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             $scope.commands = [];
 
             function commandDescription(cmd, commandIndex) {
-                var schema = SIREPO.APP_SCHEMA.model[commandModelName(cmd._type)];
+                var schema = SIREPO.APP_SCHEMA.model[elegantService.commandModelName(cmd._type)];
                 var res = '';
                 var model = commandForId(cmd._id);
                 var fields = Object.keys(model).sort();
@@ -1419,10 +1520,18 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                                     + '.' + f + fileExtension(model);
                             }
                             else if (schema[f][1] == 'ElegantBeamlineList') {
-                                res += elegantService.elementForId(model[f]).name;
+                                //res += elegantService.elementForId(model[f]).name;
+                                var el = elegantService.elementForId(model[f]);
+                                if (el) {
+                                    res += el.name;
+                                }
+                                else {
+                                    res += '<missing beamline>';
+                                }
                             }
-                            else
+                            else {
                                 res += model[f];
+                            }
                         }
                     }
                 }
@@ -1432,8 +1541,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             function commandForId(id) {
                 for (var i = 0; i < appState.models.commands.length; i++) {
                     var c = appState.models.commands[i];
-                    if (c._id == id)
+                    if (c._id == id) {
                         return c;
+                    }
                 }
                 return null;
             }
@@ -1442,16 +1552,8 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 return $scope.commands.indexOf(data);
             }
 
-            function commandModelName(type) {
-                return 'command_' + type;
-            }
-
             function fileExtension(model) {
                 return model._type == 'save_lattice' ? '.lte' : '.sdds';
-            }
-
-            function isCommandModelName(name) {
-                return name.indexOf('command_') === 0;
             }
 
             function loadCommands() {
@@ -1460,10 +1562,12 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 var commandIndex = {};
                 for (var i = 0; i < commands.length; i++) {
                     var cmd = commands[i];
-                    if (cmd._type in commandIndex)
+                    if (cmd._type in commandIndex) {
                         commandIndex[cmd._type]++;
-                    else
+                    }
+                    else {
                         commandIndex[cmd._type] = 1;
+                    }
                     $scope.commands.push({
                         _type: cmd._type,
                         _id: cmd._id,
@@ -1483,16 +1587,18 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             function selectedItemIndex() {
                 if (selectedItemId) {
                     for (var i = 0; i < $scope.commands.length; i++) {
-                        if ($scope.commands[i]._id == selectedItemId)
+                        if ($scope.commands[i]._id == selectedItemId) {
                             return i;
+                        }
                     }
                 }
                 return -1;
             }
 
             $scope.deleteCommand = function(data) {
-                if (! data)
+                if (! data) {
                     return;
+                }
                 $scope.selectItem(data);
                 $('#elegant-delete-command-confirmation').modal('show');
             };
@@ -1507,26 +1613,29 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.dropItem = function(index, data) {
-                if (! data)
+                if (! data) {
                     return;
+                }
                 var i = commandIndex(data);
                 data = $scope.commands.splice(i, 1)[0];
-                if (i < index)
+                if (i < index) {
                     index--;
+                }
                 $scope.commands.splice(index, 0, data);
                 saveCommands();
             };
 
             $scope.dropLast = function(data) {
-                if (! data)
+                if (! data) {
                     return;
+                }
                 data = $scope.commands.splice(commandIndex(data), 1)[0];
                 $scope.commands.push(data);
                 saveCommands();
             };
 
             $scope.editCommand = function(cmd, isNew) {
-                var modelName = commandModelName(cmd._type);
+                var modelName = elegantService.commandModelName(cmd._type);
                 appState.models[modelName] = isNew ? cmd : commandForId(cmd._id);
                 panelState.showModalEditor(modelName);
             };
@@ -1540,8 +1649,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.isExpandDisabled = function(cmd) {
-                if (cmd.description && cmd.description.indexOf("\n") > 0)
+                if (cmd.description && cmd.description.indexOf("\n") > 0) {
                     return false;
+                }
                 return true;
             };
 
@@ -1558,15 +1668,17 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.selectedItemName = function() {
-                if (selectedItemId)
+                if (selectedItemId) {
                     return commandForId(selectedItemId)._type;
+                }
                 return '';
             };
 
             $scope.$on('modelChanged', function(e, name) {
-                if (name == 'commands')
+                if (name == 'commands') {
                     loadCommands();
-                if (isCommandModelName(name)) {
+                }
+                if (elegantService.isCommandModelName(name)) {
                     var foundIt = false;
                     for (var i = 0; i < $scope.commands.length; i++) {
                         if ($scope.commands[i]._id == appState.models[name]._id) {
@@ -1578,8 +1690,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                         var index = selectedItemIndex();
                         if (index >= 0)
                             appState.models.commands.splice(index + 1, 0, appState.models[name]);
-                        else
+                        else {
                             appState.models.commands.push(appState.models[name]);
+                        }
                         $scope.selectItem(appState.models[name]);
                     }
                     appState.removeModel(name);
@@ -1588,7 +1701,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             });
 
             $scope.$on('cancelChanges', function(e, name) {
-                if (isCommandModelName(name)) {
+                if (elegantService.isCommandModelName(name)) {
                     appState.removeModel(name);
                     appState.cancelChanges('commands');
                 }
@@ -1730,26 +1843,31 @@ SIREPO.app.directive('elementTable', function(appState) {
             };
 
             $scope.elementBend = function(element, defaultValue) {
-                if (angular.isDefined(element.angle))
+                if (angular.isDefined(element.angle)) {
                     return $scope.lattice.angleFormat(element.angle);
+                }
                 return defaultValue;
             };
 
             $scope.elementDescription = function(type, element) {
-                if (! element)
+                if (! element) {
                     return 'null';
+                }
                 var schema = SIREPO.APP_SCHEMA.model[type];
                 var res = '';
                 var fields = Object.keys(element).sort();
                 for (var i = 0; i < fields.length; i++) {
                     var f = fields[i];
-                    if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0)
+                    if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0) {
                         continue;
+                    }
                     if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
-                        if (schema[f][1] == 'OutputFile' && element[f])
+                        if (schema[f][1] == 'OutputFile' && element[f]) {
                             res += (res.length ? ',' : '') + f + '=' + element.name + '.' + f + '.sdds';
-                        else if (schema[f][2] != element[f])
+                        }
+                        else if (schema[f][2] != element[f]) {
                             res += (res.length ? ',' : '') + f + '=' + element[f];
+                        }
                     }
                 }
                 return res;
@@ -1768,13 +1886,15 @@ SIREPO.app.directive('elementTable', function(appState) {
             };
 
             $scope.$on('modelChanged', function(e, name) {
-                if (name == 'elements')
+                if (name == 'elements') {
                     loadTree();
+                }
             });
 
             $scope.$on('elementDeleted', function(e, name) {
-                if (name == 'elements')
+                if (name == 'elements') {
                     loadTree();
+                }
             });
             appState.whenModelsLoaded($scope, loadTree);
         },
@@ -1802,12 +1922,12 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="modal fade" data-backdrop="static" id="elegant-lattice-import" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="static" id="elegant-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -1818,22 +1938,28 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                         '<form class="form-horizontal" name="importForm">',
-                          '<div data-ng-show="isState(\'ready\')">',
+                          '<div data-ng-show="filename" class="form-group">',
+                            '<label class="col-xs-4 control-label">Importing file</label>',
+                            '<div class="col-xs-8">',
+                              '<p class="form-control-static">{{ filename }}</p>',
+                            '</div>',
+                          '</div>',
+                          '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Lattice File</label>',
-                              '<input id="elegant-lattice-file-import" type="file" data-file-model="latticeFile" />',
+                              '<label>Select Command (.ele) or Lattice (.lte) File</label>',
+                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte" />',
+                              '<br />',
+                              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                            '</div>',
+                            '<div data-ng-show="isState(\'lattice\')" class="form-group">',
+                              '<label>Select Lattice File ({{ latticeFileName }})</label>',
+                              '<input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept=".lte" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
                             '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importLatticeFile(latticeFile)" class="btn btn-primary">Import File</button>',
+                              '<button data-ng-click="importElegantFile(elegantFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
                               ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                            '</div>',
-                          '</div>',
-                          '<div data-ng-show="filename" class="form-group">',
-                            '<label class="col-xs-4 control-label">Importing lattice</label>',
-                            '<div class="col-xs-8">',
-                              '<p class="form-control-static">{{ filename }}</p>',
                             '</div>',
                           '</div>',
                           '<div data-ng-show="isState(\'import\') || isState(\'load-file-lists\')" class="col-sm-6 col-sm-offset-6">',
@@ -1841,15 +1967,16 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                             '<br /><br />',
                           '</div>',
                           '<div data-ng-show="isState(\'missing-files\')">',
-                            '<p>Please upload the files below which are referenced in the lattice file.</p>',
+                            '<p>Please upload the files below which are referenced in the elegant file.</p>',
                             '<div class="form-group" data-ng-repeat="item in missingFiles">',
                               '<div class="col-sm-8 col-sm-offset-1">',
                                 '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
                                 '<span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>',
-                                '<label>{{ item[2] }}</label> ({{ item[4] }}: {{ item[0] }} {{ item[1] }})',
+                                '<label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})',
                                 '<input type="file" data-file-model="item[5]" />',
                               '</div>',
                             '</div>',
+                            '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '<div class="col-sm-6 pull-right">',
                               '<button data-ng-click="importMissingFiles()" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingFiles() }">{{ importMissingFilesButtonText() }}</button>',
                               ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
@@ -1864,28 +1991,36 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.title = 'Import Elegant Lattice File';
-            // states: ready, import, load-file-lists, missing-files
+            $scope.title = 'Import Elegant File';
+            // states: ready, import, lattice, load-file-lists, missing-files
             $scope.state = 'ready';
 
-            $scope.isCorrectMissingFile = function(item) {
-                if (! item[5])
-                    return false;
-                return item[2] == item[5].name;
-            };
-
-            function elementInputFiles(type) {
-                var res = [];
-                var elementSchema = SIREPO.APP_SCHEMA.model[type];
-                for (var f in elementSchema) {
-                    if (elementSchema[f][1].indexOf('InputFile') >= 0)
-                        res.push(f);
+            function classifyInputFiles(model, modelType, modelName, requiredFiles) {
+                var inputFiles = modelInputFiles(modelType);
+                for (var i = 0; i < inputFiles.length; i++) {
+                    if (model[inputFiles[i]]) {
+                        if (! requiredFiles[modelType]) {
+                            requiredFiles[modelType] = {};
+                        }
+                        if (! requiredFiles[modelType][inputFiles[i]]) {
+                            requiredFiles[modelType][inputFiles[i]] = {};
+                        }
+                        requiredFiles[modelType][inputFiles[i]][model[inputFiles[i]]] = modelName;
+                    }
                 }
-                return res;
+            }
+
+            function hasMissingLattice(data) {
+                var runSetup = elegantService.findFirstCommand('run_setup', data.models.commands);
+                if (! runSetup || runSetup.lattice == 'Lattice') {
+                    return false;
+                }
+                $scope.latticeFileName = runSetup.lattice;
+                return true;
             }
 
             function hideAndRedirect() {
-                $('#elegant-lattice-import').modal('hide');
+                $('#elegant-import').modal('hide');
                 requestSender.localRedirect('lattice', {
                     ':simulationId': $scope.id,
                 });
@@ -1908,26 +2043,43 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                     loadFileLists);
             }
 
-            function verifyInputFiles(data) {
-                var requiredFiles = {};
-                for (var i = 0; i < data.models.elements.length; i++) {
-                    var el = data.models.elements[i];
-                    var inputFiles = elementInputFiles(el.type);
-                    for (var j = 0; j < inputFiles.length; j++) {
-                        if (el[inputFiles[j]]) {
-                            if (! requiredFiles[el.type])
-                                requiredFiles[el.type] = {};
-                            if (! requiredFiles[el.type][inputFiles[j]])
-                                requiredFiles[el.type][inputFiles[j]] = {};
-                            requiredFiles[el.type][inputFiles[j]][el[inputFiles[j]]] = el.name;
-                        }
+            function modelInputFiles(type) {
+                var res = [];
+                var elementSchema = SIREPO.APP_SCHEMA.model[type];
+                for (var f in elementSchema) {
+                    if (elementSchema[f][1].indexOf('InputFile') >= 0) {
+                        res.push(f);
                     }
+                }
+                return res;
+            }
+
+            function verifyInputFiles(data) {
+                if (hasMissingLattice(data)) {
+                    $scope.state = 'lattice';
+                    $scope.elegantFile = null;
+                    return;
+                }
+                var requiredFiles = {};
+                var i;
+                for (i = 0; i < data.models.elements.length; i++) {
+                    var el = data.models.elements[i];
+                    classifyInputFiles(el, el.type, el.name, requiredFiles);
+                }
+                for (i = 0; i < data.models.commands.length; i++) {
+                    var cmd = data.models.commands[i];
+                    classifyInputFiles(cmd, elegantService.commandModelName(cmd._type), cmd._type, requiredFiles);
                 }
                 $scope.inputFiles = [];
                 for (var type in requiredFiles) {
                     for (var field in requiredFiles[type]) {
                         for (var filename in requiredFiles[type][field]) {
-                            $scope.inputFiles.push([type, field, filename, type + '-' + field, requiredFiles[type][field][filename]]);
+                            var fileType = type + '-' + field;
+                            //TODO(pjm): special case for BeamInputFile which shares files between bunchFile and command_sdds_beam
+                            if (type == 'command_sdds_beam' && field == 'input') {
+                                fileType = 'bunchFile-sourceFile';
+                            }
+                            $scope.inputFiles.push([type, field, filename, fileType, requiredFiles[type][field][filename]]);
                         }
                     }
                 }
@@ -1938,8 +2090,9 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                 var res = [];
                 for (var i = 0; i < $scope.inputFiles.length; i++) {
                     var fileType = $scope.inputFiles[i][3];
-                    if (! requestSender.getAuxiliaryData(fileType))
+                    if (! requestSender.getAuxiliaryData(fileType)) {
                         res.push(fileType);
+                    }
                 }
                 $scope.missingFileLists = res;
                 loadFileLists();
@@ -1951,8 +2104,9 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                     var filename = $scope.inputFiles[i][2];
                     var fileType = $scope.inputFiles[i][3];
                     var list = requestSender.getAuxiliaryData(fileType);
-                    if (list.indexOf(filename) < 0)
+                    if (list.indexOf(filename) < 0) {
                         res.push($scope.inputFiles[i]);
+                    }
                 }
                 if (! res.length) {
                     hideAndRedirect();
@@ -1960,29 +2114,53 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                 }
                 $scope.state = 'missing-files';
                 $scope.missingFiles = res.sort(function(a, b) {
-                    if (a[0] < b[0])
+                    if (a[0] < b[0]) {
                         return -1;
-                    if (a[0] > b[0])
+                    }
+                    if (a[0] > b[0]) {
                         return 1;
-                    if (a[1] < b[1])
+                    }
+                    if (a[1] < b[1]) {
                         return -1;
-                    if (a[1] > b[1])
+                    }
+                    if (a[1] > b[1]) {
                         return 1;
+                    }
                     return 0;
                 });
             }
 
-            $scope.importLatticeFile = function(latticeFile) {
-                if (! latticeFile)
+            $scope.auxFileLabel = function(item) {
+                return item[2];
+            };
+
+            $scope.auxFileName = function(item) {
+                return item[4]
+                    + ': '
+                    + (elegantService.isCommandModelName(item[0])
+                       ? ''
+                       : (item[0] + ' '))
+                    + item[1];
+            };
+
+            $scope.importElegantFile = function(elegantFile) {
+                if (! elegantFile) {
                     return;
-                $scope.resetState();
+                }
+                var args = {
+                    folder: appState.getActiveFolderPath(),
+                };
+                if ($scope.state == 'lattice') {
+                    args.simulationId = $scope.id;
+                }
+                else {
+                    $scope.resetState();
+                    $scope.filename = elegantFile.name;
+                }
                 $scope.state = 'import';
-                $scope.filename = latticeFile.name;
                 fileUpload.uploadFileToUrl(
-                    latticeFile,
-                    {
-                        folder: appState.getActiveFolderPath(),
-                    },
+                    elegantFile,
+                    args,
                     requestSender.formatUrl(
                         'importFile',
                         {
@@ -2005,6 +2183,7 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
                 $scope.state = 'import';
                 var dataResponseHandler = function(data) {
                     if (data.error) {
+                        $scope.state = 'missing-files';
                         $scope.fileUploadError = data.error;
                         return;
                     }
@@ -2030,22 +2209,36 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
             };
 
             $scope.importMissingFilesButtonText = function() {
-                if (! $scope.missingFiles)
+                if (! $scope.missingFiles) {
                     return '';
+                }
                 return 'Import File' + ($scope.missingFiles.length > 1 ? 's' : '');
             };
 
-            $scope.isMissingFiles = function() {
-                if (! $scope.missingFiles)
-                    return true;
+            $scope.isCorrectMissingFile = function(item) {
+                if (! item[5]) {
+                    return false;
+                }
+                return item[2] == item[5].name;
+            };
 
+            $scope.isMissingFiles = function() {
+                if (! $scope.missingFiles) {
+                    return true;
+                }
                 for (var i = 0; i < $scope.missingFiles.length; i++) {
-                    if (! $scope.missingFiles[i][5])
+                    if (! $scope.missingFiles[i][5]) {
                         return true;
-                    if (! $scope.isCorrectMissingFile($scope.missingFiles[i]))
+                    }
+                    if (! $scope.isCorrectMissingFile($scope.missingFiles[i])) {
                         return true;
+                    }
                 }
                 return false;
+            };
+
+            $scope.isMissingImportFile = function() {
+                return ! $scope.elegantFile;
             };
 
             $scope.isState = function(state) {
@@ -2054,10 +2247,12 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
 
             $scope.resetState = function() {
                 $scope.id = null;
+                $scope.elegantFile = null;
                 $scope.filename = '';
                 $scope.simulationName = '';
                 $scope.state = 'ready';
                 $scope.fileUploadError = '';
+                $scope.latticeFileName = '';
                 $scope.inputFiles = null;
             };
 
@@ -2065,7 +2260,8 @@ SIREPO.app.directive('latticeImportDialog', function(appState, fileUpload, reque
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
-                $('#elegant-lattice-file-import').val(null);
+                $('#elegant-file-import').val(null);
+                $('#elegant-lattice-import').val(null);
                 scope.resetState();
             });
         },
@@ -2151,16 +2347,19 @@ SIREPO.app.directive('rpnEditor', function(appState) {
             };
 
             $scope.hasFirstColumn = function() {
-                if ($scope.showAddNewFields)
+                if ($scope.showAddNewFields) {
                     return true;
-                if (appState.isLoaded())
+                }
+                if (appState.isLoaded()) {
                     return appState.models.rpnVariables.length > 0;
+                }
                 return false;
             };
 
             $scope.hasSecondColumn = function() {
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     return appState.models.rpnVariables.length > 1;
+                }
                 return false;
             };
 
