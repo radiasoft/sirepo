@@ -21,6 +21,7 @@ class TestFlaskRequest(object):
         self.files = {
             'file': self,
         }
+        self.form = {}
     def read(self):
         with open(str(pkunit.data_dir().join(self.filename))) as f:
             return f.read()
