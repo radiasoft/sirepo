@@ -123,6 +123,16 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         $rootScope.$broadcast('modelsLoaded');
     }
 
+    function refreshSimulationData(data) {
+        self.models = data.models;
+        self.models.simulationStatus = {};
+        savedModelValues = self.cloneModel();
+        lastAutoSaveData = self.clone(data);
+        updateReports();
+        broadcastLoaded();
+        self.resetAutoSaveTimer();
+    }
+
     function updateReports() {
         broadcastClear();
         for (var key in self.models) {
@@ -155,7 +165,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                     successCallback: function (resp) {
                         if (resp.error && resp.error == 'invalidSerial') {
                             srlog(resp.simulationData.models.simulation.simulationId, ': update collision newSerial=', resp.simulationData.models.simulation.simulationSerial, '; refreshing');
-                            self.refreshSimulationData(resp.simulationData);
+                            refreshSimulationData(resp.simulationData);
                             errorService.alertText("Another browser updated this simulation.This window's state has been refreshed. Please retry your action.");
                         }
                         else {
@@ -283,8 +293,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.loadModels = function(simulationId, callback) {
-        if (self.isLoaded() && self.models.simulation.simulationId == simulationId)
+        if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
+        }
         self.clearModels();
         requestSender.sendRequest(
             {
@@ -303,9 +314,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                     });
                     return;
                 }
-                self.refreshSimulationData(data);
-                if (callback)
+                refreshSimulationData(data);
+                if (callback) {
                     callback();
+                }
             }
         );
     };
@@ -395,18 +407,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         });
     };
 
-    self.refreshSimulationData = function(data, callback) {
-        self.models = data.models;
-        self.models.simulationStatus = {};
-        savedModelValues = self.cloneModel();
-        lastAutoSaveData = self.clone(data);
-        updateReports();
-        broadcastLoaded();
-        self.resetAutoSaveTimer();
-        if (callback)
-            callback();
-    };
-
     self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
     };
@@ -416,10 +416,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.whenModelsLoaded = function($scope, callback) {
-        if (self.isLoaded())
+        $scope.$on('modelsLoaded', callback);
+        if (self.isLoaded()) {
             callback();
-        else
-            $scope.$on('modelsLoaded', callback);
+        }
     };
 
     return self;
@@ -1146,7 +1146,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         };
 
         scope.simulationStatus = function() {
-            return appState.models.simulationStatus[scope.model] || {state: 'pending'};
+            if (appState.models.simulationStatus && appState.models.simulationStatus[scope.model]) {
+                return appState.models.simulationStatus[scope.model];
+            }
+            return {state: 'pending'};
         };
 
         scope.cancelSimulation = function() {
