@@ -122,7 +122,7 @@ def app_copy_simulation():
 @app.route(simulation_db.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
 def app_delete_simulation():
     data = _parse_data_input()
-    pkio.unchecked_remove(simulation_db.simulation_dir(data['simulationType'], data['simulationId']))
+    simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return _json_response_ok();
 
 

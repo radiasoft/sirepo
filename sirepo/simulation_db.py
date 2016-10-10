@@ -123,6 +123,12 @@ def celery_queue(data):
     return celery_tasks.queue_name(is_parallel(data))
 
 
+def delete_simulation(simulation_type, sid):
+    """Deletes the simulation's directory.
+    """
+    pkio.unchecked_remove(simulation_dir(simulation_type, sid))
+
+
 def examples(app):
     files = pkio.walk_tree(
         pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
