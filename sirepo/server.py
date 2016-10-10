@@ -277,7 +277,11 @@ def app_python_source(simulation_type, simulation_id):
         '{}{}'.format(
             template.generate_parameters_file(data, simulation_db.get_schema(simulation_type), is_parallel=True),
             template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
-        mimetype='text/plain',
+        mimetype='text/x-python',
+        headers={
+            'Content-Disposition': 'attachment; filename="{}"'.format(
+                '{}.py'.format(data['models']['simulation']['name'])),
+        }
     )
 
 
