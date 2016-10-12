@@ -1197,7 +1197,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
           '<ul class="dropdown-menu">',
             '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
             '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
-            '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download"></span> Export Python Code</a></li>',
             '<li><a href data-ng-click="jsonDataFile()"><span class="glyphicon glyphicon-cloud-download"></span> Export JSON Data File</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
             '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
@@ -1387,13 +1386,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
 
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
-            };
-
-            $scope.pythonSource = function(item) {
-                $window.open(requestSender.formatUrl('pythonSource', {
-                    '<simulation_id>': simulationId(),
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                }), '_blank');
             };
 
             $scope.showDocumentationUrl = function() {

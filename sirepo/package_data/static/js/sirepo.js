@@ -1697,6 +1697,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         $window.open(requestSender.formatUrl('pythonSource', {
             '<simulation_id>': item.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': 'simulation',
         }), '_blank');
     };
 

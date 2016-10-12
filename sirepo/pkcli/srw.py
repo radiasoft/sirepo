@@ -12,10 +12,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data, find_height_profile_dimension
-import os
-import re
-import srwl_bl
+from sirepo.template.srw import extract_report_data, get_filename_for_model, find_height_profile_dimension
 import srwlib
 
 
@@ -57,16 +54,13 @@ def run_background(cfg_dir):
         if pkconfig.channel_in('dev'):
             p['particles_per_core'] = 5
         p['cores'] = mpi.cfg.cores
-        #TODO(pjm): move parameters/config to template/srw.py and set directly in srw.py.jinja
         script += '''
-import srwl_bl
-v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
-source_type, mag = srwl_bl.setup_source(v)
-v.wm_na = v.sm_na = {particles_per_core}
-# Number of "iterations" per save is best set to num processes
-v.wm_ns = v.sm_ns = {cores}
-op = set_optics()
-srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    v.wm_na = v.sm_na = {particles_per_core}
+    # Number of "iterations" per save is best set to num processes
+    v.wm_ns = v.sm_ns = {cores}
+    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+
+main()
 '''.format(**p)
         mpi.run_script(script)
         simulation_db.write_result({})
@@ -83,8 +77,6 @@ def _mirror_plot(model_data):
         _dim=mirror['orientation'],
         _ang=float(mirror['grazingAngle']) / 1e3,
         _amp_coef=float(mirror['heightAmplification']))
-        #_size_x=float(mirror['horizontalTransverseSize']) / 1e3,
-        #_size_y=float(mirror['verticalTransverseSize']) / 1e3)
     transmission_data = element.get_data(3, 3)
     srwlib.srwl_uti_save_intens_ascii(
         transmission_data, element.mesh, 'res_mirror.dat', 0,
@@ -97,42 +89,16 @@ def _process_output(filename, model_data):
 
 
 def _run_srw():
-    run_dir = os.getcwd()
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     #TODO(pjm): need to properly escape data values, untrusted from client
-    # This defines the varParam variable and set_optics() function:
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False)
-    source_type, mag = srwl_bl.setup_source(v)
-    op = None
-    if data['report'] == 'intensityReport':
-        v.ss = True
-        outfile = v.ss_fn
-    elif data['report'] == 'fluxReport':
-        v.sm = True
-        outfile = v.sm_fn
-    elif data['report'] == 'powerDensityReport':
-        v.pw = True
-        outfile = v.pw_fn
-    elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
-        v.si = True
-        outfile = v.si_fn
-    elif data['report'] == 'trajectoryReport':
-        v.tr = True
-        outfile = v.tr_fn
-    elif data['report'] == 'mirrorReport':
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data['report'] == 'mirrorReport':
+        #TODO(pjm): mirror report should use it's own jinja template
         _process_output(_mirror_plot(data), data)
         return
-    elif re.search('^watchpointReport', data['report']):
-        op = set_optics()
-        v.ws = True
-        outfile = v.ws_fni
-    else:
-        raise Exception('unknown report: {}'.format(data['report']))
-    if isinstance(mag, srwlib.SRWLGsnBm):
-        mag = None
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
-    _process_output(outfile, data)
+    # This defines the main() function:
+    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+    main()
+    _process_output(get_filename_for_model(data['report']), data)
 
 
 def _cfg_int(lower, upper):

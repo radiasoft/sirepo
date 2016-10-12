@@ -930,7 +930,7 @@ SIREPO.app.directive('numberToString', function() {
     };
 });
 
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -951,6 +951,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
                   '<li role="separator" class="divider"></li>',
                   '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  SIREPO.APP_NAME == 'srw'
+                      ? '<li><a href data-ng-click="srwExportPython()">Export Python Code</a></li>'
+                      : '',
                 '</ul>',
               '</div>',
               //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="s-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
@@ -984,6 +987,13 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
                 var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
+            };
+            $scope.srwExportPython = function() {
+                $window.open(requestSender.formatUrl('pythonSource', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.modelKey,
+                }), '_blank');
             };
             $scope.hasData = function() {
                 if (appState.isLoaded()) {
