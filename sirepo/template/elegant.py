@@ -221,7 +221,7 @@ def generate_lattice(data, filename_map, beamline_map, v):
     return res
 
 
-def generate_parameters_file(data, run_dir=None, is_parallel=False):
+def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
@@ -319,10 +319,11 @@ def get_data_file(run_dir, model, frame):
     raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+    # input_data is passed by test cases only
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
-    input_data = None
+    input_data = test_data
 
     if 'simulationId' in request.form:
         input_data = simulation_db.read_simulation_json(_SIMULATION_TYPE, sid=request.form['simulationId'])
@@ -336,7 +337,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         else:
             raise IOError('invalid file extension, expecting .ele or .lte')
         data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
-        if input_data:
+        if input_data and not test_data:
             simulation_db.delete_simulation(_SIMULATION_TYPE, input_data['models']['simulation']['simulationId'])
         return None, data
     except IOError as e:
@@ -442,8 +443,6 @@ def write_parameters(data, schema, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         generate_parameters_file(
             data,
-            schema,
-            run_dir,
             is_parallel,
         ),
     )
