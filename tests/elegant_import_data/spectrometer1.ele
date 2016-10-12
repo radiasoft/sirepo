@@ -1,0 +1,102 @@
+! Design a simple spectrometer---M. Borland (ANL)
+
+&run_setup
+        lattice = lattice.lte
+        p_central_mev = 100
+        use_beamline = bl
+        final = %s.fin
+        parameters = %s.param
+        default_order = 1
+&end
+
+! Start with betax=betay=1 and alphax=alphay=0
+&twiss_output
+        output_at_each_step = 1
+        matched = 0,
+        beta_x = 1
+        beta_y = 1
+        alpha_x = 0
+        alpha_y = 0
+&end
+
+&run_control
+&end
+
+&optimization_setup
+        method = simplex, mode = minimize,
+        tolerance = 1e-12,     
+        target = 0
+        n_passes = 3, n_evaluations = 1500, n_restarts = 2        
+        verbose = 0, log_file = /dev/tty
+        output_sparsing_factor = 100
+&end
+
+! Energy resolution squared is proportional to emittance*beta/eta^2
+&optimization_term
+        term = "betax etax sqr /" 
+&end
+
+! Keep betax and betay from being larger than 20 m
+&optimization_term
+        term = "max.betax 20 .1 segt" &end
+&optimization_term
+        term = "max.betay 20 .1 segt" &end
+
+&optimization_variable
+        name = D0, item = L, lower_limit=0, upper_limit=5.0, step_size=1e-3 &end
+&optimization_variable
+        name = D1, item = L, lower_limit=0.1, upper_limit=5.0, step_size=1e-3 &end
+&optimization_variable
+        name = D2, item = L, lower_limit=0.1, upper_limit=5.0, step_size=1e-3 &end
+&optimization_variable
+        name = D3, item = L, lower_limit=0.1, upper_limit=5.0, step_size=1e-3 &end
+
+&optimization_variable
+        name = Q1, item = K1, lower_limit=0, upper_limit=2.5, step_size=1e-3 &end
+&optimization_variable
+        name = Q2, item = K1, lower_limit=-2.5, upper_limit=0.0, step_size=1e-3 &end
+
+
+&bunched_beam &end
+
+&optimize &end
+
+&save_lattice filename = %s.new &end
+
+! Test the design
+
+&run_setup
+        lattice = run.new,
+        p_central_mev = 100
+        use_beamline = bl
+        output = %s.out
+        sigma = %s.sig
+        magnets = %s.mag
+&end
+
+&twiss_output
+        filename = %s.twi
+        beta_x = 1
+        beta_y = 1
+        alpha_x = 0
+        alpha_y = 0
+&end
+
+&run_control
+&end
+
+&bunched_beam
+        n_particles_per_bunch = 100000
+        distribution_cutoff[0] = 3*3,
+        distribution_type[0] = 3*gaussian,
+        enforce_rms_values[0] = 3*1,
+        beta_x = 1,
+        beta_y = 1,
+        alpha_x = 0,
+        alpha_y = 0,
+        sigma_dp = 1e-3,
+        emit_nx = 1e-6,
+        emit_ny = 1e-6
+&end
+
+&track &end

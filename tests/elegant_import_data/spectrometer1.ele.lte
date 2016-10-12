@@ -1,0 +1,8 @@
+Q1: kquad,l=0.25,k1=1.0,n_kicks=20
+Q2: kquad,l=0.25,k1=-1.0,n_kicks=20
+D0: edrift,l=0.5
+D1: edrift,l=0.5
+D2: edrift,l=2.0
+B1: csbend,l=1.0,integration_order=4,n_kicks=40,edge_order=2,angle="pi 2 /",e1=0,e2=0
+D3: edrift,l=2.0
+BL: line=(D0,Q1,D1,Q2,D2,B1,D3)

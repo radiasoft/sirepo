@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip('sdds')
 
 #TODO(pjm): use glob to find data files
-_FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte', 'bad-rpn.lte', 'BYBL.lte', 'slc.lte', 'par.lte', 'lattice.lte', 'apsKick.lte', 'lattice-with-rpns.lte']
+_FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte', 'bad-rpn.lte', 'BYBL.lte', 'slc.lte', 'par.lte', 'lattice.lte', 'apsKick.lte', 'lattice-with-rpns.lte', 'spectrometer1.ele']
 
 class TestFlaskRequest(object):
     def __init__(self, filename):
@@ -36,10 +36,14 @@ def test_importer():
             if error:
                 actual = error
             else:
-                data['models']['commands'] = []
-                actual = '{}{}'.format(
-                    elegant._generate_variables(data),
-                    elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), {}))
+                if '.lte' in filename:
+                    data['models']['commands'] = []
+                    actual = '{}{}'.format(
+                        elegant._generate_variables(data),
+                        elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), {}))
+                else:
+                    err2, data2 = elegant.import_file(TestFlaskRequest('{}.lte'.format(filename)), test_data=data)
+                    actual = elegant._generate_commands(data2, elegant._build_filename_map(data2), elegant._build_beamline_map(data2), {})
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
             #TODO(pjm): this takes too long if there are a lot of diffs
