@@ -221,8 +221,8 @@ def generate_lattice(data, filename_map, beamline_map, v):
     return res
 
 
-def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
-    _validate_data(data, schema)
+def generate_parameters_file(data, run_dir=None, is_parallel=False):
+    _validate_data(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
 
@@ -309,7 +309,7 @@ def get_data_file(run_dir, model, frame):
 
     if model == 'beamlineReport':
         data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, _SCHEMA, is_parallel=True)
+        source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
     for path in glob.glob(str(run_dir.join('elegant.bun'))):
@@ -379,12 +379,8 @@ def prepare_for_client(data):
     return data
 
 
-def remove_last_frame(run_dir):
-    pass
-
-
-def run_all_text():
-    return '''
+def python_source_for_model(data, model):
+    return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
 
@@ -394,6 +390,10 @@ with open('elegant.ele', 'w') as f:
 import os
 os.system('elegant elegant.ele')
 '''
+
+
+def remove_last_frame(run_dir):
+    pass
 
 
 def static_lib_files():

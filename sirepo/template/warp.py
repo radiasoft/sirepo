@@ -35,6 +35,7 @@ _MIN_MAX_INDEX = {
     'uz': [13, 14],
 }
 
+_SIMULATION_TYPE = 'warp'
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir)
@@ -235,8 +236,8 @@ def fixup_old_data(data):
         data['models']['simulation']['folder'] = '/'
 
 
-def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
-    _validate_data(data, schema)
+def generate_parameters_file(data, run_dir=None, is_parallel=False):
+    _validate_data(data, simulation_db.get_schema(_SIMULATION_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = is_parallel
@@ -362,14 +363,14 @@ def prepare_for_client(data):
     return data
 
 
+def python_source_for_model(data, model):
+    return generate_parameters_file(data, is_parallel=True),
+
+
 def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:
         pkio.unchecked_remove(files[-1])
-
-
-def run_all_text():
-    return ''
 
 
 def validate_file(file_type, path):
@@ -389,7 +390,6 @@ def write_parameters(data, schema, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         generate_parameters_file(
             data,
-            schema,
             run_dir,
             is_parallel,
         ),
