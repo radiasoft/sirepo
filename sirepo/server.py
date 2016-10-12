@@ -261,26 +261,15 @@ def app_new_simulation():
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
-def app_python_source(simulation_type, simulation_id):
+def app_python_source(simulation_type, simulation_id, model):
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
-    # ensure the whole source gets generated, not up to the last watchpoint report
-    last_watchpoint = None
-    if 'beamline' in data['models']:
-        for item in reversed(data['models']['beamline']):
-            if item['type'] == 'watch':
-                last_watchpoint = 'watchpointReport{}'.format(item['id'])
-                break
-            if last_watchpoint:
-                data['report'] = last_watchpoint
     return flask.Response(
-        '{}{}'.format(
-            template.generate_parameters_file(data, simulation_db.get_schema(simulation_type), is_parallel=True),
-            template.run_all_text(data) if simulation_type == 'srw' else template.run_all_text()),
+        template.python_source_for_model(data, model),
         mimetype='text/x-python',
         headers={
-            'Content-Disposition': 'attachment; filename="{}"'.format(
-                '{}.py'.format(data['models']['simulation']['name'])),
+            'Content-Disposition': 'attachment; filename="{}.py"'.format(
+                data['models']['simulation']['name']),
         }
     )
 
