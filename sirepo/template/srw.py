@@ -596,7 +596,7 @@ def validate_file(file_type, path):
     else:
         return 'invalid file extension'
 
-    if extension == 'dat':
+    if extension == 'dat' or extension == 'txt':
         # mirror file
         try:
             count = 0

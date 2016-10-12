@@ -134,8 +134,7 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
     filename, content, content_type = template.get_data_file(run_dir, model, frame)
     response = flask.make_response(content)
     response.mimetype = content_type
-    if content_type != 'text/plain':
-        response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
     return response
 
 
@@ -143,7 +142,7 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
 def app_download_file(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
     p = lib.join(werkzeug.secure_filename(filename))
-    return flask.send_file(str(p))
+    return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
@@ -180,17 +179,18 @@ def app_file_list(simulation_type, simulation_id, file_type):
     res = []
     #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        search = '*.dat' if file_type == 'mirror' else '*.zip'
+        search = ['*.dat', '*.txt'] if file_type == 'mirror' else ['*.zip']
     else:
-        search = '{}.*'.format(file_type)
+        search = ['{}.*'.format(file_type)]
     d = simulation_db.simulation_lib_dir(simulation_type)
-    for f in glob.glob(str(d.join(search))):
-        if os.path.isfile(f):
-            filename = os.path.basename(f)
-            if not simulation_type == 'srw':
-                # strip the file_type prefix
-                filename = filename[len(file_type) + 1:]
-            res.append(filename)
+    for extension in search:
+        for f in glob.glob(str(d.join(extension))):
+            if os.path.isfile(f):
+                filename = os.path.basename(f)
+                if not simulation_type == 'srw':
+                    # strip the file_type prefix
+                    filename = filename[len(file_type) + 1:]
+                res.append(filename)
     res.sort()
     return _json_response(res)
 
