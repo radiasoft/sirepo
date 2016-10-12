@@ -40,6 +40,7 @@ _DATA_FILE_FOR_MODEL = {
     'powerDensityReport': 'res_pow.dat',
     'sourceIntensityReport': 'res_int_se.dat',
     'trajectoryReport': 'res_trj.dat',
+    'watchpointReport': 'res_int_pr_se.dat',
 }
 
 _EXAMPLE_FOLDERS = {
@@ -82,7 +83,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
         'percentComplete': 0,
         'frameCount': 0,
     }
-    filename = run_dir.join(_DATA_FILE_FOR_MODEL[report])
+    filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
         t = int(filename.mtime())
         res.update({
@@ -125,6 +126,7 @@ def extract_report_data(filename, model_data):
     is_gaussian = False
     if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
         is_gaussian = True
+    #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
     files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     if model_data['report'] == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
@@ -271,7 +273,7 @@ def fixup_old_data(data):
             data['models']['simulation']['horizontalPointCount'] = 100
             data['models']['simulation']['verticalPointCount'] = 100
             for k in data['models']:
-                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
@@ -339,7 +341,7 @@ def fixup_old_data(data):
                 if field not in item:
                     item[field] = key_value_pairs[field]
     for k in data['models']:
-        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
                 data['models'][k]['fieldUnits'] = 1
     if 'samplingMethod' not in data['models']['simulation']:
@@ -349,7 +351,7 @@ def fixup_old_data(data):
             simulation[k] = data['models']['initialIntensityReport'][k]
     if 'horizontalPosition' in data['models']['initialIntensityReport']:
         for k in data['models']:
-            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or 'watchpointReport' in k:
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
                 for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
                     del data['models'][k][f]
     if 'documentationUrl' not in data['models']['simulation']:
@@ -418,86 +420,6 @@ def fixup_old_data(data):
     data['models']['tabulatedUndulator'] = _compute_undulator_length(data['models']['tabulatedUndulator'])
 
 
-def generate_parameters_file(data, schema, run_dir=None, is_parallel=False):
-    # Process method and magnetic field values for intensity, flux and intensity distribution reports:
-    # Intensity report:
-    d = _process_intensity_reports(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType']
-    )
-    rep = 'intensityReport'
-    field = 'magneticField'
-    data['models'][rep][field] = d[field]
-
-    # Flux* reports:
-    field = 'magneticField'
-    for rep in ['fluxReport', 'fluxAnimation']:
-        d = _process_flux_reports(
-            data['models'][rep]['method'],
-            rep,
-            data['models']['simulation']['sourceType'],
-            data['models']['tabulatedUndulator']['undulatorType']
-        )
-        data['models'][rep][field] = d[field]
-
-    # Intensity Distribution (2D) report:
-    d = _process_intensity_reports(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType']
-    )
-    rep = 'sourceIntensityReport'
-    field = 'magneticField'
-    data['models'][rep][field] = d[field]
-
-    if data['models']['simulation']['sourceType'] != 't' or data['models']['tabulatedUndulator']['undulatorType'] != 'u_t':
-        data['models']['trajectoryReport']['magneticField'] = 1
-
-    if 'report' in data:
-        if data['report'] == 'fluxAnimation':
-            data['models']['fluxReport'] = data['models'][data['report']].copy()
-        elif re.search('watchpointReport', data['report']) or data['report'] == 'sourceIntensityReport':
-            # render the watchpoint report settings in the initialIntensityReport template slot
-            data['models']['initialIntensityReport'] = data['models'][data['report']].copy()
-
-    if data['models']['simulation']['sourceType'] == 't':
-        undulator_type = data['models']['tabulatedUndulator']['undulatorType']
-        data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
-        if undulator_type == 'u_i':
-            data['models']['tabulatedUndulator']['gap'] = 0.0
-            data['models']['tabulatedUndulator']['indexFile'] = ''
-
-    _validate_data(data, schema)
-    last_id = None
-    if 'report' in data:
-        m = re.search('watchpointReport(\d+)', data['report'])
-        if m:
-            last_id = int(m.group(1))
-    if int(data['models']['simulation']['samplingMethod']) == 2:
-        data['models']['simulation']['sampleFactor'] = 0
-    v = template_common.flatten_data(data['models'], {})
-    v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
-    # und_g and und_ph API units are mm rather than m
-    v['tabulatedUndulator_gap'] *= 1000
-    v['tabulatedUndulator_phase'] *= 1000
-
-    if 'report' in data and data['report'] in data['models'] and 'distanceFromSource' in data['models'][data['report']]:
-        position = data['models'][data['report']]['distanceFromSource']
-    else:
-        position = _get_first_element_position(data)
-    v['beamlineFirstElementPosition'] = position
-
-    # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
-
-    if 'isReadOnly' not in data['models']['electronBeam'] or data['models']['electronBeam']['isReadOnly'] is False:
-        v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
-    if data['models']['electronBeam']['beamDefinition'] == 'm':
-        v['electronBeam_horizontalBeta'] = None
-    if 'report' in data:
-        v[data['report']] = 1
-    return pkjinja.render_resource('srw.py', v)
-
-
 def get_animation_name(data):
     return data['modelName']
 
@@ -545,14 +467,20 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame):
-    filename = 'res_int_pr_se.dat' if 'watchpointReport' in model else _DATA_FILE_FOR_MODEL[model]
+    filename = get_filename_for_model(model)
     with open(str(run_dir.join(filename))) as f:
         return filename, f.read(), 'application/octet-stream'
     raise RuntimeError('output file unknown for model: {}'.format(model))
 
 
+def get_filename_for_model(model):
+    if _is_watchpoint(model):
+        model = 'watchpointReport'
+    return _DATA_FILE_FOR_MODEL[model]
+
+
 def get_simulation_frame(run_dir, data, model_data):
-    return extract_report_data(str(run_dir.join(_DATA_FILE_FOR_MODEL[data['report']])), data)
+    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), data)
 
 
 def import_file(request, lib_dir, tmp_dir):
@@ -585,7 +513,7 @@ def models_related_to_report(data):
         list: Named models that affect report or [] if don't know
     """
     r = data['report']
-    watchpoint = 'watchpointReport' in r
+    watchpoint = _is_watchpoint(r)
     if not (
         watchpoint
         or r in (
@@ -635,54 +563,17 @@ def prepare_for_client(data):
     return data
 
 
-def remove_last_frame(run_dir):
-    pass
-
-
-def run_all_text(data):
-    """TODO(mrakitin): the code is duplicated from sirepo/pkcli/srw.py, need to invent something universal."""
-    content = [
-        'v = srwl_bl.srwl_uti_parse_options(varParam)',
-        'source_type, mag = srwl_bl.setup_source(v)',
-        'op = None'
-    ]
-    if 'report' not in data or data['report'] == 'intensityReport':
-        content.append('v.ss = True')
-        content.append("v.ss_pl = 'e'")
-    elif data['report'] in ['fluxReport', 'fluxAnimation']:
-        content.append('v.sm = True')
-        content.append("v.sm_pl = 'e'")
-    elif data['report'] == 'powerDensityReport':
-        content.append('v.pw = True')
-        content.append("v.pw_pl = 'xy'")
-    elif data['report'] == 'initialIntensityReport' or data['report'] == 'sourceIntensityReport':
-        content.append('v.si = True')
-        content.append("v.si_pl = 'xy'")
-    elif data['report'] == 'trajectoryReport':
-        content.append('v.tr = True')
-        content.append("v.tr_pl = 'xxpyypz'")
-    elif data['report'] == 'mirrorReport':
-        pass
-    elif re.search('^watchpointReport', data['report']):
-        content.append('op = set_optics()')
-        content.append('v.ws = True')
-        content.append("v.ws_pl = 'xy'")
-    elif data['report'] == 'multiElectronAnimation':
-        content.append('v.wm = True')
-    else:
-        raise Exception('unknown report: {}'.format(data['report']))
-    content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-
-    text = """
-
-def main():
-{}
-
+def python_source_for_model(data, model):
+    data['report'] = model
+    return """{}
 
 if __name__ == '__main__':
     main()
-""".format('\n'.join(['{}{}'.format('    ', x) for x in content]))
-    return text
+""".format(_generate_parameters_file(data, plot_reports=True))
+
+
+def remove_last_frame(run_dir):
+    pass
 
 
 def static_lib_files():
@@ -748,13 +639,13 @@ def write_parameters(data, schema, run_dir, is_parallel):
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        generate_parameters_file(
-            data,
-            schema,
-            run_dir,
-            is_parallel,
-        ),
+        _generate_parameters_file(data)
     )
+
+
+def _add_report_filenames(v):
+    for k in _DATA_FILE_FOR_MODEL:
+        v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]
 
 
 def _beamline_element(template, item, fields, propagation, shift=''):
@@ -1040,7 +931,7 @@ def _find_index_file(zip_object):
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     propagation = models['propagation']
-    res_el = 'el = []\n'
+    res_el = '    el = []\n'
     res_pp = '    pp = []\n'
 
     prev = None
@@ -1204,8 +1095,123 @@ def _generate_beamline_optics(models, last_id):
     if want_final_propagation:
         res_pp += _propagation_params(models['postPropagation'])
 
-    res = res_el + res_pp + '\n    return srwlib.SRWLOptC(el, pp)\n'
-    return res
+    return res_el + res_pp + '    return srwlib.SRWLOptC(el, pp)'
+
+
+def _generate_parameters_file(data, plot_reports=False):
+    # Process method and magnetic field values for intensity, flux and intensity distribution reports:
+    # Intensity report:
+    d = _process_intensity_reports(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType']
+    )
+    rep = 'intensityReport'
+    field = 'magneticField'
+    data['models'][rep][field] = d[field]
+
+    # Flux* reports:
+    field = 'magneticField'
+    for rep in ['fluxReport', 'fluxAnimation']:
+        d = _process_flux_reports(
+            data['models'][rep]['method'],
+            rep,
+            data['models']['simulation']['sourceType'],
+            data['models']['tabulatedUndulator']['undulatorType']
+        )
+        data['models'][rep][field] = d[field]
+
+    # Intensity Distribution (2D) report:
+    d = _process_intensity_reports(
+        data['models']['simulation']['sourceType'],
+        data['models']['tabulatedUndulator']['undulatorType']
+    )
+    rep = 'sourceIntensityReport'
+    field = 'magneticField'
+    data['models'][rep][field] = d[field]
+
+    if data['models']['simulation']['sourceType'] != 't' or data['models']['tabulatedUndulator']['undulatorType'] != 'u_t':
+        data['models']['trajectoryReport']['magneticField'] = 1
+
+    report = data['report']
+    if report == 'fluxAnimation':
+        data['models']['fluxReport'] = data['models'][report].copy()
+    elif _is_watchpoint(report) or report == 'sourceIntensityReport':
+        # render the watchpoint report settings in the initialIntensityReport template slot
+        data['models']['initialIntensityReport'] = data['models'][report].copy()
+
+    if data['models']['simulation']['sourceType'] == 't':
+        undulator_type = data['models']['tabulatedUndulator']['undulatorType']
+        data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
+        if undulator_type == 'u_i':
+            data['models']['tabulatedUndulator']['gap'] = 0.0
+            data['models']['tabulatedUndulator']['indexFile'] = ''
+
+    _validate_data(data, _SCHEMA)
+    last_id = None
+    m = re.search('watchpointReport(\d+)', report)
+    if m:
+        last_id = int(m.group(1))
+    if int(data['models']['simulation']['samplingMethod']) == 2:
+        data['models']['simulation']['sampleFactor'] = 0
+    v = template_common.flatten_data(data['models'], {})
+    run_all = report == 'simulation'
+    v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    # und_g and und_ph API units are mm rather than m
+    v['tabulatedUndulator_gap'] *= 1000
+    v['tabulatedUndulator_phase'] *= 1000
+
+    if report in data['models'] and 'distanceFromSource' in data['models'][report]:
+        position = data['models'][report]['distanceFromSource']
+    else:
+        position = _get_first_element_position(data)
+    v['beamlineFirstElementPosition'] = position
+
+    # 1: auto-undulator 2: auto-wiggler
+    v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
+
+    if 'isReadOnly' not in data['models']['electronBeam'] or data['models']['electronBeam']['isReadOnly'] is False:
+        v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
+    if data['models']['electronBeam']['beamDefinition'] == 'm':
+        v['electronBeam_horizontalBeta'] = None
+    v[report] = 1
+    _add_report_filenames(v)
+    v['srwMain'] = _generate_srw_main(report, run_all, plot_reports)
+    return pkjinja.render_resource('srw.py', v)
+
+
+def _generate_srw_main(report, run_all, plot_reports):
+    content = [
+        'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
+        'source_type, mag = srwl_bl.setup_source(v)',
+        'op = set_optics()',
+    ]
+    if run_all or report == 'intensityReport':
+        content.append('v.ss = True')
+        if plot_reports:
+            content.append("v.ss_pl = 'e'")
+    if run_all or report in 'fluxReport':
+        content.append('v.sm = True')
+        if plot_reports:
+            content.append("v.sm_pl = 'e'")
+    if run_all or report == 'powerDensityReport':
+        content.append('v.pw = True')
+        if plot_reports:
+            content.append("v.pw_pl = 'xy'")
+    if run_all or report in ['initialIntensityReport', 'sourceIntensityReport']:
+        content.append('v.si = True')
+        if plot_reports:
+            content.append("v.si_pl = 'xy'")
+    if run_all or report == 'trajectoryReport':
+        content.append('v.tr = True')
+        if plot_reports:
+            content.append("v.tr_pl = 'xxpyypz'")
+    if run_all or _is_watchpoint(report):
+        content.append('v.ws = True')
+        if plot_reports:
+            content.append("v.ws_pl = 'xy'")
+    if plot_reports or not _is_background_report(report):
+        content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
+    return '\n'.join(['    {}'.format(x) for x in content])
 
 
 def _get_first_element_position(data):
@@ -1260,6 +1266,13 @@ def _invert_value(value, invert=False):
         value **= (-1)
     return value
 
+
+def _is_background_report(report):
+    return 'Animation' in report
+
+
+def _is_watchpoint(name):
+    return 'watchpointReport' in name
 
 def _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period):
     """Calculate drift for ideal undulator."""
@@ -1329,8 +1342,9 @@ def _process_flux_reports(method_number, report_name, source_type, undulator_typ
 
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
-    magnetic_field = 2 if source_type == 't' and undulator_type == 'u_t' else 1
-    return {'magneticField': magnetic_field}
+    return {
+        'magneticField': 2 if source_type == 't' and undulator_type == 'u_t' else 1,
+    }
 
 
 def _process_undulator_definition(model):
