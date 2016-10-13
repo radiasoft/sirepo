@@ -97,18 +97,11 @@ def copy_related_files(data, source_path, target_path):
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
             shutil.copy(f, str(animation_dir))
     # copy element InputFiles to lib
-    #TODO(pjm): assumes the location of the lib directory
-    source_lib = py.path.local(os.path.dirname(source_path)).join('lib')
-    target_lib = py.path.local(os.path.dirname(target_path)).join('lib')
-    lib_files = []
-    _iterate_model_fields(data, lib_files, _iterator_input_files)
-
-    if data['models']['bunchFile']['sourceFile']:
-        lib_files.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    for f in lib_files:
-        target = target_lib.join(f)
-        if not target.exists():
-            shutil.copy(str(source_lib.join(f)), str(target))
+    _copy_lib_files(
+        data,
+        py.path.local(os.path.dirname(source_path)).join('lib'),
+        py.path.local(os.path.dirname(target_path)).join('lib'),
+    )
 
 
 def extract_report_data(filename, data, p_central_mev, page_index):
@@ -356,7 +349,11 @@ def new_simulation(data, new_simulation_data):
 
 
 def prepare_aux_files(run_dir, data):
-    pass
+    _copy_lib_files(
+        data,
+        simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
+        run_dir,
+    )
 
 
 def prepare_for_client(data):
@@ -513,6 +510,17 @@ def _compute_percent_complete(data, last_element):
     if res > 100:
         return 100
     return res
+
+
+def _copy_lib_files(data, source_lib, target):
+    lib_files = []
+    _iterate_model_fields(data, lib_files, _iterator_input_files)
+    if data['models']['bunchFile']['sourceFile']:
+        lib_files.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    for f in lib_files:
+        path = target.join(f)
+        if not path.exists():
+            shutil.copy(str(source_lib.join(f)), str(path))
 
 
 def _create_command(model_name, data):

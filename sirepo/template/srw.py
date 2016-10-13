@@ -75,7 +75,9 @@ with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
 with open(str(_STATIC_FOLDER.join('json/magnetic_measurements.json'))) as f:
     _PREDEFINED_MAGNETIC_ZIP_FILES = json.load(f)
 
-_SCHEMA = simulation_db.get_schema('srw')
+_SIMULATION_TYPE = 'srw'
+
+_SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -96,21 +98,11 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def copy_related_files(data, source_path, target_path):
-    # copy required MirrorFile and MagneticZipFile data to target lib
-    source_lib = py.path.local(os.path.dirname(source_path)).join('lib')
-    target_lib = py.path.local(os.path.dirname(target_path)).join('lib')
-    lib_files = []
-    if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
-        lib_files.append(data['models']['tabulatedUndulator']['magneticFile'])
-    for model in data['models']['beamline']:
-        for f in _SCHEMA['model'][model['type']]:
-            field_type = _SCHEMA['model'][model['type']][f][1]
-            if model[f] and (field_type == 'MirrorFile' or field_type == 'MagneticZipFile'):
-                lib_files.append(model[f])
-    for f in lib_files:
-        target = target_lib.join(f)
-        if not target.exists():
-            shutil.copy(str(source_lib.join(f)), str(target))
+    _copy_lib_files(
+        data,
+        py.path.local(os.path.dirname(source_path)).join('lib'),
+        py.path.local(os.path.dirname(target_path)).join('lib'),
+    )
 
 
 def extract_report_data(filename, model_data):
@@ -543,6 +535,11 @@ def new_simulation(data, new_simulation_data):
 
 
 def prepare_aux_files(run_dir, data):
+    _copy_lib_files(
+        data,
+        simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
+        run_dir,
+    )
     if not data['models']['simulation']['sourceType'] == 't':
         return
     filename = data['models']['tabulatedUndulator']['magneticFile']
@@ -822,7 +819,7 @@ def _compute_grazing_angle(model):
 def _compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return model
-    zip_file = simulation_db.simulation_lib_dir('srw').join(model['magneticFile'])
+    zip_file = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
         d = find_tab_undulator_length(zip_file, model['gap'])
@@ -851,6 +848,25 @@ def _convert_ebeam_units(field_name, value, to_si=True):
             elif re.search('\[n(m|rad)\]', label):
                 value *= _invert_value(1e9, to_si)
     return value
+
+
+def _copy_lib_files(data, source_lib, target):
+    # copy required MirrorFile and MagneticZipFile data to target
+    lib_files = []
+    if data['models']['simulation']['sourceType'] == 't':
+        if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
+            lib_files.append(data['models']['tabulatedUndulator']['magneticFile'])
+    if 'report' in data and data['report'] == 'mirrorReport':
+        lib_files.append(data['models']['mirrorReport']['heightProfileFile'])
+    for model in data['models']['beamline']:
+        for f in _SCHEMA['model'][model['type']]:
+            field_type = _SCHEMA['model'][model['type']][f][1]
+            if model[f] and field_type == 'MirrorFile':
+                lib_files.append(model[f])
+    for f in lib_files:
+        path = target.join(f)
+        if not path.exists():
+            shutil.copy(str(source_lib.join(f)), str(path))
 
 
 def _crystal_element(template, item, fields, propagation):
@@ -1229,7 +1245,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
         else:
             return '', ''
 
-    dat_file = str(simulation_db.simulation_lib_dir('srw').join(item['heightProfileFile']))
+    dat_file = str(simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(item['heightProfileFile']))
     dimension = find_height_profile_dimension(dat_file)
 
     res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])

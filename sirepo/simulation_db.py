@@ -428,10 +428,6 @@ def prepare_simulation(data):
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    for d in simulation_dir(sim_type, sid), simulation_lib_dir(sim_type):
-        for f in glob.glob(str(d.join('*.*'))):
-            if os.path.isfile(f):
-                py.path.local(f).copy(run_dir)
     template.prepare_aux_files(run_dir, data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
