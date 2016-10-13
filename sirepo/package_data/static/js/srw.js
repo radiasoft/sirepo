@@ -1789,9 +1789,7 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
             $scope.revertToOriginal = function() {
                 $scope.nav.revertToOriginal(
                     srwService.applicationMode,
-                    srwService.isApplicationMode('light-sources')
-                        ? appState.models.simulation.facility
-                        : appState.models.simulation.name);
+                    appState.models.simulation.name);
             };
             $scope.simulationName = function() {
                 if (appState.isLoaded())
