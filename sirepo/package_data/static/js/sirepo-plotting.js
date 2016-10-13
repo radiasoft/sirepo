@@ -642,6 +642,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
         templateUrl: '/static/html/plot3d.html?' + SIREPO.APP_VERSION,
         controller: function($scope) {
 
+            var MIN_PIXEL_RESOLUTION = 10;
             $scope.margin = 50;
             $scope.bottomPanelMargin = {top: 10, bottom: 30};
             $scope.rightPanelMargin = {left: 10, right: 40};
@@ -650,7 +651,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = true;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, mainXAxis, mainYAxis, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
 
             var cursorShape = {
                 '11': 'mouse-move-ew',
@@ -765,6 +766,14 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 focusPointY.load(points);
             }
 
+            function exceededMaxZoom(scale, axisName) {
+                var domain = fullDomain[axisName == 'x' ? 0 : 1];
+                var domainSize = domain[1] - domain[0];
+                var d = scale.domain();
+                var pixels = (axisName == 'x' ? xValues : yValues).length * (d[1] - d[0]) / domainSize;
+                return pixels < MIN_PIXEL_RESOLUTION;
+            }
+
             function initDraw(zmin, zmax) {
                 var color = d3.scale.linear()
                     .domain([zmin, zmax])
@@ -788,6 +797,10 @@ SIREPO.app.directive('plot3d', function(plotting) {
             }
 
             function refresh() {
+                if (prevDomain && (exceededMaxZoom(xAxisScale, 'x') || exceededMaxZoom(yAxisScale, 'y'))) {
+                    restoreDomain(xAxisScale, prevDomain[0]);
+                    restoreDomain(yAxisScale, prevDomain[1]);
+                }
                 if (clipDomain(xAxisScale, 'x') + clipDomain(yAxisScale, 'y'))
                     select('rect.mouse-rect-xy').attr('class', 'mouse-rect-xy mouse-move');
                 else
@@ -807,6 +820,10 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 select('.y.axis.grid').call(mainYAxis);
                 focusPointX.refresh();
                 focusPointY.refresh();
+                prevDomain = [
+                    xAxisScale.domain(),
+                    yAxisScale.domain(),
+                ];
             }
 
             function resetZoom() {
@@ -820,6 +837,12 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 yZoom = d3.behavior.zoom()
                     .y(yAxisScale)
                     .on('zoom', refresh);
+            }
+
+            function restoreDomain(scale, oldValue) {
+                var d = scale.domain();
+                d[0] = oldValue[0];
+                d[1] = oldValue[1];
             }
 
             function select(selector) {
@@ -871,6 +894,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
             };
 
             $scope.load = function(json) {
+                prevDomain = null;
                 $scope.dataCleared = false;
                 heatmap = [];
                 fullDomain = [
