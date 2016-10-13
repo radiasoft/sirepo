@@ -132,10 +132,7 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
         data['report'] = model
     run_dir = simulation_db.simulation_run_dir(data)
     filename, content, content_type = template.get_data_file(run_dir, model, frame)
-    response = flask.make_response(content)
-    response.mimetype = content_type
-    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-    return response
+    return _as_attachment(flask.make_response(content), content_type, filename)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
@@ -264,13 +261,10 @@ def app_new_simulation():
 def app_python_source(simulation_type, simulation_id, model):
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
-    return flask.Response(
-        template.python_source_for_model(data, model),
-        mimetype='text/x-python',
-        headers={
-            'Content-Disposition': 'attachment; filename="{}.py"'.format(
-                data['models']['simulation']['name']),
-        }
+    return _as_attachment(
+        flask.make_response(template.python_source_for_model(data, model)),
+        'text/x-python',
+        '{}.py'.format(data['models']['simulation']['name']),
     )
 
 
@@ -363,6 +357,12 @@ def app_simulation_data(simulation_type, simulation_id, pretty):
             sirepo.template.import_module(simulation_type).prepare_for_client(data),
             pretty=pretty,
         )
+        if pretty:
+            _as_attachment(
+                response,
+                app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+                '{}.json'.format(data['models']['simulation']['name']),
+            )
     except simulation_db.CopyRedirect as e:
         response = _json_response(e.sr_response)
     _no_cache(response)
@@ -567,6 +567,12 @@ class _WSGIApp(object):
         """
         self.set_log_user(session_user(checked=False, environ=environ))
         return self.wsgi_app(environ, start_response)
+
+
+def _as_attachment(response, content_type, filename):
+    response.mimetype = content_type
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
 
 
 @pkconfig.parse_none
