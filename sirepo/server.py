@@ -411,6 +411,14 @@ def app_simulation_schema():
     return _json_response(simulation_db.get_schema(sim_type))
 
 
+SR_UNIT_ROUTE = '/ sr_unit'
+SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
+@app.route(SR_UNIT_ROUTE, methods=('GET', 'POST'))
+def app_sr_unit():
+    getattr(app, 'test_in_request')()
+    return ''
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
 def app_update_folder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
