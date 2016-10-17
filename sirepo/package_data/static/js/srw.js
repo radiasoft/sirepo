@@ -1123,6 +1123,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     }
 
     function activeField() {
+        //TODO(pjm) scope() is a debug-only method, need to generalize element watchers
         return angular.element(document.activeElement).scope().field;
     }
 
@@ -1503,7 +1504,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                 return $scope.$parent.beamline.isDefaultMode();
             };
             $scope.showDisableButton = function() {
-                return $scope.$parent.beamline.isDefaultMode();
+                //TODO(pjm): show disable button when feature is implemented
+                // return $scope.$parent.beamline.isDefaultMode();
+                return false;
             };
         },
         link: function(scope, element) {
