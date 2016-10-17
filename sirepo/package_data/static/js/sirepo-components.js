@@ -98,6 +98,10 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 //TODO(pjm): need a generalized case for this
                 $(element).closest('.srw-editor-holder').on('s.resetActivePage', resetActivePage);
             }
+            scope.$on('$destroy', function() {
+                $(element).closest('.modal').off();
+                $(element).closest('.srw-editor-holder').off();
+            });
         }
     };
 });
@@ -260,6 +264,9 @@ SIREPO.app.directive('labelWithTooltip', function() {
                         return scope.tooltip;
                     },
                     placement: 'bottom',
+                });
+                scope.$on('$destroy', function() {
+                    $(element).find('span').tooltip('destroy');
                 });
             }
         },

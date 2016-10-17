@@ -1578,6 +1578,7 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                     $(element).bind('touchmove', null);
                 }
                 else {
+                    $(element).find('.srw-beamline-image').off();
                     $(element).off();
                 }
                 var el = $(element).find('.srw-beamline-element-label');
@@ -1746,6 +1747,9 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
             $(element).on('show.bs.modal', function() {
                 $('#srw-python-file-import').val(null);
                 scope.fileUploadError = '';
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
             });
         },
     };

@@ -1426,7 +1426,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
 
             $($window).resize(windowResize);
             windowResize();
-
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', windowResize);
+            });
         },
     };
 });
@@ -2225,6 +2227,9 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                 $('#elegant-lattice-import').val(null);
                 scope.resetState();
             });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -2358,6 +2363,9 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                 }
                 scope.cancelVariable();
                 scope.$applyAsync();
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
             });
         },
     };
