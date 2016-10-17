@@ -150,7 +150,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('buttons', function(appState) {
+SIREPO.app.directive('buttons', function(appState, panelState) {
     return {
         scope: {
             modelName: '=',
@@ -159,59 +159,39 @@ SIREPO.app.directive('buttons', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div class="col-sm-6 pull-right" data-ng-show="form.$dirty">',
+            '<div class="col-sm-6 pull-right s-buttons" data-ng-show="isFormDirty()">',
               '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.form = $scope.$parent.form;
-            var modelKey = $scope.modelName;
-
-            if ($scope.modelData)
-                modelKey = $scope.modelData.modelKey;
-
-            function extractModel(field, modelNames) {
-                var modelField = appState.parseModelField(field);
-                if (modelField)
-                    modelNames[modelField[0]] = true;
-            }
-
-            function iterateFields(field) {
-                var i;
-                // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
-                if (typeof(field) == 'string')
-                    extractModel(field, modelNames);
-                else {
-                    // [name, [cols]]
-                    if (typeof(field[0]) == 'string') {
-                        for (i = 0; i < field[1].length; i++)
-                            iterateFields(field[1][i]);
-                    }
-                    // [[name, [cols]], [name, [cols]], ...]
-                    else {
-                        for (i = 0; i < field.length; i++)
-                            iterateFields(field[i]);
-                    }
-                }
-            }
-
-            var modelNames = {};
-            modelNames[modelKey] = true;
-            for (var i = 0; i < $scope.fields.length; i++)
-                iterateFields($scope.fields[i]);
-            modelNames = Object.keys(modelNames);
+            var modelKey = $scope.modelData
+                ? $scope.modelData.modelKey
+                : $scope.modelName;
+            var fieldsByModel = panelState.getFieldsByModel(modelKey, $scope.fields);
 
             function changeDone() {
                 $scope.form.$setPristine();
             }
-            $scope.saveChanges = function() {
-                if ($scope.form.$valid)
-                    appState.saveChanges(modelNames);
-            };
+
             $scope.cancelChanges = function() {
-                appState.cancelChanges(modelNames);
+                appState.cancelChanges(Object.keys(fieldsByModel));
             };
+
+            $scope.isFormDirty = function() {
+                if ($scope.form.$dirty) {
+                    return true;
+                }
+                return appState.areFieldsDirty(fieldsByModel);
+            };
+
+            $scope.saveChanges = function() {
+                if ($scope.form.$valid) {
+                    appState.saveChanges(Object.keys(fieldsByModel));
+                }
+            };
+
             $scope.$on(modelKey + '.changed', changeDone);
             $scope.$on('cancelChanges', function(e, name) {
                 if (name == modelKey) {
@@ -454,7 +434,6 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.srwSelectBeam = function(item) {
                 appState.models.electronBeam = item;
                 item[$scope.field] = item.name;
-                $scope.$parent.$parent.form.$setDirty();
             };
         },
         link: function link(scope, element) {
@@ -593,13 +572,11 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
             };
             $scope.selectItem = function(item) {
                 $scope.model[$scope.fileField] = item;
-                findParentAttribute('form').$setDirty();
             };
             $scope.showFileUpload = function() {
                 panelState.showModalEditor(
                     'fileUpload' + $scope.fileType,
                     '<div data-file-upload-dialog="" data-dialog-title="Upload File" data-file-type="fileType" data-model="model" data-field="fileField"></div>', $scope);
-                findParentAttribute('form').$setDirty();
             };
             $scope.showFileReport = function() {
                 findParentAttribute('beamline').showFileReport($scope.fileType, $scope.model);
@@ -794,7 +771,7 @@ SIREPO.app.directive('helpButton', function($window) {
     };
 });
 
-SIREPO.app.directive('modalEditor', function(appState) {
+SIREPO.app.directive('modalEditor', function(appState, panelState) {
     return {
         scope: {
             viewName: '@',
@@ -826,8 +803,9 @@ SIREPO.app.directive('modalEditor', function(appState) {
         ].join(''),
         controller: function($scope) {
             function hideModal() {
-                if ($scope.editorId)
+                if ($scope.editorId) {
                     $('#' + $scope.editorId).modal('hide');
+                }
             }
             var viewInfo = appState.viewInfo($scope.viewName);
             $scope.helpTopic = viewInfo.title;
@@ -839,25 +817,31 @@ SIREPO.app.directive('modalEditor', function(appState) {
                 $scope.modelKey = $scope.modelData.modelKey;
                 $scope.editorId = 's-' + $scope.modelKey + '-editor';
             }
-            if (! $scope.modalTitle)
+            if (! $scope.modalTitle) {
                 $scope.modalTitle = viewInfo.title;
+            }
             $scope.$on('modelChanged', function (e, name) {
-                if (name == $scope.modelKey)
+                if (name == $scope.modelKey) {
                     hideModal();
+                }
             });
             $scope.$on('cancelChanges', hideModal);
         },
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {
-                if (! scope.isReadOnly)
+                if (! scope.isReadOnly) {
                     $('#' + scope.editorId + ' .form-control').first().select();
-                if (scope.parentController && scope.parentController.handleModalShown)
+                }
+                if (scope.parentController && scope.parentController.handleModalShown) {
                     scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
+                }
             });
             $(element).on('hidden.bs.modal', function(e) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
-                appState.cancelChanges(scope.modelKey);
+                var viewInfo = appState.viewInfo(scope.viewName);
+                var fieldsByModel = panelState.getFieldsByModel(scope.modelKey, viewInfo.advanced);
+                appState.cancelChanges(Object.keys(fieldsByModel));
                 scope.$apply();
             });
             scope.$on('$destroy', function() {
