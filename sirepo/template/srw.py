@@ -519,7 +519,7 @@ def models_related_to_report(data):
         'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',
     ]
-    if watchpoint or r == 'mirrorReport':
+    if watchpoint or r in ('initialIntensityReport', 'mirrorReport'):
         res.append('beamline')
         if watchpoint:
             res.extend(['postPropagation', 'propagation'])
@@ -1199,8 +1199,12 @@ def _generate_srw_main(report, run_all, plot_reports):
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
-        'op = set_optics()',
     ]
+    if run_all or _is_watchpoint(report):
+        content.append('op = set_optics()')
+    else:
+        # set_optics() can be an expensive call for mirrors, only invoke if needed
+        content.append('op = None')
     if run_all or report == 'intensityReport':
         content.append('v.ss = True')
         if plot_reports:

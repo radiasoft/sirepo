@@ -36,6 +36,16 @@ def flask_client():
     return getattr(server.app, a)
 
 
+def test_in_request(op):
+    from sirepo import server
+    fc = flask_client()
+    try:
+        setattr(server.app, server.SR_UNIT_TEST_IN_REQUEST, op)
+        fc.get(server.SR_UNIT_ROUTE)
+    finally:
+        delattr(server.app, server.SR_UNIT_TEST_IN_REQUEST)
+
+
 class _TestClient(flask.testing.FlaskClient):
 
     def sr_post(self, route_name, data, params=None):

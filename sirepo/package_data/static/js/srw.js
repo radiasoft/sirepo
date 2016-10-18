@@ -1272,6 +1272,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     }
 
     function activeField() {
+        //TODO(pjm) scope() is a debug-only method, need to generalize element watchers
         return angular.element(document.activeElement).scope().field;
     }
 
@@ -1652,7 +1653,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                 return $scope.$parent.beamline.isDefaultMode();
             };
             $scope.showDisableButton = function() {
-                return $scope.$parent.beamline.isDefaultMode();
+                //TODO(pjm): show disable button when feature is implemented
+                // return $scope.$parent.beamline.isDefaultMode();
+                return false;
             };
         },
         link: function(scope, element) {
@@ -1724,6 +1727,7 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                     $(element).bind('touchmove', null);
                 }
                 else {
+                    $(element).find('.srw-beamline-image').off();
                     $(element).off();
                 }
                 var el = $(element).find('.srw-beamline-element-label');
@@ -1893,6 +1897,9 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
                 $('#srw-python-file-import').val(null);
                 scope.fileUploadError = '';
             });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -2021,6 +2028,9 @@ SIREPO.app.directive('tooltipEnabler', function() {
             $('[data-toggle="tooltip"]').tooltip({
                 html: true,
                 placement: 'bottom',
+            });
+            scope.$on('$destroy', function() {
+                $('[data-toggle="tooltip"]').tooltip('destroy');
             });
         },
     };

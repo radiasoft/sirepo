@@ -274,7 +274,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
     return self;
 });
 
-SIREPO.app.controller('CommandController', function(appState, elegantService) {
+SIREPO.app.controller('CommandController', function(appState, elegantService, panelState) {
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
@@ -300,14 +300,6 @@ SIREPO.app.controller('CommandController', function(appState, elegantService) {
     ];
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
-    function commandTable() {
-        var el =$('.elegant-cmd-table')[0];
-        if (el) {
-            return angular.element(el).scope();
-        }
-        return null;
-    }
-
     self.createElement = function(name) {
         $('#s-newCommand-editor').modal('hide');
         var model = {
@@ -315,22 +307,9 @@ SIREPO.app.controller('CommandController', function(appState, elegantService) {
             _type: name,
         };
         elegantService.setModelDefaults(model, elegantService.commandModelName(name));
-        commandTable().editCommand(model, true);
-    };
-
-    self.deleteSelected = function() {
-        var cmdTable = commandTable();
-        if (cmdTable) {
-            cmdTable.deleteSelected();
-        }
-    };
-
-    self.selectedItemName = function() {
-        var cmdTable = commandTable();
-        if (cmdTable) {
-            return cmdTable.selectedItemName();
-        }
-        return '';
+        var modelName = elegantService.commandModelName(model._type);
+        appState.models[modelName] = model;
+        panelState.showModalEditor(modelName);
     };
 
     self.titleForName = function(name) {
@@ -471,21 +450,6 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
     $scope.$watchCollection('appState.models.bunch', validateTyping);
     $scope.$on('bunch.changed', validateSaving);
-    $scope.$watch('appState.models.bunchSource.inputSource', function(newValue, oldValue) {
-        if (newValue && oldValue && (newValue != oldValue)) {
-            //TODO(pjm): rework this
-            $timeout(function() {
-                var el = $('#s-bunch-basicEditor form')[0];
-                if (el) {
-                    angular.element(el).scope().form.$setDirty();
-                }
-                el = $('#s-bunchFile-basicEditor form')[0];
-                if (el) {
-                    angular.element(el).scope().form.$setDirty();
-                }
-            });
-        }
-    });
 });
 
 SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
@@ -758,10 +722,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             items: [],
         };
         panelState.showModalEditor('beamline');
-        var el = $('#s-beamline-editor form')[0];
-        if (el) {
-            angular.element(el).scope().form.$setDirty();
-        }
     };
 
     self.newElement = function() {
@@ -1466,7 +1426,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
 
             $($window).resize(windowResize);
             windowResize();
-
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', windowResize);
+            });
         },
     };
 });
@@ -1498,6 +1460,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
               '</div>',
             '</div>',
+            '<div data-confirmation-modal="" data-id="elegant-delete-command-confirmation" data-title="Delete Command?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
         ].join(''),
         controller: function($scope) {
             var selectedItemId = null;
@@ -1634,9 +1597,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 saveCommands();
             };
 
-            $scope.editCommand = function(cmd, isNew) {
+            $scope.editCommand = function(cmd) {
                 var modelName = elegantService.commandModelName(cmd._type);
-                appState.models[modelName] = isNew ? cmd : commandForId(cmd._id);
+                appState.models[modelName] = commandForId(cmd._id);
                 panelState.showModalEditor(modelName);
             };
 
@@ -2264,6 +2227,9 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                 $('#elegant-lattice-import').val(null);
                 scope.resetState();
             });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -2397,6 +2363,9 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                 }
                 scope.cancelVariable();
                 scope.$applyAsync();
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
             });
         },
     };

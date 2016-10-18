@@ -6,8 +6,12 @@ var SIREPO = {
 };
 var KARMA_TEST_MODE = true;
 
+// disable initial schema request
+$.ajax = function() {};
+
 SIREPO.APP_SCHEMA = {
     "version": "20160912.000000",
+    "simulationType": "srw",
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
