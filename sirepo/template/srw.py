@@ -519,7 +519,7 @@ def models_related_to_report(data):
         'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',
     ]
-    if watchpoint or r == 'mirrorReport':
+    if watchpoint or r in ('initialIntensityReport', 'mirrorReport'):
         res.append('beamline')
         if watchpoint:
             res.extend(['postPropagation', 'propagation'])
