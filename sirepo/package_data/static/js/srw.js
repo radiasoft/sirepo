@@ -1880,6 +1880,9 @@ SIREPO.app.directive('tooltipEnabler', function() {
                 html: true,
                 placement: 'bottom',
             });
+            scope.$on('$destroy', function() {
+                $('[data-toggle="tooltip"]').tooltip('destroy');
+            });
         },
     };
 });
