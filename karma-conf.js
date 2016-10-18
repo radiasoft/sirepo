@@ -25,7 +25,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/angular-1.4.2.js',
         'sirepo/package_data/static/js/ext/angular-route-1.4.2.js',
         'sirepo/package_data/static/js/ext/jquery-2.1.4.js',
-        'sirepo/package_data/static/js/ext/bootstrap-3.3.4.js',
+        'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
         'sirepo/package_data/static/js/ext/modernizr-touch-2.8.3.min.js',
         'sirepo/package_data/static/js/ext/angular-d3.js',
@@ -39,6 +39,8 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/stacktrace-0.6.4.js',
         'sirepo/package_data/static/js/ext/split-pane-0.6.1.min.js',
         'sirepo/package_data/static/js/ext/angular-split-pane-1.2.0.js',
+        'sirepo/package_data/static/js/ext/underscore-1.8.3.min.js',
+        'sirepo/package_data/static/js/ext/angular-underscore.js',
         'tests/helpers/globals.js',
         'sirepo/package_data/static/js/sirepo.js',
         'sirepo/package_data/static/js/sirepo-components.js',
@@ -88,6 +90,7 @@ module.exports = function(config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+    //browsers: ['Chrome'],
     browsers: ['PhantomJS'],
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
