@@ -308,15 +308,16 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                   '<ul class="dropdown-menu">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
                     '<li data-ng-repeat="item in requestSender.getAuxiliaryData(\'beams\') track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
+                      '<a href data-ng-click="srwSelectBeam(item, \'pd\')">{{ item.name }}</a>',
                     '</li>',
                     '<li class="divider"></li>',
                     '<li class="dropdown-header">User Defined Electron Beams</li>',
                     '<li data-ng-repeat="item in appState.models.electronBeams track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
+                      '<a href data-ng-click="srwSelectBeam(item, \'ud\')">{{ item.name }}</a>',
                     '</li>',
                     '<li><a href data-ng-click="srwNewUserDefinedBeam()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                   '</ul>',
+                '<div class="beamType"></div>',
                 '</div>',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
@@ -451,8 +452,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 appState.models.electronBeam = newBeam;
                 panelState.showModalEditor('electronBeam');
             };
-            $scope.srwSelectBeam = function(item) {
+            $scope.srwSelectBeam = function(item, beamType) {
+                // MR: beamType could be 'pd' = predefined and 'ud' = user-defined.
                 appState.models.electronBeam = item;
+                item.beamType = beamType;
                 item[$scope.field] = item.name;
                 $scope.$parent.$parent.form.$setDirty();
             };

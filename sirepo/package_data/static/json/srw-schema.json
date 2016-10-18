@@ -255,7 +255,7 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "electronBeam": {
-            "beamSelector": ["Beam Name", "BeamList"],
+            "beamSelector": ["Select Beam", "BeamList"],
             "name": ["Beam Name", "String"],
             "energy": ["Energy [GeV]", "Float"],
             "current": ["Current [A]", "Float"],
@@ -662,9 +662,10 @@
         "electronBeam": {
             "title": "Electron Beam",
             "basic": [
-                "beamSelector"
+                "name"
             ],
             "advanced": [
+                "beamSelector",
                 "name",
                 "energy",
                 "current",

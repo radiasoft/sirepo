@@ -2,6 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
+var READ_ONLY_EBEAM = false;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
@@ -85,7 +86,7 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
 
     self.isPredefinedBeam = function() {
         if (appState.isLoaded())
-            return appState.models.electronBeam.isReadOnly ? true : false;
+            return appState.models.electronBeam.isReadOnly ? READ_ONLY_EBEAM : false;
         return false;
     };
 
@@ -778,28 +779,17 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             },
             function(data) {
                 var i;
-                if (appState.models.electronBeam.isReadOnly) {
-                    disableField('electronBeam', 'driftCalculationMethod', 'auto', true);
+                if (appState.models.electronBeam.driftCalculationMethod === 'auto') {
                     disableField('electronBeam', 'drift', data.drift, true);
-                    disableField('electronBeam', 'beamDefinition', 't', true);
-                    for (i = 0; i < fieldsOfMoments.length; i++) {
-                        disableField('electronBeam', fieldsOfMoments[i], data[fieldsOfMoments[i]], true);
-                    }
                 } else {
-                    disableField('electronBeam', 'driftCalculationMethod', 'skip', false);
-                    if (appState.models.electronBeam.driftCalculationMethod === 'auto') {
-                        disableField('electronBeam', 'drift', data.drift, true);
-                    } else {
-                        disableField('electronBeam', 'drift', 'skip', false);
+                    disableField('electronBeam', 'drift', 'skip', false);
+                }
+                for (i = 0; i < fieldsOfMoments.length; i++) {
+                    var val = 'skip';
+                    if (beamDefinition === 't') {
+                        val = formatFloat(data[fieldsOfMoments[i]]);
                     }
-                    disableField('electronBeam', 'beamDefinition', 'skip', false);
-                    for (i = 0; i < fieldsOfMoments.length; i++) {
-                        var val = 'skip';
-                        if (beamDefinition === 't') {
-                            val = formatFloat(data[fieldsOfMoments[i]]);
-                        }
-                        disableField('electronBeam', fieldsOfMoments[i], val, false);
-                    }
+                    disableField('electronBeam', fieldsOfMoments[i], val, false);
                 }
             }
         );
@@ -979,12 +969,31 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     }
 
+    function disableEbeamName(true_false) {
+        if (typeof true_false === 'undefined') {
+            true_false = true;
+            if ($('.modal-dialog .model-electronBeam-beamSelector').is(':visible')) {
+                true_false = false;
+            }
+        }
+        disableField('electronBeam', 'name', 'skip', true_false);
+    }
+
+    // Watch 'cancelChanges' event to disable the name field in the basic menu:
+    $scope.$on('cancelChanges', function(e, name) {
+        if (name === 'electronBeam') {
+            disableEbeamName(true);
+        }
+    });
+
     self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
                 $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').show(0);
-            }
-            else {
+            } else {
+                // Disable eBeam name in the basic menu:
+                disableEbeamName(false);
+
                 $('.model-intensityReport-fieldUnits').closest('.form-group').hide(0);
                 $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').hide(0);
             }
@@ -1006,26 +1015,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     };
 
-    $scope.$on('electronBeam.changed', function() {
-        var beam = appState.models.electronBeam;
-        var beams = appState.models.electronBeams;
-        beam.beamSelector = beam.name;
-        if (! beam.isReadOnly) {
-            // update the user defined beam in the electronBeams list
-            for (var i = 0; i < beams.length; i++) {
-                if (beams[i].id == beam.id) {
-                    beams.splice(i, 1, beam);
-                    break;
-                }
-            }
-        }
-        beams.sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
-        appState.saveQuietly('electronBeam');
-        appState.saveQuietly('electronBeams');
-    });
-
     function wrapFields(reportNames, fields) {
         var fieldsList = [];
         for (var i = 0; i < reportNames.length; i++) {
@@ -1035,6 +1024,166 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
         return '[' + fieldsList.toString() + ']';
     }
+
+    /******************************************************************************************************************/
+    /* Smart electron beam processing */
+    /*
+        TODO(MR):
+       +1) Process switching between 'pd' and 'ud' correctly. Need to watch if a value is changed in the 'pd' and make it 'ud'.
+       +2) Renaming of the beam in the drop-down menu once the name is changed by user and make it 'ud'.
+       +3) Populate Moments parameters after switching between 'pd' beams.
+       >4) Save the file with the beams to the common server path where they can be accessed by all simulations.
+    */
+
+    function getPredefinedBeams() {
+        // Get pre-defined beams list from static JSON file.
+        requestSender.loadAuxiliaryData('beams', '/static/json/beams.json');
+        return requestSender.getAuxiliaryData('beams');
+    }
+
+    function checkPreDefinedBeam(electronBeam) {
+        // Check if the beam is pre-defined (name is in the list of names of pre-defined beams and the type of the beam is 'pd').
+        var isPredefinedBeam = false;
+        var beamNumber = null;
+        var predefinedBeams = getPredefinedBeams();
+        for (var i = 0; i < predefinedBeams.length; i++) {
+            if (electronBeam.name === predefinedBeams[i].name && electronBeam.beamType === 'pd') {
+                isPredefinedBeam = true;
+                beamNumber = i;
+                break;
+            }
+        }
+        return {
+            isPredefinedBeam: isPredefinedBeam,
+            beamNumber: beamNumber,
+        };
+    }
+
+    function updateBeamType(beamType) {
+        // Update the beam type ('pd' = predefined, 'ud' = user-defined) and isReadOnly attribute.
+        appState.models.electronBeam.beamType = beamType;
+        if (beamType === 'pd') {
+            appState.models.electronBeam.isReadOnly = true;
+        } else {
+            appState.models.electronBeam.isReadOnly = false;
+        }
+        // Print the beam type and related isReadOnly attribute (to be removed in production).
+        // $('.beamType').text(appState.models.electronBeam.beamType + ' ' + appState.models.electronBeam.isReadOnly);
+    }
+
+    function addUserDefinedBeam() {
+        // Check if the beam exists in the list of user-defined beams, and add it, if not found:
+        var found = false;
+        for (var i = 0; i < appState.models.electronBeams.length; i++) {
+            if (appState.models.electronBeam.name === appState.models.electronBeams[i].name) {
+                appState.models.electronBeams.splice(i, 1, appState.models.electronBeam);
+                found = true;
+                break;
+            }
+        }
+        if (! found) {
+            appState.models.electronBeams.push(appState.models.electronBeam);
+        }
+        appState.models.electronBeam.beamSelector = appState.models.electronBeam.name;
+
+        // Save the beams list so that it is updated in the beam selector menu:
+        appState.saveQuietly('electronBeams');
+    }
+
+    var fieldsOfMoments = ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'];
+
+    // Watch for changes of the beam in the beam selector.
+    // Watch for beam type is necessary to distinguish between a user-defined and pre-defined beams with the same name.
+    $scope.$watchCollection(wrapFields(['electronBeam'], ['beamSelector', 'beamType', 'name']), function(newValues, oldValues) {
+        $timeout(function() {
+            if (srwService.isElectronBeam()) {
+                // Populate missed fields of moments if any of them does not exist or empty:
+                for (var i = 0; i < fieldsOfMoments.length; i++) {
+                    if ($.inArray(fieldsOfMoments[i], appState.models.electronBeam) < 0 || appState.models.electronBeam[fieldsOfMoments[i]] === null) {
+                        processBeamParameters();
+                        break;
+                    }
+                }
+
+                // Check if a selected beam is pre-defined and assign the beam type:
+                var v = checkPreDefinedBeam(appState.models.electronBeam);
+                var isPredefinedBeam = v.isPredefinedBeam;
+                var beamNumber = v.beamNumber;
+                if (isPredefinedBeam) {
+                    // Copy all the values from the pre-defined beam:
+                    appState.models.electronBeam = appState.clone(getPredefinedBeams()[beamNumber]);
+                    updateBeamType('pd');
+                } else {
+                    updateBeamType('ud');
+                }
+
+                // These fields may be empty the old pre-defined beams, so need to define them:
+                if ($.inArray('driftCalculationMethod', appState.models.electronBeam) < 0) {
+                    appState.models.electronBeam.driftCalculationMethod = 'auto';
+                }
+                if ($.inArray('beamDefinition', appState.models.electronBeam) < 0) {
+                    appState.models.electronBeam.beamDefinition = 't';
+                }
+                // Enable/disable the drop-down menus depending on the beam type:
+                disableField('electronBeam', 'driftCalculationMethod', 'skip', appState.models.electronBeam.isReadOnly);
+                disableField('electronBeam', 'beamDefinition', 'skip', appState.models.electronBeam.isReadOnly);
+
+                // Check if the beam exists in the list of user-defined beams, and add it, if not found:
+                addUserDefinedBeam();
+            }
+        });
+    });
+
+    // Prepare the list of fields to watch, exclude some of them:
+    var ebeamKeys = Object.keys(SIREPO.APP_SCHEMA.model.electronBeam);
+    // Don't watch these fields:
+    var excludeEbeamKeys = ['name', 'driftCalculationMethod', 'drift', 'beamDefinition', 'beamSelector', 'beamType', 'isReadOnly'];
+    // Fields of moments should be excluded as well since they are calculated automatically:
+    excludeEbeamKeys = excludeEbeamKeys.concat(fieldsOfMoments);
+    var removeIdx = [];
+    for (var i = 0; i < excludeEbeamKeys.length; i++) {
+        for (var j = 0; j < ebeamKeys.length; j++) {
+            if (excludeEbeamKeys[i] === ebeamKeys[j]) {
+                removeIdx.push(j);
+                break;
+            }
+        }
+    }
+    for (var i = 0; i < removeIdx.length; i++) {
+        ebeamKeys.splice(removeIdx[i], 1);
+    }
+
+    // Watch for change of any non-excluded parameters to make the beam user-defined if anything is changed:
+    $scope.$watchCollection(wrapFields(['electronBeam'], ebeamKeys), function(newValues, oldValues) {
+        // First of all, don't do anything if there is no advanced menu:
+        if (! $('.modal-dialog .model-electronBeam-beamSelector').is(':visible')) {
+            return;
+        }
+
+        // Prepare a limited set of fields to compare both the pre-defined beam parameters from server and the parameters in client:
+        var v = checkPreDefinedBeam(appState.models.electronBeam);
+        var isPredefinedBeam = v.isPredefinedBeam;
+        var beamNumber = v.beamNumber;
+
+        var clientData = $.extend(true, {}, appState.models.electronBeam);
+        var serverData = $.extend(true, {}, getPredefinedBeams()[beamNumber]);
+        for (var i = 0; i < excludeEbeamKeys.length; i++) {
+            delete clientData[excludeEbeamKeys[i]];
+            delete serverData[excludeEbeamKeys[i]];
+        }
+        delete clientData['beamType'];
+        delete serverData['beamType'];
+
+        // Perform comparison and assign correct beam type:
+        if (! appState.deepEquals(clientData, serverData)) {
+            updateBeamType('ud');
+        } else {
+            updateBeamType('pd');
+        }
+
+        // Check if the beam exists in the list of user-defined beams, and add it, if not found:
+        addUserDefinedBeam();
+    });
 
     var electronBeamWatchFields = [
         'driftCalculationMethod',
