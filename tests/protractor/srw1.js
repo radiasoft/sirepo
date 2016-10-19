@@ -23,6 +23,8 @@ describe('srw1', function() {
         element(by.id('s-gaussianBeam-basicEditor'))
             .element(by.cssContainingText('button', 'Save Changes'))
             .click();
+        var EC = protractor.ExpectedConditions;
+        browser.wait(EC.textToBePresentInElement($('.x-axis-label'), 'Horizontal Position'), 5000);
         e = element.all(by.cssContainingText('div.panel-heading', 'Intensity Report'))
             .first()
             .element(by.xpath('..'))
