@@ -716,14 +716,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             }
         }
     });
-
-    $scope.$watch('beamline.activeItem.position', function(newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
-            var item = self.activeItem;
-            if (item.firstFocusLength)
-                item.firstFocusLength = newValue;
-        }
-    });
 });
 
 SIREPO.app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout, requestSender) {
