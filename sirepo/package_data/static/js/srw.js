@@ -755,6 +755,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     function processBeamParameters() {
         if (! appState.isLoaded())
             return;
+
+        // Disable eBeam name in the basic menu:
+        disableEbeamName();
+
         var und;
         if (appState.models.simulation.sourceType === 't') {
             und = 'tabulatedUndulator';
@@ -970,13 +974,15 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     }
 
     function disableEbeamName(true_false) {
-        if (typeof true_false === 'undefined') {
-            true_false = true;
-            if ($('.modal-dialog .model-electronBeam-beamSelector').is(':visible')) {
-                true_false = false;
+        if (appState.isLoaded()) {
+            if (typeof true_false === 'undefined') {
+                true_false = true;
+                if ($('.modal-dialog .model-electronBeam-beamSelector').is(':visible')) {
+                    true_false = false;
+                }
             }
+            disableField('electronBeam', 'name', 'skip', true_false);
         }
-        disableField('electronBeam', 'name', 'skip', true_false);
     }
 
     // Watch 'cancelChanges' event to disable the name field in the basic menu:
@@ -991,9 +997,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             if (srwService.isGaussianBeam()) {
                 $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').show(0);
             } else {
-                // Disable eBeam name in the basic menu:
-                disableEbeamName(false);
-
                 $('.model-intensityReport-fieldUnits').closest('.form-group').hide(0);
                 $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').hide(0);
             }
