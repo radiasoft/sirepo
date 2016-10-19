@@ -1141,7 +1141,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     // Fields of moments should be excluded as well since they are calculated automatically:
     excludeEbeamKeys = excludeEbeamKeys.concat(fieldsOfMoments);
     var removeIdx = [];
-    for (var i = 0; i < excludeEbeamKeys.length; i++) {
+    var i;
+    for (i = 0; i < excludeEbeamKeys.length; i++) {
         for (var j = 0; j < ebeamKeys.length; j++) {
             if (excludeEbeamKeys[i] === ebeamKeys[j]) {
                 removeIdx.push(j);
@@ -1149,7 +1150,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             }
         }
     }
-    for (var i = 0; i < removeIdx.length; i++) {
+    for (i = 0; i < removeIdx.length; i++) {
         ebeamKeys.splice(removeIdx[i], 1);
     }
 
@@ -1171,8 +1172,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             delete clientData[excludeEbeamKeys[i]];
             delete serverData[excludeEbeamKeys[i]];
         }
-        delete clientData['beamType'];
-        delete serverData['beamType'];
+        delete clientData.beamType;
+        delete serverData.beamType;
 
         // Perform comparison and assign correct beam type:
         if (! appState.deepEquals(clientData, serverData)) {
