@@ -751,7 +751,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
     }
 
     function wrapFields(reportNames, fields, additionalFields) {
-        var additionalFields = (typeof additionalFields !== 'undefined') ?  additionalFields : null;
+        additionalFields = (typeof additionalFields !== 'undefined') ?  additionalFields : null;
         var fieldsList = [];
         for (var i = 0; i < reportNames.length; i++) {
             for (var j = 0; j < fields.length; j++) {
@@ -759,7 +759,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             }
         }
         if (additionalFields !== null) {
-            for (var i = 0; i < additionalFields.length; i++) {
+            for (i = 0; i < additionalFields.length; i++) {
                 fieldsList.push('appState.models.' + additionalFields[i]);
             }
         }
