@@ -97,6 +97,10 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
+        "GaussianBeamSizeDefinition": [
+            ["1", "RMS Waist"],
+            ["2", "RMS Divergence"]
+        ],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -182,7 +186,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["g", "Gaussian Beam"]
+            ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
             ["0", "Coordinate"],
@@ -360,8 +364,11 @@
             "waistAngleY": ["Vertical Beam Angle [mrad]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
+            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition"],
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
+            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float"],
+            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "grating": {
@@ -828,7 +835,7 @@
             ]
         },
         "gaussianBeam": {
-            "title": "Gaussian Beam",
+            "title": "Coherent Gaussian Beam",
             "basic": [
                 "simulation.photonEnergy",
                 "energyPerPulse"
@@ -839,14 +846,17 @@
                 "polarization",
                 "rmsPulseDuration",
                 "waistZ",
+                "sizeDefinition",
                 [
                     ["Horizontal", [
                         "rmsSizeX",
+                        "rmsDivergenceX",
                         "waistX",
                         "waistAngleX"
                     ]],
                     ["Vertical", [
                         "rmsSizeY",
+                        "rmsDivergenceY",
                         "waistY",
                         "waistAngleY"
                     ]]

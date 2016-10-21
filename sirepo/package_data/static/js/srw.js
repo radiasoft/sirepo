@@ -750,6 +750,22 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     }
 
+    function wrapFields(reportNames, fields, additionalFields) {
+        var additionalFields = (typeof additionalFields !== 'undefined') ?  additionalFields : null;
+        var fieldsList = [];
+        for (var i = 0; i < reportNames.length; i++) {
+            for (var j = 0; j < fields.length; j++) {
+                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
+            }
+        }
+        if (additionalFields !== null) {
+            for (var i = 0; i < additionalFields.length; i++) {
+                fieldsList.push('appState.models.' + additionalFields[i]);
+            }
+        }
+        return '[' + fieldsList.toString() + ']';
+    }
+
     function processBeamParameters() {
         if (! appState.isLoaded())
             return;
@@ -971,6 +987,53 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     }
 
+    function convertGBSize(fromValue, value, energy) {
+        var waveLength = (1239.84193 * 1e-9) / energy;  // [m]
+        var factor = waveLength / (4 * Math.PI);
+        var res = null;
+        // TODO(MR): get units automatically.
+        if (fromValue === 'rmsSize') {  // to rmsDivergence
+            res = factor / (value * 1e-6) * 1e6;  // [um] -> [urad]
+        } else if (fromValue === 'rmsDivergence') {  // to rmsSize
+            res = factor / (value * 1e-6) * 1e6;  // [urad] -> [um]
+        }
+        if (isNaN(res) || ! isFinite(res)) {
+            return null;
+        }
+        return res.toFixed(6);
+    }
+
+    function processGaussianBeamSize() {
+        if (! appState.isLoaded())
+            return;
+        $timeout(function() {
+            var energy = appState.models.simulation.photonEnergy;
+            if (appState.models.gaussianBeam.sizeDefinition === '2') { // RMS divergence
+                disableField('gaussianBeam', 'rmsSizeX', convertGBSize('rmsDivergence', appState.models.gaussianBeam.rmsDivergenceX, energy), true);
+                disableField('gaussianBeam', 'rmsSizeY', convertGBSize('rmsDivergence', appState.models.gaussianBeam.rmsDivergenceY, energy), true);
+                disableField('gaussianBeam', 'rmsDivergenceX', 'skip', false);
+                disableField('gaussianBeam', 'rmsDivergenceY', 'skip', false);
+            } else { // RMS Size (default)
+                disableField('gaussianBeam', 'rmsSizeX', 'skip', false);
+                disableField('gaussianBeam', 'rmsSizeY', 'skip', false);
+                disableField('gaussianBeam', 'rmsDivergenceX', convertGBSize('rmsSize', appState.models.gaussianBeam.rmsSizeX, energy), true);
+                disableField('gaussianBeam', 'rmsDivergenceY', convertGBSize('rmsSize', appState.models.gaussianBeam.rmsSizeY, energy), true);
+            }
+        });
+    }
+    var gaussianBeamWatchFields = [
+        'sizeDefinition',
+        'rmsSizeX',
+        'rmsSizeY',
+        'rmsDivergenceX',
+        'rmsDivergenceY',
+    ];
+    $scope.$watchCollection(wrapFields(['gaussianBeam'], gaussianBeamWatchFields, ['simulation.photonEnergy']), function (newValues, oldValues) {
+        if (srwService.isGaussianBeam()) {
+            processGaussianBeamSize();
+        }
+    });
+
     function disableEbeamName(true_false) {
         if (appState.isLoaded()) {
             if (typeof true_false === 'undefined') {
@@ -1012,19 +1075,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
                 processTrajectoryReport();
             } else if (name === 'electronBeam') {
                 processBeamParameters();
+            } else if (name === 'gaussianBeam') {
+                processGaussianBeamSize();
             }
         }
     };
-
-    function wrapFields(reportNames, fields) {
-        var fieldsList = [];
-        for (var i = 0; i < reportNames.length; i++) {
-            for (var j = 0; j < fields.length; j++) {
-                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
-            }
-        }
-        return '[' + fieldsList.toString() + ']';
-    }
 
     /******************************************************************************************************************/
     /* Smart electron beam processing */

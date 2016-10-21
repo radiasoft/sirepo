@@ -411,6 +411,12 @@ def fixup_old_data(data):
     # Update tabulated undulator length:
     data['models']['tabulatedUndulator'] = _compute_undulator_length(data['models']['tabulatedUndulator'])
 
+    if 'sizeDefinition' not in data['models']['gaussianBeam']:
+        data['models']['gaussianBeam']['sizeDefinition'] = 1
+        data['models']['gaussianBeam']['rmsDivergenceX'] = 0
+        data['models']['gaussianBeam']['rmsDivergenceY'] = 0
+
+
 
 def get_animation_name(data):
     return data['modelName']
