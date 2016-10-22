@@ -283,7 +283,7 @@ def app_root(simulation_type):
         'html/index.html',
         version=simulation_db.app_version(),
         app_name=simulation_type,
-        app_new_features=cfg.use_new_features,
+        app_use_new_features=cfg.app_use_new_features,
     )
 
 
@@ -840,5 +840,5 @@ cfg = pkconfig.init(
     ),
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
-    use_new_features=(False, _cfg_new_features, 'use new (unreleased) features or not'),
+    app_use_new_features=(False, _cfg_new_features, 'use new (unreleased) features or not'),
 )

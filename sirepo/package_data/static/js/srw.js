@@ -179,7 +179,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     ];
     self.toolbarItems = [];
     for (var i = 0; i < toolbarItems.length; i++) {
-        if (! toolbarItems[i].hide || SIREPO.APP_NEW_FEATURES) {
+        if (! toolbarItems[i].hide || SIREPO.APP_USE_NEW_FEATURES) {
             self.toolbarItems.push(toolbarItems[i]);
         }
     }
