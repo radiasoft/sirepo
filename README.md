@@ -1,15 +1,14 @@
 # ![Sirepo](https://github.com/radiasoft/images/blob/master/sirepo/Sirepo_logo.png)
 
-#### Sirepo brings computational science to the cloud.
-#### Develop, run and share your HPC simulations.
+#### Sirepo brings computational science to the cloud. Develop, run and share your HPC simulations.
 
 Sirepo is ready to support the world of scientific computing.
 Today, we support the following HPC physics codes in an [open beta test](https://beta.sirepo.com) on our cloud servers:
 
 [Synchrotron Radiation Workshop](https://beta.sirepo.com/light) (SRW)
-SRW computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. SRW is open source and is primarily supported by Oleg Chubar of NSLS-II at Brookhaven National Laboratory.
+SRW computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. SRW is [open source](https://github.com/ochubar/SRW).
 
-Elegant
+[Elegant](https://beta.sirepo.com/elegant)
 Elegant simulates charged particle accelerators with a wide range of features, including support for nonlinear optimization and design. Elegant is freely available and open source.
 
 Warp
