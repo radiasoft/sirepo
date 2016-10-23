@@ -1,9 +1,21 @@
-# Sirepo
+# Sirepo ![Sirepo logo](https://github.com/radiasoft/images/blob/master/sirepo/Sirepo_logo.png)
 
-# THIS IS BETA SOFTWARE
+#### Sirepo brings computational science to the cloud.
+#### Develop, run and share your HPC simulations.
 
-Sirepo is a scientific application framework, currently for particle accelator codes.
-Sirepo runs inside a Python web server.
+Sirepo is ready to support the world of scientific computing.
+Today, we support the following HPC physics codes on our cloud servers:
+
+Synchrotron Radiation Workshop (SRW)
+SRW computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. SRW is open source and is primarily supported by Oleg Chubar of NSLS-II at Brookhaven National Laboratory.
+
+Elegant
+Elegant simulates charged particle accelerators with a wide range of features, including support for nonlinear optimization and design. Elegant is freely available and open source.
+
+Warp
+Warp is a particle-in-cell (PIC) code designed to simulate high-intensity charged particle beams and plasmas in both the electrostatic and electromagnetic regimes, with a wide variety of integrated physics models and diagnostics. At present, Sirepo supports a small subset of Warp’s capabilities. Warp is open source and is part of the Berkeley Lab Accelerator Simulation Toolkit
+
+Sirepo is currently in beta.
 
 You can use our
 [curl installer on your Mac, PC (Cygwin only), or Linux box](https://github.com/radiasoft/download/blob/master/README.md)
