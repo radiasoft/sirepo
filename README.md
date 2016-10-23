@@ -5,7 +5,7 @@
 Sirepo is ready to support the world of scientific computing.
 Today, we support the following HPC physics codes in an [open beta test](https://beta.sirepo.com) on our cloud servers:
 
-<p align="center"> [Synchrotron Radiation Workshop](https://beta.sirepo.com/light) (SRW) </p>
+[Synchrotron Radiation Workshop](https://beta.sirepo.com/light) (SRW)
 
 SRW computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. SRW is [open source](https://github.com/ochubar/SRW).
 
