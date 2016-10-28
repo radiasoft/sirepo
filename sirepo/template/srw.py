@@ -14,18 +14,20 @@ from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
 from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
+from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
-import glob
+import copy
 import json
 import math
 import numpy as np
 import os
 import py.path
-import random
 import re
 import shutil
 import sirepo.importer
+import srwlib
 import traceback
+import uti_math
 import uti_plot_com
 import zipfile
 
@@ -185,69 +187,31 @@ def find_height_profile_dimension(dat_file):
     return dimension
 
 
-def find_tab_undulator_length(zip_file, gap):
-    """Find undulator length from the specified zip-archive with the magnetic measurements data.
-
-    Args:
-        zip_file: zip-archive with the magnetic measurements data.
-        gap: undulator gap [mm].
-
-    Returns:
-        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
-    """
-    z = zipfile.ZipFile(zip_file)
-    index_dir, index_file = _find_index_file(z)
-    with z.open(os.path.join(index_dir, index_file)) as f:
-        sum_content = f.readlines()
-    gap = float(gap)
-    gaps_list = []
-    dat_files_list = []
-    for row in sum_content:
-        v = row.split()
-        gaps_list.append(float(v[0]))
-        dat_files_list.append(v[3])
-
-    d = _find_closest_value(gaps_list, gap)
-    closest_gap = d['closest_value']
-    dat_file = dat_files_list[d['idx']]
-
-    with z.open(os.path.join(index_dir, dat_file)) as f:
-        dat_content = f.readlines()
-
-    step = float(dat_content[8].split('#')[1].strip())
-    number_of_points = int(dat_content[9].split('#')[1].strip())
-    found_length = round(step * number_of_points, 6)
-
-    return {
-        'found_length': found_length,
-        'dat_file': dat_file,
-        'closest_gap': closest_gap
-    }
-
-
 def fixup_electron_beam(data):
-    if 'driftCalculationMethod' not in data['models']['electronBeam']:
-        data['models']['electronBeam']['driftCalculationMethod'] = 'auto'  # can be either 'auto' or 'manual'
-
-    if data['models']['simulation']['sourceType'] == 't':
-        und = 'tabulatedUndulator'
-    else:
-        und = 'undulator'
-
-    beam_parameters = _process_beam_parameters(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType'],
-        float(data['models'][und]['length']),
-        float(data['models'][und]['period']) / 1000.0,
-        data['models']['electronBeam'],
-        )
-
-    data['models']['electronBeam']['drift'] = beam_parameters['drift']
-
+    if 'electronBeamPosition' not in data['models']:
+        ebeam = data['models']['electronBeam']
+        data['models']['electronBeamPosition'] = {
+            'horizontalPosition': ebeam['horizontalPosition'],
+            'verticalPosition': ebeam['verticalPosition'],
+            'driftCalculationMethod': ebeam['driftCalculationMethod'] if 'driftCalculationMethod' in ebeam else 'auto',
+            'drift': ebeam['drift'] if 'drift' in ebeam else 0,
+        }
+        for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
+            if f in ebeam:
+                del ebeam[f]
     if 'beamDefinition' not in data['models']['electronBeam']:
-        data['models']['electronBeam']['beamDefinition'] = 't'  # "t" = Twiss; "m" = Moments
-        for field in ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY']:
-            data['models']['electronBeam'][field] = beam_parameters[field]
+        _process_beam_parameters(data['models']['electronBeam'])
+        if data['models']['simulation']['sourceType'] == 't':
+            und = 'tabulatedUndulator'
+        else:
+            und = 'undulator'
+        data['models']['electronBeamPosition']['drift'] = _calculate_beam_drift(
+            data['models']['electronBeamPosition'],
+            data['models']['simulation']['sourceType'],
+            data['models']['tabulatedUndulator']['undulatorType'],
+            float(data['models'][und]['length']),
+            float(data['models'][und]['period']) / 1000.0,
+        )
     return data
 
 
@@ -417,12 +381,17 @@ def fixup_old_data(data):
         data['models']['gaussianBeam']['rmsDivergenceY'] = 0
 
 
-
 def get_animation_name(data):
     return data['modelName']
 
 
 def get_application_data(data):
+    if data['method'] == 'beam_list':
+        for beam in _PREDEFINED_BEAMS:
+            _process_beam_parameters(beam)
+        return {
+            'beamList': _PREDEFINED_BEAMS,
+        }
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
@@ -450,13 +419,15 @@ def get_application_data(data):
     elif data['method'] == 'process_flux_reports':
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
-        return _process_beam_parameters(
+        _process_beam_parameters(data['ebeam'])
+        data['ebeam']['drift'] = _calculate_beam_drift(
+            data['ebeam_position'],
             data['source_type'],
             data['undulator_type'],
             data['undulator_length'],
             data['undulator_period'],
-            data['ebeam'],
         )
+        return data['ebeam']
     elif data['method'] == 'compute_undulator_length':
         return _compute_undulator_length(data['report_model'])
     elif data['method'] == 'process_undulator_definition':
@@ -764,7 +735,6 @@ def _compute_crystal_init(model):
 def _compute_crystal_orientation(model):
     parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
     try:
-        import srwlib
         opCr = srwlib.SRWLOptCryst(
             _d_sp=model['dSpacing'],
             _psi0r=model['psi0r'],
@@ -781,7 +751,6 @@ def _compute_crystal_orientation(model):
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
         if model['rotationAngle'] != 0:
-            import uti_math
             rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
             nCr = uti_math.matr_prod(rot, nCr)
             tCr = uti_math.matr_prod(rot, tCr)
@@ -828,7 +797,7 @@ def _compute_undulator_length(model):
     zip_file = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
-        d = find_tab_undulator_length(zip_file, model['gap'])
+        d = _find_tab_undulator_length(zip_file, model['gap'])
         model['length'] = d['found_length']
     return model
 
@@ -948,6 +917,46 @@ def _find_index_file(zip_object):
             break
     assert index_file is not None
     return index_dir, index_file
+
+
+def _find_tab_undulator_length(zip_file, gap):
+    """Find undulator length from the specified zip-archive with the magnetic measurements data.
+
+    Args:
+        zip_file: zip-archive with the magnetic measurements data.
+        gap: undulator gap [mm].
+
+    Returns:
+        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
+    """
+    z = zipfile.ZipFile(zip_file)
+    index_dir, index_file = _find_index_file(z)
+    with z.open(os.path.join(index_dir, index_file)) as f:
+        sum_content = f.readlines()
+    gap = float(gap)
+    gaps_list = []
+    dat_files_list = []
+    for row in sum_content:
+        v = row.split()
+        gaps_list.append(float(v[0]))
+        dat_files_list.append(v[3])
+
+    d = _find_closest_value(gaps_list, gap)
+    closest_gap = d['closest_value']
+    dat_file = dat_files_list[d['idx']]
+
+    with z.open(os.path.join(index_dir, dat_file)) as f:
+        dat_content = f.readlines()
+
+    step = float(dat_content[8].split('#')[1].strip())
+    number_of_points = int(dat_content[9].split('#')[1].strip())
+    found_length = round(step * number_of_points, 6)
+
+    return {
+        'found_length': found_length,
+        'dat_file': dat_file,
+        'closest_gap': closest_gap
+    }
 
 
 def _generate_beamline_optics(models, last_id):
@@ -1300,61 +1309,57 @@ def _is_background_report(report):
 def _is_watchpoint(name):
     return 'watchpointReport' in name
 
-def _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period):
-    """Calculate drift for ideal undulator."""
-    drift = 0.0
-    if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
-        # initial drift = 1/2 undulator length + 2 periods
-        drift = -0.5 * float(undulator_length) - 2 * float(undulator_period)
-    return drift
+
+def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
+    if ebeam_position['driftCalculationMethod'] == 'auto':
+        """Calculate drift for ideal undulator."""
+        if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
+            # initial drift = 1/2 undulator length + 2 periods
+            return -0.5 * float(undulator_length) - 2 * float(undulator_period)
+        return 0
+    return ebeam_position['drift']
 
 
-def _process_beam_parameters(source_type, undulator_type, undulator_length, undulator_period, ebeam):
-    if 'drift' not in ebeam or 'driftCalculationMethod' not in ebeam or ebeam['driftCalculationMethod'] == 'auto':
-        drift = _process_beam_drift(source_type, undulator_type, undulator_length, undulator_period)
-    else:
-        drift = ebeam['drift']
-    model = {
-        'drift': drift,
-    }
-
+def _process_beam_parameters(ebeam):
+    # if the beamDefinition is "twiss", compute the moments fields and set on ebeam
     moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
     for k in moments_fields:
-        model[k] = ebeam[k] if k in ebeam else 0
+        if k not in ebeam:
+            ebeam[k] = 0
+    if 'beamDefinition' not in ebeam:
+        ebeam['beamDefinition'] = 't'
 
-    if 'beamDefinition' not in ebeam or ebeam['beamDefinition'] == 't':  # Twiss
-        import copy
-        ebeam = copy.deepcopy(ebeam)
-
+    if ebeam['beamDefinition'] == 't':  # Twiss
+        model = copy.deepcopy(ebeam)
         # Convert to SI units to perform SRW calculation:
-        for k in ebeam:
-            ebeam[k] = _convert_ebeam_units(k, ebeam[k])
-
-        import srwlib
+        for k in model:
+            model[k] = _convert_ebeam_units(k, ebeam[k])
         beam = srwlib.SRWLPartBeam()
         beam.from_Twiss(
-            _e=ebeam['energy'],
-            _sig_e=ebeam['rmsSpread'],
-            _emit_x=ebeam['horizontalEmittance'],
-            _beta_x=ebeam['horizontalBeta'],
-            _alpha_x=ebeam['horizontalAlpha'],
-            _eta_x=ebeam['horizontalDispersion'],
-            _eta_x_pr=ebeam['horizontalDispersionDerivative'],
-            _emit_y=ebeam['verticalEmittance'],
-            _beta_y=ebeam['verticalBeta'],
-            _alpha_y=ebeam['verticalAlpha'],
-            _eta_y=ebeam['verticalDispersion'],
-            _eta_y_pr=ebeam['verticalDispersionDerivative'],
+            _e=model['energy'],
+            _sig_e=model['rmsSpread'],
+            _emit_x=model['horizontalEmittance'],
+            _beta_x=model['horizontalBeta'],
+            _alpha_x=model['horizontalAlpha'],
+            _eta_x=model['horizontalDispersion'],
+            _eta_x_pr=model['horizontalDispersionDerivative'],
+            _emit_y=model['verticalEmittance'],
+            _beta_y=model['verticalBeta'],
+            _alpha_y=model['verticalAlpha'],
+            _eta_y=model['verticalDispersion'],
+            _eta_y_pr=model['verticalDispersionDerivative'],
         )
 
         for i, k in enumerate(moments_fields):
             model[k] = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
 
         # Convert to the units used in the schema:
-        for k in model.keys():
+        for k in model:
             model[k] = _convert_ebeam_units(k, model[k], to_si=False)
 
-    return model
+        # copy moments values into the ebeam
+        for k in moments_fields:
+            ebeam[k] = model[k]
 
 
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
@@ -1375,7 +1380,6 @@ def _process_intensity_reports(source_type, undulator_type):
 
 def _process_undulator_definition(model):
     """Convert K -> B and B -> K."""
-    from srwlib import SRWLMagFldH, SRWLMagFldU
     try:
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
