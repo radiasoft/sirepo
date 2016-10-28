@@ -1099,6 +1099,10 @@ SIREPO.app.directive('reportPanel', function(appState) {
 SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     var rpnBooleanValues = null;
 
+    function clearBooleanValues() {
+        rpnBooleanValues = null;
+    }
+
     this.computeRpnValue = function(value, callback) {
         if (value in appState.models.rpnCache) {
             callback(appState.models.rpnCache[value]);
@@ -1185,9 +1189,8 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             });
     };
 
-    $rootScope.$on('rpnVariables.changed', function() {
-        rpnBooleanValues = null;
-    });
+    $rootScope.$on('rpnVariables.changed', clearBooleanValues);
+    appState.whenModelsLoaded($rootScope, clearBooleanValues);
 });
 
 SIREPO.app.directive('rpnValue', function(appState, rpnService) {
