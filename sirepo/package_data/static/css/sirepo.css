@@ -571,6 +571,9 @@ ul.s-nav-sidebar-root {
 .s-folder-nav {
   font-size: 17px;
 }
+.s-enum-button {
+  min-width: 8em;
+}
 
 .elegant-beamline-element {
   float: left;
