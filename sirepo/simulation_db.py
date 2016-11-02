@@ -11,6 +11,7 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import feature_config
 from sirepo.template import template_common
 import copy
 import datetime
@@ -196,6 +197,10 @@ def get_schema(sim_type):
     schema = read_json(
         STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
+    pkcollections.mapping_merge(
+        schema,
+        {'feature_config': feature_config.for_sim_type(sim_type)},
+    )
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
     return schema
@@ -311,7 +316,8 @@ def json_filename(filename, run_dir=None):
 
 def json_load(*args, **kwargs):
     #TODO(robnagler) see https://github.com/radiasoft/sirepo/issues/379
-    kwargs['object_pairs_hook'] = dict
+    # Should work to use pkcollections.Dict
+    #kwargs['object_pairs_hook'] = dict
     return pkcollections.json_load_any(*args, **kwargs)
 
 
