@@ -418,14 +418,13 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                     requireReportUpdate = true;
             }
         }
-
+        // broadcast model changes prior to autoSave, allows for additional model changes before persisting
+        for (i = 0; i < updatedModels.length; i++) {
+            if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
+                continue;
+            broadcastChanged(updatedModels[i]);
+        }
         self.autoSave(function() {
-            for (i = 0; i < updatedModels.length; i++) {
-                if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
-                    continue;
-                broadcastChanged(updatedModels[i]);
-            }
-
             if (requireReportUpdate)
                 updateReports();
         });
@@ -767,7 +766,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
 SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _) {
     var self = {};
-    var getApplicationDataTimeout;
+    var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
@@ -841,10 +840,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
 
     self.getApplicationData = function(data, callback) {
         // debounce the method so server calls don't go on every keystroke
-        if (getApplicationDataTimeout)
-            $interval.cancel(getApplicationDataTimeout);
-        getApplicationDataTimeout = $interval(function() {
-            getApplicationDataTimeout = null;
+        if (getApplicationDataTimeout[data.method])
+            $interval.cancel(getApplicationDataTimeout[data.method]);
+        getApplicationDataTimeout[data.method] = $interval(function() {
+            delete getApplicationDataTimeout[data.method];
             data.simulationType = SIREPO.APP_SCHEMA.simulationType;
             self.sendRequest('getApplicationData', callback, data);
         }, 350, 1);

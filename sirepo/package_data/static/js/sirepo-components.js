@@ -9,7 +9,6 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         scope: {
             viewName: '=',
-            isReadOnly: '=',
             parentController: '=',
             wantButtons: '@',
             // optional, allow caller to provide path for modelKey and model data
@@ -25,8 +24,8 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
               '</ul>',
               '<br data-ng-if="pages" />',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
-                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
-                '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData"></div>',
+                '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
               '<div data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
             '</form>',
@@ -283,35 +282,33 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             customLabel: '=',
             labelSize: "@",
             fieldSize: "@",
-            isReadOnly: "=",
         },
         template: [
             '<div class="model-{{modelName}}-{{field}}">',
             '<div data-ng-show="showLabel()" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
-              '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
-                '<div class="dropdown">',
-                  '<button class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
+              '<div data-ng-switch-when="BeamList">',
+                '<div class="dropdown" data-ng-class="fieldClass">',
+                  '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
                   '<ul class="dropdown-menu">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
-                    '<li data-ng-repeat="item in requestSender.getAuxiliaryData(\'beams\') track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item, \'pd\')">{{ item.name }}</a>',
+                    '<li data-ng-repeat="item in beamList track by item.name">',
+                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
                     '</li>',
                     '<li class="divider"></li>',
                     '<li class="dropdown-header">User Defined Electron Beams</li>',
-                    '<li data-ng-repeat="item in appState.models.electronBeams track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item, \'ud\')">{{ item.name }}</a>',
+                    '<li data-ng-repeat="item in appState.models.electronBeams track by item.id">',
+                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
                     '</li>',
-                    '<li><a href data-ng-click="srwNewUserDefinedBeam()"><span class="glyphicon glyphicon-plus"></span> New</a></li>',
                   '</ul>',
-                '<div class="beamType"></div>',
                 '</div>',
+                '<div class="col-sm-2" data-ng-if="appState.models.electronBeam.isReadOnly"><div class="form-control-static"><a href data-ng-click="srwEditBeam()">Edit Beam</a></div></div>',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
               '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
-                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
               '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
                 '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
@@ -320,10 +317,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
               '</div>',
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
+                '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
               '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" required data-ng-readonly="isReadOnly" />',
+                '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
@@ -346,11 +343,11 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" data-ng-readonly="isReadOnly" />',
+                '<input data-ng-model="model[field]" class="form-control" />',
               '</div>',
               '<div data-ng-switch-when="RPNValue">',
                 '<div data-ng-class="fieldClass">',
-                  '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required data-ng-readonly="isReadOnly" />',
+                  '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
                  '</div>',
                 '<div class="col-sm-2"><div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div></div>',
               '</div>',
@@ -365,7 +362,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
-                '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+                '<div data-ng-if="wantEnumButtons()" class="btn-group">',
+                  '<button class="btn btn-primary s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active\': model[field] == item[0]}">{{ item[1] }}</button>',
+                '</div>',
+                '<select data-ng-if="! wantEnumButtons()" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
             '</div>',
             '</div>',
@@ -375,11 +375,20 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.requestSender = requestSender;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            var hasLabelSizeOverride = $scope.labelSize ? true : false;
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
             $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (isNumber($scope.info[1]) ? '3' : '5'));
 
             function isNumber(type) {
                 return type == 'Integer' || type == 'Float';
+            }
+            function srwBeamNameExists(name) {
+                for (var i = 0; i < appState.models.electronBeams.length; i++) {
+                    if (appState.models.electronBeams[i].name == name) {
+                        return true;
+                    }
+                }
+                return false;
             }
             $scope.elegantBeamlineList = function() {
                 if (! appState.isLoaded() || ! $scope.model)
@@ -429,27 +438,57 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                     return true;
                 return $scope.labelSize > 0;
             };
-            $scope.srwNewUserDefinedBeam = function() {
+            $scope.srwEditBeam = function() {
                 // copy the current beam, rename and show editor
                 var newBeam = appState.clone(appState.models.electronBeam);
                 delete newBeam.isReadOnly;
-                newBeam.name = 'Beam Name';
+                var copyIndex = 1;
+                while (srwBeamNameExists(newBeam.name + ' (copy ' + copyIndex + ')')) {
+                    copyIndex++;
+                }
+                newBeam.name += ' (copy ' + copyIndex + ')';
                 newBeam.id = appState.maxId(appState.models.electronBeams) + 1;
                 appState.models.electronBeams.push(newBeam);
                 appState.models.electronBeam = newBeam;
-                panelState.showModalEditor('electronBeam');
+                appState.models.electronBeam.beamSelector = newBeam.name;
             };
-            $scope.srwSelectBeam = function(item, beamType) {
-                // MR: beamType could be 'pd' = predefined and 'ud' = user-defined.
+            $scope.srwSelectBeam = function(item) {
                 appState.models.electronBeam = item;
-                item.beamType = beamType;
                 item[$scope.field] = item.name;
+            };
+            $scope.wantEnumButtons = function() {
+                var e = $scope.enum[$scope.info[1]];
+                if (! e || e.length > 3 || hasLabelSizeOverride) {
+                    return false;
+                }
+                var textSize = 0;
+                for (var i = 0; i < e.length; i++) {
+                    textSize += e[i][1].length;
+                    if (textSize > 20){
+                        return false;
+                    }
+                }
+                return true;
             };
         },
         link: function link(scope, element) {
             scope.enum = SIREPO.APP_SCHEMA.enum;
-            if (scope.info && scope.info[1] == 'BeamList')
-                requestSender.loadAuxiliaryData('beams', '/static/json/beams.json');
+            if (scope.info && scope.info[1] == 'BeamList') {
+                scope.beamList = [];
+                if (requestSender.beams) {
+                    scope.beamList = requestSender.beams;
+                    return;
+                }
+                requestSender.getApplicationData(
+                    {
+                        method: 'beam_list',
+                    },
+                    function(data) {
+                        if (appState.isLoaded() && data.beamList) {
+                            scope.beamList = data.beamList;
+                        }
+                    });
+            }
         },
     };
 });
@@ -600,7 +639,6 @@ SIREPO.app.directive('columnEditor', function(appState) {
         scope: {
             modelName: '=',
             columnFields: '=',
-            isReadOnly: '=',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
         },
@@ -609,7 +647,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[$parent.$index][$index]" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[$parent.$index][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
                 '</div>',
               '</div>',
             '</div>',
@@ -621,13 +659,13 @@ SIREPO.app.directive('columnEditor', function(appState) {
                   '</div>',
                 '</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[0][$index]" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[0][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
                 '</div>',
               '</div>',
               '<div class="col-sm-3">',
                 '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[1][0] }}</div>',
                 '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[1][1]">',
-                  '<div data-model-field="f" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData" data-is-read-only="isReadOnly"></div>',
+                  '<div data-model-field="f" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
                 '</div>',
               '</div>',
             '</div>',
@@ -785,7 +823,6 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
     return {
         scope: {
             viewName: '@',
-            isReadOnly: '=',
             parentController: '=',
             modalTitle: '=',
             // optional, allow caller to provide path for modelKey and model data
@@ -803,7 +840,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
-                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-is-read-only="isReadOnly" data-want-buttons="true" data-model-data="modelData" data-parent-controller="parentController"></div>',
+                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-model-data="modelData" data-parent-controller="parentController"></div>',
                       '</div>',
                     '</div>',
                   '</div>',
@@ -839,9 +876,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
         },
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {
-                if (! scope.isReadOnly) {
-                    $('#' + scope.editorId + ' .form-control').first().select();
-                }
+                $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
                     scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
                 }
@@ -871,12 +906,11 @@ SIREPO.app.directive('modelField', function(appState) {
             customLabel: '=',
             labelSize: "@",
             fieldSize: "@",
-            isReadOnly: "=",
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
         },
         template: [
-            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-is-read-only="isReadOnly" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
+            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
             var modelName = $scope.modelName;
@@ -1065,6 +1099,10 @@ SIREPO.app.directive('reportPanel', function(appState) {
 SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     var rpnBooleanValues = null;
 
+    function clearBooleanValues() {
+        rpnBooleanValues = null;
+    }
+
     this.computeRpnValue = function(value, callback) {
         if (value in appState.models.rpnCache) {
             callback(appState.models.rpnCache[value]);
@@ -1151,9 +1189,8 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             });
     };
 
-    $rootScope.$on('rpnVariables.changed', function() {
-        rpnBooleanValues = null;
-    });
+    $rootScope.$on('rpnVariables.changed', clearBooleanValues);
+    appState.whenModelsLoaded($rootScope, clearBooleanValues);
 });
 
 SIREPO.app.directive('rpnValue', function(appState, rpnService) {
@@ -1245,15 +1282,19 @@ SIREPO.app.directive('stringToNumber', function() {
                 if (ngModel.$isEmpty(value))
                     return null;
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    var v;
                     if (scope.numberType == 'integer') {
-                        var v = parseInt(value);
+                        v = parseInt(value);
                         if (v != value) {
                             ngModel.$setViewValue(v);
                             ngModel.$render();
                         }
                         return v;
                     }
-                    return parseFloat(value);
+                    v = parseFloat(value);
+                    if (isFinite(v)) {
+                        return v;
+                    }
                 }
                 return undefined;
             });
