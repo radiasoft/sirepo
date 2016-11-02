@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import simulation_db
 from sirepo import runner
+from sirepo import simulation_db
 from sirepo.template import template_common
 import beaker.middleware
 import datetime

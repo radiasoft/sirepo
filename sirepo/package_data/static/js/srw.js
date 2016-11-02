@@ -176,13 +176,23 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
         crystalDefaults,
-        {type:'mask', title:'Mask', material:'User-defined', method:'server', refractiveIndex:1.0, attenuationLength:1.0,
-         maskThickness:1.0, gridShape:0, gridTiltAngle:0.4363323129985824, horizontalSamplingInterval:7.32e-01, verticalSamplingInterval:7.32e-01,
-         horizontalGridPitch:20, verticalGridPitch:20, horizontalPixelsNumber:1024, verticalPixelsNumber:1024,
-         horizontalGridsNumber:21, verticalGridsNumber:21, horizontalGridDimension:5, verticalGridDimension:5,
-         horizontalMaskCoordinate:0.0, verticalMaskCoordinate:0.0},
         {type:'watch', title:'Watchpoint'},
     ];
+
+    if (SIREPO.APP_SCHEMA.feature_config.mask_in_toolbar) {
+        self.toolbarItems.splice(
+            self.toolbarItems.length - 1,
+            0,
+            {
+                type:'mask', title:'Mask', material:'User-defined', method:'server', refractiveIndex:1.0, attenuationLength:1.0,
+                maskThickness:1.0, gridShape:0, gridTiltAngle:0.4363323129985824, horizontalSamplingInterval:7.32e-01, verticalSamplingInterval:7.32e-01,
+                horizontalGridPitch:20, verticalGridPitch:20, horizontalPixelsNumber:1024, verticalPixelsNumber:1024,
+                horizontalGridsNumber:21, verticalGridsNumber:21, horizontalGridDimension:5, verticalGridDimension:5,
+                horizontalMaskCoordinate:0.0, verticalMaskCoordinate:0.0
+            }
+        );
+    }
+
     self.panelState = panelState;
     self.srwService = srwService;
     self.activeItem = null;
