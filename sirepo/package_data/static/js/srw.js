@@ -26,8 +26,9 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
     self.singleElectronCharacteristicEnum = null;
 
     function initCharacteristic() {
-        if (self.originalCharacteristicEnum)
+        if (self.originalCharacteristicEnum) {
             return;
+        }
         self.originalCharacteristicEnum = SIREPO.APP_SCHEMA.enum.Characteristic;
         var characteristic = appState.clone(SIREPO.APP_SCHEMA.enum.Characteristic);
         characteristic.splice(1, 1);
@@ -37,8 +38,9 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
     }
 
     function isSelected(sourceType) {
-        if (appState.isLoaded())
+        if (appState.isLoaded()) {
             return appState.applicationState().simulation.sourceType == sourceType;
+        }
         return false;
     }
 
@@ -54,12 +56,15 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
         }
         var model = savedModelValues[modelName];
         var distance = '';
-        if (model && 'distanceFromSource' in model)
+        if (model && 'distanceFromSource' in model) {
             distance = ', ' + model.distanceFromSource + 'm';
-        else if (appState.isAnimationModelName(modelName))
+        }
+        else if (appState.isAnimationModelName(modelName)) {
             distance = '';
-        else if (appState.isReportModelName(modelName) && savedModelValues.beamline && savedModelValues.beamline.length)
+        }
+        else if (appState.isReportModelName(modelName) && savedModelValues.beamline && savedModelValues.beamline.length) {
             distance = ', ' + savedModelValues.beamline[0].position + 'm';
+        }
         return appState.viewInfo(modelName).title + distance;
     };
 
@@ -84,8 +89,9 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
     };
 
     self.isPredefinedBeam = function() {
-        if (appState.isLoaded())
+        if (appState.isLoaded()) {
             return appState.models.electronBeam.isReadOnly ? true : false;
+        }
         return false;
     };
 
@@ -109,8 +115,9 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
 
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
-        if (search && search.application_mode)
+        if (search && search.application_mode) {
             self.applicationMode = search.application_mode;
+        }
     });
 
     appState.whenModelsLoaded($rootScope, function() {
@@ -194,20 +201,24 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         else {
             newItem.position = 20;
         }
-        if (newItem.type == 'ellipsoidMirror')
+        if (newItem.type == 'ellipsoidMirror') {
             newItem.firstFocusLength = newItem.position;
-        if (newItem.type == 'watch')
+        }
+        if (newItem.type == 'watch') {
             appState.models[watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
+        }
         appState.models.beamline.push(newItem);
         self.dismissPopup();
     }
 
     function calculatePropagation() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var beamline = appState.models.beamline;
-        if (! appState.models.propagation)
+        if (! appState.models.propagation) {
             appState.models.propagation = {};
+        }
         var propagation = appState.models.propagation;
         self.propagations = [];
         for (var i = 0; i < beamline.length; i++) {
@@ -218,13 +229,15 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 ];
             }
             var p = propagation[beamline[i].id];
-            if (beamline[i].type != 'watch')
+            if (beamline[i].type != 'watch') {
                 self.propagations.push({
                     title: beamline[i].title,
                     params: p[0],
                 });
-            if (i == beamline.length - 1)
+            }
+            if (i == beamline.length - 1) {
                 break;
+            }
             var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
@@ -233,8 +246,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 });
             }
         }
-        if (! appState.models.postPropagation || appState.models.postPropagation.length === 0)
+        if (! appState.models.postPropagation || appState.models.postPropagation.length === 0) {
             appState.models.postPropagation = defaultItemPropagationParams();
+        }
         self.postPropagation = appState.models.postPropagation;
     }
 
@@ -272,8 +286,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         for (var i = 0; i < appState.models.beamline.length; i++) {
             var item = appState.models.beamline[i];
             propagations[item.id] = appState.models.propagation[item.id];
-            if (item.type == 'watch')
+            if (item.type == 'watch') {
                 watchpoints[watchpointReportName(item.id)] = true;
+            }
         }
         appState.models.propagation = propagations;
 
@@ -286,8 +301,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 delete savedModelValues[modelName];
                 continue;
             }
-            if (isWatchpointReportModelName(modelName))
+            if (isWatchpointReportModelName(modelName)) {
                 savedModelValues[modelName] = appState.cloneModel(modelName);
+            }
         }
         appState.saveChanges(['beamline', 'propagation', 'postPropagation']);
     }
@@ -331,14 +347,16 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     };
 
     self.dropBetween = function(index, data) {
-        if (! data)
+        if (! data) {
             return;
+        }
         var item;
         if (data.id) {
             self.dismissPopup();
             var curr = appState.models.beamline.indexOf(data);
-            if (curr < index)
+            if (curr < index) {
                 index--;
+            }
             appState.models.beamline.splice(curr, 1);
             item = data;
         }
@@ -375,8 +393,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             var beamline = appState.applicationState().beamline;
             var res = [];
             for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i].type == 'watch')
+                if (beamline[i].type == 'watch') {
                     res.push(beamline[i]);
+                }
             }
             return res;
         }
@@ -386,12 +405,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.handleModalShown = function(name) {
         if (appState.isLoaded()) {
             if (srwService.isGaussianBeam()) {
-                $('.model-watchpointReport-fieldUnits').show(0);
-                $('.model-initialIntensityReport-fieldUnits').show(0);
+                $('.model-watchpointReport-fieldUnits').show();
+                $('.model-initialIntensityReport-fieldUnits').show();
             }
             else {
-                $('.model-watchpointReport-fieldUnits').hide(0);
-                $('.model-initialIntensityReport-fieldUnits').hide(0);
+                $('.model-watchpointReport-fieldUnits').hide();
+                $('.model-initialIntensityReport-fieldUnits').hide();
             }
         }
     };
@@ -419,8 +438,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     };
 
     self.mirrorReportTitle = function() {
-        if (self.activeItem && self.activeItem.title)
+        if (self.activeItem && self.activeItem.title) {
             return self.activeItem.title;
+        }
         return '';
     };
 
@@ -449,8 +469,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
 
     self.setSingleElectron = function(value) {
         value = !!value;
-        if (value != self.singleElectron)
+        if (value != self.singleElectron) {
             simulationQueue.cancelAllItems();
+        }
         self.singleElectron = value;
     };
 
@@ -477,18 +498,21 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     };
 
     self.showTabs = function() {
-        if (self.getWatchItems().length === 0)
+        if (self.getWatchItems().length === 0) {
             return false;
-        if (srwService.isApplicationMode('wavefront'))
+        }
+        if (srwService.isApplicationMode('wavefront')) {
             return false;
-        if (srwService.isGaussianBeam())
+        }
+        if (srwService.isGaussianBeam()) {
             return false;
+        }
         return true;
     };
 
     //TODO(pjm): coupled with controller named "beamline"
     $scope.$watch('beamline.activeItem.grazingAngle', function (newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
+        if (newValue !== null && angular.isDefined(newValue) && angular.isDefined(oldValue)) {
             var item = self.activeItem;
             if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror') {
                 requestSender.getApplicationData(
@@ -570,9 +594,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
         var crlMethodFormGroup = $('div.model-crl-method').closest('.form-group');
         if (newValues[0] === 'User-defined') {
-            crlMethodFormGroup.hide(0);
-        } else {
-            crlMethodFormGroup.show(0);
+            crlMethodFormGroup.hide();
+        }
+        else {
+            crlMethodFormGroup.show();
         }
         if (checkDefined(newValues)) {
             computeCRLCharacteristics();
@@ -608,9 +633,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watchCollection(wrapActiveItem(fiberFields), function (newValues, oldValues) {
         var fiberMethodFormGroup = $('div.model-fiber-method').closest('.form-group');
         if (newValues[1] === 'User-defined' && newValues[2] === 'User-defined') {
-            fiberMethodFormGroup.hide(0);
-        } else {
-            fiberMethodFormGroup.show(0);
+            fiberMethodFormGroup.hide();
+        }
+        else {
+            fiberMethodFormGroup.show();
         }
         if (checkDefined(newValues)) {
             computeFiberCharacteristics();
@@ -641,7 +667,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                         }
                         else if (item[fields[i]] === 1) {
                             // pass
-                        } else {
+                        }
+                        else {
                             item[fields[i]] = item[fields[i]].toFixed(6);
                         }
                     }
@@ -652,9 +679,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     $scope.$watchCollection(wrapActiveItem(maskFields), function (newValues, oldValues) {
         var maskMethodFormGroup = $('div.model-mask-method').closest('.form-group');
         if (newValues[1] === 'User-defined') {
-            maskMethodFormGroup.hide(0);
-        } else {
-            maskMethodFormGroup.show(0);
+            maskMethodFormGroup.hide();
+        }
+        else {
+            maskMethodFormGroup.show();
         }
         if (checkDefined(newValues)) {
             computeMaskCharacteristics();
@@ -715,32 +743,41 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             }
         }
     });
-
-    $scope.$watch('beamline.activeItem.position', function(newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && isFinite(newValue) && angular.isDefined(oldValue) && isFinite(oldValue)) {
-            var item = self.activeItem;
-            if (item.firstFocusLength)
-                item.firstFocusLength = newValue;
-        }
-    });
 });
 
-SIREPO.app.controller('SRWSourceController', function (appState, srwService, $scope, $timeout, requestSender) {
+SIREPO.app.controller('SRWSourceController', function (appState, requestSender, srwService, $document, $scope) {
     var self = this;
-    self.srwService = srwService;
+    // required for $watch below
     $scope.appState = appState;
+    self.srwService = srwService;
+    var FORMAT_DECIMALS = 8;
 
-    function formatFloat(v, n) {
-        if (typeof(n) === 'undefined') {
-            n = 8;
+    function activeField() {
+        //TODO(pjm) scope() is a debug-only method, need to generalize element watchers
+        return angular.element(document.activeElement).scope().field;
+    }
+
+    function convertGBSize(fromValue, value, energy) {
+        var waveLength = (1239.84193 * 1e-9) / energy;  // [m]
+        var factor = waveLength / (4 * Math.PI);
+        var res = null;
+        // TODO(MR): get units automatically.
+        if (fromValue === 'rmsSize') {  // to rmsDivergence
+            res = factor / (value * 1e-6) * 1e6;  // [um] -> [urad]
         }
-        var formattedValue = +parseFloat(v).toFixed(n);
-        return formattedValue;
+        else if (fromValue === 'rmsDivergence') {  // to rmsSize
+            res = factor / (value * 1e-6) * 1e6;  // [urad] -> [um]
+        }
+        if (isNaN(res) || ! isFinite(res)) {
+            return null;
+        }
+        return res.toFixed(6);
     }
 
     function disableField(reportName, field, value, ifDisable, property) {
-        if (! appState.isLoaded() || typeof(value) === 'undefined')
+        if (! appState.isLoaded() || typeof(value) === 'undefined') {
             return;
+        }
         if (typeof(property) === 'undefined') {
             property = 'disabled';
         }
@@ -751,92 +788,49 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     }
 
-    function processBeamParameters() {
-        if (! appState.isLoaded())
-            return;
-        var und;
-        if (appState.models.simulation.sourceType === 't') {
-            und = 'tabulatedUndulator';
-        } else {
-            und = 'undulator';
-        }
-
-        var beamDefinition = appState.models.electronBeam.beamDefinition;
-        var columnHeading = 'column-heading';
-        var fieldsOfTwiss = ['horizontalEmittance', 'horizontalBeta', 'horizontalAlpha', 'horizontalDispersion', 'horizontalDispersionDerivative',
-                             'verticalEmittance', 'verticalBeta', 'verticalAlpha', 'verticalDispersion', 'verticalDispersionDerivative'];
-        var fieldsOfMoments = ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'];
-
-        requestSender.getApplicationData(
-            {
-                method: 'process_beam_parameters',
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                undulator_period: appState.models[und].period / 1000,
-                undulator_length: appState.models[und].length,
-                ebeam: appState.models.electronBeam,
-            },
-            function(data) {
-                var i;
-                if (appState.models.electronBeam.isReadOnly) {
-                    disableField('electronBeam', 'driftCalculationMethod', 'auto', true);
-                    disableField('electronBeam', 'drift', data.drift, true);
-                    disableField('electronBeam', 'beamDefinition', 't', true);
-                    for (i = 0; i < fieldsOfMoments.length; i++) {
-                        disableField('electronBeam', fieldsOfMoments[i], data[fieldsOfMoments[i]], true);
-                    }
-                } else {
-                    disableField('electronBeam', 'driftCalculationMethod', 'skip', false);
-                    if (appState.models.electronBeam.driftCalculationMethod === 'auto') {
-                        disableField('electronBeam', 'drift', data.drift, true);
-                    } else {
-                        disableField('electronBeam', 'drift', 'skip', false);
-                    }
-                    disableField('electronBeam', 'beamDefinition', 'skip', false);
-                    for (i = 0; i < fieldsOfMoments.length; i++) {
-                        var val = 'skip';
-                        if (beamDefinition === 't') {
-                            val = formatFloat(data[fieldsOfMoments[i]]);
-                        }
-                        disableField('electronBeam', fieldsOfMoments[i], val, false);
-                    }
-                }
-            }
-        );
-
-        var modelReport = '.model-electronBeam-';
-        var duration = 0;  // ms
-        var i;
-        if (beamDefinition === "t") {  // Twiss
-            $($(modelReport + columnHeading)[0]).show(duration);
-            $($(modelReport + columnHeading)[1]).show(duration);
-            $($(modelReport + columnHeading)[2]).hide(duration);
-            $($(modelReport + columnHeading)[3]).hide(duration);
-            for (i = 0; i < fieldsOfTwiss.length; i++) {
-                $(modelReport + fieldsOfTwiss[i]).closest('.form-group').show(duration);
-            }
-            for (i = 0; i < fieldsOfMoments.length; i++) {
-                $(modelReport + fieldsOfMoments[i]).closest('.form-group').hide(duration);
-            }
-        } else if (beamDefinition === "m") {  // Moments
-            $($(modelReport + columnHeading)[0]).hide(duration);
-            $($(modelReport + columnHeading)[1]).hide(duration);
-            $($(modelReport + columnHeading)[2]).show(duration);
-            $($(modelReport + columnHeading)[3]).show(duration);
-            for (i = 0; i < fieldsOfTwiss.length; i++) {
-                $(modelReport + fieldsOfTwiss[i]).closest('.form-group').hide(duration);
-            }
-            for (i = 0; i < fieldsOfMoments.length; i++) {
-                $(modelReport + fieldsOfMoments[i]).closest('.form-group').show(duration);
-            }
-        } else {
-            return;
-        }
+    function formatFloat(v) {
+        return +parseFloat(v).toFixed(FORMAT_DECIMALS);
     }
 
-    function processFluxMethod(methodNumber, reportName) {
-        if (! appState.isLoaded() || typeof(methodNumber) === 'undefined')
+    function isAutoDrift() {
+        if (appState.isLoaded) {
+            return appState.models.electronBeamPosition.driftCalculationMethod === 'auto';
+        }
+        return false;
+    }
+
+    function isTwissDefinition() {
+        if (appState.isLoaded()) {
+            return appState.models.electronBeam.beamDefinition === 't';
+        }
+        return false;
+    }
+
+    function processBeamParameters() {
+        if (! appState.isLoaded) {
             return;
+        }
+        var isPredefinedBeam = srwService.isPredefinedBeam();
+        var ebeam = appState.models.electronBeam;
+        // enable/disable beam fields
+        for (var f in ebeam) {
+            // UI fields could be an input, select, or button
+            $('#s-electronBeam-editor .model-electronBeam-' + f).find('input.form-control').prop('readonly', isPredefinedBeam);
+            $('#s-electronBeam-editor .model-electronBeam-' + f).find('select.form-control').prop('disabled', isPredefinedBeam);
+            $('#s-electronBeam-editor .model-electronBeam-' + f).find('.s-enum-button').prop('disabled', isPredefinedBeam);
+        }
+        // show/hide column headings and input fields for the twiss/moments sections
+        showRow('.model-electronBeam-horizontalEmittance', isTwissDefinition());
+        showRow('.model-electronBeam-rmsSizeX', ! isTwissDefinition());
+        $('.model-electronBeamPosition-drift').find('input.form-control').prop('readonly', isAutoDrift());
+    }
+
+    function processFluxMethod() {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        var methodNumber = appState.models.fluxAnimation.method;
+        var reportName = 'fluxAnimation';
         // Get magnetic field values from server:
         requestSender.getApplicationData(
             {
@@ -857,47 +851,68 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         var i;
         if (methodNumber === "-1") {  // ["-1", "Use Approximate Method"]
             for (i = 0; i < fieldsOfApproximateMethod.length; i++) {
-                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').show(0);
+                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').show();
             }
             for (i = 0; i < fieldsOfAccurateMethod.length; i++) {
-                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').hide(0);
+                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').hide();
             }
-        } else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
+        }
+        else if ($.inArray(methodNumber, ["0", "1", "2"]) != -1) {
             for (i = 0; i < fieldsOfApproximateMethod.length; i++) {
-                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').hide(0);
+                $(modelReport + fieldsOfApproximateMethod[i]).closest('.form-group').hide();
             }
             for (i = 0; i < fieldsOfAccurateMethod.length; i++) {
-                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').show(0);
+                $(modelReport + fieldsOfAccurateMethod[i]).closest('.form-group').show();
             }
-        } else {
-            return;
         }
     }
 
-    function processIntensityReports(reportName, fieldsToDisable, methodName) {
-        if (! appState.isLoaded())
+    function processGaussianBeamSize() {
+        if (! appState.isLoaded()) {
             return;
+        }
+        var energy = appState.models.simulation.photonEnergy;
+        if (appState.models.gaussianBeam.sizeDefinition === '2') { // RMS divergence
+            disableField('gaussianBeam', 'rmsSizeX', convertGBSize('rmsDivergence', appState.models.gaussianBeam.rmsDivergenceX, energy), true);
+            disableField('gaussianBeam', 'rmsSizeY', convertGBSize('rmsDivergence', appState.models.gaussianBeam.rmsDivergenceY, energy), true);
+            disableField('gaussianBeam', 'rmsDivergenceX', 'skip', false);
+            disableField('gaussianBeam', 'rmsDivergenceY', 'skip', false);
+        }
+        else { // RMS Size (default)
+            disableField('gaussianBeam', 'rmsSizeX', 'skip', false);
+            disableField('gaussianBeam', 'rmsSizeY', 'skip', false);
+            disableField('gaussianBeam', 'rmsDivergenceX', convertGBSize('rmsSize', appState.models.gaussianBeam.rmsSizeX, energy), true);
+            disableField('gaussianBeam', 'rmsDivergenceY', convertGBSize('rmsSize', appState.models.gaussianBeam.rmsSizeY, energy), true);
+        }
+    }
+
+    function processIntensityReport(reportName, fieldsToDisable) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        updatePrecisionLabel();
         requestSender.getApplicationData(
             {
-                method: methodName,
+                method: 'process_intensity_reports',
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
             },
             function(data) {
                 for (var i = 0; i < fieldsToDisable.length; i++) {
-                    var true_false = true;
+                    var ifDisable = true;
                     if (fieldsToDisable[i] === 'method') {
-                        true_false = false;
+                        ifDisable = false;
                     }
-                    disableField(reportName, fieldsToDisable[i], data[fieldsToDisable[i]], true_false);
+                    disableField(reportName, fieldsToDisable[i], data[fieldsToDisable[i]], ifDisable);
                 }
             }
         );
     }
 
     function processTrajectoryReport() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var fieldsOfManualMethod = ['initialTimeMoment', 'finalTimeMoment'];
         var reportName = 'trajectoryReport';
         var modelReport = '.model-' + reportName + '-';
@@ -905,11 +920,12 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         // Hide initial and final c*t fields in case of automatic set of limits:
         if (appState.models[reportName].timeMomentEstimation == 'auto') {
             for (i = 0; i < fieldsOfManualMethod.length; i++) {
-                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').hide(0);
+                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').hide();
             }
-        } else {
+        }
+        else {
             for (i = 0; i < fieldsOfManualMethod.length; i++) {
-                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').show(0);
+                $(modelReport + fieldsOfManualMethod[i]).closest('.form-group').show();
             }
         }
         if (appState.models.simulation.sourceType !== 't' || appState.models.tabulatedUndulator.undulatorType !== 'u_t') {
@@ -917,9 +933,50 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         }
     }
 
-    function processUndulatorDefinition(reportName, undulatorDefinition) {
-        if (! appState.isLoaded() || typeof(reportName) === 'undefined')
+    function processUndulator() {
+        if (! appState.isLoaded()) {
             return;
+        }
+        var undType = appState.models.tabulatedUndulator.undulatorType;
+        var columnHeading = 'column-heading';
+        var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
+        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
+        var modelReport = '.model-tabulatedUndulator-';
+        var modelIdealizedReport = '.model-undulator-';
+        var i;
+
+        // Limit and hide some fields in the calculator mode:
+        if (srwService.isApplicationMode('calculator')) {
+            var fieldsToHide = ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'];
+            for (i = 0; i < fieldsToHide.length; i++) {
+                $(modelIdealizedReport + fieldsToHide[i]).closest('.form-group').hide();
+            }
+        }
+
+        if (undType === "u_t") {  // tabulated
+            $(modelReport + columnHeading).hide();
+            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').show();
+            }
+            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').hide();
+            }
+        }
+        else if (undType === "u_i") {  // idealized
+            $(modelReport + columnHeading).show();
+            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
+                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').hide();
+            }
+            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
+                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').show();
+            }
+        }
+    }
+
+    function processUndulatorDefinition(reportName, undulatorDefinition) {
+        if (! appState.isLoaded()) {
+            return;
+        }
         requestSender.getApplicationData(
             {
                 method: 'process_undulator_definition',
@@ -931,85 +988,62 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
             function(data) {
                 if (undulatorDefinition === 'K') {
                     disableField(reportName, 'verticalAmplitude', formatFloat(data.vertical_amplitude), false, 'readOnly');
-                } else {
+                }
+                else {
                     disableField(reportName, 'undulatorParameter', formatFloat(data.undulator_parameter), false, 'readOnly');
                 }
             }
         );
     }
 
-    function processUndulator(undType) {
-        if (! appState.isLoaded() || typeof(undType) === 'undefined') {
-            return;
-        }
-        var columnHeading = 'column-heading';
-        var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
-        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
-        var modelReport = '.model-tabulatedUndulator-';
-        var modelIdealizedReport = '.model-undulator-';
-        var duration = 0;  // ms
-        var i;
+    function recalculateBeam() {
+        requestSender.getApplicationData(
+            {
+                method: 'process_beam_parameters',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                undulator_period: appState.models[undulatorModelName()].period / 1000,
+                undulator_length: appState.models[undulatorModelName()].length,
+                ebeam: appState.clone(appState.models.electronBeam),
+                ebeam_position: appState.clone(appState.models.electronBeamPosition),
+            },
+            function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                var ebeam = appState.models.electronBeam;
+                var moments_fields = [
+                    'rmsSizeX', 'rmsDivergX', 'xxprX',
+                    'rmsSizeY', 'rmsDivergY', 'xxprY',
+                ];
+                for (var i = 0; i < moments_fields.length; i++) {
+                    var f = moments_fields[i];
+                    ebeam[f] = formatFloat(data[f]);
+                }
+                appState.models.electronBeamPosition.drift = data.drift;
+            }
+        );
+    }
 
-        // Limit and hide some fields in the calculator mode:
-        if (srwService.isApplicationMode('calculator')) {
-            var fieldsToHide = ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'];
-            for (i = 0; i < fieldsToHide.length; i++) {
-                $(modelIdealizedReport + fieldsToHide[i]).closest('.form-group').hide(duration);
-            }
+    function showRow(fieldClass, show) {
+        var row = $(fieldClass).closest('.row');
+        if (show) {
+            row.show();
         }
-
-        if (undType === "u_t") {  // tabulated
-            $(modelReport + columnHeading).hide(duration);
-            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
-                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').show(duration);
-            }
-            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
-                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').hide(duration);
-            }
-        } else if (undType === "u_i") {  // idealized
-            $(modelReport + columnHeading).show(duration);
-            for (i = 0; i < fieldsOfTabulatedUndulator.length; i++) {
-                $(modelReport + fieldsOfTabulatedUndulator[i]).closest('.form-group').hide(duration);
-            }
-            for (i = 0; i < fieldsOfIdealizedUndulator.length; i++) {
-                $(modelReport + fieldsOfIdealizedUndulator[i]).closest('.form-group').show(duration);
-            }
-        } else {
-            return;
+        else {
+            row.hide();
         }
     }
 
-    self.handleModalShown = function(name) {
-        if (appState.isLoaded()) {
-            if (srwService.isGaussianBeam()) {
-                $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').show(0);
-            }
-            else {
-                $('.model-intensityReport-fieldUnits').closest('.form-group').hide(0);
-                $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').hide(0);
-            }
-            if (srwService.isApplicationMode('calculator')) {
-                $('.model-sourceIntensityReport-magneticField').closest('.form-group').hide(0);
-            }
+    function undulatorModelName() {
+        return srwService.isTabulatedUndulator()
+            ? 'tabulatedUndulator'
+            : 'undulator';
+    }
 
-            if (name === 'fluxAnimation') {
-                processFluxMethod(appState.models.fluxAnimation.method, name);
-            } else if (name === 'intensityReport') {
-                processIntensityReports(name, ['method', 'magneticField'], 'process_intensity_reports');
-            } else if (name === 'sourceIntensityReport') {
-                processIntensityReports(name, ['magneticField'], 'process_intensity_reports');
-            } else if (name === 'trajectoryReport') {
-                processTrajectoryReport();
-            } else if (name === 'electronBeam') {
-                processBeamParameters();
-            }
-        }
-    };
-
-    $scope.$on('electronBeam.changed', function() {
+    function updateElectronBeams() {
         var beam = appState.models.electronBeam;
         var beams = appState.models.electronBeams;
-        beam.beamSelector = beam.name;
         if (! beam.isReadOnly) {
             // update the user defined beam in the electronBeams list
             for (var i = 0; i < beams.length; i++) {
@@ -1022,127 +1056,143 @@ SIREPO.app.controller('SRWSourceController', function (appState, srwService, $sc
         beams.sort(function(a, b) {
             return a.name.localeCompare(b.name);
         });
-        appState.saveQuietly('electronBeam');
         appState.saveQuietly('electronBeams');
-    });
+    }
 
-    function wrapFields(reportNames, fields) {
-        var fieldsList = [];
-        for (var i = 0; i < reportNames.length; i++) {
-            for (var j = 0; j < fields.length; j++) {
-                fieldsList.push('appState.models.' + reportNames[i] + '.' + fields[j].toString());
+    function updatePrecisionLabel() {
+        if (srwService.isElectronBeam()) {
+            var precisionLabel = SIREPO.APP_SCHEMA.model.intensityReport.precision[0];
+            if (appState.models.intensityReport.method === "0") {
+                precisionLabel = 'Step Size';
             }
+            $('.model-intensityReport-precision').find('label').text(precisionLabel);
         }
-        return '[' + fieldsList.toString() + ']';
     }
 
-    var electronBeamWatchFields = [
-        'driftCalculationMethod',
-        'beamDefinition',
-        'horizontalEmittance',
-        'horizontalBeta',
-        'horizontalAlpha',
-        'horizontalDispersion',
-        'horizontalDispersionDerivative',
-        'verticalEmittance',
-        'verticalBeta',
-        'verticalAlpha',
-        'verticalDispersion',
-        'verticalDispersionDerivative',
-    ];
-    $scope.$watchCollection(wrapFields(['electronBeam'], electronBeamWatchFields), function (newValues, oldValues) {
-        $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                processBeamParameters();
-            }
-        });
-    });
-
-    $scope.$watch('appState.models.fluxAnimation.method', function (newValue, oldValue) {
-        $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                processFluxMethod(newValue, 'fluxAnimation');
-            }
-        });
-    });
-
-    $scope.$watch('appState.models.intensityReport.method', function (newValue, oldValue) {
-        $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                var precisionLabel = SIREPO.APP_SCHEMA.model.intensityReport.precision[0];
-                if (appState.models.intensityReport.method === "0") {
-                    precisionLabel = 'Step Size';
+    function watchModelFields(modelFields, callback) {
+        modelFields.forEach(function(f) {
+            $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
+                if (angular.isDefined(oldValue) && newValue != oldValue) {
+                    callback();
                 }
-                $('.model-intensityReport-precision').find('label').text(precisionLabel);
-            }
-        });
-    });
-
-    $scope.$watch('appState.models.trajectoryReport.timeMomentEstimation', function (newValues, oldValues) {
-        $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                processTrajectoryReport();
-            }
-        });
-    });
-
-    function processUndulatorWithTimeout(undType) {
-        $timeout(function() {
-            if (srwService.isElectronBeam()) {
-                processUndulator(undType);
-            }
+            });
         });
     }
 
-    $scope.$on('simulation.changed', function() {
-        processUndulatorWithTimeout('u_t');
-    });
+    self.handleModalShown = function(name) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        if (srwService.isGaussianBeam()) {
+            $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').show();
+        }
+        else {
+            $('.model-intensityReport-fieldUnits').closest('.form-group').hide();
+            $('.model-sourceIntensityReport-fieldUnits').closest('.form-group').hide();
+        }
+        if (srwService.isApplicationMode('calculator')) {
+            $('.model-sourceIntensityReport-magneticField').closest('.form-group').hide();
+        }
 
-    $scope.$watch('appState.models.tabulatedUndulator.undulatorType', function (newValue, oldValue) {
-        processUndulatorWithTimeout(newValue);
-    });
+        if (name === 'fluxAnimation') {
+            processFluxMethod();
+        }
+        else if (name === 'intensityReport') {
+            processIntensityReport(name, ['method', 'magneticField']);
+        }
+        else if (name === 'sourceIntensityReport') {
+            processIntensityReport(name, ['magneticField']);
+        }
+        else if (name === 'trajectoryReport') {
+            processTrajectoryReport();
+        }
+        else if (name === 'electronBeam') {
+            processBeamParameters();
+        }
+        else if (name === 'gaussianBeam') {
+            processGaussianBeamSize();
+        }
+    };
 
-    $scope.$watch('appState.models.tabulatedUndulator.magneticFile', function (newValue, oldValue) {
-        if (newValue && oldValue) {
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_undulator_length',
-                    report_model: appState.models.tabulatedUndulator,
-                },
-                function(data) {
-                    appState.models.tabulatedUndulator.length = data.length;
-                }
-            );
+    $scope.$on('modelChanged', function(e, name) {
+        if (name == 'simulation') {
+            processUndulator();
+        }
+        else if (name == 'electronBeam') {
+            updateElectronBeams();
+        }
+        else if (name == 'undulator' || name == 'tabulatedUndulator') {
+            // make sure the electronBeam.drift is also updated
+            appState.saveQuietly('electronBeamPosition');
         }
     });
 
-    function undulatorReportName() {
-        if (srwService.isTabulatedUndulator())
-            return 'tabulatedUndulator';
-        return 'undulator';
-    }
+    watchModelFields(['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamParameters);
 
-    function activeField() {
-        return angular.element(document.activeElement).scope().field;
-    }
-
-    $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['undulatorParameter']), function (newValues, oldValues) {
-        $timeout(function() {
-            if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                if (activeField() === 'undulatorParameter') {
-                    processUndulatorDefinition(undulatorReportName(), 'K');
-                }
-            }
-        });
+    watchModelFields(['electronBeam.name'], function() {
+        // keep beamSelector in sync with name
+        appState.models.electronBeam.beamSelector = appState.models.electronBeam.name;
     });
 
-    $scope.$watchCollection(wrapFields(['undulator', 'tabulatedUndulator'], ['verticalAmplitude', 'period']), function (newValues, oldValues) {
-        $timeout(function() {
-            if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
-                if ((activeField() === 'verticalAmplitude') || (activeField() === 'period') || (typeof(activeField()) === 'undefined')) {
-                    processUndulatorDefinition(undulatorReportName(), 'B');
-                }
+    watchModelFields(['electronBeamPosition.driftCalculationMethod'], function() {
+        recalculateBeam();
+        processBeamParameters();
+    });
+
+    watchModelFields(['electronBeam.horizontalEmittance', 'electronBeam.horizontalBeta', 'electronBeam.horizontalAlpha', 'electronBeam.horizontalDispersion', 'electronBeam.horizontalDispersionDerivative', 'electronBeam.verticalEmittance', 'electronBeam.verticalBeta', 'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion', 'electronBeam.verticalDispersionDerivative'], recalculateBeam);
+
+    watchModelFields(['fluxAnimation.method'], processFluxMethod);
+
+    watchModelFields(['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'simulation.photonEnergy'], function() {
+        if (srwService.isGaussianBeam()) {
+            processGaussianBeamSize();
+        }
+    });
+
+    watchModelFields(['intensityReport.method'], updatePrecisionLabel);
+
+    watchModelFields(['tabulatedUndulator.undulatorType', 'tabulatedUndulator.length', 'tabulatedUndulator.period', 'undulator.length', 'undulator.period', 'simulation.sourceType'], recalculateBeam);
+
+    watchModelFields(['tabulatedUndulator.undulatorType'], processUndulator);
+
+    watchModelFields(['tabulatedUndulator.magneticFile'], function() {
+        requestSender.getApplicationData(
+            {
+                method: 'compute_undulator_length',
+                report_model: appState.models.tabulatedUndulator,
+            },
+            function(data) {
+                appState.models.tabulatedUndulator.length = data.length;
             }
+        );
+    });
+
+    watchModelFields(['trajectoryReport.timeMomentEstimation'], function() {
+        if (srwService.isElectronBeam()) {
+            processTrajectoryReport();
+        }
+    });
+
+    watchModelFields(['undulator.undulatorParameter', 'tabulatedUndulator.undulatorParameter'], function() {
+        if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
+            if (activeField() === 'undulatorParameter') {
+                processUndulatorDefinition(undulatorModelName(), 'K');
+            }
+        }
+    });
+
+    watchModelFields(['undulator.verticalAmplitude', 'undulator.period', 'tabulatedUndulator.verticalAmplitude', 'tabulatedUndulator.period'], function() {
+        if (srwService.isElectronBeam() && (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
+            if ((activeField() === 'verticalAmplitude') || (activeField() === 'period') || (typeof(activeField()) === 'undefined')) {
+                processUndulatorDefinition(undulatorModelName(), 'B');
+            }
+        }
+    });
+
+    appState.whenModelsLoaded($scope, function() {
+        $document.ready(function() {
+            $('#s-electronBeam-basicEditor .model-electronBeam-name input').prop('readonly', true);
+            processUndulator();
         });
     });
 });
@@ -1163,25 +1213,26 @@ SIREPO.app.directive('appFooter', function(appState) {
         controller: function($scope) {
             $scope.appState = appState;
 
-            function updateSimulationGridFields(delay) {
-                if (! appState.isLoaded())
+            function updateSimulationGridFields() {
+                if (! appState.isLoaded()) {
                     return;
+                }
                 var method = appState.models.simulation.samplingMethod;
                 if (parseInt(method) == 1) {
-                    $('.model-simulation-sampleFactor').show(delay);
-                    $('.model-simulation-horizontalPointCount').hide(delay);
-                    $('.model-simulation-verticalPointCount').hide(delay);
+                    $('.model-simulation-sampleFactor').show();
+                    $('.model-simulation-horizontalPointCount').hide();
+                    $('.model-simulation-verticalPointCount').hide();
                 }
                 else {
-                    $('.model-simulation-sampleFactor').hide(delay);
-                    $('.model-simulation-horizontalPointCount').show(delay);
-                    $('.model-simulation-verticalPointCount').show(delay);
+                    $('.model-simulation-sampleFactor').hide();
+                    $('.model-simulation-horizontalPointCount').show();
+                    $('.model-simulation-verticalPointCount').show();
                 }
             }
 
             // hook for sampling method changes
             $scope.nav.handleModalShown = function(name) {
-                updateSimulationGridFields(0);
+                updateSimulationGridFields();
             };
             $scope.$watch('appState.models.simulation.samplingMethod', function (newValue, oldValue) {
                 updateSimulationGridFields(400);
@@ -1291,8 +1342,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             $scope.relatedSimulations = [];
 
             $scope.canCopy = function() {
-                if (srwService.applicationMode == 'calculator' || srwService.applicationMode == 'wavefront')
+                if (srwService.applicationMode == 'calculator' || srwService.applicationMode == 'wavefront') {
                     return false;
+                }
                 return true;
             };
 
@@ -1315,8 +1367,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             };
 
             $scope.hasDocumentationUrl = function() {
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     return appState.models.simulation.documentationUrl;
+                }
                 return false;
             };
 
@@ -1349,14 +1402,16 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             };
 
             $scope.isExample = function() {
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     return appState.models.simulation.isExample;
+                }
                 return false;
             };
 
             $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations'))
+                if ($scope.nav.isActive('simulations')) {
                     return false;
+                }
                 return appState.isLoaded();
             };
 
@@ -1503,7 +1558,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                 return $scope.$parent.beamline.isDefaultMode();
             };
             $scope.showDisableButton = function() {
-                return $scope.$parent.beamline.isDefaultMode();
+                //TODO(pjm): show disable button when feature is implemented
+                // return $scope.$parent.beamline.isDefaultMode();
+                return false;
             };
         },
         link: function(scope, element) {
@@ -1540,8 +1597,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                     hasTouchMove = false;
                 });
                 $(element).bind('touchend', function() {
-                    if (! hasTouchMove)
+                    if (! hasTouchMove) {
                         togglePopover();
+                    }
                     hasTouchMove = false;
                 });
                 $(element).bind('touchmove', function() {
@@ -1575,14 +1633,16 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                     $(element).bind('touchmove', null);
                 }
                 else {
+                    $(element).find('.srw-beamline-image').off();
                     $(element).off();
                 }
                 var el = $(element).find('.srw-beamline-element-label');
                 el.off();
                 var popover = el.data('bs.popover');
                 // popover has a memory leak with $tip user_data which needs to be cleaned up manually
-                if (popover && popover.$tip)
+                if (popover && popover.$tip) {
                     popover.$tip.removeData('bs.popover');
+                }
                 el.popover('destroy');
             });
         },
@@ -1647,8 +1707,9 @@ SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
                     });
             };
             $scope.simulationName = function() {
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     return appState.models.simulation.name;
+                }
                 return '';
             };
         },
@@ -1698,21 +1759,25 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
             $scope.isUploading = false;
             $scope.title = 'Import Python or JSON Simulation File';
             var import_args = $('.srw-python-file-import-args');
-            import_args.hide(0);
+            import_args.hide();
             $scope.fileType = function(pythonFile) {
-                if (typeof(pythonFile) === 'undefined')
+                if (typeof(pythonFile) === 'undefined') {
                     return;
+                }
                 if (pythonFile.name.search('.py') >= 0) {
-                    import_args.show(0);
-                } else {
-                    import_args.hide(0);
+                    import_args.show();
+                }
+                else {
+                    import_args.hide();
                 }
             };
             $scope.importPythonFile = function(pythonFile, importArgs) {
-                if (typeof(importArgs) === 'undefined')
+                if (typeof(importArgs) === 'undefined') {
                     importArgs = '';
-                if (! pythonFile)
+                }
+                if (! pythonFile) {
                     return;
+                }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
                     pythonFile,
@@ -1743,6 +1808,9 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
             $(element).on('show.bs.modal', function() {
                 $('#srw-python-file-import').val(null);
                 scope.fileUploadError = '';
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
             });
         },
     };
@@ -1792,8 +1860,9 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
                     appState.models.simulation.name);
             };
             $scope.simulationName = function() {
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     return appState.models.simulation.name;
+                }
                 return '';
             };
         },
@@ -1872,6 +1941,9 @@ SIREPO.app.directive('tooltipEnabler', function() {
             $('[data-toggle="tooltip"]').tooltip({
                 html: true,
                 placement: 'bottom',
+            });
+            scope.$on('$destroy', function() {
+                $('[data-toggle="tooltip"]').tooltip('destroy');
             });
         },
     };

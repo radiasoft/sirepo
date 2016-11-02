@@ -1,9 +1,23 @@
-# Sirepo
+# ![Sirepo](https://github.com/radiasoft/images/blob/master/sirepo/Sirepo_logo.png)
 
-# THIS IS BETA SOFTWARE
+#### Sirepo brings computational science to the cloud. Develop, run and share your HPC simulations.
 
-Sirepo is a scientific application framework, currently for particle accelator codes.
-Sirepo runs inside a Python web server.
+Sirepo is ready to support the world of scientific computing.
+Today, we support the following HPC physics codes in an [open beta test](https://beta.sirepo.com) on our cloud servers:
+
+[Synchrotron Radiation Workshop](https://beta.sirepo.com/light) (SRW)
+
+SRW computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. SRW is [open source](https://github.com/ochubar/SRW).
+
+[Elegant](https://beta.sirepo.com/elegant)
+
+Elegant simulates charged particle accelerators with a [wide range of features](http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/elegant_latest/elegant.html), including support for nonlinear optimization and design. Elegant is [freely available](http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/software.shtml#elegant) and [open source](http://www.aps.anl.gov/epics/license/open.php).
+
+[Warp](https://beta.sirepo.com/warp#/simulations)
+
+Warp is a particle-in-cell (PIC) code designed to simulate high-intensity charged particle beams and plasmas in both the electrostatic and electromagnetic regimes, with a wide variety of integrated physics models and diagnostics. At present, Sirepo supports a small subset of Warp’s capabilities. Warp is [open source](https://bitbucket.org/berkeleylab/warp/src) and is part of the [Berkeley Lab Accelerator Simulation Toolkit](http://blast.lbl.gov/BLASTcodes_Warp.html).
+
+Sirepo is currently in beta.
 
 You can use our
 [curl installer on your Mac, PC (Cygwin only), or Linux box](https://github.com/radiasoft/download/blob/master/README.md)
@@ -288,4 +302,7 @@ on this URL:
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2015-2016 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2015-2016 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
+
+![RadiaSoft](https://github.com/radiasoft/images/blob/master/corporate/RadiaSoftLogoTransparent.png)
+

@@ -51,6 +51,11 @@
       z-index: 1000;
     }
 
+    /* use body font size, override 12px which changed in 3.3.7 */
+    .form-horizontal .form-group-sm .control-label {
+      font-size: inherit;
+    }
+
     /* app styles */
     .srw-toolbar-button {
         background-color: #fff;
@@ -565,6 +570,9 @@ ul.s-nav-sidebar-root {
 }
 .s-folder-nav {
   font-size: 17px;
+}
+.s-enum-button {
+  min-width: 8em;
 }
 
 .elegant-beamline-element {

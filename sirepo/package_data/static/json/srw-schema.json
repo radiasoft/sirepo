@@ -97,6 +97,10 @@
             ["5", "Circular Right"],
             ["6", "Circular Left"]
         ],
+        "GaussianBeamSizeDefinition": [
+            ["1", "RMS Waist"],
+            ["2", "RMS Divergence"]
+        ],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -182,7 +186,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["g", "Gaussian Beam"]
+            ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
             ["0", "Coordinate"],
@@ -255,16 +259,12 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float"]
         },
         "electronBeam": {
-            "beamSelector": ["Beam Name", "BeamList"],
+            "beamSelector": ["Select Beam", "BeamList"],
             "name": ["Beam Name", "String"],
             "energy": ["Energy [GeV]", "Float"],
             "current": ["Current [A]", "Float"],
             "energyDeviation": ["Average Energy Deviation [GeV]", "Float"],
             "rmsSpread": ["RMS Energy Spread", "Float"],
-            "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Average Vertical Position [mm]", "Float"],
-            "driftCalculationMethod": ["Drift Calculation Method", "DriftCalculationMethod"],
-            "drift": ["Drift [m]", "Float"],
             "beamDefinition": ["Beam Definition by", "BeamDefinition"],
             "horizontalEmittance": ["Horizontal Emittance [nm]", "Float"],
             "horizontalBeta": ["Horizontal Beta [m]", "Float"],
@@ -282,6 +282,12 @@
             "rmsSizeY": ["RMS Size [µm]", "Float"],
             "rmsDivergY": ["RMS Divergence [µrad]", "Float"],
             "xxprY": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"]
+        },
+        "electronBeamPosition": {
+            "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
+            "verticalPosition": ["Average Vertical Position [mm]", "Float"],
+            "driftCalculationMethod": ["Drift Calculation Method", "DriftCalculationMethod"],
+            "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
             "title": ["Element Name", "String"],
@@ -360,8 +366,11 @@
             "waistAngleY": ["Vertical Beam Angle [mrad]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
+            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition"],
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
+            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float"],
+            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float"],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "grating": {
@@ -662,47 +671,52 @@
         "electronBeam": {
             "title": "Electron Beam",
             "basic": [
-                "beamSelector"
+                "name"
             ],
             "advanced": [
-                "name",
-                "energy",
-                "current",
-                "energyDeviation",
-                "rmsSpread",
-                "horizontalPosition",
-                "verticalPosition",
-                "driftCalculationMethod",
-                "drift",
-                "beamDefinition",
-                [
-                    ["Horizontal Twiss Parameters", [
-                        "horizontalEmittance",
-                        "horizontalBeta",
-                        "horizontalAlpha",
-                        "horizontalDispersion",
-                        "horizontalDispersionDerivative"
-                    ]],
-                    ["Vertical Twiss Parameters", [
-                        "verticalEmittance",
-                        "verticalBeta",
-                        "verticalAlpha",
-                        "verticalDispersion",
-                        "verticalDispersionDerivative"
-                    ]]
-                ],
-                [
-                    ["Horizontal Moments", [
-                        "rmsSizeX",
-                        "rmsDivergX",
-                        "xxprX"
-                    ]],
-                    ["Vertical Moments", [
-                        "rmsSizeY",
-                        "rmsDivergY",
-                        "xxprY"
-                    ]]
-                ]
+                ["Main", [
+                    "beamSelector",
+                    "name",
+                    "energy",
+                    "current",
+                    "energyDeviation",
+                    "rmsSpread",
+                    "beamDefinition",
+                    [
+                        ["Horizontal Twiss Parameters", [
+                            "horizontalEmittance",
+                            "horizontalBeta",
+                            "horizontalAlpha",
+                            "horizontalDispersion",
+                            "horizontalDispersionDerivative"
+                        ]],
+                        ["Vertical Twiss Parameters", [
+                            "verticalEmittance",
+                            "verticalBeta",
+                            "verticalAlpha",
+                            "verticalDispersion",
+                            "verticalDispersionDerivative"
+                        ]]
+                    ],
+                    [
+                        ["Horizontal Moments", [
+                            "rmsSizeX",
+                            "rmsDivergX",
+                            "xxprX"
+                        ]],
+                        ["Vertical Moments", [
+                            "rmsSizeY",
+                            "rmsDivergY",
+                            "xxprY"
+                        ]]
+                    ]
+                ]],
+                ["Position", [
+                    "electronBeamPosition.horizontalPosition",
+                    "electronBeamPosition.verticalPosition",
+                    "electronBeamPosition.driftCalculationMethod",
+                    "electronBeamPosition.drift"
+                ]]
             ]
         },
         "ellipsoidMirror": {
@@ -827,7 +841,7 @@
             ]
         },
         "gaussianBeam": {
-            "title": "Gaussian Beam",
+            "title": "Coherent Gaussian Beam",
             "basic": [
                 "simulation.photonEnergy",
                 "energyPerPulse"
@@ -838,14 +852,17 @@
                 "polarization",
                 "rmsPulseDuration",
                 "waistZ",
+                "sizeDefinition",
                 [
                     ["Horizontal", [
                         "rmsSizeX",
+                        "rmsDivergenceX",
                         "waistX",
                         "waistAngleX"
                     ]],
                     ["Vertical", [
                         "rmsSizeY",
+                        "rmsDivergenceY",
                         "waistY",
                         "waistAngleY"
                     ]]

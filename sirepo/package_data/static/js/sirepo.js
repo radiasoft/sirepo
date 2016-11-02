@@ -62,7 +62,9 @@ SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shags
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function(localRoutesProvider, $compileProvider, $routeProvider) {
+    //TODO(pjm): turn off debug info when scope() calls have been replaced
+    //$compileProvider.debugInfoEnabled(false);
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.simulations, {
@@ -143,6 +145,28 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 
     self.applicationState = function() {
         return savedModelValues;
+    };
+
+    self.areFieldsDirty = function(fieldsByModel) {
+        // have any in the list of model fields changed between models and savedModelValues?
+        if (! self.isLoaded()) {
+            return false;
+        }
+        var models = self.models;
+        for (var m in fieldsByModel) {
+            if (models[m]) {
+                if (! savedModelValues[m]) {
+                    return true;
+                }
+                for (var i = 0; i < fieldsByModel[m].length; i++) {
+                    var f = fieldsByModel[m][i];
+                    if (models[m][f] != savedModelValues[m][f]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     };
 
     self.autoSave = function(callback) {
@@ -394,14 +418,13 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                     requireReportUpdate = true;
             }
         }
-
+        // broadcast model changes prior to autoSave, allows for additional model changes before persisting
+        for (i = 0; i < updatedModels.length; i++) {
+            if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
+                continue;
+            broadcastChanged(updatedModels[i]);
+        }
         self.autoSave(function() {
-            for (i = 0; i < updatedModels.length; i++) {
-                if (requireReportUpdate && self.isReportModelName(updatedModels[i]))
-                    continue;
-                broadcastChanged(updatedModels[i]);
-            }
-
             if (requireReportUpdate)
                 updateReports();
         });
@@ -562,9 +585,40 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     }
 
     function getPanelValue(name, key) {
-        if (panels[name] && panels[name][key])
+        if (panels[name] && panels[name][key]) {
             return panels[name][key];
+        }
         return null;
+    }
+
+    function iterateFields(primaryModelName, field, names) {
+        // iterate the view definition and build a {modelName => [field, ...]} map.
+        // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
+        if (typeof(field) == 'string') {
+            var modelField = appState.parseModelField(field);
+            if (! modelField) {
+                modelField = [primaryModelName, field];
+            }
+            if (! names[modelField[0]]) {
+                names[modelField[0]] = [];
+            }
+            names[modelField[0]].push(modelField[1]);
+        }
+        else {
+            var i;
+            // [name, [cols]]
+            if (typeof(field[0]) == 'string') {
+                for (i = 0; i < field[1].length; i++) {
+                    iterateFields(primaryModelName, field[1][i], names);
+                }
+            }
+            // [[name, [cols]], [name, [cols]], ...]
+            else {
+                for (i = 0; i < field.length; i++) {
+                    iterateFields(primaryModelName, field[i], names);
+                }
+            }
+        }
     }
 
     function sendRequest(name, callback, forceRun) {
@@ -590,10 +644,12 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     }
 
     function setPanelValue(name, key, value) {
-        if (! (name || key))
+        if (! (name || key)) {
             throw 'missing name or key';
-        if (! panels[name])
+        }
+        if (! panels[name]) {
             panels[name] = {};
+        }
         panels[name][key] = value;
     }
 
@@ -602,8 +658,9 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     };
 
     self.clear = function(name) {
-        if (name)
+        if (name) {
             clearPanel(name);
+        }
         else {
             for (name in panels)
                 clearPanel(name);
@@ -614,12 +671,23 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return getPanelValue(name, 'error');
     };
 
+    self.getFieldsByModel = function(primaryModelName, fields) {
+        var names = {};
+        names[primaryModelName] = [];
+        for (var i = 0; i < fields.length; i++) {
+            iterateFields(primaryModelName, fields[i], names);
+        }
+        return names;
+    };
+
     self.isHidden = function(name) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return true;
+        }
         var state = appState.applicationState();
-        if (state.panelState)
+        if (state.panelState) {
             return state.panelState.hidden.indexOf(name) >= 0;
+        }
         return false;
     };
 
@@ -628,8 +696,9 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     };
 
     self.requestData = function(name, callback, forceRun) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var data = getPanelValue(name, 'data');
         if (data) {
             callback(data);
@@ -640,8 +709,9 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
                 sendRequest(name, callback, forceRun);
             });
         }
-        else
+        else {
             sendRequest(name, callback, forceRun);
+        }
     };
 
     self.setError = function(name, error) {
@@ -651,11 +721,13 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#s-' + modelKey + '-editor';
 
-        if ($(editorId).length)
+        if ($(editorId).length) {
             $(editorId).modal('show');
+        }
         else {
-            if (! template)
+            if (! template) {
                 template = '<div data-modal-editor="" data-view-name="' + modelKey + '"></div>';
+            }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
             $timeout(function() {
@@ -680,11 +752,13 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
                 requestFunction();
             }
             // needed to resize a hidden report
-            if (appState.isReportModelName(name))
+            if (appState.isReportModelName(name)) {
                 $($window).trigger('resize');
+            }
         }
-        else
+        else {
             state.panelState.hidden.push(name);
+        }
     };
 
     return self;
@@ -692,7 +766,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
 SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _) {
     var self = {};
-    var getApplicationDataTimeout;
+    var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
@@ -766,10 +840,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
 
     self.getApplicationData = function(data, callback) {
         // debounce the method so server calls don't go on every keystroke
-        if (getApplicationDataTimeout)
-            $interval.cancel(getApplicationDataTimeout);
-        getApplicationDataTimeout = $interval(function() {
-            getApplicationDataTimeout = null;
+        if (getApplicationDataTimeout[data.method])
+            $interval.cancel(getApplicationDataTimeout[data.method]);
+        getApplicationDataTimeout[data.method] = $interval(function() {
+            delete getApplicationDataTimeout[data.method];
             data.simulationType = SIREPO.APP_SCHEMA.simulationType;
             self.sendRequest('getApplicationData', callback, data);
         }, 350, 1);
