@@ -283,7 +283,6 @@ def app_root(simulation_type):
         'html/index.html',
         version=simulation_db.app_version(),
         app_name=simulation_type,
-        app_use_new_features=cfg.app_use_new_features,
     )
 
 
@@ -600,11 +599,6 @@ def _cfg_time_limit(value):
     return v
 
 
-def _cfg_new_features(value):
-    """Set JS boolean (``true'' or ``false'')"""
-    return str(value).lower()
-
-
 def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
@@ -840,5 +834,4 @@ cfg = pkconfig.init(
     ),
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
-    app_use_new_features=(False, _cfg_new_features, 'use new (unreleased) features or not'),
 )
