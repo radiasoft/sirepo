@@ -574,6 +574,23 @@ ul.s-nav-sidebar-root {
 .s-enum-button {
   min-width: 8em;
 }
+.s-beam-list-item {
+  position: relative;
+}
+.s-beam-list-item .glyphicon-remove {
+  position: absolute;
+  left: auto;
+  right: 15px;
+  top: 7px;
+  opacity: 0.5;
+}
+li.s-beam-list-item > a {
+  padding-right: 3em;
+}
+.s-beam-list-item .glyphicon-remove:hover {
+  opacity: 1;
+  color: #d9534f;
+}
 
 .elegant-beamline-element {
   float: left;

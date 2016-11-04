@@ -1041,24 +1041,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
             : 'undulator';
     }
 
-    function updateElectronBeams() {
-        var beam = appState.models.electronBeam;
-        var beams = appState.models.electronBeams;
-        if (! beam.isReadOnly) {
-            // update the user defined beam in the electronBeams list
-            for (var i = 0; i < beams.length; i++) {
-                if (beams[i].id == beam.id) {
-                    beams.splice(i, 1, beam);
-                    break;
-                }
-            }
-        }
-        beams.sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
-        appState.saveQuietly('electronBeams');
-    }
-
     function updatePrecisionLabel() {
         if (srwService.isElectronBeam()) {
             var precisionLabel = SIREPO.APP_SCHEMA.model.intensityReport.precision[0];
@@ -1117,9 +1099,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'simulation') {
             processUndulator();
-        }
-        else if (name == 'electronBeam') {
-            updateElectronBeams();
         }
         else if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated

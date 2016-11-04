@@ -68,18 +68,17 @@ _EXAMPLE_FOLDERS = {
 #: Where server files and static files are found
 _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
-with open(str(_STATIC_FOLDER.join('json/beams.json'))) as f:
-    _PREDEFINED_BEAMS = json.load(f)
+_PREDEFINED_BEAMS = simulation_db.read_json(_STATIC_FOLDER.join('json/beams.json'))
 
-with open(str(_STATIC_FOLDER.join('json/mirrors.json'))) as f:
-    _PREDEFINED_MIRRORS = json.load(f)
+_PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.json'))
 
-with open(str(_STATIC_FOLDER.join('json/magnetic_measurements.json'))) as f:
-    _PREDEFINED_MAGNETIC_ZIP_FILES = json.load(f)
+_PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
 
 _SIMULATION_TYPE = 'srw'
 
 _SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
+
+_USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -387,27 +386,30 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'beam_list':
-        for beam in _PREDEFINED_BEAMS:
+        res = []
+        res.extend(_PREDEFINED_BEAMS)
+        res.extend(_load_user_beam_list())
+        for beam in res:
             _process_beam_parameters(beam)
         return {
-            'beamList': _PREDEFINED_BEAMS,
+            'beamList': res
         }
+    if data['method'] == 'delete_beam':
+        return _delete_user_beam(data['id'])
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return _compute_crl_focus(_compute_crl_characteristics(data['optical_element'], data['photon_energy']))
     elif data['method'] == 'compute_fiber_characteristics':
-        model = _compute_crl_characteristics(
-            data['optical_element'],
-            data['photon_energy'],
-            prefix='external',
-        )
-        model = _compute_crl_characteristics(
-            model,
+        return _compute_crl_characteristics(
+            _compute_crl_characteristics(
+                data['optical_element'],
+                data['photon_energy'],
+                prefix='external',
+            ),
             data['photon_energy'],
             prefix='core',
         )
-        return model
     elif data['method'] == 'compute_mask_characteristics':
         return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
     elif data['method'] == 'compute_crystal_init':
@@ -534,6 +536,48 @@ def prepare_aux_files(run_dir, data):
 
 
 def prepare_for_client(data):
+    ebeam = data['models']['electronBeam']
+    if _is_user_defined_beam(ebeam):
+        user_beam_list = _load_user_beam_list()
+        search_beam = None
+        if 'electronBeams' not in data['models']:
+            beams_by_id = _user_beams_map(user_beam_list, 'id')
+            if ebeam['id'] in beams_by_id:
+                search_beam = beams_by_id[ebeam['id']]
+        if search_beam:
+            data['models']['electronBeam'] = search_beam
+        else:
+            pkdc('adding beam: {}', ebeam['name'])
+            if ebeam['name'] in _user_beams_map(user_beam_list, 'name'):
+                ebeam['name'] = _unique_name(user_beam_list, 'name', ebeam['name'] + ' {}')
+                ebeam['beamSelector'] = ebeam['name']
+            ebeam['id'] = _unique_name(user_beam_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
+            user_beam_list.append(ebeam)
+            _save_user_beam_list(user_beam_list)
+            simulation_db.save_simulation_json(_SIMULATION_TYPE, data)
+    if 'electronBeams' in data['models']:
+        del data['models']['electronBeams']
+    return data
+
+
+def prepare_for_save(data):
+    ebeam = data['models']['electronBeam']
+    if _is_user_defined_beam(ebeam):
+        user_beam_list = _load_user_beam_list()
+        beams_by_id = _user_beams_map(user_beam_list, 'id')
+
+        if ebeam['id'] not in beams_by_id:
+            pkdc('adding new beam: {}', ebeam['name'])
+            user_beam_list.append(ebeam)
+            _save_user_beam_list(user_beam_list)
+        elif beams_by_id[ebeam['id']] != ebeam:
+            pkdc('replacing beam: {}: {}', ebeam['id'], ebeam['name'])
+            for i,beam in enumerate(user_beam_list):
+                if beam['id'] == ebeam['id']:
+                    pkdc('found replace beam, id: {}, i: {}', beam['id'], i)
+                    user_beam_list[i] = ebeam
+                    _save_user_beam_list(user_beam_list)
+                    break
     return data
 
 
@@ -628,6 +672,15 @@ def _beamline_element(template, item, fields, propagation, shift=''):
         template.format(*map(lambda x: item[x], fields))
     ), _propagation_params(propagation[str(item['id'])][0], shift)
 
+
+def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
+    if ebeam_position['driftCalculationMethod'] == 'auto':
+        """Calculate drift for ideal undulator."""
+        if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
+            # initial drift = 1/2 undulator length + 2 periods
+            return -0.5 * float(undulator_length) - 2 * float(undulator_period)
+        return 0
+    return ebeam_position['drift']
 
 def _compute_crl_characteristics(model, photon_energy, prefix=''):
     fields_with_prefix = {
@@ -866,6 +919,17 @@ def _crystal_element(template, item, fields, propagation):
         item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
     )
     return res, _propagation_params(propagation[str(item['id'])][0])
+
+
+def _delete_user_beam(id):
+    """Remove the beam with the id from the user beam list file"""
+    user_beam_list = _load_user_beam_list()
+    for i,beam in enumerate(user_beam_list):
+        if beam['id'] == id:
+            del user_beam_list[i]
+            _save_user_beam_list(user_beam_list)
+            break
+    return {}
 
 
 def _find_closest_value(values_list, value):
@@ -1200,7 +1264,7 @@ def _generate_parameters_file(data, plot_reports=False):
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
 
-    if 'isReadOnly' not in data['models']['electronBeam'] or data['models']['electronBeam']['isReadOnly'] is False:
+    if _is_user_defined_beam(data['models']['electronBeam']):
         v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
@@ -1306,18 +1370,22 @@ def _is_background_report(report):
     return 'Animation' in report
 
 
+def _is_user_defined_beam(ebeam):
+    if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
+        return False
+    return True
+
+
 def _is_watchpoint(name):
     return 'watchpointReport' in name
 
 
-def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
-    if ebeam_position['driftCalculationMethod'] == 'auto':
-        """Calculate drift for ideal undulator."""
-        if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
-            # initial drift = 1/2 undulator length + 2 periods
-            return -0.5 * float(undulator_length) - 2 * float(undulator_period)
-        return 0
-    return ebeam_position['drift']
+def _load_user_beam_list():
+    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    if filepath.exists():
+        return simulation_db.read_json(filepath)
+    _save_user_beam_list([])
+    return _load_user_beam_list()
 
 
 def _process_beam_parameters(ebeam):
@@ -1423,8 +1491,36 @@ def _remap_3d(info, allrange, z_label, z_units):
     }
 
 
+def _save_user_beam_list(beam_list):
+    pkdc('saving beam_list')
+    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    #TODO(pjm): want atomic replace?
+    simulation_db.write_json(filepath, beam_list)
+
+
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
+
+
+def _unique_name(items, field, template):
+    #TODO(pjm): this is the same logic as sirepo.js uniqueName()
+    values = {}
+    for item in items:
+        values[item[field]] = True
+    index = 1;
+    while True:
+        found_it = False
+        id = template.replace('{}', str(index))
+        if id in values:
+            index += 1
+        else:
+            return id
+
+def _user_beams_map(beam_list, field):
+    res = {}
+    for beam in beam_list:
+        res[beam[field]] = beam
+    return res
 
 
 def _validate_data(data, schema):

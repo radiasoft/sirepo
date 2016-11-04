@@ -290,15 +290,15 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="BeamList">',
                 '<div class="dropdown" data-ng-class="fieldClass">',
                   '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
-                  '<ul class="dropdown-menu">',
+                  '<ul class="dropdown-menu" style="margin-left: 15px">',
                     '<li class="dropdown-header">Predefined Electron Beams</li>',
-                    '<li data-ng-repeat="item in beamList track by item.name">',
+                    '<li data-ng-repeat="item in beamList | orderBy:\'name\' track by item.name">',
                       '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
                     '</li>',
-                    '<li class="divider"></li>',
-                    '<li class="dropdown-header">User Defined Electron Beams</li>',
-                    '<li data-ng-repeat="item in appState.models.electronBeams track by item.id">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
+                    '<li data-ng-if="userBeamList.length" class="divider"></li>',
+                    '<li data-ng-if="userBeamList.length" class="dropdown-header">User Defined Electron Beams</li>',
+                    '<li data-ng-repeat="item in userBeamList | orderBy:\'name\' track by item.id" class="s-beam-list-item">',
+                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}<span data-ng-show="! srwIsSelectedBeam(item)" data-ng-click="srwDeleteBeam(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
                     '</li>',
                   '</ul>',
                 '</div>',
@@ -362,34 +362,48 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '</div>',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
-                '<div data-ng-if="wantEnumButtons()" class="btn-group">',
+                '<div data-ng-if="wantEnumButtons" class="btn-group">',
                   '<button class="btn btn-primary s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active\': model[field] == item[0]}">{{ item[1] }}</button>',
                 '</div>',
-                '<select data-ng-if="! wantEnumButtons()" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+                '<select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
             '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            $scope.requestSender = requestSender;
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-            var hasLabelSizeOverride = $scope.labelSize ? true : false;
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
-            $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (isNumber($scope.info[1]) ? '3' : '5'));
+            $scope.wantEnumButtons = wantEnumButtons();
+            $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (
+                isNumber($scope.info[1])
+                    ? '3'
+                    : $scope.wantEnumButtons
+                        ? '7'
+                        : '5'
+            ));
 
             function isNumber(type) {
                 return type == 'Integer' || type == 'Float';
             }
-            function srwBeamNameExists(name) {
-                for (var i = 0; i < appState.models.electronBeams.length; i++) {
-                    if (appState.models.electronBeams[i].name == name) {
-                        return true;
+            function wantEnumButtons() {
+                var hasLabelSizeOverride = $scope.labelSize ? true : false;
+                var e = $scope.enum[$scope.info[1]];
+                if (! e || e.length > 3 || hasLabelSizeOverride) {
+                    return false;
+                }
+                var textSize = 0;
+                for (var i = 0; i < e.length; i++) {
+                    textSize += e[i][1].length;
+                    if (textSize > 20){
+                        return false;
                     }
                 }
-                return false;
+                return true;
             }
+
             $scope.elegantBeamlineList = function() {
                 if (! appState.isLoaded() || ! $scope.model)
                     return null;
@@ -442,52 +456,68 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 // copy the current beam, rename and show editor
                 var newBeam = appState.clone(appState.models.electronBeam);
                 delete newBeam.isReadOnly;
-                var copyIndex = 1;
-                while (srwBeamNameExists(newBeam.name + ' (copy ' + copyIndex + ')')) {
-                    copyIndex++;
-                }
-                newBeam.name += ' (copy ' + copyIndex + ')';
-                newBeam.id = appState.maxId(appState.models.electronBeams) + 1;
-                appState.models.electronBeams.push(newBeam);
+                newBeam.name = appState.uniqueName($scope.userBeamList, 'name', newBeam.name + ' (copy {})');
+                newBeam.beamSelector = newBeam.name;
+                newBeam.id = appState.uniqueName($scope.userBeamList, 'id', appState.models.simulation.simulationId + ' {}');
                 appState.models.electronBeam = newBeam;
-                appState.models.electronBeam.beamSelector = newBeam.name;
             };
-            $scope.srwSelectBeam = function(item) {
-                appState.models.electronBeam = item;
-                item[$scope.field] = item.name;
+            $scope.srwDeleteBeam = function(item, $event) {
+                $event.stopPropagation();
+                $event.preventDefault();
+                requestSender.getApplicationData(
+                    {
+                        method: 'delete_beam',
+                        id: item.id,
+                    },
+                    $scope.srwLoadBeamList);
             };
-            $scope.wantEnumButtons = function() {
-                var e = $scope.enum[$scope.info[1]];
-                if (! e || e.length > 3 || hasLabelSizeOverride) {
-                    return false;
-                }
-                var textSize = 0;
-                for (var i = 0; i < e.length; i++) {
-                    textSize += e[i][1].length;
-                    if (textSize > 20){
-                        return false;
-                    }
-                }
-                return true;
+            $scope.srwIsSelectedBeam = function(item) {
+                return item.id == appState.models.electronBeam.id;
             };
-        },
-        link: function link(scope, element) {
-            scope.enum = SIREPO.APP_SCHEMA.enum;
-            if (scope.info && scope.info[1] == 'BeamList') {
-                scope.beamList = [];
-                if (requestSender.beams) {
-                    scope.beamList = requestSender.beams;
-                    return;
-                }
+            $scope.srwLoadBeamList = function() {
                 requestSender.getApplicationData(
                     {
                         method: 'beam_list',
                     },
                     function(data) {
+                        $scope.beamList = [];
+                        $scope.userBeamList = [];
                         if (appState.isLoaded() && data.beamList) {
-                            scope.beamList = data.beamList;
+                            for (var i = 0; i < data.beamList.length; i++) {
+                                var beam = data.beamList[i];
+                                (beam.isReadOnly
+                                 ? $scope.beamList
+                                 : $scope.userBeamList
+                                ).push(beam);
+                            }
                         }
                     });
+            };
+            $scope.srwSelectBeam = function(item) {
+                appState.models.electronBeam = item;
+                item[$scope.field] = item.name;
+            };
+        },
+        link: function link(scope, element) {
+            if (scope.info && scope.info[1] == 'BeamList') {
+                scope.srwLoadBeamList();
+                scope.$on('electronBeam.changed', function() {
+                    var ebeam = appState.models.electronBeam;
+                    if (ebeam.isReadOnly) {
+                        return;
+                    }
+                    var foundIt = false;
+                    for (var i = 0; i < scope.userBeamList.length; i++) {
+                        if (scope.userBeamList[i].id == ebeam.id) {
+                            scope.userBeamList[i].name = ebeam.name;
+                            foundIt = true;
+                            break;
+                        }
+                    }
+                    if (! foundIt) {
+                        scope.userBeamList.push(ebeam);
+                    }
+                });
             }
         },
     };
