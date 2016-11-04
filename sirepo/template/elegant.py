@@ -377,6 +377,10 @@ def prepare_for_client(data):
     return data
 
 
+def prepare_for_save(data):
+    return data
+
+
 def python_source_for_model(data, model):
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:

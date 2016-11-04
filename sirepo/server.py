@@ -339,7 +339,11 @@ def app_save_simulation_data():
     res = _validate_serial(data)
     if res:
         return res
-    data = simulation_db.save_simulation_json(data['simulationType'], data)
+    simulation_type = data['simulationType']
+    data = simulation_db.save_simulation_json(
+        simulation_type,
+        sirepo.template.import_module(simulation_type).prepare_for_save(data),
+    )
     return app_simulation_data(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
