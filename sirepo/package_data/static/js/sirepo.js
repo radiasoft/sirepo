@@ -434,6 +434,26 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         activeFolderPath = path;
     };
 
+    self.uniqueName = function(items, idField, template) {
+        // find a unique name comparing against a list of items
+        // template has {} replaced with a counter, ex. "my name (copy {})"
+        var values = {};
+        for (var i = 0; i < items.length; i++) {
+            values[items[i][idField]] = true;
+        }
+        var index = 1;
+        while (true) {
+            var foundIt = false;
+            var id = template.replace('{}', index);
+            if (values[id]) {
+                index++;
+            }
+            else {
+                return id;
+            }
+        }
+    };
+
     self.viewInfo = function(name) {
         return SIREPO.APP_SCHEMA.view[name];
     };
