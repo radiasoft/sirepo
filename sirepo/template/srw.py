@@ -1045,7 +1045,9 @@ def _generate_beamline_optics(models, last_id):
             if size != 0:
                 res_el += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
                 res_pp += _propagation_params(propagation[str(prev['id'])][1])
-        if item['type'] == 'aperture':
+        if 'isDisabled' in item and item['isDisabled']:
+            pass
+        elif item['type'] == 'aperture':
             el, pp = _beamline_element(
                 'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
                 item,

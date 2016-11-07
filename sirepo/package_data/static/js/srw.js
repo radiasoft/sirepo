@@ -238,6 +238,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             var p = propagation[beamline[i].id];
             if (beamline[i].type != 'watch') {
                 self.propagations.push({
+                    item: beamline[i],
                     title: beamline[i].title,
                     params: p[0],
                 });
@@ -422,6 +423,13 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         }
     };
 
+    self.isDisabledPropagation = function(prop) {
+        if (prop.item) {
+            return prop.item.isDisabled;
+        }
+        return false;
+    };
+
     self.isDefaultMode = function() {
         return srwService.isApplicationMode('default');
     };
@@ -454,11 +462,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
     self.removeElement = function(item) {
         self.dismissPopup();
         appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
-    };
-
-    self.disableElement = function(item) {
-        self.dismissPopup();
-        // appState.models.beamline.splice(appState.models.beamline.indexOf(item), 1);
     };
 
     self.saveBeamlineChanges = function() {
@@ -1526,8 +1529,8 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
         },
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
-            '<span data-ng-if="showDeleteButton()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle"></span>',
-            '<span data-ng-if="showDisableButton()" data-ng-click="disableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
@@ -1537,16 +1540,16 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
             $scope.removeElement = function(item) {
                 $scope.$parent.beamline.removeElement(item);
             };
-            $scope.disableElement = function(item) {
-                $scope.$parent.beamline.disableElement(item);
-            };
-            $scope.showDeleteButton = function() {
+            $scope.showItemButtons = function() {
                 return $scope.$parent.beamline.isDefaultMode();
             };
-            $scope.showDisableButton = function() {
-                //TODO(pjm): show disable button when feature is implemented
-                // return $scope.$parent.beamline.isDefaultMode();
-                return false;
+            $scope.toggleDisableElement = function(item) {
+                if (item.isDisabled) {
+                    delete item.isDisabled;
+                }
+                else {
+                    item.isDisabled = true;
+                }
             };
         },
         link: function(scope, element) {

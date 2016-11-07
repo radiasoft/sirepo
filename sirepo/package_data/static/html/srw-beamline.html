@@ -20,7 +20,7 @@
     <div class="srw-beamline-container">
 
       <div style="display: inline-block" data-ng-repeat="item in beamline.getBeamline() track by item.id">
-        <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.isTouchscreen() ? '' : 'srw-hover' }}">
+        <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.isTouchscreen() ? '' : 'srw-hover' }}" data-ng-class="{'srw-disabled-item': item.isDisabled}">
         </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween($index + 1, $data)">&nbsp;</div>
       </div>
     </div>
@@ -66,7 +66,7 @@
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="initialIntensityReport" data-panel-title="{{ beamline.srwService.getReportTitle('initialIntensityReport') }}"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-repeat="item in beamline.getWatchItems() track by item.id">
+    <div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamline.getWatchItems() track by item.id">
       <div data-watchpoint-report data-item-id="item.id"></div>
     </div>
   </div>
@@ -110,7 +110,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr data-ng-repeat="prop in beamline.propagations track by $index">
+                <tr data-ng-repeat="prop in beamline.propagations track by $index" data-ng-class="{'srw-disabled-item': beamline.isDisabledPropagation(prop)}">
                   <td>{{ prop.title }}</td>
                   <td class="s-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="prop.params[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
                   <td class="s-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="prop.params[1]" data-ng-true-value="1", data-ng-false-value="0"></td>

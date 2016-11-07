@@ -145,6 +145,20 @@
       cursor: default;
       color: #aaa;
     }
+    .srw-disabled-item {
+      background-color: gray;
+    }
+    .table > tbody > tr.srw-disabled-item {
+      background-color: gray;
+    }
+    .table > tbody > tr.srw-disabled-item input,
+    .table > tbody > tr.srw-disabled-item select {
+      background-color: gray;
+      opacity: 0.5;
+    }
+    .srw-disabled-item .srw-beamline-item-icon {
+      opacity: 0.5;
+    }
     .srw-beamline-disable-icon {
       visibility: hidden;
     }
