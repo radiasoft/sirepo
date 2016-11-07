@@ -88,12 +88,13 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
+        percent_data = simulation_db.read_json(str(run_dir.join('srw_mpi')))
         t = int(filename.mtime())
         res.update({
             'frameCount': 1,
             'frameId': t,
             'lastUpdateTime': t,
-            'percentComplete': 100,
+            'percentComplete': percent_data['progress'],
         })
     return res
 

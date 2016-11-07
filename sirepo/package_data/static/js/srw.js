@@ -1867,6 +1867,11 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
         },
         template: [
             '<form name="form" class="form-horizontal" novalidate>',
+
+              '<div class="progress" data-ng-if="isStateProcessing()">',
+                '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
+              '</div>',
+
               '<div data-ng-if="isStateProcessing()">',
                 '<div class="col-sm-6">',
                   '<div data-ng-show="isStatePending()">',
@@ -1899,7 +1904,16 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             '</form>',
         ].join(''),
         controller: function($scope) {
+            $scope.displayPercentComplete = function() {
+                if ($scope.isInitializing() || $scope.isStatePending()) {
+                    return 100;
+                }
+                return $scope.percentComplete;
+            };
             $scope.handleStatus = function(data) {
+                if (data.percentComplete) {
+                    $scope.percentComplete = data.percentComplete;
+                }
                 if (data.frameId && (data.frameId != $scope.frameId)) {
                     $scope.frameId = data.frameId;
                     $scope.frameCount++;
@@ -1917,6 +1931,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                 if ($scope.isReadyForModelChanges) {
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
+                    $scope.percentComplete = 0;
                 }
             });
             $scope.persistentSimulationInit($scope);
