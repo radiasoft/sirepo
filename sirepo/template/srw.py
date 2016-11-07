@@ -1281,7 +1281,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
-    if run_all or _is_watchpoint(report):
+    if run_all or _is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics()')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
