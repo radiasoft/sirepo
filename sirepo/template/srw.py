@@ -74,6 +74,8 @@ _PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.
 
 _PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
 
+_PROGRESS_FILENAME = 'srw_mpi.json'
+
 _SIMULATION_TYPE = 'srw'
 
 _SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
@@ -88,13 +90,16 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
-        percent_data = simulation_db.read_json(str(run_dir.join('srw_mpi')))
+        progress_file = run_dir.join(_PROGRESS_FILENAME)
+        percent_complete = 100
+        if progress_file.exists():
+            percent_complete = simulation_db.read_json(progress_file)['progress']
         t = int(filename.mtime())
         res.update({
             'frameCount': 1,
             'frameId': t,
             'lastUpdateTime': t,
-            'percentComplete': percent_data['progress'],
+            'percentComplete': percent_complete,
         })
     return res
 
