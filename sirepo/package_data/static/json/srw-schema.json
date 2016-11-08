@@ -31,8 +31,9 @@
         "CRLMaterial": [
             ["User-defined", "User-defined"],
             ["Al", "Al"],
-            ["Be", "Be"],
+            ["Au", "Au"],
             ["B", "B"],
+            ["Be", "Be"],
             ["C", "C"],
             ["Cu", "Cu"],
             ["Li", "Li"],
@@ -479,6 +480,17 @@
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"]
+        },
+        "sample": {
+            "title": ["Element Name", "String"],
+            "position": ["Nominal Position [m]", "Float"],
+            "imageFile": ["Image File", "ImageFile"],
+            "resolution": ["Resolution [nm/pixel]", "Float"],
+            "thickness": ["Thickness [µm]", "Float"],
+            "material": ["Material of the mask", "CRLMaterial"],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod"],
+            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", "", "Tooltip"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", "", "Tooltip"]
         },
         "simulation": {
             "name": ["Name", "String"],
@@ -1068,6 +1080,21 @@
                     "method",
                     "precision"
                 ]]
+            ]
+        },
+        "sample": {
+            "title": "Sample",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "imageFile",
+                "resolution",
+                "thickness",
+                "material",
+                "method",
+                "refractiveIndex",
+                "attenuationLength"
             ]
         },
         "simulation": {

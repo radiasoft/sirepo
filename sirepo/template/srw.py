@@ -416,7 +416,7 @@ def get_application_data(data):
             data['photon_energy'],
             prefix='core',
         )
-    elif data['method'] == 'compute_mask_characteristics':
+    elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
@@ -647,6 +647,8 @@ def validate_file(file_type, path):
                 break
         if not is_valid:
             return 'zip file missing txt index file'
+    elif extension.lower() in ['tif', 'tiff']:
+        pass
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -895,7 +897,7 @@ def _copy_lib_files(data, source_lib, target):
     for model in data['models']['beamline']:
         for f in _SCHEMA['model'][model['type']]:
             field_type = _SCHEMA['model'][model['type']][f][1]
-            if model[f] and field_type == 'MirrorFile':
+            if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
                 lib_files.append(model[f])
     for f in lib_files:
         path = target.join(f)
@@ -1162,6 +1164,14 @@ def _generate_beamline_optics(models, last_id):
                 'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
                 item,
                 ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+                propagation)
+            res_el += el
+            res_pp += pp
+        elif item['type'] == 'sample':
+            el, pp = _beamline_element(
+                '''srwl_samples.srwl_opt_setup_transmission_from_image(image_path='{}', resolution={}, thickness={}, delta={}, atten_len={})''',
+                item,
+                ['imageFile', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
                 propagation)
             res_el += el
             res_pp += pp

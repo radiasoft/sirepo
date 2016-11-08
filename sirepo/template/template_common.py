@@ -106,7 +106,7 @@ def validate_model(model_data, model_schema, enum_info):
             v = float(value)
             if re.search('\[m(m|rad)\]', label):
                 v /= 1000
-            elif re.search('\[nm\]', label):
+            elif re.search('\[nm\]', label) or re.search('\[nm/pixel\]', label):
                 v /= 1e09
             elif re.search('\[ps]', label):
                 v /= 1e12
@@ -119,7 +119,7 @@ def validate_model(model_data, model_schema, enum_info):
                 value = 0
             model_data[k] = int(value)
         elif field_type in (
-                'BeamList', 'MirrorFile', 'String', 'OptionalString', 'MagneticZipFile',
+                'BeamList', 'MirrorFile', 'ImageFile', 'String', 'OptionalString', 'MagneticZipFile',
                 'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
                 'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
                 'RPNBoolean',

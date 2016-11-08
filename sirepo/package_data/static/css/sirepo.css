@@ -384,6 +384,14 @@ circle.srw-mask {
   stroke: #fff;
   fill: #fff;
 }
+circle.srw-sample-white {
+  stroke: #fff;
+  fill: #fff;
+}
+circle.srw-sample-black {
+  stroke: #000;
+  fill: #000;
+}
 svg.srw-beamline-item-icon {
   width: 50px;
   height: 60px;
