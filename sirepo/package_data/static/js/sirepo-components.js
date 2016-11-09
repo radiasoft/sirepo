@@ -494,6 +494,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                     });
             };
             $scope.srwSelectBeam = function(item) {
+                item = appState.clone(item);
                 appState.models.electronBeam = item;
                 item[$scope.field] = item.name;
             };
