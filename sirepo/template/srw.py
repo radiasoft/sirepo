@@ -75,6 +75,8 @@ _PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.
 
 _PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
 
+_PREDEFINED_SAMPLE_IMAGES = simulation_db.read_json(_STATIC_FOLDER.join('json/sample_images.json'))
+
 _SIMULATION_TYPE = 'srw'
 
 _SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
@@ -608,6 +610,7 @@ def static_lib_files():
     """
     res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
     res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MAGNETIC_ZIP_FILES]
+    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_SAMPLE_IMAGES]
     return res
 
 
