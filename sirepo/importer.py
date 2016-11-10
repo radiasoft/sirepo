@@ -51,12 +51,13 @@ class SRWParser(object):
         self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
         self.get_files()
         if self.initial_lib_dir:
-            self.replace_files()
+            self.replace_mirror_files()
+            self.replace_image_files()
         try:
             self.optics = getattr(m, self.optics_func_name)(self.var_param)
         except ValueError as e:
             if re.search('could not convert string to float', e.message):
-                self.replace_files('mirror_2d.dat')
+                self.replace_mirror_files('mirror_2d.dat')
                 self.optics = getattr(m, self.optics_func_name)(self.var_param)
 
         self.data = _parsed_dict(self.var_param, self.optics)
@@ -72,7 +73,7 @@ class SRWParser(object):
             if key.find('fdir') >= 0:
                 self.lib_dir = py.path.local(self.var_param.__dict__[key])
 
-    def replace_files(self, mirror_file='mirror_1d.dat'):
+    def replace_mirror_files(self, mirror_file='mirror_1d.dat'):
         for key in self.var_param.__dict__.keys():
             if key.find('_ifn') >= 0:
                 if getattr(self.var_param, key) != '':
@@ -80,7 +81,11 @@ class SRWParser(object):
             if key.find('fdir') >= 0:
                 self.var_param.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
-
+    def replace_image_files(self, image_file='R5.tif'):
+        for key in self.var_param.__dict__.keys():
+            if key.find('op_sample') >= 0:
+                if getattr(self.var_param, key) != '':
+                    self.var_param.__dict__[key] = str(self.lib_dir.join(image_file))
 
 class Struct(object):
     def __init__(self, **entries):
@@ -261,9 +266,21 @@ def _beamline_element(obj, idx, title, elem_type, position):
         for key in ['grazingAngle', 'horizontalTransverseSize', 'verticalTransverseSize']:
             data[key] *= 1000.0
 
+        data['type'] = elem_type
         data['heightProfileFile'] = 'mirror_1d.dat' if elem_type == 'mirror' else 'mirror_2d.dat'
-        # TODO(mrakitin): currently 2D mirror profiles are not supported, need to add support later.
-        data['type'] = 'mirror'
+
+    elif elem_type == 'sample':
+        data['imageFile'] = 'R5.tif'
+        data['material'] = 'User-defined'
+        data['method'] = 'server'
+        keys = ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength']
+        for key in keys:
+            if type(obj.input_parms) == tuple:
+                data[key] = obj.input_parms[0][key]
+            else:
+                data[key] = obj.input_parms[key]
+        data['resolution'] *= 1e9
+        data['thickness'] *= 1e6
 
     elif elem_type == 'sphericalMirror':
         # Fixed values in srw.js:
@@ -315,6 +332,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         'G': 0,  # grating
         'Crystal': 0,
         'Fiber': 0,
+        'Watch': '',
         'Sample': '',
     }
 
@@ -392,9 +410,12 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
                     elem_type = 'fiber'
                     key = 'Fiber'
 
+                elif elem_type == 'sample':
+                    key = 'Sample'
+
             # Last element is Sample:
             if name == 'SRWLOptD' and (i + 1) == num_elements:
-                key = 'Sample'
+                key = 'Watch'
                 elem_type = 'watch'
 
             try:

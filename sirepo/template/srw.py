@@ -1046,6 +1046,7 @@ def _generate_beamline_optics(models, last_id):
     want_final_propagation = True
 
     height_profile_counter = 1
+    sample_counter = 1
     for item in beamline:
         if last_element:
             want_final_propagation = False
@@ -1171,9 +1172,17 @@ def _generate_beamline_optics(models, last_id):
             res_el += el
             res_pp += pp
         elif item['type'] == 'sample':
+            item_copy = copy.deepcopy(item)
+            item_copy['imageFile'] = 'v.op_sample{}'.format(sample_counter)
+            sample_counter += 1
             el, pp = _beamline_element(
-                '''srwl_samples.srwl_opt_setup_transmission_from_image(image_path='{}', resolution={}, thickness={}, delta={}, atten_len={})''',
-                item,
+                '''srwl_samples.srwl_opt_setup_transmission_from_image(
+                  image_path={},
+                  resolution={},
+                  thickness={},
+                  delta={},
+                  atten_len={})''',
+                item_copy,
                 ['imageFile', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
                 propagation)
             res_el += el
@@ -1292,6 +1301,13 @@ def _generate_parameters_file(data, plot_reports=False):
     v[report] = 1
     _add_report_filenames(v)
     v['srwMain'] = _generate_srw_main(report, run_all, plot_reports)
+
+    # Beamline optics defined through the parameters list:
+    v['beamlineOpticsParameters'] = ''
+    for i, el in enumerate(data['models']['beamline']):
+        if el['type'] == 'sample':
+            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'image file of the sample #{0}'],'''.format(i+1, el['imageFile'])
+
     return pkjinja.render_resource('srw.py', v)
 
 
@@ -1301,7 +1317,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
     if run_all or _is_watchpoint(report) or report == 'multiElectronAnimation':
-        content.append('op = set_optics()')
+        content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
         content.append('op = None')
