@@ -266,7 +266,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         for key in ['grazingAngle', 'horizontalTransverseSize', 'verticalTransverseSize']:
             data[key] *= 1000.0
 
-        data['type'] = elem_type
+        data['type'] = 'mirror'
         data['heightProfileFile'] = 'mirror_1d.dat' if elem_type == 'mirror' else 'mirror_2d.dat'
 
     elif elem_type == 'sample':
