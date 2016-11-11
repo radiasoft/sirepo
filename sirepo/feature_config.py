@@ -22,7 +22,7 @@ def for_sim_type(sim_type):
     Returns:
         dict: application specific config
     """
-    if not sim_type in cfg:
+    if sim_type not in cfg:
         return {}
     return pkcollections.map_to_dict(cfg[sim_type])
 
@@ -38,5 +38,6 @@ def _cfg_bool(value):
 cfg = pkconfig.init(
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the mask element in toolbar'),
+        sample_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the sample element in toolbar'),
     ),
 )

@@ -75,6 +75,8 @@ _PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.
 
 _PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
 
+_PREDEFINED_SAMPLE_IMAGES = simulation_db.read_json(_STATIC_FOLDER.join('json/sample_images.json'))
+
 _SIMULATION_TYPE = 'srw'
 
 _SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
@@ -422,7 +424,7 @@ def get_application_data(data):
             data['photon_energy'],
             prefix='core',
         )
-    elif data['method'] == 'compute_mask_characteristics':
+    elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
@@ -614,6 +616,7 @@ def static_lib_files():
     """
     res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
     res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MAGNETIC_ZIP_FILES]
+    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_SAMPLE_IMAGES]
     return res
 
 
@@ -653,6 +656,8 @@ def validate_file(file_type, path):
                 break
         if not is_valid:
             return 'zip file missing txt index file'
+    elif extension.lower() in ['tif', 'tiff']:
+        pass
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -901,7 +906,7 @@ def _copy_lib_files(data, source_lib, target):
     for model in data['models']['beamline']:
         for f in _SCHEMA['model'][model['type']]:
             field_type = _SCHEMA['model'][model['type']][f][1]
-            if model[f] and field_type == 'MirrorFile':
+            if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
                 lib_files.append(model[f])
     for f in lib_files:
         path = target.join(f)
@@ -1047,6 +1052,7 @@ def _generate_beamline_optics(models, last_id):
     want_final_propagation = True
 
     height_profile_counter = 1
+    sample_counter = 1
     for item in beamline:
         if last_element:
             want_final_propagation = False
@@ -1171,6 +1177,22 @@ def _generate_beamline_optics(models, last_id):
                 propagation)
             res_el += el
             res_pp += pp
+        elif item['type'] == 'sample':
+            item_copy = copy.deepcopy(item)
+            item_copy['imageFile'] = 'v.op_sample{}'.format(sample_counter)
+            sample_counter += 1
+            el, pp = _beamline_element(
+                '''srwl_samples.srwl_opt_setup_transmission_from_image(
+                  image_path={},
+                  resolution={},
+                  thickness={},
+                  delta={},
+                  atten_len={})''',
+                item_copy,
+                ['imageFile', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
+                propagation)
+            res_el += el
+            res_pp += pp
         elif item['type'] == 'sphericalMirror':
             el, pp = _beamline_element(
                 'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
@@ -1285,6 +1307,15 @@ def _generate_parameters_file(data, plot_reports=False):
     v[report] = 1
     _add_report_filenames(v)
     v['srwMain'] = _generate_srw_main(report, run_all, plot_reports)
+
+    # Beamline optics defined through the parameters list:
+    v['beamlineOpticsParameters'] = ''
+    sample_counter = 1
+    for el in data['models']['beamline']:
+        if el['type'] == 'sample':
+            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'image file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
+            sample_counter += 1
+
     return pkjinja.render_resource('srw.py', v)
 
 
@@ -1294,7 +1325,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
     if run_all or _is_watchpoint(report) or report == 'multiElectronAnimation':
-        content.append('op = set_optics()')
+        content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
         content.append('op = None')

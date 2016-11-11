@@ -7,6 +7,7 @@ flower==0.8.4
 kombu==3.0.35
 numconv
 numpy
+pillow
 psycopg2
 pyIsEmail
 pykern
