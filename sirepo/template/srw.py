@@ -1304,9 +1304,11 @@ def _generate_parameters_file(data, plot_reports=False):
 
     # Beamline optics defined through the parameters list:
     v['beamlineOpticsParameters'] = ''
-    for i, el in enumerate(data['models']['beamline']):
+    sample_counter = 1
+    for el in data['models']['beamline']:
         if el['type'] == 'sample':
-            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'image file of the sample #{0}'],'''.format(i+1, el['imageFile'])
+            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'image file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
+            sample_counter += 1
 
     return pkjinja.render_resource('srw.py', v)
 
