@@ -91,15 +91,21 @@ def background_percent_complete(report, run_dir, is_running, schema):
     if filename.exists():
         status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
         progress_file = py.path.local(status_files[-1])
-        percent_complete = 100
+        status = {
+            'progress': 100,
+            'particle_number': 0,
+            'total_num_of_particles': 0,
+        }
         if progress_file.exists():
-            percent_complete = simulation_db.read_json(progress_file)['progress']
+            status = simulation_db.read_json(progress_file)
         t = int(filename.mtime())
         res.update({
             'frameCount': 1,
             'frameId': t,
             'lastUpdateTime': t,
-            'percentComplete': percent_complete,
+            'percentComplete': status['progress'],
+            'particleNumber': status['particle_number'],
+            'particleCount': status['total_num_of_particles'],
         })
     return res
 

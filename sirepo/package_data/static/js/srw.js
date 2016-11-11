@@ -1867,7 +1867,6 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
         },
         template: [
             '<form name="form" class="form-horizontal" novalidate>',
-
               '<div class="progress" data-ng-if="isStateProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
               '</div>',
@@ -1882,6 +1881,9 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                   '</div>',
                   '<div data-ng-show="isStateRunning() && ! isInitializing()">',
                     '{{ stateAsText() }} {{ dots }}',
+                    '<div data-ng-show="! isStatePending() && particleNumber">',
+                      'Completed particle: {{ particleNumber }} / {{ particleCount}}',
+                    '</div>',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
                 '</div>',
@@ -1893,6 +1895,9 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                 '<div class="col-sm-6">',
                   'Simulation ',
                   '<span>{{ stateAsText() }}</span>',
+                  '<div data-ng-show="! isStatePending() && ! isInitializing() && particleNumber">',
+                    'Completed particle: {{ particleNumber }} / {{ particleCount}}',
+                  '</div>',
                   '<div>',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
@@ -1913,6 +1918,8 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             $scope.handleStatus = function(data) {
                 if (data.percentComplete) {
                     $scope.percentComplete = data.percentComplete;
+                    $scope.particleNumber = data.particleNumber;
+                    $scope.particleCount = data.particleCount;
                 }
                 if (data.frameId && (data.frameId != $scope.frameId)) {
                     $scope.frameId = data.frameId;
@@ -1932,6 +1939,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
                     $scope.percentComplete = 0;
+                    $scope.particleNumber = 0;
                 }
             });
             $scope.persistentSimulationInit($scope);
