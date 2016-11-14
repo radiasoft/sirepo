@@ -26,6 +26,7 @@ _TESTS = {  # Values are optional arguments:
     'exported_undulator_radiation': ('exported_undulator_radiation', None),
     'lcls_simplified': ('lcls_simplified', None),
     'lcls_sxr': ('lcls_sxr', None),
+    'sample_from_image': ('sample_from_image', None),
     'smi_es1_bump_norm': ('smi', '--beamline ES1 --bump --BMmode Norm'),
     'smi_es1_nobump': ('smi', '--beamline ES1'),
     'smi_es2_bump_lowdiv': ('smi', '--beamline ES2 --bump --BMmode LowDiv'),
@@ -44,6 +45,7 @@ def test_importer():
         work_dir = py.path.local('.')
         for f in glob.glob(str(dat_dir.join('mirror_*d.dat'))):
             py.path.local(f).copy(work_dir)
+        py.path.local(str(dat_dir.join('R5.tif'))).copy(work_dir)
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
             code = pkio.read_text(pkunit.data_dir().join(base_py))

@@ -182,6 +182,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'ellipsoidMirror', title:'Ellipsoid Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
         {type:'watch', title:'Watchpoint'},
+        {type:'sample', title:'Sample', imageFile:'H5.tif', resolution:2.480469, thickness:10, material:'Au', method:'server', refractiveIndex:3.23075074E-05, attenuationLength:4.06544e-6, show: SIREPO.APP_SCHEMA.feature_config.sample_in_toolbar}
     ];
     self.toolbarItems = [];
     for (var i = 0; i < toolbarItems.length; i++) {
@@ -327,6 +328,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
                 SIREPO.APP_SCHEMA.model.fiber.externalAttenuationLength[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.coreRefractiveIndex[3] = msg;
                 SIREPO.APP_SCHEMA.model.fiber.coreAttenuationLength[3] = msg;
+                SIREPO.APP_SCHEMA.model.sample.refractiveIndex[3] = msg;
+                SIREPO.APP_SCHEMA.model.sample.attenuationLength[3] = msg;
         }
     }
 
@@ -653,49 +656,52 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
         }
     });
 
-    var maskFields = [
+    var deltaAttenFields = [
         'method',
         'material',
     ];
-    function computeMaskCharacteristics() {
+    function computeDeltaAttenCharacteristics() {
         var item = self.activeItem;
-        if (item.type === 'mask') {
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_mask_characteristics',
-                    optical_element: item,
-                    photon_energy: appState.models.simulation.photonEnergy,
-                },
-                function(data) {
-                    var fields = [
-                        'refractiveIndex', 'attenuationLength',
-                    ];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = parseFloat(data[fields[i]]);
-                        if (item[fields[i]] < 1e-3) {
-                            item[fields[i]] = item[fields[i]].toExponential(6);
-                        }
-                        else if (item[fields[i]] === 1) {
-                            // pass
-                        }
-                        else {
-                            item[fields[i]] = item[fields[i]].toFixed(6);
-                        }
+        requestSender.getApplicationData(
+            {
+                method: 'compute_delta_atten_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                var fields = [
+                    'refractiveIndex', 'attenuationLength',
+                ];
+                for (var i = 0; i < fields.length; i++) {
+                    item[fields[i]] = parseFloat(data[fields[i]]);
+                    if (item[fields[i]] < 1e-3) {
+                        item[fields[i]] = item[fields[i]].toExponential(6);
+                    }
+                    else if (item[fields[i]] === 1) {
+                        // pass
+                    }
+                    else {
+                        item[fields[i]] = item[fields[i]].toFixed(6);
                     }
                 }
-            );
-        }
+            }
+        );
     }
-    $scope.$watchCollection(wrapActiveItem(maskFields), function (newValues, oldValues) {
-        var maskMethodFormGroup = $('div.model-mask-method').closest('.form-group');
-        if (newValues[1] === 'User-defined') {
-            maskMethodFormGroup.hide();
-        }
-        else {
-            maskMethodFormGroup.show();
-        }
-        if (checkDefined(newValues)) {
-            computeMaskCharacteristics();
+    $scope.$watchCollection(wrapActiveItem(deltaAttenFields), function (newValues, oldValues) {
+        if (self.activeItem) {
+            var item = self.activeItem;
+            if (item.type === 'mask' || item.type === 'sample') {
+                var methodFormGroup = $('div.model-' + item.type + '-method').closest('.form-group');
+                if (newValues[1] === 'User-defined') {
+                    methodFormGroup.hide();
+                }
+                else {
+                    methodFormGroup.show();
+                }
+                if (checkDefined(newValues)) {
+                    computeDeltaAttenCharacteristics();
+                }
+            }
         }
     });
 
@@ -1517,6 +1523,17 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<circle cx="25" cy="30" r="10" class="srw-watch" />',
                 '<circle cx="25" cy="30" r="4" class="srw-watch-pupil" />',
               '</g>',
+              '<g data-ng-switch-when="sample">',
+                '<rect x="2" y="10" width="60", height="60" />',
+                '<circle cx="26" cy="35" r="18" class="srw-sample-white" />',
+                '<circle cx="26" cy="35" r="16" class="srw-sample-black" />',
+                '<circle cx="26" cy="35" r="14" class="srw-sample-white" />',
+                '<circle cx="26" cy="35" r="12" class="srw-sample-black" />',
+                '<circle cx="26" cy="35" r="10" class="srw-sample-white" />',
+                '<circle cx="26" cy="35" r="8" class="srw-sample-black" />',
+                '<circle cx="26" cy="35" r="6" class="srw-sample-white" />',
+                '<circle cx="26" cy="35" r="4" class="srw-sample-black" />',
+              '</g>',
             '</svg>',
         ].join(''),
     };
@@ -1867,7 +1884,6 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
         },
         template: [
             '<form name="form" class="form-horizontal" novalidate>',
-
               '<div class="progress" data-ng-if="isStateProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
               '</div>',
@@ -1882,6 +1898,9 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                   '</div>',
                   '<div data-ng-show="isStateRunning() && ! isInitializing()">',
                     '{{ stateAsText() }} {{ dots }}',
+                    '<div data-ng-show="! isStatePending() && particleNumber">',
+                      'Completed particle: {{ particleNumber }} / {{ particleCount}}',
+                    '</div>',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
                 '</div>',
@@ -1893,6 +1912,9 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                 '<div class="col-sm-6">',
                   'Simulation ',
                   '<span>{{ stateAsText() }}</span>',
+                  '<div data-ng-show="! isStatePending() && ! isInitializing() && particleNumber">',
+                    'Completed particle: {{ particleNumber }} / {{ particleCount}}',
+                  '</div>',
                   '<div>',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
@@ -1913,6 +1935,8 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             $scope.handleStatus = function(data) {
                 if (data.percentComplete) {
                     $scope.percentComplete = data.percentComplete;
+                    $scope.particleNumber = data.particleNumber;
+                    $scope.particleCount = data.particleCount;
                 }
                 if (data.frameId && (data.frameId != $scope.frameId)) {
                     $scope.frameId = data.frameId;
@@ -1932,6 +1956,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
                     $scope.percentComplete = 0;
+                    $scope.particleNumber = 0;
                 }
             });
             $scope.persistentSimulationInit($scope);

@@ -176,7 +176,12 @@ def app_file_list(simulation_type, simulation_id, file_type):
     res = []
     #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        search = ['*.dat', '*.txt'] if file_type == 'mirror' else ['*.zip']
+        if file_type == 'mirror':
+            search = ['*.dat', '*.txt']
+        elif file_type == 'sample':
+            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF']
+        else:
+            search = ['*.zip']
     else:
         search = ['{}.*'.format(file_type)]
     d = simulation_db.simulation_lib_dir(simulation_type)
