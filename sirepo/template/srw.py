@@ -914,7 +914,7 @@ def _copy_lib_files(data, source_lib, target):
                     lib_files.append(model[f])
     for f in lib_files:
         path = target.join(f)
-        if not path.exists():
+        if source_lib.join(f).exists() and not path.exists():
             shutil.copy(str(source_lib.join(f)), str(path))
 
 
