@@ -907,7 +907,11 @@ def _copy_lib_files(data, source_lib, target):
         for f in _SCHEMA['model'][model['type']]:
             field_type = _SCHEMA['model'][model['type']][f][1]
             if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
-                lib_files.append(model[f])
+                if field_type == 'ImageFile':
+                    if re.search('watchpointReport', data['report']):
+                        lib_files.append(model[f])
+                else:
+                    lib_files.append(model[f])
     for f in lib_files:
         path = target.join(f)
         if not path.exists():
