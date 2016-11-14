@@ -138,13 +138,17 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         fixFormat: function(scope, axis) {
             var format = d3.format('.3s');
+            var format2 = d3.format('.2f');
             // amounts near zero may appear as NNNz, change them to 0
             return function(n) {
+                var units = scope[axis + 'units'];
+                if (! units) {
+                    return format2(n);
+                }
                 var v = format(n);
                 if ((v && v.indexOf('z') > 0) || v == '0.00')
                     return '0';
                 v = cleanNumber(v);
-                var units = scope[axis + 'units'] || '';
                 return v + units;
             };
         },

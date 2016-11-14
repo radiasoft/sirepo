@@ -35,7 +35,7 @@ _FIELD_LABEL = {
     'y': 'y [m]',
     'yp': "y' [rad]",
     't': 't [s]',
-    'p': '(p - p₀)/p₀ [eV]',
+    'p': 'p (mₑc)',
     's': 's [m]',
     'LinearDensity': 'Linear Density [C/s]',
     'LinearDensityDeriv': 'LinearDensityDeriv [C/s²]',
@@ -60,8 +60,6 @@ _STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 _SIMULATION_TYPE = 'elegant'
 
 _SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
-
-_ELEGANT_ME_EV = _SCHEMA['constant']['ELEGANT_ME_EV']
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -120,12 +118,7 @@ def extract_report_data(filename, data, p_central_mev, page_index):
         x = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(xfield))
     except SystemError as e:
         return _sdds_error('no data for page {}'.format(page_index))
-
-    if xfield == 'p':
-        x = _scale_p(x, p_central_mev)
     y = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(yfield))
-    if yfield == 'p':
-        y = _scale_p(y, p_central_mev)
 
     if _is_2d_plot(column_names):
         # 2d plot
@@ -850,11 +843,6 @@ def _plot_title(xfield, yfield, page_index):
     if page_index:
         title += ', Plot ' + str(page_index + 1)
     return title
-
-
-def _scale_p(points, p_central_mev):
-    p_central_ev = float(p_central_mev) * 1e6
-    return (np.array(points) * _ELEGANT_ME_EV - p_central_ev).tolist()
 
 
 def _sdds_error(error_text='invalid data file'):
