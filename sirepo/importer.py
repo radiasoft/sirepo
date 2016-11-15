@@ -606,6 +606,9 @@ def _parsed_dict(v, op):
         'sampleFactor': 0,
     }
 
+    with open(str(static_json_dir + '/beams.json'), 'r') as f:
+        predefined_beams = json.load(f)
+
     # Default electron beam:
     if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):
         source_type = 'u'
@@ -613,13 +616,11 @@ def _parsed_dict(v, op):
             v.ebm_nms = 'Day 1'
         full_beam_name = '{}{}'.format(v.ebm_nm, v.ebm_nms)
         electronBeam = {}
-        with open(str(static_json_dir + '/beams.json'), 'r') as f:
-            predefined_beams = json.load(f)
-            for b in predefined_beams:
-                if b['name'] == full_beam_name:
-                    electronBeam = b
-                    electronBeam['beamSelector'] = full_beam_name
-                    break
+        for b in predefined_beams:
+            if b['name'] == full_beam_name:
+                electronBeam = b
+                electronBeam['beamSelector'] = full_beam_name
+                break
         if not electronBeam:
             electronBeam = {
                 'beamSelector': full_beam_name,
@@ -670,37 +671,26 @@ def _parsed_dict(v, op):
 
     else:
         source_type = 'g'
-        electronBeam = {
-            'beamSelector': None,
-            'current': None,
-            'energy': None,
-            'energyDeviation': None,
-            'horizontalAlpha': None,
-            'horizontalBeta': 1.0,
-            'horizontalDispersion': None,
-            'horizontalDispersionDerivative': None,
-            'horizontalEmittance': None,
-            'horizontalPosition': None,
-            'isReadOnly': False,
-            'name': None,
-            'rmsSpread': None,
-            'verticalAlpha': None,
-            'verticalBeta': 1.0,
-            'verticalDispersion': None,
-            'verticalDispersionDerivative': None,
-            'verticalEmittance': None,
-            'verticalPosition': None,
-        }
+        electronBeam = {}
+        default_ebeam_name = 'NSLS-II Low Beta Final'
+        for beam in predefined_beams:
+            if beam['name'] == default_ebeam_name:
+                electronBeam = beam
+                electronBeam['beamSelector'] = default_ebeam_name
+                break
+        if not electronBeam:
+            raise ValueError('Electron beam is not set during import')
         undulator = {
-            'horizontalAmplitude': None,
-            'horizontalInitialPhase': None,
-            'horizontalSymmetry': 1,
-            'length': None,
-            'longitudinalPosition': None,
-            'period': None,
-            'verticalAmplitude': None,
-            'verticalInitialPhase': None,
-            'verticalSymmetry': 1,
+            "horizontalAmplitude": "0",
+            "horizontalInitialPhase": 0,
+            "horizontalSymmetry": 1,
+            "length": 3,
+            "longitudinalPosition": 0,
+            "period": "20",
+            "undulatorParameter": 1.65776086,
+            "verticalAmplitude": "0.88770981",
+            "verticalInitialPhase": 0,
+            "verticalSymmetry": -1,
         }
 
         gaussianBeam = {
