@@ -805,7 +805,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, requestSender, $scope, persistentSimulation) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
     self.model = 'animation';
     self.progress = null;
@@ -1017,6 +1017,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.outputFiles = [];
         // caching is currently controlled by simulationSerial - need it to update before running simulation
         appState.saveQuietly('simulation');
+        //TODO(pjm): need to update run_setup.use_beamline, saveChanges() triggers clearCache which breaks the running simulation
+        $rootScope.$broadcast('simulation.changed');
+        $rootScope.$broadcast('modelChanged', 'simulation');
         appState.autoSave(function() {
             self.originalRunSimulation.apply(this, arguments);
         });
