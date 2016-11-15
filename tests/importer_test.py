@@ -46,7 +46,7 @@ def test_importer():
         work_dir = py.path.local('.')
         for f in glob.glob(str(dat_dir.join('mirror_*d.dat'))):
             py.path.local(f).copy(work_dir)
-        py.path.local(str(dat_dir.join('H5.tif'))).copy(work_dir)
+        py.path.local(str(dat_dir.join('sample.tif'))).copy(work_dir)
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
             code = pkio.read_text(pkunit.data_dir().join(base_py))

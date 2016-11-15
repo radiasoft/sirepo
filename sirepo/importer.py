@@ -81,7 +81,7 @@ class SRWParser(object):
             if key.find('fdir') >= 0:
                 self.var_param.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
-    def replace_image_files(self, image_file='H5.tif'):
+    def replace_image_files(self, image_file='sample.tif'):
         for key in self.var_param.__dict__.keys():
             if key.find('op_sample') >= 0:
                 if getattr(self.var_param, key) != '':
@@ -270,7 +270,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['heightProfileFile'] = 'mirror_1d.dat' if elem_type == 'mirror' else 'mirror_2d.dat'
 
     elif elem_type == 'sample':
-        data['imageFile'] = 'H5.tif'
+        data['imageFile'] = 'sample.tif'
         data['material'] = 'User-defined'
         data['method'] = 'server'
         keys = ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength']
