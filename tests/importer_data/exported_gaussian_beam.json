@@ -2,46 +2,25 @@
     "models": {
         "beamline": [
             {
-                "firstFocusLength": 120,
-                "focalLength": 1.7000000000000028,
-                "grazingAngle": 14.0,
-                "heightAmplification": 1,
-                "heightProfileFile": null,
+                "horizontalOffset": 0.0,
+                "horizontalSize": 1.0,
                 "id": 1,
-                "normalVectorX": 0,
-                "normalVectorY": 0.9999020016006562,
-                "normalVectorZ": -0.013999542671148512,
-                "orientation": "x",
-                "position": 120.0,
-                "sagittalSize": 0.01,
-                "tangentialSize": 0.5,
-                "tangentialVectorX": 0,
-                "tangentialVectorY": -0.013999542671148512,
-                "title": "M1",
-                "type": "ellipsoidMirror"
+                "position": 0.5,
+                "shape": "r",
+                "title": "S1",
+                "type": "aperture",
+                "verticalOffset": 0.0,
+                "verticalSize": 1.0
             },
             {
-                "firstFocusLength": 120.6,
-                "focalLength": 1.1000000000000085,
-                "grazingAngle": 14.0,
-                "heightAmplification": 1,
-                "heightProfileFile": null,
                 "id": 2,
-                "normalVectorX": 0.9999020016006562,
-                "normalVectorY": 0,
-                "normalVectorZ": -0.013999542671148512,
-                "orientation": "x",
-                "position": 120.6,
-                "sagittalSize": 0.01,
-                "tangentialSize": 0.5,
-                "tangentialVectorX": -0.013999542671148512,
-                "tangentialVectorY": 0,
-                "title": "M2",
-                "type": "ellipsoidMirror"
+                "position": 0.52,
+                "title": "AUX1",
+                "type": "watch"
             },
             {
                 "id": 3,
-                "position": 121.7,
+                "position": 4.0,
                 "title": "Watch",
                 "type": "watch"
             }
@@ -71,7 +50,7 @@
         "electronBeams": [],
         "fluxReport": {
             "azimuthalPrecision": 1.0,
-            "distanceFromSource": 120,
+            "distanceFromSource": 0.5,
             "finalEnergy": 20000.0,
             "fluxType": 1,
             "horizontalApertureSize": 1.0,
@@ -86,9 +65,9 @@
         "gaussianBeam": {
             "energyPerPulse": 0.001,
             "polarization": 1,
-            "rmsPulseDuration": 0.01,
-            "rmsSizeX": 40.0,
-            "rmsSizeY": 40.0,
+            "rmsPulseDuration": 0.1,
+            "rmsSizeX": 1000.0,
+            "rmsSizeY": 1000.0,
             "waistAngleX": 0.0,
             "waistAngleY": 0.0,
             "waistX": 0.0,
@@ -103,22 +82,22 @@
             "sampleFactor": 0
         },
         "intensityReport": {
-            "distanceFromSource": 120,
+            "distanceFromSource": 0.5,
             "fieldUnits": 1,
-            "finalEnergy": 1241.0,
+            "finalEnergy": 20000.0,
             "horizontalPosition": 0.0,
-            "initialEnergy": 1239.0,
-            "photonEnergyPointCount": 200,
+            "initialEnergy": 100.0,
+            "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0.0
         },
         "multiElectronAnimation": {
             "horizontalPosition": 0,
-            "horizontalRange": 2.0,
+            "horizontalRange": 8.0,
             "stokesParameter": "0",
             "verticalPosition": 0,
-            "verticalRange": 2.0
+            "verticalRange": 8.0
         },
         "multipole": {
             "distribution": "n",
@@ -129,19 +108,16 @@
         "postPropagation": [
             0,
             0,
-            1,
-            0,
-            0,
-            1.0,
-            1.0,
-            1.0,
             1.0,
             0,
             0,
-            0
+            0.075,
+            1.0,
+            0.075,
+            1.0
         ],
         "powerDensityReport": {
-            "distanceFromSource": 120,
+            "distanceFromSource": 0.5,
             "horizontalPointCount": 100,
             "horizontalPosition": 0.0,
             "horizontalRange": 15.0,
@@ -156,76 +132,61 @@
                 [
                     0,
                     0,
-                    1,
-                    1,
-                    0,
-                    1.1,
-                    6.0,
-                    1.1,
-                    6.0,
+                    1.0,
                     0,
                     0,
-                    0
+                    0.3,
+                    5.0,
+                    0.3,
+                    5.0
                 ],
                 [
                     0,
                     0,
-                    1,
-                    1,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
                     1.0,
                     0,
                     0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ]
             ],
             "2": [
                 [
                     0,
                     0,
-                    1,
-                    1,
-                    0,
-                    1.0,
-                    1.0,
-                    1.0,
                     1.0,
                     0,
                     0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 [
                     0,
                     0,
-                    1,
-                    1,
+                    1.0,
+                    3,
                     0,
+                    4.0,
                     1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
+                    4.0,
+                    1.0
                 ]
             ],
             "3": [
                 [
                     0,
                     0,
-                    1,
-                    1,
+                    1.0,
+                    3,
                     0,
+                    4.0,
                     1.0,
-                    1.0,
-                    1.0,
-                    1.0,
-                    0,
-                    0,
-                    0
+                    4.0,
+                    1.0
                 ],
                 [
                     0,
@@ -242,23 +203,23 @@
         },
         "simulation": {
             "facility": "Import",
-            "horizontalPointCount": 100,
+            "horizontalPointCount": 200,
             "horizontalPosition": 0.0,
-            "horizontalRange": 2.0,
+            "horizontalRange": 8.0,
             "isExample": 0,
-            "name": "lcls_simplified (imported)",
-            "photonEnergy": 1240.0,
+            "name": "exported_gaussian_beam (imported)",
+            "photonEnergy": 1.95251,
             "sampleFactor": 1.0,
             "samplingMethod": 1,
             "simulationId": "",
             "sourceType": "g",
-            "verticalPointCount": 100,
+            "verticalPointCount": 200,
             "verticalPosition": 0.0,
-            "verticalRange": 2.0
+            "verticalRange": 8.0
         },
         "sourceIntensityReport": {
             "characteristic": 0,
-            "distanceFromSource": 120,
+            "distanceFromSource": 0.5,
             "fieldUnits": 1,
             "polarization": 6
         },
@@ -273,6 +234,13 @@
             "verticalAmplitude": "0.88770981",
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
+        },
+        "watchpointReport2": {
+            "characteristic": 0,
+            "fieldUnits": 1,
+            "polarization": 6,
+            "precision": 0.01,
+            "sampleFactor": 0
         },
         "watchpointReport3": {
             "characteristic": 0,

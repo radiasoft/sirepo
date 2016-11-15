@@ -4,7 +4,7 @@
             {
                 "attenuationLength": "3.389020e-6",
                 "id": 2,
-                "imageFile": "H5.tif",
+                "imageFile": "sample.tif",
                 "material": "Au",
                 "method": "server",
                 "position": 20,
