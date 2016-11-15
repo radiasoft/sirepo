@@ -1355,11 +1355,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                         var exit = [enter[0] + length / 2 + Math.cos(angle) * length / 2,
                                     pos.y + Math.sin(angle) * length / 2];
                         var exitAngle = exitEdge - angle;
-                        group.items.push({
-                            picType: picType,
-                            element: item,
-                            color: $scope.getPicColor(item.type, 'blue'),
-                            points: [
+                        var points = [
                                 [enter[0] - Math.sin(-enterEdge) * height / 2,
                                  enter[1] - Math.cos(-enterEdge) * height / 2],
                                 [enter[0] + Math.sin(-enterEdge) * height / 2,
@@ -1368,7 +1364,19 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                                  exit[1] + Math.cos(exitAngle) * height / 2],
                                 [exit[0] - Math.sin(exitAngle) * height / 2,
                                  exit[1] - Math.cos(exitAngle) * height / 2],
-                            ],
+                        ];
+                        // trim overlap if necessary
+                        if (points[1][0] > points[2][0]) {
+                            points[1] = points[2] = lineIntersection(points);
+                        }
+                        else if (points[0][0] > points[3][0]) {
+                            points[0] = points[3] = lineIntersection(points);
+                        }
+                        group.items.push({
+                            picType: picType,
+                            element: item,
+                            color: $scope.getPicColor(item.type, 'blue'),
+                            points: points,
                         });
                         x += radius;
                         newAngle = angle * 180 / Math.PI;
@@ -1551,6 +1559,17 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                     }
                 }
                 return res;
+            }
+
+            function lineIntersection(p) {
+                var s1_x = p[1][0] - p[0][0];
+                var s1_y = p[1][1] - p[0][1];
+                var s2_x = p[3][0] - p[2][0];
+                var s2_y = p[3][1] - p[2][1];
+                var t = (s2_x * (p[0][1] - p[2][1]) - s2_y * (p[0][0] - p[2][0])) / (-s2_x * s1_y + s1_x * s2_y);
+                return [
+                    p[0][0] + (t * s1_x),
+                    p[0][1] + (t * s1_y)];
             }
 
             function loadItemsFromBeamline(forceUpdate) {
