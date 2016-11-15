@@ -514,6 +514,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             animationArgs(modelName),
             index,
             //TODO(pjm): simulationStatus changes too often, really want the simulation startTime, but this is cleared when saving data
+            //TODO(pjm): need to restore simulation startTime to persistent state
             appState.models.simulation.simulationSerial,
         ].join('*');
         var requestFunction = function() {

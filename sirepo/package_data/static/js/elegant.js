@@ -1015,8 +1015,11 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         self.progress = null;
         self.outputFiles = [];
+        // caching is currently controlled by simulationSerial - need it to update before running simulation
         appState.saveQuietly('simulation');
-        return self.originalRunSimulation.apply(this, arguments);
+        appState.autoSave(function() {
+            self.originalRunSimulation.apply(this, arguments);
+        });
     };
 
     frameCache.setAnimationArgs({});

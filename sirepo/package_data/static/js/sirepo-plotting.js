@@ -136,8 +136,8 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return label;
         },
 
-        fixFormat: function(scope, axis) {
-            var format = d3.format('.3s');
+        fixFormat: function(scope, axis, precision) {
+            var format = d3.format('.' + (precision || '3') + 's');
             var format2 = d3.format('.2f');
             // amounts near zero may appear as NNNz, change them to 0
             return function(n) {
@@ -146,7 +146,8 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     return format2(n);
                 }
                 var v = format(n);
-                if ((v && v.indexOf('z') > 0) || v == '0.00')
+                //TODO(pjm): use a regexp
+                if ((v && v.indexOf('z') > 0) || v == '0.00' || v == '0.0000')
                     return '0';
                 v = cleanNumber(v);
                 return v + units;
@@ -1192,9 +1193,9 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
                 xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x', 5));
                 yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
+                yAxis.tickFormat(plotting.fixFormat($scope, 'y', 5));
                 $scope.zoom = d3.behavior.zoom()
                     .scaleExtent([1, 10])
                     .on('zoom', refresh);
