@@ -269,6 +269,13 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         else if (name == 'commands') {
             commandsChanged();
         }
+        else if (name == 'WATCH') {
+            // elegant will crash if the watch has no output filename
+            var watch = appState.models.WATCH;
+            if (watch && ! watch.filename) {
+                watch.filename = '1';
+            }
+        }
     });
 
     return self;
