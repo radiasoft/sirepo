@@ -484,7 +484,7 @@
         "sample": {
             "title": ["Element Name", "String"],
             "position": ["Nominal Position [m]", "Float"],
-            "imageFile": ["Image File", "ImageFile"],
+            "imageFile": ["Image or NumPy File", "ImageFile"],
             "resolution": ["Resolution [nm/pixel]", "Float"],
             "thickness": ["Thickness [µm]", "Float"],
             "material": ["Material of the mask", "CRLMaterial"],
