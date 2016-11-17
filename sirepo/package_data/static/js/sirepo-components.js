@@ -430,7 +430,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                     if (cmd._type == 'save_lattice') {
                         index++;
                         if (cmd.filename)
-                            res.push('save_lattice' + (index > 1 ? ('.' + index) : ''));
+                            res.push('save_lattice' + (index > 1 ? index : ''));
                     }
                 }
                 if (! $scope.model[$scope.field])
