@@ -156,6 +156,8 @@ def fixup_old_data(data):
         }
     if 'folder' not in data['models']['simulation']:
         data['models']['simulation']['folder'] = '/'
+    if 'simulationMode' not in data['models']['simulation']:
+        data['models']['simulation']['simulationMode'] = 'parallel'
     if 'rpnVariables' not in data['models']:
         data['models']['rpnVariables'] = []
     if 'commands' not in data['models']:
@@ -239,6 +241,7 @@ def generate_parameters_file(data, is_parallel=False):
         beamline_map = _build_beamline_map(data)
         v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
         v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+        v['simulationMode'] = data['models']['simulation']['simulationMode']
         return pkjinja.render_resource('elegant.py', v)
 
     return pkjinja.render_resource('elegant_bunch.py', v)
@@ -681,7 +684,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening ', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
 
 
 def _iterate_model_fields(data, state, callback):

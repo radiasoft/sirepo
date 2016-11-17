@@ -55,7 +55,7 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     # TODO(robnagler) Need to handle this specially, b/c different binary
     env = copy.deepcopy(os.environ)
     env['RPN_DEFNS'] = pkresource.filename('defns.rpn')
-    if with_mpi and mpi.cfg.cores > 1:
+    if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
         return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE, env=env)
     pksubprocess.check_call_with_signals(
         ['elegant', ele],
