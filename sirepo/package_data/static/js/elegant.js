@@ -871,6 +871,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 continue;
             }
             var modelKey = 'elementAnimation' + info.id;
+            panelState.setError(modelKey, null);
             self.outputFiles.push({
                 reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
@@ -2388,6 +2389,9 @@ SIREPO.app.directive('runSimulationFields', function() {
     return {
         template: [
             '<div>',
+              '<div class="col-sm-12" style="margin-bottom: 15px"><div class="row">',
+                '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
+              '</div></div>',
               '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
               '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
                 '<button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>',

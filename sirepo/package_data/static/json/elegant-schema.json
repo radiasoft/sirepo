@@ -102,6 +102,10 @@
             ["elegant", "Elegant"],
             ["spiffe", "Spiffe"]
         ],
+        "SimulationMode": [
+            ["serial", "Serial"],
+            ["parallel", "Parallel"]
+        ],
         "SteeringElementPlane": [
             ["h", "Horizontal"],
             ["v", "Vertical"]
@@ -363,7 +367,8 @@
         "simulation": {
             "name": ["Name", "String"],
             "visualizationBeamlineId": ["Beamline", "ElegantBeamlineList", ""],
-            "folder": ["Folder", "String"]
+            "folder": ["Folder", "String"],
+            "simulationMode": ["Execution", "SimulationMode", "serial"]
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
@@ -726,7 +731,6 @@
         },
         "command_load_parameters": {
             "filename": ["Filename", "InputFile", "", ""],
-            "filename_list": ["Filename List", "OptionalString", "", "A list of filenames, which may be given in place of filename. If used, each file in the list is treated as if it was separately supplied with an individual load_parameters command."],
             "include_name_pattern": ["Include Name Pattern", "OptionalString", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which elements to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
             "exclude_name_pattern": ["Exclude Name Pattern", "OptionalString", "", ""],
             "include_item_pattern": ["Include Item Pattern", "OptionalString", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which items (i.e., which element parameters) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
@@ -4029,7 +4033,6 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "filename",
-                "filename_list",
                 "include_name_pattern",
                 "exclude_name_pattern",
                 "include_item_pattern",
