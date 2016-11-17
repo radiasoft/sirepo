@@ -909,7 +909,7 @@ def _copy_lib_files(data, source_lib, target):
             field_type = _SCHEMA['model'][model['type']][f][1]
             if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
                 if field_type == 'ImageFile':
-                    if re.search('watchpointReport', data['report']):
+                    if re.search('watchpointReport', data['report']) or data['report'] == 'multiElectronAnimation':
                         lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
