@@ -124,7 +124,7 @@ def _update_lattice_names(commands):
                 continue
             for index in reversed(range(len(save_lattices))):
                 if re.search(re.escape(save_lattices[index]), cmd['lattice'], re.IGNORECASE):
-                    cmd['lattice'] = 'save_lattice' if index == 0 else 'save_lattice.{}'.format(index)
+                    cmd['lattice'] = 'save_lattice' if index == 0 else 'save_lattice{}'.format(index + 1)
                     break
             else:
                 cmd['lattice'] = 'Lattice'
