@@ -179,7 +179,7 @@ def app_file_list(simulation_type, simulation_id, file_type):
         if file_type == 'mirror':
             search = ['*.dat', '*.txt']
         elif file_type == 'sample':
-            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF']
+            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy']
         else:
             search = ['*.zip']
     else:

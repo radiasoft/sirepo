@@ -91,15 +91,16 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
-        status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
-        progress_file = py.path.local(status_files[-1])
         status = {
             'progress': 100,
             'particle_number': 0,
             'total_num_of_particles': 0,
         }
-        if progress_file.exists():
-            status = simulation_db.read_json(progress_file)
+        status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
+        if status_files:  # Read the status file if SRW produces the multi-e logs
+            progress_file = py.path.local(status_files[-1])
+            if progress_file.exists():
+                status = simulation_db.read_json(progress_file)
         t = int(filename.mtime())
         res.update({
             'frameCount': 1,
@@ -656,7 +657,7 @@ def validate_file(file_type, path):
                 break
         if not is_valid:
             return 'zip file missing txt index file'
-    elif extension.lower() in ['tif', 'tiff']:
+    elif extension.lower() in ['tif', 'tiff', 'npy']:
         pass
     else:
         return 'invalid file type: {}'.format(extension)
@@ -1182,18 +1183,20 @@ def _generate_beamline_optics(models, last_id):
             res_el += el
             res_pp += pp
         elif item['type'] == 'sample':
-            item_copy = copy.deepcopy(item)
-            item_copy['imageFile'] = 'v.op_sample{}'.format(sample_counter)
+            file_name = 'op_sample{}'.format(sample_counter)
             sample_counter += 1
             el, pp = _beamline_element(
-                '''srwl_samples.srwl_opt_setup_transmission_from_image(
-                  image_path={},
-                  resolution={},
-                  thickness={},
-                  delta={},
-                  atten_len={})''',
-                item_copy,
-                ['imageFile', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
+                """srwl_samples.srwl_opt_setup_transmission_from_file(
+                    file_path=v.""" + file_name + """['file'],
+                    resolution={},
+                    thickness={},
+                    delta={},
+                    atten_len={},
+                    input_type=v.""" + file_name + """['type'],
+                    is_save_images=True,
+                    prefix='""" + file_name + """')""",
+                item,
+                ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
                 propagation)
             res_el += el
             res_pp += pp
@@ -1317,7 +1320,9 @@ def _generate_parameters_file(data, plot_reports=False):
     sample_counter = 1
     for el in data['models']['beamline']:
         if el['type'] == 'sample':
-            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'image file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
+            filename, file_extension = os.path.splitext(el['imageFile'])
+            input_type = 'npy' if file_extension == '.npy' else 'image'
+            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', {{'file': '{1}', 'type': '{2}'}}, '{2} file of the sample #{0}'],'''.format(sample_counter, el['imageFile'], input_type)
             sample_counter += 1
 
     return pkjinja.render_resource('srw.py', v)
