@@ -612,7 +612,7 @@ def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
         pkdlog('{}: req.mimetype is not application/json', req.mimetype)
-        raise werkzeug.Eexceptions.BadRequest('expecting application/json')
+        raise werkzeug.Exceptions.BadRequest('expecting application/json')
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
     # certain clients have been using this in the past.  This
