@@ -174,12 +174,14 @@ def app_favicon():
 def app_file_list(simulation_type, simulation_id, file_type):
     file_type = werkzeug.secure_filename(file_type)
     res = []
+    exclude = None
     #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
         if file_type == 'mirror':
             search = ['*.dat', '*.txt']
         elif file_type == 'sample':
-            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy']
+            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+            exclude = '_processed.tif'
         else:
             search = ['*.zip']
     else:
@@ -187,6 +189,8 @@ def app_file_list(simulation_type, simulation_id, file_type):
     d = simulation_db.simulation_lib_dir(simulation_type)
     for extension in search:
         for f in glob.glob(str(d.join(extension))):
+            if exclude and re.search(exclude, f):
+                continue
             if os.path.isfile(f):
                 filename = os.path.basename(f)
                 if not simulation_type == 'srw':
@@ -439,7 +443,7 @@ def app_update_folder():
         if folder.startswith(old_name):
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
             simulation_db.save_simulation_json(data['simulationType'], row)
-    return _json_response_ok();
+    return _json_response_ok()
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))

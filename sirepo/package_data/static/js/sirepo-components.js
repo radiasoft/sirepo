@@ -314,7 +314,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
               '</div>',
               '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
+                '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
               '</div>',
               '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
                 '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
@@ -589,6 +589,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
             selectionRequired: '=',
             fileType: '@',
             wantFileReport: '=',
+            wantImageFile: '=',
         },
         template: [
           '<div class="btn-group" role="group">',
@@ -603,7 +604,8 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
           '</div> ',
           '<div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">',
             '<button type="button" title="View Graph" class="btn btn-default" data-ng-if="wantFileReport" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default""><span class="glyphicon glyphicon-cloud-download"></a>',
+            '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
+            '<a data-ng-href="{{ downloadImageUrl() }}" type="button" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile"><span class="glyphicon glyphicon-flag"></a>',
           '</div>',
         ].join(''),
         controller: function($scope) {
@@ -628,6 +630,25 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
                 }
                 return '';
             };
+
+            $scope.downloadImageUrl = function() {
+                if (appState.isLoaded()) {
+                    var processedFileName = $scope.model.imageFile;
+                    var ending = '_processed.tif';
+                    if (processedFileName.indexOf(ending) < 0) {
+                        processedFileName = processedFileName.split('.');
+                        processedFileName.pop();
+                        processedFileName = processedFileName.join('.') + ending;
+                    }
+                    return requestSender.formatUrl('downloadFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<filename>': processedFileName,
+                    });
+                }
+                return '';
+            };
+
             $scope.hasValidFileSelected = function() {
                 if ($scope.fileType && $scope.model) {
                     var f = $scope.model[$scope.fileField];

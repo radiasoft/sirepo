@@ -27,6 +27,7 @@ import re
 import shutil
 import sirepo.importer
 import srwlib
+import srwl_samples
 import traceback
 import uti_math
 import uti_plot_com
@@ -247,6 +248,8 @@ def fixup_old_data(data):
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
+        # TODO(MR): magnetic field:
+        # data['models']['fluxReport']['magneticField'] = 1
         data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
@@ -254,6 +257,8 @@ def fixup_old_data(data):
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
+            # TODO(MR): magnetic field:
+            # data['models']['fluxAnimation']['magneticField'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
@@ -433,6 +438,7 @@ def get_application_data(data):
         return _compute_crystal_orientation(data['optical_element'])
     elif data['method'] == 'process_intensity_reports':
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
+    # TODO(MR): magnetic field:
     elif data['method'] == 'process_flux_reports':
         return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
@@ -475,7 +481,7 @@ def import_file(request, lib_dir, tmp_dir):
     # attempt to decode the input as json first, if invalid try python
     try:
         data = json.loads(input_text)
-        data['models']['simulation']['name'] += ' (imported)'
+        data['models']['simulation']['name'] += ' (imported JSON)'
         return None, data
     except ValueError:
         pass
@@ -658,7 +664,9 @@ def validate_file(file_type, path):
         if not is_valid:
             return 'zip file missing txt index file'
     elif extension.lower() in ['tif', 'tiff', 'npy']:
-        pass
+        filename = os.path.splitext(os.path.basename(str(path)))[0]
+        # Save the processed file:
+        srwl_samples.SRWLSamples(file_path=str(path), is_save_images=True, prefix=filename)
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -910,6 +918,9 @@ def _copy_lib_files(data, source_lib, target):
             if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
                 if field_type == 'ImageFile':
                     if re.search('watchpointReport', data['report']) or data['report'] == 'multiElectronAnimation':
+                        filename = os.path.splitext(os.path.basename(str(model[f])))[0]
+                        # Save the processed file:
+                        srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
                         lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
@@ -1187,12 +1198,11 @@ def _generate_beamline_optics(models, last_id):
             sample_counter += 1
             el, pp = _beamline_element(
                 """srwl_samples.srwl_opt_setup_transmission_from_file(
-                    file_path=v.""" + file_name + """['file'],
+                    file_path=v.""" + file_name + """,
                     resolution={},
                     thickness={},
                     delta={},
                     atten_len={},
-                    input_type=v.""" + file_name + """['type'],
                     is_save_images=True,
                     prefix='""" + file_name + """')""",
                 item,
@@ -1248,6 +1258,8 @@ def _generate_parameters_file(data, plot_reports=False):
     data['models'][rep][field] = d[field]
 
     # Flux* reports:
+    # TODO(MR): magnetic field:
+    # '''
     field = 'magneticField'
     for rep in ['fluxReport', 'fluxAnimation']:
         d = _process_flux_reports(
@@ -1257,7 +1269,7 @@ def _generate_parameters_file(data, plot_reports=False):
             data['models']['tabulatedUndulator']['undulatorType']
         )
         data['models'][rep][field] = d[field]
-
+    # '''
     # Intensity Distribution (2D) report:
     d = _process_intensity_reports(
         data['models']['simulation']['sourceType'],
@@ -1320,9 +1332,7 @@ def _generate_parameters_file(data, plot_reports=False):
     sample_counter = 1
     for el in data['models']['beamline']:
         if el['type'] == 'sample':
-            filename, file_extension = os.path.splitext(el['imageFile'])
-            input_type = 'npy' if file_extension == '.npy' else 'image'
-            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', {{'file': '{1}', 'type': '{2}'}}, '{2} file of the sample #{0}'],'''.format(sample_counter, el['imageFile'], input_type)
+            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'input file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
             sample_counter += 1
 
     return pkjinja.render_resource('srw.py', v)
@@ -1484,6 +1494,8 @@ def _process_beam_parameters(ebeam):
             ebeam[k] = model[k]
 
 
+# TODO(MR): magnetic field:
+# '''
 def _process_flux_reports(method_number, report_name, source_type, undulator_type):
     # Magnetic field processing:
     magnetic_field = 1
@@ -1491,7 +1503,7 @@ def _process_flux_reports(method_number, report_name, source_type, undulator_typ
         magnetic_field = 2
 
     return {'magneticField': magnetic_field}
-
+# '''
 
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
