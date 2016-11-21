@@ -848,25 +848,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
         var methodNumber = appState.models.fluxAnimation.method;
         var reportName = 'fluxAnimation';
 
-        // TODO(MR): magnetic field:
-        /*
         if (appState.models.tabulatedUndulator.undulatorType !== 'u_t') {
             disableField(reportName, 'magneticField', 1, true);
         }
-        */
-        // Get magnetic field values from server:
-        requestSender.getApplicationData(
-            {
-                method: 'process_flux_reports',
-                method_number: methodNumber,
-                report_name: reportName,
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-            },
-            function(data) {
-                disableField(reportName, 'magneticField', data.magneticField, true);
-            }
-        );
+
         var fieldsOfApproximateMethod = ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'];
         var fieldsOfAccurateMethod = ['precision', 'numberOfMacroElectrons'];
         methodNumber = methodNumber.toString();

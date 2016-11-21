@@ -248,8 +248,8 @@ def fixup_old_data(data):
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
-        # TODO(MR): magnetic field:
-        # data['models']['fluxReport']['magneticField'] = 1
+        if 'magneticField' not in data['models']['fluxReport']:
+            data['models']['fluxReport']['magneticField'] = 1
         data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
@@ -257,8 +257,8 @@ def fixup_old_data(data):
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
-            # TODO(MR): magnetic field:
-            # data['models']['fluxAnimation']['magneticField'] = 1
+            if 'magneticField' not in data['models']['fluxAnimation']:
+                data['models']['fluxAnimation']['magneticField'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
@@ -438,9 +438,6 @@ def get_application_data(data):
         return _compute_crystal_orientation(data['optical_element'])
     elif data['method'] == 'process_intensity_reports':
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
-    # TODO(MR): magnetic field:
-    elif data['method'] == 'process_flux_reports':
-        return _process_flux_reports(data['method_number'], data['report_name'], data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
         _process_beam_parameters(data['ebeam'])
         data['ebeam']['drift'] = _calculate_beam_drift(
@@ -1257,19 +1254,6 @@ def _generate_parameters_file(data, plot_reports=False):
     field = 'magneticField'
     data['models'][rep][field] = d[field]
 
-    # Flux* reports:
-    # TODO(MR): magnetic field:
-    # '''
-    field = 'magneticField'
-    for rep in ['fluxReport', 'fluxAnimation']:
-        d = _process_flux_reports(
-            data['models'][rep]['method'],
-            rep,
-            data['models']['simulation']['sourceType'],
-            data['models']['tabulatedUndulator']['undulatorType']
-        )
-        data['models'][rep][field] = d[field]
-    # '''
     # Intensity Distribution (2D) report:
     d = _process_intensity_reports(
         data['models']['simulation']['sourceType'],
@@ -1493,17 +1477,6 @@ def _process_beam_parameters(ebeam):
         for k in moments_fields:
             ebeam[k] = model[k]
 
-
-# TODO(MR): magnetic field:
-# '''
-def _process_flux_reports(method_number, report_name, source_type, undulator_type):
-    # Magnetic field processing:
-    magnetic_field = 1
-    if source_type == 't' and undulator_type == 'u_t' and report_name == 'fluxAnimation' and (int(method_number) in [1, 2]):
-        magnetic_field = 2
-
-    return {'magneticField': magnetic_field}
-# '''
 
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
