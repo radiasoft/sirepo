@@ -299,7 +299,7 @@ SIREPO.app.directive('animationButtons', function() {
 });
 
 //TODO(pjm): remove global function, change into a service
-function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxis) {
+function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxis, scope) {
 
     var defaultCircleSize, focusIndex, formatter, keyListener, ordinateFormatter, points;
 
@@ -480,19 +480,28 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         var fwhmText = '';
         if (fwhm !== null) {
             var fwhmConverted = fwhm;
-            var units = 'm';
-            if (fwhm >= 1e-3 && fwhm < 1e0) {
+            var units = scope.xunits;
+            if (fwhm >= 1e9 && fwhm < 1e12) {
+                fwhmConverted = fwhm * 1e-9;
+                units = 'G' + units;
+            } else if (fwhm >= 1e6 && fwhm < 1e9) {
+                fwhmConverted = fwhm * 1e-6;
+                units = 'M' + units;
+            } else if (fwhm >= 1e3 && fwhm < 1e6) {
+                fwhmConverted = fwhm * 1e-3;
+                units = 'k' + units;
+            } else if (fwhm >= 1e-3 && fwhm < 1e0) {
                 fwhmConverted = fwhm * 1e3;
-                units = 'mm';
+                units = 'm' + units;
             } else if (fwhm >= 1e-6 && fwhm < 1e-3) {
                 fwhmConverted = fwhm * 1e6;
-                units = 'µm';
+                units = 'µ' + units;
             } else if (fwhm >= 1e-9 && fwhm < 1e-6) {
                 fwhmConverted = fwhm * 1e9;
-                units = 'nm';
+                units = 'n' + units;
             } else if (fwhm >= 1e-12 && fwhm < 1e-9) {
                 fwhmConverted = fwhm * 1e12;
-                units = 'pm';
+                units = 'p' + units;
             }
             fwhmText = ', FWHM = ' + fwhmConverted.toFixed(2) + ' ' + units;
         }
@@ -604,7 +613,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 graphLine = d3.svg.line()
                     .x(function(d) {return xAxisScale(d[0]);})
                     .y(function(d) {return yAxisScale(d[1]);});
-                focusPoint = setupFocusPoint(select('.overlay'), '.focus', xAxisScale, yAxisScale);
+                focusPoint = setupFocusPoint(select('.overlay'), '.focus', xAxisScale, yAxisScale, false, $scope);
                 zoom = d3.behavior.zoom().on('zoom', refresh);
             };
 
@@ -894,8 +903,8 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 rightPanelCutLine = d3.svg.line()
                     .y(function(d) { return yAxisScale(d[0]);})
                     .x(function(d) { return rightPanelXScale(d[1]);});
-                focusPointX = setupFocusPoint(select('.mouse-rect-x'), '.bottom-panel .focus', xAxisScale, bottomPanelYScale);
-                focusPointY = setupFocusPoint(select('.mouse-rect-y'), '.right-panel .focus', yAxisScale, rightPanelXScale, true);
+                focusPointX = setupFocusPoint(select('.mouse-rect-x'), '.bottom-panel .focus', xAxisScale, bottomPanelYScale, false, $scope);
+                focusPointY = setupFocusPoint(select('.mouse-rect-y'), '.right-panel .focus', yAxisScale, rightPanelXScale, true, $scope);
             };
 
             $scope.load = function(json) {
