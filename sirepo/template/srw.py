@@ -248,8 +248,6 @@ def fixup_old_data(data):
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
-        if 'magneticField' not in data['models']['fluxReport']:
-            data['models']['fluxReport']['magneticField'] = 1
         data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
@@ -262,6 +260,8 @@ def fixup_old_data(data):
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
+        if 'magneticField' not in data['models']['fluxAnimation']:
+            data['models']['fluxAnimation']['magneticField'] = 1
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
             if data['models']['simulation']['sourceType'] in ['u', 't']:
