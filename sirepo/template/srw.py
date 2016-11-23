@@ -252,6 +252,8 @@ def fixup_old_data(data):
         if 'initialHarmonic' not in data['models']['fluxReport']:
             data['models']['fluxReport']['initialHarmonic'] = 1
             data['models']['fluxReport']['finalHarmonic'] = 15
+        if 'magneticField' not in data['models']['fluxReport']:
+            data['models']['fluxReport']['magneticField'] = 1
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
