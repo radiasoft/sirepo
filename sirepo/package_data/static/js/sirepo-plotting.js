@@ -480,7 +480,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         var fwhmText = '';
         if (fwhm !== null) {
             var fwhmConverted = fwhm;
-            var units = scope.xunits;
+            var units = invertAxis ? scope.yunits : scope.xunits;
             if (fwhm >= 1e9 && fwhm < 1e12) {
                 fwhmConverted = fwhm * 1e-9;
                 units = 'G' + units;
