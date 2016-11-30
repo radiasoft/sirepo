@@ -2,8 +2,10 @@
 
 #### Sirepo brings computational science to the cloud. Develop, run and share your HPC simulations.
 
-Sirepo is ready to support the world of scientific computing.
-Today, we support the following HPC physics codes in an [open beta test](https://beta.sirepo.com) on our cloud servers:
+Sirepo brings Clickable Physics(TM) to your desktop and mobile devices.
+No signup is required, just click [beta.sirepo.com](https://beta.sirepo.com).
+
+We currently support the following Clickable Physics(TM) codes:
 
 [Synchrotron Radiation Workshop](https://beta.sirepo.com/light) (SRW)
 
@@ -305,4 +307,3 @@ License: http://www.apache.org/licenses/LICENSE-2.0.html
 Copyright (c) 2015-2016 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
 
 ![RadiaSoft](https://github.com/radiasoft/images/blob/master/corporate/RadiaSoftLogoTransparent.png)
-
