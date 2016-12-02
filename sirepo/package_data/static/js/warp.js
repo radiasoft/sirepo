@@ -7,6 +7,9 @@ SIREPO.appLocalRoutes.dynamics = '/dynamics/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+    if (SIREPO.IS_LOGGED_OUT) {
+        return;
+    }
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
@@ -379,6 +382,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">WARP</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
+            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',

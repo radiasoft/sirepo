@@ -68,3 +68,38 @@ def test_1_serial_stomp():
         new_serial,
         curr_serial,
     )
+
+
+def test_oauth():
+    from pykern.pkunit import pkfail, pkok
+    from sirepo import server
+    from sirepo import sr_unit
+    import re
+    server.cfg['oauth_login'] = True
+    sim_type = 'srw'
+    fc = sr_unit.flask_client()
+    fc.sr_post('listSimulations', {'simulationType': sim_type})
+    text = fc.sr_get_raw(
+        'oauthLogin',
+        {
+            'simulation_type': sim_type,
+            'oauth_type': 'github',
+        },
+    )
+    state = re.search(r'state=(.*?)"', text).group(1)
+    #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
+    text = fc.get('/github/oauth-authorized')
+    text = fc.sr_get_raw(
+        'oauthLogout',
+        {
+            'simulation_type': sim_type,
+        },
+    )
+    pkok(
+        text.find('Redirecting') > 0,
+        'missing redirect',
+    )
+    pkok(
+        text.find('"/{}"'.format(sim_type)) > 0,
+        'missing redirect target',
+    )

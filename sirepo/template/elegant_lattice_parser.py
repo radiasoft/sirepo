@@ -53,7 +53,7 @@ def _parse_beamline_items(parser):
                 parser.assert_char(',')
                 continue
             parser.raise_error('expecting beamline element')
-        if re.search(r'[0-9]', value[0]):
+        if re.search(r'^[0-9]+$', value):
             repeat_count = int(value)
             parser.assert_char('*')
             if parser.peek_char() == '(':
@@ -94,12 +94,13 @@ def _parse_element(parser, name, type):
 def _parse_line(parser, line, models):
     parser.set_line(line)
     name = parser.parse_value(r'[:\s,=)*]')
+    print('name: {}'.format(name))
     if name == '%':
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
         _save_rpn_variables(line, models['rpnVariables'])
         return True
-    if not name or not re.search(r'[A-Z]', name[0], re.IGNORECASE):
+    if not name or not re.search(r'[0-9A-Z]', name[0], re.IGNORECASE):
         if name and name.upper() == '#INCLUDE':
             parser.raise_error('#INCLUDE files not supported')
         return True

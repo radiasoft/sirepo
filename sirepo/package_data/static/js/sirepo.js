@@ -31,6 +31,7 @@ angular.element(document).ready(function() {
 SIREPO.appLocalRoutes = {
     simulations: '/simulations',
     source: '/source/:simulationId',
+    loggedOut: '/logged-out',
     notFound: '/not-found',
     notFoundCopy: '/copy-session/:simulationIds',
 };
@@ -39,6 +40,8 @@ SIREPO.appDefaultSimulationValues = {
     simulation: {},
     simulationFolder: {},
 };
+
+SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
@@ -66,6 +69,13 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $routeProvider
     //TODO(pjm): turn off debug info when scope() calls have been replaced
     //$compileProvider.debugInfoEnabled(false);
     var localRoutes = localRoutesProvider.$get();
+    if (SIREPO.IS_LOGGED_OUT) {
+        $routeProvider.otherwise({
+            controller: 'LoggedOutController as loggedOut',
+            templateUrl: '/static/html/logged-out.html?' + SIREPO.APP_VERSION,
+        });
+        return;
+    }
     $routeProvider
         .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
@@ -87,6 +97,9 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     var self = this;
 
     self.getActiveSection = function() {
+        if (SIREPO.IS_LOGGED_OUT) {
+            return null;
+        }
         var match = ($location.path() || '').match(/^\/([^\/]+)/);
         return match
             ? match[1]
@@ -94,8 +107,9 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
-        if ($route.current.params.simulationId)
+        if ($route.current.params.simulationId) {
             appState.loadModels($route.current.params.simulationId);
+        }
     });
 
     return self;
@@ -851,6 +865,13 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
+    self.formatAuthUrl = function(oauthType) {
+        return self.formatUrl('oauthLogin', {
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<oauth_type>': oauthType,
+        }) + '?next=' + $location.url();
+    };
+
     self.formatUrlLocal = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
     };
@@ -1512,6 +1533,12 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
             ':simulationId': self.userCopySimulationId,
         });
     };
+});
+
+SIREPO.app.controller('LoggedOutController', function (requestSender) {
+    var self = this;
+    self.anonymousUrl = requestSender.formatAuthUrl('anonymous');
+    self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
 SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {

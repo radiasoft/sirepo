@@ -1,8 +1,10 @@
+Flask-OAuthlib
 SQLAlchemy
 beaker
 bnlcrl
 celery==3.1.23
 flask
+flask_sqlalchemy
 flower==0.8.4
 kombu==3.0.35
 numconv
