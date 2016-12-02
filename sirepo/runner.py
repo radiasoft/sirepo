@@ -192,7 +192,7 @@ class Celery(object):
             if self.jid in self._job:
                 pkdlog(
                     '{}: Collision tid={} celery_state={}',
-                    jid,
+                    self.jid,
                     self.async_result,
                     self.async_result and self.async_result.state,
                 )
