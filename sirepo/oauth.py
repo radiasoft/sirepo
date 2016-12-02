@@ -55,14 +55,15 @@ def authorized_callback(app, oauth_type):
     oauth = _oauth_client(app, oauth_type)
     resp = oauth.authorized_response()
     if not resp:
-        pkdp('missing oauth response')
+        pkdlog('missing oauth response')
         werkzeug.exceptions.abort(403)
     state = _remove_session_key('oauth_salt')
     if state != flask.request.args.get('state'):
-        pkdp('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
+        pkdlog('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
         werkzeug.exceptions.abort(403)
     # fields: id, login, name
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
+    #TODO(pjm): include oauth_type in filter
     user = User.query.filter_by(oauth_id=user_data['id']).first()
     if user:
         if server.SESSION_KEY_USER in flask.session and flask.session[server.SESSION_KEY_USER] != user.uid:
@@ -73,7 +74,7 @@ def authorized_callback(app, oauth_type):
     else:
         if not server.session_user(checked=False):
             # ensures the user session (uid) is ready if new user logs in from logged-out session
-            pkdp('creating new session for user: {}', user_data['id'])
+            pkdlog('creating new session for user: {}', user_data['id'])
             simulation_db.simulation_dir('')
         user = User(server.session_user(), user_data['login'], user_data['name'], oauth_type, user_data['id'])
     _db.session.add(user)
@@ -116,7 +117,7 @@ def _move_user_simulations(from_uid, to_uid):
             continue
         dir_path = os.path.dirname(path)
         new_dir_path = dir_path.replace(from_uid, to_uid)
-        pkdp('{} -> {}', dir_path, new_dir_path)
+        pkdlog('{} -> {}', dir_path, new_dir_path)
         os.rename(dir_path, new_dir_path)
 
 
@@ -143,7 +144,7 @@ def _init(app):
 
 def _init_tables(app):
     if not os.path.exists(_db_filename(app)):
-        pkdp('creating user oauth database')
+        pkdlog('creating user oauth database')
         _db.create_all()
 
 
@@ -185,6 +186,7 @@ class User(_db.Model):
         _db.Enum('github', 'test', name='oauth_type'),
         nullable=False
     )
+    #TODO(pjm): uniqueness is actually (oauth_type, oauth_id)
     oauth_id = _db.Column(_db.String(100), nullable=False, unique=True)
 
     def __init__(self, uid, user_name, display_name, oauth_type, oauth_id):
