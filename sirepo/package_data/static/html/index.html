@@ -52,6 +52,12 @@
         var SIREPO = {
             APP_NAME:  '{{ app_name }}',
             APP_VERSION: '{{ version }}',
+            {%- if oauth_login %}
+            userState: {
+                loginState: '{{ login_state }}',
+                userName: '{{ user_name }}',
+            },
+            {%- endif %}
         };
     </script>
     <script src="/static/js/sirepo.js?{{ version }}"></script>

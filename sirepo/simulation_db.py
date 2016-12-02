@@ -680,6 +680,15 @@ def tmp_dir():
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
 
 
+def user_dir(uid):
+    """Returns the user dir for a uid.
+
+    Returns:
+        py.path: dir
+    """
+    return _user_dir_name(uid)
+
+
 def validate_serial(req_data):
     """Verify serial in data validates
 

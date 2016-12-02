@@ -7,6 +7,9 @@ SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+    if (SIREPO.IS_LOGGED_OUT) {
+        return;
+    }
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
@@ -1231,7 +1234,7 @@ SIREPO.app.directive('appFooter', function(appState) {
 SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
 
     var settingsIcon = [
-        '<li class="dropdown"><a href class="dropdown-toggle srw-settings-menu hidden-xs" data-toggle="dropdown"><span class="s-panel-icon glyphicon glyphicon-cog"></span></a>',
+        '<li class="dropdown"><a href class="dropdown-toggle hidden-xs" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <span class="caret"></span></a>',
           '<ul class="dropdown-menu">',
             '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
             '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
@@ -1251,12 +1254,12 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     ].join('');
 
     var rightNav = [
+        '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="srwService.isApplicationMode(\'default\')"></ul>',
         '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
           '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
           '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
           '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
         '</ul>',
-
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
           '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
           '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',

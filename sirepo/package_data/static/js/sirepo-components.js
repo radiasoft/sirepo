@@ -578,6 +578,42 @@ SIREPO.app.directive('outputFileField', function(appState) {
     };
 });
 
+SIREPO.app.directive('loginMenu', function(requestSender) {
+    return {
+        restirct: 'A',
+        scope: {},
+        template: [
+              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
+                '<ul class="dropdown-menu">',
+                  '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
+                  '<li class="divider"></li>',
+                  '<li><a data-ng-href="{{ logoutURL }}">Sign out</a></li>',
+                '</ul>',
+              '</li>',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
+                '<ul class="dropdown-menu">',
+                  '<li><a data-ng-href="{{ githubLoginURL() }}">Sign In with <strong>GitHub</strong></a></li>',
+                '</ul>',
+              '</li>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.userState = SIREPO.userState;
+            $scope.githubLoginURL = function() {
+                return requestSender.formatAuthUrl('github');
+            };
+            $scope.logoutURL = requestSender.formatUrl('oauthLogout', {
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            });
+            $scope.isLoggedIn = function() {
+                return $scope.userState && $scope.userState.loginState == 'logged_in';
+            };
+            $scope.isLoggedOut = function() {
+                return $scope.userState && ! $scope.isLoggedIn();
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('fileField', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
@@ -1293,12 +1329,15 @@ SIREPO.app.directive('appHeaderLeft', function(panelState) {
             nav: '=appHeaderLeft',
         },
         template: [
-            '<ul class="nav navbar-nav">',
+            '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text"><a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
         ].join(''),
         controller: function($scope) {
+            $scope.showMenu = function() {
+                return ! SIREPO.IS_LOGGED_OUT;
+            };
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
             };

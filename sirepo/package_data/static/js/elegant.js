@@ -9,6 +9,9 @@ SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+    if (SIREPO.IS_LOGGED_OUT) {
+        return;
+    }
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
@@ -1063,6 +1066,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<div class="navbar-brand"><a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">elegant</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
+            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',

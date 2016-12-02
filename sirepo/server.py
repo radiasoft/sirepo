@@ -41,6 +41,9 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
 
+#: Callback url from OAUTH server
+_OAUTH_AUTHORIZATION_CALLBACK_URL = '/<oauth_type>/oauth-authorized'
+
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
 
@@ -114,7 +117,7 @@ def app_copy_simulation():
 def app_delete_simulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
-    return _json_response_ok();
+    return _json_response_ok()
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
@@ -203,6 +206,9 @@ def app_file_list(simulation_type, simulation_id, file_type):
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
 def app_find_by_name(simulation_type, application_mode, simulation_name):
+    if cfg.oauth_login:
+        from sirepo import oauth
+        oauth.set_default_state(logged_out_as_anonymous=True)
     redirect_uri = None
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
@@ -228,11 +234,7 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
             redirect_uri = '/{}#/source/{}?application_mode={}'.format(
                 simulation_type, rows[0]['simulationId'], application_mode)
     if redirect_uri:
-        # redirect using javascript for safari browser which doesn't support hash redirects
-        return flask.render_template(
-            'html/javascript-redirect.html',
-            redirect_uri=redirect_uri
-        )
+        return javascript_redirect(redirect_uri)
     werkzeug.exceptions.abort(404)
 
 
@@ -266,6 +268,30 @@ def app_new_simulation():
     return _save_new_and_reply(sim_type, data)
 
 
+@app.route(_OAUTH_AUTHORIZATION_CALLBACK_URL, methods=('GET', 'POST'))
+def app_oauth_authorized(oauth_type):
+    if cfg.oauth_login:
+        from sirepo import oauth
+        return oauth.authorized_callback(app, oauth_type)
+    raise RuntimeError('OAUTH Login not configured')
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['oauthLogin'], methods=('GET', 'POST'))
+def app_oauth_login(simulation_type, oauth_type):
+    if cfg.oauth_login:
+        from sirepo import oauth
+        return oauth.authorize(simulation_type, app, oauth_type)
+    raise RuntimeError('OAUTH Login not configured')
+
+
+@app.route(simulation_db.SCHEMA_COMMON['route']['oauthLogout'], methods=('GET', 'POST'))
+def app_oauth_logout(simulation_type):
+    if cfg.oauth_login:
+        from sirepo import oauth
+        return oauth.logout(simulation_type)
+    raise RuntimeError('OAUTH Login not configured')
+
+
 @app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
 def app_python_source(simulation_type, simulation_id, model):
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
@@ -288,11 +314,16 @@ def app_robots_txt():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['root'])
 def app_root(simulation_type):
+    args = {}
+    if cfg.oauth_login:
+        from sirepo import oauth
+        args = oauth.set_default_state()
     return flask.render_template(
         'html/index.html',
         version=simulation_db.app_version(),
         app_name=simulation_type,
-    )
+        oauth_login=cfg.oauth_login,
+        **args)
 
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
@@ -476,6 +507,14 @@ def app_upload_file(simulation_type, simulation_id, file_type):
         'fileType': file_type,
         'simulationId': simulation_id,
     })
+
+
+def javascript_redirect(redirect_uri):
+    # redirect using javascript for safari browser which doesn't support hash redirects
+    return flask.render_template(
+        'html/javascript-redirect.html',
+        redirect_uri=redirect_uri
+    )
 
 
 @app.route('/')
@@ -847,4 +886,5 @@ cfg = pkconfig.init(
     ),
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
+    oauth_login=(False, bool, 'OAUTH: enable login'),
 )

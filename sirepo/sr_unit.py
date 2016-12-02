@@ -76,6 +76,13 @@ class _TestClient(flask.testing.FlaskClient):
         return _req(route_name, params, self.get)
 
 
+    def sr_get_raw(self, route_name, params=None):
+        """Similar to sr_get() but returns the raw response text.
+        """
+        return self.get(_route(route_name, params)).data
+
+
+
 def _req(route_name, params, op):
     """Make request and parse result
 
