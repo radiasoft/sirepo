@@ -97,7 +97,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particle_number': 0,
             'total_num_of_particles': 0,
         }
-        status_files = glob.glob(str(run_dir.join('srwl_*.json')))
+        status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
         if status_files:  # Read the status file if SRW produces the multi-e logs
             progress_file = py.path.local(status_files[-1])
             if progress_file.exists():
