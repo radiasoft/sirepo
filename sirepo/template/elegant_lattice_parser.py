@@ -94,7 +94,6 @@ def _parse_element(parser, name, type):
 def _parse_line(parser, line, models):
     parser.set_line(line)
     name = parser.parse_value(r'[:\s,=)*]')
-    print('name: {}'.format(name))
     if name == '%':
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
