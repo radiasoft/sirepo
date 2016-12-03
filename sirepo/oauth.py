@@ -16,6 +16,7 @@ import flask_oauthlib.client
 import glob
 import os
 import os.path
+import sqlalchemy
 import werkzeug.exceptions
 import werkzeug.security
 
@@ -63,8 +64,7 @@ def authorized_callback(app, oauth_type):
         werkzeug.exceptions.abort(403)
     # fields: id, login, name
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
-    #TODO(pjm): include oauth_type in filter
-    user = User.query.filter_by(oauth_id=user_data['id']).first()
+    user = User.query.filter_by(oauth_id=user_data['id'], oauth_type=oauth_type).first()
     if user:
         if server.SESSION_KEY_USER in flask.session and flask.session[server.SESSION_KEY_USER] != user.uid:
             _move_user_simulations(server.session_user(), user.uid)
@@ -186,8 +186,8 @@ class User(_db.Model):
         _db.Enum('github', 'test', name='oauth_type'),
         nullable=False
     )
-    #TODO(pjm): uniqueness is actually (oauth_type, oauth_id)
-    oauth_id = _db.Column(_db.String(100), nullable=False, unique=True)
+    oauth_id = _db.Column(_db.String(100), nullable=False)
+    __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
 
     def __init__(self, uid, user_name, display_name, oauth_type, oauth_id):
         self.uid = uid
