@@ -366,7 +366,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
-                  '<button class="btn btn-primary s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active\': model[field] == item[0]}">{{ item[1] }}</button>',
+                  '<a href class="btn btn-primary s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active\': model[field] == item[0]}">{{ item[1] }}</a>',
                 '</div>',
                 '<select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
