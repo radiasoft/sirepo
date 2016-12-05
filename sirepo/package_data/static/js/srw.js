@@ -116,6 +116,24 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
         };
     };
 
+
+    self.updateSimulationGridFields = function() {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        var method = appState.models.simulation.samplingMethod;
+        if (parseInt(method) == 1) {
+            $('.model-simulation-sampleFactor').show();
+            $('.model-simulation-horizontalPointCount').hide();
+            $('.model-simulation-verticalPointCount').hide();
+        }
+        else {
+            $('.model-simulation-sampleFactor').hide();
+            $('.model-simulation-horizontalPointCount').show();
+            $('.model-simulation-verticalPointCount').show();
+        }
+    };
+
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if (search && search.application_mode) {
@@ -1095,6 +1113,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
         }
         else if (name === 'sourceIntensityReport') {
             processIntensityReport(name, ['magneticField']);
+            srwService.updateSimulationGridFields();
         }
         else if (name === 'trajectoryReport') {
             processTrajectoryReport();
@@ -1187,7 +1206,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
     });
 });
 
-SIREPO.app.directive('appFooter', function(appState) {
+SIREPO.app.directive('appFooter', function(appState, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -1202,31 +1221,9 @@ SIREPO.app.directive('appFooter', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-
-            function updateSimulationGridFields() {
-                if (! appState.isLoaded()) {
-                    return;
-                }
-                var method = appState.models.simulation.samplingMethod;
-                if (parseInt(method) == 1) {
-                    $('.model-simulation-sampleFactor').show();
-                    $('.model-simulation-horizontalPointCount').hide();
-                    $('.model-simulation-verticalPointCount').hide();
-                }
-                else {
-                    $('.model-simulation-sampleFactor').hide();
-                    $('.model-simulation-horizontalPointCount').show();
-                    $('.model-simulation-verticalPointCount').show();
-                }
-            }
-
             // hook for sampling method changes
-            $scope.nav.handleModalShown = function(name) {
-                updateSimulationGridFields();
-            };
-            $scope.$watch('appState.models.simulation.samplingMethod', function (newValue, oldValue) {
-                updateSimulationGridFields(400);
-            });
+            $scope.nav.handleModalShown = srwService.updateSimulationGridFields;
+            $scope.$watch('appState.models.simulation.samplingMethod', srwService.updateSimulationGridFields);
         },
     };
 });
