@@ -337,7 +337,7 @@ th.srw-tiny-heading {
 .s-info-pointer {
   cursor: default;
 }
-ul.navbar-nav li.s-logged-in-menu a {
+ul.navbar-nav > li.s-logged-in-menu > a {
   line-height: 1px;
 }
 .s-logged-in-menu img {
