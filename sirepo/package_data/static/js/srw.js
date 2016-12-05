@@ -1842,7 +1842,7 @@ SIREPO.app.directive('mobileAppTitle', function(srwService) {
     };
 });
 
-SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
+SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -1852,10 +1852,26 @@ SIREPO.app.directive('resetSimulationModal', function(appState, srwService) {
             '<div data-confirmation-modal="" data-id="srw-reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.revertToOriginal = function() {
+            function revertSimulation() {
                 $scope.nav.revertToOriginal(
                     srwService.applicationMode,
                     appState.models.simulation.name);
+            }
+
+            $scope.revertToOriginal = function() {
+                var ebeam = appState.models.electronBeam;
+                if (ebeam.isReadOnly) {
+                    revertSimulation();
+                }
+                else {
+                    // delete the user-defied beam first
+                    requestSender.getApplicationData(
+                        {
+                            method: 'delete_beam',
+                            id: ebeam.id,
+                        },
+                        revertSimulation);
+                }
             };
             $scope.simulationName = function() {
                 if (appState.isLoaded()) {
