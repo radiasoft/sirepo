@@ -26,9 +26,6 @@ import werkzeug
 import werkzeug.exceptions
 
 
-#: Identifies the user in the Beaker session
-SESSION_KEY_USER = 'uid'
-
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
 
@@ -46,6 +43,9 @@ _OAUTH_AUTHORIZATION_CALLBACK_URL = '/<oauth_type>/oauth-authorized'
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
+
+#: Identifies the user in the Beaker session
+_SESSION_KEY_USER = 'uid'
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
@@ -509,8 +509,16 @@ def app_upload_file(simulation_type, simulation_id, file_type):
     })
 
 
+def clear_session_user():
+    """Remove the current user from the flask session.
+    """
+    if _SESSION_KEY_USER in flask.session:
+        del flask.session[_SESSION_KEY_USER]
+
+
 def javascript_redirect(redirect_uri):
-    # redirect using javascript for safari browser which doesn't support hash redirects
+    """Redirect using javascript for safari browser which doesn't support hash redirects.
+    """
     return flask.render_template(
         'html/javascript-redirect.html',
         redirect_uri=redirect_uri
@@ -542,11 +550,11 @@ def session_user(*args, **kwargs):
     environ = kwargs.get('environ', None)
     session = environ.get(_ENVIRON_KEY_BEAKER) if environ else flask.session
     if args:
-        session[SESSION_KEY_USER] = args[0]
+        session[_SESSION_KEY_USER] = args[0]
         _wsgi_app.set_log_user(args[0])
-    res = session.get(SESSION_KEY_USER)
+    res = session.get(_SESSION_KEY_USER)
     if not res and kwargs.get('checked', True):
-        raise KeyError(SESSION_KEY_USER)
+        raise KeyError(_SESSION_KEY_USER)
     return res
 
 

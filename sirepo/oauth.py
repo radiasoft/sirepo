@@ -13,10 +13,9 @@ from sirepo import server
 from sirepo import simulation_db
 import flask
 import flask_oauthlib.client
-import glob
-import os
 import os.path
 import sqlalchemy
+import threading
 import werkzeug.exceptions
 import werkzeug.security
 
@@ -29,6 +28,9 @@ _USER_DB_FILE = 'user.db'
 
 _db = None
 
+#: Locking of _db calls
+_db_serial_lock = threading.RLock()
+
 
 def authorize(simulation_type, app, oauth_type):
     """Redirects to an OAUTH request for the specified oauth_type ('github').
@@ -38,10 +40,10 @@ def authorize(simulation_type, app, oauth_type):
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next') or '')
     if oauth_type == _ANONYMOUS:
         _update_session(_ANONYMOUS)
-        _clear_session_user()
+        server.clear_session_user()
         return server.javascript_redirect(oauth_next)
     state = werkzeug.security.gen_salt(64)
-    flask.session['oauth_salt'] = state
+    flask.session['oauth_nonce'] = state
     flask.session['oauth_next'] = oauth_next
     return _oauth_client(app, oauth_type).authorize(
         callback=flask.url_for('app_oauth_authorized', oauth_type=oauth_type, _external=True),
@@ -58,26 +60,13 @@ def authorized_callback(app, oauth_type):
     if not resp:
         pkdlog('missing oauth response')
         werkzeug.exceptions.abort(403)
-    state = _remove_session_key('oauth_salt')
+    state = _remove_session_key('oauth_nonce')
     if state != flask.request.args.get('state'):
         pkdlog('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
         werkzeug.exceptions.abort(403)
     # fields: id, login, name
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
-    user = User.query.filter_by(oauth_id=user_data['id'], oauth_type=oauth_type).first()
-    if user:
-        if server.SESSION_KEY_USER in flask.session and flask.session[server.SESSION_KEY_USER] != user.uid:
-            _move_user_simulations(server.session_user(), user.uid)
-        user.user_name = user_data['login']
-        user.display_name = user_data['name']
-        server.session_user(user.uid)
-    else:
-        if not server.session_user(checked=False):
-            # ensures the user session (uid) is ready if new user logs in from logged-out session
-            pkdlog('creating new session for user: {}', user_data['id'])
-            simulation_db.simulation_dir('')
-        user = User(server.session_user(), user_data['login'], user_data['name'], oauth_type, user_data['id'])
-    _db.session.add(user)
+    user = _update_database(user_data, oauth_type)
     _update_session(_LOGGED_IN, user.user_name)
     return server.javascript_redirect(_remove_session_key('oauth_next'))
 
@@ -86,7 +75,7 @@ def logout(simulation_type):
     """Sets the login_state to logged_out and clears the user session.
     """
     _update_session(_LOGGED_OUT)
-    _clear_session_user()
+    server.clear_session_user()
     return flask.redirect('/{}'.format(simulation_type))
 
 
@@ -99,26 +88,6 @@ def set_default_state(logged_out_as_anonymous=False):
         'login_state': flask.session['oauth_login_state'],
         'user_name': flask.session['oauth_user_name'],
     }
-
-
-def _clear_session_user():
-    if server.SESSION_KEY_USER in flask.session:
-        del flask.session[server.SESSION_KEY_USER]
-
-
-def _move_user_simulations(from_uid, to_uid):
-    # move all non-example simulations for the current session into the target user's dir
-    for path in glob.glob(
-        str(simulation_db.user_dir(from_uid).join('*', '*', simulation_db.SIMULATION_DATA_FILE)),
-    ):
-        data = simulation_db.read_json(path)
-        sim = data['models']['simulation']
-        if 'isExample' in sim and sim['isExample']:
-            continue
-        dir_path = os.path.dirname(path)
-        new_dir_path = dir_path.replace(from_uid, to_uid)
-        pkdlog('{} -> {}', dir_path, new_dir_path)
-        os.rename(dir_path, new_dir_path)
 
 
 def _db_filename(app):
@@ -168,6 +137,26 @@ def _remove_session_key(name):
     del flask.session[name]
     return value
 
+
+def _update_database(user_data, oauth_type):
+    with _db_serial_lock:
+        user = User.query.filter_by(oauth_id=user_data['id'], oauth_type=oauth_type).first()
+        session_uid = server.session_user(checked=False)
+        if user:
+            if session_uid and session_uid != user.uid:
+                simulation_db.move_user_simulations(user.uid)
+            user.user_name = user_data['login']
+            user.display_name = user_data['name']
+            server.session_user(user.uid)
+        else:
+            if not session_uid:
+                # ensures the user session (uid) is ready if new user logs in from logged-out session
+                pkdlog('creating new session for user: {}', user_data['id'])
+                simulation_db.simulation_dir('')
+            user = User(server.session_user(), user_data['login'], user_data['name'], oauth_type, user_data['id'])
+        _db.session.add(user)
+        _db.session.commit()
+        return user
 
 def _update_session(login_state, user_name=''):
     flask.session['oauth_login_state'] = login_state

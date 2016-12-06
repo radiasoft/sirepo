@@ -321,6 +321,24 @@ def json_load(*args, **kwargs):
     return pkcollections.json_load_any(*args, **kwargs)
 
 
+def move_user_simulations(to_uid):
+    """Moves all non-example simulations for the current session into the target user's dir.
+    """
+    from_uid = _server.session_user()
+    with _serial_lock:
+        for path in glob.glob(
+                str(_user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
+        ):
+            data = read_json(path)
+            sim = data['models']['simulation']
+            if 'isExample' in sim and sim['isExample']:
+                continue
+            dir_path = os.path.dirname(path)
+            new_dir_path = dir_path.replace(from_uid, to_uid)
+            pkdlog('{} -> {}', dir_path, new_dir_path)
+            os.rename(dir_path, new_dir_path)
+
+
 def open_json_file(sim_type, path=None, sid=None, fixup=True):
     """Read a db file and return result
 
@@ -678,15 +696,6 @@ def tmp_dir():
         py.path: directory to use for temporary work
     """
     return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
-
-
-def user_dir(uid):
-    """Returns the user dir for a uid.
-
-    Returns:
-        py.path: dir
-    """
-    return _user_dir_name(uid)
 
 
 def validate_serial(req_data):
