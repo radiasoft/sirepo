@@ -45,6 +45,7 @@ def authorize(simulation_type, app, oauth_type):
     state = werkzeug.security.gen_salt(64)
     flask.session['oauth_nonce'] = state
     flask.session['oauth_next'] = oauth_next
+    #TODO(pjm): don't use _external to format url, add new config for hostname
     return _oauth_client(app, oauth_type).authorize(
         callback=flask.url_for('app_oauth_authorized', oauth_type=oauth_type, _external=True),
         state=state,
