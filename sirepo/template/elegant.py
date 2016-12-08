@@ -42,6 +42,8 @@ _FIELD_LABEL = {
     'GammaDeriv': 'GammaDeriv [1/m]',
 }
 
+_HISTOGRAM_BINS_MAX = 500
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -133,6 +135,11 @@ def extract_report_data(filename, data, p_central_mev, page_index):
         }
 
     nbins = int(bins)
+    #TODO(pjm): need range checking in type
+    if nbins <= 0:
+        nbins = 1
+    elif nbins > _HISTOGRAM_BINS_MAX:
+        nbins = _HISTOGRAM_BINS_MAX
     hist, edges = np.histogramdd([x, y], nbins)
     sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
