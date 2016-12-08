@@ -617,7 +617,6 @@
                 "refractiveIndex",
                 "attenuationLength",
                 "focalDistance",
-                "absoluteFocusPosition",
                 "shape",
                 "horizontalApertureSize",
                 "verticalApertureSize",
