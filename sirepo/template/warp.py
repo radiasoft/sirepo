@@ -26,6 +26,8 @@ import re
 
 WANT_BROWSER_FRAME_CACHE = True
 
+_HISTOGRAM_BINS_MAX = 500
+
 _MIN_MAX_INDEX = {
     'x': [3, 4],
     'y': [5, 6],
@@ -104,7 +106,7 @@ def extract_field_report(field, coordinate, mode, data_file):
 def extract_particle_report(args, particle_type, run_dir, data_file):
     xarg = args[0]
     yarg = args[1]
-    histogram_bins = args[2]
+    nbins = args[2]
     opmd = _opmd_time_series(data_file)
     data_list = opmd.get_particle(
         var_list=[xarg, yarg],
@@ -140,7 +142,12 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
     if xarg == 'z':
         data_list = _adjust_z_width(data_list, data_file)
 
-    hist, edges = numpy.histogramdd([data_list[0], data_list[1]], int(histogram_bins), weights=data_list[2])
+    #TODO(pjm): need range checking in type, consolidate with template.elegant
+    if nbins <= 0:
+        nbins = 1
+    elif nbins > _HISTOGRAM_BINS_MAX:
+        nbins = _HISTOGRAM_BINS_MAX
+    hist, edges = numpy.histogramdd([data_list[0], data_list[1]], int(nbins), weights=data_list[2])
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
