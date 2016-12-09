@@ -731,7 +731,7 @@
             ]
         },
         "ellipsoidMirror": {
-            "title": "Ellipsoid Mirror",
+            "title": "Elliptical Mirror",
             "basic": [],
             "advanced": [
                 ["Dimensions", [
