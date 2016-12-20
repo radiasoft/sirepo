@@ -516,6 +516,7 @@
         },
         "sourceIntensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
@@ -1147,7 +1148,7 @@
             "advanced": [
                 ["Main", [
                     "distanceFromSource",
-                    "simulation.photonEnergy",
+                    "photonEnergy",
                     "polarization",
                     "characteristic",
                     "fieldUnits",

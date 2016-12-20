@@ -139,6 +139,8 @@ def extract_report_data(filename, model_data):
     files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     if model_data['report'] == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
+    elif model_data['report'] == 'sourceIntensityReport':
+        before_propagation_name = 'E={sourcePhotonEnergy} eV'
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = {
@@ -172,6 +174,8 @@ def extract_report_data(filename, model_data):
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
         title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
+    elif '{sourcePhotonEnergy}' in title:
+        title = title.format(sourcePhotonEnergy=model_data['models']['sourceIntensityReport']['photonEnergy'])
     info = {
         'title': title,
         'x_range': [allrange[0], allrange[1]],
@@ -400,6 +404,9 @@ def fixup_old_data(data):
         data['models']['gaussianBeam']['sizeDefinition'] = 1
         data['models']['gaussianBeam']['rmsDivergenceX'] = 0
         data['models']['gaussianBeam']['rmsDivergenceY'] = 0
+
+    if 'photonEnergy' not in data['models']['sourceIntensityReport']:
+        data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
 
 
 def get_animation_name(data):
@@ -1276,6 +1283,8 @@ def _generate_parameters_file(data, plot_reports=False):
     elif _is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
+    if report == 'sourceIntensityReport':
+        data['models']['simulation']['photonEnergy'] = data['models']['sourceIntensityReport']['photonEnergy']
 
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
