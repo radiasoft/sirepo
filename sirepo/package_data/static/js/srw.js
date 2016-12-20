@@ -22,7 +22,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(activeSection, appState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
     self.originalCharacteristicEnum = null;
@@ -121,6 +121,13 @@ SIREPO.app.factory('srwService', function(appState, $rootScope, $location) {
         if (! appState.isLoaded()) {
             return;
         }
+        if (activeSection.getActiveSection() == 'beamline') {
+            $('.model-simulation-photonEnergy').show();
+        }
+        else {
+            $('.model-simulation-photonEnergy').hide();
+        }
+
         var method = appState.models.simulation.samplingMethod;
         if (parseInt(method) == 1) {
             $('.model-simulation-sampleFactor').show();
