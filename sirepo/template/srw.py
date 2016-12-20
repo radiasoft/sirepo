@@ -916,11 +916,10 @@ def _copy_lib_files(data, source_lib, target):
             field_type = _SCHEMA['model'][model['type']][f][1]
             if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
                 if field_type == 'ImageFile':
-                    if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'multiElectronAnimation'):
-                        filename = os.path.splitext(os.path.basename(str(model[f])))[0]
-                        # Save the processed file:
-                        srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
-                        lib_files.append(model[f])
+                    filename = os.path.splitext(os.path.basename(str(model[f])))[0]
+                    # Save the processed file:
+                    srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
+                    lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
     for f in lib_files:
