@@ -45,9 +45,11 @@ def authorize(simulation_type, app, oauth_type):
     state = werkzeug.security.gen_salt(64)
     flask.session['oauth_nonce'] = state
     flask.session['oauth_next'] = oauth_next
-    #TODO(pjm): don't use _external to format url, add new config for hostname
+    callback = cfg.github_callback_uri
+    if not callback:
+        callback = flask.url_for('app_oauth_authorized', oauth_type=oauth_type, _external=True)
     return _oauth_client(app, oauth_type).authorize(
-        callback=flask.url_for('app_oauth_authorized', oauth_type=oauth_type, _external=True),
+        callback=callback,
         state=state,
     )
 
@@ -107,6 +109,7 @@ def _init(app):
     cfg = pkconfig.init(
         github_key=(None, str, 'GitHub application key'),
         github_secret=(None, str, 'GitHub application secret'),
+        github_callback_uri=(None, str, 'GitHub application callback URI'),
     )
     if not cfg.github_key or not cfg.github_secret:
         raise RuntimeError('Missing GitHub oauth config')
