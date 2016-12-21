@@ -13,5 +13,5 @@ pillow
 psycopg2
 pyIsEmail
 pykern
-pytz
+pytz==2015.7
 uwsgi
