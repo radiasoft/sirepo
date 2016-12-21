@@ -75,7 +75,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         if (type == 'bunched_beam') {
             delete cmd.inputSource;
             cmd._type = type;
-            self.setModelDefaults(cmd, 'command_bunched_beam');
+            appState.setModelDefaults(cmd, 'command_bunched_beam');
             updateCommandFromBunch(cmd, appState.models.bunch);
         }
         else if (type == 'sdds_beam') {
@@ -242,18 +242,6 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
             appState.maxId(appState.models.commands, '_id')) + 1;
     };
 
-    self.setModelDefaults = function(model, modelName) {
-        // set model defaults from schema
-        var schema = SIREPO.APP_SCHEMA.model[modelName];
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
-            if (schema[f][2] !== undefined) {
-                model[f] = schema[f][2];
-            }
-        }
-    };
-
     // keep source page items in sync with the associated control command
     $rootScope.$on('modelChanged', function(e, name) {
         var cmd, bunch;
@@ -316,7 +304,7 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
             _id: elegantService.nextId(),
             _type: name,
         };
-        elegantService.setModelDefaults(model, elegantService.commandModelName(name));
+        appState.setModelDefaults(model, elegantService.commandModelName(name));
         var modelName = elegantService.commandModelName(model._type);
         appState.models[modelName] = model;
         panelState.showModalEditor(modelName);
@@ -654,7 +642,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             type: type,
             name: uniqueNameForType(type.charAt(0)),
         };
-        elegantService.setModelDefaults(model, type);
+        appState.setModelDefaults(model, type);
         self.editElement(type, model);
     };
 
