@@ -52,6 +52,7 @@ def test_prepare_aux_files():
                 },
                 'beamline': { },
             },
+            'report': 'intensityReport',
         }
         srw.prepare_aux_files(pkunit.empty_work_dir(), data)
         assert data['models']['tabulatedUndulator']['magnMeasFolder'] == './'

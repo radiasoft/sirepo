@@ -448,6 +448,19 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         activeFolderPath = path;
     };
 
+    self.setModelDefaults = function(model, modelName) {
+        // set model defaults from schema
+        var schema = SIREPO.APP_SCHEMA.model[modelName];
+        var fields = Object.keys(schema);
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            if (schema[f][2] !== undefined) {
+                model[f] = schema[f][2];
+            }
+        }
+        return model;
+    };
+
     self.uniqueName = function(items, idField, template) {
         // find a unique name comparing against a list of items
         // template has {} replaced with a counter, ex. "my name (copy {})"

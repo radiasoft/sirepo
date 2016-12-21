@@ -139,6 +139,8 @@ def extract_report_data(filename, model_data):
     files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     if model_data['report'] == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
+    elif model_data['report'] == 'sourceIntensityReport':
+        before_propagation_name = 'E={sourcePhotonEnergy} eV'
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = {
@@ -172,6 +174,8 @@ def extract_report_data(filename, model_data):
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
         title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
+    elif '{sourcePhotonEnergy}' in title:
+        title = title.format(sourcePhotonEnergy=model_data['models']['sourceIntensityReport']['photonEnergy'])
     info = {
         'title': title,
         'x_range': [allrange[0], allrange[1]],
@@ -401,6 +405,9 @@ def fixup_old_data(data):
         data['models']['gaussianBeam']['rmsDivergenceX'] = 0
         data['models']['gaussianBeam']['rmsDivergenceY'] = 0
 
+    if 'photonEnergy' not in data['models']['sourceIntensityReport']:
+        data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
+
 
 def get_animation_name(data):
     return data['modelName']
@@ -538,6 +545,7 @@ def prepare_aux_files(run_dir, data):
         data,
         simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
         run_dir,
+        data['report'],
     )
     if not data['models']['simulation']['sourceType'] == 't':
         return
@@ -903,24 +911,25 @@ def _convert_ebeam_units(field_name, value, to_si=True):
     return value
 
 
-def _copy_lib_files(data, source_lib, target):
+def _copy_lib_files(data, source_lib, target, report=None):
     # copy required MirrorFile and MagneticZipFile data to target
     lib_files = []
     if data['models']['simulation']['sourceType'] == 't':
         if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
             lib_files.append(data['models']['tabulatedUndulator']['magneticFile'])
-    if 'report' in data and data['report'] == 'mirrorReport':
+    if report == 'mirrorReport':
         lib_files.append(data['models']['mirrorReport']['heightProfileFile'])
     for model in data['models']['beamline']:
         for f in _SCHEMA['model'][model['type']]:
             field_type = _SCHEMA['model'][model['type']][f][1]
             if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
+                if report and not (_is_watchpoint(report) or report == 'multiElectronAnimation'):
+                    continue
                 if field_type == 'ImageFile':
-                    if 'report' in data and (re.search('watchpointReport', data['report']) or data['report'] == 'multiElectronAnimation'):
-                        filename = os.path.splitext(os.path.basename(str(model[f])))[0]
-                        # Save the processed file:
-                        srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
-                        lib_files.append(model[f])
+                    filename = os.path.splitext(os.path.basename(str(model[f])))[0]
+                    # Save the processed file:
+                    srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
+                    lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
     for f in lib_files:
@@ -1274,6 +1283,8 @@ def _generate_parameters_file(data, plot_reports=False):
     elif _is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
+    if report == 'sourceIntensityReport':
+        data['models']['simulation']['photonEnergy'] = data['models']['sourceIntensityReport']['photonEnergy']
 
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
