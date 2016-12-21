@@ -162,55 +162,20 @@ SIREPO.app.factory('srwService', function(activeSection, appState, $rootScope, $
 SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
 
-    var crystalDefaults = {
-            type: 'crystal',
-            title: 'Crystal',
-            material: 'Unknown',
-            h: 1,
-            k: 1,
-            l: 1,
-            energy: 9000.0,
-            grazingAngle: 1.5707963,
-            asymmetryAngle: 0.0,
-            rotationAngle: 0.0,
-            crystalThickness: 0.01,
-            dSpacing: null,  // 3.13557135638,
-            psi0r: null,  // -1.20811311251e-05,
-            psi0i: null,  // 2.26447987254e-07,
-            psiHr: null,  // -6.38714117487e-06,
-            psiHi: null,  // 1.58100017439e-07,
-            psiHBr: null,  // -6.38714117487e-06,
-            psiHBi: null,  // 1.58100017439e-07,
-            nvx: null,  // 0.0,
-            nvy: null,  // 0.0,
-            nvz: null,  // -1.0,
-            tvx: null,  // 1.0,
-            tvy: null,  // 0.0,
-            heightProfileFile: null,
-            orientation: 'x',
-            heightAmplification: 1,
-    };
-
     var toolbarItems = [
-        //TODO(pjm): move default values to separate area
-        {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'mask', title:'Mask', material:'User-defined', method:'server', refractiveIndex:1.0, attenuationLength:1.0,
-         maskThickness:1.0, gridShape:0, gridTiltAngle:0.4363323129985824, horizontalSamplingInterval:7.32e-01, verticalSamplingInterval:7.32e-01,
-         horizontalGridPitch:20, verticalGridPitch:20, horizontalPixelsNumber:1024, verticalPixelsNumber:1024,
-         horizontalGridsNumber:21, verticalGridsNumber:21, horizontalGridDimension:5, verticalGridDimension:5,
-         horizontalMaskCoordinate:0.0, verticalMaskCoordinate:0.0, show: SIREPO.APP_SCHEMA.feature_config.mask_in_toolbar},
-        {type:'fiber', title:'Fiber', focalPlane:1, method:'server', externalMaterial:'User-defined', externalRefractiveIndex:4.20756805e-06, externalAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
-        crystalDefaults,
-        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
-        {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
-        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
-         horizontalApertureSize:1, verticalApertureSize:1, tipRadius:1.5e3, radius:1.5e-3, numberOfLenses:3, tipWallThickness:80, wallThickness:80e-6},
-        {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
-        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
-        {type:'ellipsoidMirror', title:'Elliptical Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
-        {type:'watch', title:'Watchpoint'},
-        {type:'sample', title:'Sample', imageFile:'sample.tif', resolution:2.480469, thickness:10, material:'Au', method:'server', refractiveIndex:3.23075074E-05, attenuationLength:4.06544e-6, show: SIREPO.APP_SCHEMA.feature_config.sample_in_toolbar}
+        appState.setModelDefaults({type: 'aperture'}, 'aperture'),
+        appState.setModelDefaults({type: 'obstacle'}, 'obstacle'),
+        appState.setModelDefaults({type: 'mask', show: SIREPO.APP_SCHEMA.feature_config.mask_in_toolbar}, 'mask'),
+        appState.setModelDefaults({type: 'fiber'}, 'fiber'),
+        appState.setModelDefaults({type: 'crystal'}, 'crystal'),
+        appState.setModelDefaults({type: 'grating'}, 'grating'),
+        appState.setModelDefaults({type: 'lens'}, 'lens'),
+        appState.setModelDefaults({type: 'crl'}, 'crl'),
+        appState.setModelDefaults({type: 'mirror'}, 'mirror'),
+        appState.setModelDefaults({type: 'sphericalMirror'}, 'sphericalMirror'),
+        appState.setModelDefaults({type: 'ellipsoidMirror'}, 'ellipsoidMirror'),
+        appState.setModelDefaults({type: 'watch'}, 'watch'),
+        appState.setModelDefaults({type: 'sample', show: SIREPO.APP_SCHEMA.feature_config.sample_in_toolbar}, 'sample'),
     ];
     self.toolbarItems = [];
     for (var i = 0; i < toolbarItems.length; i++) {
