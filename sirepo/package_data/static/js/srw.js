@@ -1535,7 +1535,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
         },
         link: function(scope, element) {
             var el = $(element).find('.srw-beamline-element-label');
+            el.on('click', togglePopover);
             el.popover({
+                trigger: 'manual',
                 html: true,
                 placement: 'bottom',
                 container: '.srw-popup-container-lg',
