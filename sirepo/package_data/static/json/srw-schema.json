@@ -285,8 +285,10 @@
             "xxprY": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"]
         },
         "electronBeamPosition": {
-            "horizontalPosition": ["Average Horizontal Position [mm]", "Float"],
-            "verticalPosition": ["Average Vertical Position [mm]", "Float"],
+            "horizontalPosition": ["Average Horizontal Position [mm]", "Float", 0],
+            "verticalPosition": ["Average Vertical Position [mm]", "Float", 0],
+            "horizontalAngle": ["Average Horizontal Angle [mrad]", "Float", 0],
+            "verticalAngle": ["Average Vertical Angle [mrad]", "Float", 0],
             "driftCalculationMethod": ["Drift Calculation Method", "DriftCalculationMethod"],
             "drift": ["Drift [m]", "Float"]
         },
@@ -724,8 +726,16 @@
                     ]
                 ]],
                 ["Position", [
-                    "electronBeamPosition.horizontalPosition",
-                    "electronBeamPosition.verticalPosition",
+                    [
+                        ["Horizontal", [
+                            "electronBeamPosition.horizontalPosition",
+                            "electronBeamPosition.horizontalAngle"
+                        ]],
+                        ["Vertical", [
+                            "electronBeamPosition.verticalPosition",
+                            "electronBeamPosition.verticalAngle"
+                        ]]
+                    ],
                     "electronBeamPosition.driftCalculationMethod",
                     "electronBeamPosition.drift"
                 ]]

@@ -218,6 +218,9 @@ def fixup_electron_beam(data):
         for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
             if f in ebeam:
                 del ebeam[f]
+    if 'horizontalAngle' not in data['models']['electronBeamPosition']:
+        data['models']['electronBeamPosition']['horizontalAngle'] = _SCHEMA['model']['electronBeamPosition']['horizontalAngle'][2]
+        data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
     if 'beamDefinition' not in data['models']['electronBeam']:
         _process_beam_parameters(data['models']['electronBeam'])
         if data['models']['simulation']['sourceType'] == 't':
@@ -522,7 +525,7 @@ def models_related_to_report(data):
     ):
         return data['models'].keys()
     res = [
-        'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
+        'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',
     ]
     if watchpoint or r in ('initialIntensityReport', 'mirrorReport'):
