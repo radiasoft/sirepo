@@ -1546,13 +1546,13 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels):
     if width_pixels and width_pixels < x_range[2]:
         try:
             resize_factor = float(width_pixels) / float(x_range[2])
-            pkdp('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             ar2d = zoom(ar2d, resize_factor)
-            pkdp('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
         except:
-            pkdp('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
+            pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
 
     return {
