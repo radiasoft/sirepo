@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from scipy.ndimage import zoom
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -186,7 +187,8 @@ def extract_report_data(filename, model_data):
         'points': data,
     }
     if filename in files_3d:
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2])
+        width_pixels = int(model_data['models']['simulation']['intensityPlotsWidth'])
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels)
     return info
 
 
@@ -411,6 +413,8 @@ def fixup_old_data(data):
     if 'photonEnergy' not in data['models']['sourceIntensityReport']:
         data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
 
+    if 'intensityPlotsWidth' not in data['models']['simulation']:
+        data['models']['simulation']['intensityPlotsWidth'] = _SCHEMA['model']['simulation']['intensityPlotsWidth'][2]
 
 def get_animation_name(data):
     return data['modelName']
@@ -1521,7 +1525,7 @@ def _propagation_params(prop, shift=''):
     return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
 
 
-def _remap_3d(info, allrange, z_label, z_units):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
@@ -1534,7 +1538,23 @@ def _remap_3d(info, allrange, z_label, z_units):
         for i in range(lenAr2d): auxAr[i] = ar2d[i]
         ar2d = np.array(auxAr)
     if isinstance(ar2d,(list,np.array)): ar2d = np.array(ar2d)
-    ar2d = ar2d.reshape(y_range[2],x_range[2])
+    ar2d = ar2d.reshape(y_range[2], x_range[2])
+
+    log_scale = False
+    if log_scale:
+        ar2d = np.log10(ar2d)
+    if width_pixels and width_pixels < x_range[2]:
+        try:
+            resize_factor = float(width_pixels) / float(x_range[2])
+            pkdp('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            ar2d = zoom(ar2d, resize_factor)
+            pkdp('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            x_range[2] = ar2d.shape[1]
+            y_range[2] = ar2d.shape[0]
+        except:
+            pkdp('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
+            pass
+
     return {
         'x_range': x_range,
         'y_range': y_range,
