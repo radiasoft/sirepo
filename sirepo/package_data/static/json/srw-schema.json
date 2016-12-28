@@ -702,7 +702,6 @@
                     "name",
                     "energy",
                     "current",
-                    "energyDeviation",
                     "rmsSpread",
                     "beamDefinition",
                     [
