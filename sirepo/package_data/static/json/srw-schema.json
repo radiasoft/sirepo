@@ -112,6 +112,10 @@
             ["1", "Auto-Undulator"],
             ["2", "Auto-Wiggler"]
         ],
+        "IntensityPlotsScale": [
+            ["linear", "Linear"],
+            ["log", "Logarithmic"]
+        ],
         "IntensityPlotsWidth": [
             ["100", "100"],
             ["200", "200"],
@@ -518,7 +522,8 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "documentationUrl": ["Documentation URL", "OptionalString"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "400"]
+            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "400"],
+            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
@@ -1154,7 +1159,8 @@
                         "verticalPointCount"
                     ]]
                 ],
-                "intensityPlotsWidth"
+                "intensityPlotsWidth",
+                "intensityPlotsScale"
             ]
         },
         "simulationStatus": {

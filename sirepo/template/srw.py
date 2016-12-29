@@ -188,7 +188,8 @@ def extract_report_data(filename, model_data):
     }
     if filename in files_3d:
         width_pixels = int(model_data['models']['simulation']['intensityPlotsWidth'])
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels)
+        log_scale = True if model_data['models']['simulation']['intensityPlotsScale'] == 'log' else False
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, log_scale)
     return info
 
 
@@ -415,6 +416,8 @@ def fixup_old_data(data):
 
     if 'intensityPlotsWidth' not in data['models']['simulation']:
         data['models']['simulation']['intensityPlotsWidth'] = _SCHEMA['model']['simulation']['intensityPlotsWidth'][2]
+    if 'intensityPlotsScale' not in data['models']['simulation']:
+        data['models']['simulation']['intensityPlotsScale'] = _SCHEMA['model']['simulation']['intensityPlotsScale'][2]
 
 def get_animation_name(data):
     return data['modelName']
@@ -1525,29 +1528,34 @@ def _propagation_params(prop, shift=''):
     return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
 
 
-def _remap_3d(info, allrange, z_label, z_units, width_pixels):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels, log_scale=False):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
 
-    totLen = int(x_range[2]*y_range[2])
+    totLen = int(x_range[2] * y_range[2])
     lenAr2d = len(ar2d)
-    if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
+    if lenAr2d > totLen:
+        ar2d = np.array(ar2d[0:totLen])
     elif lenAr2d < totLen:
-        auxAr = np.array('d', [0]*lenAr2d)
-        for i in range(lenAr2d): auxAr[i] = ar2d[i]
+        auxAr = np.array('d', [0] * lenAr2d)
+        for i in range(lenAr2d):
+            auxAr[i] = ar2d[i]
         ar2d = np.array(auxAr)
-    if isinstance(ar2d,(list,np.array)): ar2d = np.array(ar2d)
+    if isinstance(ar2d, (list, np.array)):
+        ar2d = np.array(ar2d)
     ar2d = ar2d.reshape(y_range[2], x_range[2])
 
-    log_scale = False
     if log_scale:
+        ar2d[np.where(ar2d <= 0.)] = 1.e-23
         ar2d = np.log10(ar2d)
     if width_pixels and width_pixels < x_range[2]:
         try:
             resize_factor = float(width_pixels) / float(x_range[2])
             pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             ar2d = zoom(ar2d, resize_factor)
+            if not log_scale:
+                ar2d[np.where(ar2d < 0.)] = 0.0
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
