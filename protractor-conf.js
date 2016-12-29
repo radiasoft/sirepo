@@ -5,6 +5,12 @@ exports.config = {
     jasmineNodeOpts: {
         showColors: 0
     },
+    capabilities: {
+        browserName: 'chrome',
+        loggingPrefs: {
+            browser: 'ALL'
+        }
+    },
     // Custom parameters for test. You can override on command line --params.sr_uri=https:/...
     params: {
         uri: 'http://localhost:8000',
