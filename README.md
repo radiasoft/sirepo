@@ -206,13 +206,14 @@ cd ~/src/radiasoft/sirepo
 The tests are located in `tests/protractor`.
 [Tutorial on protractor and jasmine.](http://www.protractortest.org/#/tutorial)
 
-As user install node modules:
+As user install node modules and Chrome:
 
 ```bash
 cd ~/src/radiasoft/sirepo
 npm install --save-dev protractor
 npm install --save-dev protractor-snapshot
 ./node_modules/protractor/bin/webdriver-manager update
+yum update -y google-chrome-stable
 ```
 
 Verify the X11 server is running:

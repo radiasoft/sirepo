@@ -10,7 +10,12 @@ describe('srw1', function() {
         // something should be clickable
         // rendering is very slow
         browser.get(browser.params.uri + '/srw');
-        element(by.linkText('/'))
+/*
+  browser.manage().logs().get('browser').then(function(browserLog) {
+            console.log('browser log: ' + require('util').inspect(browserLog));
+        });
+*/
+        element(by.css('ul.s-nav-sidebar-root'))
             .element(by.xpath('..'))
             .element(by.linkText('Wavefront Propagation'))
             .click();
