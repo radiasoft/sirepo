@@ -17,6 +17,11 @@ module.exports = {
                 function (v) {console.log(v);}
             );
         }
+    },
+    browserLog: function() {
+        browser.manage().logs().get('browser').then(function(browserLog) {
+            console.log('browser log: ' + require('util').inspect(browserLog));
+        });
     }
 };
 
@@ -30,7 +35,7 @@ by.addLocator(
             var element = elements[i];
             var elementText = (element.textContent || '').trim();
             if (elementText === exactText) {
-                console.log(element.outerHTML);
+                //console.log('element ' + element.textContent);
                 matches.push(element);
             }
         }

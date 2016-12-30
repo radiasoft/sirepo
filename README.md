@@ -212,6 +212,8 @@ As user install node modules and Chrome:
 cd ~/src/radiasoft/sirepo
 npm install --save-dev protractor
 npm install --save-dev protractor-snapshot
+npm install --save-dev protractor-console
+npm install --save-dev protractor-console-plugin
 ./node_modules/protractor/bin/webdriver-manager update
 yum update -y google-chrome-stable
 ```

@@ -19,6 +19,17 @@ exports.config = {
             $snapshot.source();
         }
     },
+    plugins: [
+        {
+            package: 'protractor-console-plugin',
+            failOnWarning: true,
+            failOnError: true
+        },
+        {
+            package: 'protractor-console',
+            logLevels: ['debug', 'info', 'warning', 'severe']
+        }
+    ],
     protractorSnapshotOpts: {
 
         // base format for created files
