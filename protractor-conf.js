@@ -116,10 +116,10 @@ exports.config = {
                     style.type = 'text/css';
                     style.innerHTML = '* {' +
                         '-webkit-transition: none !important;' +
-                        '-moz-transition: none !important' +
-                        '-o-transition: none !important' +
-                        '-ms-transition: none !important' +
-                        'transition: none !important' +
+                        '-moz-transition: none !important;' +
+                        '-o-transition: none !important;' +
+                        '-ms-transition: none !important;' +
+                        'transition: none !important;' +
                         '}';
                     document.getElementsByTagName('head')[0].appendChild(style);
                 });
