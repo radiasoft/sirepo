@@ -6,9 +6,11 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
+from pykern import pkresource
 import copy
 import hashlib
 import json
+import py.path
 import re
 import sirepo.template
 
@@ -24,6 +26,7 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
+RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
@@ -46,6 +49,17 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
+
+
+def resource_dir(sim_type):
+    """Where to get library files from
+
+    Args:
+        sim_type (str): application name
+    Returns:
+        py.path.Local: absolute path to folder
+    """
+    return RESOURCE_DIR.join(sim_type)
 
 
 def report_parameters_hash(data):

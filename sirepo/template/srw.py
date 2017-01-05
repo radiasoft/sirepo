@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
@@ -18,14 +19,12 @@ from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
-import glob
 import json
 import math
 import numpy as np
 import os
 import py.path
 import re
-import shutil
 import sirepo.importer
 import srwlib
 import srwl_samples
@@ -34,7 +33,10 @@ import uti_math
 import uti_plot_com
 import zipfile
 
+
 WANT_BROWSER_FRAME_CACHE = False
+
+SIM_TYPE = 'srw'
 
 _DATA_FILE_FOR_MODEL = {
     'fluxAnimation': 'res_spec_me.dat',
@@ -69,21 +71,15 @@ _EXAMPLE_FOLDERS = {
 }
 
 #: Where server files and static files are found
-_STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
-_PREDEFINED_BEAMS = simulation_db.read_json(_STATIC_FOLDER.join('json/beams.json'))
+_PREDEFINED = None
 
-_PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.json'))
-
-_PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
-
-_PREDEFINED_SAMPLE_IMAGES = simulation_db.read_json(_STATIC_FOLDER.join('json/sample_images.json'))
-
-_SIMULATION_TYPE = 'srw'
-
-_SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
+
+_LIB_FILE_PARAM_RE = re.compile(r'.*File$');
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -98,7 +94,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particle_number': 0,
             'total_num_of_particles': 0,
         }
-        status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
+        status_files = pkio.sorted_glob(run_dir.join('__srwl_logs__', 'srwl_*.json'))
         if status_files:  # Read the status file if SRW produces the multi-e logs
             progress_file = py.path.local(status_files[-1])
             if progress_file.exists():
@@ -347,7 +343,7 @@ def fixup_old_data(data):
         data['models']['tabulatedUndulator'] = {
             'gap': 6.72,
             'phase': 0,
-            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILES[0]['fileName'],
+            'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
             'longitudinalPosition': 1.305,
             'magnMeasFolder': '',
             'indexFile': '',
@@ -426,7 +422,7 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'beam_list':
         res = []
-        res.extend(_PREDEFINED_BEAMS)
+        res.extend(_PREDEFINED.beams)
         res.extend(_load_user_beam_list())
         for beam in res:
             _process_beam_parameters(beam)
@@ -512,6 +508,20 @@ def import_file(request, lib_dir, tmp_dir):
     )
 
 
+def lib_files(data):
+    """Return list of files used by the simulation"""
+    res = []
+
+    def _search(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                return _search(v)
+            if _LIB_FILE_PARAM_RE.search(k) and k != 'indexFile':
+                res.append(v)
+    _search(data)
+    return res
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -553,7 +563,7 @@ def new_simulation(data, new_simulation_data):
 def prepare_aux_files(run_dir, data):
     _copy_lib_files(
         data,
-        simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
+        simulation_db.simulation_lib_dir(SIM_TYPE),
         run_dir,
         data['report'],
     )
@@ -561,9 +571,9 @@ def prepare_aux_files(run_dir, data):
         return
     filename = data['models']['tabulatedUndulator']['magneticFile']
     filepath = run_dir.join(filename)
-    for f in _PREDEFINED_MAGNETIC_ZIP_FILES:
+    for f in _PREDEFINED.magnetic_measurements:
         if filename == f['fileName'] and not filepath.check():
-            _STATIC_FOLDER.join('dat', f['fileName']).copy(run_dir)
+            _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
     zip_file = zipfile.ZipFile(str(filepath))
     zip_file.extractall(str(run_dir))
     index_dir, index_file = _find_index_file(zip_file)
@@ -592,7 +602,7 @@ def prepare_for_client(data):
             ebeam['id'] = _unique_name(user_beam_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
             user_beam_list.append(ebeam)
             _save_user_beam_list(user_beam_list)
-            simulation_db.save_simulation_json(_SIMULATION_TYPE, data)
+            simulation_db.save_simulation_json(SIM_TYPE, data)
     if 'electronBeams' in data['models']:
         del data['models']['electronBeams']
     return data
@@ -632,15 +642,19 @@ def remove_last_frame(run_dir):
     pass
 
 
-def static_lib_files():
-    """Library shared between simulations of this type
+def resource_files():
+    """Files to copy from resources when creating a new user
 
     Returns:
         list: py.path.local objects
     """
-    res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
-    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MAGNETIC_ZIP_FILES]
-    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_SAMPLE_IMAGES]
+    res = []
+    for k, v in _PREDEFINED.items():
+        for v2 in v:
+            try:
+                res.append(_RESOURCE_DIR.join(v2['fileName']))
+            except KeyError:
+                pass
     return res
 
 
@@ -890,7 +904,7 @@ def _compute_grazing_angle(model):
 def _compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return model
-    zip_file = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(model['magneticFile'])
+    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
         zip_file = str(zip_file)
         d = _find_tab_undulator_length(zip_file, model['gap'])
@@ -922,7 +936,7 @@ def _convert_ebeam_units(field_name, value, to_si=True):
 
 
 def _copy_lib_files(data, source_lib, target, report=None):
-    # copy required MirrorFile and MagneticZipFile data to target
+    """copy required MirrorFile and MagneticZipFile data to target"""
     lib_files = []
     if data['models']['simulation']['sourceType'] == 't':
         if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
@@ -945,7 +959,7 @@ def _copy_lib_files(data, source_lib, target, report=None):
     for f in lib_files:
         path = target.join(f)
         if source_lib.join(f).exists() and not path.exists():
-            shutil.copy(str(source_lib.join(f)), str(path))
+            source_lib.join(f).copy(path)
 
 
 def _crystal_element(template, item, fields, propagation):
@@ -1399,7 +1413,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
         else:
             return '', ''
 
-    dat_file = str(simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(item['heightProfileFile']))
+    dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
     dimension = find_height_profile_dimension(dat_file)
 
     res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
@@ -1418,6 +1432,15 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
     res += el
     pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
     return res, pp
+
+
+def _init():
+    global _PREDEFINED
+    if _PREDEFINED:
+        return
+    _PREDEFINED = pkcollections.Dict()
+    for f in ('beams', 'mirrors', 'magnetic_measurements', 'sample_images'):
+        _PREDEFINED[f] = simulation_db.read_json(_RESOURCE_DIR.join(f + '.json'))
 
 
 def _intensity_units(is_gaussian, model_data):
@@ -1452,7 +1475,7 @@ def _is_watchpoint(name):
 
 
 def _load_user_beam_list():
-    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
     if filepath.exists():
         return simulation_db.read_json(filepath)
     _save_user_beam_list([])
@@ -1576,7 +1599,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, log_scale=False):
 
 def _save_user_beam_list(beam_list):
     pkdc('saving beam_list')
-    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
     #TODO(pjm): want atomic replace?
     simulation_db.write_json(filepath, beam_list)
 
@@ -1623,3 +1646,5 @@ def _validate_data(data, schema):
 def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
+
+_init()

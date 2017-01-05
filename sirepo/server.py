@@ -258,13 +258,10 @@ def app_import_file(simulation_type):
 def app_new_simulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
-    data = simulation_db.open_json_file(
-        sim_type,
-        simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(sim_type, simulation_db.JSON_SUFFIX)),
-    )
+    data = simulation_db.default_data(sim_type)
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    sirepo.template.import_module(data).new_simulation(data, new_simulation_data)
+    sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(sim_type, data)
 
 

@@ -11,6 +11,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
+from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
 import glob
@@ -20,7 +21,6 @@ import os.path
 import py.path
 import re
 import sdds
-import shutil
 import werkzeug
 
 ELEGANT_LOG_FILE = 'elegant.log'
@@ -57,11 +57,7 @@ _SDDS_DOUBLE_TYPE = 1
 
 _SDDS_STRING_TYPE = 7
 
-_STATIC_FOLDER = py.path.local(pkresource.filename('static'))
-
-_SIMULATION_TYPE = 'elegant'
-
-_SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
+_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -95,7 +91,7 @@ def copy_related_files(data, source_path, target_path):
         animation_dir = py.path.local(target_path).join('animation')
         pkio.mkdir_parent(str(animation_dir))
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
-            shutil.copy(f, str(animation_dir))
+            py.path.local(f).copy(animation_dir)
     # copy element InputFiles to lib
     _copy_lib_files(
         data,
@@ -322,7 +318,7 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
     input_data = test_data
 
     if 'simulationId' in request.form:
-        input_data = simulation_db.read_simulation_json(_SIMULATION_TYPE, sid=request.form['simulationId'])
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
     try:
         if re.search(r'.ele$', filename, re.IGNORECASE):
             data = elegant_command_importer.import_file(f.read())
@@ -334,7 +330,7 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
             raise IOError('invalid file extension, expecting .ele or .lte')
         data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
         if input_data and not test_data:
-            simulation_db.delete_simulation(_SIMULATION_TYPE, input_data['models']['simulation']['simulationId'])
+            simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
         return None, data
     except IOError as e:
         return e.message, None
@@ -354,7 +350,7 @@ def new_simulation(data, new_simulation_data):
 def prepare_aux_files(run_dir, data):
     _copy_lib_files(
         data,
-        simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
+        simulation_db.simulation_lib_dir(elegant_common.SIM_TYPE),
         run_dir,
     )
 
@@ -401,16 +397,13 @@ def remove_last_frame(run_dir):
     pass
 
 
-def static_lib_files():
+def resource_files():
     """Library shared between simulations of this type
 
     Returns:
         list: py.path.local objects
     """
-    res = []
-    for f in glob.glob(str(_STATIC_FOLDER.join('dat', '*.sdds'))):
-        res.append(py.path.local(f))
-    return res
+    return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
 
 
 def validate_file(file_type, path):
@@ -527,7 +520,7 @@ def _copy_lib_files(data, source_lib, target):
     for f in lib_files:
         path = target.join(f)
         if not path.exists():
-            shutil.copy(str(source_lib.join(f)), str(path))
+            source_lib.join(f).copy(path)
 
 
 def _create_command(model_name, data):

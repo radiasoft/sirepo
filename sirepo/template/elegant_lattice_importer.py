@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
-u"""elegant lattice parser.
+u"""elegant lattice parser
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkresource
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo import simulation_db
+from sirepo.template import elegant_common
+from sirepo.template import elegant_lattice_parser
 import json
 import math
 import ntpath
@@ -13,24 +18,14 @@ import py.path
 import re
 import subprocess
 
-from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo import simulation_db
-from sirepo.template import elegant_lattice_parser
 
 _IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
-
-_RPN_DEFN_FILE = str(py.path.local(pkresource.filename('defns.rpn')))
 
 _ANGLE_FIELDS = ['angle', 'kick', 'hkick']
 _BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND']
 _DRIFT_TYPES = ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT']
 _IGNORE_LENGTH_TYPES = ['ILMATRIX', 'STRAY', 'SCRIPT']
 _LENGTH_FIELDS = ['l', 'xmax', 'length']
-_STATIC_FOLDER = py.path.local(pkresource.filename('static'))
-
-with open(str(_STATIC_FOLDER.join('json/elegant-default.json'))) as f:
-    _DEFAULTS = json.load(f)
 
 _SCHEMA = simulation_db.get_schema('elegant')
 
@@ -55,10 +50,6 @@ def build_variable_dependency(value, variables, depends):
     return depends
 
 
-def default_data():
-    return _DEFAULTS.copy()
-
-
 def import_file(text, data=None):
     models = elegant_lattice_parser.parse_file(text, max_id(data) if data else 0)
     name_to_id, default_beamline_id = _create_name_map(models)
@@ -80,7 +71,7 @@ def import_file(text, data=None):
     _calculate_beamline_metrics(models, rpn_cache)
 
     if not data:
-        data = default_data()
+        data = simulation_db.default_data(elegant_common.SIM_TYPE)
     data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
     data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
     data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
@@ -115,16 +106,18 @@ def max_id(data):
 
 def parse_rpn_value(value, variable_list):
     variables = {x['name']: x['value'] for x in variable_list}
-    my_env = os.environ.copy()
-    my_env["RPN_DEFNS"] = _RPN_DEFN_FILE
     depends = build_variable_dependency(value, variables, [])
     var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
     #TODO(pjm): security - need to scrub field value
     out = ''
     try:
         with open(os.devnull, 'w') as devnull:
-            pkdc('rpnl "{}" "{}"'.format(var_list, value))
-            out = subprocess.check_output(['rpnl', '{} {}'.format(var_list, value)], env=my_env, stderr=devnull)
+            pkdc('rpnl "{}" "{}"', var_list, value)
+            out = subprocess.check_output(
+                ['rpnl', '{} {}'.format(var_list, value)],
+                env=elegant_common.subprocess_env(),
+                stderr=devnull,
+            )
     except subprocess.CalledProcessError as e:
         return None, 'invalid'
     if len(out):

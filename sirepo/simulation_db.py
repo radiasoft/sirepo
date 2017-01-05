@@ -124,6 +124,23 @@ def celery_queue(data):
     return celery_tasks.queue_name(is_parallel(data))
 
 
+def default_data(sim_type):
+    """New simulation base data
+
+    Args:
+        sim_type (str): simulation type
+
+    Returns:
+        dict: simulation data
+    """
+    return open_json_file(
+        sim_type,
+        path=template_common.resource_dir(sim_type).join(
+            'default-data{}'.format(JSON_SUFFIX),
+        ),
+    )
+
+
 def delete_simulation(simulation_type, sid):
     """Deletes the simulation's directory.
     """
@@ -782,7 +799,7 @@ def _create_example_and_lib_files(simulation_type):
         save_new_example(simulation_type, s)
     d = simulation_lib_dir(simulation_type)
     pkio.mkdir_parent(d)
-    for f in sirepo.template.import_module(simulation_type).static_lib_files():
+    for f in sirepo.template.import_module(simulation_type).resource_files():
         f.copy(d)
 
 
