@@ -184,8 +184,8 @@ def extract_report_data(filename, model_data):
     }
     if filename in files_3d:
         width_pixels = int(model_data['models']['simulation']['intensityPlotsWidth'])
-        log_scale = True if model_data['models']['simulation']['intensityPlotsScale'] == 'log' else False
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, log_scale)
+        scale = model_data['models']['simulation']['intensityPlotsScale']
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
     return info
 
 
@@ -1551,7 +1551,7 @@ def _propagation_params(prop, shift=''):
     return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
 
 
-def _remap_3d(info, allrange, z_label, z_units, width_pixels, log_scale=False):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
@@ -1569,15 +1569,15 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, log_scale=False):
         ar2d = np.array(ar2d)
     ar2d = ar2d.reshape(y_range[2], x_range[2])
 
-    if log_scale:
+    if scale != 'linear':
         ar2d[np.where(ar2d <= 0.)] = 1.e-23
-        ar2d = np.log10(ar2d)
+        ar2d = getattr(np, scale)(ar2d)
     if width_pixels and width_pixels < x_range[2]:
         try:
             resize_factor = float(width_pixels) / float(x_range[2])
             pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             ar2d = zoom(ar2d, resize_factor)
-            if not log_scale:
+            if scale == 'linear':
                 ar2d[np.where(ar2d < 0.)] = 0.0
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]

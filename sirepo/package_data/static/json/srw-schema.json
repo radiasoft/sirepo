@@ -114,7 +114,9 @@
         ],
         "IntensityPlotsScale": [
             ["linear", "Linear"],
-            ["log", "Logarithmic"]
+            ["log", "Natural Logarithm"],
+            ["log2", "Base-2 Logarithm"],
+            ["log10", "Base-10 Logarithm"]
         ],
         "IntensityPlotsWidth": [
             ["100", "100"],
