@@ -143,6 +143,7 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
         data_list = _adjust_z_width(data_list, data_file)
 
     #TODO(pjm): need range checking in type, consolidate with template.elegant
+    nbins = int(nbins)
     if nbins <= 0:
         nbins = 1
     elif nbins > _HISTOGRAM_BINS_MAX:
