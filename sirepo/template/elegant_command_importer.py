@@ -10,6 +10,7 @@ import re
 
 from sirepo import simulation_db
 from sirepo.template import elegant_command_parser
+from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 
 _SCHEMA = simulation_db.get_schema('elegant')
