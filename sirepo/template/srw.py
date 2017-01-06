@@ -39,15 +39,16 @@ WANT_BROWSER_FRAME_CACHE = False
 SIM_TYPE = 'srw'
 
 _DATA_FILE_FOR_MODEL = {
-    'fluxAnimation': 'res_spec_me.dat',
-    'fluxReport': 'res_spec_me.dat',
-    'initialIntensityReport': 'res_int_se.dat',
-    'intensityReport': 'res_spec_se.dat',
-    'multiElectronAnimation': 'res_int_pr_me.dat',
-    'powerDensityReport': 'res_pow.dat',
-    'sourceIntensityReport': 'res_int_se.dat',
-    'trajectoryReport': 'res_trj.dat',
-    'watchpointReport': 'res_int_pr_se.dat',
+    'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
+    'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
+    'initialIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
+    'intensityReport': {'filename': 'res_spec_se.dat', 'dimension': 2},
+    'mirrorReport': {'filename': '', 'dimension': 3},
+    'multiElectronAnimation': {'filename': 'res_int_pr_me.dat', 'dimension': 3},
+    'powerDensityReport': {'filename': 'res_pow.dat', 'dimension': 3},
+    'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
+    'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
+    'watchpointReport': {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 }
 
 _EXAMPLE_FOLDERS = {
@@ -79,7 +80,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
 
-_LIB_FILE_PARAM_RE = re.compile(r'.*File$');
+_LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -133,7 +134,6 @@ def extract_report_data(filename, model_data):
     if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
-    files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     if model_data['report'] == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
     elif model_data['report'] == 'sourceIntensityReport':
@@ -182,9 +182,11 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     }
-    if filename in files_3d:
-        width_pixels = int(model_data['models']['simulation']['intensityPlotsWidth'])
-        scale = model_data['models']['simulation']['intensityPlotsScale']
+    orig_rep_name = model_data['report']
+    rep_name = 'watchpointReport' if _is_watchpoint(orig_rep_name) else orig_rep_name
+    if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
+        width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
+        scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
     return info
 
@@ -410,10 +412,14 @@ def fixup_old_data(data):
     if 'photonEnergy' not in data['models']['sourceIntensityReport']:
         data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
 
-    if 'intensityPlotsWidth' not in data['models']['simulation']:
-        data['models']['simulation']['intensityPlotsWidth'] = _SCHEMA['model']['simulation']['intensityPlotsWidth'][2]
-    if 'intensityPlotsScale' not in data['models']['simulation']:
-        data['models']['simulation']['intensityPlotsScale'] = _SCHEMA['model']['simulation']['intensityPlotsScale'][2]
+    for k in data['models']:
+        for rep_name in _DATA_FILE_FOR_MODEL.keys():
+            if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
+                work_rep_name = k if _is_watchpoint(k) else rep_name
+                if work_rep_name in data['models'] and 'intensityPlotsWidth' not in data['models'][work_rep_name]:
+                    data['models'][work_rep_name]['intensityPlotsWidth'] = _SCHEMA['model'][rep_name]['intensityPlotsWidth'][2]
+                if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
+                    data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
 
 def get_animation_name(data):
     return data['modelName']
@@ -480,11 +486,11 @@ def get_data_file(run_dir, model, frame):
 def get_filename_for_model(model):
     if _is_watchpoint(model):
         model = 'watchpointReport'
-    return _DATA_FILE_FOR_MODEL[model]
+    return _DATA_FILE_FOR_MODEL[model]['filename']
 
 
 def get_simulation_frame(run_dir, data, model_data):
-    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), data)
+    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), model_data)
 
 
 def import_file(request, lib_dir, tmp_dir):
@@ -720,7 +726,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
 
 def _add_report_filenames(v):
     for k in _DATA_FILE_FOR_MODEL:
-        v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]
+        v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
 
 
 def _beamline_element(template, item, fields, propagation, shift=''):
