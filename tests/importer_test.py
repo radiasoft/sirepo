@@ -41,7 +41,7 @@ _TESTS = {  # Values are optional arguments:
 
 def test_importer():
     from sirepo.importer import import_python
-    dat_dir = py.path.local(pkresource.filename('static/dat/', import_python))
+    dat_dir = py.path.local(pkresource.filename('template/srw/', import_python))
     with pkunit.save_chdir_work():
         work_dir = py.path.local('.')
         for f in glob.glob(str(dat_dir.join('mirror_*d.dat'))):
