@@ -941,7 +941,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
         var undType = appState.models.tabulatedUndulator.undulatorType;
         var columnHeading = 'column-heading';
         var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
-        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
+        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFileName'];
         var modelReport = '.model-tabulatedUndulator-';
         var modelIdealizedReport = '.model-undulator-';
         var i;

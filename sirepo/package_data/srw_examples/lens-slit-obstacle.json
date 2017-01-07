@@ -309,7 +309,7 @@
         },
         "tabulatedUndulator": {
             "gap": 6.72,
-            "indexFile": "",
+            "indexFileName": "",
             "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",
             "phase": 0

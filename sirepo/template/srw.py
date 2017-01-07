@@ -80,8 +80,6 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
 
-_LIB_FILE_PARAM_RE = re.compile(r'.*File$')
-
 
 def background_percent_complete(report, run_dir, is_running, schema):
     res = {
@@ -348,8 +346,12 @@ def fixup_old_data(data):
             'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
             'longitudinalPosition': 1.305,
             'magnMeasFolder': '',
-            'indexFile': '',
+            'indexFileName': '',
         }
+    else:
+        if 'indexFile' in data['models']['tabulatedUndulator']:
+            data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
+            del data.models.tabulatedUndulator['indexFile']
     if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
         data['models']['tabulatedUndulator']['period'] = 21
@@ -514,20 +516,6 @@ def import_file(request, lib_dir, tmp_dir):
     )
 
 
-def lib_files(data):
-    """Return list of files used by the simulation"""
-    res = []
-
-    def _search(d):
-        for k, v in d.items():
-            if isinstance(v, dict):
-                return _search(v)
-            if _LIB_FILE_PARAM_RE.search(k) and k != 'indexFile':
-                res.append(v)
-    _search(data)
-    return res
-
-
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -586,7 +574,7 @@ def prepare_aux_files(run_dir, data):
     if not index_dir:
         index_dir = './'
     data['models']['tabulatedUndulator']['magnMeasFolder'] = index_dir
-    data['models']['tabulatedUndulator']['indexFile'] = index_file
+    data['models']['tabulatedUndulator']['indexFileName'] = index_file
 
 
 def prepare_for_client(data):
@@ -1321,7 +1309,7 @@ def _generate_parameters_file(data, plot_reports=False):
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
-            data['models']['tabulatedUndulator']['indexFile'] = ''
+            data['models']['tabulatedUndulator']['indexFileName'] = ''
 
     _validate_data(data, _SCHEMA)
     last_id = None

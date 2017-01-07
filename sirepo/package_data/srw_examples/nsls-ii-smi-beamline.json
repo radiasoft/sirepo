@@ -593,7 +593,7 @@
             "horizontalAmplitude": 0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
-            "indexFile": "",
+            "indexFileName": "",
             "length": 2.500648,
             "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",

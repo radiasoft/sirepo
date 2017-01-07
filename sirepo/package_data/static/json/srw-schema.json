@@ -581,7 +581,7 @@
             "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
             "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
             "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
-            "indexFile": ["Magnetic Zip Index File", "String"]
+            "indexFileName": ["Magnetic Zip Index File", "String"]
         },
         "trajectoryReport": {
             "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters"],

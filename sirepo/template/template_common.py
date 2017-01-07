@@ -28,6 +28,9 @@ RUN_LOG = 'run.log'
 
 RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
+LIB_FILE_PARAM_RE = re.compile(r'.*File$')
+
+
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
     for k in d:
@@ -38,6 +41,21 @@ def flatten_data(d, res, prefix=''):
             pass
         else:
             res[prefix + k] = v
+    return res
+
+
+def lib_files(data):
+    """Return list of files used by the simulation"""
+    res = []
+
+    def _search(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                return _search(v)
+            if LIB_FILE_PARAM_RE.search(k):
+                res.append(v)
+
+    _search(data)
     return res
 
 

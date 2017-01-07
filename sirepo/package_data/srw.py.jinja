@@ -76,7 +76,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_g', 'f', {{tabulatedUndulator_gap}}, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
     ['und_ph', 'f', {{tabulatedUndulator_phase}}, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mdir', 's', '{{tabulatedUndulator_magnMeasFolder}}', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '{{tabulatedUndulator_indexFile}}', 'name of magnetic measurements for different gaps summary file'],
+    ['und_mfs', 's', '{{tabulatedUndulator_indexFileName}}', 'name of magnetic measurements for different gaps summary file'],
 
 {% endif %}
 {% if simulation_sourceType == 'g' %}
