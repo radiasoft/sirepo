@@ -164,6 +164,18 @@ def app_error_logging():
     return _json_response_ok();
 
 
+@app.route(simulation_db.SCHEMA_COMMON['route']['exportSimulation'], methods=('GET', 'POST'))
+def app_export_simulation(simulation_type, simulation_id, filename):
+    from sirepo import exporter
+    p = exporter.create_zip(simulation_type, simulation_id)
+    return flask.send_file(
+        str(p),
+        mimetype='application/zip',
+        as_attachment=True,
+        attachment_filename=filename,
+    )
+
+
 @app.route('/favicon.ico')
 def app_favicon():
     """Routes to favicon.ico file."""
