@@ -501,6 +501,10 @@ def get_filename_for_model(model):
     return _DATA_FILE_FOR_MODEL[model]['filename']
 
 
+def get_predefined_beams():
+    return _PREDEFINED['beams']
+
+
 def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), model_data)
 
@@ -1466,12 +1470,12 @@ def _init():
             'current': info[0],
             'energy': info[1],
             'rmsSpread': info[2],
-            'horizontalEmittance': info[3],
+            'horizontalEmittance': round(info[3] * 1e9, 6),
             'horizontalBeta': info[4],
             'horizontalAlpha': info[5],
             'horizontalDispersion': info[6],
             'horizontalDispersionDerivative': info[7],
-            'verticalEmittance': info[8],
+            'verticalEmittance': round(info[8] * 1e9, 6),
             'verticalBeta': info[9],
             'verticalAlpha': info[10],
             'verticalDispersion': 0,

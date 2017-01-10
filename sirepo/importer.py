@@ -7,12 +7,12 @@ from __future__ import absolute_import, division, print_function
 
 import ast
 import inspect
-import json
 import re
 import traceback
 
 import py
 import py.path
+import sirepo.template.srw
 from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 
 from pykern import pkio, pkresource, pkrunpy
@@ -595,8 +595,7 @@ def _parsed_dict(v, op):
         'sampleFactor': 0,
     }
 
-    with open(str(template_dir + '/beams.json'), 'r') as f:
-        predefined_beams = json.load(f)
+    predefined_beams = sirepo.template.srw.get_predefined_beams()
 
     # Default electron beam:
     if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):
