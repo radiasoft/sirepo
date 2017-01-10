@@ -120,10 +120,8 @@ def copy_related_files(data, source_path, target_path):
 
 def extract_report_data(filename, model_data):
     flux_type = 1
-    if 'report' in model_data and model_data['report'] == 'fluxAnimation':
-        flux_type = int(model_data['animationArgs'])
-    elif 'models' in model_data:
-        flux_type = model_data['models']['fluxReport']['fluxType']
+    if 'report' in model_data and model_data['report'] in ['fluxReport', 'fluxAnimation']:
+        flux_type = int(model_data['models'][model_data['report']]['fluxType'])
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
     if flux_type == 2:
         sValShort = 'Intensity'
