@@ -50,6 +50,7 @@
               <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate s-nav-icon"></span> Open as a New Copy</a></li>
               <li><a href data-ng-click="simulations.renameItem(item)"><span class="glyphicon glyphicon-edit s-nav-icon"></span> Rename</a></li>
               <li><a href data-ng-click="simulations.moveItem(item)"><span class="glyphicon glyphicon-arrow-right s-nav-icon"></span> Move</a></li>
+              <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.exportSimulation(item)"><span class="glyphicon glyphicon-save-file s-nav-icon"></span> Export Simulation</a></li>
               <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.pythonSource(item)"><span class="glyphicon glyphicon-cloud-download s-nav-icon"></span> Python Source</a></li>
               <li data-ng-if="simulations.canDelete(item)" class="divider"></li>
               <li data-ng-if="simulations.canDelete(item)"><a href data-ng-click="simulations.deleteItem(item)"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>

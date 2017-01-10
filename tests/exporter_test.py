@@ -10,9 +10,10 @@ import pytest
 pytest.importorskip('srwl_bl')
 
 def test_create_zip():
+    from pykern import pkio
+    from pykern import pkunit
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
-    from pykern import pkio
     from sirepo import sr_unit
     import copy
     import zipfile
@@ -20,7 +21,7 @@ def test_create_zip():
     fc = sr_unit.flask_client()
     for sim_type, sim_name, expect in (
         ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'sirepo-data.json']),
-        ('elegant', 'bunchComp - fourDipoleCSR', ['magnetic_measurements.zip', 'sirepo-data.json']),
+        ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'sirepo-data.json']),
     ):
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         res = fc.sr_get_raw(

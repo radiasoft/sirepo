@@ -93,6 +93,7 @@ def copy_related_files(data, source_path, target_path):
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
             py.path.local(f).copy(animation_dir)
     # copy element InputFiles to lib
+    #TODO(robnagler) only should copy valid files. Make sure no path names
     _copy_lib_files(
         data,
         py.path.local(os.path.dirname(source_path)).join('lib'),
@@ -336,6 +337,14 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
         return e.message, None
 
 
+def lib_files(data, source_lib):
+    res = []
+    _iterate_model_fields(data, res, _iterator_input_files)
+    if data['models']['bunchFile']['sourceFile']:
+        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    return [source_lib.join(f) for f in res]
+
+
 def models_related_to_report(data):
     r = data['report']
     if not 'bunchReport' in r:
@@ -513,14 +522,10 @@ def _compute_percent_complete(data, last_element):
 
 
 def _copy_lib_files(data, source_lib, target):
-    lib_files = []
-    _iterate_model_fields(data, lib_files, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        lib_files.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    for f in lib_files:
-        path = target.join(f)
+    for f in lib_files(data, source_lib):
+        path = target.join(f.basename)
         if not path.exists():
-            source_lib.join(f).copy(path)
+            f.copy(path)
 
 
 def _create_command(model_name, data):
