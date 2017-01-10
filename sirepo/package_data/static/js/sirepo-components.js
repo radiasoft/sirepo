@@ -285,46 +285,20 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
         },
         template: [
             '<div class="model-{{modelName}}-{{field}}">',
-            '<div data-ng-show="showLabel()" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
+            '<div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
-              '<div data-ng-switch-when="BeamList">',
-                '<div class="dropdown" data-ng-class="fieldClass">',
-                  '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
-                  '<ul class="dropdown-menu" style="margin-left: 15px">',
-                    '<li class="dropdown-header">Predefined Electron Beams</li>',
-                    '<li data-ng-repeat="item in beamList | orderBy:\'name\' track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
-                    '</li>',
-                    '<li data-ng-if="userBeamList.length" class="divider"></li>',
-                    '<li data-ng-if="userBeamList.length" class="dropdown-header">User Defined Electron Beams</li>',
-                    '<li data-ng-repeat="item in userBeamList | orderBy:\'name\' track by item.id" class="s-beam-list-item">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}<span data-ng-show="! srwIsSelectedBeam(item)" data-ng-click="srwDeleteBeam(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
-                    '</li>',
-                  '</ul>',
-                '</div>',
-                '<div class="col-sm-2" data-ng-if="appState.models.electronBeam.isReadOnly"><div class="form-control-static"><a href data-ng-click="srwEditBeam()">Edit Beam</a></div></div>',
+              '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
+                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
                 '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
-              '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
-                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
-              '</div>',
-              '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
-              '</div>',
-              '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
-              '</div>',
-              '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-              '</div>',
-              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" required />',
-              '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" />',
+              '</div>',
+              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
+                '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
@@ -338,26 +312,26 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-            // field def: [label, type]
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-            $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
-            $scope.wantEnumButtons = wantEnumButtons();
-            $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (
-                isNumber($scope.info[1])
-                    ? '3'
-                    : $scope.wantEnumButtons
-                        ? '7'
-                        : '5'
-            ));
 
-            function isNumber(type) {
-                return type == 'Integer' || type == 'Float';
+            function fieldClass(fieldType, fieldSize, wantEnumButtons) {
+                return 'col-sm-' + (fieldSize || (
+                    (fieldType == 'Integer' || fieldType == 'Float')
+                        ? '3'
+                        : wantEnumButtons
+                            ? '7'
+                            : '5'
+                ));
             }
-            function wantEnumButtons() {
-                var hasLabelSizeOverride = $scope.labelSize ? true : false;
-                var e = $scope.enum[$scope.info[1]];
+
+            function showLabel(labelSize) {
+                if (labelSize === '')
+                    return true;
+                return labelSize > 0;
+            }
+
+            function wantEnumButtons(fieldType, labelSize) {
+                var hasLabelSizeOverride = labelSize ? true : false;
+                var e = SIREPO.APP_SCHEMA.enum[fieldType];
                 if (! e || e.length > 3 || hasLabelSizeOverride) {
                     return false;
                 }
@@ -370,79 +344,14 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 }
                 return true;
             }
-            $scope.showLabel = function() {
-                if ($scope.labelSize === '')
-                    return true;
-                return $scope.labelSize > 0;
-            };
-            $scope.srwEditBeam = function() {
-                // copy the current beam, rename and show editor
-                var newBeam = appState.clone(appState.models.electronBeam);
-                delete newBeam.isReadOnly;
-                newBeam.name = appState.uniqueName($scope.userBeamList, 'name', newBeam.name + ' (copy {})');
-                newBeam.beamSelector = newBeam.name;
-                newBeam.id = appState.uniqueName($scope.userBeamList, 'id', appState.models.simulation.simulationId + ' {}');
-                appState.models.electronBeam = newBeam;
-            };
-            $scope.srwDeleteBeam = function(item, $event) {
-                $event.stopPropagation();
-                $event.preventDefault();
-                requestSender.getApplicationData(
-                    {
-                        method: 'delete_beam',
-                        id: item.id,
-                    },
-                    $scope.srwLoadBeamList);
-            };
-            $scope.srwIsSelectedBeam = function(item) {
-                return item.id == appState.models.electronBeam.id;
-            };
-            $scope.srwLoadBeamList = function() {
-                requestSender.getApplicationData(
-                    {
-                        method: 'beam_list',
-                    },
-                    function(data) {
-                        $scope.beamList = [];
-                        $scope.userBeamList = [];
-                        if (appState.isLoaded() && data.beamList) {
-                            for (var i = 0; i < data.beamList.length; i++) {
-                                var beam = data.beamList[i];
-                                (beam.isReadOnly
-                                 ? $scope.beamList
-                                 : $scope.userBeamList
-                                ).push(beam);
-                            }
-                        }
-                    });
-            };
-            $scope.srwSelectBeam = function(item) {
-                item = appState.clone(item);
-                appState.models.electronBeam = item;
-                item[$scope.field] = item.name;
-            };
-        },
-        link: function link(scope, element) {
-            if (scope.info && scope.info[1] == 'BeamList') {
-                scope.srwLoadBeamList();
-                scope.$on('electronBeam.changed', function() {
-                    var ebeam = appState.models.electronBeam;
-                    if (ebeam.isReadOnly) {
-                        return;
-                    }
-                    var foundIt = false;
-                    for (var i = 0; i < scope.userBeamList.length; i++) {
-                        if (scope.userBeamList[i].id == ebeam.id) {
-                            scope.userBeamList[i].name = ebeam.name;
-                            foundIt = true;
-                            break;
-                        }
-                    }
-                    if (! foundIt) {
-                        scope.userBeamList.push(ebeam);
-                    }
-                });
-            }
+
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
+            // field def: [label, type]
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
+            $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
+            $scope.fieldClass = fieldClass($scope.info[1], $scope.fieldSize, $scope.wantEnumButtons);
+            $scope.showLabel = showLabel($scope.labelSize);
         },
     };
 });
@@ -452,7 +361,7 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
         restirct: 'A',
         scope: {},
         template: [
-              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
+              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
                   '<li class="divider"></li>',

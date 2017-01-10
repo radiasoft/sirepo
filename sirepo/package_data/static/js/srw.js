@@ -5,6 +5,24 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+//TODO(pjm): provide API for this, keyed by field type
+SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="BeamList">',
+      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+    '</div>',
+    '<div data-ng-switch-when="UndulatorList">',
+      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+    '</div>',
+    '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
+    '</div>',
+    '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+    '</div>',
+    '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
+    '</div>',
+].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -1812,6 +1830,129 @@ SIREPO.app.directive('mobileAppTitle', function(srwService) {
         ].join(''),
         controller: function($scope) {
             $scope.srwService = srwService;
+        },
+    };
+});
+
+SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+            fieldClass: '=',
+        },
+        template: [
+            '<div class="dropdown" data-ng-class="fieldClass">',
+              '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
+              '<ul class="dropdown-menu" style="margin-left: 15px">',
+                '<li class="dropdown-header">Predefined {{ modelLongName() }}s</li>',
+                '<li data-ng-repeat="item in modelList | orderBy:\'name\' track by item.name">',
+                  '<a href data-ng-click="selectItem(item)">{{ item.name }}</a>',
+                '</li>',
+                '<li data-ng-if="userModelList.length" class="divider"></li>',
+                '<li data-ng-if="userModelList.length" class="dropdown-header">User Defined {{ modelLongName() }}s</li>',
+                '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="s-model-list-item">',
+                  '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
+                '</li>',
+              '</ul>',
+            '</div>',
+            '<div class="col-sm-2" data-ng-if="model.isReadOnly">',
+              '<div class="form-control-static"><a href data-ng-click="editItem()">Edit {{ modelShortName() }}</a></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function isElectronBeam() {
+                return $scope.modelName == 'electronBeam';
+            }
+            $scope.appState = appState;
+            $scope.editItem = function() {
+                // copy the current model, rename and show editor
+                var newModel = appState.clone(appState.models[$scope.modelName]);
+                delete newModel.isReadOnly;
+                newModel.name = appState.uniqueName($scope.userModelList, 'name', newModel.name + ' (copy {})');
+                if (isElectronBeam()) {
+                    newModel.beamSelector = newModel.name;
+                }
+                else {
+                    newModel.undulatorSelector = newModel.name;
+                }
+                newModel.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
+                appState.models[$scope.modelName] = newModel;
+            };
+            $scope.deleteItem = function(item, $event) {
+                $event.stopPropagation();
+                $event.preventDefault();
+                requestSender.getApplicationData(
+                    {
+                        method: 'delete_model_from_list',
+                        model_name: $scope.modelName,
+                        id: item.id,
+                    },
+                    $scope.loadModelList);
+            };
+            $scope.modelLongName = function() {
+                return isElectronBeam()
+                    ? 'Electron Beam'
+                    : 'Undulator';
+            };
+            $scope.modelShortName = function() {
+                return isElectronBeam()
+                    ? 'Beam'
+                    : 'Undulator';
+            };
+            $scope.isSelectedItem = function(item) {
+                return item.id == appState.models[$scope.modelName].id;
+            };
+            $scope.loadModelList = function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'model_list',
+                        model_name: $scope.modelName,
+                    },
+                    function(data) {
+                        $scope.modelList = [];
+                        $scope.userModelList = [];
+                        if (appState.isLoaded() && data.modelList) {
+                            for (var i = 0; i < data.modelList.length; i++) {
+                                var model = data.modelList[i];
+                                (model.isReadOnly
+                                 ? $scope.modelList
+                                 : $scope.userModelList
+                                ).push(model);
+                            }
+                        }
+                    });
+            };
+            $scope.selectItem = function(item) {
+                item = appState.clone(item);
+                appState.models[$scope.modelName] = item;
+                item[$scope.field] = item.name;
+            };
+        },
+        link: function link(scope, element) {
+            scope.loadModelList();
+            scope.$on('modelChanged', function(e, name) {
+                if (name != scope.modelName) {
+                    return;
+                }
+                var model = appState.models[scope.modelName];
+                if (model.isReadOnly) {
+                    return;
+                }
+                var foundIt = false;
+                for (var i = 0; i < scope.userModelList.length; i++) {
+                    if (scope.userModelList[i].id == model.id) {
+                        scope.userModelList[i].name = model.name;
+                        foundIt = true;
+                        break;
+                    }
+                }
+                if (! foundIt) {
+                    scope.userModelList.push(model);
+                }
+            });
         },
     };
 });

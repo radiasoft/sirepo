@@ -20,14 +20,16 @@ from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
 import json
+import glob
 import math
 import numpy as np
 import os
 import py.path
 import re
 import sirepo.importer
-import srwlib
 import srwl_samples
+import srwl_uti_src
+import srwlib
 import traceback
 import uti_math
 import uti_plot_com
@@ -116,6 +118,16 @@ def copy_related_files(data, source_path, target_path):
         py.path.local(os.path.dirname(source_path)).join('lib'),
         py.path.local(os.path.dirname(target_path)).join('lib'),
     )
+
+
+def extensions_for_file_type(file_type):
+    if file_type == 'mirror':
+        return ['*.dat', '*.txt']
+    if file_type == 'sample':
+        return ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+    if file_type == 'undulatorTable':
+        return ['*.zip']
+    raise RuntimeError('unknown file_type: ', file_type)
 
 
 def extract_report_data(filename, model_data):
@@ -428,14 +440,14 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
-    if data['method'] == 'beam_list':
+    if data['method'] == 'model_list':
         res = []
         res.extend(_PREDEFINED.beams)
         res.extend(_load_user_beam_list())
         for beam in res:
             _process_beam_parameters(beam)
         return {
-            'beamList': res
+            'modelList': res
         }
     if data['method'] == 'delete_beam':
         return _delete_user_beam(data['id'])
@@ -1428,13 +1440,51 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
     return res, pp
 
 
+def _predefined_files_for_type(file_type):
+    res = []
+    for extension in extensions_for_file_type(file_type):
+        for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
+            if os.path.isfile(f):
+                res.append({
+                    'fileName': os.path.basename(f),
+                })
+    return res
+
+
 def _init():
     global _PREDEFINED
     if _PREDEFINED:
         return
     _PREDEFINED = pkcollections.Dict()
-    for f in ('beams', 'mirrors', 'magnetic_measurements', 'sample_images'):
-        _PREDEFINED[f] = simulation_db.read_json(_RESOURCE_DIR.join(f + '.json'))
+    _PREDEFINED['mirrors'] = _predefined_files_for_type('mirror')
+    _PREDEFINED['magnetic_measurements'] = _predefined_files_for_type('undulatorTable')
+    _PREDEFINED['sample_images'] = _predefined_files_for_type('sample')
+    beams = []
+    for beam in srwl_uti_src.srwl_uti_src_predefined_e_beams():
+        info = beam[1]
+        # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
+        beams.append({
+            'name': beam[0],
+            'current': info[0],
+            'energy': info[1],
+            'rmsSpread': info[2],
+            'horizontalEmittance': info[3],
+            'horizontalBeta': info[4],
+            'horizontalAlpha': info[5],
+            'horizontalDispersion': info[6],
+            'horizontalDispersionDerivative': info[7],
+            'verticalEmittance': info[8],
+            'verticalBeta': info[9],
+            'verticalAlpha': info[10],
+            'verticalDispersion': 0,
+            'verticalDispersionDerivative': 0,
+            'energyDeviation': 0,
+            'horizontalPosition': 0,
+            'verticalPosition': 0,
+            'drift': 0.0,
+            'isReadOnly': True,
+        })
+    _PREDEFINED['beams'] = beams
 
 
 def _intensity_units(is_gaussian, model_data):
@@ -1607,7 +1657,7 @@ def _unique_name(items, field, template):
     values = {}
     for item in items:
         values[item[field]] = True
-    index = 1;
+    index = 1
     while True:
         found_it = False
         id = template.replace('{}', str(index))
