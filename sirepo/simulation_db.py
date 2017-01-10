@@ -371,7 +371,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
         CopyRedirect: if the simulation is in another user's
     """
     if not path:
-        path = _simulation_data_file(sim_type, sid)
+        path = sim_data_file(sim_type, sid)
     if not os.path.isfile(str(path)):
         global_sid = None
         if sid:
@@ -659,8 +659,21 @@ def save_simulation_json(simulation_type, data):
             pass
         data = fixup_old_data(data)[0]
         data['models']['simulation']['simulationSerial'] = _serial_new()
-        write_json(_simulation_data_file(simulation_type, sid), data)
+        write_json(sim_data_file(simulation_type, sid), data)
         return data
+
+
+def sim_data_file(sim_type, sim_id):
+    """Simulation data file name
+
+    Args:
+        sim_type (str): simulation type
+        sim_id (str): simulation id
+
+    Returns:
+        py.path.local: simulation path
+    """
+    return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
 
 
 def simulation_dir(simulation_type, sid=None):
@@ -707,12 +720,14 @@ def simulation_run_dir(data, remove_dir=False):
 
 
 def tmp_dir():
-    """Generates tmp directory for the user
+    """Generates new, temporary directory
 
     Returns:
         py.path: directory to use for temporary work
     """
-    return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
+    d = _random_id(_user_dir().join(_TMP_DIR))['path']
+    pkio.unchecked_remove(d)
+    return pkio.mkdir_parent(d)
 
 
 def validate_serial(req_data):
@@ -904,10 +919,6 @@ def _sid_from_path(path):
     if not _ID_RE.search(sid):
         raise RuntimeError('{}: invalid simulation id'.format(sid))
     return sid
-
-
-def _simulation_data_file(simulation_type, sid):
-    return str(simulation_dir(simulation_type, sid).join(SIMULATION_DATA_FILE))
 
 
 def _user_dir():

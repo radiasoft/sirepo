@@ -81,7 +81,30 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return self.get(_route(route_name, params)).data
 
+    def sr_sim_data(self, sim_type, sim_name):
+        """Return simulation data by name
 
+        Args:
+            sim_type (str): app
+            sim_name (str): case sensitive name
+
+        Returns:
+            dict: data
+        """
+        data = self.sr_post('listSimulations', {'simulationType': sim_type})
+        for d in data:
+            if d['name'] == sim_name:
+                break
+        else:
+            pkfail('{}: not found in ', sim_name, pkdpretty(data))
+        return self.sr_get(
+            'simulationData',
+            {
+                'simulation_type': sim_type,
+                'pretty': '0',
+                'simulation_id': d['simulationId'],
+            },
+        )
 
 def _req(route_name, params, op):
     """Make request and parse result

@@ -45,15 +45,23 @@ def flatten_data(d, res, prefix=''):
 
 
 def lib_files(data):
-    """Return list of files used by the simulation"""
+    """Return list of files used by the simulation
+
+    Args:
+        data (dict): sim db
+
+    Returns:
+        list: py.path.local to files
+    """
     res = []
 
+    rd = resource_dir(data['simulationType'])
     def _search(d):
         for k, v in d.items():
             if isinstance(v, dict):
-                return _search(v)
-            if LIB_FILE_PARAM_RE.search(k):
-                res.append(v)
+                _search(v)
+            elif LIB_FILE_PARAM_RE.search(k):
+                res.append(rd.join(v))
 
     _search(data)
     return res

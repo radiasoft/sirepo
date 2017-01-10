@@ -71,11 +71,19 @@ def test_1_serial_stomp():
 
 
 def test_oauth():
+    from pykern import pkconfig
+    pkconfig.reset_state_for_testing({
+        'SIREPO_SERVER_OAUTH_LOGIN': '1',
+        'SIREPO_OAUTH_GITHUB_KEY': 'n/a',
+        'SIREPO_OAUTH_GITHUB_SECRET': 'n/a',
+        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': 'n/a',
+    })
+
     from pykern.pkunit import pkfail, pkok
     from sirepo import server
     from sirepo import sr_unit
     import re
-    server.cfg['oauth_login'] = True
+
     sim_type = 'srw'
     fc = sr_unit.flask_client()
     fc.sr_post('listSimulations', {'simulationType': sim_type})
