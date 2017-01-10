@@ -180,13 +180,10 @@ def app_file_list(simulation_type, simulation_id, file_type):
     exclude = None
     #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        if file_type == 'mirror':
-            search = ['*.dat', '*.txt']
-        elif file_type == 'sample':
-            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+        template = sirepo.template.import_module(simulation_type)
+        search = template.extensions_for_file_type(file_type)
+        if file_type == 'sample':
             exclude = '_processed.tif'
-        else:
-            search = ['*.zip']
     else:
         search = ['{}.*'.format(file_type)]
     d = simulation_db.simulation_lib_dir(simulation_type)
