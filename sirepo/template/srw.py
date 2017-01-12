@@ -27,7 +27,7 @@ import os
 import py.path
 import re
 import sirepo.importer
-import srwl_samples
+import srwl_smp
 import srwl_uti_src
 import srwlib
 import traceback
@@ -772,7 +772,7 @@ def validate_file(file_type, path):
     elif extension.lower() in ['tif', 'tiff', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
-        srwl_samples.SRWLSamples(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_smp.SRWLOptSmp(file_path=str(path), is_save_images=True, prefix=filename)
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -1027,7 +1027,7 @@ def _copy_lib_files(data, source_lib, target, report=None):
                 if field_type == 'ImageFile':
                     filename = os.path.splitext(os.path.basename(str(model[f])))[0]
                     # Save the processed file:
-                    srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
+                    srwl_smp.SRWLOptSmp(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
                     lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
@@ -1276,7 +1276,7 @@ def _generate_beamline_optics(models, last_id):
             file_name = 'op_sample{}'.format(sample_counter)
             sample_counter += 1
             el, pp = _beamline_element(
-                """srwl_samples.srwl_opt_setup_transmission_from_file(
+                """srwl_smp.srwl_opt_setup_transmission_from_file(
                     file_path=v.""" + file_name + """,
                     resolution={},
                     thickness={},
