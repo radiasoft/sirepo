@@ -18,8 +18,9 @@ angular.element(document).ready(function() {
             angular.bootstrap(document, ['LandingPageApp']);
         },
         error: function(xhr, status, err) {
-            if (! SRW_EXAMPLES)
+            if (! SRW_EXAMPLES) {
                 srlog("srw examples load failed: ", err);
+            }
         },
         method: 'GET',
         dataType: 'json',
@@ -43,7 +44,9 @@ app.config(function($routeProvider, appRoutesProvider) {
         });
         Object.keys(appRoutes).forEach(function(key) {
             $routeProvider.when('/' + key, {
-                template: '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-big-button="{{ item.name }}" data-image="{{ item.image }}" data-href="{{ landingPage.itemUrl(item) }}"></div>',
+                template: '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-'
+                    + (key == 'light-sources' ? 'button-list' : 'big-button')
+                    + '="item"></div>',
             });
         });
         $routeProvider.otherwise({
@@ -71,12 +74,16 @@ app.controller('LandingPageController', function ($location, appRoutes) {
 
     self.itemsForCategory = function() {
         for (var i = 0; i < self.srwExamples.length; i++) {
-            if (self.srwExamples[i].category == pageCategory())
+            if (self.srwExamples[i].category == pageCategory()) {
                 return self.srwExamples[i].examples;
+            }
         }
     };
 
     self.itemUrl = function(item) {
+        if (item.category) {
+            return '#/' + item.category;
+        }
         return '/find-by-name/srw/' + pageCategory() + '/' + encodeURIComponent(item.simulationName || item.name);
     };
 
@@ -96,14 +103,46 @@ app.controller('LandingPageController', function ($location, appRoutes) {
 app.directive('bigButton', function() {
     return {
         scope: {
-            title: '@bigButton',
-            image: '@',
-            href: '@',
+            item: '=bigButton',
+            wideCol: '@',
         },
         template: [
             '<div class="row">',
-              '<div class="col-md-6 col-md-offset-3">',
-                '<a data-ng-href="{{ href }}" class="btn btn-default thumbnail lp-big-button"><h3>{{ title }}</h3><img data-ng-src="/static/img/{{ image }}" alt="{{ title }}" /></a>',
+              '<div data-ng-class="item.class">',
+                '<a data-ng-href="{{ item.url }}" class="btn btn-default thumbnail lp-big-button"><h3 data-ng-if="item.name">{{ item.name }}</h3><img data-ng-if="item.image" data-ng-src="/static/img/{{ item.image }}" alt="{{ item.name }}" /><span class="lead text-primary" style="white-space: pre" data-ng-if="item.buttonText">{{ item.buttonText }}</span></a>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var current = $scope;
+            var controller;
+            while (current) {
+                controller = current.landingPage;
+                if (controller) {
+                    break;
+                }
+                current = current.$parent;
+            }
+            $scope.item.class = $scope.wideCol
+                ? 'col-md-8 col-md-offset-2'
+                : 'col-md-6 col-md-offset-3';
+            $scope.item.url = controller.itemUrl($scope.item);
+        },
+    };
+});
+
+app.directive('buttonList', function() {
+    return {
+        scope: {
+            item: '=buttonList',
+        },
+        template: [
+            '<div class="row">',
+              '<div class="col-md-8 col-md-offset-2">',
+                '<div class="well">',
+                  '<h3>{{ item.name }}</h3>',
+                  '<div data-ng-repeat="item in item.simulations" data-big-button="item" data-wide-col="1"></div>',
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
