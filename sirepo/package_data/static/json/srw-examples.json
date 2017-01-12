@@ -48,13 +48,34 @@
         "examples": [
             {
                 "name": "NSLS-II",
-                "image": "nsls-ii.png",
-                "simulationName": "NSLS-II CHX beamline"
+                "simulations": [
+                    {
+                        "image": "nsls-ii-chx.png",
+                        "simulationName": "NSLS-II CHX beamline"
+                    },
+                    {
+                        "buttonText": "NSLS-II 21-ID\nESM\nElectron Spectro-Microscopy",
+                        "simulationName": "NSLS-II ESM beamline"
+                    },
+                    {
+                        "buttonText": "NSLS-II 17-ID-2\nFMX\nFrontier Microfocusing\nMacromolecular Crystallography",
+                        "simulationName": "NSLS-II FMX beamline"
+                    },
+                    {
+                        "buttonText": "NSLS-II 12-ID\nSMI\nSoft Matter Interfaces",
+                        "simulationName": "NSLS-II SMI beamline"
+                    }
+                ]
             },
             {
                 "name": "LCLS",
-                "image": "lcls.png",
-                "simulationName": "LCLS SXR beamline"
+                "simulations": [
+                    {
+                        "name": "LCLS SXR",
+                        "image": "lcls.png",
+                        "simulationName": "LCLS SXR beamline"
+                    }
+                ]
             }
         ]
     }
