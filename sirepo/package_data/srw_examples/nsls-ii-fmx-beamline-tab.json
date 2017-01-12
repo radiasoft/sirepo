@@ -410,7 +410,7 @@
             ]
         },
         "simulation": {
-            "documentationUrl": "",
+            "documentationUrl": "https://www.bnl.gov/ps/beamlines/beamline.php?r=17-ID-2",
             "facility": "NSLS-II",
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II FMX beamline",
             "horizontalPointCount": 201,
