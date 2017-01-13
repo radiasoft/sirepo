@@ -171,18 +171,19 @@ def find_global_simulation(simulation_type, sid):
     return None
 
 
-def fixup_old_data(data):
+def fixup_old_data(data, force=False):
     """Upgrade data to latest schema and updates version.
 
     Args:
         data (dict): to be updated (destructively)
+        force (bool): force validation
 
     Returns:
         dict: upgraded `data`
         bool: True if data changed
     """
     try:
-        if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+        if not force and 'version' in data and data['version'] == SCHEMA_COMMON['version']:
             return data, False
         data['version'] = SCHEMA_COMMON['version']
         if not 'simulationType' in data:

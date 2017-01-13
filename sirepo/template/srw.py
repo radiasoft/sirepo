@@ -359,7 +359,7 @@ def fixup_old_data(data):
             'indexFileName': '',
         }
     else:
-        if 'indexFile' in data['models']['tabulatedUndulator']:
+        if 'indexFile' in data.models.tabulatedUndulator:
             data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
             del data.models.tabulatedUndulator['indexFile']
     if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
@@ -514,20 +514,22 @@ def import_file(request, lib_dir, tmp_dir):
     input_text = f.read()
     # attempt to decode the input as json first, if invalid try python
     try:
-        data = json.loads(input_text)
-        data['models']['simulation']['name'] += ' (imported JSON)'
-        return None, data
-    except ValueError:
-        pass
-    arguments = str(request.form['arguments'])
-    pkdlog('{}: arguments={}', f.filename, arguments)
-    return sirepo.importer.import_python(
-        input_text,
-        lib_dir=lib_dir,
-        tmp_dir=tmp_dir,
-        user_filename=f.filename,
-        arguments=arguments,
-    )
+        parsed_data = simulation_db.json_load(input_text)
+    except ValueError as e:
+        # Failed to read json
+        arguments = str(request.form['arguments'])
+        pkdlog('{}: arguments={}', f.filename, arguments)
+        return sirepo.importer.import_python(
+            input_text,
+            lib_dir=lib_dir,
+            tmp_dir=tmp_dir,
+            user_filename=f.filename,
+            arguments=arguments,
+        )
+
+    data = simulation_db.fixup_old_data(parsed_data, force=True)[0]
+    data.models.simulation.name += ' (imported JSON)'
+    return None, data
 
 
 def models_related_to_report(data):
@@ -697,7 +699,7 @@ def validate_file(file_type, path):
         zip_file = zipfile.ZipFile(str(path))
         is_valid = False
         for f in zip_file.namelist():
-            if re.search('\.txt', f.lower()):
+            if re.search(r'\.txt', f.lower()):
                 is_valid = True
                 break
         if not is_valid:
@@ -1048,7 +1050,7 @@ def _find_index_file(zip_object):
     index_file = None
     index_dir = None
     for f in zip_object.namelist():
-        if re.search('\.txt', f):
+        if re.search(r'\.txt', f):
             index_file = os.path.basename(f)
             index_dir = os.path.dirname(f)
             break
