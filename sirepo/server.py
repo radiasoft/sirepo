@@ -255,6 +255,13 @@ def app_get_application_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
+    """
+    Args:
+        simulation_type (str): which simulation type
+    Params:
+        file: file data
+        folder: where to import to
+    """
     template = sirepo.template.import_module(simulation_type)
     error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
     if error:
