@@ -120,8 +120,13 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             // this causes a 'number of fractional digits' error in MSIE
             //.tickFormat(d3.format('e'))
                 .tickFormat(function (value) {
-                    if (value)
-                        return cleanNumber(value.toExponential(2));
+                    if (value){
+                        if (Math.abs(value) < 1e3 & Math.abs(value) > 1e-3) {
+                            return cleanNumber(value.toString());
+                        } else {
+                            return cleanNumber(value.toExponential(2));
+                        }
+                    }
                     return value;
                 });
         },
