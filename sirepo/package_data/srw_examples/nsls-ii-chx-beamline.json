@@ -451,6 +451,7 @@
             ]
         },
         "simulation": {
+            "documentationUrl": "https://www.bnl.gov/ps/beamlines/beamline.php?r=11-ID",
             "facility": "NSLS-II",
             "isExample": "1",
             "name": "NSLS-II CHX beamline",

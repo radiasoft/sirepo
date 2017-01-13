@@ -27,7 +27,7 @@ import os
 import py.path
 import re
 import sirepo.importer
-import srwl_samples
+import srwl_smp
 import srwl_uti_src
 import srwlib
 import traceback
@@ -81,6 +81,71 @@ _PREDEFINED = None
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
+
+
+class MagnMeasZip:
+    def __init__(self, archive_name):
+        """The class for convenient operation with an archive with the magnetic measurements.
+
+        Args:
+            archive_name: the name of the archive.
+        """
+        self.archive_name = archive_name
+        self.z = zipfile.ZipFile(archive_name)
+        self.index_dir = None
+        self.index_file = None
+        self.index_content = None
+        self.gaps = None
+        self.dat_files = None
+
+        # .dat file from the index file (depends on the provided gap):
+        self.idx = None
+        self.closest_gap = None
+        self.dat_file = None
+
+        # .dat file information:
+        self.dat_file_step = None
+        self.dat_file_number_of_points = None
+        self.dat_file_found_length = None
+
+        self._find_index_file()
+        self._find_dat_files_from_index_file()
+
+    def find_closest_gap(self, gap):
+        d = _find_closest_value(self.gaps, float(gap))
+        self.idx = d['idx']
+        self.closest_gap = d['closest_value']
+        self.dat_file = self.dat_files[self.idx]
+        self._get_gap_parameters(self.get_file_content(self.dat_file))
+
+    def get_file_content(self, file_name):
+        with self.z.open(self._full_path(file_name)) as f:
+            return _normalize_eol(f)
+
+    def save_file(self, run_dir, file_name, content):
+        with open(self._full_path(file_name, run_dir), 'w') as f:
+            f.write('\n'.join(content) + '\n')
+
+    def _find_dat_files_from_index_file(self):
+        self.gaps, self.dat_files = _find_dat_files_from_index_file(self.index_content)
+
+    def _find_index_file(self):
+        self.index_dir, self.index_file = _find_index_file(self.z)
+        self.index_content = self.get_file_content(self.index_file)
+
+    def _full_path(self, file_name, run_dir=None):
+        if not run_dir:
+            return os.path.join(self.index_dir, file_name)
+        abs_dir = os.path.join(run_dir, self.index_dir)
+        abs_dir = os.path.abspath(abs_dir)
+        if not os.path.isdir(abs_dir):
+            os.mkdir(abs_dir)
+        return os.path.join(abs_dir, file_name)
+
+    def _get_gap_parameters(self, dat_content):
+        self.dat_file_step = float(dat_content[8].split('#')[1].strip())
+        self.dat_file_number_of_points = int(dat_content[9].split('#')[1].strip())
+        self.dat_file_found_length = round(self.dat_file_step * self.dat_file_number_of_points, 6)
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -584,13 +649,12 @@ def prepare_aux_files(run_dir, data):
     for f in _PREDEFINED.magnetic_measurements:
         if filename == f['fileName'] and not filepath.check():
             _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
-    zip_file = zipfile.ZipFile(str(filepath))
-    zip_file.extractall(str(run_dir))
-    index_dir, index_file = _find_index_file(zip_file)
-    if not index_dir:
-        index_dir = './'
-    data['models']['tabulatedUndulator']['magnMeasFolder'] = index_dir
-    data['models']['tabulatedUndulator']['indexFileName'] = index_file
+    m = MagnMeasZip(str(filepath))
+    for f in m.dat_files + [m.index_file]:
+        content = m.get_file_content(f)
+        m.save_file(str(run_dir), f, content)
+    data['models']['tabulatedUndulator']['magnMeasFolder'] = m.index_dir if m.index_dir else './'
+    data['models']['tabulatedUndulator']['indexFileName'] = m.index_file
 
 
 def prepare_for_client(data):
@@ -707,7 +771,7 @@ def validate_file(file_type, path):
     elif extension.lower() in ['tif', 'tiff', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
-        srwl_samples.SRWLSamples(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_smp.SRWLOptSmp(file_path=str(path), is_save_images=True, prefix=filename)
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -916,9 +980,9 @@ def _compute_undulator_length(model):
         return model
     zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
-        zip_file = str(zip_file)
-        d = _find_tab_undulator_length(zip_file, model['gap'])
-        model['length'] = d['found_length']
+        m = MagnMeasZip(str(zip_file))
+        m.find_closest_gap(model['gap'])
+        model['length'] = m.dat_file_found_length
     return model
 
 
@@ -962,7 +1026,7 @@ def _copy_lib_files(data, source_lib, target, report=None):
                 if field_type == 'ImageFile':
                     filename = os.path.splitext(os.path.basename(str(model[f])))[0]
                     # Save the processed file:
-                    srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
+                    srwl_smp.SRWLOptSmp(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
                     lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
@@ -1037,6 +1101,18 @@ def _find_closest_value(values_list, value):
     }
 
 
+def _find_dat_files_from_index_file(index_content):
+    gaps = []
+    dat_files = []
+    for row in index_content:
+        v = row.strip()
+        if v:
+            v = v.split()
+            gaps.append(float(v[0]))
+            dat_files.append(v[3])
+    return gaps, dat_files
+
+
 def _find_index_file(zip_object):
     """The function finds an index file (``*.txt``) in the provided zip-object.
 
@@ -1056,46 +1132,6 @@ def _find_index_file(zip_object):
             break
     assert index_file is not None
     return index_dir, index_file
-
-
-def _find_tab_undulator_length(zip_file, gap):
-    """Find undulator length from the specified zip-archive with the magnetic measurements data.
-
-    Args:
-        zip_file: zip-archive with the magnetic measurements data.
-        gap: undulator gap [mm].
-
-    Returns:
-        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
-    """
-    z = zipfile.ZipFile(zip_file)
-    index_dir, index_file = _find_index_file(z)
-    with z.open(os.path.join(index_dir, index_file)) as f:
-        sum_content = f.readlines()
-    gap = float(gap)
-    gaps_list = []
-    dat_files_list = []
-    for row in sum_content:
-        v = row.split()
-        gaps_list.append(float(v[0]))
-        dat_files_list.append(v[3])
-
-    d = _find_closest_value(gaps_list, gap)
-    closest_gap = d['closest_value']
-    dat_file = dat_files_list[d['idx']]
-
-    with z.open(os.path.join(index_dir, dat_file)) as f:
-        dat_content = f.readlines()
-
-    step = float(dat_content[8].split('#')[1].strip())
-    number_of_points = int(dat_content[9].split('#')[1].strip())
-    found_length = round(step * number_of_points, 6)
-
-    return {
-        'found_length': found_length,
-        'dat_file': dat_file,
-        'closest_gap': closest_gap
-    }
 
 
 def _generate_beamline_optics(models, last_id):
@@ -1239,7 +1275,7 @@ def _generate_beamline_optics(models, last_id):
             file_name = 'op_sample{}'.format(sample_counter)
             sample_counter += 1
             el, pp = _beamline_element(
-                """srwl_samples.srwl_opt_setup_transmission_from_file(
+                """srwl_smp.srwl_opt_setup_transmission_from_file(
                     file_path=v.""" + file_name + """,
                     resolution={},
                     thickness={},
@@ -1444,17 +1480,6 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
     return res, pp
 
 
-def _predefined_files_for_type(file_type):
-    res = []
-    for extension in extensions_for_file_type(file_type):
-        for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
-            if os.path.isfile(f):
-                res.append({
-                    'fileName': os.path.basename(f),
-                })
-    return res
-
-
 def _init():
     global _PREDEFINED
     if _PREDEFINED:
@@ -1528,6 +1553,23 @@ def _load_user_beam_list():
         return simulation_db.read_json(filepath)
     _save_user_beam_list([])
     return _load_user_beam_list()
+
+
+def _normalize_eol(file_desc):
+    s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
+    content = s.split('\n')
+    return content
+
+
+def _predefined_files_for_type(file_type):
+    res = []
+    for extension in extensions_for_file_type(file_type):
+        for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
+            if os.path.isfile(f):
+                res.append({
+                    'fileName': os.path.basename(f),
+                })
+    return res
 
 
 def _process_beam_parameters(ebeam):
