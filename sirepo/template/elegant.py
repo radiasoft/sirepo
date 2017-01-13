@@ -338,6 +338,15 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
 
 
 def lib_files(data, source_lib):
+    """Returns list of auxialiary files
+
+    Args:
+        data (dict): simulation db
+        source_lib (py.path): directory of source
+
+    Returns:
+        list: py.path.local of source files
+    """
     res = []
     _iterate_model_fields(data, res, _iterator_input_files)
     if data['models']['bunchFile']['sourceFile']:
