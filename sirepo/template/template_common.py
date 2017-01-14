@@ -6,9 +6,11 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdp
+from pykern import pkresource
 import copy
 import hashlib
 import json
+import py.path
 import re
 import sirepo.template
 
@@ -24,6 +26,10 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
+RESOURCE_DIR = py.path.local(pkresource.filename('template'))
+
+LIB_FILE_PARAM_RE = re.compile(r'.*File$')
+
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
@@ -38,6 +44,33 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
+def lib_files(data):
+    """Return list of files used by the simulation
+
+    Args:
+        data (dict): sim db
+
+    Returns:
+        list: py.path.local to files
+    """
+    from sirepo import simulation_db
+    sim_type = data['simulationType']
+    if sim_type == 'elegant':
+        return sirepo.template.import_module(data).lib_files(data, simulation_db.simulation_lib_dir(sim_type))
+    rd = resource_dir(sim_type)
+    res = []
+
+    def _search(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                _search(v)
+            elif LIB_FILE_PARAM_RE.search(k) and v:
+                res.append(rd.join(v))
+
+    _search(data)
+    return res
+
+
 def parse_enums(enum_schema):
     """Returns a list of enum values, keyed by enum name."""
     res = {}
@@ -46,6 +79,17 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
+
+
+def resource_dir(sim_type):
+    """Where to get library files from
+
+    Args:
+        sim_type (str): application name
+    Returns:
+        py.path.Local: absolute path to folder
+    """
+    return RESOURCE_DIR.join(sim_type)
 
 
 def report_parameters_hash(data):

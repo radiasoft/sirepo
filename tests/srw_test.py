@@ -56,7 +56,7 @@ def test_prepare_aux_files():
         }
         srw.prepare_aux_files(pkunit.empty_work_dir(), data)
         assert data['models']['tabulatedUndulator']['magnMeasFolder'] == './'
-        assert data['models']['tabulatedUndulator']['indexFile'] == 'ivu21_srx_sum.txt'
+        assert data['models']['tabulatedUndulator']['indexFileName'] == 'ivu21_srx_sum.txt'
 
     from sirepo import sr_unit
     sr_unit.test_in_request(t)

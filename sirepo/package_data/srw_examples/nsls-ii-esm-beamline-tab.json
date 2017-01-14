@@ -588,7 +588,7 @@
             ]
         },
         "simulation": {
-            "documentationUrl": "",
+            "documentationUrl": "https://www.bnl.gov/ps/beamlines/beamline.php?r=21-ID",
             "facility": "",
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II ESM beamline",
             "horizontalPointCount": 100,
@@ -639,7 +639,7 @@
             "horizontalAmplitude": 0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
-            "indexFile": "",
+            "indexFileName": "",
             "length": 2.371,
             "longitudinalPosition": -1.5,
             "magneticFile": "magn_meas_esm.zip",

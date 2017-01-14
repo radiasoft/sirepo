@@ -221,7 +221,7 @@
         },
         "tabulatedUndulator": {
             "gap": 6.72,
-            "indexFile": "ivu21_srx_sum.txt",
+            "indexFileName": "ivu21_srx_sum.txt",
             "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",
             "phase": 0

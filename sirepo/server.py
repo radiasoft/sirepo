@@ -164,6 +164,18 @@ def app_error_logging():
     return _json_response_ok();
 
 
+@app.route(simulation_db.SCHEMA_COMMON['route']['exportSimulation'], methods=('GET', 'POST'))
+def app_export_simulation(simulation_type, simulation_id, filename):
+    from sirepo import exporter
+    p = exporter.create_zip(simulation_type, simulation_id)
+    return flask.send_file(
+        str(p),
+        mimetype='application/zip',
+        as_attachment=True,
+        attachment_filename=filename,
+    )
+
+
 @app.route('/favicon.ico')
 def app_favicon():
     """Routes to favicon.ico file."""
@@ -180,13 +192,10 @@ def app_file_list(simulation_type, simulation_id, file_type):
     exclude = None
     #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        if file_type == 'mirror':
-            search = ['*.dat', '*.txt']
-        elif file_type == 'sample':
-            search = ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+        template = sirepo.template.import_module(simulation_type)
+        search = template.extensions_for_file_type(file_type)
+        if file_type == 'sample':
             exclude = '_processed.tif'
-        else:
-            search = ['*.zip']
     else:
         search = ['{}.*'.format(file_type)]
     d = simulation_db.simulation_lib_dir(simulation_type)
@@ -246,6 +255,13 @@ def app_get_application_data():
 
 @app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
 def app_import_file(simulation_type):
+    """
+    Args:
+        simulation_type (str): which simulation type
+    Params:
+        file: file data
+        folder: where to import to
+    """
     template = sirepo.template.import_module(simulation_type)
     error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
     if error:
@@ -258,13 +274,10 @@ def app_import_file(simulation_type):
 def app_new_simulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
-    data = simulation_db.open_json_file(
-        sim_type,
-        simulation_db.STATIC_FOLDER.join('json', '{}-default{}'.format(sim_type, simulation_db.JSON_SUFFIX)),
-    )
+    data = simulation_db.default_data(sim_type)
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    sirepo.template.import_module(data).new_simulation(data, new_simulation_data)
+    sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(sim_type, data)
 
 

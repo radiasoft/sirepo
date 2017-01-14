@@ -49,17 +49,34 @@ def test_in_request(op):
 class _TestClient(flask.testing.FlaskClient):
 
     def sr_post(self, route_name, data, params=None):
-        """Posts a request to route_name to server with data
+        """Posts JSON data to route_name to server
+
+        File parameters are posted as::
 
         Args:
             route_name (str): identifies route in schema-common.json
-            data (object): will be formatted as JSON
+            data (object): will be formatted as form data
             params (dict): optional params to route_name
 
         Returns:
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
+        return _req(route_name, params, op)
+
+
+    def sr_post_form(self, route_name, data, params=None):
+        """Posts form data to route_name to server with data
+
+        Args:
+            route_name (str): identifies route in schema-common.json
+            data (dict): will be formatted as JSON
+            params (dict): optional params to route_name
+
+        Returns:
+            object: Parsed JSON result
+        """
+        op = lambda r: self.post(r, data=data)
         return _req(route_name, params, op)
 
 
@@ -81,7 +98,30 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return self.get(_route(route_name, params)).data
 
+    def sr_sim_data(self, sim_type, sim_name):
+        """Return simulation data by name
 
+        Args:
+            sim_type (str): app
+            sim_name (str): case sensitive name
+
+        Returns:
+            dict: data
+        """
+        data = self.sr_post('listSimulations', {'simulationType': sim_type})
+        for d in data:
+            if d['name'] == sim_name:
+                break
+        else:
+            pkfail('{}: not found in ', sim_name, pkdpretty(data))
+        return self.sr_get(
+            'simulationData',
+            {
+                'simulation_type': sim_type,
+                'pretty': '0',
+                'simulation_id': d['simulationId'],
+            },
+        )
 
 def _req(route_name, params, op):
     """Make request and parse result

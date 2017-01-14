@@ -1,5 +1,5 @@
 {
-    "version": "20161220.000000",
+    "version": "20170112.000000",
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
@@ -10,6 +10,7 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data",
         "importFile": "/import-file/<simulation_type>",
+        "exportSimulation": "/export-simulation/<simulation_type>/<simulation_id>/<filename>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",

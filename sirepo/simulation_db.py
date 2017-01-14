@@ -124,6 +124,23 @@ def celery_queue(data):
     return celery_tasks.queue_name(is_parallel(data))
 
 
+def default_data(sim_type):
+    """New simulation base data
+
+    Args:
+        sim_type (str): simulation type
+
+    Returns:
+        dict: simulation data
+    """
+    return open_json_file(
+        sim_type,
+        path=template_common.resource_dir(sim_type).join(
+            'default-data{}'.format(JSON_SUFFIX),
+        ),
+    )
+
+
 def delete_simulation(simulation_type, sid):
     """Deletes the simulation's directory.
     """
@@ -154,18 +171,19 @@ def find_global_simulation(simulation_type, sid):
     return None
 
 
-def fixup_old_data(data):
+def fixup_old_data(data, force=False):
     """Upgrade data to latest schema and updates version.
 
     Args:
         data (dict): to be updated (destructively)
+        force (bool): force validation
 
     Returns:
         dict: upgraded `data`
         bool: True if data changed
     """
     try:
-        if 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+        if not force and 'version' in data and data['version'] == SCHEMA_COMMON['version']:
             return data, False
         data['version'] = SCHEMA_COMMON['version']
         if not 'simulationType' in data:
@@ -354,7 +372,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
         CopyRedirect: if the simulation is in another user's
     """
     if not path:
-        path = _simulation_data_file(sim_type, sid)
+        path = sim_data_file(sim_type, sid)
     if not os.path.isfile(str(path)):
         global_sid = None
         if sid:
@@ -642,8 +660,21 @@ def save_simulation_json(simulation_type, data):
             pass
         data = fixup_old_data(data)[0]
         data['models']['simulation']['simulationSerial'] = _serial_new()
-        write_json(_simulation_data_file(simulation_type, sid), data)
+        write_json(sim_data_file(simulation_type, sid), data)
         return data
+
+
+def sim_data_file(sim_type, sim_id):
+    """Simulation data file name
+
+    Args:
+        sim_type (str): simulation type
+        sim_id (str): simulation id
+
+    Returns:
+        py.path.local: simulation path
+    """
+    return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
 
 
 def simulation_dir(simulation_type, sid=None):
@@ -690,12 +721,14 @@ def simulation_run_dir(data, remove_dir=False):
 
 
 def tmp_dir():
-    """Generates tmp directory for the user
+    """Generates new, temporary directory
 
     Returns:
         py.path: directory to use for temporary work
     """
-    return pkio.mkdir_parent(_random_id(_user_dir().join(_TMP_DIR))['path'])
+    d = _random_id(_user_dir().join(_TMP_DIR))['path']
+    pkio.unchecked_remove(d)
+    return pkio.mkdir_parent(d)
 
 
 def validate_serial(req_data):
@@ -782,7 +815,7 @@ def _create_example_and_lib_files(simulation_type):
         save_new_example(simulation_type, s)
     d = simulation_lib_dir(simulation_type)
     pkio.mkdir_parent(d)
-    for f in sirepo.template.import_module(simulation_type).static_lib_files():
+    for f in sirepo.template.import_module(simulation_type).resource_files():
         f.copy(d)
 
 
@@ -887,10 +920,6 @@ def _sid_from_path(path):
     if not _ID_RE.search(sid):
         raise RuntimeError('{}: invalid simulation id'.format(sid))
     return sid
-
-
-def _simulation_data_file(simulation_type, sid):
-    return str(simulation_dir(simulation_type, sid).join(SIMULATION_DATA_FILE))
 
 
 def _user_dir():

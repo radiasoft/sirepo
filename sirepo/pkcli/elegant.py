@@ -11,14 +11,12 @@ from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
+from sirepo.template import elegant_common
 from sirepo.template import template_common
 from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE
 import copy
 import os
 import re
-import subprocess
-
-_ELEGANT_STDERR_FILE = 'elegant.stderr'
 
 
 def run(cfg_dir):
@@ -52,17 +50,14 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     pkio.write_text('elegant.lte', lattice_file)
     ele = 'elegant.ele'
     pkio.write_text(ele, elegant_file)
-    # TODO(robnagler) Need to handle this specially, b/c different binary
-    env = copy.deepcopy(os.environ)
-    env['RPN_DEFNS'] = pkresource.filename('defns.rpn')
+    kwargs = {
+        'output': ELEGANT_LOG_FILE,
+        'env': elegant_common.subprocess_env(),
+    }
+    #TODO(robnagler) Need to handle this specially, b/c different binary
     if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
-        return mpi.run_program(['Pelegant', ele], output=ELEGANT_LOG_FILE, env=env)
-    pksubprocess.check_call_with_signals(
-        ['elegant', ele],
-        output=ELEGANT_LOG_FILE,
-        env=env,
-        msg=pkdp,
-    )
+        return mpi.run_program(['Pelegant', ele], **kwargs)
+    pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdp, **kwargs)
 
 
 def _extract_bunch_report():

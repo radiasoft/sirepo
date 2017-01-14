@@ -1836,6 +1836,14 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         }), '_blank');
     };
 
+    self.exportSimulation = function(item) {
+        $window.open(requestSender.formatUrl('exportSimulation', {
+            '<simulation_id>': item.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<filename>': item.name + '.zip',
+        }), '_blank');
+    };
+
     self.renameItem = function(item) {
         self.selectedItem = item;
         self.renameName = item.name;

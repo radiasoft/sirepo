@@ -10,6 +10,7 @@ import re
 
 from sirepo import simulation_db
 from sirepo.template import elegant_command_parser
+from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 
 _SCHEMA = simulation_db.get_schema('elegant')
@@ -37,7 +38,7 @@ def import_file(text):
         if not cmd_type in _ELEGANT_TYPES:
             raise IOError('unknown command: {}'.format(cmd_type))
         elegant_lattice_importer.validate_fields(cmd, {}, {})
-    data = elegant_lattice_importer.default_data()
+    data = simulation_db.default_data(elegant_common.SIM_TYPE)
     #TODO(pjm) javascript needs to set bunch, bunchSource, bunchFile values from commands
     data['models']['commands'] = commands
     return data

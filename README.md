@@ -206,13 +206,16 @@ cd ~/src/radiasoft/sirepo
 The tests are located in `tests/protractor`.
 [Tutorial on protractor and jasmine.](http://www.protractortest.org/#/tutorial)
 
-As user install node modules:
+As user install node modules and Chrome:
 
 ```bash
 cd ~/src/radiasoft/sirepo
 npm install --save-dev protractor
 npm install --save-dev protractor-snapshot
+npm install --save-dev protractor-console
+npm install --save-dev protractor-console-plugin
 ./node_modules/protractor/bin/webdriver-manager update
+yum update -y google-chrome-stable
 ```
 
 Verify the X11 server is running:
@@ -226,7 +229,7 @@ To run tests:
 ```bash
 cd ~/src/radiasoft/sirepo
 # Starts server on http://localhost:4444/wd/hub
-DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
+DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start --chrome_logs="$PWD/chrome.log" >& webdriver.log &
 # Default is 8000
 SIREPO_PKCLI_SERVICE_PORT=8000 sirepo service http >& http.log &
 # You don't need to pass uri as it is set to 8000 by default, but clearer

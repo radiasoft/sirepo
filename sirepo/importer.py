@@ -7,34 +7,24 @@ from __future__ import absolute_import, division, print_function
 
 import ast
 import inspect
-import json
 import re
 import traceback
 
 import py
-import requests
-from pykern import pkio, pkrunpy
-from pykern.pkdebug import pkdlog, pkdp
+import py.path
+import sirepo.template.srw
 from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
+
+from pykern import pkio, pkresource, pkrunpy
+from pykern.pkdebug import pkdlog
 
 try:
     import cPickle as pickle
 except:
     import pickle
 
-try:
-    import py.path
-    from pykern import pkresource
-
-    static_dir = py.path.local(pkresource.filename('static'))
-except:
-    static_dir = '/home/vagrant/src/radiasoft/sirepo/sirepo/package_data/static'
-
-static_url = 'https://raw.githubusercontent.com/radiasoft/sirepo/master/sirepo/package_data/static'
-static_js_url = static_url + '/js'
-static_json_url = static_url + '/json'
-static_js_dir = static_dir + '/js'
-static_json_dir = static_dir + '/json'
+js_dir = py.path.local(pkresource.filename('static/js'))
+template_dir = py.path.local(pkresource.filename('template/srw/'))
 
 
 class SRWParser(object):
@@ -81,11 +71,13 @@ class SRWParser(object):
             if key.find('fdir') >= 0:
                 self.var_param.__dict__[key] = str(self.initial_lib_dir)
         self.get_files()
+
     def replace_image_files(self, image_file='sample.tif'):
         for key in self.var_param.__dict__.keys():
             if key.find('op_sample') >= 0:
                 if getattr(self.var_param, key) != '':
                     self.var_param.__dict__[key] = str(self.lib_dir.join(image_file))
+
 
 class Struct(object):
     def __init__(self, **entries):
@@ -456,7 +448,8 @@ def _get_default_drift():
     """
 
     try:
-        file_content = requests.get(static_js_url + '/srw.js').text
+        with open(js_dir + '/srw.js') as f:
+            file_content = f.read()
     except:
         file_content = ''
 
@@ -483,10 +476,6 @@ def _get_default_drift():
     default_drift_prop = ast.literal_eval(default_drift_prop)
 
     return default_drift_prop
-
-
-def _get_json(json_url):
-    return json.loads(requests.get(json_url).text)
 
 
 def _get_propagation(op):
@@ -606,8 +595,7 @@ def _parsed_dict(v, op):
         'sampleFactor': 0,
     }
 
-    with open(str(static_json_dir + '/beams.json'), 'r') as f:
-        predefined_beams = json.load(f)
+    predefined_beams = sirepo.template.srw.get_predefined_beams()
 
     # Default electron beam:
     if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):

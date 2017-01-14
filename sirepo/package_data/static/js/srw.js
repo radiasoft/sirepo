@@ -5,6 +5,24 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+//TODO(pjm): provide API for this, keyed by field type
+SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="BeamList">',
+      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+    '</div>',
+    '<div data-ng-switch-when="UndulatorList">',
+      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+    '</div>',
+    '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
+    '</div>',
+    '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+    '</div>',
+    '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
+    '</div>',
+].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -162,55 +180,20 @@ SIREPO.app.factory('srwService', function(activeSection, appState, $rootScope, $
 SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
 
-    var crystalDefaults = {
-            type: 'crystal',
-            title: 'Crystal',
-            material: 'Unknown',
-            h: 1,
-            k: 1,
-            l: 1,
-            energy: 9000.0,
-            grazingAngle: 1.5707963,
-            asymmetryAngle: 0.0,
-            rotationAngle: 0.0,
-            crystalThickness: 0.01,
-            dSpacing: null,  // 3.13557135638,
-            psi0r: null,  // -1.20811311251e-05,
-            psi0i: null,  // 2.26447987254e-07,
-            psiHr: null,  // -6.38714117487e-06,
-            psiHi: null,  // 1.58100017439e-07,
-            psiHBr: null,  // -6.38714117487e-06,
-            psiHBi: null,  // 1.58100017439e-07,
-            nvx: null,  // 0.0,
-            nvy: null,  // 0.0,
-            nvz: null,  // -1.0,
-            tvx: null,  // 1.0,
-            tvy: null,  // 0.0,
-            heightProfileFile: null,
-            orientation: 'x',
-            heightAmplification: 1,
-    };
-
     var toolbarItems = [
-        //TODO(pjm): move default values to separate area
-        {type:'aperture', title:'Aperture', horizontalSize:1, verticalSize:1, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'obstacle', title:'Obstacle', horizontalSize:0.5, verticalSize:0.5, shape:'r', horizontalOffset:0, verticalOffset:0},
-        {type:'mask', title:'Mask', material:'User-defined', method:'server', refractiveIndex:1.0, attenuationLength:1.0,
-         maskThickness:1.0, gridShape:0, gridTiltAngle:0.4363323129985824, horizontalSamplingInterval:7.32e-01, verticalSamplingInterval:7.32e-01,
-         horizontalGridPitch:20, verticalGridPitch:20, horizontalPixelsNumber:1024, verticalPixelsNumber:1024,
-         horizontalGridsNumber:21, verticalGridsNumber:21, horizontalGridDimension:5, verticalGridDimension:5,
-         horizontalMaskCoordinate:0.0, verticalMaskCoordinate:0.0, show: SIREPO.APP_SCHEMA.feature_config.mask_in_toolbar},
-        {type:'fiber', title:'Fiber', focalPlane:1, method:'server', externalMaterial:'User-defined', externalRefractiveIndex:4.20756805e-06, externalAttenuationLength:7312.94e-06, externalDiameter:100.e-06, coreMaterial:'User-defined', coreRefractiveIndex:4.20756805e-06, coreAttenuationLength:7312.94e-06, coreDiameter:10.e-06, horizontalCenterPosition:0.0, verticalCenterPosition:0.0},
-        crystalDefaults,
-        {type:'grating', title:'Grating', tangentialSize:0.2, sagittalSize:0.015, grazingAngle:12.9555790185373, normalVectorX:0, normalVectorY:0.99991607766, normalVectorZ:-0.0129552166147, tangentialVectorX:0, tangentialVectorY:0.0129552166147, diffractionOrder:1, grooveDensity0:1800, grooveDensity1:0.08997, grooveDensity2:3.004e-6, grooveDensity3:9.7e-11, grooveDensity4:0,},
-        {type:'lens', title:'Lens', horizontalFocalLength:3, verticalFocalLength:1.e+23, horizontalOffset:0, verticalOffset:0},
-        {type:'crl', title:'CRL', focalPlane:2, material:'Be', method: 'server', refractiveIndex:4.20756805e-06, attenuationLength:7.31294e-03, focalDistance:null, absoluteFocusPosition:null, shape:1,
-         horizontalApertureSize:1, verticalApertureSize:1, tipRadius:1.5e3, radius:1.5e-3, numberOfLenses:3, tipWallThickness:80, wallThickness:80e-6},
-        {type:'mirror', title:'Flat Mirror', orientation:'x', grazingAngle:3.1415926, heightAmplification:1, horizontalTransverseSize:1, verticalTransverseSize:1, heightProfileFile:'mirror_1d.dat'},
-        {type:'sphericalMirror', title:'Spherical Mirror', 'radius':1049, grazingAngle:3.1415926, 'tangentialSize':0.3, 'sagittalSize':0.11, 'normalVectorX':0, 'normalVectorY':0.9999025244842406, 'normalVectorZ':-0.013962146326506367,'tangentialVectorX':0, 'tangentialVectorY':0.013962146326506367, heightProfileFile:null, orientation:'x', heightAmplification:1},
-        {type:'ellipsoidMirror', title:'Elliptical Mirror', focalLength:1.7, grazingAngle:3.6, tangentialSize:0.5, sagittalSize:0.01, normalVectorX:0, normalVectorY:0.9999935200069984, normalVectorZ:-0.0035999922240050387, tangentialVectorX:0, tangentialVectorY:-0.0035999922240050387, heightProfileFile:null, orientation:'x', heightAmplification:1},
-        {type:'watch', title:'Watchpoint'},
-        {type:'sample', title:'Sample', imageFile:'sample.tif', resolution:2.480469, thickness:10, material:'Au', method:'server', refractiveIndex:3.23075074E-05, attenuationLength:4.06544e-6, show: SIREPO.APP_SCHEMA.feature_config.sample_in_toolbar}
+        appState.setModelDefaults({type: 'aperture'}, 'aperture'),
+        appState.setModelDefaults({type: 'obstacle'}, 'obstacle'),
+        appState.setModelDefaults({type: 'mask', show: SIREPO.APP_SCHEMA.feature_config.mask_in_toolbar}, 'mask'),
+        appState.setModelDefaults({type: 'fiber'}, 'fiber'),
+        appState.setModelDefaults({type: 'crystal'}, 'crystal'),
+        appState.setModelDefaults({type: 'grating'}, 'grating'),
+        appState.setModelDefaults({type: 'lens'}, 'lens'),
+        appState.setModelDefaults({type: 'crl'}, 'crl'),
+        appState.setModelDefaults({type: 'mirror'}, 'mirror'),
+        appState.setModelDefaults({type: 'sphericalMirror'}, 'sphericalMirror'),
+        appState.setModelDefaults({type: 'ellipsoidMirror'}, 'ellipsoidMirror'),
+        appState.setModelDefaults({type: 'watch'}, 'watch'),
+        appState.setModelDefaults({type: 'sample', show: SIREPO.APP_SCHEMA.feature_config.sample_in_toolbar}, 'sample'),
     ];
     self.toolbarItems = [];
     for (var i = 0; i < toolbarItems.length; i++) {
@@ -976,7 +959,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, requestSender, 
         var undType = appState.models.tabulatedUndulator.undulatorType;
         var columnHeading = 'column-heading';
         var fieldsOfIdealizedUndulator = ['undulatorParameter', 'period', 'length', 'horizontalAmplitude', 'horizontalInitialPhase', 'horizontalSymmetry', 'verticalAmplitude', 'verticalInitialPhase', 'verticalSymmetry'];
-        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFile'];
+        var fieldsOfTabulatedUndulator = ['gap', 'phase', 'magneticFile', 'indexFileName'];
         var modelReport = '.model-tabulatedUndulator-';
         var modelIdealizedReport = '.model-undulator-';
         var i;
@@ -1570,7 +1553,9 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
         },
         link: function(scope, element) {
             var el = $(element).find('.srw-beamline-element-label');
+            el.on('click', togglePopover);
             el.popover({
+                trigger: 'manual',
                 html: true,
                 placement: 'bottom',
                 container: '.srw-popup-container-lg',
@@ -1845,6 +1830,129 @@ SIREPO.app.directive('mobileAppTitle', function(srwService) {
         ].join(''),
         controller: function($scope) {
             $scope.srwService = srwService;
+        },
+    };
+});
+
+SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+            fieldClass: '=',
+        },
+        template: [
+            '<div class="dropdown" data-ng-class="fieldClass">',
+              '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
+              '<ul class="dropdown-menu" style="margin-left: 15px">',
+                '<li class="dropdown-header">Predefined {{ modelLongName() }}s</li>',
+                '<li data-ng-repeat="item in modelList | orderBy:\'name\' track by item.name">',
+                  '<a href data-ng-click="selectItem(item)">{{ item.name }}</a>',
+                '</li>',
+                '<li data-ng-if="userModelList.length" class="divider"></li>',
+                '<li data-ng-if="userModelList.length" class="dropdown-header">User Defined {{ modelLongName() }}s</li>',
+                '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="s-model-list-item">',
+                  '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
+                '</li>',
+              '</ul>',
+            '</div>',
+            '<div class="col-sm-2" data-ng-if="model.isReadOnly">',
+              '<div class="form-control-static"><a href data-ng-click="editItem()">Edit {{ modelShortName() }}</a></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function isElectronBeam() {
+                return $scope.modelName == 'electronBeam';
+            }
+            $scope.appState = appState;
+            $scope.editItem = function() {
+                // copy the current model, rename and show editor
+                var newModel = appState.clone(appState.models[$scope.modelName]);
+                delete newModel.isReadOnly;
+                newModel.name = appState.uniqueName($scope.userModelList, 'name', newModel.name + ' (copy {})');
+                if (isElectronBeam()) {
+                    newModel.beamSelector = newModel.name;
+                }
+                else {
+                    newModel.undulatorSelector = newModel.name;
+                }
+                newModel.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
+                appState.models[$scope.modelName] = newModel;
+            };
+            $scope.deleteItem = function(item, $event) {
+                $event.stopPropagation();
+                $event.preventDefault();
+                requestSender.getApplicationData(
+                    {
+                        method: 'delete_model_from_list',
+                        model_name: $scope.modelName,
+                        id: item.id,
+                    },
+                    $scope.loadModelList);
+            };
+            $scope.modelLongName = function() {
+                return isElectronBeam()
+                    ? 'Electron Beam'
+                    : 'Undulator';
+            };
+            $scope.modelShortName = function() {
+                return isElectronBeam()
+                    ? 'Beam'
+                    : 'Undulator';
+            };
+            $scope.isSelectedItem = function(item) {
+                return item.id == appState.models[$scope.modelName].id;
+            };
+            $scope.loadModelList = function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'model_list',
+                        model_name: $scope.modelName,
+                    },
+                    function(data) {
+                        $scope.modelList = [];
+                        $scope.userModelList = [];
+                        if (appState.isLoaded() && data.modelList) {
+                            for (var i = 0; i < data.modelList.length; i++) {
+                                var model = data.modelList[i];
+                                (model.isReadOnly
+                                 ? $scope.modelList
+                                 : $scope.userModelList
+                                ).push(model);
+                            }
+                        }
+                    });
+            };
+            $scope.selectItem = function(item) {
+                item = appState.clone(item);
+                appState.models[$scope.modelName] = item;
+                item[$scope.field] = item.name;
+            };
+        },
+        link: function link(scope, element) {
+            scope.loadModelList();
+            scope.$on('modelChanged', function(e, name) {
+                if (name != scope.modelName) {
+                    return;
+                }
+                var model = appState.models[scope.modelName];
+                if (model.isReadOnly) {
+                    return;
+                }
+                var foundIt = false;
+                for (var i = 0; i < scope.userModelList.length; i++) {
+                    if (scope.userModelList[i].id == model.id) {
+                        scope.userModelList[i].name = model.name;
+                        foundIt = true;
+                        break;
+                    }
+                }
+                if (! foundIt) {
+                    scope.userModelList.push(model);
+                }
+            });
         },
     };
 });

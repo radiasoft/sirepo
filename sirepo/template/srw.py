@@ -6,10 +6,12 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from scipy.ndimage import zoom
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -17,34 +19,38 @@ from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
-import glob
 import json
+import glob
 import math
 import numpy as np
 import os
 import py.path
 import re
-import shutil
 import sirepo.importer
+import srwl_smp
+import srwl_uti_src
 import srwlib
-import srwl_samples
 import traceback
 import uti_math
 import uti_plot_com
 import zipfile
 
+
 WANT_BROWSER_FRAME_CACHE = False
 
+SIM_TYPE = 'srw'
+
 _DATA_FILE_FOR_MODEL = {
-    'fluxAnimation': 'res_spec_me.dat',
-    'fluxReport': 'res_spec_me.dat',
-    'initialIntensityReport': 'res_int_se.dat',
-    'intensityReport': 'res_spec_se.dat',
-    'multiElectronAnimation': 'res_int_pr_me.dat',
-    'powerDensityReport': 'res_pow.dat',
-    'sourceIntensityReport': 'res_int_se.dat',
-    'trajectoryReport': 'res_trj.dat',
-    'watchpointReport': 'res_int_pr_se.dat',
+    'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
+    'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
+    'initialIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
+    'intensityReport': {'filename': 'res_spec_se.dat', 'dimension': 2},
+    'mirrorReport': {'filename': '', 'dimension': 3},
+    'multiElectronAnimation': {'filename': 'res_int_pr_me.dat', 'dimension': 3},
+    'powerDensityReport': {'filename': 'res_pow.dat', 'dimension': 3},
+    'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
+    'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
+    'watchpointReport': {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 }
 
 _EXAMPLE_FOLDERS = {
@@ -68,21 +74,78 @@ _EXAMPLE_FOLDERS = {
 }
 
 #: Where server files and static files are found
-_STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
-_PREDEFINED_BEAMS = simulation_db.read_json(_STATIC_FOLDER.join('json/beams.json'))
+_PREDEFINED = None
 
-_PREDEFINED_MIRRORS = simulation_db.read_json(_STATIC_FOLDER.join('json/mirrors.json'))
-
-_PREDEFINED_MAGNETIC_ZIP_FILES = simulation_db.read_json(_STATIC_FOLDER.join('json/magnetic_measurements.json'))
-
-_PREDEFINED_SAMPLE_IMAGES = simulation_db.read_json(_STATIC_FOLDER.join('json/sample_images.json'))
-
-_SIMULATION_TYPE = 'srw'
-
-_SCHEMA = simulation_db.get_schema(_SIMULATION_TYPE)
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
+
+
+class MagnMeasZip:
+    def __init__(self, archive_name):
+        """The class for convenient operation with an archive with the magnetic measurements.
+
+        Args:
+            archive_name: the name of the archive.
+        """
+        self.archive_name = archive_name
+        self.z = zipfile.ZipFile(archive_name)
+        self.index_dir = None
+        self.index_file = None
+        self.index_content = None
+        self.gaps = None
+        self.dat_files = None
+
+        # .dat file from the index file (depends on the provided gap):
+        self.idx = None
+        self.closest_gap = None
+        self.dat_file = None
+
+        # .dat file information:
+        self.dat_file_step = None
+        self.dat_file_number_of_points = None
+        self.dat_file_found_length = None
+
+        self._find_index_file()
+        self._find_dat_files_from_index_file()
+
+    def find_closest_gap(self, gap):
+        d = _find_closest_value(self.gaps, float(gap))
+        self.idx = d['idx']
+        self.closest_gap = d['closest_value']
+        self.dat_file = self.dat_files[self.idx]
+        self._get_gap_parameters(self.get_file_content(self.dat_file))
+
+    def get_file_content(self, file_name):
+        with self.z.open(self._full_path(file_name)) as f:
+            return _normalize_eol(f)
+
+    def save_file(self, run_dir, file_name, content):
+        with open(self._full_path(file_name, run_dir), 'w') as f:
+            f.write('\n'.join(content) + '\n')
+
+    def _find_dat_files_from_index_file(self):
+        self.gaps, self.dat_files = _find_dat_files_from_index_file(self.index_content)
+
+    def _find_index_file(self):
+        self.index_dir, self.index_file = _find_index_file(self.z)
+        self.index_content = self.get_file_content(self.index_file)
+
+    def _full_path(self, file_name, run_dir=None):
+        if not run_dir:
+            return os.path.join(self.index_dir, file_name)
+        abs_dir = os.path.join(run_dir, self.index_dir)
+        abs_dir = os.path.abspath(abs_dir)
+        if not os.path.isdir(abs_dir):
+            os.mkdir(abs_dir)
+        return os.path.join(abs_dir, file_name)
+
+    def _get_gap_parameters(self, dat_content):
+        self.dat_file_step = float(dat_content[8].split('#')[1].strip())
+        self.dat_file_number_of_points = int(dat_content[9].split('#')[1].strip())
+        self.dat_file_found_length = round(self.dat_file_step * self.dat_file_number_of_points, 6)
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -97,7 +160,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particle_number': 0,
             'total_num_of_particles': 0,
         }
-        status_files = glob.glob(str(run_dir.join('__srwl_logs__', 'srwl_*.json')))
+        status_files = pkio.sorted_glob(run_dir.join('__srwl_logs__', 'srwl_*.json'))
         if status_files:  # Read the status file if SRW produces the multi-e logs
             progress_file = py.path.local(status_files[-1])
             if progress_file.exists():
@@ -122,12 +185,20 @@ def copy_related_files(data, source_path, target_path):
     )
 
 
+def extensions_for_file_type(file_type):
+    if file_type == 'mirror':
+        return ['*.dat', '*.txt']
+    if file_type == 'sample':
+        return ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+    if file_type == 'undulatorTable':
+        return ['*.zip']
+    raise RuntimeError('unknown file_type: ', file_type)
+
+
 def extract_report_data(filename, model_data):
     flux_type = 1
-    if 'report' in model_data and model_data['report'] == 'fluxAnimation':
-        flux_type = int(model_data['animationArgs'])
-    elif 'models' in model_data:
-        flux_type = model_data['models']['fluxReport']['fluxType']
+    if 'report' in model_data and model_data['report'] in ['fluxReport', 'fluxAnimation']:
+        flux_type = int(model_data['models'][model_data['report']]['fluxType'])
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
     if flux_type == 2:
         sValShort = 'Intensity'
@@ -136,7 +207,6 @@ def extract_report_data(filename, model_data):
     if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
-    files_3d = ['res_pow.dat', 'res_int_se.dat', 'res_int_pr_se.dat', 'res_mirror.dat', 'res_int_pr_me.dat']
     if model_data['report'] == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
     elif model_data['report'] == 'sourceIntensityReport':
@@ -185,8 +255,12 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     }
-    if filename in files_3d:
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2])
+    orig_rep_name = model_data['report']
+    rep_name = 'watchpointReport' if _is_watchpoint(orig_rep_name) else orig_rep_name
+    if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
+        width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
+        scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
     return info
 
 
@@ -218,6 +292,9 @@ def fixup_electron_beam(data):
         for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
             if f in ebeam:
                 del ebeam[f]
+    if 'horizontalAngle' not in data['models']['electronBeamPosition']:
+        data['models']['electronBeamPosition']['horizontalAngle'] = _SCHEMA['model']['electronBeamPosition']['horizontalAngle'][2]
+        data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
     if 'beamDefinition' not in data['models']['electronBeam']:
         _process_beam_parameters(data['models']['electronBeam'])
         if data['models']['simulation']['sourceType'] == 't':
@@ -341,11 +418,15 @@ def fixup_old_data(data):
         data['models']['tabulatedUndulator'] = {
             'gap': 6.72,
             'phase': 0,
-            'magneticFile': _PREDEFINED_MAGNETIC_ZIP_FILES[0]['fileName'],
+            'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
             'longitudinalPosition': 1.305,
             'magnMeasFolder': '',
-            'indexFile': '',
+            'indexFileName': '',
         }
+    else:
+        if 'indexFile' in data.models.tabulatedUndulator:
+            data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
+            del data.models.tabulatedUndulator['indexFile']
     if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
         data['models']['tabulatedUndulator']['period'] = 21
@@ -408,20 +489,28 @@ def fixup_old_data(data):
     if 'photonEnergy' not in data['models']['sourceIntensityReport']:
         data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
 
+    for k in data['models']:
+        for rep_name in _DATA_FILE_FOR_MODEL.keys():
+            if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
+                work_rep_name = k if _is_watchpoint(k) else rep_name
+                if work_rep_name in data['models'] and 'intensityPlotsWidth' not in data['models'][work_rep_name]:
+                    data['models'][work_rep_name]['intensityPlotsWidth'] = _SCHEMA['model'][rep_name]['intensityPlotsWidth'][2]
+                if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
+                    data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
 
 def get_animation_name(data):
     return data['modelName']
 
 
 def get_application_data(data):
-    if data['method'] == 'beam_list':
+    if data['method'] == 'model_list':
         res = []
-        res.extend(_PREDEFINED_BEAMS)
+        res.extend(_PREDEFINED.beams)
         res.extend(_load_user_beam_list())
         for beam in res:
             _process_beam_parameters(beam)
         return {
-            'beamList': res
+            'modelList': res
         }
     if data['method'] == 'delete_beam':
         return _delete_user_beam(data['id'])
@@ -474,11 +563,15 @@ def get_data_file(run_dir, model, frame):
 def get_filename_for_model(model):
     if _is_watchpoint(model):
         model = 'watchpointReport'
-    return _DATA_FILE_FOR_MODEL[model]
+    return _DATA_FILE_FOR_MODEL[model]['filename']
+
+
+def get_predefined_beams():
+    return _PREDEFINED['beams']
 
 
 def get_simulation_frame(run_dir, data, model_data):
-    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), data)
+    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), model_data)
 
 
 def import_file(request, lib_dir, tmp_dir):
@@ -486,20 +579,22 @@ def import_file(request, lib_dir, tmp_dir):
     input_text = f.read()
     # attempt to decode the input as json first, if invalid try python
     try:
-        data = json.loads(input_text)
-        data['models']['simulation']['name'] += ' (imported JSON)'
-        return None, data
-    except ValueError:
-        pass
-    arguments = str(request.form['arguments'])
-    pkdlog('{}: arguments={}', f.filename, arguments)
-    return sirepo.importer.import_python(
-        input_text,
-        lib_dir=lib_dir,
-        tmp_dir=tmp_dir,
-        user_filename=f.filename,
-        arguments=arguments,
-    )
+        parsed_data = simulation_db.json_load(input_text)
+    except ValueError as e:
+        # Failed to read json
+        arguments = str(request.form['arguments'])
+        pkdlog('{}: arguments={}', f.filename, arguments)
+        return sirepo.importer.import_python(
+            input_text,
+            lib_dir=lib_dir,
+            tmp_dir=tmp_dir,
+            user_filename=f.filename,
+            arguments=arguments,
+        )
+
+    data = simulation_db.fixup_old_data(parsed_data, force=True)[0]
+    data.models.simulation.name += ' (imported JSON)'
+    return None, data
 
 
 def models_related_to_report(data):
@@ -522,7 +617,7 @@ def models_related_to_report(data):
     ):
         return data['models'].keys()
     res = [
-        'electronBeam', 'gaussianBeam', 'multipole', 'simulation',
+        'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',
     ]
     if watchpoint or r in ('initialIntensityReport', 'mirrorReport'):
@@ -543,7 +638,7 @@ def new_simulation(data, new_simulation_data):
 def prepare_aux_files(run_dir, data):
     _copy_lib_files(
         data,
-        simulation_db.simulation_lib_dir(_SIMULATION_TYPE),
+        simulation_db.simulation_lib_dir(SIM_TYPE),
         run_dir,
         data['report'],
     )
@@ -551,16 +646,15 @@ def prepare_aux_files(run_dir, data):
         return
     filename = data['models']['tabulatedUndulator']['magneticFile']
     filepath = run_dir.join(filename)
-    for f in _PREDEFINED_MAGNETIC_ZIP_FILES:
+    for f in _PREDEFINED.magnetic_measurements:
         if filename == f['fileName'] and not filepath.check():
-            _STATIC_FOLDER.join('dat', f['fileName']).copy(run_dir)
-    zip_file = zipfile.ZipFile(str(filepath))
-    zip_file.extractall(str(run_dir))
-    index_dir, index_file = _find_index_file(zip_file)
-    if not index_dir:
-        index_dir = './'
-    data['models']['tabulatedUndulator']['magnMeasFolder'] = index_dir
-    data['models']['tabulatedUndulator']['indexFile'] = index_file
+            _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
+    m = MagnMeasZip(str(filepath))
+    for f in m.dat_files + [m.index_file]:
+        content = m.get_file_content(f)
+        m.save_file(str(run_dir), f, content)
+    data['models']['tabulatedUndulator']['magnMeasFolder'] = m.index_dir if m.index_dir else './'
+    data['models']['tabulatedUndulator']['indexFileName'] = m.index_file
 
 
 def prepare_for_client(data):
@@ -582,7 +676,7 @@ def prepare_for_client(data):
             ebeam['id'] = _unique_name(user_beam_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
             user_beam_list.append(ebeam)
             _save_user_beam_list(user_beam_list)
-            simulation_db.save_simulation_json(_SIMULATION_TYPE, data)
+            simulation_db.save_simulation_json(SIM_TYPE, data)
     if 'electronBeams' in data['models']:
         del data['models']['electronBeams']
     return data
@@ -622,15 +716,19 @@ def remove_last_frame(run_dir):
     pass
 
 
-def static_lib_files():
-    """Library shared between simulations of this type
+def resource_files():
+    """Files to copy from resources when creating a new user
 
     Returns:
         list: py.path.local objects
     """
-    res = [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MIRRORS]
-    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_MAGNETIC_ZIP_FILES]
-    res += [_STATIC_FOLDER.join('dat', m['fileName']) for m in _PREDEFINED_SAMPLE_IMAGES]
+    res = []
+    for k, v in _PREDEFINED.items():
+        for v2 in v:
+            try:
+                res.append(_RESOURCE_DIR.join(v2['fileName']))
+            except KeyError:
+                pass
     return res
 
 
@@ -665,7 +763,7 @@ def validate_file(file_type, path):
         zip_file = zipfile.ZipFile(str(path))
         is_valid = False
         for f in zip_file.namelist():
-            if re.search('\.txt', f.lower()):
+            if re.search(r'\.txt', f.lower()):
                 is_valid = True
                 break
         if not is_valid:
@@ -673,7 +771,7 @@ def validate_file(file_type, path):
     elif extension.lower() in ['tif', 'tiff', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
-        srwl_samples.SRWLSamples(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_smp.SRWLOptSmp(file_path=str(path), is_save_images=True, prefix=filename)
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -696,7 +794,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
 
 def _add_report_filenames(v):
     for k in _DATA_FILE_FOR_MODEL:
-        v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]
+        v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
 
 
 def _beamline_element(template, item, fields, propagation, shift=''):
@@ -880,11 +978,11 @@ def _compute_grazing_angle(model):
 def _compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return model
-    zip_file = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(model['magneticFile'])
+    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
-        zip_file = str(zip_file)
-        d = _find_tab_undulator_length(zip_file, model['gap'])
-        model['length'] = d['found_length']
+        m = MagnMeasZip(str(zip_file))
+        m.find_closest_gap(model['gap'])
+        model['length'] = m.dat_file_found_length
     return model
 
 
@@ -912,7 +1010,7 @@ def _convert_ebeam_units(field_name, value, to_si=True):
 
 
 def _copy_lib_files(data, source_lib, target, report=None):
-    # copy required MirrorFile and MagneticZipFile data to target
+    """copy required MirrorFile and MagneticZipFile data to target"""
     lib_files = []
     if data['models']['simulation']['sourceType'] == 't':
         if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
@@ -928,14 +1026,14 @@ def _copy_lib_files(data, source_lib, target, report=None):
                 if field_type == 'ImageFile':
                     filename = os.path.splitext(os.path.basename(str(model[f])))[0]
                     # Save the processed file:
-                    srwl_samples.SRWLSamples(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
+                    srwl_smp.SRWLOptSmp(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
                     lib_files.append(model[f])
                 else:
                     lib_files.append(model[f])
     for f in lib_files:
         path = target.join(f)
         if source_lib.join(f).exists() and not path.exists():
-            shutil.copy(str(source_lib.join(f)), str(path))
+            source_lib.join(f).copy(path)
 
 
 def _crystal_element(template, item, fields, propagation):
@@ -1003,6 +1101,18 @@ def _find_closest_value(values_list, value):
     }
 
 
+def _find_dat_files_from_index_file(index_content):
+    gaps = []
+    dat_files = []
+    for row in index_content:
+        v = row.strip()
+        if v:
+            v = v.split()
+            gaps.append(float(v[0]))
+            dat_files.append(v[3])
+    return gaps, dat_files
+
+
 def _find_index_file(zip_object):
     """The function finds an index file (``*.txt``) in the provided zip-object.
 
@@ -1016,52 +1126,12 @@ def _find_index_file(zip_object):
     index_file = None
     index_dir = None
     for f in zip_object.namelist():
-        if re.search('\.txt', f):
+        if re.search(r'\.txt', f):
             index_file = os.path.basename(f)
             index_dir = os.path.dirname(f)
             break
     assert index_file is not None
     return index_dir, index_file
-
-
-def _find_tab_undulator_length(zip_file, gap):
-    """Find undulator length from the specified zip-archive with the magnetic measurements data.
-
-    Args:
-        zip_file: zip-archive with the magnetic measurements data.
-        gap: undulator gap [mm].
-
-    Returns:
-        dict: dictionary with the found length, *.dat file name where the length was found and the closest gap.
-    """
-    z = zipfile.ZipFile(zip_file)
-    index_dir, index_file = _find_index_file(z)
-    with z.open(os.path.join(index_dir, index_file)) as f:
-        sum_content = f.readlines()
-    gap = float(gap)
-    gaps_list = []
-    dat_files_list = []
-    for row in sum_content:
-        v = row.split()
-        gaps_list.append(float(v[0]))
-        dat_files_list.append(v[3])
-
-    d = _find_closest_value(gaps_list, gap)
-    closest_gap = d['closest_value']
-    dat_file = dat_files_list[d['idx']]
-
-    with z.open(os.path.join(index_dir, dat_file)) as f:
-        dat_content = f.readlines()
-
-    step = float(dat_content[8].split('#')[1].strip())
-    number_of_points = int(dat_content[9].split('#')[1].strip())
-    found_length = round(step * number_of_points, 6)
-
-    return {
-        'found_length': found_length,
-        'dat_file': dat_file,
-        'closest_gap': closest_gap
-    }
 
 
 def _generate_beamline_optics(models, last_id):
@@ -1205,7 +1275,7 @@ def _generate_beamline_optics(models, last_id):
             file_name = 'op_sample{}'.format(sample_counter)
             sample_counter += 1
             el, pp = _beamline_element(
-                """srwl_samples.srwl_opt_setup_transmission_from_file(
+                """srwl_smp.srwl_opt_setup_transmission_from_file(
                     file_path=v.""" + file_name + """,
                     resolution={},
                     thickness={},
@@ -1291,7 +1361,7 @@ def _generate_parameters_file(data, plot_reports=False):
         data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
-            data['models']['tabulatedUndulator']['indexFile'] = ''
+            data['models']['tabulatedUndulator']['indexFileName'] = ''
 
     _validate_data(data, _SCHEMA)
     last_id = None
@@ -1389,7 +1459,7 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
         else:
             return '', ''
 
-    dat_file = str(simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(item['heightProfileFile']))
+    dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
     dimension = find_height_profile_dimension(dat_file)
 
     res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
@@ -1408,6 +1478,42 @@ def _height_profile_element(item, propagation, overwrite_propagation=False, heig
     res += el
     pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
     return res, pp
+
+
+def _init():
+    global _PREDEFINED
+    if _PREDEFINED:
+        return
+    _PREDEFINED = pkcollections.Dict()
+    _PREDEFINED['mirrors'] = _predefined_files_for_type('mirror')
+    _PREDEFINED['magnetic_measurements'] = _predefined_files_for_type('undulatorTable')
+    _PREDEFINED['sample_images'] = _predefined_files_for_type('sample')
+    beams = []
+    for beam in srwl_uti_src.srwl_uti_src_predefined_e_beams():
+        info = beam[1]
+        # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
+        beams.append({
+            'name': beam[0],
+            'current': info[0],
+            'energy': info[1],
+            'rmsSpread': info[2],
+            'horizontalEmittance': round(info[3] * 1e9, 6),
+            'horizontalBeta': info[4],
+            'horizontalAlpha': info[5],
+            'horizontalDispersion': info[6],
+            'horizontalDispersionDerivative': info[7],
+            'verticalEmittance': round(info[8] * 1e9, 6),
+            'verticalBeta': info[9],
+            'verticalAlpha': info[10],
+            'verticalDispersion': 0,
+            'verticalDispersionDerivative': 0,
+            'energyDeviation': 0,
+            'horizontalPosition': 0,
+            'verticalPosition': 0,
+            'drift': 0.0,
+            'isReadOnly': True,
+        })
+    _PREDEFINED['beams'] = beams
 
 
 def _intensity_units(is_gaussian, model_data):
@@ -1442,11 +1548,28 @@ def _is_watchpoint(name):
 
 
 def _load_user_beam_list():
-    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
     if filepath.exists():
         return simulation_db.read_json(filepath)
     _save_user_beam_list([])
     return _load_user_beam_list()
+
+
+def _normalize_eol(file_desc):
+    s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
+    content = s.split('\n')
+    return content
+
+
+def _predefined_files_for_type(file_type):
+    res = []
+    for extension in extensions_for_file_type(file_type):
+        for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
+            if os.path.isfile(f):
+                res.append({
+                    'fileName': os.path.basename(f),
+                })
+    return res
 
 
 def _process_beam_parameters(ebeam):
@@ -1518,20 +1641,41 @@ def _propagation_params(prop, shift=''):
     return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
 
 
-def _remap_3d(info, allrange, z_label, z_units):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
 
-    totLen = int(x_range[2]*y_range[2])
+    totLen = int(x_range[2] * y_range[2])
     lenAr2d = len(ar2d)
-    if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
+    if lenAr2d > totLen:
+        ar2d = np.array(ar2d[0:totLen])
     elif lenAr2d < totLen:
-        auxAr = np.array('d', [0]*lenAr2d)
-        for i in range(lenAr2d): auxAr[i] = ar2d[i]
+        auxAr = np.array('d', [0] * lenAr2d)
+        for i in range(lenAr2d):
+            auxAr[i] = ar2d[i]
         ar2d = np.array(auxAr)
-    if isinstance(ar2d,(list,np.array)): ar2d = np.array(ar2d)
-    ar2d = ar2d.reshape(y_range[2],x_range[2])
+    if isinstance(ar2d, (list, np.array)):
+        ar2d = np.array(ar2d)
+    ar2d = ar2d.reshape(y_range[2], x_range[2])
+
+    if scale != 'linear':
+        ar2d[np.where(ar2d <= 0.)] = 1.e-23
+        ar2d = getattr(np, scale)(ar2d)
+    if width_pixels and width_pixels < x_range[2]:
+        try:
+            resize_factor = float(width_pixels) / float(x_range[2])
+            pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            ar2d = zoom(ar2d, resize_factor)
+            if scale == 'linear':
+                ar2d[np.where(ar2d < 0.)] = 0.0
+            pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            x_range[2] = ar2d.shape[1]
+            y_range[2] = ar2d.shape[0]
+        except:
+            pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
+            pass
+
     return {
         'x_range': x_range,
         'y_range': y_range,
@@ -1545,7 +1689,7 @@ def _remap_3d(info, allrange, z_label, z_units):
 
 def _save_user_beam_list(beam_list):
     pkdc('saving beam_list')
-    filepath = simulation_db.simulation_lib_dir(_SIMULATION_TYPE).join(_USER_BEAM_LIST_FILENAME)
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
     #TODO(pjm): want atomic replace?
     simulation_db.write_json(filepath, beam_list)
 
@@ -1559,7 +1703,7 @@ def _unique_name(items, field, template):
     values = {}
     for item in items:
         values[item[field]] = True
-    index = 1;
+    index = 1
     while True:
         found_it = False
         id = template.replace('{}', str(index))
@@ -1592,3 +1736,5 @@ def _validate_data(data, schema):
 def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
+
+_init()

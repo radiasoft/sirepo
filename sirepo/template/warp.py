@@ -143,6 +143,7 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
         data_list = _adjust_z_width(data_list, data_file)
 
     #TODO(pjm): need range checking in type, consolidate with template.elegant
+    nbins = int(nbins)
     if nbins <= 0:
         nbins = 1
     elif nbins > _HISTOGRAM_BINS_MAX:
@@ -384,6 +385,15 @@ def remove_last_frame(run_dir):
         pkio.unchecked_remove(files[-1])
 
 
+def resource_files():
+    """Library shared between simulations of this type
+
+    Returns:
+        list: py.path.local objects
+    """
+    return []
+
+
 def validate_file(file_type, path):
     return None
 
@@ -405,15 +415,6 @@ def write_parameters(data, schema, run_dir, is_parallel):
             is_parallel,
         ),
     )
-
-
-def static_lib_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return []
 
 
 def _adjust_z_width(data_list, data_file):

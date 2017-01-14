@@ -272,7 +272,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender, rpnService) {
+SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
     return {
         restirct: 'A',
         scope: {
@@ -285,84 +285,22 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
         },
         template: [
             '<div class="model-{{modelName}}-{{field}}">',
-            '<div data-ng-show="showLabel()" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
+            '<div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
-              '<div data-ng-switch-when="BeamList">',
-                '<div class="dropdown" data-ng-class="fieldClass">',
-                  '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
-                  '<ul class="dropdown-menu" style="margin-left: 15px">',
-                    '<li class="dropdown-header">Predefined Electron Beams</li>',
-                    '<li data-ng-repeat="item in beamList | orderBy:\'name\' track by item.name">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}</a>',
-                    '</li>',
-                    '<li data-ng-if="userBeamList.length" class="divider"></li>',
-                    '<li data-ng-if="userBeamList.length" class="dropdown-header">User Defined Electron Beams</li>',
-                    '<li data-ng-repeat="item in userBeamList | orderBy:\'name\' track by item.id" class="s-beam-list-item">',
-                      '<a href data-ng-click="srwSelectBeam(item)">{{ item.name }}<span data-ng-show="! srwIsSelectedBeam(item)" data-ng-click="srwDeleteBeam(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
-                    '</li>',
-                  '</ul>',
-                '</div>',
-                '<div class="col-sm-2" data-ng-if="appState.models.electronBeam.isReadOnly"><div class="form-control-static"><a href data-ng-click="srwEditBeam()">Edit Beam</a></div></div>',
-              '</div>',
-              '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
-              '</div>',
               '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
                 '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
-              '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
-              '</div>',
-              '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
-              '</div>',
-              '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-                '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-              '</div>',
-              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" required />',
-              '</div>',
-              '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" required />',
-              '</div>',
-              '<div data-ng-switch-when="InputFile" class="col-sm-7">',
-                '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
-              '</div>',
-              '<div data-ng-switch-when="InputFileXY" class="col-sm-7">',
-                  '<div style="display: inline-block" data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
-                  ' <label style="margin: 0 1ex">X</label> ',
-                  '<input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />',
-                  ' <label style="margin: 0 1ex">Y</label> ',
-                  '<input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />',
-              '</div>',
-              '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
-                '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
-              '</div>',
-              '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
-                '<div data-output-file-field="field" data-model="model"></div>',
-              '</div>',
-              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'values\']"></select>',
+              '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
+                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" />',
               '</div>',
-              '<div data-ng-switch-when="RPNValue">',
-                '<div data-ng-class="fieldClass">',
-                  '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
-                 '</div>',
-                '<div class="col-sm-2"><div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div></div>',
+              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
+                '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
-              '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
-                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in elegantRpnBooleanValues()"></select>',
-              '</div>',
-              '<div data-ng-switch-when="ElegantBeamlineList" data-ng-class="fieldClass">',
-                '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elegantBeamlineList()"></select>',
-              '</div>',
-              '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
-                '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>',
-              '</div>',
+              SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
@@ -374,26 +312,26 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-            // field def: [label, type]
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-            $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
-            $scope.wantEnumButtons = wantEnumButtons();
-            $scope.fieldClass = 'col-sm-' + ($scope.fieldSize || (
-                isNumber($scope.info[1])
-                    ? '3'
-                    : $scope.wantEnumButtons
-                        ? '7'
-                        : '5'
-            ));
 
-            function isNumber(type) {
-                return type == 'Integer' || type == 'Float';
+            function fieldClass(fieldType, fieldSize, wantEnumButtons) {
+                return 'col-sm-' + (fieldSize || (
+                    (fieldType == 'Integer' || fieldType == 'Float')
+                        ? '3'
+                        : wantEnumButtons
+                            ? '7'
+                            : '5'
+                ));
             }
-            function wantEnumButtons() {
-                var hasLabelSizeOverride = $scope.labelSize ? true : false;
-                var e = $scope.enum[$scope.info[1]];
+
+            function showLabel(labelSize) {
+                if (labelSize === '')
+                    return true;
+                return labelSize > 0;
+            }
+
+            function wantEnumButtons(fieldType, labelSize) {
+                var hasLabelSizeOverride = labelSize ? true : false;
+                var e = SIREPO.APP_SCHEMA.enum[fieldType];
                 if (! e || e.length > 3 || hasLabelSizeOverride) {
                     return false;
                 }
@@ -407,173 +345,13 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 return true;
             }
 
-            $scope.elegantBeamlineList = function() {
-                if (! appState.isLoaded() || ! $scope.model)
-                    return null;
-                if (! $scope.model[$scope.field]
-                    && appState.models.beamlines
-                    && appState.models.beamlines.length) {
-                    $scope.model[$scope.field] = appState.models.beamlines[0].id;
-                }
-                return appState.models.beamlines;
-            };
-            $scope.elegantLatticeList = function() {
-                if (! appState.isLoaded() || ! $scope.model)
-                    return null;
-                var runSetupId = $scope.model._id;
-                var res = ['Lattice'];
-                var index = 0;
-                for (var i = 0; i < appState.models.commands.length; i++) {
-                    var cmd = appState.models.commands[i];
-                    if (cmd._id == runSetupId)
-                        break;
-                    if (cmd._type == 'save_lattice') {
-                        index++;
-                        if (cmd.filename)
-                            res.push('save_lattice' + (index > 1 ? index : ''));
-                    }
-                }
-                if (! $scope.model[$scope.field])
-                    $scope.model[$scope.field] = res[0];
-                return res;
-            };
-            $scope.elegantComputedRpnValue = function() {
-                return rpnService.getRpnValueForField($scope.model, $scope.field);
-            };
-            $scope.elegantRpnBooleanValues = function() {
-                return rpnService.getRpnBooleanForField($scope.model, $scope.field);
-            };
-            $scope.emptyList = [];
-            $scope.fieldX = function() {
-                return $scope.field + 'X';
-            };
-            $scope.fieldY = function() {
-                return $scope.field + 'Y';
-            };
-            $scope.showLabel = function() {
-                if ($scope.labelSize === '')
-                    return true;
-                return $scope.labelSize > 0;
-            };
-            $scope.srwEditBeam = function() {
-                // copy the current beam, rename and show editor
-                var newBeam = appState.clone(appState.models.electronBeam);
-                delete newBeam.isReadOnly;
-                newBeam.name = appState.uniqueName($scope.userBeamList, 'name', newBeam.name + ' (copy {})');
-                newBeam.beamSelector = newBeam.name;
-                newBeam.id = appState.uniqueName($scope.userBeamList, 'id', appState.models.simulation.simulationId + ' {}');
-                appState.models.electronBeam = newBeam;
-            };
-            $scope.srwDeleteBeam = function(item, $event) {
-                $event.stopPropagation();
-                $event.preventDefault();
-                requestSender.getApplicationData(
-                    {
-                        method: 'delete_beam',
-                        id: item.id,
-                    },
-                    $scope.srwLoadBeamList);
-            };
-            $scope.srwIsSelectedBeam = function(item) {
-                return item.id == appState.models.electronBeam.id;
-            };
-            $scope.srwLoadBeamList = function() {
-                requestSender.getApplicationData(
-                    {
-                        method: 'beam_list',
-                    },
-                    function(data) {
-                        $scope.beamList = [];
-                        $scope.userBeamList = [];
-                        if (appState.isLoaded() && data.beamList) {
-                            for (var i = 0; i < data.beamList.length; i++) {
-                                var beam = data.beamList[i];
-                                (beam.isReadOnly
-                                 ? $scope.beamList
-                                 : $scope.userBeamList
-                                ).push(beam);
-                            }
-                        }
-                    });
-            };
-            $scope.srwSelectBeam = function(item) {
-                item = appState.clone(item);
-                appState.models.electronBeam = item;
-                item[$scope.field] = item.name;
-            };
-        },
-        link: function link(scope, element) {
-            if (scope.info && scope.info[1] == 'BeamList') {
-                scope.srwLoadBeamList();
-                scope.$on('electronBeam.changed', function() {
-                    var ebeam = appState.models.electronBeam;
-                    if (ebeam.isReadOnly) {
-                        return;
-                    }
-                    var foundIt = false;
-                    for (var i = 0; i < scope.userBeamList.length; i++) {
-                        if (scope.userBeamList[i].id == ebeam.id) {
-                            scope.userBeamList[i].name = ebeam.name;
-                            foundIt = true;
-                            break;
-                        }
-                    }
-                    if (! foundIt) {
-                        scope.userBeamList.push(ebeam);
-                    }
-                });
-            }
-        },
-    };
-});
-
-//TODO(pjm): directive specific to elegant
-SIREPO.app.directive('outputFileField', function(appState) {
-    return {
-        restirct: 'A',
-        scope: {
-            field: '=outputFileField',
-            model: '=',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            var items = [];
-            var filename = '';
-
-            function fileExtension() {
-                if ($scope.model && $scope.model._type == 'save_lattice')
-                    return '.lte';
-                return '.sdds';
-            }
-
-            $scope.items = function() {
-                if (! $scope.model)
-                    return items;
-                var prefix = $scope.model.name;
-                if ($scope.model._type) {
-                    var index = 0;
-                    for (var i = 0; i < appState.models.commands.length; i++) {
-                        var m = appState.models.commands[i];
-                        if (m._type == $scope.model._type) {
-                            index++;
-                            if (m == $scope.model)
-                                break;
-                        }
-                    }
-                    prefix = $scope.model._type + (index > 1 ? index : '');
-                }
-                var name = prefix + '.' + $scope.field + fileExtension();
-                if (name != filename) {
-                    filename = name;
-                    items = [
-                        ['', 'None'],
-                        ['1', name],
-                    ];
-                }
-                return items;
-            };
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
+            // field def: [label, type]
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
+            $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
+            $scope.fieldClass = fieldClass($scope.info[1], $scope.fieldSize, $scope.wantEnumButtons);
+            $scope.showLabel = showLabel($scope.labelSize);
         },
     };
 });
@@ -583,7 +361,7 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
         restirct: 'A',
         scope: {},
         template: [
-              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
+              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
                   '<li class="divider"></li>',
@@ -700,7 +478,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
                 if (requestSender.getAuxiliaryData($scope.fileType))
                     return requestSender.getAuxiliaryData($scope.fileType);
                 if (! appState.isLoaded())
-                    return $scope.emptyList;
+                    return null;
                 requestSender.loadAuxiliaryData(
                     $scope.fileType,
                     requestSender.formatUrl('listFiles', {
@@ -708,7 +486,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
                     }));
-                return $scope.emptyList;
+                return null;
             };
             $scope.selectItem = function(item) {
                 $scope.model[$scope.fileField] = item;
@@ -1184,141 +962,6 @@ SIREPO.app.directive('reportPanel', function(appState) {
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
             };
         },
-    };
-});
-
-SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
-    var rpnBooleanValues = null;
-
-    function clearBooleanValues() {
-        rpnBooleanValues = null;
-    }
-
-    this.computeRpnValue = function(value, callback) {
-        if (value in appState.models.rpnCache) {
-            callback(appState.models.rpnCache[value]);
-            return;
-        }
-        requestSender.getApplicationData(
-            {
-                method: 'rpn_value',
-                value: value,
-                variables: appState.models.rpnVariables,
-            },
-            function(data) {
-                if (! data.error) {
-                    if (appState.isLoaded())
-                        appState.models.rpnCache[value] = data.result;
-                }
-                callback(data.result, data.error);
-            });
-    };
-
-    this.getRpnBooleanForField = function(model, field) {
-        if (appState.isLoaded() && model && field) {
-            if (! rpnBooleanValues) {
-                rpnBooleanValues = [];
-                if (appState.models.rpnVariables) {
-                    for (var i = 0; i < appState.models.rpnVariables.length; i++) {
-                        var v = appState.models.rpnVariables[i];
-                        rpnBooleanValues.push([v.name, 'var: ' + v.name]);
-                    }
-                    rpnBooleanValues = rpnBooleanValues.sort(function(a, b) {
-                        return a[1].localeCompare(b[1]);
-                    });
-                }
-                rpnBooleanValues.unshift(
-                    ['0', 'No'],
-                    ['1', 'Yes']);
-            }
-            return rpnBooleanValues;
-        }
-        return null;
-    };
-
-    this.getRpnValue = function(v) {
-        if (angular.isUndefined(v))
-            return v;
-        if (v in appState.models.rpnCache)
-            return appState.models.rpnCache[v];
-        var value = parseFloat(v);
-        if (isNaN(value))
-            return undefined;
-        return value;
-    };
-
-    this.getRpnValueForField = function(model, field) {
-        if (appState.isLoaded() && model && field) {
-            var v = model[field];
-            if (SIREPO.NUMBER_REGEXP.test(v))
-                return '';
-            return this.getRpnValue(v);
-        }
-        return '';
-    };
-
-    this.recomputeCache = function(varName, value) {
-        var recomputeRequired = false;
-        var re = new RegExp("\\b" + varName + "\\b");
-        for (var k in appState.models.rpnCache) {
-            if (k == varName)
-                appState.models.rpnCache[k] = value;
-            else if (k.match(re))
-                recomputeRequired = true;
-        }
-        if (! recomputeRequired)
-            return;
-        requestSender.getApplicationData(
-            {
-                method: 'recompute_rpn_cache_values',
-                cache: appState.models.rpnCache,
-                variables: appState.models.rpnVariables,
-            },
-            function(data) {
-                if (appState.isLoaded() && data.cache)
-                    appState.models.rpnCache = data.cache;
-            });
-    };
-
-    $rootScope.$on('rpnVariables.changed', clearBooleanValues);
-    appState.whenModelsLoaded($rootScope, clearBooleanValues);
-});
-
-SIREPO.app.directive('rpnValue', function(appState, rpnService) {
-    var requestIndex = 0;
-    return {
-        restrict: 'A',
-        require: 'ngModel',
-        link: function(scope, element, attrs, ngModel) {
-            var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
-            ngModel.$parsers.push(function(value) {
-                if (ngModel.$isEmpty(value))
-                    return null;
-                if (SIREPO.NUMBER_REGEXP.test(value)) {
-                    ngModel.$setValidity('', true);
-                    var v = parseFloat(value);
-                    if (rpnVariableName)
-                        rpnService.recomputeCache(rpnVariableName, v);
-                    return v;
-                }
-                requestIndex++;
-                var currentRequestIndex = requestIndex;
-                rpnService.computeRpnValue(value, function(v, err) {
-                    // check for a stale request
-                    if (requestIndex != currentRequestIndex)
-                        return;
-                    ngModel.$setValidity('', err ? false : true);
-                    if (rpnVariableName && ! err)
-                        rpnService.recomputeCache(rpnVariableName, v);
-                });
-                return value;
-            });
-            ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value))
-                    return value;
-                return value.toString();
-            });
-        }
     };
 });
 
