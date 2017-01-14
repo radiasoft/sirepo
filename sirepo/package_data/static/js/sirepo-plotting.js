@@ -483,11 +483,12 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         var peakIndex = null;
         var rightMinIndex = null;
         var leftMinIndex = null;
+        var fwhm = null;
         if (focusIndex < xValues.length - 1 && focusIndex > 0) { // check if the index is within the range
             if (points[focusIndex][1] < points[focusIndex - 1][1] || points[focusIndex][1] < points[focusIndex + 1][1]) { // step on the left and on the right to see if it's a local maximum
                 // It's not a local maximum!
                 if (points[focusIndex][1] < points[focusIndex - 1][1]) { // we are on the right from the maximum
-                    for (var i = focusIndex; i > 0; i--) { // <<< go to the left to find the maximum
+                    for (i = focusIndex; i > 0; i--) { // <<< go to the left to find the maximum
                         if (points[i-1][1] < points[i][1]) { // we crossed the maximum and started to descend
                             // ^ <<< - we reached the maximum:
                             peakIndex = i;
@@ -495,7 +496,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                         }
                     }
                 } else { // we are on the left from the maximum
-                    for (var i = focusIndex + 1; i < xValues.length; i++) { // >>> go to the right to find the maximum
+                    for (i = focusIndex + 1; i < xValues.length; i++) { // >>> go to the right to find the maximum
                         if (points[i-1][1] > points[i][1]) { // we crossed the maximum and started to descend
                             // >>> ^ - we reached the maximum:
                             peakIndex = i - 1;
@@ -509,7 +510,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             }
 
             // >>> go to the right from the peak to find the right minimum:
-            for (var i = peakIndex + 1; i < xValues.length; i++) {
+            for (i = peakIndex + 1; i < xValues.length; i++) {
                 if (points[i-1][1] < points[i][1]) {
                     // >>> v - we reached the right minimum:
                     rightMinIndex = i - 1;
@@ -521,10 +522,10 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             }
 
             // <<< go to the left to find the left minimum:
-            for (var i = peakIndex; i > 0; i--) {
+            for (i = peakIndex; i > 0; i--) {
                 if (points[i-1][1] > points[i][1]) {
                     // v <<< - we reached the left minimum:
-                    var leftMinIndex = i;
+                    leftMinIndex = i;
                     break;
                 }
             }
@@ -538,11 +539,11 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             var localXValues = [];
             var localYValues = [];
             var localYHalfMax = points[peakIndex][1] / 2.0;
-            for (var i = leftMinIndex; i <= rightMinIndex; i++) {
+            for (i = leftMinIndex; i <= rightMinIndex; i++) {
                 localXValues.push(points[i][0]);
                 localYValues.push(points[i][1]);
             }
-            var fwhm = calculateFWHM(localXValues, localYValues, localYHalfMax);
+            fwhm = calculateFWHM(localXValues, localYValues, localYHalfMax);
         }
 
         var fwhmText = '';
@@ -573,10 +574,11 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             }
             fwhmText = ', FWHM=' + fwhmConverted.toFixed(2) + ' ' + units;
         }
-        if (invertAxis)
+        if (invertAxis) {
             focus.attr('transform', 'translate(' + yAxisScale(p[1]) + ',' + xAxisScale(p[0]) + ')');
-        else
+        } else {
             focus.attr('transform', 'translate(' + xAxisScale(p[0]) + ',' + yAxisScale(p[1]) + ')');
+        }
         select('.focus-text').text('X=' + formatValue(p[0]) + ', Y=' + formatValue(p[1]) + '' + fwhmText);
     }
 
