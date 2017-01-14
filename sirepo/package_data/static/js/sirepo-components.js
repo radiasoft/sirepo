@@ -419,7 +419,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
           '<div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">',
             '<button type="button" title="View Graph" class="btn btn-default" data-ng-if="wantFileReport" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
-            '<a data-ng-href="{{ downloadImageUrl() }}" type="button" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile"><span class="glyphicon glyphicon-flag"></a>',
+             '<button type="button" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></button>',
           '</div>',
         ].join(''),
         controller: function($scope) {
@@ -445,22 +445,26 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
                 return '';
             };
 
-            $scope.downloadImageUrl = function() {
-                if (appState.isLoaded()) {
-                    var processedFileName = $scope.model.imageFile;
-                    var ending = '_processed.tif';
-                    if (processedFileName.indexOf(ending) < 0) {
-                        processedFileName = processedFileName.split('.');
-                        processedFileName.pop();
-                        processedFileName = processedFileName.join('.') + ending;
-                    }
-                    return requestSender.formatUrl('downloadFile', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>': processedFileName,
-                    });
+            $scope.downloadProcessedImage = function() {
+                if (!appState.isLoaded()) {
+                    return;
                 }
-                return '';
+                var m = $scope.model.imageFile.match(/([^\/]+)\.\w+$/);
+                if (!m) {
+                    throw $scope.model.imageFile + ': invalid imageFile name';
+                }
+                requestSender.sendRequest(
+                    {
+                        routeName: 'getApplicationData',
+                        '<filename>': m[0],
+                    },
+                    null,
+                    {
+                        'simulation_id': appState.models.simulation.simulationId,
+                        'simulation_type': SIREPO.APP_SCHEMA.simulationType,
+                        'method': 'processedImage',
+                    }
+                );
             };
 
             $scope.hasValidFileSelected = function() {

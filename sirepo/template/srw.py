@@ -597,6 +597,23 @@ def import_file(request, lib_dir, tmp_dir):
     return None, data
 
 
+def lib_files(data, source_lib):
+    """Returns list of auxialiary files
+
+    Args:
+        data (dict): simulation db
+        source_lib (py.path): directory of source
+
+    Returns:
+        list: py.path.local of source files
+    """
+    res = []
+    _iterate_model_fields(data, res, _iterator_input_files)
+    if data['models']['bunchFile']['sourceFile']:
+        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    return [source_lib.join(f) for f in res]
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
