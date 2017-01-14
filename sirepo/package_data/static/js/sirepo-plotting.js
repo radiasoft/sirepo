@@ -478,12 +478,75 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             xValues.push(points[i][0]);
             yValues.push(points[i][1]);
         }
-        var yHalfMax = Math.max.apply(null, yValues) / 2.0;
 
-        var fwhm = calculateFWHM(xValues, yValues, yHalfMax);
+        // Find the local maximum and the left and righ minima:
+        var peakIndex = null;
+        var rightMinIndex = null;
+        var leftMinIndex = null;
+        if (focusIndex < xValues.length - 1 && focusIndex > 0) { // check if the index is within the range
+            if (points[focusIndex][1] < points[focusIndex - 1][1] || points[focusIndex][1] < points[focusIndex + 1][1]) { // step on the left and on the right to see if it's a local maximum
+                // It's not a local maximum!
+                if (points[focusIndex][1] < points[focusIndex - 1][1]) { // we are on the right from the maximum
+                    for (var i = focusIndex; i > 0; i--) { // <<< go to the left to find the maximum
+                        if (points[i-1][1] < points[i][1]) { // we crossed the maximum and started to descend
+                            // ^ <<< - we reached the maximum:
+                            peakIndex = i;
+                            break;
+                        }
+                    }
+                } else { // we are on the left from the maximum
+                    for (var i = focusIndex + 1; i < xValues.length; i++) { // >>> go to the right to find the maximum
+                        if (points[i-1][1] > points[i][1]) { // we crossed the maximum and started to descend
+                            // >>> ^ - we reached the maximum:
+                            peakIndex = i - 1;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // ^ - we are at the local maximum.
+                peakIndex = focusIndex;
+            }
+
+            // >>> go to the right from the peak to find the right minimum:
+            for (var i = peakIndex + 1; i < xValues.length; i++) {
+                if (points[i-1][1] < points[i][1]) {
+                    // >>> v - we reached the right minimum:
+                    rightMinIndex = i - 1;
+                    break;
+                }
+            }
+            if (! rightMinIndex) {
+                rightMinIndex = xValues.length - 1;
+            }
+
+            // <<< go to the left to find the left minimum:
+            for (var i = peakIndex; i > 0; i--) {
+                if (points[i-1][1] > points[i][1]) {
+                    // v <<< - we reached the left minimum:
+                    var leftMinIndex = i;
+                    break;
+                }
+            }
+            if (! leftMinIndex) {
+                leftMinIndex = 0;
+            }
+        }
+
+        // Calculate the FWHM for the selected peak (between the left and the right minima - v^v):
+        if (peakIndex) {
+            var localXValues = [];
+            var localYValues = [];
+            var localYHalfMax = points[peakIndex][1] / 2.0;
+            for (var i = leftMinIndex; i <= rightMinIndex; i++) {
+                localXValues.push(points[i][0]);
+                localYValues.push(points[i][1]);
+            }
+            var fwhm = calculateFWHM(localXValues, localYValues, localYHalfMax);
+        }
 
         var fwhmText = '';
-        if (fwhm !== null) {
+        if (fwhm !== null && typeof(fwhm) !== 'undefined') {
             var fwhmConverted = fwhm;
             var units = invertAxis ? scope.yunits : scope.xunits;
             if (fwhm >= 1e9 && fwhm < 1e12) {
@@ -508,13 +571,13 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 fwhmConverted = fwhm * 1e12;
                 units = 'p' + units;
             }
-            fwhmText = ', FWHM = ' + fwhmConverted.toFixed(2) + ' ' + units;
+            fwhmText = ', FWHM=' + fwhmConverted.toFixed(2) + ' ' + units;
         }
         if (invertAxis)
             focus.attr('transform', 'translate(' + yAxisScale(p[1]) + ',' + xAxisScale(p[0]) + ')');
         else
             focus.attr('transform', 'translate(' + xAxisScale(p[0]) + ',' + yAxisScale(p[1]) + ')');
-        select('.focus-text').text('[' + formatValue(p[0]) + ', ' + formatValue(p[1]) + ']' + fwhmText);
+        select('.focus-text').text('X=' + formatValue(p[0]) + ', Y=' + formatValue(p[1]) + '' + fwhmText);
     }
 
     return init();
