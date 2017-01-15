@@ -38,9 +38,6 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
 
-#: Callback url from OAUTH server
-_OAUTH_AUTHORIZATION_CALLBACK_URL = '/<oauth_type>/oauth-authorized'
-
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
 
@@ -52,6 +49,9 @@ _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flag
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
+
+#: See sirepo.sr_unit
+SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 
 #: WSGIApp instance (see `init_by_server`)
 _wsgi_app = None
@@ -67,16 +67,7 @@ app.config.update(
 )
 
 
-def init(db_dir, uwsgi=None):
-    """Initialize globals and populate simulation dir"""
-    global _wsgi_app
-    _wsgi_app = _WSGIApp(app, uwsgi)
-    _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
-    simulation_db.init_by_server(app, sys.modules[__name__])
-
-
-@app.route(simulation_db.SCHEMA_COMMON['route']['copyNonSessionSimulation'], methods=('GET', 'POST'))
-def app_copy_nonsession_simulation():
+def api_copyNonSessionSimulation():
     req = _json_input()
     sim_type = req['simulationType']
     global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
@@ -88,10 +79,10 @@ def app_copy_nonsession_simulation():
         sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
+app_copy_nonsession_simulation = api_copyNonSessionSimulation
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['copySimulation'], methods=('GET', 'POST'))
-def app_copy_simulation():
+def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = _json_input()
     sim_type = req['simulationType']
@@ -111,17 +102,17 @@ def app_copy_simulation():
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(sim_type, data)
+app_copy_simulation = api_copySimulation
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['deleteSimulation'], methods=('GET', 'POST'))
-def app_delete_simulation():
+def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return _json_response_ok()
+app_delete_simulation = api_deleteSimulation
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['downloadDataFile'], methods=('GET', 'POST'))
-def app_download_data_file(simulation_type, simulation_id, model, frame):
+def api_downloadDataFile(simulation_type, simulation_id, model, frame):
     data = {
         'simulationType': simulation_type,
         'simulationId': simulation_id,
@@ -136,17 +127,17 @@ def app_download_data_file(simulation_type, simulation_id, model, frame):
     run_dir = simulation_db.simulation_run_dir(data)
     filename, content, content_type = template.get_data_file(run_dir, model, frame)
     return _as_attachment(flask.make_response(content), content_type, filename)
+app_download_data_file = api_downloadDataFile
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['downloadFile'], methods=('GET', 'POST'))
-def app_download_file(simulation_type, simulation_id, filename):
+def api_downloadFile(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
+app_download_file = api_downloadFile
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['errorLogging'], methods=('GET', 'POST'))
-def app_error_logging():
+def api_errorLogging():
     ip = flask.request.remote_addr
     try:
         pkdlog(
@@ -162,10 +153,10 @@ def app_error_logging():
             flask.request.data.decode('unicode-escape'),
         )
     return _json_response_ok();
+app_error_logging = api_errorLogging
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['exportSimulation'], methods=('GET', 'POST'))
-def app_export_simulation(simulation_type, simulation_id, filename):
+def api_exportSimulation(simulation_type, simulation_id, filename):
     from sirepo import exporter
     p = exporter.create_zip(simulation_type, simulation_id)
     return flask.send_file(
@@ -174,19 +165,20 @@ def app_export_simulation(simulation_type, simulation_id, filename):
         as_attachment=True,
         attachment_filename=filename,
     )
+app_export_simulation = api_exportSimulation
 
 
-@app.route('/favicon.ico')
-def app_favicon():
+def api_favicon():
     """Routes to favicon.ico file."""
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER.join('img')),
-        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
     )
+app_favicon = api_favicon
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['listFiles'], methods=('GET', 'POST'))
-def app_file_list(simulation_type, simulation_id, file_type):
+def api_listFiles(simulation_type, simulation_id, file_type):
     file_type = werkzeug.secure_filename(file_type)
     res = []
     exclude = None
@@ -211,10 +203,10 @@ def app_file_list(simulation_type, simulation_id, file_type):
                 res.append(filename)
     res.sort()
     return _json_response(res)
+app_file_list = api_listFiles
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['findByName'], methods=('GET', 'POST'))
-def app_find_by_name(simulation_type, application_mode, simulation_name):
+def api_findByName(simulation_type, application_mode, simulation_name):
     if cfg.oauth_login:
         from sirepo import oauth
         oauth.set_default_state(logged_out_as_anonymous=True)
@@ -245,16 +237,33 @@ def app_find_by_name(simulation_type, application_mode, simulation_name):
     if redirect_uri:
         return javascript_redirect(redirect_uri)
     werkzeug.exceptions.abort(404)
+app_find_by_name = api_findByName
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['getApplicationData'], methods=('GET', 'POST'))
-def app_get_application_data():
+def api_getApplicationData(filename=''):
+    """Get some data from the template
+
+    Args:
+        filename (str): if supplied, result is file attachment
+
+    Returns:
+        response: may be a file or JSON
+    """
     data = _parse_data_input()
-    return _json_response(sirepo.template.import_module(data).get_application_data(data))
+    res = sirepo.template.import_module(data).get_application_data(data)
+    if filename:
+        assert isinstance(res, py.path.Local), \
+            '{}: template did not return a file'.format(res)
+        return flask.send_file(
+            str(res),
+            as_attachment=True,
+            attachment_filename=filename,
+        )
+    return _json_response(res)
+app_get_application_data = api_getApplicationData
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['importFile'], methods=('GET', 'POST'))
-def app_import_file(simulation_type):
+def api_importFile(simulation_type):
     """
     Args:
         simulation_type (str): which simulation type
@@ -268,10 +277,18 @@ def app_import_file(simulation_type):
         return _json_response({'error': error})
     data['models']['simulation']['folder'] = flask.request.form['folder']
     return _save_new_and_reply(simulation_type, data)
+app_import_file = api_importFile
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['newSimulation'], methods=('GET', 'POST'))
-def app_new_simulation():
+def api_homePage():
+    return flask.render_template(
+        'html/sr-landing-page.html',
+        version=simulation_db.app_version(),
+    )
+light_landing_page = api_homePage
+
+
+def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.default_data(sim_type)
@@ -279,34 +296,34 @@ def app_new_simulation():
     data['models']['simulation']['folder'] = new_simulation_data['folder']
     sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
     return _save_new_and_reply(sim_type, data)
+app_new_simulation = api_newSimulation
 
 
-@app.route(_OAUTH_AUTHORIZATION_CALLBACK_URL, methods=('GET', 'POST'))
-def app_oauth_authorized(oauth_type):
+def api_oauthAuthorized(oauth_type):
     if cfg.oauth_login:
         from sirepo import oauth
         return oauth.authorized_callback(app, oauth_type)
     raise RuntimeError('OAUTH Login not configured')
+app_oauth_authorized = api_oauthAuthorized
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['oauthLogin'], methods=('GET', 'POST'))
-def app_oauth_login(simulation_type, oauth_type):
+def api_oauthLogin(simulation_type, oauth_type):
     if cfg.oauth_login:
         from sirepo import oauth
         return oauth.authorize(simulation_type, app, oauth_type)
     raise RuntimeError('OAUTH Login not configured')
+app_oauth_login = api_oauthLogin
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['oauthLogout'], methods=('GET', 'POST'))
-def app_oauth_logout(simulation_type):
+def api_oauthLogout(simulation_type):
     if cfg.oauth_login:
         from sirepo import oauth
         return oauth.logout(simulation_type)
     raise RuntimeError('OAUTH Login not configured')
+app_oauth_logout = api_oauthLogout
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['pythonSource'])
-def app_python_source(simulation_type, simulation_id, model):
+def api_pythonSource(simulation_type, simulation_id, model):
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
     return _as_attachment(
@@ -314,19 +331,20 @@ def app_python_source(simulation_type, simulation_id, model):
         'text/x-python',
         '{}.py'.format(data['models']['simulation']['name']),
     )
+app_python_source = api_pythonSource
 
 
-@app.route('/robots.txt')
-def app_robots_txt():
+def api_robotsTxt():
     """Tell robots to go away"""
     return flask.Response(
         'User-agent: *\nDisallow: /\n',
         mimetype='text/plain',
     )
+app_robots_txt = api_robotsTxt
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['root'])
-def app_root(simulation_type):
+def api_root(simulation_type):
+    sirepo.template.assert_sim_type(simulation_type)
     args = {}
     if cfg.oauth_login:
         from sirepo import oauth
@@ -336,11 +354,12 @@ def app_root(simulation_type):
         version=simulation_db.app_version(),
         app_name=simulation_type,
         oauth_login=cfg.oauth_login,
-        **args)
+        **args
+    )
+app_root = api_root
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runCancel'], methods=('GET', 'POST'))
-def app_run_cancel():
+def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
     # TODO(robnagler) need to have a way of listing jobs
@@ -360,10 +379,10 @@ def app_run_cancel():
         t.remove_last_frame(run_dir)
     # Always true from the client's perspective
     return _json_response({'state': 'canceled'})
+app_run_cancel = api_runCancel
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runSimulation'], methods=('GET', 'POST'))
-def app_run_simulation():
+def api_runSimulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data, quiet=True)
     if (
@@ -378,16 +397,16 @@ def app_run_simulation():
             pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
         res = _simulation_run_status(data)
     return _json_response(res)
+app_run_simulation = api_runSimulation
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['runStatus'], methods=('GET', 'POST'))
-def app_run_status():
+def api_runStatus():
     data = _parse_data_input()
     return _json_response(_simulation_run_status(data))
+app_run_status = api_runStatus
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['saveSimulationData'], methods=('GET', 'POST'))
-def app_save_simulation_data():
+def api_saveSimulationData():
     data = _parse_data_input(validate=True)
     res = _validate_serial(data)
     if res:
@@ -402,10 +421,10 @@ def app_save_simulation_data():
         data['models']['simulation']['simulationId'],
         pretty=False,
     )
+app_save_simulation_data = api_saveSimulationData
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['simulationData'])
-def app_simulation_data(simulation_type, simulation_id, pretty):
+def api_simulationData(simulation_type, simulation_id, pretty):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
@@ -424,10 +443,10 @@ def app_simulation_data(simulation_type, simulation_id, pretty):
         response = _json_response(e.sr_response)
     _no_cache(response)
     return response
+app_simulation_data = api_simulationData
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['simulationFrame'])
-def app_simulation_frame(frame_id):
+def api_simulationFrame(frame_id):
     #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('*')))
@@ -436,7 +455,6 @@ def app_simulation_frame(frame_id):
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     response = _json_response(template.get_simulation_frame(run_dir, data, model_data))
-
     if template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(365)
@@ -446,10 +464,10 @@ def app_simulation_frame(frame_id):
     else:
         _no_cache(response)
     return response
+app_simulation_frame = api_simulationFrame
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['listSimulations'], methods=('GET', 'POST'))
-def app_simulation_list():
+def api_listSimulations():
     data = _parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
@@ -460,24 +478,27 @@ def app_simulation_list():
             key=lambda row: row['name'],
         )
     )
+app_simulation_list = api_listSimulations
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['simulationSchema'], methods=('GET', 'POST'))
-def app_simulation_schema():
+def api_simulationSchema():
     sim_type = flask.request.form['simulationType']
     return _json_response(simulation_db.get_schema(sim_type))
+app_simulation_schema = api_simulationSchema
 
 
-SR_UNIT_ROUTE = '/ sr_unit'
-SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
-@app.route(SR_UNIT_ROUTE, methods=('GET', 'POST'))
-def app_sr_unit():
-    getattr(app, 'test_in_request')()
+def api_srLandingPage():
+    return flask.redirect('/light')
+sr_landing_page = api_srLandingPage
+
+
+def api_srUnit():
+    getattr(app, SR_UNIT_TEST_IN_REQUEST)()
     return ''
+app_sr_unit = api_srUnit
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['updateFolder'], methods=('GET', 'POST'))
-def app_update_folder():
+def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     data = _parse_data_input()
     old_name = data['oldName']
@@ -488,10 +509,10 @@ def app_update_folder():
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
             simulation_db.save_simulation_json(data['simulationType'], row)
     return _json_response_ok()
+app_update_folder = api_updateFolder
 
 
-@app.route(simulation_db.SCHEMA_COMMON['route']['uploadFile'], methods=('GET', 'POST'))
-def app_upload_file(simulation_type, simulation_id, file_type):
+def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
     lib = simulation_db.simulation_lib_dir(simulation_type)
     template = sirepo.template.import_module(simulation_type)
@@ -520,6 +541,7 @@ def app_upload_file(simulation_type, simulation_id, file_type):
         'fileType': file_type,
         'simulationId': simulation_id,
     })
+app_upload_file = api_uploadFile
 
 
 def clear_session_user():
@@ -529,21 +551,22 @@ def clear_session_user():
         del flask.session[_SESSION_KEY_USER]
 
 
+def init(db_dir, uwsgi=None):
+    """Initialize globals and populate simulation dir"""
+    from sirepo import uri_router
+    uri_router.init(app, globals(), simulation_db)
+    global _wsgi_app
+    _wsgi_app = _WSGIApp(app, uwsgi)
+    _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
+    simulation_db.init_by_server(app, sys.modules[__name__])
+
+
 def javascript_redirect(redirect_uri):
     """Redirect using javascript for safari browser which doesn't support hash redirects.
     """
     return flask.render_template(
         'html/javascript-redirect.html',
         redirect_uri=redirect_uri
-    )
-
-
-@app.route('/')
-@app.route('/light')
-def light_landing_page():
-    return flask.render_template(
-        'html/sr-landing-page.html',
-        version=simulation_db.app_version(),
     )
 
 
@@ -569,11 +592,6 @@ def session_user(*args, **kwargs):
     if not res and kwargs.get('checked', True):
         raise KeyError(_SESSION_KEY_USER)
     return res
-
-
-@app.route('/sr')
-def sr_landing_page():
-    return flask.redirect('/light')
 
 
 class _BeakerSession(flask.sessions.SessionInterface):
