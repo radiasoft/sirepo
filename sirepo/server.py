@@ -79,7 +79,7 @@ def api_copyNonSessionSimulation():
         sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
-app_copy_nonsession_simulation = _api_copyNonSessionSimulation
+app_copy_nonsession_simulation = api_copyNonSessionSimulation
 
 
 def api_copySimulation():
@@ -131,7 +131,7 @@ app_download_data_file = api_downloadDataFile
 
 
 def api_downloadFile(simulation_type, simulation_id, filename):
-    lib = simulation_db.simulation_lib_dir(simulation_type))
+    lib = simulation_db.simulation_lib_dir(simulation_type)
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
 app_download_file = api_downloadFile
@@ -172,7 +172,8 @@ def api_favicon():
     """Routes to favicon.ico file."""
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER.join('img')),
-        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
     )
 app_favicon = api_favicon
 
@@ -248,7 +249,6 @@ def api_getApplicationData(filename=''):
     Returns:
         response: may be a file or JSON
     """
-    assert 0
     data = _parse_data_input()
     res = sirepo.template.import_module(data).get_application_data(data)
     if filename:
@@ -354,7 +354,7 @@ def api_root(simulation_type):
         version=simulation_db.app_version(),
         app_name=simulation_type,
         oauth_login=cfg.oauth_login,
-        **args,
+        **args
     )
 app_root = api_root
 

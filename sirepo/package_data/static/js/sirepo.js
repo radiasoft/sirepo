@@ -855,7 +855,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         // remove optional params missed and then that were replaced
         url = url.replace(/\/\?<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
-        srdbg('xxxxxxxxxxx', url);
         var missing = url.match(/<[^>]+>/g);
         if (missing)
             throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];

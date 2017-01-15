@@ -38,10 +38,11 @@ def flask_client():
 
 def test_in_request(op):
     from sirepo import server
+    from sirepo import uri_router
     fc = flask_client()
     try:
         setattr(server.app, server.SR_UNIT_TEST_IN_REQUEST, op)
-        fc.get(server.SR_UNIT_ROUTE)
+        fc.get(uri_router.sr_unit_uri)
     finally:
         delattr(server.app, server.SR_UNIT_TEST_IN_REQUEST)
 

@@ -96,7 +96,7 @@ def test_oauth():
     )
     state = re.search(r'state=(.*?)"', text).group(1)
     #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
-    text = fc.get('/github/oauth-authorized')
+    text = fc.get('/oauth-authorized/github')
     text = fc.sr_get_raw(
         'oauthLogout',
         {

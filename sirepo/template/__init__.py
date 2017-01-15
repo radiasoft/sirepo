@@ -37,3 +37,4 @@ def assert_sim_type(sim_type):
     """
     assert sim_type in SIM_TYPES, \
         '{}: invalid simulation type'
+    return sim_type
