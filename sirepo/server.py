@@ -51,16 +51,10 @@ _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flag
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
 #: See sirepo.sr_unit
-SR_UNIT_ROUTE = simulation_db.SCHEMA_COMMON.route.srUnit
-
-#: See sirepo.sr_unit
 SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 
 #: WSGIApp instance (see `init_by_server`)
 _wsgi_app = None
-
-#: map of routes
-_routes = None
 
 #: Flask app instance, must be bound globally
 app = flask.Flask(
@@ -71,27 +65,6 @@ app = flask.Flask(
 app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
-
-
-def init(db_dir, uwsgi=None):
-    """Initialize globals and populate simulation dir"""
-    _init_routes()
-    global _wsgi_app
-    _wsgi_app = _WSGIApp(app, uwsgi)
-    _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
-    simulation_db.init_by_server(app, sys.modules[__name__])
-
-@app.url_defaults
-def _url_defaults(endpoint, values):
-    pkdp('{} {}', endpoint, values)
-    if endpoint == '/get-application-data/<filename>' and 'filename' not in values:
-        values['filename'] = ''
-
-
-def _route(name):
-    """Replace the optional character syntax in routes so app.route doesn't puke"""
-    r = simulation_db.SCHEMA_COMMON['route'][name]
-    return app.route(r.replace('/?<', '/<'), methods=('GET', 'POST'))
 
 
 def api_copyNonSessionSimulation():
@@ -158,7 +131,7 @@ app_download_data_file = api_downloadDataFile
 
 
 def api_downloadFile(simulation_type, simulation_id, filename):
-    lib = simulation_db.simulation_lib_dir(simulation_type)
+    lib = simulation_db.simulation_lib_dir(simulation_type))
     p = lib.join(werkzeug.secure_filename(filename))
     return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
 app_download_file = api_downloadFile
@@ -266,7 +239,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
 app_find_by_name = api_findByName
 
 
-def api_getApplicationData(filename):
+def api_getApplicationData(filename=''):
     """Get some data from the template
 
     Args:
@@ -307,12 +280,12 @@ def api_importFile(simulation_type):
 app_import_file = api_importFile
 
 
-def api_lightHome():
+def api_homePage():
     return flask.render_template(
         'html/sr-landing-page.html',
         version=simulation_db.app_version(),
     )
-light_landing_page = api_lightHome
+light_landing_page = api_homePage
 
 
 def api_newSimulation():
@@ -371,6 +344,7 @@ app_robots_txt = api_robotsTxt
 
 
 def api_root(simulation_type):
+    sirepo.template.assert_sim_type(simulation_type)
     args = {}
     if cfg.oauth_login:
         from sirepo import oauth
@@ -380,7 +354,8 @@ def api_root(simulation_type):
         version=simulation_db.app_version(),
         app_name=simulation_type,
         oauth_login=cfg.oauth_login,
-        **args)
+        **args,
+    )
 app_root = api_root
 
 
@@ -518,7 +493,7 @@ sr_landing_page = api_srLandingPage
 
 
 def api_srUnit():
-    getattr(app, 'test_in_request')()
+    getattr(app, SR_UNIT_TEST_IN_REQUEST)()
     return ''
 app_sr_unit = api_srUnit
 
@@ -574,6 +549,16 @@ def clear_session_user():
     """
     if _SESSION_KEY_USER in flask.session:
         del flask.session[_SESSION_KEY_USER]
+
+
+def init(db_dir, uwsgi=None):
+    """Initialize globals and populate simulation dir"""
+    from sirepo import uri_router
+    uri_router.init(app, globals(), simulation_db)
+    global _wsgi_app
+    _wsgi_app = _WSGIApp(app, uwsgi)
+    _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
+    simulation_db.init_by_server(app, sys.modules[__name__])
 
 
 def javascript_redirect(redirect_uri):
@@ -705,26 +690,6 @@ def _cfg_time_limit(value):
     return v
 
 
-def _init_routes():
-    """Convert route map to dispatchable callables"""
-    global _routes
-    if _routes:
-        return
-    routes = pkcollections.Dict()
-    param_re = re.compile(r'/\??<.+')
-    for k, v in simulation_db.SCHEMA_COMMON.route.items():
-        v2 = param_re.sub(v, '')
-        assert not v2 in routes, \
-            '{}: duplicate end point; name={}'.format(v, k)
-        n = '_api_' + k
-        assert n in globals(), \
-            '{}: no such function; end point={}'.format(n, v)
-        routes[v2] = pkcollections.Dict(
-            name=n,
-            func=globals()[n],
-        )
-
-
 def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
@@ -787,20 +752,6 @@ def _no_cache(response):
 def _parse_data_input(validate=False):
     data = _json_input()
     return simulation_db.fixup_old_data(data)[0] if validate else data
-
-@app.route("/<path:path>", methods=('GET', 'POST'))
-def _route(path):
-    """Routes the uri based on the first path"""
-
-
-    _register_globals()
-    flask.request.pp_request = {
-        'biv_obj': biv_obj,
-        'action': action,
-        'path_info': path_info}
-    return _dispatch_action(action, biv_obj)
-
-
 
 
 def _save_new_and_reply(*args):

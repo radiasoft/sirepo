@@ -12,7 +12,7 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "importFile": "/import-file/<simulation_type>",
-        "lightHome": "/light",
+        "homePage": "/light",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",

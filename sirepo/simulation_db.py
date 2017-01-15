@@ -40,7 +40,7 @@ SCHEMA_COMMON = None
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
 #: Implemented apps
-SIMULATION_TYPES = ['srw', 'warp', 'elegant']
+SIMULATION_TYPES = sirepo.template.SIM_TYPES
 
 #: Where server files and static files are found
 STATIC_FOLDER = py.path.local(pkresource.filename('static'))

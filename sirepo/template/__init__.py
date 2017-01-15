@@ -8,8 +8,12 @@ from __future__ import absolute_import, division, print_function
 import importlib
 from pykern.pkdebug import pkdc, pkdp
 
+#: valid simulations
+SIM_TYPES = ['srw', 'warp', 'elegant']
+
 
 def import_module(type_or_data):
+
     """Load the simulation_type module
 
     Args:
@@ -19,4 +23,17 @@ def import_module(type_or_data):
     """
     if isinstance(type_or_data, dict):
         type_or_data = type_or_data['simulationType']
-    return importlib.import_module('.' + type_or_data, __name__)
+    return importlib.import_module('.' + assert_sim_type(type_or_data), __name__)
+
+
+def assert_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        str: sim_type
+    """
+    assert sim_type in SIM_TYPES, \
+        '{}: invalid simulation type'
