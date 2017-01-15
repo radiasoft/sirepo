@@ -22,32 +22,61 @@ _default_route = None
 _empty_route = None
 
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
-_map = None
+_uri_to_route = None
+
+#: dict of base_uri to route (base_uri, func, name, decl_uri, params)
+_api_to_route = None
+
+def uri_for_api(api_name, params=None):
+    """Generate uri for api method
+
+    Args:
+        api_name (str): full name of api
+        params (str): paramters to pass to uri
+
+    Returns:
+        str: formmatted external URI
+    """
+    import flask
+    import urllib
+
+    r = _api_to_route[api_name]
+    http = (flask.url_for('/', _external=True) + r.base_uri).rstrip('/')
+    for p in r.params:
+        if p.name in params:
+            http += '/' + params[p.name]
+            continue
+        assert p.optional, \
+            '{}: missing paramter for api ({})'.format(p.name, api_name)
+    return http
+
 
 def init(app, api_module, simulation_db):
     """Convert route map to dispatchable callables
 
-    Initializes `_map` and adds a single flask route (`_dispatch`) to
+    Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
     dispatch based on the map.
 
     Args:
         app (Flask): flask app
         api_module (module): where to get callables
     """
-    global _map
-    if _map:
+    global _uri_to_route
+    if _uri_to_route:
         # Already initialized
         return
     global _default_route, _empty_route, sr_unit_uri
-    _map = pkcollections.Dict()
+    _uri_to_route = pkcollections.Dict()
+    _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         r.decl_uri = v
         r.func = api_module['api_' + k]
         r.name = k
-        assert not r.base_uri in _map, \
+        assert not r.base_uri in _uri_to_route, \
             '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
-        _map[r.base_uri] = r
+        _uri_to_route[r.base_uri] = r
+        _api_to_route[k] = r
         if r.base_uri == '':
             _default_route = r
         if 'sr_unit' in v:
@@ -55,7 +84,7 @@ def init(app, api_module, simulation_db):
     assert _default_route, \
         'missing default route'
     # 'light' is the homePage, not 'root'
-    _empty_route = _map.light
+    _empty_route = _uri_to_route.light
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
@@ -74,7 +103,7 @@ def _dispatch(path):
             return _empty_route.func()
         parts = path.split('/')
         try:
-            route = _map[parts[0]]
+            route = _uri_to_route[parts[0]]
             parts.pop(0)
         except KeyError:
             route = _default_route

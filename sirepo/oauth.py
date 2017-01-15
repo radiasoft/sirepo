@@ -47,7 +47,10 @@ def authorize(simulation_type, app, oauth_type):
     flask.session['oauth_next'] = oauth_next
     callback = cfg.github_callback_uri
     if not callback:
-        callback = flask.url_for('app_oauth_authorized', oauth_type=oauth_type, _external=True)
+        callback = uri_router.uri_for_api(
+            'oauthAuthorized',
+            dict(oauth_type=oauth_type),
+        )
     return _oauth_client(app, oauth_type).authorize(
         callback=callback,
         state=state,
