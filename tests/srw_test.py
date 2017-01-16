@@ -13,7 +13,7 @@ from pykern import pkresource
 from pykern import pkunit
 
 
-def xtest_find_height_profile_dimension():
+def DOES_NOT_WORK_test_find_height_profile_dimension():
     from sirepo.template import srw
     for dimension in (1, 2):
         dat_file = pkresource.filename('static/dat/mirror_{}d.dat'.format(dimension), srw)
@@ -21,7 +21,7 @@ def xtest_find_height_profile_dimension():
         assert found_dimension == dimension
 
 
-def xtest_find_tab_undulator_length():
+def DOES_NOT_WORK_test_find_tab_undulator_length():
     from sirepo.template import srw
     magnet = pkresource.filename('static/dat/magnetic_measurements.zip', srw)
     for case in (
