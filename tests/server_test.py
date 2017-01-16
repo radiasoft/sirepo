@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 pytest.importorskip('srwl_bl')
 
+
 def test_basic():
     from sirepo import sr_unit
     fc = sr_unit.flask_client()
