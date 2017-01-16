@@ -47,6 +47,7 @@ def authorize(simulation_type, app, oauth_type):
     flask.session['oauth_next'] = oauth_next
     callback = cfg.github_callback_uri
     if not callback:
+        from sirepo import uri_router
         callback = uri_router.uri_for_api(
             'oauthAuthorized',
             dict(oauth_type=oauth_type),
