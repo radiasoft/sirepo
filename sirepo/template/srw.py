@@ -550,6 +550,8 @@ def get_application_data(data):
         return _compute_undulator_length(data['report_model'])
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
+    elif data['method'] == 'processedImage':
+        return _process_image(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -591,7 +593,6 @@ def import_file(request, lib_dir, tmp_dir):
             user_filename=f.filename,
             arguments=arguments,
         )
-
     data = simulation_db.fixup_old_data(parsed_data, force=True)[0]
     data.models.simulation.name += ' (imported JSON)'
     return None, data
@@ -1629,6 +1630,31 @@ def _process_beam_parameters(ebeam):
         # copy moments values into the ebeam
         for k in moments_fields:
             ebeam[k] = model[k]
+
+
+def _process_image(data):
+    """Process image and return
+
+    Args:
+        data (dict): description of simulation
+
+    Returns:
+        py.path.local: file to return
+    """
+    import werkzeug
+    # This should just be a basename, but this ensures it.
+    b = werkzeug.secure_filename(data.baseImage)
+    fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
+    with pkio.save_chdir(simulation_db.tmp_dir()) as d:
+        res = py.path.local(fn.purebasename)
+        srwl_smp.SRWLOptSmp(
+            file_path=str(fn),
+            is_save_images=True,
+            prefix=str(res),
+        )
+        res += '_processed.tif'
+        res.check()
+    return res
 
 
 def _process_intensity_reports(source_type, undulator_type):

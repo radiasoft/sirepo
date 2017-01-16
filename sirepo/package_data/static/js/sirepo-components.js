@@ -392,7 +392,7 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
     };
 });
 
-SIREPO.app.directive('fileField', function(appState, panelState, requestSender) {
+SIREPO.app.directive('fileField', function(appState, panelState, requestSender, $http, errorService) {
     return {
         restrict: 'A',
         scope: {
@@ -419,7 +419,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
           '<div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">',
             '<button type="button" title="View Graph" class="btn btn-default" data-ng-if="wantFileReport" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
-             '<button type="button" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></button>',
+            '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></a>',
           '</div>',
         ].join(''),
         controller: function($scope) {
@@ -449,22 +449,34 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender) 
                 if (!appState.isLoaded()) {
                     return;
                 }
-                var m = $scope.model.imageFile.match(/([^\/]+)\.\w+$/);
+                var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
                 if (!m) {
                     throw $scope.model.imageFile + ': invalid imageFile name';
                 }
-                requestSender.sendRequest(
+                var fn = m[2] + '_processed.tif';
+                var url = requestSender.formatUrl({
+                    routeName: 'getApplicationData',
+                    '<filename>': fn
+                });
+                var err = function (data, status) {
+                    errorService.alertText('Download failed: status=' + status);
+                };
+                //TODO: Error handling
+                $http.post(
+                    url,
                     {
-                        routeName: 'getApplicationData',
-                        '<filename>': m[0],
-                    },
-                    null,
-                    {
-                        'simulation_id': appState.models.simulation.simulationId,
-                        'simulation_type': SIREPO.APP_SCHEMA.simulationType,
+                        'simulationId': appState.models.simulation.simulationId,
+                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
                         'method': 'processedImage',
+                        'baseImage': m[1]
                     }
-                );
+                ).success(function (data, status, headers, config) {
+                    if (status == 200) {
+                        saveAs(new Blob([data]), fn);
+                        return;
+                    }
+                    err(data, status, headers, config);
+                }).error(err);
             };
 
             $scope.hasValidFileSelected = function() {

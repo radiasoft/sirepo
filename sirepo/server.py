@@ -38,6 +38,9 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
 
+#: class that py.path.local() returns
+_PY_PATH_LOCAL_CLASS = type(py.path.local())
+
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
 
@@ -252,7 +255,7 @@ def api_getApplicationData(filename=''):
     data = _parse_data_input()
     res = sirepo.template.import_module(data).get_application_data(data)
     if filename:
-        assert isinstance(res, py.path.Local), \
+        assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
             '{}: template did not return a file'.format(res)
         return flask.send_file(
             str(res),
