@@ -41,13 +41,13 @@ def uri_for_api(api_name, params=None):
     import urllib
 
     r = _api_to_route[api_name]
-    http = (flask.url_for('/', _external=True) + r.base_uri).rstrip('/')
+    http = (flask.url_for('_dispatch_empty', _external=True) + r.base_uri).rstrip('/')
     for p in r.params:
         if p.name in params:
             http += '/' + params[p.name]
             continue
         assert p.optional, \
-            '{}: missing paramter for api ({})'.format(p.name, api_name)
+            '{}: missing parameter for api ({})'.format(p.name, api_name)
     return http
 
 
@@ -65,7 +65,7 @@ def init(app, api_module, simulation_db):
     if _uri_to_route:
         # Already initialized
         return
-    global _default_route, _empty_route, sr_unit_uri
+    global _default_route, _empty_route, sr_unit_uri, _api_to_route
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
@@ -111,12 +111,14 @@ def _dispatch(path):
         for p in route.params:
             if not parts:
                 if not p.optional:
+                    import werkzeug.exceptions
                     werkzeug.exceptions.abort(404)
                     pkdlog('{}: uri missing parameter ({})', path, p.name)
                 break
             kwargs[p.name] = parts.pop(0)
         if parts:
             pkdlog('{}: unknown parameters in uri ({})', parts, path)
+            import werkzeug.exceptions
             werkzeug.exceptions.abort(404)
         return route.func(**kwargs)
     except Exception as e:

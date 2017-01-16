@@ -80,7 +80,6 @@ class _TestClient(flask.testing.FlaskClient):
         op = lambda r: self.post(r, data=data)
         return _req(route_name, params, op)
 
-
     def sr_get(self, route_name, params=None):
         """Gets a request to route_name to server
 
@@ -93,11 +92,10 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return _req(route_name, params, self.get)
 
-
     def sr_get_raw(self, route_name, params=None):
         """Similar to sr_get() but returns the raw response text.
         """
-        return self.get(_route(route_name, params)).data
+        return self.get(_uri(route_name, params)).data
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
@@ -124,6 +122,7 @@ class _TestClient(flask.testing.FlaskClient):
             },
         )
 
+
 def _req(route_name, params, op):
     """Make request and parse result
 
@@ -135,11 +134,11 @@ def _req(route_name, params, op):
     Returns:
         object: parsed JSON result
     """
-    resp = op(_route(route_name, params))
+    resp = op(_uri(route_name, params))
     return simulation_db.json_load(resp.data)
 
 
-def _route(route_name, params):
+def _uri(route_name, params):
     """Convert name to uri found in SCHEMA_COMMON.
 
     Args:

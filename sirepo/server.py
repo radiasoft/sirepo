@@ -347,7 +347,11 @@ app_robots_txt = api_robotsTxt
 
 
 def api_root(simulation_type):
-    sirepo.template.assert_sim_type(simulation_type)
+    try:
+        sirepo.template.assert_sim_type(simulation_type)
+    except AssertionError:
+        pkdlog('{}: uri not found', simulation_type)
+        werkzeug.exceptions.abort(404)
     args = {}
     if cfg.oauth_login:
         from sirepo import oauth
