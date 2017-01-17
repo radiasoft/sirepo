@@ -598,20 +598,28 @@ def import_file(request, lib_dir, tmp_dir):
     return None, data
 
 
-def lib_files(data, source_lib):
-    """Returns list of auxialiary files
+def lib_files(data, source_lib, report=None):
+    """Returns list of auxiliary files
 
     Args:
         data (dict): simulation db
         source_lib (py.path): directory of source
+        report
 
     Returns:
         list: py.path.local of source files
     """
     res = []
-    _iterate_model_fields(data, res, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    dm = data.models
+    if dm.simulation.sourceType == 't':
+        if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
+            res.append(dm.tabulatedUndulator.magneticFile)
+    for m in dm.beamline:
+        for k, v in _SCHEMA.model[m.type].items():
+            t = v[1]
+            if m[k] and t in ['MirrorFile', 'ImageFile']:
+                if not report or _is_watchpoint(report) or report in ('multiElectronAnimation', 'mirrorReport'):
+                    res.append(m[k])
     return [source_lib.join(f) for f in res]
 
 
@@ -1028,30 +1036,18 @@ def _convert_ebeam_units(field_name, value, to_si=True):
 
 
 def _copy_lib_files(data, source_lib, target, report=None):
-    """copy required MirrorFile and MagneticZipFile data to target"""
-    lib_files = []
-    if data['models']['simulation']['sourceType'] == 't':
-        if 'tabulatedUndulator' in data['models'] and data['models']['tabulatedUndulator']['magneticFile']:
-            lib_files.append(data['models']['tabulatedUndulator']['magneticFile'])
-    if report == 'mirrorReport':
-        lib_files.append(data['models']['mirrorReport']['heightProfileFile'])
-    for model in data['models']['beamline']:
-        for f in _SCHEMA['model'][model['type']]:
-            field_type = _SCHEMA['model'][model['type']][f][1]
-            if model[f] and (field_type in ['MirrorFile', 'ImageFile']):
-                if report and not (_is_watchpoint(report) or report == 'multiElectronAnimation'):
-                    continue
-                if field_type == 'ImageFile':
-                    filename = os.path.splitext(os.path.basename(str(model[f])))[0]
-                    # Save the processed file:
-                    srwl_smp.SRWLOptSmp(file_path=str(source_lib.join(model[f])), is_save_images=True, prefix=filename)
-                    lib_files.append(model[f])
-                else:
-                    lib_files.append(model[f])
-    for f in lib_files:
-        path = target.join(f)
-        if source_lib.join(f).exists() and not path.exists():
-            source_lib.join(f).copy(path)
+    """Copy auxiliary files to target
+
+    Args:
+        data (dict): simulation db
+        source_lib (py.path.local): source directory
+        target (py.path): destination directory
+        report (str): report to copy [optional]
+    """
+    for f in lib_files(data, source_lib, report):
+        path = target.join(f.basename)
+        if f.exists() and not path.exists():
+            f.copy(path)
 
 
 def _crystal_element(template, item, fields, propagation):

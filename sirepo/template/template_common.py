@@ -54,21 +54,11 @@ def lib_files(data):
         list: py.path.local to files
     """
     from sirepo import simulation_db
-    sim_type = data['simulationType']
-    if sim_type == 'elegant':
-        return sirepo.template.import_module(data).lib_files(data, simulation_db.simulation_lib_dir(sim_type))
-    rd = resource_dir(sim_type)
-    res = []
-
-    def _search(d):
-        for k, v in d.items():
-            if isinstance(v, dict):
-                _search(v)
-            elif LIB_FILE_PARAM_RE.search(k) and v:
-                res.append(rd.join(v))
-
-    _search(data)
-    return res
+    sim_type = data.simulationType
+    return sirepo.template.import_module(data).lib_files(
+        data,
+        simulation_db.simulation_lib_dir(sim_type),
+    )
 
 
 def parse_enums(enum_schema):
