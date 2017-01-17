@@ -39,24 +39,29 @@ def test_prepare_aux_files():
 
     def t():
         from sirepo.template import srw
+        from pykern import pkcollections
+
         # Needed to initialize simulation_db
-        data = {
-            'models': {
-                'simulation': {
-                    'sourceType': 't'
+        data = pkcollections.json_load_any('''{
+            "models": {
+                "simulation": {
+                    "sourceType": "t"
                 },
-                'tabulatedUndulator': {
-                    'magneticFile': 'magnetic_measurements.zip',
-                    'indexFile': '',
-                    'magnMeasFolder': '',
+                "tabulatedUndulator": {
+                    "magneticFile": "magnetic_measurements.zip",
+                    "indexFile": "",
+                    "magnMeasFolder": ""
                 },
-                'beamline': { },
+                "beamline": { }
             },
-            'report': 'intensityReport',
-        }
-        srw.prepare_aux_files(pkunit.empty_work_dir(), data)
-        assert data['models']['tabulatedUndulator']['magnMeasFolder'] == './'
-        assert data['models']['tabulatedUndulator']['indexFileName'] == 'ivu21_srx_sum.txt'
+            "report": "intensityReport"
+        }''')
+        d = pkunit.empty_work_dir()
+        srw.prepare_aux_files(d, data)
+        tu = data.models.tabulatedUndulator
+        assert tu.magnMeasFolder == './'
+        assert tu.indexFileName == 'ivu21_srx_sum.txt'
+        assert d.join(tu.indexFileName).exists()
 
     from sirepo import sr_unit
     sr_unit.test_in_request(t)
