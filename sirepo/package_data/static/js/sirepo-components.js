@@ -469,10 +469,11 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                         'simulationType': SIREPO.APP_SCHEMA.simulationType,
                         'method': 'processedImage',
                         'baseImage': m[1]
-                    }
+                    },
+                    {responseType: 'blob'}
                 ).success(function (data, status, headers, config) {
                     if (status == 200) {
-                        saveAs(new Blob([data]), fn);
+                        saveAs(data, fn);
                         return;
                     }
                     err(data, status, headers, config);

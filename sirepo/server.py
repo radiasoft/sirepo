@@ -259,6 +259,7 @@ def api_getApplicationData(filename=''):
             '{}: template did not return a file'.format(res)
         return flask.send_file(
             str(res),
+            mimetype='application/octet-stream',
             as_attachment=True,
             attachment_filename=filename,
         )

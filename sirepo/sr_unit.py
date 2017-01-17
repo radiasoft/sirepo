@@ -12,6 +12,7 @@ from sirepo import simulation_db
 import flask
 import flask.testing
 import json
+import re
 
 
 def flask_client():
@@ -49,7 +50,7 @@ def test_in_request(op):
 
 class _TestClient(flask.testing.FlaskClient):
 
-    def sr_post(self, route_name, data, params=None):
+    def sr_post(self, route_name, data, params=None, raw_response=False):
         """Posts JSON data to route_name to server
 
         File parameters are posted as::
@@ -63,10 +64,9 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
-        return _req(route_name, params, op)
+        return _req(route_name, params, op, raw_response=raw_response)
 
-
-    def sr_post_form(self, route_name, data, params=None):
+    def sr_post_form(self, route_name, data, params=None, raw_response=False):
         """Posts form data to route_name to server with data
 
         Args:
@@ -78,9 +78,9 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=data)
-        return _req(route_name, params, op)
+        return _req(route_name, params, op, raw_response=raw_response)
 
-    def sr_get(self, route_name, params=None):
+    def sr_get(self, route_name, params=None, raw_response=False):
         """Gets a request to route_name to server
 
         Args:
@@ -90,12 +90,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        return _req(route_name, params, self.get)
-
-    def sr_get_raw(self, route_name, params=None):
-        """Similar to sr_get() but returns the raw response text.
-        """
-        return self.get(_uri(route_name, params)).data
+        return _req(route_name, params, self.get, raw_response=raw_response)
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
@@ -123,7 +118,7 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
 
-def _req(route_name, params, op):
+def _req(route_name, params, op, raw_response):
     """Make request and parse result
 
     Args:
@@ -134,8 +129,17 @@ def _req(route_name, params, op):
     Returns:
         object: parsed JSON result
     """
-    resp = op(_uri(route_name, params))
-    return simulation_db.json_load(resp.data)
+    try:
+        uri = _uri(route_name, params)
+        resp = op(uri)
+        if raw_response:
+            return resp
+        return simulation_db.json_load(resp.data)
+    except Exception as e:
+        from pykern.pkdebug import pkdexc, pkdlog
+        pkdlog('{}: uri={} resp={}', e, uri, resp)
+        pkdexc()
+        raise
 
 
 def _uri(route_name, params):
@@ -151,11 +155,12 @@ def _uri(route_name, params):
     route = simulation_db.SCHEMA_COMMON['route'][route_name]
     if params:
         for k, v in params.items():
-            k2 = '<' + k + '>'
-            new_route = route.replace(k2, v)
+            k2 = r'\??<' + k + '>'
+            new_route = re.sub(k2, v, route)
             assert new_route != route, \
                 '{}: not found in "{}"'.format(k2, route)
             route = new_route
+    route = re.sub(r'\??<[^>]+>', '', route)
     assert not '<' in route, \
         '{}: missing params'.format(route)
     return route

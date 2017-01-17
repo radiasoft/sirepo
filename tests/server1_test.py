@@ -87,22 +87,24 @@ def test_oauth():
     sim_type = 'srw'
     fc = sr_unit.flask_client()
     fc.sr_post('listSimulations', {'simulationType': sim_type})
-    text = fc.sr_get_raw(
+    text = fc.sr_get(
         'oauthLogin',
         {
             'simulation_type': sim_type,
             'oauth_type': 'github',
         },
-    )
+        raw_response=True,
+    ).data
     state = re.search(r'state=(.*?)"', text).group(1)
     #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
     text = fc.get('/oauth-authorized/github')
-    text = fc.sr_get_raw(
+    text = fc.sr_get(
         'oauthLogout',
         {
             'simulation_type': sim_type,
         },
-    )
+        raw_response=True,
+    ).data
     pkok(
         text.find('Redirecting') > 0,
         'missing redirect',

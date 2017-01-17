@@ -24,18 +24,19 @@ def test_create_zip():
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'sirepo-data.json']),
     ):
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
-        res = fc.sr_get_raw(
+        resp = fc.sr_get(
             'exportSimulation',
             {
                 'simulation_type': sim_type,
                 'simulation_id': sim_id,
                 'filename': 'anything.zip',
             },
+            raw_response=True,
         )
         with pkio.save_chdir(pkunit.work_dir()):
             fn = 'foo.zip'
             with open(fn, 'wb') as f:
-                f.write(res)
+                f.write(resp.data)
             z = zipfile.ZipFile(fn)
             nl = sorted(z.namelist())
             pkok(
