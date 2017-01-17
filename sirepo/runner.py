@@ -57,7 +57,7 @@ class Background(object):
             except OSError:
                 # Has to exist so no need to protect
                 del self._job[jid]
-                pkdlog('{}: pid={} does not exist, removing job', jid, pid)
+                pkdlog('{}: pid={} does not exist, removing job', jid, self.pid)
                 return False
         return True
 
@@ -97,7 +97,7 @@ class Background(object):
                 if self.in_kill and self.in_kill == nonce:
                     self.in_kill = None
                     del self._job[self.jid]
-                    pkdlog('{}: delete successful; pid=', self.jid, pid)
+                    pkdlog('{}: delete successful; pid=', self.jid, self.pid)
                     return
                 pkdlog('{}: job restarted by another thread', jid)
             except KeyError:
