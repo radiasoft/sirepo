@@ -338,7 +338,7 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
 
 
 def lib_files(data, source_lib):
-    """Returns list of auxialiary files
+    """Returns list of auxiliary files
 
     Args:
         data (dict): simulation db
