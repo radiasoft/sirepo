@@ -290,6 +290,11 @@ def get_data_file(run_dir, model, frame):
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
+def lib_files(*args, **kwargs):
+    """No lib files"""
+    return []
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
