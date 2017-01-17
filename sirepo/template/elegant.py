@@ -531,6 +531,13 @@ def _compute_percent_complete(data, last_element):
 
 
 def _copy_lib_files(data, source_lib, target):
+    """Copy auxiliary files to target
+
+    Args:
+        data (dict): simulation db
+        source_lib (py.path.local): source directory
+        target (py.path): destination directory
+    """
     for f in lib_files(data, source_lib):
         path = target.join(f.basename)
         if not path.exists():
