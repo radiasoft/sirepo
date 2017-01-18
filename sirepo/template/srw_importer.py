@@ -12,7 +12,6 @@ import traceback
 
 import py
 import py.path
-import sirepo.template.srw
 from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 
 from pykern import pkio, pkresource, pkrunpy
@@ -562,6 +561,7 @@ def _name(user_filename):
 
 
 def _parsed_dict(v, op):
+    import sirepo.template.srw
     std_options = Struct(**_list2dict(srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)

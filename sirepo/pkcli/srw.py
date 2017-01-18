@@ -24,9 +24,9 @@ def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
         in_py (str): name of the python file in run_dir
         out_json (str): valid json matching SRW schema
     """
-    import sirepo.importer
+    from sirepo.template import srw_importer
     with pkio.save_chdir(run_dir):
-        out = sirepo.importer.python_to_json(in_py)
+        out = srw_importer.python_to_json(in_py)
         with open(out_json, 'w') as f:
             f.write(out)
     return 'Created: {}'.format(out_json)

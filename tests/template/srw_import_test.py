@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""PyTest for :mod:`sirepo.importer`
+u"""PyTest for :mod:`sirepo.template.srw_importer`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,7 +40,7 @@ _TESTS = {  # Values are optional arguments:
 
 
 def test_importer():
-    from sirepo.importer import import_python
+    from sirepo.template.srw_importer import import_python
     dat_dir = py.path.local(pkresource.filename('template/srw/', import_python))
     with pkunit.save_chdir_work():
         work_dir = py.path.local('.')
