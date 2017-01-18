@@ -5,22 +5,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <link rel="icon" href="/static/img/favicon.ico?{{ version }}">
+    <link rel="icon" href="/static/img/favicon.ico{{ cache_key }}">
     <title data-ng-bind="landingPage.pageTitle()">Radiasoft</title>
-    <link href="/static/css/bootstrap-3.3.7.min.css?{{ version }}" rel="stylesheet">
-    <link href="/static/css/bootstrap-colxl.css?{{ version }}" rel="stylesheet">
-    <link href="/static/css/landing-page.css?{{ version }}" rel="stylesheet">
+    <link href="/static/css/bootstrap-3.3.7.min.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/bootstrap-colxl.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/landing-page.css{{ cache_key }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
-      <script src="/static/js/ext/html5shiv-3.7.2.min.js?{{ version }}"></script>
-      <script src="/static/js/ext/respond-1.4.2.min.js?{{ version }}"></script>
+      <script src="/static/js/ext/html5shiv-3.7.2.min.js{{ cache_key }}"></script>
+      <script src="/static/js/ext/respond-1.4.2.min.js{{ cache_key }}"></script>
     <![endif]-->
   </head>
   <body>
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif?{{ version }}" alt="radiasoft"></a>
+          <a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif{{ cache_key }}" alt="radiasoft"></a>
           <div class="navbar-brand" data-page-heading="" data-landing-page="landingPage"></div>
         </div>
       </div>
@@ -32,20 +32,20 @@
       <div data-ng-view></div>
       <div class="row" style="height: 30px"></div>
       <div class="row">
-        <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif?{{ version }}" alt="Radiasoft" />radiasoft</a></div>
+        <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif{{ cache_key }}" alt="Radiasoft" />radiasoft</a></div>
       </div>
     </div>
-    <script src="/static/js/ext/ie10-viewport-bug-workaround.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-1.4.2.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-route-1.4.2.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/jquery-2.1.4.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/bootstrap-3.3.7.js?{{ version }}"></script>
-    <script src="/static/js/ext/modernizr-touch-2.8.3.min.js?{{ version }}"></script>
+    <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-1.4.2.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-route-1.4.2.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/jquery-2.1.4.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/bootstrap-3.3.7.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/modernizr-touch-2.8.3.min.js{{ cache_key }}"></script>
     <script>
         var SIREPO = {
             APP_VERSION: '{{ version }}',
         };
     </script>
-    <script src="/static/js/landing-page.js?{{ version }}?{{ version }}"></script>
+    <script src="/static/js/landing-page.js{{ cache_key }}"></script>
   </body>
 </html>

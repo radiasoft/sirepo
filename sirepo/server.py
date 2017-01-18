@@ -287,7 +287,7 @@ app_import_file = api_importFile
 def api_homePage():
     return flask.render_template(
         'html/sr-landing-page.html',
-        version=simulation_db.app_version(),
+        cache_key=_source_cache_key(),
     )
 light_landing_page = api_homePage
 
@@ -359,7 +359,7 @@ def api_root(simulation_type):
         args = oauth.set_default_state()
     return flask.render_template(
         'html/index.html',
-        version=simulation_db.app_version(),
+        cache_key=_source_cache_key(),
         app_name=simulation_type,
         oauth_login=cfg.oauth_login,
         **args
@@ -891,6 +891,11 @@ def _simulation_run_status(data, quiet=False):
     return res
 
 
+def _source_cache_key():
+    if cfg.disable_source_cache_key:
+        return ''
+    return '?{}'.format(simulation_db.app_version())
+
 def _start_simulation(data):
     """Setup and start the simulation.
 
@@ -934,4 +939,5 @@ cfg = pkconfig.init(
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
+    disable_source_cache_key=(False, bool, 'disable source cache key, useful for local file edits in chrome'),
 )

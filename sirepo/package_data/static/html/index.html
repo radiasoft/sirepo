@@ -5,16 +5,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <link rel="icon" href="/static/img/favicon.ico?{{ version }}">
+    <link rel="icon" href="/static/img/favicon.ico{{ cache_key }}">
     <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
-    <link href="/static/css/bootstrap-3.3.7.min.css?{{ version }}" rel="stylesheet">
-    <link href="/static/css/split-pane-0.6.1.css?{{ version }}" rel="stylesheet">
-    <link href="/static/css/bootstrap-colxl.css?{{ version }}" rel="stylesheet">
-    <link href="/static/css/sirepo.css?{{ version }}" rel="stylesheet">
+    <link href="/static/css/bootstrap-3.3.7.min.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/split-pane-0.6.1.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/bootstrap-colxl.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/sirepo.css{{ cache_key }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
-      <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js?{{ version }}"></script>
-      <script src="/static/js/ext/msie/respond-1.4.2.min.js?{{ version }}"></script>
+      <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ cache_key }}"></script>
+      <script src="/static/js/ext/msie/respond-1.4.2.min.js{{ cache_key }}"></script>
     <![endif]-->
   </head>
   <body>
@@ -27,27 +27,27 @@
     <div class="clearfix"></div>
     <div data-ng-view></div>
     <div data-app-footer="nav"></div>
-    <script src="/static/js/ext/ie10-viewport-bug-workaround.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-1.4.2.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-route-1.4.2.min.js?{{ version }}"></script>
+    <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-1.4.2.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-route-1.4.2.min.js{{ cache_key }}"></script>
     <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
-    <script src="/static/js/ext/jquery-2.1.4.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/bootstrap-3.3.7.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/ngDraggable.js?{{ version }}"></script>
+    <script src="/static/js/ext/jquery-2.1.4.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/bootstrap-3.3.7.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/ngDraggable.js{{ cache_key }}"></script>
     <script src="/static/js/ext/modernizr-touch-2.8.3.min.js"></script>
-    <script src="/static/js/ext/angular-d3.js?{{ version }}"></script>
-    <script src="/static/js/ext/colorbar.js?{{ version }}"></script>
-    <script src="/static/js/ext/Blob.js?{{ version }}"></script>
-    <script src="/static/js/ext/canvas-toBlob.js?{{ version }}"></script>
-    <script src="/static/js/ext/FileSaver.js?{{ version }}"></script>
-    <script src="/static/js/ext/rgbcolor.js?{{ version }}"></script>
-    <script src="/static/js/ext/StackBlur.js?{{ version }}"></script>
-    <script src="/static/js/ext/canvg.js?{{ version }}"></script>
-    <script src="/static/js/ext/stacktrace-0.6.4.js?{{ version }}"></script>
-    <script src="/static/js/ext/split-pane-0.6.1.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-split-pane-1.2.0.js?{{ version }}"></script>
-    <script src="/static/js/ext/underscore-1.8.3.min.js?{{ version }}"></script>
-    <script src="/static/js/ext/angular-underscore.js?{{ version }}"></script>
+    <script src="/static/js/ext/angular-d3.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/colorbar.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/Blob.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/canvas-toBlob.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/FileSaver.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/rgbcolor.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/StackBlur.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/canvg.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/stacktrace-0.6.4.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/split-pane-0.6.1.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-split-pane-1.2.0.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/underscore-1.8.3.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/angular-underscore.js{{ cache_key }}"></script>
     <script>
         var SIREPO = {
             APP_NAME:  '{{ app_name }}',
@@ -60,9 +60,9 @@
             {%- endif %}
         };
     </script>
-    <script src="/static/js/sirepo.js?{{ version }}"></script>
-    <script src="/static/js/sirepo-components.js?{{ version }}"></script>
-    <script src="/static/js/sirepo-plotting.js?{{ version }}"></script>
-    <script src="/static/js/{{ app_name }}.js?{{ version }}"></script>
+    <script src="/static/js/sirepo.js{{ cache_key }}"></script>
+    <script src="/static/js/sirepo-components.js{{ cache_key }}"></script>
+    <script src="/static/js/sirepo-plotting.js{{ cache_key }}"></script>
+    <script src="/static/js/{{ app_name }}.js{{ cache_key }}"></script>
   </body>
 </html>
