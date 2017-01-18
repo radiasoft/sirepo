@@ -24,6 +24,9 @@ import os.path
 import py.path
 import re
 
+#: Simulation type
+SIM_TYPE = 'warp'
+
 WANT_BROWSER_FRAME_CACHE = True
 
 _HISTOGRAM_BINS_MAX = 500
@@ -37,7 +40,6 @@ _MIN_MAX_INDEX = {
     'uz': [13, 14],
 }
 
-_SIMULATION_TYPE = 'warp'
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir)
@@ -245,7 +247,7 @@ def fixup_old_data(data):
 
 
 def generate_parameters_file(data, run_dir=None, is_parallel=False):
-    _validate_data(data, simulation_db.get_schema(_SIMULATION_TYPE))
+    _validate_data(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = is_parallel

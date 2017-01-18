@@ -35,9 +35,9 @@ import uti_math
 import uti_plot_com
 import zipfile
 
-
 WANT_BROWSER_FRAME_CACHE = False
 
+#: Simulation type
 SIM_TYPE = 'srw'
 
 _DATA_FILE_FOR_MODEL = {
