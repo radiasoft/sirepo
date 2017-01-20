@@ -297,16 +297,12 @@ def fixup_electron_beam(data):
         data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
     if 'beamDefinition' not in data['models']['electronBeam']:
         _process_beam_parameters(data['models']['electronBeam'])
-        if data['models']['simulation']['sourceType'] == 't':
-            und = 'tabulatedUndulator'
-        else:
-            und = 'undulator'
         data['models']['electronBeamPosition']['drift'] = _calculate_beam_drift(
             data['models']['electronBeamPosition'],
             data['models']['simulation']['sourceType'],
             data['models']['tabulatedUndulator']['undulatorType'],
-            float(data['models'][und]['length']),
-            float(data['models'][und]['period']) / 1000.0,
+            float(data['models']['undulator']['length']),
+            float(data['models']['undulator']['period']) / 1000.0,
         )
     return data
 
@@ -338,8 +334,6 @@ def fixup_old_data(data):
     if 'fluxAnimation' in data['models']:
         if 'method' not in data['models']['fluxAnimation']:
             data['models']['fluxAnimation']['method'] = 1
-            if 'magneticField' not in data['models']['fluxAnimation']:
-                data['models']['fluxAnimation']['magneticField'] = 1
             data['models']['fluxAnimation']['precision'] = 0.01
             data['models']['fluxAnimation']['initialHarmonic'] = 1
             data['models']['fluxAnimation']['finalHarmonic'] = 15
@@ -427,16 +421,8 @@ def fixup_old_data(data):
         if 'indexFile' in data.models.tabulatedUndulator:
             data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
             del data.models.tabulatedUndulator['indexFile']
-    if 'verticalAmplitude' not in data['models']['tabulatedUndulator']:
+    if 'undulatorType' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
-        data['models']['tabulatedUndulator']['period'] = 21
-        data['models']['tabulatedUndulator']['length'] = 1.5
-        data['models']['tabulatedUndulator']['horizontalAmplitude'] = 0
-        data['models']['tabulatedUndulator']['horizontalInitialPhase'] = 0
-        data['models']['tabulatedUndulator']['horizontalSymmetry'] = 1
-        data['models']['tabulatedUndulator']['verticalAmplitude'] = 0.8
-        data['models']['tabulatedUndulator']['verticalInitialPhase'] = 0
-        data['models']['tabulatedUndulator']['verticalSymmetry'] = -1
 
     # Fixup electron beam parameters (drift, moments, etc.):
     data = fixup_electron_beam(data)
@@ -454,14 +440,14 @@ def fixup_old_data(data):
         data['models']['fluxReport']['numberOfMacroElectrons'] = 1
     if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:  # added 08/09/2016 for ticket #188
         data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
-    for rep in ['undulator', 'tabulatedUndulator']:
-        if 'undulatorParameter' not in data['models'][rep]:
-            data['models'][rep]['undulatorParameter'] = round(_process_undulator_definition({
-                'undulator_definition': 'B',
-                'undulator_parameter': None,
-                'vertical_amplitude': float(data['models'][rep]['verticalAmplitude']),
-                'undulator_period': float(data['models'][rep]['period']) / 1000.0
-            })['undulator_parameter'], 8)
+    if 'undulatorParameter' not in data['models']['undulator']:
+        undulator = data['models']['undulator']
+        undulator['undulatorParameter'] = round(_process_undulator_definition({
+            'undulator_definition': 'B',
+            'undulator_parameter': None,
+            'vertical_amplitude': float(undulator['verticalAmplitude']),
+            'undulator_period': float(undulator['period']) / 1000.0
+        })['undulator_parameter'], 8)
     if 'folder' not in data['models']['simulation']:
         if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
             data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
@@ -479,7 +465,7 @@ def fixup_old_data(data):
             'magneticField': 2,
         }
     # Update tabulated undulator length:
-    data['models']['tabulatedUndulator'] = _compute_undulator_length(data['models']['tabulatedUndulator'])
+    _compute_undulator_length(data['models']['tabulatedUndulator'])
 
     if 'sizeDefinition' not in data['models']['gaussianBeam']:
         data['models']['gaussianBeam']['sizeDefinition'] = 1
@@ -497,6 +483,15 @@ def fixup_old_data(data):
                     data['models'][work_rep_name]['intensityPlotsWidth'] = _SCHEMA['model'][rep_name]['intensityPlotsWidth'][2]
                 if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
                     data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
+
+    if 'longitudinalPosition' in data['models']['tabulatedUndulator']:
+        tabulated_undulator = data['models']['tabulatedUndulator']
+        for k in ['undulatorParameter', 'period', 'length', 'longitudinalPosition', 'horizontalAmplitude', 'horizontalSymmetry', 'horizontalInitialPhase', 'verticalAmplitude', 'verticalSymmetry', 'verticalInitialPhase']:
+            if k in tabulated_undulator:
+                if data['models']['simulation']['sourceType'] == 't':
+                    data['models']['undulator'][k] = tabulated_undulator[k]
+                del tabulated_undulator[k]
+
 
 def get_animation_name(data):
     return data['modelName']
@@ -547,7 +542,7 @@ def get_application_data(data):
         )
         return data['ebeam']
     elif data['method'] == 'compute_undulator_length':
-        return _compute_undulator_length(data['report_model'])
+        return _compute_undulator_length(data['tabulated_undulator'])
     elif data['method'] == 'process_undulator_definition':
         return _process_undulator_definition(data)
     elif data['method'] == 'processedImage':
@@ -1341,22 +1336,12 @@ def _generate_beamline_optics(models, last_id):
 def _generate_parameters_file(data, plot_reports=False):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
-    d = _process_intensity_reports(
+    magnetic_field = _process_intensity_reports(
         data['models']['simulation']['sourceType'],
         data['models']['tabulatedUndulator']['undulatorType']
-    )
-    rep = 'intensityReport'
-    field = 'magneticField'
-    data['models'][rep][field] = d[field]
-
-    # Intensity Distribution (2D) report:
-    d = _process_intensity_reports(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType']
-    )
-    rep = 'sourceIntensityReport'
-    field = 'magneticField'
-    data['models'][rep][field] = d[field]
+    )['magneticField']
+    data['models']['intensityReport']['magneticField'] = magnetic_field
+    data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
 
     if data['models']['simulation']['sourceType'] != 't' or data['models']['tabulatedUndulator']['undulatorType'] != 'u_t':
         data['models']['trajectoryReport']['magneticField'] = 1
@@ -1372,7 +1357,6 @@ def _generate_parameters_file(data, plot_reports=False):
 
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
-        data['models']['undulator'] = data['models']['tabulatedUndulator'].copy()
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
             data['models']['tabulatedUndulator']['indexFileName'] = ''
