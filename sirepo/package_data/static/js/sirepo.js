@@ -66,8 +66,7 @@ SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shags
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $routeProvider) {
-    //TODO(pjm): turn off debug info when scope() calls have been replaced
-    //$compileProvider.debugInfoEnabled(false);
+    $compileProvider.debugInfoEnabled(false);
     var localRoutes = localRoutesProvider.$get();
     if (SIREPO.IS_LOGGED_OUT) {
         $routeProvider.otherwise({
@@ -632,6 +631,10 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         delete pendingRequests[name];
     }
 
+    function fieldClass(model, field) {
+        return '.model-' + model + '-' + field;
+    }
+
     function getPanelValue(name, key) {
         if (panels[name] && panels[name][key]) {
             return panels[name][key];
@@ -715,6 +718,15 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         }
     };
 
+    self.enableField = function(model, field, isEnabled) {
+        //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        var fc = fieldClass(model, field);
+        // UI fields could be an input, select, or button
+        $(fc).find('input.form-control').prop('readonly', ! isEnabled);
+        $(fc).find('select.form-control').prop('disabled', ! isEnabled);
+        $(fc).find('.s-enum-button').prop('disabled', ! isEnabled);
+    };
+
     self.getError = function(name) {
         return getPanelValue(name, 'error');
     };
@@ -764,6 +776,28 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.setError = function(name, error) {
         setPanelValue(name, 'error', error);
+    };
+
+    self.showField = function(model, field, isShown) {
+        //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        var formGroup = $(fieldClass(model, field)).closest('.form-group');
+        if (isShown) {
+            formGroup.show();
+        }
+        else {
+            formGroup.hide();
+        }
+    };
+
+    self.showRow = function(model, field, isShown) {
+        //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        var row = $(fieldClass(model, field)).closest('.row');
+        if (isShown) {
+            row.show();
+        }
+        else {
+            row.hide();
+        }
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
