@@ -62,7 +62,7 @@
                         "simulationName": "NSLS-II FMX beamline"
                     },
                     {
-                        "buttonText": "NSLS-II 12-ID\nSMI\nSoft Matter Interfaces",
+                        "image": "nsls-ii-smi.png",
                         "simulationName": "NSLS-II SMI beamline"
                     }
                 ]
