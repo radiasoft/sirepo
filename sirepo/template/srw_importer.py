@@ -96,8 +96,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
         user_filename (str): uploaded file name for log
 
     Returns:
-        error: string containing error or None
-        dict: simulation data
+        dict, str: simulation data, error or None if ok
     """
     error = 'Import failed: error unknown'
     script = None
@@ -115,7 +114,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
                 user_filename=user_filename,
                 arguments=arguments,
             )
-            return None, o.data
+            return o, None.data
     except Exception as e:
         lineno = _find_line_in_trace(script) if script else None
         # Avoid
@@ -128,7 +127,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
             traceback.format_exc(),
         )
         error = 'Error on line {}: {}'.format(lineno or '?', str(e)[:50])
-    return error, None
+    return None, error
 
 
 # Mapping all the values to a dictionary:

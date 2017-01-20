@@ -335,9 +335,9 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
         data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
         if input_data and not test_data:
             simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
-        return None, data
+        return data, None
     except IOError as e:
-        return e.message, None
+        return None, e.message
 
 
 def lib_files(data, source_lib):

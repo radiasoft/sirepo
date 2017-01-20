@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 u"""Export simulations in a single archive
 
-
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp
-from pykern import pkio
-from sirepo import simulation_db
-from sirepo.template import template_common
 import os.path
 import py.path
 import zipfile
@@ -25,6 +21,10 @@ def create_zip(sim_type, sim_id):
     Returns:
         py.path.Local: zip file name
     """
+    from pykern import pkio
+    from sirepo import simulation_db
+    from sirepo.template import template_common
+
     #TODO(robnagler) need a lock
     with pkio.save_chdir(simulation_db.tmp_dir()):
         res = py.path.local(sim_id + '.zip')

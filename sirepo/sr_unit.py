@@ -129,6 +129,8 @@ def _req(route_name, params, op, raw_response):
     Returns:
         object: parsed JSON result
     """
+    uri = None
+    resp = None
     try:
         uri = _uri(route_name, params)
         resp = op(uri)

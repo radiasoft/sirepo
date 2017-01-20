@@ -275,13 +275,34 @@ def api_importFile(simulation_type):
         file: file data
         folder: where to import to
     """
-    template = sirepo.template.import_module(simulation_type)
-    error, data = template.import_file(flask.request, simulation_db.simulation_lib_dir(simulation_type), simulation_db.tmp_dir())
-    if error:
-        return _json_response({'error': error})
-    data['models']['simulation']['folder'] = flask.request.form['folder']
-    return _save_new_and_reply(simulation_type, data)
+    import sirepo.importer
+
+    error = None
+    try:
+        template = sirepo.template.import_module(simulation_type)
+        f = flask.request.files.get('file')
+        assert f, \
+            ValueError('must supply a file')
+        if pkio.has_file_extension(f.filename, 'json'):
+            data = sirepo.importer.read_json(f.read(), template)
+        elif pkio.has_file_extension(f.filename, 'zip'):
+            data = sirepo.importer.read_zip(f.stream, template)
+        else:
+            data, error = template.import_file(
+                flask.request,
+                simulation_db.simulation_lib_dir(simulation_type),
+                simulation_db.tmp_dir(),
+            )
+        if not error:
+            data['models']['simulation']['folder'] = flask.request.form['folder']
+            return _save_new_and_reply(simulation_type, data)
+    except Exception as e:
+        pkdp('{}: exception: {}', f and f.filename, pkdexc())
+        error = e.message if hasattr(e, 'message') else str(e)
+    return _json_response({'error': error})
+
 app_import_file = api_importFile
+
 
 
 def api_homePage():
