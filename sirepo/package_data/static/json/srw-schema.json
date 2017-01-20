@@ -568,18 +568,8 @@
         },
         "tabulatedUndulator": {
             "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
-            "period": ["Period [mm]", "Float"],
-            "length": ["Length [m]", "Float"],
-            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
-            "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
-            "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
-            "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
-            "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
-            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
-            "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
             "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
             "indexFileName": ["Magnetic Zip Index File", "String"]
         },
@@ -1263,23 +1253,23 @@
             "title": "Undulator (Idealized or Tabulated)",
             "basic": [
                 "undulatorType",
-                "undulatorParameter",
                 "gap",
                 "phase",
-                "period",
-                "length",
-                "longitudinalPosition",
+                "undulator.undulatorParameter",
+                "undulator.period",
+                "undulator.length",
+                "undulator.longitudinalPosition",
                 "magneticFile",
                 [
                     ["Horizontal", [
-                        "horizontalAmplitude",
-                        "horizontalInitialPhase",
-                        "horizontalSymmetry"
+                        "undulator.horizontalAmplitude",
+                        "undulator.horizontalInitialPhase",
+                        "undulator.horizontalSymmetry"
                     ]],
                     ["Vertical", [
-                        "verticalAmplitude",
-                        "verticalInitialPhase",
-                        "verticalSymmetry"
+                        "undulator.verticalAmplitude",
+                        "undulator.verticalInitialPhase",
+                        "undulator.verticalSymmetry"
                     ]]
                 ]
             ],
