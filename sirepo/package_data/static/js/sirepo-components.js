@@ -705,7 +705,7 @@ SIREPO.app.directive('helpButton', function($window) {
     };
 });
 
-SIREPO.app.directive('modalEditor', function(appState, panelState) {
+SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
     return {
         scope: {
             viewName: '@',
@@ -764,7 +764,9 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
-                    scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
+                    $timeout(function() {
+                        scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
+                    });
                 }
             });
             $(element).on('hidden.bs.modal', function(e) {
