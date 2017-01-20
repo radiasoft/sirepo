@@ -23,7 +23,10 @@ import re
 import sdds
 import werkzeug
 
+#: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
+
+SIM_TYPE = elegant_common.SIM_TYPE
 
 WANT_BROWSER_FRAME_CACHE = True
 

@@ -5,7 +5,6 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
@@ -14,19 +13,19 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from scipy.ndimage import zoom
 from sirepo import crystal
 from sirepo import simulation_db
+from sirepo.template import srw_importer
 from sirepo.template import template_common
 from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
-import json
 import glob
+import json
 import math
 import numpy as np
 import os
 import py.path
 import re
-import sirepo.importer
 import srwl_smp
 import srwl_uti_src
 import srwlib
@@ -38,6 +37,7 @@ import zipfile
 
 WANT_BROWSER_FRAME_CACHE = False
 
+#: Simulation type
 SIM_TYPE = 'srw'
 
 _DATA_FILE_FOR_MODEL = {
@@ -581,7 +581,7 @@ def import_file(request, lib_dir, tmp_dir):
         # Failed to read json
         arguments = str(request.form['arguments'])
         pkdlog('{}: arguments={}', f.filename, arguments)
-        return sirepo.importer.import_python(
+        return srw_importer.import_python(
             input_text,
             lib_dir=lib_dir,
             tmp_dir=tmp_dir,
