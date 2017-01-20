@@ -1487,7 +1487,7 @@ def _init():
     _PREDEFINED['magnetic_measurements'] = _predefined_files_for_type('undulatorTable')
     _PREDEFINED['sample_images'] = _predefined_files_for_type('sample')
     beams = []
-    for beam in srwl_uti_src.srwl_uti_src_predefined_e_beams():
+    for beam in srwl_uti_src.srwl_uti_src_e_beams_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
         beams.append({
