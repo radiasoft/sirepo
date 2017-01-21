@@ -588,9 +588,7 @@ def import_file(request, lib_dir, tmp_dir):
             user_filename=f.filename,
             arguments=arguments,
         )
-    data = simulation_db.fixup_old_data(parsed_data, force=True)[0]
-    data.models.simulation.name += ' (imported JSON)'
-    return data
+    return simulation_db.fixup_old_data(parsed_data, force=True)[0]
 
 
 def lib_files(data, source_lib, report=None):

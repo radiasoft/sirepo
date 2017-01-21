@@ -24,6 +24,7 @@ def read_json(text, template):
 
     # attempt to decode the input as json first, if invalid try python
     data = simulation_db.json_load(text)
+    pkdp(data)
     assert data.simulationType == template.SIM_TYPE, \
         'simulationType {} invalid, expecting {}'.format(
             data.simulationType,

@@ -553,9 +553,7 @@ def _name(user_filename):
     """
     # crude but good enough for now.
     m = re.search(r'([^:/\\]+)\.\w+$', user_filename)
-    res = m.group(1) if m else user_filename
-    # res could technically
-    return res + ' (imported)'
+    return m.group(1) if m else user_filename
 
 
 def _parsed_dict(v, op):
