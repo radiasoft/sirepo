@@ -323,21 +323,18 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
 
     if 'simulationId' in request.form:
         input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
-    try:
-        if re.search(r'.ele$', filename, re.IGNORECASE):
-            data = elegant_command_importer.import_file(f.read())
-        elif re.search(r'.lte$', filename, re.IGNORECASE):
-            data = elegant_lattice_importer.import_file(f.read(), input_data)
-            if input_data:
-                _map_commands_to_lattice(data)
-        else:
-            raise IOError('invalid file extension, expecting .ele or .lte')
-        data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
-        if input_data and not test_data:
-            simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
-        return data, None
-    except IOError as e:
-        return None, e.message
+    if re.search(r'.ele$', filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(f.read())
+    elif re.search(r'.lte$', filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(f.read(), input_data)
+        if input_data:
+            _map_commands_to_lattice(data)
+    else:
+        raise IOError('invalid file extension, expecting .ele or .lte')
+    data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
+    if input_data and not test_data:
+        simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
+    return data
 
 
 def lib_files(data, source_lib):

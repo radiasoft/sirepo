@@ -590,7 +590,7 @@ def import_file(request, lib_dir, tmp_dir):
         )
     data = simulation_db.fixup_old_data(parsed_data, force=True)[0]
     data.models.simulation.name += ' (imported JSON)'
-    return data, None
+    return data
 
 
 def lib_files(data, source_lib, report=None):

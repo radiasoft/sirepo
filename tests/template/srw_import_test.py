@@ -50,16 +50,12 @@ def test_importer():
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
             code = pkio.read_text(pkunit.data_dir().join(base_py))
-            error, actual = import_python(
+            actual = import_python(
                 code,
                 tmp_dir=str(work_dir),
                 lib_dir=str(work_dir),
                 user_filename=r'c:\anything\{}.anysuffix'.format(_TESTS[b][0]),
                 arguments=_TESTS[b][1],
             )
-            assert not error, \
-                '{}: should import with an error: {}'.format(base_py, error)
             actual['version'] = 'IGNORE-VALUE'
-            assert not error, \
-                '{}: should be valid input'.format(base_py)
             pkunit.assert_object_with_json(b, actual)

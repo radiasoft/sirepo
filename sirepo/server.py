@@ -294,10 +294,11 @@ def api_importFile(simulation_type):
                 simulation_db.tmp_dir(),
             )
         if not error:
-            data['models']['simulation']['folder'] = flask.request.form['folder']
+            #TODO(robnagler) need to validate folder
+            data.models.simulation.folder = flask.request.form['folder']
             return _save_new_and_reply(simulation_type, data)
     except Exception as e:
-        pkdp('{}: exception: {}', f and f.filename, pkdexc())
+        pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = e.message if hasattr(e, 'message') else str(e)
     return _json_response({'error': error})
 

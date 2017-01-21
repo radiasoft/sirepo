@@ -84,8 +84,8 @@ _app = None
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
 
-#: Locking of _serial_prev test/update
-_serial_lock = threading.RLock()
+#: Locking for global operations like serial, user moves, etc.
+_global_lock = threading.RLock()
 
 #: sirepo.server module, initialized manually to avoid circularity
 _server = None
@@ -214,6 +214,7 @@ def get_schema(sim_type):
         return _SCHEMA_CACHE[sim_type]
     schema = read_json(
         STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
@@ -343,7 +344,7 @@ def move_user_simulations(to_uid):
     """Moves all non-example simulations for the current session into the target user's dir.
     """
     from_uid = _server.session_user()
-    with _serial_lock:
+    with _global_lock:
         for path in glob.glob(
                 str(_user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
@@ -633,13 +634,13 @@ def report_info(data):
 
 
 def save_new_example(simulation_type, data):
-    data['models']['simulation']['isExample'] = True
+    data.models.simulation.isExample = True
     return save_new_simulation(simulation_type, data)
 
 
 def save_new_simulation(simulation_type, data):
-    sid = _random_id(simulation_dir(simulation_type), simulation_type)['id']
-    data['models']['simulation']['simulationId'] = sid
+    sid = _random_id(simulation_dir(simulation_type), simulation_type).id
+    data.models.simulation.simulationId = sid
     return save_simulation_json(simulation_type, data)
 
 
@@ -650,18 +651,30 @@ def save_simulation_json(simulation_type, data):
         simulation_type (str): srw, warp, ...
         data (dict): what to write (contains simulationId)
     """
-    with _serial_lock:
-        sid = parse_sid(data)
+    try:
+        # Never save this
+        #TODO(robnagler) have "_private" fields that don't get saved
+        del data['simulationStatus']
+    except:
+        pass
+    data = fixup_old_data(data)[0]
+    s = data.models.simulation
+    fn = sim_data_file(simulation_type, s.simulationId)
+    with _global_lock:
+        need_validate = True
         try:
-            # Never save this
-            #TODO(robnagler) have "_private" fields that don't get saved
-            del data['simulationStatus']
-        except:
+            # OPTIMIZATION: If folder/name same, avoid reading entire folder
+            on_disk = read_json(fn).models.simulation
+            need_validate = not (
+                on_disk.folder == s.folder and on_disk.name == s.name
+            )
+        except Exception:
             pass
-        data = fixup_old_data(data)[0]
-        data['models']['simulation']['simulationSerial'] = _serial_new()
-        write_json(sim_data_file(simulation_type, sid), data)
-        return data
+        if need_validate:
+            _validate_name(data)
+        s.simulationSerial = _serial_new()
+        write_json(fn, data)
+    return data
 
 
 def sim_data_file(sim_type, sim_id):
@@ -684,7 +697,7 @@ def simulation_dir(simulation_type, sid=None):
         simulation_type (str): srw, warp, ...
         sid (str): simulation id (optional)
     """
-    d = _user_dir().join(simulation_type)
+    d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
     if not _ID_RE.search(sid):
@@ -740,7 +753,7 @@ def validate_serial(req_data):
     Returns:
         object: None if all ok, or json response (bad)
     """
-    with _serial_lock:
+    with _global_lock:
         sim_type = req_data['simulationType']
         sid = parse_sid(req_data)
         req_ser = req_data['models']['simulation']['simulationSerial']
@@ -858,7 +871,7 @@ def _random_id(parent_dir, simulation_type=None):
         d = parent_dir.join(i)
         try:
             os.mkdir(str(d))
-            return dict(id=i, path=d)
+            return pkcollections.Dict(id=i, path=d)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 pass
@@ -880,16 +893,18 @@ def _report_name(data):
 
 
 def _search_data(data, search):
-    for field in search:
+    for field, expect in search.items():
         path = field.split('.')
         if len(path) == 1:
+            #TODO(robnagler) is this a bug? Why would you supply a search path
+            # value that didn't want to be searched.
             continue
         path.insert(0, 'models')
         v = data
         for key in path:
             if key in v:
                 v = v[key]
-        if v != search[field]:
+        if v != expect:
             return False
     return True
 
@@ -906,7 +921,7 @@ def _serial_new():
     """
     global _serial_prev
     res = int(time.time() * 1000000)
-    with _serial_lock:
+    with _global_lock:
         # Good enough assertion. Any collisions will also be detected
         # by parameter hash so order isn't only validation
         assert res > _serial_prev, \
@@ -920,6 +935,38 @@ def _sid_from_path(path):
     if not _ID_RE.search(sid):
         raise RuntimeError('{}: invalid simulation id'.format(sid))
     return sid
+
+
+def _validate_name(data):
+    """Validate and if necessary uniquify name
+
+    Args:
+        data (dict): what to validate
+    """
+    starts_with = pkcollections.Dict()
+    s = data.models.simulation
+    n = s.name
+    for d in iterate_simulation_datafiles(
+        data.simulationType,
+        lambda res, _, d: res.append(d),
+        {'simulation.folder': s.folder},
+    ):
+        n2 = d.models.simulation.name
+        if n.startswith(n2):
+            starts_with[n2] = d.models.simulation.simulationId
+    if n in starts_with and starts_with[n] != s.simulationId:
+        _validate_name_uniquify(data, starts_with)
+
+
+def _validate_name_uniquify(data, starts_with):
+    """Uniquify data.models.simulation.name"""
+    i = 2
+    n = data.models.simulation.name
+    n2 = n
+    while n2 in starts_with:
+        n2 = n + ' ({})'.format(i)
+        i += 1
+    data.models.simulation.name = n2
 
 
 def _user_dir():

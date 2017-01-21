@@ -211,6 +211,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                                 = lastAutoSaveData.models.simulation.simulationSerial;
                             self.models.simulation.simulationSerial
                                 = lastAutoSaveData.models.simulation.simulationSerial;
+                            savedModelValues.simulation.name
+                                = lastAutoSaveData.models.simulation.name;
+                            self.models.simulation.name
+                                = lastAutoSaveData.models.simulation.name;
                         }
                         if ($.isFunction(callback)) {
                             callback(resp);

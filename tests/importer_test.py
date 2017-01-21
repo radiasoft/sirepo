@@ -38,4 +38,5 @@ def test_import_zip():
             expect = re.search(r'Error: (.+)', json).group(1)
             pkeq(expect, str(e))
             continue
-        pkok(not 'error' in res, res.get('error'))
+        pkok(not 'error' in res, '{}: error: {}', f, res.get('error'))
+        pkok('models' in res, '{}: no models in {}', f, res)

@@ -66,10 +66,13 @@ def read_zip(stream, template):
     assert data, \
         'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
     lib_d = simulation_db.simulation_lib_dir(template.SIM_TYPE)
-    needed = template.lib_files(data, lib_d)
-    for n in needed:
+    needed = pkcollections.Dict()
+    for n in template.lib_files(data, lib_d):
         assert n.basename in zipped or n.check(file=True, exists=True), \
             'auxiliary file {} missing in archive'.format(n.basename)
+        needed[n.basename] = n
     for b, src in zipped.items():
-        src.copy(lib_d)
+        if b in needed:
+            src.copy(lib_d)
+            del zipped[b]
     return data

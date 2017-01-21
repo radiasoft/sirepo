@@ -4,18 +4,15 @@ It's highly dependent on the external Sirepo/SRW libraries and is written to all
 SRW objects.
 """
 from __future__ import absolute_import, division, print_function
-
+from pykern import pkio, pkresource, pkrunpy
+from pykern.pkdebug import pkdlog, pkdexc
+from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 import ast
 import inspect
-import re
-import traceback
-
 import py
 import py.path
-from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
-
-from pykern import pkio, pkresource, pkrunpy
-from pykern.pkdebug import pkdlog
+import re
+import traceback
 
 try:
     import cPickle as pickle
@@ -94,11 +91,11 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
         simulation_type (str): always "srw", but used to find lib dir
         code (str): Python code that runs SRW
         user_filename (str): uploaded file name for log
+        arguments (str): argv to be passed to script
 
     Returns:
-        dict, str: simulation data, error or None if ok
+        dict: simulation data
     """
-    error = 'Import failed: error unknown'
     script = None
 
     # Patch for the mirror profile for the exported .py file from Sirepo:
@@ -114,20 +111,22 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
                 user_filename=user_filename,
                 arguments=arguments,
             )
-            return o, None.data
+            return o.data
     except Exception as e:
-        lineno = _find_line_in_trace(script) if script else None
+        lineno = script and _find_line_in_trace(script)
         # Avoid
         pkdlog(
             'Error: {}; exception={}; script={}; filename={}; stack:\n{}',
-            error,
+            e.message,
             e,
             script,
             user_filename,
-            traceback.format_exc(),
+            pkdexc(),
         )
-        error = 'Error on line {}: {}'.format(lineno or '?', str(e)[:50])
-    return None, error
+        e = str(e)[:50]
+        raise ValueError(
+            'Error on line {}: {}'.format(lineno, e) if lineno
+            else 'Error: {}'.format(e))
 
 
 # Mapping all the values to a dictionary:

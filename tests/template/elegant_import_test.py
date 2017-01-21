@@ -7,46 +7,67 @@ u"""PyTest for :mod:`sirepo.importer`
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
 
 pytest.importorskip('sdds')
 
-#TODO(pjm): use glob to find data files
-_FILES = ['aps.lte', 'fodo.lte', 'fourDipoleCSR.lte', 'full457MeV.lte', 'LCLS21Feb08.lte', 'multiple.lte', 'invalid.lte', 'bad-rpn.lte', 'BYBL.lte', 'slc.lte', 'par.lte', 'lattice.lte', 'apsKick.lte', 'lattice-with-rpns.lte', 'spectrometer1.ele']
 
-class TestFlaskRequest(object):
+class FlaskRequest(object):
+
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = str(filename)
         self.files = {
             'file': self,
         }
         self.form = {}
+
     def read(self):
-        with open(str(pkunit.data_dir().join(self.filename))) as f:
-            return f.read()
+        return pkio.read_text(self.filename)
 
 
 def test_importer():
+    from pykern import pkcollections
+    from pykern import pkio
+    from pykern.pkunit import pkeq
     from sirepo.template import elegant
+
     with pkunit.save_chdir_work():
-        for filename in _FILES:
-            error, data = elegant.import_file(TestFlaskRequest(filename))
-            outfile = '{}.txt'.format(filename)
+        for fn in pkio.sorted_glob(pkunit.data_dir().join('*')):
+            if not pkio.has_file_extension(fn, ('ele', 'lte')) \
+                or fn.basename.endswith('ele.lte'):
+                continue
+            error = None
+            try:
+                data = elegant.import_file(FlaskRequest(fn))
+            except Exception as e:
+                pkdlog(pkdexc())
+                error = e.message
             if error:
                 actual = error
             else:
-                if '.lte' in filename:
+                if pkio.has_file_extension(fn, 'lte'):
                     data['models']['commands'] = []
                     actual = '{}{}'.format(
                         elegant._generate_variables(data),
-                        elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), {}))
+                        elegant.generate_lattice(
+                            data,
+                            elegant._build_filename_map(data),
+                            elegant._build_beamline_map(data),
+                            pkcollections.Dict(),
+                        ),
+                    )
                 else:
-                    err2, data2 = elegant.import_file(TestFlaskRequest('{}.lte'.format(filename)), test_data=data)
-                    actual = elegant._generate_commands(data2, elegant._build_filename_map(data2), elegant._build_beamline_map(data2), {})
+                    data2 = elegant.import_file(FlaskRequest('{}.lte'.format(fn)), test_data=data)
+                    actual = elegant._generate_commands(
+                        data2,
+                        elegant._build_filename_map(data2),
+                        elegant._build_beamline_map(data2),
+                        pkcollections.Dict(),
+                    )
+            outfile = fn.basename + '.txt'
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
             #TODO(pjm): this takes too long if there are a lot of diffs
             #assert expect == actual
-            if expect != actual:
-                assert False
+            pkeq(expect, actual)

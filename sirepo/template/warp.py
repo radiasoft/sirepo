@@ -292,6 +292,10 @@ def get_data_file(run_dir, model, frame):
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
+def import_file(*args, **kwargs):
+    """No custom import"""
+    raise ValueError('import of file not supported')
+
 def lib_files(*args, **kwargs):
     """No lib files"""
     return []
