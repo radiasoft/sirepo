@@ -15,7 +15,7 @@ def test_not_found():
     from sirepo import sr_unit
 
     fc = sr_unit.flask_client()
-    for uri in ('/some random uri', '/srw/wrong-param', '/export-simulation'):
+    for uri in ('/some random uri', '/srw/wrong-param', '/export-archive'):
         resp = fc.get(uri)
         pkeq(404, resp.status_code)
 
@@ -35,6 +35,6 @@ def test_uri_for_api():
         with pkexcept(KeyError):
             uri_router.uri_for_api('notAnApi')
         with pkexcept('missing parameter'):
-            uri_router.uri_for_api('exportSimulation', {'simulation_type': 'srw'})
+            uri_router.uri_for_api('exportArchive', {'simulation_type': 'srw'})
 
     sr_unit.test_in_request(t)

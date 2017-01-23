@@ -149,7 +149,7 @@
             "horizontalPosition": 0.0,
             "horizontalRange": 0.5,
             "isExample": 0,
-            "name": "sample_from_image (imported)",
+            "name": "sample_from_image",
             "photonEnergy": 9000.0,
             "sampleFactor": 1.0,
             "samplingMethod": 1,

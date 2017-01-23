@@ -1877,11 +1877,11 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         }), '_blank');
     };
 
-    self.exportSimulation = function(item) {
-        $window.open(requestSender.formatUrl('exportSimulation', {
+    self.exportArchive = function(item, extension) {
+        $window.open(requestSender.formatUrl('exportArchive', {
             '<simulation_id>': item.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<filename>': item.name + '.zip',
+            '<filename>': item.name + '.' + extension,
         }), '_blank');
     };
 

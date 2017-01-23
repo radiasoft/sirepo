@@ -639,9 +639,9 @@ def save_new_example(simulation_type, data):
 
 
 def save_new_simulation(simulation_type, data):
-    sid = _random_id(simulation_dir(simulation_type), simulation_type).id
+    sid = _random_id(simulation_dir(data.simulationType), simulation_type).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(simulation_type, data)
+    return save_simulation_json(data.simulationType, data)
 
 
 def save_simulation_json(simulation_type, data):
@@ -952,7 +952,7 @@ def _validate_name(data):
         {'simulation.folder': s.folder},
     ):
         n2 = d.models.simulation.name
-        if n.startswith(n2):
+        if n2.startswith(n):
             starts_with[n2] = d.models.simulation.simulationId
     if n in starts_with and starts_with[n] != s.simulationId:
         _validate_name_uniquify(data, starts_with)

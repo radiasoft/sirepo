@@ -421,7 +421,7 @@
             "horizontalPosition": 0.0,
             "horizontalRange": 20.0,
             "isExample": 0,
-            "name": "lcls_sxr (imported)",
+            "name": "lcls_sxr",
             "photonEnergy": 500.0,
             "sampleFactor": 1.0,
             "samplingMethod": 1,

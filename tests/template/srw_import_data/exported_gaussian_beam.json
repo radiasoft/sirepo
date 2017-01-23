@@ -207,7 +207,7 @@
             "horizontalPosition": 0.0,
             "horizontalRange": 8.0,
             "isExample": 0,
-            "name": "exported_gaussian_beam (imported)",
+            "name": "exported_gaussian_beam",
             "photonEnergy": 1.95251,
             "sampleFactor": 1.0,
             "samplingMethod": 1,

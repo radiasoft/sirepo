@@ -25,7 +25,7 @@ def test_create_zip():
     ):
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         resp = fc.sr_get(
-            'exportSimulation',
+            'exportArchive',
             {
                 'simulation_type': sim_type,
                 'simulation_id': sim_id,

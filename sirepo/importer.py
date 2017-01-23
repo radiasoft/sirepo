@@ -1,16 +1,35 @@
 # -*- coding: utf-8 -*-
-u"""Import a single archive simulation
+u"""Import a single archive
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp
-import py.path
-import zipfile
 
 
-def read_json(text, template):
+def do_form(form):
+    """Self-extracting archive post
+
+    Args:
+        form (flask.request.Form): what to import
+
+    Returns:
+        dict: data
+    """
+    from sirepo import uri_router
+    from sirepo import simulation_db
+    import base64
+    import StringIO
+
+    if not 'zip' in form:
+        raise uri_router.NotFound('missing zip in form')
+    data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
+    data.models.simulation.folder = '/Import'
+    return simulation_db.save_new_simulation(data.simulationType, data)
+
+
+def read_json(text, template=None):
     """Read json file and return
 
     Args:
@@ -24,15 +43,16 @@ def read_json(text, template):
 
     # attempt to decode the input as json first, if invalid try python
     data = simulation_db.json_load(text)
-    assert data.simulationType == template.SIM_TYPE, \
-        'simulationType {} invalid, expecting {}'.format(
-            data.simulationType,
-            template.SIM_TYPE,
-        )
+    if template:
+        assert data.simulationType == template.SIM_TYPE, \
+            'simulationType {} invalid, expecting {}'.format(
+                data.simulationType,
+                template.SIM_TYPE,
+            )
     return data
 
 
-def read_zip(stream, template):
+def read_zip(stream, template=None):
     """Read zip file and store contents
 
     Args:
@@ -42,8 +62,10 @@ def read_zip(stream, template):
     Returns:
         dict: data
     """
-    from sirepo import simulation_db
     from pykern import pkcollections
+    from sirepo import simulation_db
+    import py.path
+    import zipfile
 
     tmp = simulation_db.tmp_dir()
     data = None
@@ -56,6 +78,9 @@ def read_zip(stream, template):
                 assert not data, \
                     'too many db files {} in archive'.format(b)
                 data = read_json(c, template)
+                if not template:
+                    import sirepo.template
+                    template = sirepo.template.import_module(data.simulationType)
                 continue
             assert not b in zipped, \
                 '{} duplicate file in archive'.format(i.filename)

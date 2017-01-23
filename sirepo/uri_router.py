@@ -15,6 +15,9 @@ sr_unit_uri = None
 #: route parsing
 _PARAM_RE = re.compile(r'^(\??)<(.+?)>$')
 
+#: prefix for api functions
+_FUNC_PREFIX = 'api_'
+
 #: Where to route when no routes match (root)
 _default_route = None
 
@@ -27,28 +30,48 @@ _uri_to_route = None
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _api_to_route = None
 
-def uri_for_api(api_name, params=None):
-    """Generate uri for api method
+
+class NotFound(Exception):
+    """Raised to indicate page not found exception (404)"""
+    def __init__(self, log_fmt, *args, **kwargs):
+        super(NotFound, self).__init__()
+        self.log_fmt = log_fmt
+        self.args = args
+        self.kwargs = kwargs
+
+
+def api_for_func(func):
+    """Returns api name for given function
 
     Args:
-        api_name (str): full name of api
-        params (str): paramters to pass to uri
+        func (code): for __name__
 
     Returns:
-        str: formmatted external URI
+        str: name of api
     """
-    import flask
-    import urllib
+    n = func.__name__
+    assert n.startswith(_FUNC_PREFIX), \
+        '{}: not an api function'.format(n)
+    return n[len(_FUNC_PREFIX):]
 
-    r = _api_to_route[api_name]
-    http = (flask.url_for('_dispatch_empty', _external=True) + r.base_uri).rstrip('/')
-    for p in r.params:
-        if p.name in params:
-            http += '/' + params[p.name]
-            continue
-        assert p.optional, \
-            '{}: missing parameter for api ({})'.format(p.name, api_name)
-    return http
+
+def func_for_api(api_name, api_module):
+    """Returns func for given api name and module
+
+    Args:
+        api_name (str): camelCase
+        api_module (module): where from
+
+    Returns:
+        code: what to call
+    """
+    import types
+
+    res = getattr(api_module, _FUNC_PREFIX + api_name, None)
+    # Be very restrictive for this since we are calling arbitrary code
+    assert res and isinstance(res, types.FunctionType), \
+        '{}: unknown api in {}'.format(api_name, api_module.__name__)
+    return res
 
 
 def init(app, api_module, simulation_db):
@@ -71,7 +94,7 @@ def init(app, api_module, simulation_db):
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         r.decl_uri = v
-        r.func = api_module['api_' + k]
+        r.func = func_for_api(k, api_module)
         r.name = k
         assert not r.base_uri in _uri_to_route, \
             '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
@@ -89,6 +112,30 @@ def init(app, api_module, simulation_db):
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
 
+def uri_for_api(api_name, params=None):
+    """Generate uri for api method
+
+    Args:
+        api_name (str): full name of api
+        params (str): paramters to pass to uri
+
+    Returns:
+g        str: formmatted external URI
+    """
+    import flask
+    import urllib
+
+    r = _api_to_route[api_name]
+    http = (flask.url_for('_dispatch_empty', _external=True) + r.base_uri).rstrip('/')
+    for p in r.params:
+        if p.name in params:
+            http += '/' + params[p.name]
+            continue
+        assert p.optional, \
+            '{}: missing parameter for api ({})'.format(p.name, api_name)
+    return http
+
+
 def _dispatch(path):
     """Called by Flask and routes the base_uri with parameters
 
@@ -98,6 +145,7 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
+    import werkzeug.exceptions
     try:
         if path is None:
             return _empty_route.func()
@@ -111,19 +159,20 @@ def _dispatch(path):
         for p in route.params:
             if not parts:
                 if not p.optional:
-                    import werkzeug.exceptions
-                    werkzeug.exceptions.abort(404)
-                    pkdlog('{}: uri missing parameter ({})', path, p.name)
+                    raise NotFound('{}: uri missing parameter ({})', path, p.name)
                 break
             kwargs[p.name] = parts.pop(0)
         if parts:
-            pkdlog('{}: unknown parameters in uri ({})', parts, path)
-            import werkzeug.exceptions
-            werkzeug.exceptions.abort(404)
+            raise NotFound('{}: unknown parameters in uri ({})', parts, path)
         return route.func(**kwargs)
+    except NotFound as e:
+        #TODO(robnagler) cascade calling context
+        pkdlog(e.log_fmt, *e.args, **e.kwargs)
+        raise werkzeug.exceptions.NotFound()
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
+
 
 def _dispatch_empty():
     """Hook for '/' route"""

@@ -45,7 +45,7 @@ def _do(file_ext, parse):
     import re
 
     fc = sr_unit.flask_client()
-    for suffix in '', ' (2)':
+    for suffix in '', ' (2)', ' (3)':
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
             json, stream = parse(f)
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)

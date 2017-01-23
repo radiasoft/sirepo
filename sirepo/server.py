@@ -159,16 +159,15 @@ def api_errorLogging():
 app_error_logging = api_errorLogging
 
 
-def api_exportSimulation(simulation_type, simulation_id, filename):
+def api_exportArchive(simulation_type, simulation_id, filename):
     from sirepo import exporter
-    p = exporter.create_zip(simulation_type, simulation_id)
+    fn, mt = exporter.create_archive(simulation_type, simulation_id, filename)
     return flask.send_file(
-        str(p),
-        mimetype='application/zip',
+        str(fn),
         as_attachment=True,
         attachment_filename=filename,
+        mimetype=mt,
     )
-app_export_simulation = api_exportSimulation
 
 
 def api_favicon():
@@ -267,6 +266,24 @@ def api_getApplicationData(filename=''):
 app_get_application_data = api_getApplicationData
 
 
+def api_importArchive():
+    """
+    Args:
+        simulation_type (str): which simulation type
+    Params:
+        data: what to import
+    """
+    import sirepo.importer
+
+    data = sirepo.importer.do_form(flask.request.form)
+    return javascript_redirect(
+        '/{}#/source/{}'.format(
+            data.simulationType,
+            data.models.simulation.simulationId,
+        ),
+    )
+
+
 def api_importFile(simulation_type):
     """
     Args:
@@ -296,7 +313,7 @@ def api_importFile(simulation_type):
         if not error:
             #TODO(robnagler) need to validate folder
             data.models.simulation.folder = flask.request.form['folder']
-            return _save_new_and_reply(simulation_type, data)
+            return _save_new_and_reply(data.simulationType, data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = e.message if hasattr(e, 'message') else str(e)
@@ -584,7 +601,8 @@ def clear_session_user():
 def init(db_dir, uwsgi=None):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
-    uri_router.init(app, globals(), simulation_db)
+
+    uri_router.init(app, sys.modules[__name__], simulation_db)
     global _wsgi_app
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
