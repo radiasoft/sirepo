@@ -1758,7 +1758,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
             };
             $scope.isElectronBeam = function() {
                 return $scope.modelName == 'electronBeam';
-            }
+            };
             $scope.isSelectedItem = function(item) {
                 return item.id == appState.models[$scope.modelName].id;
             };
@@ -1802,7 +1802,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                     return;
                 }
                 var foundIt = false;
-                model = appState.clone(model)
+                model = appState.clone(model);
                 if (! scope.isElectronBeam()) {
                     model.undulator = appState.clone(appState.models.undulator);
                 }
