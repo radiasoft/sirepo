@@ -1550,6 +1550,9 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     };
 
     self.sectionURL = function(name) {
+        if (! name) {
+            name = 'source';
+        }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 });
