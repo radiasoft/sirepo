@@ -32,11 +32,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     $routeProvider
         .when(localRoutes.source, {
             controller: 'SRWSourceController as source',
-            templateUrl: '/static/html/srw-source.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/srw-source.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
-            templateUrl: '/static/html/srw-beamline.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/srw-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 

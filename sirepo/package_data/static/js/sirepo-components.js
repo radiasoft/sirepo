@@ -984,7 +984,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(panelState) {
+SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -994,7 +994,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState) {
             '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
-            '<div data-ng-if="showTitle()" class="navbar-text"><a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a></div>',
+            '<div data-ng-if="showTitle()" class="navbar-text"><a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> <a href="{{ nav.sectionURL() }}" class="glyphicon glyphicon-link"></a></div>',
         ].join(''),
         controller: function($scope) {
             $scope.showMenu = function() {
@@ -1110,7 +1110,7 @@ SIREPO.app.service('plotToPNG', function($http) {
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed sirepo.css style within SVG for first download, css file is cached by browser
-        $http.get('/static/css/sirepo.css?' + SIREPO.APP_VERSION)
+        $http.get('/static/css/sirepo.css' + SIREPO.SOURCE_CACHE_KEY)
             .success(function(data) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');

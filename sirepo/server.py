@@ -5,6 +5,7 @@ u"""Flask routes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -324,10 +325,7 @@ app_import_file = api_importFile
 
 
 def api_homePage():
-    return flask.render_template(
-        'html/sr-landing-page.html',
-        cache_key=_source_cache_key(),
-    )
+    return _render_root_page('sr-landing-page', pkcollections.Dict());
 light_landing_page = api_homePage
 
 
@@ -392,17 +390,14 @@ def api_root(simulation_type):
     except AssertionError:
         pkdlog('{}: uri not found', simulation_type)
         werkzeug.exceptions.abort(404)
-    args = {}
     if cfg.oauth_login:
         from sirepo import oauth
-        args = oauth.set_default_state()
-    return flask.render_template(
-        'html/index.html',
-        cache_key=_source_cache_key(),
-        app_name=simulation_type,
-        oauth_login=cfg.oauth_login,
-        **args
-    )
+        values = oauth.set_default_state()
+    else:
+        values = pkcollections.Dict()
+    values.app_name = simulation_type
+    values.oauth_login = cfg.oauth_login
+    return _render_root_page('index', values)
 app_root = api_root
 
 
@@ -802,6 +797,15 @@ def _parse_data_input(validate=False):
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
+def _render_root_page(page, values):
+    values.source_cache_key = _source_cache_key()
+    values.app_version = simulation_db.app_version()
+    return flask.render_template(
+        'html/{}.html'.format(page),
+        **values
+    )
+
+
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return app_simulation_data(
@@ -932,9 +936,10 @@ def _simulation_run_status(data, quiet=False):
 
 
 def _source_cache_key():
-    if cfg.disable_source_cache_key:
-        return ''
-    return '?{}'.format(simulation_db.app_version())
+    if cfg.enable_source_cache_key:
+        return '?{}'.format(simulation_db.app_version())
+    return ''
+
 
 def _start_simulation(data):
     """Setup and start the simulation.
@@ -979,5 +984,5 @@ cfg = pkconfig.init(
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
-    disable_source_cache_key=(False, bool, 'disable source cache key, useful for local file edits in chrome'),
+    enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
 )

@@ -32,6 +32,8 @@ def test_uri_for_api():
         fc = sr_unit.flask_client()
         uri = uri_router.uri_for_api('homePage')
         pkre('http://[^/]+/light$', uri)
+        uri = uri_router.uri_for_api('homePage', external=False)
+        pkre('^/light$', uri)
         with pkexcept(KeyError):
             uri_router.uri_for_api('notAnApi')
         with pkexcept('missing parameter'):

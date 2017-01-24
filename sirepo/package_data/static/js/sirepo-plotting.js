@@ -591,7 +591,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot2d.html?' + SIREPO.APP_VERSION,
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
 
             var ASPECT_RATIO = 4.0 / 7;
@@ -723,7 +723,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/plot3d.html?' + SIREPO.APP_VERSION,
+        templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
 
             var MIN_PIXEL_RESOLUTION = 10;
@@ -1064,7 +1064,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/heatplot.html?' + SIREPO.APP_VERSION,
+        templateUrl: '/static/html/heatplot.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
 
             $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};

@@ -91,10 +91,10 @@ def set_default_state(logged_out_as_anonymous=False):
         _update_session(_ANONYMOUS)
     elif logged_out_as_anonymous and flask.session['oauth_login_state'] == _LOGGED_OUT:
         _update_session(_ANONYMOUS)
-    return {
-        'login_state': flask.session['oauth_login_state'],
-        'user_name': flask.session['oauth_user_name'],
-    }
+    return pkcollections.Dict(
+        login_state=flask.session['oauth_login_state'],
+        user_name=flask.session['oauth_user_name'],
+    )
 
 
 def _db_filename(app):

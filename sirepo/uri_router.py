@@ -112,12 +112,13 @@ def init(app, api_module, simulation_db):
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
 
-def uri_for_api(api_name, params=None):
+def uri_for_api(api_name, params=None, external=True):
     """Generate uri for api method
 
     Args:
         api_name (str): full name of api
         params (str): paramters to pass to uri
+        external (bool): external uri? [True]
 
     Returns:
 g        str: formmatted external URI
@@ -126,14 +127,14 @@ g        str: formmatted external URI
     import urllib
 
     r = _api_to_route[api_name]
-    http = (flask.url_for('_dispatch_empty', _external=True) + r.base_uri).rstrip('/')
+    res = (flask.url_for('_dispatch_empty', _external=external) + r.base_uri).rstrip('/')
     for p in r.params:
         if p.name in params:
-            http += '/' + params[p.name]
+            res += '/' + params[p.name]
             continue
         assert p.optional, \
             '{}: missing parameter for api ({})'.format(p.name, api_name)
-    return http
+    return res
 
 
 def _dispatch(path):

@@ -1,15 +1,61 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-<title>{{data.simulationType}} - {{ company }}</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAUVBMVEUAAABdu0Zdu0Zdu0Zdu0ZDhMVDhMVdu0ZDhMVdu0ZDhMVDhMVDhMVDhMVDhMVDhMVdu0ZDhMVdu0ZDhMVSjrOFsXK41DJvoo5gmKBKibz///+PyjyBAAAAEnRSTlMA7xBgcDDPz1Dfv68gn0AQMGBOVV7xAAAAAWJLR0QadWfkMgAAAGVJREFUGNN9jFkOgCAMRCsuuC8dRb3/RcUiCibaj0nm5XWIPo753WOScEyUdE7DhyueRcBmFvR5Qe4Vu1DAGECzvoXVWOIV5hJm261SsfKLqBvI7gmI0IqKjhzoC7c+QMBIE/3dAVozBrzHhoOmAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE2LTA3LTEzVDE0OjQ0OjMzKzAwOjAwtzu00wAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxNi0wMy0yM1QxNjozNDo1MSswMDowMGQD4m8AAAAASUVORK5CYII=" />
+<title>{{ appShortName | e }} - {{ productShortName | e }}</title>
+<style type="text/css">
+body {
+margin: 0;
+padding: 0;
+font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.sr_ses_head {
+background-color: rgb(248, 248, 248);
+color: rgb(51, 122, 183);
+font-size: 18px;
+vertical-align: middle;
+border-color: rgb(231, 231, 231);
+border-bottom-width: 1px;
+border-style: solid;
+}
+.sr_ses_head img {
+margin: 5px 10px 5px 30px;
+height: 40px;
+vertical-align: middle;
+}
+.sr_ses_main {
+margin: 20px 10px 10px 30px;
+}
+.sr_ses_prompt {
+display: block;
+margin-bottom: 10px;
+}
+.sr_ses_server {
+width: 30em;
+margin-right: 5px;
+}
+</style>
+<script type="text/javascript">
+var SIREPO=(function() {
+return {
+onSubmit: function (form) {
+form.action = form.elements['server'].value + "{{ uri }}";
+return true;
+}
+};
+})();
+</script>
 </head>
 <body>
-Extract {{ data.models.simulation.name | e }} to?
-<!--TODO(robnagler) bind action to uri -->
-<form action="{{ uri }}" method="post">
-<input name="uri" type="text" value="{{ uri }} "/>
-<button type="submit">Import</button>
+<div class="sr_ses_head">
+<img src="data:image/gif;base64,R0lGODlhMAAuAMZ0AABOkQBOkgBPkgFPkgFPkwFQkwJQkwJQlANRlARSlAZTlQdTlQhUlRBamRFamRJbmhRdmxhgnBphnhtinhxjnh1jnh5knx9knx9lnydqoyhroypspSttpDNzqDd1qUF8rlKItVOJtmCSu4O+PoO+P4S+PoS+P4S+QIS/QIW/QIW/QYW/Qoa/Qoa/Q4XAQYbAQobAQ4q+TofARIq+T4fARYjBRonBR4nBSIrBSIrBSYnCR4rCSIrCSYrCSovCSovCS4zCS4zDTIzDTY3DTo3ETY3ET47ET47EUI/EUY/EUo/FUZDFU5HGVZLGVZLGVpPGVpPHWJTHWJTHWZXHWZXHWpfGX5XIWZXIW5bIXJfIXZfIXpfJXJfJXZfJXpjJX5nJYJrJYZnKYZrKYprKY5rLYpvLZJzLZZzLZpzMZp/NaqDObaHObKHObaHObqLOb6PPcafRd6rTe67VgbLYif///////////////////////////////////////////////yH5BAEKAH8ALAAAAAAwAC4AAAf+gH+Cg4SFhmczMVWGjI2Oj4NbKpMqR5CXmIYplJOOIh8hmaJ/JJwqjBgLAQIBBBWjl0WcNoYTBQa4uQaibV5rjzQsKrSFGbrHCZgynLCCA8fHHpA+pj+wFALQuhaQy5w4sA7auhDdpsSiDeO5EpBdKJQmUrAb2esXl2MmIyVhzX8P1gX49w/AOA4Em4FgQCBXAQQREhLsoGDAAQ0SM2rcWCgNx2ZfRphAMaJFHEJz1Lz5aGiHqUliBBFJgQKeFpaCjGx6meKPlZ2TSOD885JTD2qmluAsSgnJi5dPljJVcUPJyyhSmVozxWPo06ImsAgKwuNG16FEi/pA26gMPE6fN9g+IhMFSBe5ePPilfOvDRs3EuHYSLFJxhRRPEwojkvwhCkTSDDBMCXjnzdTKy5d4Qml2duX8x4JKZp5FJWpMCBtfjkEVpSpRC4VZSRF8cgshkwwRXMpCVAVQgwteRmk0GpTNTKlMeIiyEpDRU9wKQTks4qzGp1Yp8S4EBMdWJp8zMG0tF4w2ycZ0TvIxksT7AlZN2EmPiEhRoygIxgIADs=" />
+<span>{{ appLongName | e }} - {{ productLongName | e }}</div>
+<div class="sr_ses_main"><span class="sr_ses_prompt">Self-Extracting Simulation: {{ data.models.simulation.name | e }}</span>
+<form onsubmit="SIREPO.onSubmit(this)" action="" method="post">
+<input class="sr_ses_server" name="server" type="text" value="{{ server }}"/>
+<button type="submit">Send to Server</button>
 <input name="zip" type="hidden" value="{{ zip }}" />
 </form>
+</div>
 </body>
 </html>
