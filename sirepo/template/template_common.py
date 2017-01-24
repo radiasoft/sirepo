@@ -156,7 +156,7 @@ def validate_model(model_data, model_schema, enum_info):
                 'BeamList', 'MirrorFile', 'ImageFile', 'String', 'OptionalString', 'MagneticZipFile',
                 'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
                 'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
-                'RPNBoolean',
+                'RPNBoolean', 'UndulatorList',
         ):
             model_data[k] = _escape(value)
         else:

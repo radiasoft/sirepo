@@ -982,6 +982,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         // keep beamSelector in sync with name
         appState.models.electronBeam.beamSelector = appState.models.electronBeam.name;
     });
+    watchModelFields(['tabulatedUndulator.name'], function() {
+        // keep undulatorSelector in sync with name
+        appState.models.tabulatedUndulator.undulatorSelector = appState.models.tabulatedUndulator.name;
+    });
 
     watchModelFields(['electronBeamPosition.driftCalculationMethod'], function() {
         processBeamParameters();
@@ -1033,6 +1037,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     });
 
     appState.whenModelsLoaded($scope, function() {
+        //TODO(pjm): move isReadyForInput to panelState
         $document.ready(function() {
             isReadyForInput = true;
             disableBasicEditorBeamName();
@@ -1692,38 +1697,52 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
             '<div class="dropdown" data-ng-class="fieldClass">',
               '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
               '<ul class="dropdown-menu" style="margin-left: 15px">',
-                '<li class="dropdown-header">Predefined {{ modelLongName() }}s</li>',
+                '<li data-ng-if="isElectronBeam()" class="dropdown-header">Predefined Electron Beams</li>',
                 '<li data-ng-repeat="item in modelList | orderBy:\'name\' track by item.name">',
                   '<a href data-ng-click="selectItem(item)">{{ item.name }}</a>',
                 '</li>',
-                '<li data-ng-if="userModelList.length" class="divider"></li>',
-                '<li data-ng-if="userModelList.length" class="dropdown-header">User Defined {{ modelLongName() }}s</li>',
+                '<li data-ng-if="isElectronBeam() && userModelList.length" class="divider"></li>',
+                '<li data-ng-if="isElectronBeam() && userModelList.length" class="dropdown-header">User Defined Electron Beams</li>',
                 '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="s-model-list-item">',
                   '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
                 '</li>',
+                '<li data-ng-if="! isElectronBeam() && userModelList.length" class="divider"></li>',
+                '<li><a href data-ng-if="! isElectronBeam()" data-ng-click="addNewUndulator()"><span class="glyphicon glyphicon-plus"></span> Add New</a></li>',
               '</ul>',
             '</div>',
             '<div class="col-sm-2" data-ng-if="model.isReadOnly">',
-              '<div class="form-control-static"><a href data-ng-click="editItem()">Edit {{ modelShortName() }}</a></div>',
+              '<div class="form-control-static"><a href data-ng-click="editItem()">Edit Beam</a></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            function isElectronBeam() {
-                return $scope.modelName == 'electronBeam';
-            }
             $scope.appState = appState;
+
+            function newModelId() {
+                return appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
+            }
+
+            $scope.addNewUndulator = function() {
+                ['tabulatedUndulator', 'undulator'].forEach(function(name) {
+                    appState.models[name] = appState.clone(appState.models[name]);
+                });
+                appState.models.tabulatedUndulator.id = newModelId();
+                appState.models.tabulatedUndulator.name = '';
+                appState.models.undulatorSelector = '';
+                //TODO(pjm): add panelState.setFocus(model, field)
+                $('.model-tabulatedUndulator-name .form-control').first().select();
+            };
             $scope.editItem = function() {
                 // copy the current model, rename and show editor
                 var newModel = appState.clone(appState.models[$scope.modelName]);
                 delete newModel.isReadOnly;
                 newModel.name = appState.uniqueName($scope.userModelList, 'name', newModel.name + ' (copy {})');
-                if (isElectronBeam()) {
+                if ($scope.isElectronBeam()) {
                     newModel.beamSelector = newModel.name;
                 }
                 else {
                     newModel.undulatorSelector = newModel.name;
                 }
-                newModel.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
+                newModel.id = newModelId();
                 appState.models[$scope.modelName] = newModel;
             };
             $scope.deleteItem = function(item, $event) {
@@ -1731,22 +1750,15 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 $event.preventDefault();
                 requestSender.getApplicationData(
                     {
-                        method: 'delete_model_from_list',
-                        model_name: $scope.modelName,
-                        id: item.id,
+                        method: 'delete_user_models',
+                        electron_beam: $scope.isElectronBeam() ? item : null,
+                        tabulated_undulator: $scope.isElectronBeam() ? null : item,
                     },
                     $scope.loadModelList);
             };
-            $scope.modelLongName = function() {
-                return isElectronBeam()
-                    ? 'Electron Beam'
-                    : 'Undulator';
-            };
-            $scope.modelShortName = function() {
-                return isElectronBeam()
-                    ? 'Beam'
-                    : 'Undulator';
-            };
+            $scope.isElectronBeam = function() {
+                return $scope.modelName == 'electronBeam';
+            }
             $scope.isSelectedItem = function(item) {
                 return item.id == appState.models[$scope.modelName].id;
             };
@@ -1774,6 +1786,9 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 item = appState.clone(item);
                 appState.models[$scope.modelName] = item;
                 item[$scope.field] = item.name;
+                if (! $scope.isElectronBeam()) {
+                    appState.models.undulator = item.undulator;
+                }
             };
         },
         link: function link(scope, element) {
@@ -1787,9 +1802,13 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                     return;
                 }
                 var foundIt = false;
+                model = appState.clone(model)
+                if (! scope.isElectronBeam()) {
+                    model.undulator = appState.clone(appState.models.undulator);
+                }
                 for (var i = 0; i < scope.userModelList.length; i++) {
                     if (scope.userModelList[i].id == model.id) {
-                        scope.userModelList[i].name = model.name;
+                        scope.userModelList[i] = model;
                         foundIt = true;
                         break;
                     }
@@ -1819,19 +1838,14 @@ SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, s
             }
 
             $scope.revertToOriginal = function() {
-                var ebeam = appState.models.electronBeam;
-                if (ebeam.isReadOnly) {
-                    revertSimulation();
-                }
-                else {
-                    // delete the user-defied beam first
-                    requestSender.getApplicationData(
-                        {
-                            method: 'delete_beam',
-                            id: ebeam.id,
-                        },
-                        revertSimulation);
-                }
+                // delete the user-defined models first
+                requestSender.getApplicationData(
+                    {
+                        method: 'delete_user_models',
+                        electron_beam: appState.models.electronBeam,
+                        tabulated_undulator: appState.models.tabulatedUndulator,
+                    },
+                    revertSimulation);
             };
             $scope.simulationName = function() {
                 if (appState.isLoaded()) {

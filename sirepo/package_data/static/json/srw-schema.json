@@ -567,6 +567,8 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "tabulatedUndulator": {
+            "undulatorSelector": ["Select Undulator", "UndulatorList"],
+            "name": ["Undulator Name", "String"],
             "undulatorType": ["Type of Undulator", "UndulatorType"],
             "gap": ["Magnetic Gap [mm]", "Float"],
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
@@ -1252,6 +1254,8 @@
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
             "basic": [
+                "undulatorSelector",
+                "name",
                 "undulatorType",
                 "gap",
                 "phase",

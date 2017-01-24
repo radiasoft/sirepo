@@ -80,7 +80,10 @@ _PREDEFINED = None
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
-_USER_BEAM_LIST_FILENAME = '_user_beam_list.json'
+_USER_MODEL_LIST_FILENAME = {
+    'electronBeam': '_user_beam_list.json',
+    'tabulatedUndulator': '_user_undulator_list.json',
+}
 
 
 class MagnMeasZip:
@@ -492,6 +495,11 @@ def fixup_old_data(data):
                     data['models']['undulator'][k] = tabulated_undulator[k]
                 del tabulated_undulator[k]
 
+    if 'name' not in data['models']['tabulatedUndulator']:
+        und = data['models']['tabulatedUndulator']
+        und['name'] = und['undulatorSelector'] = 'Undulator'
+        und['id'] = '1'
+
 
 def get_animation_name(data):
     return data['modelName']
@@ -500,15 +508,18 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'model_list':
         res = []
-        res.extend(_PREDEFINED.beams)
-        res.extend(_load_user_beam_list())
-        for beam in res:
-            _process_beam_parameters(beam)
+        model_name = data['model_name']
+        if model_name == 'electronBeam':
+            res.extend(_PREDEFINED.beams)
+        res.extend(_load_user_model_list(model_name))
+        if model_name == 'electronBeam':
+            for beam in res:
+                _process_beam_parameters(beam)
         return {
             'modelList': res
         }
-    if data['method'] == 'delete_beam':
-        return _delete_user_beam(data['id'])
+    if data['method'] == 'delete_user_models':
+        return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
@@ -676,49 +687,65 @@ def prepare_aux_files(run_dir, data):
     data['models']['tabulatedUndulator']['indexFileName'] = m.index_file
 
 
+def _create_user_model(data, model_name):
+    model = data['models'][model_name]
+    if model_name == 'tabulatedUndulator':
+        model = model.copy()
+        model['undulator'] = data['models']['undulator']
+    return model
+
+
 def prepare_for_client(data):
-    ebeam = data['models']['electronBeam']
-    if _is_user_defined_beam(ebeam):
-        user_beam_list = _load_user_beam_list()
-        search_beam = None
-        if 'electronBeams' not in data['models']:
-            beams_by_id = _user_beams_map(user_beam_list, 'id')
-            if ebeam['id'] in beams_by_id:
-                search_beam = beams_by_id[ebeam['id']]
-        if search_beam:
-            data['models']['electronBeam'] = search_beam
-        else:
-            pkdc('adding beam: {}', ebeam['name'])
-            if ebeam['name'] in _user_beams_map(user_beam_list, 'name'):
-                ebeam['name'] = _unique_name(user_beam_list, 'name', ebeam['name'] + ' {}')
-                ebeam['beamSelector'] = ebeam['name']
-            ebeam['id'] = _unique_name(user_beam_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
-            user_beam_list.append(ebeam)
-            _save_user_beam_list(user_beam_list)
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = data['models'][model_name]
+        pluralKey = '{}s'.format(model_name)
+        if _is_user_defined_model(model):
+            user_model_list = _load_user_model_list(model_name)
+            search_model = None
+            if pluralKey not in data['models']:
+                models_by_id = _user_model_map(user_model_list, 'id')
+                if model['id'] in models_by_id:
+                    search_model = models_by_id[model['id']]
+            if search_model:
+                data['models'][model_name] = search_model
+                if model_name == 'tabulatedUndulator':
+                    del data['models'][model_name]['undulator']
+            else:
+                pkdc('adding model: {}', model['name'])
+                if model['name'] in _user_model_map(user_model_list, 'name'):
+                    model['name'] = _unique_name(user_model_list, 'name', model['name'] + ' {}')
+                    selectorName = 'beamSelector' if model_name == 'electronBeam' else 'undulatorSelector'
+                    model[selectorName] = model['name']
+                model['id'] = _unique_name(user_model_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
+                user_model_list.append(_create_user_model(data, model_name))
+                _save_user_model_list(model_name, user_model_list)
+                simulation_db.save_simulation_json(SIM_TYPE, data)
+
+        if pluralKey in data['models']:
+            del data['models'][pluralKey]
             simulation_db.save_simulation_json(SIM_TYPE, data)
-    if 'electronBeams' in data['models']:
-        del data['models']['electronBeams']
     return data
 
 
 def prepare_for_save(data):
-    ebeam = data['models']['electronBeam']
-    if _is_user_defined_beam(ebeam):
-        user_beam_list = _load_user_beam_list()
-        beams_by_id = _user_beams_map(user_beam_list, 'id')
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = data['models'][model_name]
+        if _is_user_defined_model(model):
+            user_model_list = _load_user_model_list(model_name)
+            models_by_id = _user_model_map(user_model_list, 'id')
 
-        if ebeam['id'] not in beams_by_id:
-            pkdc('adding new beam: {}', ebeam['name'])
-            user_beam_list.append(ebeam)
-            _save_user_beam_list(user_beam_list)
-        elif beams_by_id[ebeam['id']] != ebeam:
-            pkdc('replacing beam: {}: {}', ebeam['id'], ebeam['name'])
-            for i,beam in enumerate(user_beam_list):
-                if beam['id'] == ebeam['id']:
-                    pkdc('found replace beam, id: {}, i: {}', beam['id'], i)
-                    user_beam_list[i] = ebeam
-                    _save_user_beam_list(user_beam_list)
-                    break
+            if model['id'] not in models_by_id:
+                pkdc('adding new model: {}', model['name'])
+                user_model_list.append(_create_user_model(data, model_name))
+                _save_user_model_list(model_name, user_model_list)
+            elif models_by_id[model['id']] != model:
+                pkdc('replacing beam: {}: {}', model['id'], model['name'])
+                for i,m in enumerate(user_model_list):
+                    if m['id'] == model['id']:
+                        pkdc('found replace beam, id: {}, i: {}', m['id'], i)
+                        user_model_list[i] = _create_user_model(data, model_name)
+                        _save_user_model_list(model_name, user_model_list)
+                        break
     return data
 
 
@@ -1067,14 +1094,18 @@ def _crystal_element(template, item, fields, propagation):
     return res, _propagation_params(propagation[str(item['id'])][0])
 
 
-def _delete_user_beam(id):
-    """Remove the beam with the id from the user beam list file"""
-    user_beam_list = _load_user_beam_list()
-    for i,beam in enumerate(user_beam_list):
-        if beam['id'] == id:
-            del user_beam_list[i]
-            _save_user_beam_list(user_beam_list)
-            break
+def _delete_user_models(electron_beam, tabulated_undulator):
+    """Remove the beam and undulator user model list files"""
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = electron_beam if model_name == 'electronBeam' else tabulated_undulator
+        if not model:
+            continue;
+        user_model_list = _load_user_model_list(model_name)
+        for i,m in enumerate(user_model_list):
+            if m['id'] == model.id:
+                del user_model_list[i]
+                _save_user_model_list(model_name, user_model_list)
+                break
     return {}
 
 
@@ -1382,7 +1413,7 @@ def _generate_parameters_file(data, plot_reports=False):
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
 
-    if _is_user_defined_beam(data['models']['electronBeam']):
+    if _is_user_defined_model(data['models']['electronBeam']):
         v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
@@ -1533,7 +1564,7 @@ def _is_background_report(report):
     return 'Animation' in report
 
 
-def _is_user_defined_beam(ebeam):
+def _is_user_defined_model(ebeam):
     if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
         return False
     return True
@@ -1543,12 +1574,12 @@ def _is_watchpoint(name):
     return 'watchpointReport' in name
 
 
-def _load_user_beam_list():
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
+def _load_user_model_list(model_name):
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
     if filepath.exists():
         return simulation_db.read_json(filepath)
-    _save_user_beam_list([])
-    return _load_user_beam_list()
+    _save_user_model_list(model_name, [])
+    return _load_user_model_list(model_name)
 
 
 def _normalize_eol(file_desc):
@@ -1708,9 +1739,9 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     }
 
 
-def _save_user_beam_list(beam_list):
-    pkdc('saving beam_list')
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_BEAM_LIST_FILENAME)
+def _save_user_model_list(model_name, beam_list):
+    pkdc('saving {} list', model_name)
+    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
     #TODO(pjm): want atomic replace?
     simulation_db.write_json(filepath, beam_list)
 
@@ -1733,10 +1764,10 @@ def _unique_name(items, field, template):
         else:
             return id
 
-def _user_beams_map(beam_list, field):
+def _user_model_map(model_list, field):
     res = {}
-    for beam in beam_list:
-        res[beam[field]] = beam
+    for model in model_list:
+        res[model[field]] = model
     return res
 
 
