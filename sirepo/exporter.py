@@ -48,14 +48,20 @@ def _create_html(zip_path, data):
     from pykern import pkjinja
     from pykern import pkcollections
     from sirepo import uri_router
+    from sirepo import simulation_db
     import py.path
     import copy
 
     # Use same tmp directory
     fp = py.path.local(zip_path.dirname).join(zip_path.purebasename) + '.html'
     values = pkcollections.Dict(data=data)
-    values.uri = uri_router.uri_for_api('importArchive')
-    values.company = 'RadiaSoft'
+    values.uri = uri_router.uri_for_api('importArchive', external=False)
+    values.server = uri_router.uri_for_api('importArchive')[:-len(values.uri)]
+    sc = simulation_db.SCHEMA_COMMON
+    values.appLongName = sc.appInfo[data.simulationType].longName
+    values.appShortName = sc.appInfo[data.simulationType].shortName
+    values.productLongName = sc.productInfo.longName
+    values.productShortName = sc.productInfo.shortName
     values.zip = zip_path.read().encode('base64')
     with open(str(fp), 'wb') as f:
         fp.write(pkjinja.render_resource('archive.html', values))

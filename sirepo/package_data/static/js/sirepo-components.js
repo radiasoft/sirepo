@@ -1110,7 +1110,7 @@ SIREPO.app.service('plotToPNG', function($http) {
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed sirepo.css style within SVG for first download, css file is cached by browser
-        $http.get('/static/css/sirepo.css?' + SIREPO.APP_VERSION)
+        $http.get('/static/css/sirepo.css' + SIREPO.SOURCE_CACHE_KEY)
             .success(function(data) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');

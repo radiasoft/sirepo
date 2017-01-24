@@ -54,19 +54,19 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     $routeProvider
         .when(localRoutes.source, {
             controller: 'ElegantSourceController as source',
-            templateUrl: '/static/html/elegant-source.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/elegant-source.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/elegant-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.control, {
             controller: 'CommandController as control',
-            templateUrl: '/static/html/elegant-control.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/elegant-control.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/elegant-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
@@ -2467,7 +2467,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
         scope: {
             modelName: '@',
         },
-        templateUrl: '/static/html/lattice.html?' + SIREPO.APP_VERSION,
+        templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
             var p = $scope;

@@ -12,7 +12,7 @@ SIREPO.IS_SRW_LANDING_PAGE = window.location.href.match(/\/light/);
 
 angular.element(document).ready(function() {
     $.ajax({
-        url: '/static/json/srw-examples.json?' + SIREPO.APP_VERSION,
+        url: '/static/json/srw-examples.json' + SIREPO.SOURCE_CACHE_KEY,
         success: function(result) {
             SRW_EXAMPLES = result;
             angular.bootstrap(document, ['LandingPageApp']);
@@ -40,7 +40,7 @@ app.config(function($routeProvider, appRoutesProvider) {
     if (SIREPO.IS_SRW_LANDING_PAGE) {
         var appRoutes = appRoutesProvider.$get();
         $routeProvider.when('/home', {
-            templateUrl: '/static/html/landing-page-home.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/landing-page-home.html' + SIREPO.SOURCE_CACHE_KEY,
         });
         Object.keys(appRoutes).forEach(function(key) {
             $routeProvider.when('/' + key, {
@@ -56,7 +56,7 @@ app.config(function($routeProvider, appRoutesProvider) {
     // root landing page
     else {
         $routeProvider.when('/about', {
-            templateUrl: '/static/html/landing-page-about.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/landing-page-about.html' + SIREPO.SOURCE_CACHE_KEY,
         });
         $routeProvider.otherwise({
             redirectTo: '/about',

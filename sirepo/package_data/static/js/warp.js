@@ -14,11 +14,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     $routeProvider
         .when(localRoutes.source, {
             controller: 'WARPSourceController as source',
-            templateUrl: '/static/html/warp-source.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/warp-source.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.dynamics, {
             controller: 'WARPDynamicsController as dynamics',
-            templateUrl: '/static/html/warp-dynamics.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/warp-dynamics.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 

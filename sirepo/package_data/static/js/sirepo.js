@@ -11,7 +11,7 @@ var srdbg = SIREPO.srdbg;
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
     $.ajax({
-        url: '/simulation-schema?' + SIREPO.APP_VERSION,
+        url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
             simulationType: SIREPO.APP_NAME,
         },
@@ -71,21 +71,21 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $routeProvider
     if (SIREPO.IS_LOGGED_OUT) {
         $routeProvider.otherwise({
             controller: 'LoggedOutController as loggedOut',
-            templateUrl: '/static/html/logged-out.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/logged-out.html' + SIREPO.SOURCE_CACHE_KEY,
         });
         return;
     }
     $routeProvider
         .when(localRoutes.simulations, {
             controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.notFound, {
-            templateUrl: '/static/html/not-found.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/not-found.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.notFoundCopy, {
             controller: 'NotFoundCopyController as notFoundCopy',
-            templateUrl: '/static/html/copy-session.html?' + SIREPO.APP_VERSION,
+            templateUrl: '/static/html/copy-session.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .otherwise({
             redirectTo: localRoutes.simulations,
@@ -960,7 +960,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             return;
         }
         self[name + ".loading"] = true;
-        $http.get(path + '?' + SIREPO.APP_VERSION)
+        $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY)
             .success(function(data, status) {
                 self[name] = data;
                 delete self[name + ".loading"];

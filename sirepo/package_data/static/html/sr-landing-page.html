@@ -43,9 +43,10 @@
     <script src="/static/js/ext/modernizr-touch-2.8.3.min.js{{ cache_key }}"></script>
     <script>
         var SIREPO = {
-            APP_VERSION: '{{ version }}',
+            APP_VERSION: '{{ app_version }}',
+            SOURCE_CACHE_KEY: '{{ source_cache_key }}',
         };
     </script>
-    <script src="/static/js/landing-page.js{{ cache_key }}"></script>
+    <script src="/static/js/landing-page.js{{ source_cache_key }}"></script>
   </body>
 </html>
