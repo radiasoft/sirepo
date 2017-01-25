@@ -7,7 +7,7 @@ u"""OAUTH support
 from __future__ import absolute_import, division, print_function
 
 from flask_sqlalchemy import SQLAlchemy
-from pykern import pkconfig
+from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import server
 from sirepo import simulation_db
