@@ -26,7 +26,7 @@ import numpy as np
 import os
 import py.path
 import re
-import srwl_smp
+import srwl_uti_smp
 import srwl_uti_src
 import srwlib
 import traceback
@@ -817,7 +817,7 @@ def validate_file(file_type, path):
     elif extension.lower() in ['tif', 'tiff', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
-        srwl_smp.SRWLOptSmp(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
     else:
         return 'invalid file type: {}'.format(extension)
     return None
@@ -1313,7 +1313,7 @@ def _generate_beamline_optics(models, last_id):
             file_name = 'op_sample{}'.format(sample_counter)
             sample_counter += 1
             el, pp = _beamline_element(
-                """srwl_smp.srwl_opt_setup_transmission_from_file(
+                """srwl_uti_smp.srwl_opt_setup_transm_from_file(
                     file_path=v.""" + file_name + """,
                     resolution={},
                     thickness={},
@@ -1656,7 +1656,7 @@ def _process_image(data):
     fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
     with pkio.save_chdir(simulation_db.tmp_dir()) as d:
         res = py.path.local(fn.purebasename)
-        srwl_smp.SRWLOptSmp(
+        srwl_uti_smp.SRWLUtiSmp(
             file_path=str(fn),
             is_save_images=True,
             prefix=str(res),

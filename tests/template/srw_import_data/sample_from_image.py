@@ -11,12 +11,12 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
-import srwl_smp
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    el.append(srwl_smp.srwl_opt_setup_transmission_from_file(
+    el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
                     file_path=v.op_sample1,
                     resolution=2.480469e-09,
                     thickness=1e-05,

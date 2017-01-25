@@ -11,7 +11,6 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
-import srwl_smp
 
 
 def set_optics(v=None):
