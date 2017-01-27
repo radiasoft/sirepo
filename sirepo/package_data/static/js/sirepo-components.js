@@ -307,7 +307,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
-                  '<a href class="btn btn-primary s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active\': model[field] == item[0]}">{{ item[1] }}</a>',
+                  '<a href class="btn s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</a>',
                 '</div>',
                 '<select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
@@ -356,6 +356,12 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
             $scope.fieldClass = fieldClass($scope.info[1], $scope.fieldSize, $scope.wantEnumButtons);
             $scope.showLabel = showLabel($scope.labelSize);
+            $scope.isSelectedValue = function(value) {
+                if ($scope.model && $scope.field) {
+                    return $scope.model[$scope.field] == value;
+                }
+                return false;
+            };
         },
     };
 });
