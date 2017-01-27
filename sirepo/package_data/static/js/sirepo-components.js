@@ -42,8 +42,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             };
 
             $scope.setActivePage = function(page) {
-                if ($scope.activePage)
+                if ($scope.activePage) {
                     $scope.activePage.isActive = false;
+                }
                 $scope.activePage = page;
                 page.isActive = true;
                 if ($scope.parentController && $scope.parentController.handleModalShown) {
@@ -84,13 +85,15 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                     items.push($scope.advancedFields[i]);
                 }
             }
-            if ($scope.pages)
+            if ($scope.pages) {
                 $scope.setActivePage($scope.pages[0]);
+            }
         },
         link: function(scope, element) {
             var resetActivePage = function() {
-                if (scope.pages)
+                if (scope.pages) {
                     scope.setActivePage(scope.pages[0]);
+                }
             };
             if (scope.pages) {
                 $(element).closest('.modal').on('show.bs.modal', resetActivePage);
@@ -324,8 +327,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             }
 
             function showLabel(labelSize) {
-                if (labelSize === '')
+                if (labelSize === '') {
                     return true;
+                }
                 return labelSize > 0;
             }
 
@@ -338,7 +342,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 var textSize = 0;
                 for (var i = 0; i < e.length; i++) {
                     textSize += e[i][1].length;
-                    if (textSize > 20){
+                    if (textSize > 20) {
                         return false;
                     }
                 }
@@ -484,18 +488,22 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                 if ($scope.fileType && $scope.model) {
                     var f = $scope.model[$scope.fileField];
                     var list = requestSender.getAuxiliaryData($scope.fileType);
-                    if (f && list && list.indexOf(f) >= 0)
+                    if (f && list && list.indexOf(f) >= 0) {
                         return true;
+                    }
                 }
                 return false;
             };
             $scope.itemList = function() {
-                if (! $scope.fileType)
+                if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
-                if (requestSender.getAuxiliaryData($scope.fileType))
+                }
+                if (requestSender.getAuxiliaryData($scope.fileType)) {
                     return requestSender.getAuxiliaryData($scope.fileType);
-                if (! appState.isLoaded())
+                }
+                if (! appState.isLoaded()) {
                     return null;
+                }
                 requestSender.loadAuxiliaryData(
                     $scope.fileType,
                     requestSender.formatUrl('listFiles', {
@@ -588,8 +596,9 @@ SIREPO.app.directive('columnEditor', function(appState) {
 
             function isOneLabelLayout() {
                 for (var i = 0; i < $scope.columnLabels[0].length; i++) {
-                    if ($scope.columnLabels[0][i] != $scope.columnLabels[1][i])
+                    if ($scope.columnLabels[0][i] != $scope.columnLabels[1][i]) {
                         return false;
+                    }
                 }
                 return true;
             }
@@ -647,8 +656,9 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestS
             $scope.isUploading = false;
 
             $scope.uploadFile = function(inputFile) {
-                if (! inputFile)
+                if (! inputFile) {
                     return;
+                }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
                     inputFile,
@@ -811,8 +821,9 @@ SIREPO.app.directive('modelField', function(appState) {
             }
 
             $scope.modelForField = function() {
-                if ($scope.modelData && ! modelField)
+                if ($scope.modelData && ! modelField) {
                     return $scope.modelData.getData();
+                }
                 return appState.models[modelName];
             };
 
@@ -833,13 +844,15 @@ SIREPO.app.directive('numberToString', function() {
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return null;
+                }
                 return '' + value;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return value;
+                }
                 return value.toString();
             });
         }
@@ -898,8 +911,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
             $scope.downloadImage = function(height) {
                 var svg = $scope.reportPanel.find('svg')[0];
-                if (! svg)
+                if (! svg) {
                     return;
+                }
                 var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
                 var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
@@ -913,8 +927,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
             $scope.hasData = function() {
                 if (appState.isLoaded()) {
-                    if (appState.isAnimationModelName($scope.modelKey))
+                    if (appState.isAnimationModelName($scope.modelKey)) {
                         return frameCache.getFrameCount() > 0;
+                    }
                     return ! panelState.isLoading($scope.modelKey);
                 }
                 return false;
@@ -975,8 +990,9 @@ SIREPO.app.directive('reportPanel', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.modelKey = $scope.modelName;
-            if ($scope.modelData)
+            if ($scope.modelData) {
                 $scope.modelKey = $scope.modelData.modelKey;
+            }
             $scope.reportTitle = function() {
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
             };
@@ -1004,9 +1020,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 panelState.showModalEditor('simulation');
             };
             $scope.showTitle = function() {
-                if ($scope.nav.isActive('simulations'))
-                    return false;
-                return true;
+                return ! $scope.nav.isActive('simulations');
             };
         },
     };
@@ -1035,8 +1049,9 @@ SIREPO.app.directive('stringToNumber', function() {
         },
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value))  {
                     return null;
+                }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
                     var v;
                     if (scope.numberType == 'integer') {
@@ -1055,8 +1070,9 @@ SIREPO.app.directive('stringToNumber', function() {
                 return undefined;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return value;
+                }
                 return value.toString();
             });
         }
@@ -1069,8 +1085,8 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
         link: function(scope, element, attrs) {
             var model = $parse(attrs.fileModel);
             var modelSetter = model.assign;
-            element.bind('change', function(){
-                scope.$apply(function(){
+            element.bind('change', function() {
+                scope.$apply(function() {
                     modelSetter(scope, element[0].files[0]);
                 });
             });
@@ -1137,7 +1153,7 @@ SIREPO.app.service('fileUpload', function($http) {
             headers: {'Content-Type': undefined}
         })
             .success(callback)
-            .error(function(){
+            .error(function() {
                 //TODO(pjm): error handling
                 srlog('file upload failed');
             });
