@@ -306,7 +306,7 @@ SIREPO.app.directive('animationButtons', function() {
 //TODO(pjm): remove global function, change into a service
 function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxis, scope) {
 
-    var defaultCircleSize, focusIndex, formatter, keyListener, ordinateFormatter, points;
+    var defaultCircleSize, focusIndex, formatter, keyListener, lastClickX, ordinateFormatter, points;
 
     function calculateFWHM(xValues, yValues, yHalfMax) {
         function isPositive(num) {
@@ -354,6 +354,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 d3.select('body').on('keydown', null);
                 keyListener = false;
             })
+            .on('mousedown', function(e) {
+                lastClickX = d3.event.clientX;
+            })
             .on('click', onClick)
             .on('dblclick', function copyToClipboard() {
                 var focusText = select('.focus-text');
@@ -373,10 +376,12 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             });
 
         return {
-            load: function(axisPoints) {
+            load: function(axisPoints, preservePoint) {
                 points = axisPoints;
-                focusIndex = -1;
-                hideFocusPoint();
+                if (! preservePoint) {
+                    focusIndex = -1;
+                    hideFocusPoint();
+                }
             },
             refresh: function() {
                 if (focusIndex >= 0)
@@ -397,8 +402,10 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
 
     function onClick() {
         /*jshint validthis: true*/
-        if (! points)
+        // lastClickX determines if the user is panning or clicking on a point
+        if (! points || Math.abs(lastClickX - d3.event.clientX) > 10) {
             return;
+        }
         var axisIndex = invertAxis ? 1 : 0;
         var mouseX = d3.mouse(this)[axisIndex];
         var xMin = xAxisScale.invert(mouseX - 10);
@@ -593,52 +600,107 @@ SIREPO.app.directive('plot2d', function(plotting) {
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-
             var ASPECT_RATIO = 4.0 / 7;
+            var MAX_PLOTS = 11;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
             var focusPoint, graphLine, points, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
 
             function refresh() {
-                if (d3.event && d3.event.translate) {
-                    var tx = zoom.translate()[0];
-                    var ty = zoom.translate()[1];
-                    var xdom = xAxisScale.domain();
+                var xdom = xAxisScale.domain();
 
-                    if ((xdom[1] - xdom[0]) >= (xDomain[1] - xDomain[0])) {
-                        select('.overlay').attr('class', 'overlay mouse-zoom');
-                        xAxisScale.domain(xDomain);
-                        yAxisScale.domain(yDomain);
-                        xdom = xAxisScale.domain();
-                        zoom.scale(1);
-                        tx = 0;
-                        ty = 0;
-                    }
-                    else {
-                        select('.overlay').attr('class', 'overlay mouse-move-ew');
-                        if (xdom[0] < xDomain[0]) {
-                            xAxisScale.domain([xDomain[0], xdom[1] - xdom[0] + xDomain[0]]);
-                            xdom = xAxisScale.domain();
-                            tx = 0;
-                        }
-                        if (xdom[1] > xDomain[1]) {
-                            xdom[0] -= xdom[1] - xDomain[1];
-                            xAxisScale.domain([xdom[0], xDomain[1]]);
-                            xdom = xAxisScale.domain();
-                            tx = (xDomain[0] - xdom[0]) * $scope.width / (xDomain[1] - xDomain[0]) * zoom.scale();
-                        }
-                        plotting.recalculateDomainFromPoints(yAxisScale, points, xdom);
-                    }
-                    zoom.translate([tx, ty]);
+                if ((xdom[1] - xdom[0]) >= (xDomain[1] - xDomain[0])) {
+                    select('.overlay').attr('class', 'overlay mouse-zoom');
+                    xAxisScale.domain(xDomain);
+                    yAxisScale.domain(yDomain).nice();
                 }
+                else {
+                    select('.overlay').attr('class', 'overlay mouse-move-ew');
+                    if (xdom[0] < xDomain[0]) {
+                        xAxisScale.domain([xDomain[0], xdom[1] - xdom[0] + xDomain[0]]);
+                    }
+                    if (xdom[1] > xDomain[1]) {
+                        xAxisScale.domain([xdom[0] - xdom[1] + xDomain[1], xDomain[1]]);
+                    }
+                    plotting.recalculateDomainFromPoints(yAxisScale, points[0], xAxisScale.domain());
+                }
+                resetZoom();
+                select('.overlay').call(zoom);
                 select('.x.axis').call(xAxis);
                 select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
                 select('.y.axis').call(yAxis);
                 select('.y.axis.grid').call(yAxisGrid);
-                select('.line').attr('d', graphLine);
+                for (var i = 0; i < MAX_PLOTS; i++) {
+                    select('.line-' + i).attr('d', graphLine);
+                }
                 focusPoint.refresh();
             }
+
+            function resetZoom() {
+                zoom = d3.behavior.zoom()
+                    .x(xAxisScale)
+                    .on('zoom', refresh);
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+                xDomain = null;
+            };
+
+            $scope.destroy = function() {
+                zoom.on('zoom', null);
+                $('.overlay').off();
+            };
+
+            $scope.init = function() {
+                select('svg').attr('height', plotting.initialHeight($scope));
+                xAxisScale = d3.scale.linear();
+                yAxisScale = d3.scale.linear();
+                xAxis = plotting.createAxis(xAxisScale, 'bottom');
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
+                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
+                yAxis = plotting.createExponentialAxis(yAxisScale, 'left');
+                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                graphLine = d3.svg.line()
+                    .x(function(d) {return xAxisScale(d[0]);})
+                    .y(function(d) {return yAxisScale(d[1]);});
+                focusPoint = setupFocusPoint(select('.overlay'), '.focus', xAxisScale, yAxisScale, false, $scope);
+                resetZoom();
+            };
+
+            $scope.load = function(json) {
+                $scope.dataCleared = false;
+                var xPoints = json.x_points
+                    ? json.x_points
+                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
+                $scope.xRange = json.x_range;
+                var xdom = [json.x_range[0], json.x_range[1]];
+                if (! (xDomain && xDomain[0] == xdom[0] && xDomain[1] == xdom[1])) {
+                    xDomain = xdom;
+                    points = [];
+                    xAxisScale.domain(xdom);
+                }
+                yDomain = [d3.min(json.points), d3.max(json.points)];
+                yAxisScale.domain(yDomain).nice();
+                points.splice(0, 0, d3.zip(xPoints, json.points));
+                if (points.length > MAX_PLOTS) {
+                    points = points.slice(0, MAX_PLOTS);
+                }
+                focusPoint.load(points[0], true);
+                select('.y-axis-label').text(json.y_label);
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.main-title').text(json.title);
+                for (var i = 0; i < MAX_PLOTS; i++) {
+                    select('.line-' + i).datum(points[i] || []);
+                }
+                $scope.resize();
+            };
 
             $scope.resize = function() {
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
@@ -657,58 +719,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
                 xAxisGrid.tickSize(-$scope.height);
                 yAxisGrid.tickSize(-$scope.width);
-                zoom.x(xAxisScale);
-                select('.overlay').call(zoom);
                 refresh();
-            };
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            $scope.clearData = function() {
-                $scope.dataCleared = true;
-            };
-
-            $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                xAxisScale = d3.scale.linear();
-                yAxisScale = d3.scale.linear();
-                xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
-                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
-                yAxis = plotting.createExponentialAxis(yAxisScale, 'left');
-                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
-                graphLine = d3.svg.line()
-                    .x(function(d) {return xAxisScale(d[0]);})
-                    .y(function(d) {return yAxisScale(d[1]);});
-                focusPoint = setupFocusPoint(select('.overlay'), '.focus', xAxisScale, yAxisScale, false, $scope);
-                zoom = d3.behavior.zoom().on('zoom', refresh);
-            };
-
-            $scope.load = function(json) {
-                $scope.dataCleared = false;
-                var xPoints = json.x_points
-                    ? json.x_points
-                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
-                points = d3.zip(xPoints, json.points);
-                $scope.xRange = json.x_range;
-                xAxisScale.domain([json.x_range[0], json.x_range[1]]);
-                xDomain = xAxisScale.domain();
-                yAxisScale.domain([d3.min(json.points), d3.max(json.points)]);
-                yDomain = yAxisScale.domain();
-                focusPoint.load(points);
-                select('.y-axis-label').text(json.y_label);
-                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
-                select('.main-title').text(json.title);
-                select('.line').datum(points);
-                $scope.resize();
-            };
-
-            $scope.destroy = function() {
-                zoom.on('zoom', null);
-                $('.overlay').off();
             };
         },
         link: function link(scope, element) {

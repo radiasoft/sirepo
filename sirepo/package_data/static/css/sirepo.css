@@ -252,7 +252,43 @@
     .s-plot .line {
       fill: none;
       stroke: steelblue;
+      stroke-width: 1px;
+    }
+    .s-plot path.line-0 {
       stroke-width: 1.5px;
+    }
+    .s-plot path.line-1 {
+      opacity: 0.65;
+    }
+    .s-plot path.line-2 {
+      opacity: 0.6;
+    }
+    .s-plot path.line-3 {
+      opacity: 0.55;
+    }
+    .s-plot path.line-4 {
+      opacity: 0.5;
+    }
+    .s-plot path.line-5 {
+      opacity: 0.45;
+    }
+    .s-plot path.line-6 {
+      opacity: 0.4;
+    }
+    .s-plot path.line-7 {
+      opacity: 0.35;
+    }
+    .s-plot path.line-8 {
+      opacity: 0.3;
+    }
+    .s-plot path.line-9 {
+      opacity: 0.25;
+    }
+    .s-plot path.line-10 {
+      opacity: 0.20;
+    }
+    .s-plot path.line-11 {
+      opacity: 0.15;
     }
     .s-plot .overlay {
       fill: none;
