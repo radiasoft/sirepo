@@ -28,8 +28,9 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
                 delayedFunc.apply(context, args);
             };
-            if (debounceInterval)
+            if (debounceInterval) {
                 $interval.cancel(debounceInterval);
+            }
             debounceInterval = $interval(later, milliseconds, 1);
         };
     }
@@ -38,11 +39,13 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         scope.prevFrameIndex = -1;
         scope.isPlaying = false;
         var requestData = function() {
-            if (! scope.hasFrames())
+            if (! scope.hasFrames()) {
                 return;
+            }
             var index = frameCache.getCurrentFrame(scope.modelName);
-            if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex)
+            if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex) {
                 return;
+            }
             scope.prevFrameIndex = index;
             frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
                 if (scope.element) {
@@ -52,8 +55,9 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     }
                     scope.load(data);
                 }
-                if (scope.isPlaying)
+                if (scope.isPlaying) {
                     scope.advanceFrame(1);
+                }
             });
         };
         scope.advanceFrame = function(increment) {
@@ -68,16 +72,18 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         scope.firstFrame = function() {
             scope.isPlaying = false;
             frameCache.setCurrentFrame(scope.modelName, 0);
-            if (scope.modelChanged)
+            if (scope.modelChanged) {
                 scope.modelChanged();
+            }
             requestData();
         };
         scope.hasFrames = function() {
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {
-            if (SIREPO.APP_NAME == 'srw')
+            if (SIREPO.APP_NAME == 'srw') {
                 return false;
+            }
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
         };
         scope.isFirstFrame = function() {
@@ -93,20 +99,25 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         };
         scope.togglePlay = function() {
             scope.isPlaying = ! scope.isPlaying;
-            if (scope.isPlaying)
+            if (scope.isPlaying) {
                 scope.advanceFrame(1);
+            }
         };
-        if (scope.clearData)
+        if (scope.clearData) {
             scope.$on('framesCleared', scope.clearData);
+        }
         scope.$on('modelsLoaded', requestData);
         scope.$on('framesLoaded', function(event, oldFrameCount) {
-            if (scope.prevFrameIndex < 0 || oldFrameCount === 0)
+            if (scope.prevFrameIndex < 0 || oldFrameCount === 0) {
                 scope.lastFrame();
-            else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName))
+            }
+            else if (scope.prevFrameIndex > frameCache.getFrameCount(scope.modelName)) {
                 scope.firstFrame();
+            }
             // go to the next last frame, if the current frame was the previous last frame
-            else if (frameCache.getCurrentFrame(scope.modelName) >= oldFrameCount - 1)
+            else if (frameCache.getCurrentFrame(scope.modelName) >= oldFrameCount - 1) {
                 scope.lastFrame();
+            }
         });
         return requestData;
     }
@@ -120,7 +131,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             // this causes a 'number of fractional digits' error in MSIE
             //.tickFormat(d3.format('e'))
                 .tickFormat(function (value) {
-                    if (value){
+                    if (value) {
                         if (Math.abs(value) < 1e3 & Math.abs(value) > 1e-3) {
                             return cleanNumber(value.toString());
                         } else {
@@ -152,8 +163,9 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
                 var v = format(n);
                 //TODO(pjm): use a regexp
-                if ((v && v.indexOf('z') > 0) || v == '0.00' || v == '0.0000')
+                if ((v && v.indexOf('z') > 0) || v == '0.00' || v == '0.0000') {
                     return '0';
+                }
                 v = cleanNumber(v);
                 return v + units;
             };
@@ -169,10 +181,12 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
                 var requestData;
 
-                if (scope.isAnimation)
+                if (scope.isAnimation) {
                     requestData = initAnimation(scope);
-                else if (scope.isClientOnly)
+                }
+                else if (scope.isClientOnly) {
                     requestData = function() {};
+                }
                 else {
                     var interval = null;
                     requestData = function(forceRunCount) {
@@ -182,14 +196,17 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                                 $interval.cancel(interval);
                                 interval = null;
                             }
-                            if (! scope.element)
+                            if (! scope.element) {
                                 return;
+                            }
                             panelState.requestData(scope.modelName, function(data) {
-                                if (! scope.element)
+                                if (! scope.element) {
                                     return;
+                                }
                                 forceRunCount = forceRunCount || 0;
-                                if (data.x_range)
+                                if (data.x_range) {
                                     scope.load(data);
+                                }
                                 else if (forceRunCount++ <= 2) {
                                     // try again, probably bad data
                                     panelState.clear(scope.modelName);
@@ -218,20 +235,23 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     scope.modelName + '.changed',
                     function() {
                         scope.prevFrameIndex = -1;
-                        if (scope.modelChanged)
+                        if (scope.modelChanged) {
                             scope.modelChanged();
+                        }
                         panelState.clear(scope.modelName);
                         requestData();
                     });
                 scope.isLoading = function() {
-                    if (scope.isAnimation)
+                    if (scope.isAnimation) {
                         return false;
+                    }
                     return panelState.isLoading(scope.modelName);
                 };
                 $($window).resize(scope.windowResize);
                 scope.init();
-                if (appState.isLoaded())
+                if (appState.isLoaded()) {
                     requestData();
+                }
             });
         },
 
@@ -250,21 +270,25 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
             for (var i = 0; i < points.length; i++) {
                 var d = points[i];
-                if (d[0] > xDomain[1] || d[0] < xDomain[0])
+                if (d[0] > xDomain[1] || d[0] < xDomain[0]) {
                     continue;
+                }
                 if (ydom) {
-                    if (d[1] < ydom[0])
+                    if (d[1] < ydom[0]) {
                         ydom[0] = d[1];
-                    else if (d[1] > ydom[1])
+                    }
+                    else if (d[1] > ydom[1]) {
                         ydom[1] = d[1];
+                    }
                 }
                 else {
                     ydom = [d[1], d[1]];
                 }
             }
             if (ydom && ydom[0] != ydom[1]) {
-                if (ydom[0] > 0)
+                if (ydom[0] > 0) {
                     ydom[0] = 0;
+                }
                 if (invertAxis) {
                     var x = ydom[0];
                     ydom[0] = ydom[1];
@@ -329,8 +353,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function formatValue(v) {
-        if (v < 1 || v > 1000000)
+        if (v < 1 || v > 1000000) {
             return ordinateFormatter(v);
+        }
         return formatter(v);
     }
 
@@ -388,18 +413,21 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 hideFocusPoint();
             },
             refresh: function() {
-                if (focusIndex >= 0)
+                if (focusIndex >= 0) {
                     showFocusPoint(true);
+                }
             },
         };
     }
 
     function moveFocus(step) {
-        if (invertAxis)
+        if (invertAxis) {
             step = -step;
+        }
         var newIndex = focusIndex + step;
-        if (newIndex < 0 || newIndex >= points.length)
+        if (newIndex < 0 || newIndex >= points.length) {
             return;
+        }
         focusIndex = newIndex;
         showFocusPoint(false);
     }
@@ -420,29 +448,34 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             xMax = swap;
         }
         var domain = xAxisScale.domain();
-        if (xMin < domain[0])
+        if (xMin < domain[0]) {
             xMin = domain[0];
-        if (xMax > domain[1])
+        }
+        if (xMax > domain[1]) {
             xMax = domain[1];
+        }
 
         focusIndex = -1;
         var maxPoint;
         for (var i = 0; i < points.length; i++) {
             var p = points[i];
-            if (p[0] > xMax || p[0] < xMin)
+            if (p[0] > xMax || p[0] < xMin) {
                 continue;
+            }
             if (! maxPoint || p[1] > maxPoint[1]) {
                 maxPoint = p;
                 focusIndex = i;
             }
         }
-        if (maxPoint)
+        if (maxPoint) {
             showFocusPoint(true);
+        }
     }
 
     function onKeyDown() {
-        if (! points || focusIndex < 0)
+        if (! points || focusIndex < 0) {
             return;
+        }
         var keyCode = d3.event.keyCode;
         if (keyCode == 27) { // escape
             hideFocusPoint();
@@ -475,8 +508,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         focus.style('display', null);
         var circle = select(circleClass + ' circle');
         if (isMainFocus) {
-            if (! defaultCircleSize)
+            if (! defaultCircleSize) {
                 defaultCircleSize = circle.attr('r');
+            }
             circle.attr('r', defaultCircleSize);
         }
         else {
@@ -709,8 +743,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
 
             $scope.resize = function() {
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! points || isNaN(width))
+                if (! points || isNaN(width)) {
                     return;
+                }
                 $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
                 select('svg')
@@ -901,10 +936,12 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     restoreDomain(xAxisScale, prevDomain[0]);
                     restoreDomain(yAxisScale, prevDomain[1]);
                 }
-                if (clipDomain(xAxisScale, 'x') + clipDomain(yAxisScale, 'y'))
+                if (clipDomain(xAxisScale, 'x') + clipDomain(yAxisScale, 'y')) {
                     select('rect.mouse-rect-xy').attr('class', 'mouse-rect-xy mouse-move');
-                else
+                }
+                else {
                     select('rect.mouse-rect-xy').attr('class', 'mouse-rect-xy mouse-zoom');
+                }
                 drawImage();
                 drawBottomPanelCut();
                 drawRightPanelCut();
@@ -1033,15 +1070,18 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     for (var xi = 0; xi <= xmax; ++xi) {
                         var zi = json.z_matrix[yi][xi];
                         heatmap[ymax - yi][xi] = zi;
-                        if (zmax < zi)
+                        if (zmax < zi) {
                             zmax = zi;
-                        else if (zmin > zi)
+                        }
+                        else if (zmin > zi) {
                             zmin = zi;
+                        }
                     }
                 }
                 //TODO(pjm): for now, we always want the lower range to be 0
-                if (zmin > 0)
+                if (zmin > 0) {
                     zmin = 0;
+                }
                 bottomPanelYScale.domain([zmin, zmax]);
                 rightPanelXScale.domain([zmax, zmin]);
                 initDraw(zmin, zmax);
@@ -1051,8 +1091,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.resize = function() {
                 //TODO(pjm): occasionally dies here in d3 when switching tabs
                 var width = parseInt(select().style('width')) - 2 * $scope.margin;
-                if (! heatmap || isNaN(width))
+                if (! heatmap || isNaN(width)){
                     return;
+                }
                 var canvasSize = 2 * (width - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right) / 3;
                 $scope.canvasSize = canvasSize;
                 $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.bottomPanelMargin.top + $scope.bottomPanelMargin.bottom;
@@ -1120,10 +1161,12 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 };
 
                 function hex(v) {
-                    if (v > 1)
+                    if (v > 1) {
                         v = 1;
-                    else if (v < 0)
+                    }
+                    else if (v < 0) {
                         v = 0;
+                    }
                     return ('0' + Math.round(v * 255).toString(16)).slice(-2);
                 }
 
@@ -1168,8 +1211,9 @@ SIREPO.app.directive('heatmap', function(plotting) {
 
             function mouseMove() {
                 /*jshint validthis: true*/
-                if (! heatmap || heatmap[0].length <= 2)
+                if (! heatmap || heatmap[0].length <= 2) {
                     return;
+                }
                 var point = d3.mouse(this);
                 var x0 = xAxisScale.invert(point[0] - 1);
                 var y0 = yAxisScale.invert(point[1] - 1);
@@ -1261,8 +1305,9 @@ SIREPO.app.directive('heatmap', function(plotting) {
 
             $scope.resize = function() {
                 var canvasSize = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! heatmap || isNaN(canvasSize))
+                if (! heatmap || isNaN(canvasSize)) {
                     return;
+                }
                 $scope.canvasSize = canvasSize;
                 plotting.ticks(yAxis, canvasSize, false);
                 plotting.ticks(xAxis, canvasSize, true);
@@ -1335,10 +1380,12 @@ SIREPO.app.directive('heatmap', function(plotting) {
                     for (var xi = 0; xi <= xmax; ++xi) {
                         var zi = json.z_matrix[yi][xi];
                         heatmap[ymax - yi][xi] = zi;
-                        if (zmax < zi)
+                        if (zmax < zi) {
                             zmax = zi;
-                        else if (zmin > zi)
+                        }
+                        else if (zmin > zi) {
                             zmin = zi;
+                        }
                     }
                 }
                 initDraw(allFrameMin.compute(zmin), allFrameMax.compute(zmax));
@@ -1352,10 +1399,12 @@ SIREPO.app.directive('heatmap', function(plotting) {
 
             $scope.destroy = function() {
                 $('.mouse-rect').off();
-                if ($scope.zoom)
+                if ($scope.zoom) {
                     $scope.zoom.on('zoom', null);
-                if ($scope.imageObj)
+                }
+                if ($scope.imageObj) {
                     $scope.imageObj.onload = null;
+                }
             };
         },
         link: function link(scope, element) {
