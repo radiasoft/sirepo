@@ -355,7 +355,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 keyListener = false;
             })
             .on('mousedown', function(e) {
-                lastClickX = d3.event.clientX;
+                lastClickX = d3.event[invertAxis ? 'clientY' : 'clientX'];
             })
             .on('click', onClick)
             .on('dblclick', function copyToClipboard() {
@@ -378,10 +378,14 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         return {
             load: function(axisPoints, preservePoint) {
                 points = axisPoints;
-                if (! preservePoint) {
-                    focusIndex = -1;
-                    hideFocusPoint();
+                if (preservePoint) {
+                    var focus = select(circleClass);
+                    if (focus.style('display') != 'none') {
+                        return;
+                    }
                 }
+                focusIndex = -1;
+                hideFocusPoint();
             },
             refresh: function() {
                 if (focusIndex >= 0)
@@ -403,7 +407,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     function onClick() {
         /*jshint validthis: true*/
         // lastClickX determines if the user is panning or clicking on a point
-        if (! points || Math.abs(lastClickX - d3.event.clientX) > 10) {
+        if (! points || Math.abs(lastClickX - d3.event[invertAxis ? 'clientY' : 'clientX']) > 10) {
             return;
         }
         var axisIndex = invertAxis ? 1 : 0;
@@ -609,8 +613,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
 
             function refresh() {
                 var xdom = xAxisScale.domain();
+                var zoomWidth = xdom[1] - xdom[0];
 
-                if ((xdom[1] - xdom[0]) >= (xDomain[1] - xDomain[0])) {
+                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
                     xAxisScale.domain(xDomain);
                     yAxisScale.domain(yDomain).nice();
@@ -618,10 +623,10 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
                     if (xdom[0] < xDomain[0]) {
-                        xAxisScale.domain([xDomain[0], xdom[1] - xdom[0] + xDomain[0]]);
+                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
                     }
                     if (xdom[1] > xDomain[1]) {
-                        xAxisScale.domain([xdom[0] - xdom[1] + xDomain[1], xDomain[1]]);
+                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
                     }
                     plotting.recalculateDomainFromPoints(yAxisScale, points[0], xAxisScale.domain());
                 }
@@ -715,8 +720,8 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 plotting.ticks(xAxisGrid, $scope.width, true);
                 plotting.ticks(yAxis, $scope.height, false);
                 plotting.ticks(yAxisGrid, $scope.height, false);
-                xAxisScale.range([-0.5, $scope.width - 0.5]);
-                yAxisScale.range([$scope.height - 0.5, 0 - 0.5]).nice();
+                xAxisScale.range([0, $scope.width]);
+                yAxisScale.range([$scope.height, 0]);
                 xAxisGrid.tickSize(-$scope.height);
                 yAxisGrid.tickSize(-$scope.width);
                 refresh();
@@ -728,7 +733,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
     };
 });
 
-SIREPO.app.directive('plot3d', function(plotting) {
+SIREPO.app.directive('plot3d', function(appState, plotting) {
     return {
         restrict: 'A',
         scope: {
@@ -820,7 +825,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 select('.bottom-panel path')
                     .datum(points)
                     .attr('d', bottomPanelCutLine);
-                focusPointX.load(points);
+                focusPointX.load(points, true);
             }
 
             function drawImage() {
@@ -858,7 +863,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 select('.right-panel path')
                     .datum(points)
                     .attr('d', rightPanelCutLine);
-                focusPointY.load(points);
+                focusPointY.load(points, true);
             }
 
             function exceededMaxZoom(scale, axisName) {
@@ -947,6 +952,7 @@ SIREPO.app.directive('plot3d', function(plotting) {
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
+                fullDomain = null;
             };
 
             $scope.destroy = function() {
@@ -992,12 +998,21 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 prevDomain = null;
                 $scope.dataCleared = false;
                 heatmap = [];
-                fullDomain = [
+                var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
                     [json.y_range[0], json.y_range[1]],
                 ];
-                xValues = plotting.linspace(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
-                yValues = plotting.linspace(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
+                if (! appState.deepEquals(fullDomain, newFullDomain)) {
+                    fullDomain = newFullDomain;
+                    xValues = plotting.linspace(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
+                    yValues = plotting.linspace(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
+                    xAxisScale.domain(fullDomain[0]);
+                    xIndexScale.domain(fullDomain[0]);
+                    yAxisScale.domain(fullDomain[1]);
+                    yIndexScale.domain(fullDomain[1]);
+                    adjustZoomToCenter(xAxisScale);
+                    adjustZoomToCenter(yAxisScale);
+                }
                 var xmax = xValues.length - 1;
                 var ymax = yValues.length - 1;
                 xIndexScale.range([0, xmax]);
@@ -1008,12 +1023,6 @@ SIREPO.app.directive('plot3d', function(plotting) {
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.z-axis-label').text(json.z_label);
-                xAxisScale.domain(fullDomain[0]);
-                xIndexScale.domain(fullDomain[0]);
-                yAxisScale.domain(fullDomain[1]);
-                yIndexScale.domain(fullDomain[1]);
-                adjustZoomToCenter(xAxisScale);
-                adjustZoomToCenter(yAxisScale);
                 var zmin = json.z_matrix[0][0];
                 var zmax = json.z_matrix[0][0];
 
