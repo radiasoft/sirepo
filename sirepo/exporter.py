@@ -30,8 +30,9 @@ def create_archive(sim_type, sim_id, filename):
             '{}: unknown file type; expecting html or zip',
             filename,
         )
-    fp, data = _create_zip(sim_type, sim_id)
-    if filename.endswith('zip'):
+    want_zip = filename.endswith('zip')
+    fp, data = _create_zip(sim_type, sim_id, want_python=want_zip)
+    if want_zip:
         return fp, 'application/zip'
     return _create_html(fp, data)
 
@@ -68,12 +69,13 @@ def _create_html(zip_path, data):
     return fp, 'text/html'
 
 
-def _create_zip(sim_type, sim_id):
+def _create_zip(sim_type, sim_id, want_python):
     """Zip up the json file and its dependencies
 
     Args:
         sim_type (str): simulation type
         sim_id (str): simulation id
+        want_python (bool): include template's python source?
 
     Returns:
         py.path.Local: zip file name
@@ -86,13 +88,34 @@ def _create_zip(sim_type, sim_id):
     with pkio.save_chdir(simulation_db.tmp_dir()):
         res = py.path.local(sim_id + '.zip')
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
+        files = template_common.lib_files(data)
+        files.insert(0, simulation_db.sim_data_file(sim_type, sim_id))
+        if want_python:
+            files.append(_python(data))
         with zipfile.ZipFile(
             str(res),
             mode='w',
             compression=zipfile.ZIP_DEFLATED,
             allowZip64=True,
         ) as z:
-            for f in [simulation_db.sim_data_file(sim_type, sim_id)] \
-                + template_common.lib_files(data):
+            for f in files:
                 z.write(str(f), f.basename)
     return res, data
+
+
+def _python(data):
+    """Generate python in current directory
+
+    Args:
+        data (dict): simulation
+
+    Returns:
+        py.path.Local: file to append
+    """
+    import sirepo.template
+    import copy
+
+    template = sirepo.template.import_module(data)
+    res = py.path.local('run.py')
+    res.write(template.python_source_for_model(copy.deepcopy(data), 'simulation'))
+    return res

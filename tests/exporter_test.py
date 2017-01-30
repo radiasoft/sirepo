@@ -20,8 +20,9 @@ def test_create_zip():
 
     fc = sr_unit.flask_client()
     for sim_type, sim_name, expect in (
-        ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'sirepo-data.json']),
-        ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'sirepo-data.json']),
+        ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
+        ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
+        ('warp', 'WARP example laser simulation', ['run.py', 'sirepo-data.json']),
     ):
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         resp = fc.sr_get(
