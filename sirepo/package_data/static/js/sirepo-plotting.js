@@ -359,6 +359,10 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         return formatter(v);
     }
 
+    function hasFocusPoint() {
+        return points && focusIndex >= 0 && focusIndex < points.length;
+    }
+
     function hideFocusPoint() {
         select(circleClass).style('display', 'none');
         select('.focus-text').text('');
@@ -402,6 +406,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
 
         return {
             load: function(axisPoints, preservePoint) {
+                if (preservePoint && (axisPoints.length != (points || []).length)) {
+                    preservePoint = false;
+                }
                 points = axisPoints;
                 if (preservePoint) {
                     var focus = select(circleClass);
@@ -413,7 +420,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 hideFocusPoint();
             },
             refresh: function() {
-                if (focusIndex >= 0) {
+                if (hasFocusPoint()) {
                     showFocusPoint(true);
                 }
             },
@@ -421,6 +428,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function moveFocus(step) {
+        if (! hasFocusPoint()) {
+            return;
+        }
         if (invertAxis) {
             step = -step;
         }
@@ -473,7 +483,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function onKeyDown() {
-        if (! points || focusIndex < 0) {
+        if (! hasFocusPoint()) {
             return;
         }
         var keyCode = d3.event.keyCode;
@@ -496,6 +506,9 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function showFocusPoint(isMainFocus) {
+        if (! hasFocusPoint()) {
+            return;
+        }
         var p = points[focusIndex];
         var domain = xAxisScale.domain();
         $(overlay.node()).parent().find('[class=focus]').hide();
@@ -919,13 +932,13 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 // Compute the pixel colors; scaled by CSS.
                 var img = ctx.createImageData(xValues.length, yValues.length);
                 for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-                for (var xi = 0; xi <= xmax; ++xi) {
-                    var c = d3.rgb(color(heatmap[yi][xi]));
-                    img.data[++p] = c.r;
-                    img.data[++p] = c.g;
-                    img.data[++p] = c.b;
-                    img.data[++p] = 255;
-                }
+                    for (var xi = 0; xi <= xmax; ++xi) {
+                        var c = d3.rgb(color(heatmap[yi][xi]));
+                        img.data[++p] = c.r;
+                        img.data[++p] = c.g;
+                        img.data[++p] = c.b;
+                        img.data[++p] = 255;
+                    }
                 }
                 ctx.putImageData(img, 0, 0);
                 imageObj.src = canvas.node().toDataURL();
