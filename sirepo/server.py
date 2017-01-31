@@ -364,13 +364,13 @@ def api_oauthLogout(simulation_type):
 app_oauth_logout = api_oauthLogout
 
 
-def api_pythonSource(simulation_type, simulation_id, model):
+def api_pythonSource(simulation_type, simulation_id, model=None):
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
     return _as_attachment(
         flask.make_response(template.python_source_for_model(data, model)),
         'text/x-python',
-        '{}.py'.format(data['models']['simulation']['name']),
+        '{}.py'.format(data.models.simulation.name),
     )
 app_python_source = api_pythonSource
 

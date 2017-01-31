@@ -38,7 +38,7 @@
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "oauthLogin": "/login/<simulation_type>/<oauth_type>",
         "oauthLogout": "/logout/<simulation_type>",
-        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/<model>",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
         "runCancel": "/run-cancel",

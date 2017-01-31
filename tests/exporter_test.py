@@ -35,7 +35,7 @@ def test_create_zip():
             raw_response=True,
         )
         with pkio.save_chdir(pkunit.work_dir()):
-            fn = 'foo.zip'
+            fn = sim_name + '.zip'
             with open(fn, 'wb') as f:
                 f.write(resp.data)
             z = zipfile.ZipFile(fn)

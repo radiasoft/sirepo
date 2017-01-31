@@ -117,5 +117,5 @@ def _python(data):
 
     template = sirepo.template.import_module(data)
     res = py.path.local('run.py')
-    res.write(template.python_source_for_model(copy.deepcopy(data), 'simulation'))
+    res.write(template.python_source_for_model(copy.deepcopy(data), None))
     return res

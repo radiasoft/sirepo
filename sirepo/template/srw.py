@@ -78,6 +78,8 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
+_RUN_ALL_MODEL = 'simulation'
+
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _USER_MODEL_LIST_FILENAME = {
@@ -750,7 +752,7 @@ def prepare_for_save(data):
 
 
 def python_source_for_model(data, model):
-    data['report'] = model
+    data['report'] = model or _RUN_ALL_MODEL
     return """{}
 
 if __name__ == '__main__':
@@ -1398,7 +1400,7 @@ def _generate_parameters_file(data, plot_reports=False):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
-    run_all = report == 'simulation'
+    run_all = report == _RUN_ALL_MODEL
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
