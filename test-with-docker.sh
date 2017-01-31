@@ -1,11 +1,12 @@
 #!/bin/bash
-set -e
-set -x
-docker run -it radiasoft/sirepo /bin/bash <<'END'
-set -e
-yum install nodejs
+set -e -x
+docker run -i radiasoft/sirepo /bin/bash -e -x <<'END'
+curl -s -S -L https://rpm.nodesource.com/setup_4.x | bash
+yum install -y -q nodejs
+echo "vagrant ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/vagrant
+chmod 440 /etc/sudoers.d/vagrant
 su - vagrant <<'EOF'
-set -e
+set -e -x
 mkdir ~/src/radiasoft
 for m in pykern sirepo; do
     git clone -q --depth 1 https://github.com/radiasoft/"$m"
