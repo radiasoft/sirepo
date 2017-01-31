@@ -1100,7 +1100,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
     """Remove the beam and undulator user model list files"""
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         model = electron_beam if model_name == 'electronBeam' else tabulated_undulator
-        if not model:
+        if not model or 'id' not in model:
             continue;
         user_model_list = _load_user_model_list(model_name)
         for i,m in enumerate(user_model_list):
