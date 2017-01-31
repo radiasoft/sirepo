@@ -14,4 +14,4 @@ install:
 script:
   - bash test-with-docker.sh
   # This tests basic stuff and deploys
-  - bash test.sh
+  #- bash test.sh
