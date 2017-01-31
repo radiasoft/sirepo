@@ -18,7 +18,7 @@ def test_processed_image():
     sim_type = 'srw'
     sim_id = fc.sr_sim_data(sim_type, 'Sample from Image')
     resp = fc.sr_post(
-        'getApplicatfionData',
+        'getApplicationData',
         {
             'simulationId': sim_id,
             'simulationType': sim_type,

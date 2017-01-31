@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# TODO(robnagler) modify containers to build a branch, call pkdeploy
+#
 set -e -x
 docker run -i radiasoft/sirepo /bin/bash -e -x <<'END'
 curl -s -S -L https://rpm.nodesource.com/setup_4.x | bash
@@ -11,7 +14,6 @@ mkdir ~/src/radiasoft
 for m in pykern sirepo; do
     git clone -q --depth 1 https://github.com/radiasoft/"$m"
     cd "$m"
-    git checkout robnagler
     pip install -r requirements.txt
     python setup.py install
     cd ..

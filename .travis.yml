@@ -5,13 +5,11 @@ services:
 language: python
 branches:
   only:
-    - robnagler
+    - master
 #TODO: this script could be pulled dynamically
 install:
   - pip install -U pip setuptools tox pytest
   - pip install -r requirements.txt
-  - npm install jshint
 script:
   - bash test-with-docker.sh
-  # This tests basic stuff and deploys
-  #- bash test.sh
+  - python setup.py pkdeploy
