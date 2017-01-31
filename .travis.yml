@@ -1,13 +1,10 @@
 ---
-# force change; remove this line any time
+sudo: required
+services:
+  - docker
 language: python
 branches:
   only:
-    - master
-#TODO: this script could be pulled dynamically
-install:
-  - pip install -U pip setuptools tox pytest
-  - pip install -r requirements.txt
-  - npm install jshint
+    - robnagler
 script:
-  - bash test.sh
+  - bash travis.sh
