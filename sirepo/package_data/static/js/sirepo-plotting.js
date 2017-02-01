@@ -205,6 +205,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                                 }
                                 forceRunCount = forceRunCount || 0;
                                 if (data.x_range) {
+                                    scope.clearData();
                                     scope.load(data);
                                 }
                                 else if (forceRunCount++ <= 2) {
@@ -863,15 +864,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             function drawBottomPanelCut() {
                 var bBottom = yIndexScale(yAxisScale.domain()[0]);
                 var yTop = yIndexScale(yAxisScale.domain()[1]);
-                var yv = Math.floor(bBottom + (yTop - bBottom + 1)/2) + 1;
-                var row = heatmap[yValues.length - yv];
-                var xvMin = xIndexScale.domain()[0];
-                var xvMax = xIndexScale.domain()[1];
-                var xiMin = Math.ceil(xIndexScale(xvMin));
-                var xiMax = Math.floor(xIndexScale(xvMax));
-                var xvRange = xValues.slice(xiMin, xiMax + 1);
-                var zvRange = row.slice(xiMin, xiMax + 1);
-                var points = d3.zip(xvRange, zvRange);
+                var yv = Math.round(bBottom + (yTop - bBottom) / 2);
+                var row = heatmap[yValues.length - yv - 1];
+                var points = d3.zip(xValues, row);
                 plotting.recalculateDomainFromPoints(bottomPanelYScale, points, xAxisScale.domain());
                 select('.bottom-panel path')
                     .datum(points)
@@ -891,24 +886,23 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 ctx.mozImageSmoothingEnabled = false;
                 ctx.imageSmoothingEnabled = false;
                 ctx.msImageSmoothingEnabled = false;
+                var xPixelSize = (xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize / xValues.length;
+                var yPixelSize = (yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize / yValues.length;
                 ctx.drawImage(
                     imageObj,
-                    -(xZoomDomain[0] - xDomain[0]) / zoomWidth * $scope.canvasSize,
-                    -(yDomain[1] - yZoomDomain[1]) / zoomHeight * $scope.canvasSize,
-                    (xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize,
-                    (yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize);
+                    -(xZoomDomain[0] - xDomain[0]) / zoomWidth * $scope.canvasSize - xPixelSize / 2,
+                    -(yDomain[1] - yZoomDomain[1]) / zoomHeight * $scope.canvasSize - yPixelSize / 2,
+                    (xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize + xPixelSize,
+                    (yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize + yPixelSize);
             }
 
             function drawRightPanelCut() {
-                var yvMin = yIndexScale.domain()[0];
-                var yvMax = yIndexScale.domain()[1];
-                var yiMin = Math.ceil(yIndexScale(yvMin));
-                var yiMax = Math.floor(yIndexScale(yvMax));
                 var xLeft = xIndexScale(xAxisScale.domain()[0]);
                 var xRight = xIndexScale(xAxisScale.domain()[1]);
-                var xv = Math.floor(xLeft + (xRight - xLeft + 1)/2);
-                var points = heatmap.slice(yiMin, yiMax + 1).map(function (v, i) {
-                    return [yValues[yiMax - i], v[xv]];
+                var xv = Math.round(xLeft + (xRight - xLeft) / 2);
+                var ySize = yValues.length;
+                var points = heatmap.map(function (v, i) {
+                    return [yValues[ySize - i - 1], v[xv]];
                 });
                 plotting.recalculateDomainFromPoints(rightPanelXScale, points, yAxisScale.domain(), true);
                 select('.right-panel path')
