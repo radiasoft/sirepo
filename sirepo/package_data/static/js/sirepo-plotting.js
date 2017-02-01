@@ -659,6 +659,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
             var focusPoint, graphLine, points, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
 
             function refresh() {
+                if (! xDomain) {
+                    return;
+                }
                 var xdom = xAxisScale.domain();
                 var zoomWidth = xdom[1] - xdom[0];
 
@@ -945,6 +948,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function refresh() {
+                if (! fullDomain) {
+                    return;
+                }
                 if (prevDomain && (exceededMaxZoom(xAxisScale, 'x') || exceededMaxZoom(yAxisScale, 'y'))) {
                     restoreDomain(xAxisScale, prevDomain[0]);
                     restoreDomain(yAxisScale, prevDomain[1]);
