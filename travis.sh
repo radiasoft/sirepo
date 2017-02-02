@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 trap 'echo FAILED' ERR
 if [[ $TRAVIS_BRANCH != master && $TRAVIS_EVENT_TYPE != push ]]; then
     echo 'Not a master push so skipping'
@@ -35,7 +36,8 @@ if [[ -n $RADIASOFT_DOCKER_LOGIN ]]; then
     (
         umask 077
         mkdir ~/.docker
-        echo "$RADIASOFT_DOCKER_LOGIN" > ~/.docker/config.json
+        # Avoid echoing in log if set -x
+        perl -e 'print($ENV{"RADIASOFT_DOCKER_LOGIN"})' > ~/.docker/config.json
     )
     export build_push=1
 fi
