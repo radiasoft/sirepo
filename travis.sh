@@ -6,14 +6,10 @@ if [[ $TRAVIS_BRANCH != master && $TRAVIS_EVENT_TYPE != push ]]; then
     echo 'Not a master push so skipping'
     exit
 fi
-pip install --upgrade pip setuptools tox pytest
-pip install pykern
-# Get sirepo version, need to right pad. Thanks setuptools!
-build_version=$(python setup.py --version)
-while (( ${#build_version} < 15 )); do
-    build_version=${build_version}0
-done
-export build_version
+# "python setup.py --version" doesn't seem to work on travis so
+# this emulates what pkssetup.py does to get it from the git branch
+v=$(git log -1 --format=%ct "${TRAVIS_COMMIT:-$TRAVIS_BRANCH}")
+export build_version=$(python -c "import datetime as d; print d.datetime.fromtimestamp(float($v)).strftime('%Y%m%d.%H%M%S')")
 
 # Make sure some vars are defined that might not be
 : ${PKSETUP_PKDEPLOY_IS_DEV:=}
