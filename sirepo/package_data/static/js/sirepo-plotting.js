@@ -6,11 +6,18 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $window) {
 
     var INITIAL_HEIGHT = 400;
+    var MAX_PLOTS = 11;
 
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
         return v;
+    }
+
+    function createAxis(scale, orient) {
+        return d3.svg.axis()
+            .scale(scale)
+            .orient(orient);
     }
 
     // Returns a function, that, as long as it continues to be invoked, will not
@@ -123,6 +130,17 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     }
 
     return {
+
+        addConvergencePoints: function(select, parentClass, pointsList, points) {
+            pointsList.splice(0, 0, points);
+            if (pointsList.length > MAX_PLOTS) {
+                pointsList = pointsList.slice(0, MAX_PLOTS);
+            }
+            for (var i = 0; i < MAX_PLOTS; i++) {
+                select(parentClass + ' .line-' + i).datum(pointsList[i] || []);
+            }
+            return pointsList;
+        },
 
         createAxis: createAxis,
 
@@ -299,18 +317,18 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             }
         },
 
+        refreshConvergencePoints: function(select, parentClass, graphLine) {
+            for (var i = 0; i < MAX_PLOTS; i++) {
+                select(parentClass + ' .line-' + i).attr('d', graphLine);
+            }
+        },
+
         ticks: function(axis, width, isHorizontalAxis) {
             var spacing = isHorizontalAxis ? 60 : 40;
             var n = Math.max(Math.round(width / spacing), 2);
             axis.ticks(n);
         },
     };
-
-    function createAxis(scale, orient) {
-        return d3.svg.axis()
-            .scale(scale)
-            .orient(orient);
-    }
 });
 
 SIREPO.app.directive('animationButtons', function() {
@@ -653,7 +671,6 @@ SIREPO.app.directive('plot2d', function(plotting) {
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
-            var MAX_PLOTS = 11;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
@@ -687,9 +704,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
                 select('.y.axis').call(yAxis);
                 select('.y.axis.grid').call(yAxisGrid);
-                for (var i = 0; i < MAX_PLOTS; i++) {
-                    select('.line-' + i).attr('d', graphLine);
-                }
+                plotting.refreshConvergencePoints(select, '.plot-viewport', graphLine);
                 focusPoint.refresh();
             }
 
@@ -744,17 +759,11 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 }
                 yDomain = [d3.min(json.points), d3.max(json.points)];
                 yAxisScale.domain(yDomain).nice();
-                points.splice(0, 0, d3.zip(xPoints, json.points));
-                if (points.length > MAX_PLOTS) {
-                    points = points.slice(0, MAX_PLOTS);
-                }
+                points = plotting.addConvergencePoints(select, '.plot-viewport', points, d3.zip(xPoints, json.points));
                 focusPoint.load(points[0], true);
                 select('.y-axis-label').text(json.y_label);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
-                for (var i = 0; i < MAX_PLOTS; i++) {
-                    select('.line-' + i).datum(points[i] || []);
-                }
                 $scope.resize();
             };
 
@@ -803,7 +812,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = true;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, lineOuts, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
 
             var cursorShape = {
                 '11': 'mouse-move-ew',
@@ -862,15 +871,12 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function drawBottomPanelCut() {
-                var bBottom = yIndexScale(yAxisScale.domain()[0]);
+                var yBottom = yIndexScale(yAxisScale.domain()[0]);
                 var yTop = yIndexScale(yAxisScale.domain()[1]);
-                var yv = Math.round(bBottom + (yTop - bBottom) / 2);
-                var row = heatmap[yValues.length - yv - 1];
-                var points = d3.zip(xValues, row);
+                var yv = Math.round(yBottom + (yTop - yBottom) / 2);
+                var points = d3.zip(xValues, heatmap[yValues.length - 1 - yv]);
                 plotting.recalculateDomainFromPoints(bottomPanelYScale, points, xAxisScale.domain());
-                select('.bottom-panel path')
-                    .datum(points)
-                    .attr('d', bottomPanelCutLine);
+                drawLineout('x', yv, points, bottomPanelCutLine);
                 focusPointX.load(points, true);
             }
 
@@ -896,18 +902,32 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     (yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize + yPixelSize);
             }
 
+            function drawLineout(axis, key, points, cutLine) {
+                if (! lineOuts[axis]) {
+                    lineOuts[axis] = {};
+                }
+                var axisClass = axis == 'x' ? '.bottom-panel' : '.right-panel';
+                if (lineOuts[axis][key]) {
+                    if (! appState.deepEquals(points, lineOuts[axis][key][0])) {
+                        lineOuts[axis][key] = plotting.addConvergencePoints(select, axisClass, lineOuts[axis][key], points);
+                    }
+                }
+                else {
+                    lineOuts[axis] = {};
+                    lineOuts[axis][key] = plotting.addConvergencePoints(select, axisClass, [], points);
+                }
+                plotting.refreshConvergencePoints(select, axisClass, cutLine);
+            }
+
             function drawRightPanelCut() {
                 var xLeft = xIndexScale(xAxisScale.domain()[0]);
                 var xRight = xIndexScale(xAxisScale.domain()[1]);
                 var xv = Math.round(xLeft + (xRight - xLeft) / 2);
-                var ySize = yValues.length;
                 var points = heatmap.map(function (v, i) {
-                    return [yValues[ySize - i - 1], v[xv]];
+                    return [yValues[yValues.length - 1 - i], v[xv]];
                 });
                 plotting.recalculateDomainFromPoints(rightPanelXScale, points, yAxisScale.domain(), true);
-                select('.right-panel path')
-                    .datum(points)
-                    .attr('d', rightPanelCutLine);
+                drawLineout('y', xv, points, rightPanelCutLine);
                 focusPointY.load(points, true);
             }
 
@@ -1003,6 +1023,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.clearData = function() {
                 $scope.dataCleared = true;
                 fullDomain = null;
+                lineOuts = {};
             };
 
             $scope.destroy = function() {
@@ -1054,6 +1075,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 ];
                 if (! appState.deepEquals(fullDomain, newFullDomain)) {
                     fullDomain = newFullDomain;
+                    lineOuts = {};
                     xValues = plotting.linspace(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
                     yValues = plotting.linspace(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
                     xAxisScale.domain(fullDomain[0]);
@@ -1095,8 +1117,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 if (zmin > 0) {
                     zmin = 0;
                 }
-                bottomPanelYScale.domain([zmin, zmax]);
-                rightPanelXScale.domain([zmax, zmin]);
+                bottomPanelYScale.domain([zmin, zmax]).nice();
+                rightPanelXScale.domain([zmax, zmin]).nice();
                 initDraw(zmin, zmax);
                 $scope.resize();
             };
@@ -1119,8 +1141,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 plotting.ticks(mainYAxis, canvasSize, false);
                 xAxisScale.range([0, canvasSize]);
                 yAxisScale.range([canvasSize, 0]);
-                bottomPanelYScale.range([$scope.bottomPanelHeight - $scope.bottomPanelMargin.top - $scope.bottomPanelMargin.bottom - 1, 0]).nice();
-                rightPanelXScale.range([0, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right]).nice();
+                bottomPanelYScale.range([$scope.bottomPanelHeight - $scope.bottomPanelMargin.top - $scope.bottomPanelMargin.bottom - 1, 0]);
+                rightPanelXScale.range([0, $scope.rightPanelWidth - $scope.rightPanelMargin.left - $scope.rightPanelMargin.right]);
                 mainXAxis.tickSize(- canvasSize - $scope.bottomPanelHeight + $scope.bottomPanelMargin.bottom); // tickLine == gridline
                 mainYAxis.tickSize(- canvasSize - $scope.rightPanelWidth + $scope.rightPanelMargin.right); // tickLine == gridline
                 refresh();
