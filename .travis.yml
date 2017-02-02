@@ -6,11 +6,5 @@ language: python
 branches:
   only:
     - master
-#TODO: this script could be pulled dynamically
 install:
-  - pip install -U pip setuptools tox pytest
-  - pip install -r requirements.txt
-  - npm install jshint
-script:
-  - bash test-with-docker.sh
-  - bash test.sh
+  - bash travis.sh

@@ -18,7 +18,9 @@ pyfiles=( $(find sirepo -name \*.py | sort) )
 assert_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
 jsfiles=( sirepo/package_data/static/js/*.js )
 assert_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
-./node_modules/jshint/bin/jshint --config=etc/jshint.conf "${jsfiles[@]}"
+if [[ -x ./node_modules/jshint/bin/jshint ]]; then
+    ./node_modules/jshint/bin/jshint --config=etc/jshint.conf "${jsfiles[@]}"
+fi
 if [[ $PKSETUP_PYPI_PASSWORD ]]; then
     python setup.py pkdeploy
 else
