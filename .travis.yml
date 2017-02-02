@@ -6,5 +6,5 @@ language: python
 branches:
   only:
     - master
-install:
+script:
   - bash travis.sh
