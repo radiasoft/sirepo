@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -x
 trap 'echo FAILED' ERR
 if [[ $TRAVIS_BRANCH != master && $TRAVIS_EVENT_TYPE != push ]]; then
     echo 'Not a master push so skipping'
