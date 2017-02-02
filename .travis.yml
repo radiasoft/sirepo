@@ -6,5 +6,8 @@ language: python
 branches:
   only:
     - master
+install:
+  # Avoids "travis doing the install defaults"
+  - true
 script:
   - bash travis.sh
