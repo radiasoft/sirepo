@@ -28,14 +28,13 @@ export build_passenv='
 export $build_passenv
 git clone https://github.com/radiasoft/containers
 cd containers
-if [[ -n $RADIASOFT_DOCKER_LOGIN ]]; then
-    (
-        umask 077
-        mkdir ~/.docker
-        # Avoid echoing in log if set -x
-        perl -e 'print($ENV{"RADIASOFT_DOCKER_LOGIN"})' > ~/.docker/config.json
-    )
-    export build_push=1
-fi
+(
+    umask 077
+    mkdir ~/.docker
+    # Avoid echoing in log if set -x
+    perl -e 'print($ENV{"RADIASOFT_DOCKER_LOGIN"})' > ~/.docker/config.json
+)
+export build_push=1
+export build_batch_mode=1
 bin/build docker radiasoft/sirepo
 echo PASSED
