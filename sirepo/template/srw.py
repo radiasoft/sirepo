@@ -477,8 +477,10 @@ def fixup_old_data(data):
         data['models']['gaussianBeam']['rmsDivergenceX'] = 0
         data['models']['gaussianBeam']['rmsDivergenceY'] = 0
 
-    if 'photonEnergy' not in data['models']['sourceIntensityReport']:
-        data['models']['sourceIntensityReport']['photonEnergy'] = data['models']['simulation']['photonEnergy']
+    for k in ['photonEnergy', 'horizontalPointCount', 'horizontalPosition', 'horizontalRange',
+              'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
+        if k not in data['models']['sourceIntensityReport']:
+            data['models']['sourceIntensityReport'][k] = data['models']['simulation'][k]
 
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
@@ -1384,7 +1386,9 @@ def _generate_parameters_file(data, plot_reports=False):
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
     if report == 'sourceIntensityReport':
-        data['models']['simulation']['photonEnergy'] = data['models']['sourceIntensityReport']['photonEnergy']
+        for k in ['photonEnergy', 'horizontalPointCount', 'horizontalPosition', 'horizontalRange',
+                  'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
+            data['models']['simulation'][k] = data['models']['sourceIntensityReport'][k]
 
     if data['models']['simulation']['sourceType'] == 't':
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']

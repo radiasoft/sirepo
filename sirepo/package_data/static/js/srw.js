@@ -143,11 +143,13 @@ SIREPO.app.factory('srwService', function(activeSection, appState, panelState, $
         if (! appState.isLoaded()) {
             return;
         }
-        panelState.showField('simulation', 'photonEnergy', activeSection.getActiveSection() == 'beamline');
-        var isAutomatic = appState.models.simulation.samplingMethod == 1;
-        panelState.showField('simulation', 'sampleFactor', isAutomatic);
-        panelState.showField('simulation', 'horizontalPointCount', ! isAutomatic);
-        panelState.showField('simulation', 'verticalPointCount', ! isAutomatic);
+        ['simulation', 'sourceIntensityReport'].forEach(function(f) {
+            panelState.showField(f, 'photonEnergy', activeSection.getActiveSection() == 'beamline');
+            var isAutomatic = appState.models[f].samplingMethod == 1;
+            panelState.showField(f, 'sampleFactor', isAutomatic);
+            panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
+            panelState.showField(f, 'verticalPointCount', ! isAutomatic);
+        });
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
@@ -1064,6 +1066,7 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
             // hook for sampling method changes
             $scope.nav.handleModalShown = srwService.updateSimulationGridFields;
             $scope.$watch('appState.models.simulation.samplingMethod', srwService.updateSimulationGridFields);
+            $scope.$watch('appState.models.sourceIntensityReport.samplingMethod', srwService.updateSimulationGridFields);
         },
     };
 });
@@ -1073,7 +1076,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     var settingsIcon = [
         '<li class="dropdown"><a href class="dropdown-toggle hidden-xs" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <span class="caret"></span></a>',
           '<ul class="dropdown-menu">',
-            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
+            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
             '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
             '<li><a href data-ng-click="jsonDataFile()"><span class="glyphicon glyphicon-cloud-download"></span> Export JSON Data File</a></li>',
             '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',

@@ -518,21 +518,21 @@
             "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "Tooltip"]
         },
         "simulation": {
-            "name": ["Name", "String"],
-            "sourceType": ["Source Type", "SourceType"],
-            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "documentationUrl": ["Documentation URL", "OptionalString"],
             "facility": ["Facility", "String"],
-            "isExample": ["Is Example Simulation", "String"],
-            "sampleFactor": ["Sampling Factor", "Float"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
-            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
-            "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "isExample": ["Is Example Simulation", "String"],
+            "name": ["Name", "String"],
+            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "samplingMethod": ["Sampling Method", "SamplingMethod"],
+            "sourceType": ["Source Type", "SourceType"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "documentationUrl": ["Documentation URL", "OptionalString"]
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
@@ -540,15 +540,23 @@
         "simulationStatus": {
         },
         "sourceIntensityReport": {
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
+            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "precision": ["Relative Precision", "Float"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "samplingMethod": ["Sampling Method", "SamplingMethod"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Spherical Mirror"],
@@ -1196,18 +1204,18 @@
                     "polarization",
                     "characteristic",
                     "fieldUnits",
-                    "simulation.samplingMethod",
-                    "simulation.sampleFactor",
+                    "samplingMethod",
+                    "sampleFactor",
                     [
                         ["Horizontal", [
-                            "simulation.horizontalPosition",
-                            "simulation.horizontalRange",
-                            "simulation.horizontalPointCount"
+                            "horizontalPosition",
+                            "horizontalRange",
+                            "horizontalPointCount"
                         ]],
                         ["Vertical", [
-                            "simulation.verticalPosition",
-                            "simulation.verticalRange",
-                            "simulation.verticalPointCount"
+                            "verticalPosition",
+                            "verticalRange",
+                            "verticalPointCount"
                         ]]
                     ]
                 ]],
