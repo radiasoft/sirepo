@@ -81,7 +81,7 @@ SIREPO.app.factory('srwService', function(activeSection, appState, panelState, $
             distance = ', ' + model.distanceFromSource + 'm';
         }
         else if (appState.isAnimationModelName(modelName)) {
-            distance = '';
+            distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
         }
         else if (appState.isReportModelName(modelName) && savedModelValues.beamline && savedModelValues.beamline.length) {
             distance = ', ' + savedModelValues.beamline[0].position + 'm';
