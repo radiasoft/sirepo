@@ -54,8 +54,12 @@
                         "simulationName": "NSLS-II CHX beamline"
                     },
                     {
-                        "buttonText": "NSLS-II 21-ID\nESM\nElectron Spectro-Microscopy",
-                        "simulationName": "NSLS-II ESM beamline"
+                        "buttonText": "NSLS-II 3-ID\nHXN\nHard X-ray Nanoprobe",
+                        "simulationName": "NSLS-II HXN beamline"
+                    },
+                    {
+                        "buttonText": "NSLS-II 5-ID\nSRX\nSubmicron Resolution\nX-ray Spectroscopy",
+                        "simulationName": "NSLS-II SRX beamline"
                     },
                     {
                         "buttonText": "NSLS-II 17-ID-2\nFMX\nFrontier Microfocusing\nMacromolecular Crystallography",
@@ -64,6 +68,10 @@
                     {
                         "image": "nsls-ii-smi.png",
                         "simulationName": "NSLS-II SMI beamline"
+                    },
+                    {
+                        "buttonText": "NSLS-II 21-ID\nESM\nElectron Spectro-Microscopy",
+                        "simulationName": "NSLS-II ESM beamline"
                     }
                 ]
             },
