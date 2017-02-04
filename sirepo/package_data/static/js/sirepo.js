@@ -728,7 +728,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         // UI fields could be an input, select, or button
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
-        $(fc).find('.s-enum-button').prop('disabled', ! isEnabled);
+        $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
     self.getError = function(name) {
@@ -805,7 +805,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
-        var editorId = '#s-' + modelKey + '-editor';
+        var editorId = '#sr-' + modelKey + '-editor';
 
         if ($(editorId).length) {
             $(editorId).modal('show');
@@ -1778,7 +1778,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         while (names[name + ' ' + count])
             count++;
         self.copyName = name + ' ' + count;
-        $('#s-copy-confirmation').modal('show');
+        $('#sr-copy-confirmation').modal('show');
     };
 
     self.copySelected = function() {
@@ -1795,7 +1795,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             removeItemFromFolder(item);
         else {
             self.selectedItem = item;
-            $('#s-delete-confirmation').modal('show');
+            $('#sr-delete-confirmation').modal('show');
         }
     };
 
@@ -1824,7 +1824,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         self.selectedItem = item;
         self.targetFolder = item.parent;
         self.moveFolderList = folderList(item);
-        $('#s-move-confirmation').modal('show');
+        $('#sr-move-confirmation').modal('show');
     };
 
     self.moveSelected = function() {
@@ -1890,7 +1890,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     self.renameItem = function(item) {
         self.selectedItem = item;
         self.renameName = item.name;
-        $('#s-rename-confirmation').modal('show');
+        $('#sr-rename-confirmation').modal('show');
     };
 
     self.renameSelected = function() {

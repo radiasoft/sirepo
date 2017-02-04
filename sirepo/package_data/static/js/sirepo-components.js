@@ -98,7 +98,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             if (scope.pages) {
                 $(element).closest('.modal').on('show.bs.modal', resetActivePage);
                 //TODO(pjm): need a generalized case for this
-                $(element).closest('.srw-editor-holder').on('s.resetActivePage', resetActivePage);
+                $(element).closest('.srw-editor-holder').on('sr.resetActivePage', resetActivePage);
             }
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
@@ -139,7 +139,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             viewName: '@',
         },
         template: [
-            '<div class="panel panel-info" id="{{ \'s-\' + viewName + \'-basicEditor\' }}">',
+            '<div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
                 '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
                   //TODO(pjm): not really an advanced editor pane anymore, should get renamed
@@ -165,7 +165,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
             modelData: '=',
         },
         template: [
-            '<div class="col-sm-6 pull-right s-buttons" data-ng-show="isFormDirty()">',
+            '<div class="col-sm-6 pull-right sr-buttons" data-ng-show="isFormDirty()">',
               '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
@@ -257,7 +257,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label>{{ label }} <span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign s-info-pointer"></span></label>',
+            '<label>{{ label }} <span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
@@ -307,7 +307,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
-                  '<a href class="btn s-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</a>',
+                  '<a href class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</a>',
                 '</div>',
                 '<select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
@@ -371,7 +371,7 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
         restirct: 'A',
         scope: {},
         template: [
-              '<li data-ng-if="isLoggedIn()" class="s-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
+              '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
                   '<li class="divider"></li>',
@@ -629,7 +629,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestS
             field: '=',
         },
         template: [
-            '<div class="modal fade" id="s-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog">',
+            '<div class="modal fade" id="sr-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -684,7 +684,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestS
                         }
                         requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
                         $scope.model[$scope.field] = data.filename;
-                        $('#s-fileUpload' + $scope.fileType + '-editor').modal('hide');
+                        $('#sr-fileUpload' + $scope.fileType + '-editor').modal('hide');
                     });
             };
         },
@@ -709,7 +709,7 @@ SIREPO.app.directive('helpButton', function($window) {
             helpTopic: '@helpButton',
         },
         template: [
-            '<button class="close s-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+            '<button class="close sr-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
             $scope.openHelp = function() {
@@ -761,10 +761,10 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelName;
-            $scope.editorId = 's-' + $scope.viewName + '-editor';
+            $scope.editorId = 'sr-' + $scope.viewName + '-editor';
             if ($scope.modelData) {
                 $scope.modelKey = $scope.modelData.modelKey;
-                $scope.editorId = 's-' + $scope.modelKey + '-editor';
+                $scope.editorId = 'sr-' + $scope.modelKey + '-editor';
             }
             if (! $scope.modalTitle) {
                 $scope.modalTitle = viewInfo.title;
@@ -874,11 +874,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             allowFullScreen: '@',
         },
         template: [
-            '<span class="s-panel-heading">{{ panelHeading }}</span>',
-            '<div class="s-panel-options pull-right">',
-              '<a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="s-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+            '<span class="sr-panel-heading">{{ panelHeading }}</span>',
+            '<div class="sr-panel-options pull-right">',
+              '<a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
               '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
-                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="s-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
@@ -891,9 +891,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                       : '',
                 '</ul>',
               '</div>',
-              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="s-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="s-panel-heading glyphicon glyphicon-triangle-top"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="s-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>',
+              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="sr-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-triangle-top"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -959,14 +959,14 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-ng-class="{\'s-panel-loading\': panelState.isLoading(modelKey), \'s-panel-error\': panelState.getError(modelKey)}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
-              '<div data-ng-show="panelState.isLoading(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
-              '<div data-ng-show="panelState.getError(modelKey)" class="lead s-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
-              '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'s-hide-report\' : \'\' }}">',
-                '<div data-ng-switch-when="2d" data-plot2d="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="3d" data-plot3d="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="heatmap" data-heatmap="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="lattice" data-lattice="" class="s-plot" data-model-name="{{ modelKey }}"></div>',
+            '<div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'s-panel-error\': panelState.getError(modelKey)}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
+              '<div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Simulating...</div>',
+              '<div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
+              '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
+                '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
               '</div>',
               '<div data-ng-transclude=""></div>',
             '</div>',

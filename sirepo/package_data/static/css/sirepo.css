@@ -184,181 +184,181 @@
       transition: all 0.5s ease 0s;
     }
 
-    .s-panel-heading {
+    .sr-panel-heading {
       font-weight: 300;
       line-height: 1.4;
       font-size: 21px;
       margin-bottom: 0;
     }
-    .s-panel-options > a, .s-panel-options > div {
+    .sr-panel-options > a, .sr-panel-options > div {
       margin-left: 1em;
     }
 
-    .s-panel-error {
+    .sr-panel-error {
       background-color: #777;
     }
-    .s-panel-error .s-panel-wait {
+    .sr-panel-error .sr-panel-wait {
       position: absolute;
       color: #fad8de;
       display: block;
     }
-    .s-panel-loading {
+    .sr-panel-loading {
       background-color: #777;
     }
-    .s-panel-wait {
+    .sr-panel-wait {
       display: none;
     }
-    .s-panel-loading .s-panel-wait {
+    .sr-panel-loading .sr-panel-wait {
       position: absolute;
       color: white;
       font-weight: bold;
       display: block;
       z-index: 1000;
     }
-    .s-hide-report {
+    .sr-hide-report {
       opacity: 0;
     }
 
     /* plot styles */
-    .s-plot .axis text {
+    .sr-plot .axis text {
       font-size: 10px;
     }
-    .s-plot .axis path,
-    .s-plot .axis line {
+    .sr-plot .axis path,
+    .sr-plot .axis line {
       fill: none;
       stroke: #000;
       shape-rendering: crispEdges;
     }
-    .s-plot .axis.grid {
+    .sr-plot .axis.grid {
       fill: none;
       stroke: #000;
       stroke-opacity: .1;
     }
-    .s-plot .axis.grid text {
+    .sr-plot .axis.grid text {
       display: none;
     }
-    .s-plot text.z-axis-label,
-    .s-plot text.y-axis-label,
-    .s-plot text.x-axis-label {
+    .sr-plot text.z-axis-label,
+    .sr-plot text.y-axis-label,
+    .sr-plot text.x-axis-label {
       font-size: 14px;
       font-weight: bold;
       text-anchor: middle;
     }
-    .s-plot .main-title {
+    .sr-plot .main-title {
       font-size: 18px;
       font-weight: bold;
       text-anchor: middle;
     }
-    .s-plot .line {
+    .sr-plot .line {
       fill: none;
       stroke: steelblue;
       stroke-width: 1px;
     }
-    .s-plot path.line-0 {
+    .sr-plot path.line-0 {
       stroke-width: 1.5px;
     }
-    .s-plot path.line-1 {
+    .sr-plot path.line-1 {
       opacity: 0.65;
     }
-    .s-plot path.line-2 {
+    .sr-plot path.line-2 {
       opacity: 0.6;
     }
-    .s-plot path.line-3 {
+    .sr-plot path.line-3 {
       opacity: 0.55;
     }
-    .s-plot path.line-4 {
+    .sr-plot path.line-4 {
       opacity: 0.5;
     }
-    .s-plot path.line-5 {
+    .sr-plot path.line-5 {
       opacity: 0.45;
     }
-    .s-plot path.line-6 {
+    .sr-plot path.line-6 {
       opacity: 0.4;
     }
-    .s-plot path.line-7 {
+    .sr-plot path.line-7 {
       opacity: 0.35;
     }
-    .s-plot path.line-8 {
+    .sr-plot path.line-8 {
       opacity: 0.3;
     }
-    .s-plot path.line-9 {
+    .sr-plot path.line-9 {
       opacity: 0.25;
     }
-    .s-plot path.line-10 {
+    .sr-plot path.line-10 {
       opacity: 0.20;
     }
-    .s-plot path.line-11 {
+    .sr-plot path.line-11 {
       opacity: 0.15;
     }
-    .s-plot .overlay {
+    .sr-plot .overlay {
       fill: none;
       pointer-events: all;
     }
-    .s-plot .focus circle {
+    .sr-plot .focus circle {
       fill: none;
       stroke: steelblue;
       stroke-width: 2px;
     }
-    .s-plot .focus-hint {
+    .sr-plot .focus-hint {
       font-size: 10px;
       fill: steelblue;
     }
-    .s-plot .focus-text {
+    .sr-plot .focus-text {
       font-size: 14px;
       fill: steelblue;
     }
-    .s-plot rect.mouse-zoom {
+    .sr-plot rect.mouse-zoom {
       cursor: zoom-in;
     }
-    .s-plot rect.mouse-move {
+    .sr-plot rect.mouse-move {
       cursor: move;
     }
-    .s-plot rect.mouse-move-ew {
+    .sr-plot rect.mouse-move-ew {
       cursor: ew-resize;
     }
-    .s-plot rect.mouse-move-e {
+    .sr-plot rect.mouse-move-e {
       cursor: e-resize;
     }
-    .s-plot rect.mouse-move-w {
+    .sr-plot rect.mouse-move-w {
       cursor: w-resize;
     }
-    .s-plot rect.mouse-move-ns {
+    .sr-plot rect.mouse-move-ns {
       cursor: ns-resize;
     }
-    .s-plot rect.mouse-move-n {
+    .sr-plot rect.mouse-move-n {
       cursor: n-resize;
     }
-    .s-plot rect.mouse-move-s {
-      cursor: s-resize;
+    .sr-plot rect.mouse-move-s {
+      cursor: sr-resize;
     }
-    .s-plot .z-axis-label {
+    .sr-plot .z-axis-label {
       line-height: 160%;
     }
-    .s-plot-loading {
+    .sr-plot-loading {
       opacity: 0.2;
     }
-    .s-plot-cleared {
+    .sr-plot-cleared {
       opacity: 0;
     }
 
     @media (max-width: 767px) {
-      div.s-plot .z-axis-label,
-      div.s-plot .y-axis-label,
-      div.s-plot .x-axis-label {
+      div.sr-plot .z-axis-label,
+      div.sr-plot .y-axis-label,
+      div.sr-plot .x-axis-label {
         font-size: 12px;
         font-weight: bold;
         text-anchor: middle;
       }
-      div.s-plot .main-title {
+      div.sr-plot .main-title {
         font-size: 12px;
       }
-      div.s-plot .focus-text {
+      div.sr-plot .focus-text {
         font-size: 12px;
       }
     }
 
 
-table td.s-center {
+table td.sr-center {
   text-align: center;
 }
 input.srw-small-float {
@@ -370,13 +370,13 @@ th.srw-tiny-heading {
   font-weight: normal;
   text-align: center;
 }
-.s-info-pointer {
+.sr-info-pointer {
   cursor: default;
 }
-ul.navbar-nav > li.s-logged-in-menu > a {
+ul.navbar-nav > li.sr-logged-in-menu > a {
   line-height: 1px;
 }
-.s-logged-in-menu img {
+.sr-logged-in-menu img {
   border-radius: 3px;
   width: 20px;
   height: 20px;
@@ -453,27 +453,27 @@ a:focus, a.srw-tab:focus {
   outline: none;
 }
 
-.s-clearfix-pad {
+.sr-clearfix-pad {
   height: 10px;
 }
-.s-help-icon {
+.sr-help-icon {
   margin-right: 15px;
   color: #337ab7;
   opacity: 1;
 }
-.s-help-icon:hover {
+.sr-help-icon:hover {
   color: #286090;
   opacity: 1;
 }
 
-.s-button-bar-parent {
+.sr-button-bar-parent {
   display: none;
   position: relative;
 }
-tr:hover .s-button-bar-parent {
+tr:hover .sr-button-bar-parent {
   display: inline;
 }
-.s-button-bar {
+.sr-button-bar {
   position: absolute;
   top: -2px;
   right: 0px;
@@ -481,16 +481,16 @@ tr:hover .s-button-bar-parent {
   background-color: #f5f5f5;
   padding-left: 15px;
 }
-.s-hover-button {
+.sr-hover-button {
   display: inline-block;
   min-width: 8em;
 }
 
-.s-drop-zone {
+.sr-drop-zone {
   display: inline-block;
   width: 10px;
 }
-.s-drop-zone.drag-enter {
+.sr-drop-zone.drag-enter {
   background-color: blue;
   width: 40px;
   transition: all 0.5s ease 0s;
@@ -499,34 +499,34 @@ tr:hover .s-button-bar-parent {
 .split-pane-divider {
   -moz-user-select: none;
 }
-.s-split-pane-frame {
+.sr-split-pane-frame {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   background: silver;
 }
-.s-split-pane-frame .split-pane > .split-pane-divider.dragged.touch {
+.sr-split-pane-frame .split-pane > .split-pane-divider.dragged.touch {
   background: blue;
   opacity: 0.25;
 }
-.s-split-pane-component-inner {
+.sr-split-pane-component-inner {
   box-sizing: border-box;
   background: white;
   width: 100%;
   height: 100%;
   overflow: auto;
 }
-.s-split-pane-frame div.panel {
+.sr-split-pane-frame div.panel {
   margin-bottom: 0;
 }
-.s-split-pane-frame table.table {
+.sr-split-pane-frame table.table {
   margin-bottom: 0;
 }
 
-.s-dropdown-submenu {
+.sr-dropdown-submenu {
   position: relative;
 }
-.s-dropdown-submenu > .dropdown-menu {
+.sr-dropdown-submenu > .dropdown-menu {
   top: 0;
   left: auto;
   right: 100%;
@@ -534,15 +534,15 @@ tr:hover .s-button-bar-parent {
   margin-right: -1px;
   border-radius: 4px;
 }
-.s-dropdown-submenu:hover > .dropdown-menu {
+.sr-dropdown-submenu:hover > .dropdown-menu {
   display: block;
 }
-li.s-dropdown-submenu > a {
+li.sr-dropdown-submenu > a {
   margin-right: 5px;
   white-space: normal;
 }
 
-.s-sidebar {
+.sr-sidebar {
   margin-top: -10px;
   padding: 0;
   overflow-x: hidden;
@@ -554,89 +554,89 @@ li.s-dropdown-submenu > a {
   margin-right: -1ex;
   background-color: #f8f8f8;
 }
-ul.s-nav-sidebar {
+ul.sr-nav-sidebar {
   padding-left: 12px;
 }
-ul.s-nav-sidebar-root {
+ul.sr-nav-sidebar-root {
   padding-left: 0;
 }
-.s-nav-sidebar > li > a {
+.sr-nav-sidebar > li > a {
   padding: 7px 0 7px 16px;
 }
-.s-nav-sidebar > li > a:hover {
+.sr-nav-sidebar > li > a:hover {
   background-color: transparent;
 }
-.s-nav-sidebar > li.active > a {
+.sr-nav-sidebar > li.active > a {
   color: #555;
   background-color: #e7e7e7;
 }
-.s-nav-icon {
+.sr-nav-icon {
   margin-right: 4px;
 }
-.s-small-nav-icon {
+.sr-small-nav-icon {
   font-size: 10px;
   margin-right: 8px;
 }
-.s-small-icon {
+.sr-small-icon {
   font-size: 10px;
 }
-.s-iconset {
+.sr-iconset {
   margin-top: -10px;
 }
-.s-iconset a {
+.sr-iconset a {
   text-decoration: none;
 }
-.s-iconset .s-icon-view-toggle {
+.sr-iconset .sr-icon-view-toggle {
   float: right;
   min-width: 8em;
 }
-.s-icon-col {
+.sr-icon-col {
   float: left;
   margin-bottom: 9px;
   margin-right: 9px;
   height: 100px;
   width: 140px;
 }
-.s-thumbnail {
+.sr-thumbnail {
   padding-top: 10px;
 }
-.s-item-icon {
+.sr-item-icon {
   font-size: 32px;
   display: block;
   cursor: pointer;
 }
-.s-transparent-icon {
+.sr-transparent-icon {
   color: #f8f8f8;
   text-shadow: 1px 0px 0 #337ab7, -1px 0px 0 #337ab7, 0px 1px 0 #337ab7, 0px -1px 0 #337ab7;
 }
-.s-transparent-icon:hover {
+.sr-transparent-icon:hover {
   text-shadow: 1px 0px 0 #23527c, -1px 0px 0 #23527c, 0px 1px 0 #23527c, 0px -1px 0 #23527c;
 }
-.s-item-text {
+.sr-item-text {
   display: inline-block;
   max-height: 60px;
   overflow: hidden;
 }
-.s-folder-nav {
+.sr-folder-nav {
   font-size: 17px;
 }
-.s-enum-button {
+.sr-enum-button {
   min-width: 8em;
 }
-.s-model-list-item {
+.sr-model-list-item {
   position: relative;
 }
-.s-model-list-item .glyphicon-remove {
+.sr-model-list-item .glyphicon-remove {
   position: absolute;
   left: auto;
   right: 15px;
   top: 7px;
   opacity: 0.5;
 }
-li.s-model-list-item > a {
+li.sr-model-list-item > a {
   padding-right: 3em;
 }
-.s-model-list-item .glyphicon-remove:hover {
+.sr-model-list-item .glyphicon-remove:hover {
   opacity: 1;
   color: #d9534f;
 }
@@ -647,7 +647,7 @@ li.s-model-list-item > a {
   line-height: 3em;
   text-align: center;
 }
-.s-count {
+.sr-count {
   font-size: 10px;
   font-weight: bold;
   vertical-align: top;
@@ -661,18 +661,18 @@ li.s-model-list-item > a {
 .elegant-beamline-element-group {
   background-color: lightcyan;
 }
-.s-drop-left {
+.sr-drop-left {
   background-color: #d9edf7;
   width: 0;
   display: inline-block;
 }
-.elegant-beamline-element.drag-enter .s-drop-left {
+.elegant-beamline-element.drag-enter .sr-drop-left {
   width: 4em;
 }
 .elegant-beamline-element.dragging {
   display: none;
 }
-.elegant-beamline-element.drag-enter.dragging .s-drop-left {
+.elegant-beamline-element.drag-enter.dragging .sr-drop-left {
   width: 0;
 }
 .elegant-beamline-icon {

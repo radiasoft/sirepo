@@ -1,6 +1,6 @@
-    <div style="position: relative" ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
+    <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
       <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})"></canvas>
-      <div><svg class="s-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
+      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
           <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
           <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;"></rect>

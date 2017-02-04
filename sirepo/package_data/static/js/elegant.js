@@ -434,7 +434,7 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
     self.createElement = function(name) {
-        $('#s-newCommand-editor').modal('hide');
+        $('#sr-newCommand-editor').modal('hide');
         var model = {
             _id: elegantService.nextId(),
             _type: name,
@@ -708,7 +708,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                 ? ('beamlines (' + names.join(', ') + ')')
                 : ('beamline ' + names[0]),
         };
-        $(beamlines.length ? '#s-element-in-use-dialog' : '#s-delete-element-dialog').modal('show');
+        $(beamlines.length ? '#sr-element-in-use-dialog' : '#s-delete-element-dialog').modal('show');
     }
 
     function sortBeamlines() {
@@ -771,7 +771,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.createElement = function(type) {
-        $('#s-newBeamlineElement-editor').modal('hide');
+        $('#sr-newBeamlineElement-editor').modal('hide');
         var model = {
             _id: elegantService.nextId(),
             type: type,
@@ -858,7 +858,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newElement = function() {
-        $('#s-newBeamlineElement-editor').modal('show');
+        $('#sr-newBeamlineElement-editor').modal('show');
     };
 
     //TODO(pjm): use library for this
@@ -899,7 +899,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.splitPaneHeight = function() {
         var w = $($window);
-        var el = $('.s-split-pane-frame');
+        var el = $('.sr-split-pane-frame');
         return Math.round(w.height() - el.offset().top - 15) + 'px';
     };
 
@@ -1197,8 +1197,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
               '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
             '</ul>',
         ].join(''),
@@ -1260,19 +1260,19 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
         },
         template: [
             '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
-              '<div class="panel-heading"><span class="s-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
-                '<div class="s-panel-options pull-right">',
-                  '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="s-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+              '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
+                '<div class="sr-panel-options pull-right">',
+                  '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
                 '</div>',
               '</div>',
               '<div style="height: {{ editorHeight() }}" class="panel-body elegant-beamline-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
-                  '<div class="s-drop-left">&nbsp;</div>',
-                  '<span data-ng-if="item.repeatCount" class="s-count">{{ item.repeatCount }}</span>',
+                  '<div class="sr-drop-left">&nbsp;</div>',
+                  '<span data-ng-if="item.repeatCount" class="sr-count">{{ item.repeatCount }}</span>',
                   '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
                 '</div>',
-                '<div class="elegant-beamline-element s-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="s-drop-left">&nbsp;</div></div>',
+                '<div class="elegant-beamline-element sr-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="s-drop-left">&nbsp;</div></div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -1495,7 +1495,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="s-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1587,7 +1587,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
                 '<tr data-ng-repeat="cmd in commands">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="s-button-bar-parent pull-right"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-button-bar-parent pull-right"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="elegant-cmd-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
                       '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge elegant-icon" data-ng-class="{\'elegant-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
                     '</div>',
@@ -1764,7 +1764,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.newCommand = function() {
-                $('#s-newCommand-editor').modal('show');
+                $('#sr-newCommand-editor').modal('show');
             };
 
             $scope.selectItem = function(cmd) {
@@ -1965,7 +1965,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="s-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -2916,7 +2916,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                     .on('zoom', zoomed);
                 select('svg').call($scope.zoom)
                     .on('dblclick.zoom', null);
-                $scope.container = select('.s-zoom-plot');
+                $scope.container = select('.sr-zoom-plot');
                 loadItemsFromBeamline();
             };
 

@@ -760,7 +760,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     }
 
     function disableBasicEditorBeamName() {
-        $('#s-electronBeam-basicEditor .model-electronBeam-name input').prop('readonly', true);
+        $('#sr-electronBeam-basicEditor .model-electronBeam-name input').prop('readonly', true);
     }
 
     function formatFloat(v) {
@@ -1083,7 +1083,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
             '<li data-ng-if="! isExample()"><a href data-target="#srw-delete-confirmation" data-toggle="modal""><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
             '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
-            '<li data-ng-if="hasRelatedSimulations()" class="s-dropdown-submenu">',
+            '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
               '<a href><span class="glyphicon glyphicon-chevron-left"></span> Related Simulations</a>',
         '<ul class="dropdown-menu">',
         '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
@@ -1096,8 +1096,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     var rightNav = [
         '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="srwService.isApplicationMode(\'default\')"></ul>',
         '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
-          '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-          '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus s-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+          '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+          '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
           '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
         '</ul>',
         '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -1425,7 +1425,7 @@ SIREPO.app.directive('beamlineItem', function($timeout) {
                 // return the editor to the editor-holder so it will be available for the
                 // next element of this type
                 if (editor) {
-                    $('.srw-editor-holder').trigger('s.resetActivePage');
+                    $('.srw-editor-holder').trigger('sr.resetActivePage');
                     $('.srw-editor-holder').append(editor);
                 }
             });
@@ -1706,7 +1706,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 '</li>',
                 '<li data-ng-if="isElectronBeam() && userModelList.length" class="divider"></li>',
                 '<li data-ng-if="isElectronBeam() && userModelList.length" class="dropdown-header">User Defined Electron Beams</li>',
-                '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="s-model-list-item">',
+                '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="sr-model-list-item">',
                   '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
                 '</li>',
                 '<li data-ng-if="! isElectronBeam() && userModelList.length" class="divider"></li>',

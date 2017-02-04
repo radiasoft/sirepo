@@ -1,8 +1,8 @@
-<div ng-class="{'s-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
-  <div style="background-color: white; cursor: zoom-in"><svg class="s-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
+<div ng-class="{'sr-plot-loading': isLoading(), 's-plot-cleared': dataCleared}">
+  <div style="background-color: white; cursor: zoom-in"><svg class="sr-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
       <rect ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" style="fill: none;"></rect>
       <g ng-attr-transform="translate({{ margin }},{{ margin }})">
-        <g class="s-zoom-plot">
+        <g class="sr-zoom-plot">
           <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ scale }})">
             <!-- render drifts first, lowest z index -->
             <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ group.rotate }},{{ group.rotateX }},{{ group.rotateY }})">
