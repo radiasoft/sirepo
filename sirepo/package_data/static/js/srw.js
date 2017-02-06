@@ -1937,6 +1937,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             });
             $scope.$on($scope.model + '.changed', function() {
                 if ($scope.isReadyForModelChanges) {
+                    $scope.cancelSimulation();
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
                     $scope.percentComplete = 0;

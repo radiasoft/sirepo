@@ -1170,8 +1170,11 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     self.cancelItem = function (qi) {
         if (! qi)
             return;
-        qi.persistent = false;
+        if (! qi.persistent) {
+            throw 'attempt to cancel non-persistent queue item';
+        }
         qi.qMode = 'transient';
+        requestSender.sendRequest('runCancel', null, qi.request);
         self.removeItem(qi);
     };
 
