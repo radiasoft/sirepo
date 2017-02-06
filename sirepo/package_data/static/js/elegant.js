@@ -708,7 +708,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                 ? ('beamlines (' + names.join(', ') + ')')
                 : ('beamline ' + names[0]),
         };
-        $(beamlines.length ? '#sr-element-in-use-dialog' : '#s-delete-element-dialog').modal('show');
+        $(beamlines.length ? '#sr-element-in-use-dialog' : '#sr-delete-element-dialog').modal('show');
     }
 
     function sortBeamlines() {
@@ -1272,7 +1272,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
                   '<span data-ng-if="item.repeatCount" class="sr-count">{{ item.repeatCount }}</span>',
                   '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
                 '</div>',
-                '<div class="elegant-beamline-element sr-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="s-drop-left">&nbsp;</div></div>',
+                '<div class="elegant-beamline-element sr-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="sr-drop-left">&nbsp;</div></div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -1495,7 +1495,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1587,7 +1587,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
                 '<tr data-ng-repeat="cmd in commands">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="s-button-bar"><button class="btn btn-info btn-xs s-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="elegant-cmd-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
                       '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge elegant-icon" data-ng-class="{\'elegant-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
                     '</div>',
@@ -1965,7 +1965,7 @@ SIREPO.app.directive('elementTable', function(appState) {
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="s-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs s-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs s-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
