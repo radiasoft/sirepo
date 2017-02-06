@@ -144,7 +144,6 @@ SIREPO.app.factory('srwService', function(activeSection, appState, panelState, $
             return;
         }
         ['simulation', 'sourceIntensityReport'].forEach(function(f) {
-            panelState.showField(f, 'photonEnergy', activeSection.getActiveSection() == 'beamline');
             var isAutomatic = appState.models[f].samplingMethod == 1;
             panelState.showField(f, 'sampleFactor', isAutomatic);
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
