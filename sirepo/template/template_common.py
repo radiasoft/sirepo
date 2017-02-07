@@ -105,7 +105,7 @@ def report_parameters_hash(data):
         assert models, \
             '{}: models is empty'.format(data)
         res = hashlib.md5()
-        if data['report'] in data['models']:
+        if data['report'] in data['models'] and data['report'] not in models:
             models.append(data['report'])
         for m in sorted(models):
             md = data['models'][m]

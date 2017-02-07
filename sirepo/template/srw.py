@@ -619,6 +619,9 @@ def lib_files(data, source_lib, report=None):
     """
     res = []
     dm = data.models
+    # the mirrorReport.heightProfileFile may be different than the file in the beamline
+    if report == 'mirrorReport':
+        res.append(dm['mirrorReport']['heightProfileFile'])
     if dm.simulation.sourceType == 't':
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             res.append(dm.tabulatedUndulator.magneticFile)
@@ -626,7 +629,7 @@ def lib_files(data, source_lib, report=None):
         for k, v in _SCHEMA.model[m.type].items():
             t = v[1]
             if m[k] and t in ['MirrorFile', 'ImageFile']:
-                if not report or _is_watchpoint(report) or report in ('multiElectronAnimation', 'mirrorReport'):
+                if not report or _is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
     return [source_lib.join(f) for f in res]
 
@@ -640,24 +643,17 @@ def models_related_to_report(data):
         list: Named models that affect report or [] if don't know
     """
     r = data['report']
+    if r == 'mirrorReport':
+        return [r]
     watchpoint = _is_watchpoint(r)
-    if not (
-        watchpoint
-        or r in (
-            'fluxReport', 'initialIntensityReport', 'intensityReport',
-            'mirrorReport', 'powerDensityReport', 'sourceIntensityReport',
-            'trajectoryReport',
-        )
-    ):
-        return data['models'].keys()
     res = [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole', 'simulation',
         'tabulatedUndulator', 'undulator',
     ]
-    if watchpoint or r in ('initialIntensityReport', 'mirrorReport'):
+    if watchpoint or r == 'initialIntensityReport':
         res.append('beamline')
-        if watchpoint:
-            res.extend(['postPropagation', 'propagation'])
+    if watchpoint:
+        res.extend(['postPropagation', 'propagation'])
     return res
 
 
