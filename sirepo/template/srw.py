@@ -40,6 +40,8 @@ WANT_BROWSER_FRAME_CACHE = False
 #: Simulation type
 SIM_TYPE = 'srw'
 
+_WATCHPOINT_REPORT_NAME = 'watchpointReport'
+
 _DATA_FILE_FOR_MODEL = {
     'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
@@ -50,7 +52,7 @@ _DATA_FILE_FOR_MODEL = {
     'powerDensityReport': {'filename': 'res_pow.dat', 'dimension': 3},
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
-    'watchpointReport': {'filename': 'res_int_pr_se.dat', 'dimension': 3},
+    _WATCHPOINT_REPORT_NAME: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 }
 
 _EXAMPLE_FOLDERS = {
@@ -209,7 +211,7 @@ def extract_report_data(filename, model_data):
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
     is_gaussian = False
-    if 'models' in model_data and model_data['models']['simulation']['sourceType'] == 'g':
+    if 'models' in model_data and _is_gaussian_source(model_data['models']['simulation']):
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
     if model_data['report'] == 'initialIntensityReport':
@@ -261,7 +263,7 @@ def extract_report_data(filename, model_data):
         'points': data,
     }
     orig_rep_name = model_data['report']
-    rep_name = 'watchpointReport' if _is_watchpoint(orig_rep_name) else orig_rep_name
+    rep_name = _WATCHPOINT_REPORT_NAME if _is_watchpoint(orig_rep_name) else orig_rep_name
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
         width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
         scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
@@ -346,9 +348,9 @@ def fixup_old_data(data):
             data['models']['fluxAnimation']['magneticField'] = 1
     if data['models']['intensityReport']:
         if 'method' not in data['models']['intensityReport']:
-            if data['models']['simulation']['sourceType'] in ['u', 't']:
+            if _is_undulator_source(data['models']['simulation']):
                 data['models']['intensityReport']['method'] = 1
-            elif data['models']['simulation']['sourceType'] == 'm':
+            elif _is_dipole_source(data['models']['simulation']):
                 data['models']['intensityReport']['method'] = 2
             else:
                 data['models']['intensityReport']['method'] = 0
@@ -495,7 +497,7 @@ def fixup_old_data(data):
         tabulated_undulator = data['models']['tabulatedUndulator']
         for k in ['undulatorParameter', 'period', 'length', 'longitudinalPosition', 'horizontalAmplitude', 'horizontalSymmetry', 'horizontalInitialPhase', 'verticalAmplitude', 'verticalSymmetry', 'verticalInitialPhase']:
             if k in tabulated_undulator:
-                if data['models']['simulation']['sourceType'] == 't':
+                if _is_tabulated_undulator_source(data['models']['simulation']):
                     data['models']['undulator'][k] = tabulated_undulator[k]
                 del tabulated_undulator[k]
 
@@ -574,7 +576,7 @@ def get_data_file(run_dir, model, frame):
 
 def get_filename_for_model(model):
     if _is_watchpoint(model):
-        model = 'watchpointReport'
+        model = _WATCHPOINT_REPORT_NAME
     return _DATA_FILE_FOR_MODEL[model]['filename']
 
 
@@ -622,7 +624,7 @@ def lib_files(data, source_lib, report=None):
     # the mirrorReport.heightProfileFile may be different than the file in the beamline
     if report == 'mirrorReport':
         res.append(dm['mirrorReport']['heightProfileFile'])
-    if dm.simulation.sourceType == 't':
+    if _is_tabulated_undulator_source(dm.simulation):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             res.append(dm.tabulatedUndulator.magneticFile)
     for m in dm.beamline:
@@ -640,20 +642,50 @@ def models_related_to_report(data):
     Args:
         data (dict): simulation
     Returns:
-        list: Named models that affect report or [] if don't know
+        list: Named models, model fields or values (dict, list) that affect report
     """
     r = data['report']
     if r == 'mirrorReport':
-        return [r]
-    watchpoint = _is_watchpoint(r)
+        return [
+            #TODO(pjm): will need to add file modified datetime value if file replacement is implemented
+            'mirrorReport.heightProfileFile',
+            'mirrorReport.orientation',
+            'mirrorReport.grazingAngle',
+            'mirrorReport.heightAmplification',
+        ]
     res = [
-        'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole', 'simulation',
-        'tabulatedUndulator', 'undulator',
+        r, 'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
+        'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
+    watchpoint = _is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
-        res.append('beamline')
+        res.extend([
+            'simulation.horizontalPointCount',
+            'simulation.horizontalPosition',
+            'simulation.horizontalRange',
+            'simulation.photonEnergy',
+            'simulation.sampleFactor',
+            'simulation.samplingMethod',
+            'simulation.verticalPointCount',
+            'simulation.verticalPosition',
+            'simulation.verticalRange',
+        ])
+    if r == 'initialIntensityReport':
+        beamline = data['models']['beamline']
+        res.append([beamline[0]['position'] if len(beamline) else 0])
     if watchpoint:
-        res.extend(['postPropagation', 'propagation'])
+        wid = _watchpoint_id(r)
+        beamline = data['models']['beamline']
+        propagation = data['models']['propagation']
+        for item in beamline:
+            item_copy = item.copy()
+            del item_copy['title']
+            res.append(item_copy)
+            res.append(propagation[str(item['id'])])
+            if item['type'] == 'watch' and item['id'] == wid:
+                break
+        if beamline[-1]['id'] == wid:
+            res.append('postPropagation')
     return res
 
 
@@ -672,7 +704,7 @@ def prepare_aux_files(run_dir, data):
         run_dir,
         data['report'],
     )
-    if not data['models']['simulation']['sourceType'] == 't':
+    if not _is_tabulated_undulator_source(data['models']['simulation']):
         return
     filename = data['models']['tabulatedUndulator']['magneticFile']
     filepath = run_dir.join(filename)
@@ -1099,7 +1131,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         model = electron_beam if model_name == 'electronBeam' else tabulated_undulator
         if not model or 'id' not in model:
-            continue;
+            continue
         user_model_list = _load_user_model_list(model_name)
         for i,m in enumerate(user_model_list):
             if m['id'] == model.id:
@@ -1372,7 +1404,7 @@ def _generate_parameters_file(data, plot_reports=False):
     data['models']['intensityReport']['magneticField'] = magnetic_field
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
 
-    if data['models']['simulation']['sourceType'] != 't' or data['models']['tabulatedUndulator']['undulatorType'] != 'u_t':
+    if magnetic_field == 1:
         data['models']['trajectoryReport']['magneticField'] = 1
 
     report = data['report']
@@ -1386,7 +1418,7 @@ def _generate_parameters_file(data, plot_reports=False):
                   'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
             data['models']['simulation'][k] = data['models']['sourceIntensityReport'][k]
 
-    if data['models']['simulation']['sourceType'] == 't':
+    if _is_tabulated_undulator_source(data['models']['simulation']):
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
@@ -1394,9 +1426,8 @@ def _generate_parameters_file(data, plot_reports=False):
 
     _validate_data(data, _SCHEMA)
     last_id = None
-    m = re.search('watchpointReport(\d+)', report)
-    if m:
-        last_id = int(m.group(1))
+    if _is_watchpoint(report):
+        last_id = _watchpoint_id(report)
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], {})
@@ -1413,7 +1444,7 @@ def _generate_parameters_file(data, plot_reports=False):
     v['beamlineFirstElementPosition'] = position
 
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if data['models']['simulation']['sourceType'] in ['u', 't'] else 2
+    v['energyCalculationMethod'] = 1 if _is_undulator_source(data['models']['simulation']) else 2
 
     if _is_user_defined_model(data['models']['electronBeam']):
         v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
@@ -1566,6 +1597,21 @@ def _is_background_report(report):
     return 'Animation' in report
 
 
+def _is_dipole_source(sim):
+    return sim['sourceType'] == 'm'
+
+def _is_gaussian_source(sim):
+    return sim['sourceType'] == 'g'
+
+
+def _is_tabulated_undulator_source(sim):
+    return sim['sourceType'] == 't'
+
+
+def _is_undulator_source(sim):
+    return sim['sourceType'] in ['u', 't']
+
+
 def _is_user_defined_model(ebeam):
     if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
         return False
@@ -1573,7 +1619,7 @@ def _is_user_defined_model(ebeam):
 
 
 def _is_watchpoint(name):
-    return 'watchpointReport' in name
+    return _WATCHPOINT_REPORT_NAME in name
 
 
 def _load_user_model_list(model_name):
@@ -1790,5 +1836,13 @@ def _validate_data(data, schema):
 def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
+
+
+def _watchpoint_id(report):
+    m = re.search(_WATCHPOINT_REPORT_NAME + '(\d+)', report)
+    if not m:
+        raise RuntimeError('invalid watchpoint report name: ', report)
+    return int(m.group(1))
+
 
 _init()

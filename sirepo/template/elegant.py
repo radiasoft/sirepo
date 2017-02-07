@@ -355,10 +355,17 @@ def lib_files(data, source_lib):
 
 
 def models_related_to_report(data):
+    """What models are required for this data['report']
+
+    Args:
+        data (dict): simulation
+    Returns:
+        list: Named models, model fields or values (dict, list) that affect report
+    """
     r = data['report']
-    if not 'bunchReport' in r:
+    if 'bunchReport' not in r:
         return []
-    return ['bunch', 'simulation', 'bunchSource', 'bunchFile']
+    return [r, 'bunch', 'bunchSource', 'bunchFile']
 
 
 def new_simulation(data, new_simulation_data):

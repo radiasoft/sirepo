@@ -96,26 +96,15 @@ def report_parameters_hash(data):
     """
     if not 'reportParametersHash' in data:
         models = sirepo.template.import_module(data).models_related_to_report(data)
-        #TODO(robnagler) need to eliminate non-models from data['models']
-        if not models:
-            models = data['models'].keys()
-            for k in 'panelState', 'rpnCache', 'simulationStatus', 'simulation':
-                if k in models:
-                    models.remove(k)
-        assert models, \
-            '{}: models is empty'.format(data)
         res = hashlib.md5()
-        if data['report'] in data['models'] and data['report'] not in models:
-            models.append(data['report'])
-        for m in sorted(models):
-            md = data['models'][m]
-            if m == 'simulation':
-                md = copy.deepcopy(md)
-                for k in 'simulationSerial', 'outOfSessionSimulationId', 'simulationId', 'folder', 'documentationUrl', 'facility', 'isExample', 'name':
-                    if k in md:
-                        del md[k]
-            j = json.dumps(md, sort_keys=True)
-            res.update(j)
+        dm = data['models']
+        for m in models:
+            if isinstance(m, basestring):
+                name, field = m.split('.') if '.' in m else (m, None)
+                value = dm[name][field] if field else dm[name]
+            else:
+                value = m
+            res.update(json.dumps(value, sort_keys=True))
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 

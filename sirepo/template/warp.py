@@ -307,11 +307,14 @@ def models_related_to_report(data):
     Args:
         data (dict): simulation
     Returns:
-        list: Named models that affect report or [] if don't know
+        list: Named models, model fields or values (dict, list) that affect report
     """
-    if not (data['report'] in ('beamPreviewReport', 'laserPreviewReport')):
+    r = data['report']
+    if r not in ('beamPreviewReport', 'laserPreviewReport'):
         return []
     return [
+        r,
+        'simulation.sourceType',
         'electronBeam',
         'electronPlasma',
         'laserPulse',
