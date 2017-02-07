@@ -412,8 +412,8 @@
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -470,14 +470,14 @@
             "verticalTransverseSize": ["Vertical Transverse Size [mm]", "Float", 1]
         },
         "mirrorReport": {
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "multiElectronAnimation": {
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "400"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -503,8 +503,8 @@
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -546,8 +546,8 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"],
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -611,8 +611,8 @@
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "intensityPlotsWidth": ["Intensity Plots Width [pixels]", "IntensityPlotsWidth", "400"],
-            "intensityPlotsScale": ["Intensity Plots Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "400"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         }
     },
     "view": {
@@ -891,11 +891,6 @@
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
             "basic": [
-                "simulation.photonEnergy",
-                "energyPerPulse"
-            ],
-            "advanced": [
-                "simulation.photonEnergy",
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
@@ -915,7 +910,8 @@
                         "waistAngleY"
                     ]]
                 ]
-            ]
+            ],
+            "advanced": []
         },
         "grating": {
             "title": "Grating",
