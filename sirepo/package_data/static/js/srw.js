@@ -216,7 +216,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, panelState, r
             newItem.firstFocusLength = newItem.position;
         }
         if (newItem.type == 'watch') {
-            appState.models[watchpointReportName(newItem.id)] = appState.cloneModel('initialIntensityReport');
+            appState.models[watchpointReportName(newItem.id)] = appState.setModelDefaults(
+                appState.cloneModel('initialIntensityReport'), 'watchpointReport');
         }
         appState.models.beamline.push(newItem);
         self.dismissPopup();
