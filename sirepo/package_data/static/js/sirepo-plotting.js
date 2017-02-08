@@ -194,6 +194,15 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         },
 
         linkPlot: function(scope, element) {
+            var priority = 0;
+            var current = scope.$parent;
+            while (current) {
+                if (current.requestPriority) {
+                    priority = current.requestPriority;
+                    break;
+                }
+                current = current.$parent;
+            }
             d3Service.d3().then(function(d3) {
                 scope.element = element[0];
                 scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
@@ -236,7 +245,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                                     srlog('incomplete response: ', data);
                                 }
                             }, forceRunCount ? true : false);
-                        }, 50, 1);
+                        }, 50 + priority * 10, 1);
                     };
                 }
 

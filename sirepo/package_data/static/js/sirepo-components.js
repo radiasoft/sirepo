@@ -987,6 +987,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
             panelTitle: '@',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
+            requestPriority: '@',
         },
         template: [
             '<div class="panel panel-info">',

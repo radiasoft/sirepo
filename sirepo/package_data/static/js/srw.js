@@ -1983,6 +1983,7 @@ SIREPO.app.directive('watchpointReport', function(srwService) {
     return {
         scope: {
             itemId: '=',
+            requestPriority: '@',
         },
         template: [
             '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',

@@ -65,10 +65,10 @@
   </div>
   <div data-ng-if="beamline.isSingleElectron()" class="row">
     <div class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="initialIntensityReport" data-panel-title="{{ beamline.srwService.getReportTitle('initialIntensityReport') }}"></div>
+      <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamline.srwService.getReportTitle('initialIntensityReport') }}"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamline.getWatchItems() track by item.id">
-      <div data-watchpoint-report data-item-id="item.id"></div>
+      <div data-watchpoint-report="" data-request-priority="{{ $index + 2 }}" data-item-id="item.id"></div>
     </div>
   </div>
   <div data-ng-if="beamline.isMultiElectron()" class="row">
