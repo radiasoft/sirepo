@@ -285,7 +285,7 @@ def api_importArchive():
     )
 
 
-def api_importFile(simulation_type):
+def api_importFile(simulation_type=None):
     """
     Args:
         simulation_type (str): which simulation type
@@ -296,8 +296,9 @@ def api_importFile(simulation_type):
     import sirepo.importer
 
     error = None
+    f = None
     try:
-        template = sirepo.template.import_module(simulation_type)
+        template = simulation_type and sirepo.template.import_module(simulation_type)
         f = flask.request.files.get('file')
         assert f, \
             ValueError('must supply a file')
@@ -306,6 +307,8 @@ def api_importFile(simulation_type):
         elif pkio.has_file_extension(f.filename, 'zip'):
             data = sirepo.importer.read_zip(f.stream, template)
         else:
+            assert simulation_type, \
+                'simulation_type is required param for non-zip|json imports'
             data, error = template.import_file(
                 flask.request,
                 simulation_db.simulation_lib_dir(simulation_type),

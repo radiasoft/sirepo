@@ -296,9 +296,10 @@ def import_file(*args, **kwargs):
     """No custom import"""
     raise ValueError('import of file not supported')
 
-def lib_files(*args, **kwargs):
+
+def lib_files(data, source_lib):
     """No lib files"""
-    return []
+    return template_common.internal_lib_files([], source_lib)
 
 
 def models_related_to_report(data):

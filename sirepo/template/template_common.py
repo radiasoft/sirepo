@@ -44,6 +44,24 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
+def internal_lib_files(files, source_lib):
+    """Return list of files used by the simulation
+
+    Args:
+        data (dict): sim db
+
+    Returns:
+        list: py.path.local to files
+    """
+    res = []
+    seen = set()
+    for f in files:
+        if f not in seen:
+            seen.add(f)
+            res.append(source_lib.join(f))
+    return res
+
+
 def lib_files(data):
     """Return list of files used by the simulation
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""?
+u"""sipepo.importer test
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,6 +40,7 @@ def _do(file_ext, parse):
     from pykern import pkio
     from pykern import pkunit
     from pykern import pkcollections
+    from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail, pkok
     from sirepo import sr_unit
     import re
@@ -51,7 +52,7 @@ def _do(file_ext, parse):
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
             is_dev = 'deviance' in f.basename
             if not is_dev:
-                sim_name = re.search(r'^"name": "([^"]+)', json, flags=re.MULTILINE).group(1) + suffix
+                sim_name = pkcollections.json_load_any(json).models.simulation.name
             res = fc.sr_post_form(
                 'importFile',
                 {
@@ -61,8 +62,9 @@ def _do(file_ext, parse):
                 {'simulation_type': sim_type},
             )
             if is_dev:
-                if not json == '':
-                    expect = re.search(r'Error: (.+)', json).group(1)
+                m = re.search(r'Error: (.+)', json)
+                if m:
+                    expect = m.group(1)
                     pkeq(expect, res.error)
                 continue
-            pkeq(sim_name, res.models.simulation.name)
+            pkeq(sim_name + suffix, res.models.simulation.name)

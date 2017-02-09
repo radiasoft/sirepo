@@ -19,11 +19,12 @@ def test_create_zip():
     import zipfile
 
     fc = sr_unit.flask_client()
-    for sim_type, sim_name, expect in (
+    imported = _import(fc)
+    for sim_type, sim_name, expect in imported + [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
         ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
         ('warp', 'WARP example laser simulation', ['run.py', 'sirepo-data.json']),
-    ):
+    ]:
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         resp = fc.sr_get(
             'exportArchive',
@@ -46,3 +47,22 @@ def test_create_zip():
                 nl,
                 expect,
             )
+
+
+def _import(fc):
+    from pykern import pkio
+    from pykern import pkunit
+    import zipfile
+    res = []
+    for f in pkio.sorted_glob(pkunit.data_dir().join('*.zip')):
+        with zipfile.ZipFile(str(f)) as z:
+            expect = sorted(z.namelist() + ['run.py'])
+        d = fc.sr_post_form(
+            'importFile',
+            {
+                'file': (open(str(f), 'rb'), f.basename),
+                'folder': '/exporter_test',
+            },
+        )
+        res.append((d.simulationType, d.models.simulation.name, expect))
+    return res

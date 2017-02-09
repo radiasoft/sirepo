@@ -64,6 +64,7 @@ def read_zip(stream, template=None):
     """
     from pykern import pkcollections
     from sirepo import simulation_db
+    from sirepo.template import template_common
     import py.path
     import zipfile
 
@@ -82,6 +83,7 @@ def read_zip(stream, template=None):
                     import sirepo.template
                     template = sirepo.template.import_module(data.simulationType)
                 continue
+            #TODO(robnagler) ignore identical files hash
             assert not b in zipped, \
                 '{} duplicate file in archive'.format(i.filename)
             fn = tmp.join(b)
@@ -90,14 +92,13 @@ def read_zip(stream, template=None):
             zipped[b] = fn
     assert data, \
         'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
-    lib_d = simulation_db.simulation_lib_dir(template.SIM_TYPE)
     needed = pkcollections.Dict()
-    for n in template.lib_files(data, lib_d):
+    for n in template_common.lib_files(data):
         assert n.basename in zipped or n.check(file=True, exists=True), \
             'auxiliary file {} missing in archive'.format(n.basename)
         needed[n.basename] = n
+    lib_d = simulation_db.simulation_lib_dir(template.SIM_TYPE)
     for b, src in zipped.items():
         if b in needed:
-            src.copy(lib_d)
-            del zipped[b]
+            src.copy(needed[b])
     return data

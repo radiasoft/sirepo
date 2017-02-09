@@ -633,7 +633,7 @@ def lib_files(data, source_lib, report=None):
             if m[k] and t in ['MirrorFile', 'ImageFile']:
                 if not report or _is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
-    return [source_lib.join(f) for f in res]
+    return template_common.internal_lib_files(res, source_lib)
 
 
 def models_related_to_report(data):

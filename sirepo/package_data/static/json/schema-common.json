@@ -30,7 +30,7 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "importArchive": "/import-archive",
-        "importFile": "/import-file/<simulation_type>",
+        "importFile": "/import-file/?<simulation_type>",
         "homePage": "/light",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",

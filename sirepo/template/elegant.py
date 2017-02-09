@@ -351,7 +351,7 @@ def lib_files(data, source_lib):
     _iterate_model_fields(data, res, _iterator_input_files)
     if data['models']['bunchFile']['sourceFile']:
         res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    return [source_lib.join(f) for f in res]
+    return template_common.internal_lib_files(res, source_lib)
 
 
 def models_related_to_report(data):
