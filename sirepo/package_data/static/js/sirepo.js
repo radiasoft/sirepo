@@ -634,7 +634,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     function clearPanel(name) {
         delete panels[name];
         delete pendingRequests[name];
-        delete queueItems[name];
+        // doesn't clear the queueItems, queueItem will be canceled if necessary in requestData()
     }
 
     function fieldClass(model, field) {
@@ -787,6 +787,9 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
             delete queueItems[name];
             callback(data);
         };
+        if (queueItems[name]) {
+            simulationQueue.cancelItem(queueItems[name]);
+        }
         self.addPendingRequest(name, function() {
             queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
         });
@@ -1196,6 +1199,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
         if (qi.qState == 'processing') {
             requestSender.sendRequest('runCancel', null, qi.request);
+            qi.qState = 'canceled';
         }
         self.removeItem(qi);
         if (isProcessingTransient) {
