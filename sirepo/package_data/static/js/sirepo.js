@@ -626,6 +626,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     var self = {};
     var panels = {};
     var pendingRequests = {};
+    var queueItems = {};
     $rootScope.$on('clearCache', function() {
         self.clear();
     });
@@ -633,6 +634,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     function clearPanel(name) {
         delete panels[name];
         delete pendingRequests[name];
+        delete queueItems[name];
     }
 
     function fieldClass(model, field) {
@@ -690,7 +692,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
                 callback(resp);
             }
         };
-        simulationQueue.addTransientItem(
+        return simulationQueue.addTransientItem(
             name,
             appState.applicationState(),
             responseHandler,
@@ -744,6 +746,14 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return names;
     };
 
+    self.getStatusText = function(name) {
+        if (self.isRunning(name)) {
+            var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
+            return 'Simulating ' + new Array(count % 3 + 2).join('.');
+        }
+        return 'Waiting';
+    };
+
     self.isHidden = function(name) {
         if (! appState.isLoaded()) {
             return true;
@@ -759,6 +769,10 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return getPanelValue(name, 'loading') ? true : false;
     };
 
+    self.isRunning = function(name) {
+        return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
+    };
+
     self.requestData = function(name, callback, forceRun) {
         if (! appState.isLoaded()) {
             return;
@@ -768,13 +782,16 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
             callback(data);
             return;
         }
-        if (self.isHidden(name)) {
-            self.addPendingRequest(name, function() {
-                sendRequest(name, callback, forceRun);
-            });
-        }
-        else {
-            sendRequest(name, callback, forceRun);
+        var wrappedCallback = function(data) {
+            delete pendingRequests[name];
+            delete queueItems[name];
+            callback(data);
+        };
+        self.addPendingRequest(name, function() {
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+        });
+        if (! self.isHidden(name)) {
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
         }
     };
 
@@ -832,9 +849,8 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         if (self.isHidden(name)) {
             state.panelState.hidden.splice(state.panelState.hidden.indexOf(name), 1);
 
-            if (pendingRequests[name]) {
+            if (pendingRequests[name] && ! queueItems[name]) {
                 var requestFunction = pendingRequests[name];
-                delete pendingRequests[name];
                 requestFunction();
             }
             // needed to resize a hidden report
@@ -844,6 +860,10 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         }
         else {
             state.panelState.hidden.push(name);
+            if (queueItems[name]) {
+                simulationQueue.cancelItem(queueItems[name]);
+                delete queueItems[name];
+            }
         }
     };
 
@@ -1071,6 +1091,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             qMode: qMode,
             persistent: qMode.indexOf('persistent') > -1,
             qState: 'pending',
+            runStatusCount: 0,
             request: {
                 forceRun: qMode == 'persistent' || forceRun ? true : false,
                 report: report,
@@ -1120,6 +1141,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             qi.request = resp.nextRequest;
             qi.interval = $interval(
                 function () {
+                    qi.runStatusCount++;
                     requestSender.sendRequest(
                         'runStatus', process, qi.request, process);
                 },
@@ -1170,12 +1192,15 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     self.cancelItem = function (qi) {
         if (! qi)
             return;
-        if (! qi.persistent) {
-            throw 'attempt to cancel non-persistent queue item';
-        }
         qi.qMode = 'transient';
-        requestSender.sendRequest('runCancel', null, qi.request);
+        var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
+        if (qi.qState == 'processing') {
+            requestSender.sendRequest('runCancel', null, qi.request);
+        }
         self.removeItem(qi);
+        if (isProcessingTransient) {
+            runFirstTransientItem();
+        }
     };
 
     self.removeItem = function(qi) {
