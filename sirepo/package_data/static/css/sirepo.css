@@ -211,9 +211,11 @@
     .sr-panel-loading .sr-panel-wait {
       position: absolute;
       color: white;
-      font-weight: bold;
       display: block;
       z-index: 1000;
+    }
+    .sr-panel-running .sr-panel-wait {
+      font-weight: bold;
     }
     .sr-hide-report {
       opacity: 0;
