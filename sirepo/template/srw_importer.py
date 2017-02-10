@@ -1,10 +1,17 @@
-"""
+# -*- coding: utf-8 -*-
+u"""
 This script is to parse SRW Python scripts and to produce JSON-file with the parsed data.
 It's highly dependent on the external Sirepo/SRW libraries and is written to allow parsing of the .py files using
 SRW objects.
+
+:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio, pkresource, pkrunpy
+from pykern import pkio
+from pykern import pkresource
+from pykern import pkrunpy
+from pykern import pkcollections
 from pykern.pkdebug import pkdlog, pkdexc
 from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 import ast
@@ -20,7 +27,6 @@ except:
     import pickle
 
 js_dir = py.path.local(pkresource.filename('static/js'))
-template_dir = py.path.local(pkresource.filename('template/srw/'))
 
 
 class SRWParser(object):
@@ -47,7 +53,7 @@ class SRWParser(object):
                 self.optics = getattr(m, self.optics_func_name)(self.var_param)
 
         self.data = _parsed_dict(self.var_param, self.optics)
-        self.data['models']['simulation']['name'] = _name(user_filename)
+        self.data.models.simulation.name = _name(user_filename)
 
     def get_files(self):
         self.list_of_files = []
@@ -131,7 +137,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
 
 # Mapping all the values to a dictionary:
 def _beamline_element(obj, idx, title, elem_type, position):
-    data = dict()
+    data = pkcollections.Dict()
 
     data['id'] = idx
     data['type'] = elem_type
@@ -309,7 +315,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
     elements_list = []
 
     # The dictionary to count the elements of different types:
-    names = {
+    names = pkcollections.Dict({
         'S': 0,
         'O': 0,
         'HDM': 0,
@@ -323,7 +329,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         'Fiber': 0,
         'Watch': '',
         'Sample': '',
-    }
+    })
 
     positions = []  # a list of dictionaries with sequence of distances between elements
 
@@ -414,7 +420,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
 
             title = key + str(names[key])
 
-            positions.append({
+            positions.append(pkcollections.Dict({
                 'id': counter,
                 'object': obj_arOpt[i],
                 'elem_class': name,
@@ -422,7 +428,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
                 'title': title,
                 'dist': d,
                 'dist_source': float(str(d_src)),
-            })
+            }))
 
     for i in range(len(positions)):
         data = _beamline_element(
@@ -476,7 +482,7 @@ def _get_default_drift():
 
 
 def _get_propagation(op):
-    prop_dict = {}
+    prop_dict = pkcollections.Dict()
     counter = 0
     for i in range(len(op.arProp) - 1):
         name = op.arOpt[i].__class__.__name__
@@ -528,7 +534,7 @@ def _list2dict(data_list):
     :return out_dict: dictionary with all parameters.
     """
 
-    out_dict = {}
+    out_dict = pkcollections.Dict()
 
     for i in range(len(data_list)):
         out_dict[data_list[i][0]] = data_list[i][2]
@@ -583,13 +589,13 @@ def _parsed_dict(v, op):
                 return ''
 
     # This dictionary will is used for both initial intensity report and for watch point:
-    initialIntensityReport = {
+    initialIntensityReport = pkcollections.Dict({
         'characteristic': v.si_type,
         'fieldUnits': 1,
         'polarization': v.si_pol,
         'precision': v.w_prec,
         'sampleFactor': 0,
-    }
+    })
 
     predefined_beams = sirepo.template.srw.get_predefined_beams()
 
@@ -599,14 +605,14 @@ def _parsed_dict(v, op):
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
         full_beam_name = '{}{}'.format(v.ebm_nm, v.ebm_nms)
-        electronBeam = {}
+        electronBeam = pkcollections.Dict()
         for b in predefined_beams:
             if b['name'] == full_beam_name:
                 electronBeam = b
                 electronBeam['beamSelector'] = full_beam_name
                 break
         if not electronBeam:
-            electronBeam = {
+            electronBeam = pkcollections.Dict({
                 'beamSelector': full_beam_name,
                 'current': v.ebm_i,
                 'energy': _default_value('ebm_e', v, std_options, 3.0),
@@ -626,9 +632,9 @@ def _parsed_dict(v, op):
                 'verticalDispersionDerivative': _default_value('ebm_etaxp', v, std_options, 0.0),
                 'verticalEmittance': _default_value('ebm_emy', v, std_options, 8e-12) * 1e9,
                 'verticalPosition': v.ebm_y,
-            }
+            })
 
-        undulator = {
+        undulator = pkcollections.Dict({
             'horizontalAmplitude': _default_value('und_bx', v, std_options, 0.0),
             'horizontalInitialPhase': _default_value('und_phx', v, std_options, 0.0),
             'horizontalSymmetry': _default_value('und_sx', v, std_options, 1.0),
@@ -638,9 +644,9 @@ def _parsed_dict(v, op):
             'verticalAmplitude': _default_value('und_by', v, std_options, 0.88770981) if hasattr(v, 'und_by') else _default_value('und_b', v, std_options, 0.88770981),
             'verticalInitialPhase': _default_value('und_phy', v, std_options, 0.0),
             'verticalSymmetry': _default_value('und_sy', v, std_options, -1),
-        }
+        })
 
-        gaussianBeam = {
+        gaussianBeam = pkcollections.Dict({
             'energyPerPulse': None,
             'polarization': 1,
             'rmsPulseDuration': None,
@@ -651,11 +657,11 @@ def _parsed_dict(v, op):
             'waistX': None,
             'waistY': None,
             'waistZ': None,
-        }
+        })
 
     else:
         source_type = 'g'
-        electronBeam = {}
+        electronBeam = pkcollections.Dict()
         default_ebeam_name = 'NSLS-II Low Beta Final'
         for beam in predefined_beams:
             if beam['name'] == default_ebeam_name:
@@ -664,7 +670,7 @@ def _parsed_dict(v, op):
                 break
         if not electronBeam:
             raise ValueError('Electron beam is not set during import')
-        undulator = {
+        undulator = pkcollections.Dict({
             "horizontalAmplitude": "0",
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
@@ -675,9 +681,9 @@ def _parsed_dict(v, op):
             "verticalAmplitude": "0.88770981",
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1,
-        }
+        })
 
-        gaussianBeam = {
+        gaussianBeam = pkcollections.Dict({
             'energyPerPulse': _default_value('gbm_pen', v, std_options),
             'polarization': _default_value('gbm_pol', v, std_options),
             'rmsPulseDuration': _default_value('gbm_st', v, std_options) * 1e12,
@@ -688,14 +694,14 @@ def _parsed_dict(v, op):
             'waistX': _default_value('gbm_x', v, std_options),
             'waistY': _default_value('gbm_y', v, std_options),
             'waistZ': _default_value('gbm_z', v, std_options),
-        }
+        })
 
-    python_dict = {
-        'models': {
+    python_dict = pkcollections.Dict({
+        'models': pkcollections.Dict({
             'beamline': beamline_elements,
             'electronBeam': electronBeam,
             'electronBeams': [],
-            'fluxReport': {
+            'fluxReport': pkcollections.Dict({
                 'azimuthalPrecision': v.sm_pra,
                 'distanceFromSource': v.op_r,
                 'finalEnergy': v.sm_ef,
@@ -708,9 +714,9 @@ def _parsed_dict(v, op):
                 'polarization': v.sm_pol,
                 'verticalApertureSize': v.sm_ry * 1e3,
                 'verticalPosition': v.sm_y,
-            },
+            }),
             'initialIntensityReport': initialIntensityReport,
-            'intensityReport': {
+            'intensityReport': pkcollections.Dict({
                 'distanceFromSource': v.op_r,
                 'fieldUnits': 1,
                 'finalEnergy': v.ss_ef,
@@ -720,22 +726,22 @@ def _parsed_dict(v, op):
                 'polarization': v.ss_pol,
                 'precision': v.ss_prec,
                 'verticalPosition': v.ss_y,
-            },
-            'multiElectronAnimation': {
+            }),
+            'multiElectronAnimation': pkcollections.Dict({
                 'horizontalPosition': 0,
                 'horizontalRange': v.w_rx * 1e3,
                 'stokesParameter': '0',
                 'verticalPosition': 0,
                 'verticalRange': v.w_ry * 1e3,
-            },
-            'multipole': {
+            }),
+            'multipole': pkcollections.Dict({
                 'distribution': 'n',
                 'field': 0,
                 'length': 0,
                 'order': 1,
-            },
+            }),
             'postPropagation': op.arProp[-1],
-            'powerDensityReport': {
+            'powerDensityReport': pkcollections.Dict({
                 'distanceFromSource': v.op_r,
                 'horizontalPointCount': v.pw_nx,
                 'horizontalPosition': v.pw_x,
@@ -745,9 +751,9 @@ def _parsed_dict(v, op):
                 'verticalPointCount': v.pw_ny,
                 'verticalPosition': v.pw_y,
                 'verticalRange': v.pw_ry * 1e3,
-            },
+            }),
             'propagation': _get_propagation(op),
-            'simulation': {
+            'simulation': pkcollections.Dict({
                 'facility': 'Import',
                 'horizontalPointCount': v.w_nx,
                 'horizontalPosition': v.w_x,
@@ -762,19 +768,19 @@ def _parsed_dict(v, op):
                 'verticalPointCount': v.w_ny,
                 'verticalPosition': v.w_y,
                 'verticalRange': v.w_ry * 1e3,
-            },
-            'sourceIntensityReport': {
+            }),
+            'sourceIntensityReport': pkcollections.Dict({
                 'characteristic': v.si_type,  # 0,
                 'distanceFromSource': v.op_r,
                 'fieldUnits': 1,
                 'polarization': v.si_pol,
-            },
+            }),
             'undulator': undulator,
             'gaussianBeam': gaussianBeam,
-        },
+        }),
         'simulationType': 'srw',
         'version': '',
-    }
+    })
 
     # Format the key name to be consistent with Sirepo:
     for i in range(len(beamline_elements)):

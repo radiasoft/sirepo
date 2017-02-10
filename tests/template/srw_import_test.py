@@ -5,42 +5,41 @@ u"""PyTest for :mod:`sirepo.template.srw_importer`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkresource
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp
-import glob
-import py
 import pytest
 
 pytest.importorskip('srwl_bl')
 
-_TESTS = {  # Values are optional arguments:
-    'amx': ('amx', None),
-    'amx_bl2': ('amx', '--op_BL=2'),
-    'amx_bl3': ('amx', '--op_BL=3'),
-    'amx_bl4': ('amx', '--op_BL=4'),
-    'chx': ('chx', None),
-    'chx_fiber': ('chx_fiber', None),
-    'exported_chx': ('exported_chx', None),
-    'exported_gaussian_beam': ('exported_gaussian_beam', None),
-    'exported_undulator_radiation': ('exported_undulator_radiation', None),
-    'lcls_simplified': ('lcls_simplified', None),
-    'lcls_sxr': ('lcls_sxr', None),
-    'sample_from_image': ('sample_from_image', None),
-    'smi_es1_bump_norm': ('smi', '--beamline ES1 --bump --BMmode Norm'),
-    'smi_es1_nobump': ('smi', '--beamline ES1'),
-    'smi_es2_bump_lowdiv': ('smi', '--beamline ES2 --bump --BMmode LowDiv'),
-    'smi_es2_bump_norm': ('smi', '--beamline ES2 --bump --BMmode Norm'),
-    'srx': ('srx', None),
-    'srx_bl2': ('srx', '--op_BL=2'),
-    'srx_bl3': ('srx', '--op_BL=3'),
-    'srx_bl4': ('srx', '--op_BL=4'),
-}
-
-
 def test_importer():
     from sirepo.template.srw_importer import import_python
+    from pykern import pkio
+    from pykern import pkresource
+    from pykern import pkunit
+    from pykern.pkdebug import pkdc, pkdp
+    import glob
+    import py
+    _TESTS = {  # Values are optional arguments:
+        'amx': ('amx', None),
+        'amx_bl2': ('amx', '--op_BL=2'),
+        'amx_bl3': ('amx', '--op_BL=3'),
+        'amx_bl4': ('amx', '--op_BL=4'),
+        'chx': ('chx', None),
+        'chx_fiber': ('chx_fiber', None),
+        'exported_chx': ('exported_chx', None),
+        'exported_gaussian_beam': ('exported_gaussian_beam', None),
+        'exported_undulator_radiation': ('exported_undulator_radiation', None),
+        'lcls_simplified': ('lcls_simplified', None),
+        'lcls_sxr': ('lcls_sxr', None),
+        'sample_from_image': ('sample_from_image', None),
+        'smi_es1_bump_norm': ('smi', '--beamline ES1 --bump --BMmode Norm'),
+        'smi_es1_nobump': ('smi', '--beamline ES1'),
+        'smi_es2_bump_lowdiv': ('smi', '--beamline ES2 --bump --BMmode LowDiv'),
+        'smi_es2_bump_norm': ('smi', '--beamline ES2 --bump --BMmode Norm'),
+        'srx': ('srx', None),
+        'srx_bl2': ('srx', '--op_BL=2'),
+        'srx_bl3': ('srx', '--op_BL=3'),
+        'srx_bl4': ('srx', '--op_BL=4'),
+    }
+
     dat_dir = py.path.local(pkresource.filename('template/srw/', import_python))
     with pkunit.save_chdir_work():
         work_dir = py.path.local('.')
@@ -59,3 +58,24 @@ def test_importer():
             )
             actual['version'] = 'IGNORE-VALUE'
             pkunit.assert_object_with_json(b, actual)
+
+
+def test_importer_in_flask():
+    from pykern import pkio
+    from pykern import pkunit
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkeq
+    from sirepo import sr_unit
+    import re
+
+    fc = sr_unit.flask_client()
+    for f in [pkunit.data_dir().join('lcls_sxr.py')]:
+        res = fc.sr_post_form(
+            'importFile',
+            {
+                'file': (open(str(f), 'r'), f.basename),
+                'folder': '/srw_import_test',
+            },
+            {'simulation_type': 'srw'},
+        )
+        pkeq(f.purebasename, res.models.simulation.name)

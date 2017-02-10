@@ -42,7 +42,7 @@ SIM_TYPE = 'srw'
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
-_DATA_FILE_FOR_MODEL = {
+_DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'initialIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
@@ -53,9 +53,9 @@ _DATA_FILE_FOR_MODEL = {
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
     _WATCHPOINT_REPORT_NAME: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
-}
+})
 
-_EXAMPLE_FOLDERS = {
+_EXAMPLE_FOLDERS = pkcollections.Dict({
     'Bending Magnet Radiation': '/SR Calculator',
     'Diffraction by an Aperture': '/Wavefront Propagation',
     'Ellipsoidal Undulator Example': '/Examples',
@@ -73,7 +73,7 @@ _EXAMPLE_FOLDERS = {
     'Young\'s Double Slit Experiment (green laser)': '/Wavefront Propagation',
     'Young\'s Double Slit Experiment (green laser, no lens)': '/Wavefront Propagation',
     'Young\'s Double Slit Experiment': '/Wavefront Propagation',
-}
+})
 
 #: Where server files and static files are found
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
@@ -84,10 +84,10 @@ _RUN_ALL_MODEL = 'simulation'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
-_USER_MODEL_LIST_FILENAME = {
+_USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'electronBeam': '_user_beam_list.json',
     'tabulatedUndulator': '_user_undulator_list.json',
-}
+})
 
 
 class MagnMeasZip:
@@ -156,17 +156,17 @@ class MagnMeasZip:
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    res = {
+    res = pkcollections.Dict({
         'percentComplete': 0,
         'frameCount': 0,
-    }
+    })
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
-        status = {
+        status = pkcollections.Dict({
             'progress': 100,
             'particle_number': 0,
             'total_num_of_particles': 0,
-        }
+        })
         status_files = pkio.sorted_glob(run_dir.join('__srwl_logs__', 'srwl_*.json'))
         if status_files:  # Read the status file if SRW produces the multi-e logs
             progress_file = py.path.local(status_files[-1])
@@ -220,7 +220,7 @@ def extract_report_data(filename, model_data):
         before_propagation_name = 'E={sourcePhotonEnergy} eV'
     else:
         before_propagation_name = 'E={photonEnergy} eV'
-    file_info = {
+    file_info = pkcollections.Dict({
         'res_trj.dat': [['Longitudinal Position', 'Position', 'Electron Trajectory'], ['m', 'm']],
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
@@ -230,7 +230,7 @@ def extract_report_data(filename, model_data):
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
-    }
+    })
 
     if model_data['report'] == 'trajectoryReport':
         assert model_data['models']['trajectoryReport']['plotAxis'] in ['x', 'y']
@@ -253,7 +253,7 @@ def extract_report_data(filename, model_data):
         title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
     elif '{sourcePhotonEnergy}' in title:
         title = title.format(sourcePhotonEnergy=model_data['models']['sourceIntensityReport']['photonEnergy'])
-    info = {
+    info = pkcollections.Dict({
         'title': title,
         'x_range': [allrange[0], allrange[1]],
         'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
@@ -261,7 +261,7 @@ def extract_report_data(filename, model_data):
         'x_units': file_info[filename][1][0],
         'y_units': file_info[filename][1][1],
         'points': data,
-    }
+    })
     orig_rep_name = model_data['report']
     rep_name = _WATCHPOINT_REPORT_NAME if _is_watchpoint(orig_rep_name) else orig_rep_name
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
@@ -290,12 +290,12 @@ def find_height_profile_dimension(dat_file):
 def fixup_electron_beam(data):
     if 'electronBeamPosition' not in data['models']:
         ebeam = data['models']['electronBeam']
-        data['models']['electronBeamPosition'] = {
+        data['models']['electronBeamPosition'] = pkcollections.Dict({
             'horizontalPosition': ebeam['horizontalPosition'],
             'verticalPosition': ebeam['verticalPosition'],
             'driftCalculationMethod': ebeam['driftCalculationMethod'] if 'driftCalculationMethod' in ebeam else 'auto',
             'drift': ebeam['drift'] if 'drift' in ebeam else 0,
-        }
+        })
         for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
             if f in ebeam:
                 del ebeam[f]
@@ -360,18 +360,18 @@ def fixup_old_data(data):
         if 'precision' not in data['models']['sourceIntensityReport']:
             data['models']['sourceIntensityReport']['precision'] = 0.01
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
-        data['models']['simulationStatus'] = {}
+        data['models']['simulationStatus'] = pkcollections.Dict()
     if 'outOfSessionSimulationId' not in data['models']['simulation']:
         data['models']['simulation']['outOfSessionSimulationId'] = ''
     if 'multiElectronAnimation' not in data['models']:
         m = data['models']['initialIntensityReport']
-        data['models']['multiElectronAnimation'] = {
+        data['models']['multiElectronAnimation'] = pkcollections.Dict({
             'horizontalPosition': m['horizontalPosition'],
             'horizontalRange': m['horizontalRange'],
             'verticalPosition': m['verticalPosition'],
             'verticalRange': m['verticalRange'],
             'stokesParameter': '0',
-        }
+        })
     if 'numberOfMacroElectrons' not in data['models']['multiElectronAnimation']:  # added 08/10/2016 for ticket #278
         data['models']['multiElectronAnimation']['numberOfMacroElectrons'] = 100000
     for item in data['models']['beamline']:
@@ -388,14 +388,14 @@ def fixup_old_data(data):
                 item['grazingAngle'] = angle
     for item in data['models']['beamline']:
         if item['type'] == 'crl':
-            key_value_pairs = {
+            key_value_pairs = pkcollections.Dict({
                 'material': 'User-defined',
                 'method': 'server',
                 'absoluteFocusPosition': None,
                 'focalDistance': None,
                 'tipRadius': float(item['radius']) * 1e6,  # m -> um
                 'tipWallThickness': float(item['wallThickness']) * 1e6,  # m -> um
-            }
+            })
             for field in key_value_pairs.keys():
                 if field not in item:
                     item[field] = key_value_pairs[field]
@@ -416,14 +416,14 @@ def fixup_old_data(data):
     if 'documentationUrl' not in data['models']['simulation']:
         data['models']['simulation']['documentationUrl'] = ''
     if 'tabulatedUndulator' not in data['models']:
-        data['models']['tabulatedUndulator'] = {
+        data['models']['tabulatedUndulator'] = pkcollections.Dict({
             'gap': 6.72,
             'phase': 0,
             'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
             'longitudinalPosition': 1.305,
             'magnMeasFolder': '',
             'indexFileName': '',
-        }
+        })
     else:
         if 'indexFile' in data.models.tabulatedUndulator:
             data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
@@ -449,12 +449,12 @@ def fixup_old_data(data):
         data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
     if 'undulatorParameter' not in data['models']['undulator']:
         undulator = data['models']['undulator']
-        undulator['undulatorParameter'] = round(_process_undulator_definition({
+        undulator['undulatorParameter'] = round(_process_undulator_definition(pkcollections.Dict({
             'undulator_definition': 'B',
             'undulator_parameter': None,
             'vertical_amplitude': float(undulator['verticalAmplitude']),
             'undulator_period': float(undulator['period']) / 1000.0
-        })['undulator_parameter'], 8)
+        }))['undulator_parameter'], 8)
     if 'folder' not in data['models']['simulation']:
         if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
             data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
@@ -463,14 +463,14 @@ def fixup_old_data(data):
 
     # Trajectory report:
     if 'trajectoryReport' not in data['models']:
-        data['models']['trajectoryReport'] = {
+        data['models']['trajectoryReport'] = pkcollections.Dict({
             'timeMomentEstimation': 'auto',
             'initialTimeMoment': 0.0,
             'finalTimeMoment': 0.0,
             'numberOfPoints': 10000,
             'plotAxis': 'x',
             'magneticField': 2,
-        }
+        })
     # Update tabulated undulator length:
     _compute_undulator_length(data['models']['tabulatedUndulator'])
 
@@ -521,9 +521,9 @@ def get_application_data(data):
         if model_name == 'electronBeam':
             for beam in res:
                 _process_beam_parameters(beam)
-        return {
+        return pkcollections.Dict({
             'modelList': res
-        }
+        })
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
     if data['method'] == 'compute_grazing_angle':
@@ -596,9 +596,9 @@ def import_file(request, lib_dir, tmp_dir):
         parsed_data = simulation_db.json_load(input_text)
     except ValueError as e:
         # Failed to read json
-        arguments = str(request.form['arguments'])
+        arguments = str(request.form.get('arguments', ''))
         pkdlog('{}: arguments={}', f.filename, arguments)
-        return srw_importer.import_python(
+        parsed_data = srw_importer.import_python(
             input_text,
             lib_dir=lib_dir,
             tmp_dir=tmp_dir,
@@ -892,11 +892,11 @@ def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator
     return ebeam_position['drift']
 
 def _compute_crl_characteristics(model, photon_energy, prefix=''):
-    fields_with_prefix = {
+    fields_with_prefix = pkcollections.Dict({
         'material': 'material',
         'refractiveIndex': 'refractiveIndex',
         'attenuationLength': 'attenuationLength',
-    }
+    })
     if prefix:
         for k in fields_with_prefix.keys():
             fields_with_prefix[k] = '{}{}{}'.format(
@@ -909,9 +909,9 @@ def _compute_crl_characteristics(model, photon_energy, prefix=''):
         return model
 
     # Index of refraction:
-    kwargs = {
+    kwargs = pkcollections.Dict({
         'energy': photon_energy,
-    }
+    })
     if model['method'] == 'server':
         kwargs['precise'] = True
         kwargs['formula'] = model[fields_with_prefix['material']]
@@ -1138,7 +1138,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 del user_model_list[i]
                 _save_user_model_list(model_name, user_model_list)
                 break
-    return {}
+    return pkcollections.Dict({})
 
 
 def _find_closest_value(values_list, value):
@@ -1165,10 +1165,10 @@ def _find_closest_value(values_list, value):
     idx_next = indices_next[0] if indices_next else indices_previous[-1]
 
     idx = idx_previous if abs(values_list[idx_previous] - value) <= abs(values_list[idx_next] - value) else idx_next
-    return {
+    return pkcollections.Dict({
         'idx': idx,
         'closest_value': values_list[idx],
-    }
+    })
 
 
 def _find_dat_files_from_index_file(index_content):
@@ -1430,7 +1430,7 @@ def _generate_parameters_file(data, plot_reports=False):
         last_id = _watchpoint_id(report)
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
-    v = template_common.flatten_data(data['models'], {})
+    v = template_common.flatten_data(data['models'], pkcollections.Dict())
     run_all = report == _RUN_ALL_MODEL
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
     # und_g and und_ph API units are mm rather than m
@@ -1552,7 +1552,7 @@ def _init():
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-        beams.append({
+        beams.append(pkcollections.Dict({
             'name': beam[0],
             'current': info[0],
             'energy': info[1],
@@ -1572,7 +1572,7 @@ def _init():
             'verticalPosition': 0,
             'drift': 0.0,
             'isReadOnly': True,
-        })
+        }))
     _PREDEFINED['beams'] = beams
 
 
@@ -1641,9 +1641,9 @@ def _predefined_files_for_type(file_type):
     for extension in extensions_for_file_type(file_type):
         for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
             if os.path.isfile(f):
-                res.append({
+                res.append(pkcollections.Dict({
                     'fileName': os.path.basename(f),
-                })
+                }))
     return res
 
 
@@ -1716,9 +1716,9 @@ def _process_image(data):
 
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
-    return {
+    return pkcollections.Dict({
         'magneticField': 2 if source_type == 't' and undulator_type == 'u_t' else 1,
-    }
+    })
 
 
 def _process_undulator_definition(model):
@@ -1776,7 +1776,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
 
-    return {
+    return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
@@ -1784,7 +1784,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         'z_label': _superscript(z_label + ' [' + z_units + ']'),
         'title': info['title'],
         'z_matrix': ar2d.tolist(),
-    }
+    })
 
 
 def _save_user_model_list(model_name, beam_list):
@@ -1800,7 +1800,7 @@ def _superscript(val):
 
 def _unique_name(items, field, template):
     #TODO(pjm): this is the same logic as sirepo.js uniqueName()
-    values = {}
+    values = pkcollections.Dict()
     for item in items:
         values[item[field]] = True
     index = 1
@@ -1813,7 +1813,7 @@ def _unique_name(items, field, template):
             return id
 
 def _user_model_map(model_list, field):
-    res = {}
+    res = pkcollections.Dict()
     for model in model_list:
         res[model[field]] = model
     return res
