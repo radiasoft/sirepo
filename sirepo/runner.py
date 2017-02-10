@@ -190,6 +190,7 @@ class Celery(object):
             self.jid = simulation_db.job_id(data)
             pkdc('{}: created', self.jid)
             if self.jid in self._job:
+                self = self._job[self.jid]
                 pkdlog(
                     '{}: Collision tid={} celery_state={}',
                     self.jid,
