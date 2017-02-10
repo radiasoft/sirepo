@@ -4201,8 +4201,7 @@
                 "simplex_pass_range_factor",
                 "include_simplex_1d_scans",
                 "start_from_simplex_vertex1",
-                "restart_random_numbers",
-                "interrupt_file"
+                "restart_random_numbers"
             ]
         },
         "command_optimization_term": {
