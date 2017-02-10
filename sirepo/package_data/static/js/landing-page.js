@@ -35,7 +35,8 @@ app.value('appRoutes', {
     'wavefront': 'Wavefront Propagation',
 });
 
-app.config(function($routeProvider, appRoutesProvider) {
+app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
+    $locationProvider.hashPrefix('');
     // srw landing page
     if (SIREPO.IS_SRW_LANDING_PAGE) {
         var appRoutes = appRoutesProvider.$get();
