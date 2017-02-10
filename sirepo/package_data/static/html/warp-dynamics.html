@@ -6,12 +6,12 @@
         <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
           <form name="form" class="form-horizontal" novalidate data-ng-show="dynamics.isStateProcessing()">
             <div data-ng-show="dynamics.isStatePending()">
-              <div data-ng-class="col-sm-12">
+              <div class="col-sm-12">
                  {{ dynamics.stateAsText() }} {{ dynamics.dots }}
               </div>
             </div>
             <div data-ng-show="dynamics.isStateRunning()">
-              <div data-ng-class="col-sm-12">
+              <div class="col-sm-12">
                 <div data-ng-show="dynamics.isInitializing()">
                   Initializing Laser Pulse and Plasma {{ dynamics.dots }}
                 </div>
