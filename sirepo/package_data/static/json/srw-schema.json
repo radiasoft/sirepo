@@ -891,6 +891,7 @@
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
             "basic": [
+                "simulation.photonEnergy",
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
