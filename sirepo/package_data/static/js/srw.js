@@ -963,9 +963,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         else if (name === 'electronBeam') {
             processBeamFields();
         }
-        else if (name === 'gaussianBeam') {
-            processGaussianBeamSize();
-        }
     };
 
     $scope.$on('modelChanged', function(e, name) {
@@ -1044,6 +1041,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             isReadyForInput = true;
             disableBasicEditorBeamName();
             processUndulator();
+            processGaussianBeamSize();
         });
     });
 });
