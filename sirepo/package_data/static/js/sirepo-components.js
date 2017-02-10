@@ -111,9 +111,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
 SIREPO.app.directive('srAlert', function(errorService) {
     return {
         restrict: 'A',
-        scope: {
-            alertText: '=',
-        },
+        scope: {},
         template: [
             '<div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">',
               '<button type="button" class="close" data-dismiss="alert" aria-label="Close">',
@@ -468,8 +466,8 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                     routeName: 'getApplicationData',
                     '<filename>': fn
                 });
-                var err = function (data, status) {
-                    errorService.alertText('Download failed: status=' + status);
+                var err = function (response) {
+                    errorService.alertText('Download failed: status=' + response.status);
                 };
                 //TODO: Error handling
                 $http.post(
@@ -481,13 +479,15 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                         'baseImage': m[1]
                     },
                     {responseType: 'blob'}
-                ).success(function (data, status, headers, config) {
-                    if (status == 200) {
-                        saveAs(data, fn);
-                        return;
-                    }
-                    err(data, status, headers, config);
-                }).error(err);
+                ).then(
+                    function (response) {
+                        if (response.status == 200) {
+                            saveAs(response.data, fn);
+                            return;
+                        }
+                        err(response);
+                    },
+                    err);
             };
 
             $scope.hasValidFileSelected = function() {
@@ -726,7 +726,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
         scope: {
             viewName: '@',
             parentController: '=',
-            modalTitle: '=',
+            modalTitle: '=?',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
         },
@@ -1134,11 +1134,11 @@ SIREPO.app.service('plotToPNG', function($http) {
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed sirepo.css style within SVG for first download, css file is cached by browser
         $http.get('/static/css/sirepo.css' + SIREPO.SOURCE_CACHE_KEY)
-            .success(function(data) {
+            .then(function(response) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');
                     css.type = 'text/css';
-                    css.appendChild(document.createTextNode(data));
+                    css.appendChild(document.createTextNode(response.data));
                     svg.insertBefore(css, svg.firstChild);
                 }
                 downloadPlot(svg, height, plot3dCanvas, fileName);
@@ -1158,9 +1158,11 @@ SIREPO.app.service('fileUpload', function($http) {
         $http.post(uploadUrl, fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}
-        })
-            .success(callback)
-            .error(function() {
+        }).then(
+            function(response) {
+                callback(response.data);
+            },
+            function() {
                 //TODO(pjm): error handling
                 srlog('file upload failed');
             });

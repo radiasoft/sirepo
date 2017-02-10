@@ -898,7 +898,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
                 canvas.attr('width', $scope.canvasSize)
                     .attr('height', $scope.canvasSize);
-                ctx.mozImageSmoothingEnabled = false;
                 ctx.imageSmoothingEnabled = false;
                 ctx.msImageSmoothingEnabled = false;
                 var xPixelSize = (xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize / xValues.length;
@@ -1333,7 +1332,6 @@ SIREPO.app.directive('heatmap', function(plotting) {
                     ty = 0;
                     $scope.zoom.translate([tx, ty]);
                 }
-                ctx.mozImageSmoothingEnabled = false;
                 ctx.imageSmoothingEnabled = false;
                 ctx.msImageSmoothingEnabled = false;
                 ctx.drawImage(

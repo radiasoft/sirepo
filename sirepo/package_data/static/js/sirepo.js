@@ -65,7 +65,8 @@ SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shags
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
-SIREPO.app.config(function(localRoutesProvider, $compileProvider, $routeProvider) {
+SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
+    $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
     var localRoutes = localRoutesProvider.$get();
     if (SIREPO.IS_LOGGED_OUT) {
@@ -983,14 +984,15 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             return;
         }
         self[name + ".loading"] = true;
-        $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY)
-            .success(function(data, status) {
+        $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
+            function(response) {
+                var data = response.data;
                 self[name] = data;
                 delete self[name + ".loading"];
                 if (callback)
                     callback(data);
-            })
-            .error(function() {
+            },
+            function() {
                 srlog(path, ' load failed!');
                 delete self[name + ".loading"];
             });
@@ -1027,7 +1029,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
-        var thisErrorCallback = function(resp, status) {
+        var thisErrorCallback = function(response) {
+            var data = response.data;
+            var status = response.status;
             $interval.cancel(interval);
             var msg = null;
             if (timed_out) {
@@ -1040,42 +1044,42 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 msg = 'the server is unavailable';
                 status = 503;
             }
-            if (_.isString(resp) && IS_HTML_ERROR_RE.exec(resp)) {
-                var m = HTML_TITLE_RE.exec(resp);
+            if (_.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+                var m = HTML_TITLE_RE.exec(data);
                 if (m) {
                     srlog(m[1], ': error response from server');
-                    resp = {error: m[1]};
+                    data = {error: m[1]};
                 }
             }
-            if (_.isEmpty(resp)) {
-                resp = {};
+            if (_.isEmpty(data)) {
+                data = {};
             }
-            else if (! _.isObject(resp)) {
+            else if (! _.isObject(data)) {
                 errorService.logToServer(
-                    'serverResponseError', resp, 'unexpected response type or empty');
-                resp = {};
+                    'serverResponseError', data, 'unexpected response type or empty');
+                data = {};
             }
-            if (! resp.state) {
-                resp.state = 'error';
+            if (! data.state) {
+                data.state = 'error';
             }
-            if (! resp.error) {
-                resp.error = msg || 'a server error occured: status=' + status;
+            if (! data.error) {
+                data.error = msg || 'a server error occured: status=' + status;
             }
-            srlog(resp.error);
-            errorCallback(resp, status);
+            srlog(data.error);
+            errorCallback(data, status);
         };
-        req.success(
-            function(resp, status) {
+        req.then(
+            function(response) {
+                var data = response.data;
                 $interval.cancel(interval);
-                if (_.isObject(resp)) {
-                    successCallback(resp, status);
+                if (_.isObject(data)) {
+                    successCallback(data, response.status);
                 }
                 else {
-                    thisErrorCallback(resp, status);
+                    thisErrorCallback(data, response.status);
                 }
-            }
-        );
-        req.error(thisErrorCallback);
+            },
+            thisErrorCallback);
     };
 
     return self;
