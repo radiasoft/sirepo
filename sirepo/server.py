@@ -309,15 +309,14 @@ def api_importFile(simulation_type=None):
         else:
             assert simulation_type, \
                 'simulation_type is required param for non-zip|json imports'
-            data, error = template.import_file(
+            data = template.import_file(
                 flask.request,
                 simulation_db.simulation_lib_dir(simulation_type),
                 simulation_db.tmp_dir(),
             )
-        if not error:
-            #TODO(robnagler) need to validate folder
-            data.models.simulation.folder = flask.request.form['folder']
-            return _save_new_and_reply(data.simulationType, data)
+        #TODO(robnagler) need to validate folder
+        data.models.simulation.folder = flask.request.form['folder']
+        return _save_new_and_reply(data.simulationType, data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = e.message if hasattr(e, 'message') else str(e)
