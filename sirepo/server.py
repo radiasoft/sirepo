@@ -739,7 +739,7 @@ def _json_input():
     req = flask.request
     if req.mimetype != 'application/json':
         pkdlog('{}: req.mimetype is not application/json', req.mimetype)
-        raise werkzeug.Exceptions.BadRequest('expecting application/json')
+        raise werkzeug.exceptions.BadRequest('expecting application/json')
     # Adapted from flask.wrappers.Request.get_json
     # We accept a request charset against the specification as
     # certain clients have been using this in the past.  This
@@ -889,9 +889,15 @@ def _simulation_run_status(data, quiet=False):
         else:
             is_running = False
             if rep.run_dir.exists():
-                res, err = simulation_db.read_result(rep.run_dir)
+                res2, err = simulation_db.read_result(rep.run_dir)
                 if err:
-                    return _simulation_error(err, 'error in read_result', rep.run_dir)
+                    if simulation_db.is_parallel(data):
+                        # allow parallel jobs to use template to parse errors below
+                        res['state'] = 'error'
+                    else:
+                        return _simulation_error(err, 'error in read_result', rep.run_dir)
+                else:
+                    res = res2
         if simulation_db.is_parallel(data):
             template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
