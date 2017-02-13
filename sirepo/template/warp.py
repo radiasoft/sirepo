@@ -478,7 +478,8 @@ def _opmd_time_series(data_file):
 
 
 def _particle_selection_args(args):
-    if len(args) <= 3:
+    #TODO(pjm): base this on model name, not arg count
+    if len(args) <= 4:
         return None
     res = {}
     for f in ('', 'u'):

@@ -553,8 +553,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return;
         }
         var isHidden = panelState.isHidden(modelName);
-        //TODO(robnagler) why doesn't this come from the server?
-        var startTime = new Date().getTime();
+        var frameRequestTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
             : 0;
@@ -564,9 +563,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             modelName,
             animationArgs(modelName),
             index,
-            //TODO(pjm): simulationStatus changes too often, really want the simulation startTime, but this is cleared when saving data
-            //TODO(pjm): need to restore simulation startTime to persistent state
-            appState.models.simulation.simulationSerial,
         ].join('*');
         var requestFunction = function() {
             requestSender.sendRequest(
@@ -576,7 +572,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 },
                 function(data) {
                     var endTime = new Date().getTime();
-                    var elapsed = endTime - startTime;
+                    var elapsed = endTime - frameRequestTime;
                     if (elapsed < delay) {
                         $interval(
                             function() {
@@ -610,11 +606,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         return masterFrameCount;
     };
 
-    self.setAnimationArgs = function(argFields, animationModelName) {
+    self.setAnimationArgs = function(argFields) {
         self.animationArgFields = argFields;
-        if (animationModelName) {
-            self.animationModelName = animationModelName;
-        }
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {

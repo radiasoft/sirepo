@@ -979,7 +979,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         $('.model-' + modelName + '-' + field).closest('.form-group').hide();
     }
 
-    function loadElementReports(outputInfo) {
+    function loadElementReports(outputInfo, startTime) {
         self.outputFiles = [];
         self.auxFiles = [];
         var animationArgs = {};
@@ -1006,9 +1006,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     modelKey: modelKey,
                 },
             });
-            animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId'];
+            animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId', 'startTime'];
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
+                m.startTime = startTime;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
@@ -1026,6 +1027,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     fileId: info.id,
                     values: info.plottableColumns,
                     framesPerSecond: 2,
+                    startTime: startTime,
                 };
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
@@ -1034,7 +1036,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
         }
-        frameCache.setAnimationArgs(animationArgs, self.model);
+        frameCache.setAnimationArgs(animationArgs);
     }
 
     //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
@@ -1050,12 +1052,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     function showField(modelName, field) {
         $('.model-' + modelName + '-' + field).closest('.form-group').show();
     }
-
-    var originalCancelSimulation = self.cancelSimulation;
-    self.cancelSimulation = function() {
-        self.progress = null;
-        return originalCancelSimulation.apply(this, arguments);
-    };
 
     self.displayPercentComplete = function() {
         if (self.isInitializing()) {
@@ -1095,7 +1091,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.simulationErrors = data.errors || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo);
+            loadElementReports(data.outputInfo, data.startTime);
         }
         if (self.isStateStopped()) {
             if (! data.frameCount) {
@@ -1149,14 +1145,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         self.progress = null;
         self.outputFiles = [];
-        // caching is currently controlled by simulationSerial - need it to update before running simulation
-        appState.saveQuietly('simulation');
-        //TODO(pjm): need to update run_setup.use_beamline, saveChanges() triggers clearCache which breaks the running simulation
-        $rootScope.$broadcast('simulation.changed');
-        $rootScope.$broadcast('modelChanged', 'simulation');
-        appState.autoSave(function() {
-            self.originalRunSimulation.apply(this, arguments);
-        });
+        self.originalRunSimulation.apply(this, arguments);
     };
 
     frameCache.setAnimationArgs({});
