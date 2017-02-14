@@ -7,6 +7,7 @@ SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
 
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
+        restrict: 'A',
         scope: {
             viewName: '=',
             parentController: '=',
@@ -133,6 +134,7 @@ SIREPO.app.directive('srAlert', function(errorService) {
 
 SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     return {
+        restrict: 'A',
         scope: {
             viewName: '@',
         },
@@ -156,6 +158,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
 
 SIREPO.app.directive('buttons', function(appState, panelState) {
     return {
+        restrict: 'A',
         scope: {
             modelName: '=',
             fields: '=',
@@ -536,6 +539,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
 
 SIREPO.app.directive('columnEditor', function(appState) {
     return {
+        restrict: 'A',
         scope: {
             modelName: '=',
             columnFields: '=',
@@ -705,6 +709,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestS
 SIREPO.app.directive('helpButton', function($window) {
     var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {
+        restrict: 'A',
         scope: {
             helpTopic: '@helpButton',
         },
@@ -723,6 +728,7 @@ SIREPO.app.directive('helpButton', function($window) {
 
 SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
     return {
+        restrict: 'A',
         scope: {
             viewName: '@',
             parentController: '=',
@@ -804,6 +810,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
 
 SIREPO.app.directive('modelField', function(appState) {
     return {
+        restrict: 'A',
         scope: {
             field: '=modelField',
             modelName: '=',
@@ -840,6 +847,23 @@ SIREPO.app.directive('modelField', function(appState) {
             $scope.fieldName = function(f) {
                 return field;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interval) {
+    return {
+        restrict: 'A',
+        link: function(scope, element) {
+            //TODO(pjm): remove timeout hack, needed for MSIE and Edge
+            $interval(
+                function () {
+                    if (! new Detector().detect('Glyphicons Halflings')) {
+                        errorService.alertText('Font download has been disabled for this browser. Application icons will not be displayed correctly as a result. Either enable font download on the Internet Options / Security Settings menu or switch to a different browser, such as Google Chrome or Microsoft Edge.');
+                    }
+                },
+                5000,
+                1);
         },
     };
 });
