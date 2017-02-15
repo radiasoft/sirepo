@@ -7,7 +7,7 @@ branches:
   only:
     - master
 install:
-  # Avoids "travis doing the install defaults"
+  # Avoids Travis running the default install (pip install requirements)
   - true
 script:
   - bash travis.sh
