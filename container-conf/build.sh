@@ -24,20 +24,14 @@ build_as_run_user() {
 
     sirepo_boot_init
 
-    # Reinstall SRW
-    build_curl radia.run | bash -s code srw
+    # Remove print statements from SRW
     # Patch srwlib.py to not print stuff
     local srwlib="$(python -c 'import srwlib; print srwlib.__file__')"
     # Trim .pyc to .py (if there)
     perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
 
-
-    # pykern
-    git clone -q --depth 1 https://github.com/radiasoft/pykern
-    cd pykern
-    pip install -r requirements.txt
-    python setup.py install
-    cd ..
+    # reinstall pykern always
+    build_curl radia.run | bash -s code pykern
 
     # sirepo
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH-master}" \
