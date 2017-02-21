@@ -34,7 +34,7 @@ build_as_run_user() {
     build_curl radia.run | bash -s code pykern
 
     # sirepo
-    git clone -q --depth=50 "--branch=${TRAVIS_BRANCH-master}" \
+    git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
         https://github.com/radiasoft/sirepo
     cd sirepo
     if [[ $TRAVIS_COMMIT ]]; then
