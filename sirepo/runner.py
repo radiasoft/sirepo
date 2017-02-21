@@ -116,9 +116,15 @@ class Background(object):
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
         try:
-            pid, status = os.waitpid(-1, os.WNOHANG)
-            pkdlog('{}: waitpid: status={}', pid, status)
             with cls._lock:
+                if not cls._job:
+                    # Can't be our job so don't waitpid.
+                    # Only important at startup, when other modules
+                    # are doing popens, which does a waitpid.
+                    # see radiasoft/sirepo#681
+                    return
+                pid, status = os.waitpid(-1, os.WNOHANG)
+                pkdlog('{}: waitpid: status={}', pid, status)
                 for self in cls._job.values():
                     if self.pid == pid:
                         del self._job[self.jid]
