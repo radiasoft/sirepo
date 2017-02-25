@@ -147,7 +147,7 @@ def validate_model(model_data, model_schema, enum_info):
             v = float(value)
             if re.search('\[m(m|rad)\]', label):
                 v /= 1000
-            elif re.search('\[nm\]', label) or re.search('\[nm/pixel\]', label):
+            elif re.search('\[n(m|rad)\]', label) or re.search('\[nm/pixel\]', label):
                 v /= 1e09
             elif re.search('\[ps]', label):
                 v /= 1e12
@@ -168,6 +168,16 @@ def validate_model(model_data, model_schema, enum_info):
             model_data[k] = _escape(value)
         else:
             raise Exception('unknown field type: {} for {}'.format(field_type, k))
+
+
+def validate_models(model_data, model_schema):
+    """Validate top-level models in the schema. Returns enum_info."""
+    enum_info = parse_enums(model_schema['enum'])
+    for k in model_data['models']:
+        if k in model_schema['model']:
+            validate_model(model_data['models'][k], model_schema['model'][k], enum_info)
+    return enum_info
+
 
 def _escape(v):
     return re.sub("['()]", '', str(v))

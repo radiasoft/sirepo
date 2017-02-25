@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SRW execution template.
+u"""WARP execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -247,7 +247,7 @@ def fixup_old_data(data):
 
 
 def generate_parameters_file(data, run_dir=None, is_parallel=False):
-    _validate_data(data, simulation_db.get_schema(SIM_TYPE))
+    template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = is_parallel
@@ -492,11 +492,3 @@ def _particle_selection_args(args):
                 continue
             res[field] = [min, max]
     return res if len(res.keys()) else None
-
-
-def _validate_data(data, schema):
-    # ensure enums match, convert ints/floats, apply scaling
-    enum_info = template_common.parse_enums(schema['enum'])
-    for k in data['models']:
-        if k in schema['model']:
-            template_common.validate_model(data['models'][k], schema['model'][k], enum_info)

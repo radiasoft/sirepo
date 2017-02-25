@@ -885,10 +885,7 @@ def _sdds_error(error_text='invalid data file'):
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
-    enum_info = template_common.parse_enums(schema['enum'])
-    for k in data['models']:
-        if k in schema['model']:
-            template_common.validate_model(data['models'][k], schema['model'][k], enum_info)
+    enum_info = template_common.validate_models(data, schema)
     for model_type in ['elements', 'commands']:
         for m in data['models'][model_type]:
             template_common.validate_model(m, schema['model'][_model_name_for_data(m)], enum_info)

@@ -1821,10 +1821,7 @@ def _user_model_map(model_list, field):
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
-    enum_info = template_common.parse_enums(schema['enum'])
-    for k in data['models']:
-        if k in schema['model']:
-            template_common.validate_model(data['models'][k], schema['model'][k], enum_info)
+    enum_info = template_common.validate_models(data, schema)
     for m in data['models']['beamline']:
         template_common.validate_model(m, schema['model'][m['type']], enum_info)
     for item_id in data['models']['propagation']:
