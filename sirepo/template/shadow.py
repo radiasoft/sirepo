@@ -52,6 +52,10 @@ def prepare_for_save(data):
     return data
 
 
+def resource_files():
+    return []
+
+
 def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
