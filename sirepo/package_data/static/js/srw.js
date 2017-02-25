@@ -23,6 +23,7 @@ SIREPO.appFieldEditors = [
       '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
     '</div>',
 ].join('');
+SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {

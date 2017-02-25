@@ -820,6 +820,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.canvasSize = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = true;
+            $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
 
             var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, lineOuts, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
 
@@ -879,11 +880,38 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 return canMove[0] + canMove[1];
             }
 
+            function sumRegion(isWidth, bottom, top, left, right) {
+                var points = [];
+                var max = isWidth ? right : top;
+                for (var i = 0; i <= max; i++) {
+                    points[i] = 0;
+                }
+                for (i = bottom; i <= top; i++) {
+                    for (var j = left; j <= right; j++) {
+                        var index = isWidth ? j : i;
+                        points[index] += heatmap[yValues.length - 1 - i][j];
+                    }
+                }
+                return points;
+            }
+
             function drawBottomPanelCut() {
+                var row;
                 var yBottom = yIndexScale(yAxisScale.domain()[0]);
                 var yTop = yIndexScale(yAxisScale.domain()[1]);
                 var yv = Math.round(yBottom + (yTop - yBottom) / 2);
-                var points = d3.zip(xValues, heatmap[yValues.length - 1 - yv]);
+                if (SIREPO.PLOTTING_SUMMED_LINEOUTS) {
+                    row = sumRegion(
+                        true,
+                        Math.floor(yBottom + 0.5),
+                        Math.ceil(yTop - 0.5),
+                        Math.floor(xIndexScale(xAxisScale.domain()[0])),
+                        Math.ceil(xIndexScale(xAxisScale.domain()[1])));
+                }
+                else {
+                    row = heatmap[yValues.length - 1 - yv];
+                }
+                var points = d3.zip(xValues, row);
                 plotting.recalculateDomainFromPoints(bottomPanelYScale, points, xAxisScale.domain());
                 drawLineout('x', yv, points, bottomPanelCutLine);
                 focusPointX.load(points, true);
@@ -911,7 +939,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function drawLineout(axis, key, points, cutLine) {
-                if (! lineOuts[axis]) {
+                if (! lineOuts[axis] || ! SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS) {
                     lineOuts[axis] = {};
                 }
                 var axisClass = axis == 'x' ? '.bottom-panel' : '.right-panel';
@@ -931,9 +959,21 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 var xLeft = xIndexScale(xAxisScale.domain()[0]);
                 var xRight = xIndexScale(xAxisScale.domain()[1]);
                 var xv = Math.round(xLeft + (xRight - xLeft) / 2);
-                var points = heatmap.map(function (v, i) {
-                    return [yValues[yValues.length - 1 - i], v[xv]];
-                });
+                var points;
+
+                if (SIREPO.PLOTTING_SUMMED_LINEOUTS) {
+                    points = d3.zip(yValues, sumRegion(
+                        false,
+                        Math.floor(yIndexScale(yAxisScale.domain()[0])),
+                        Math.ceil(yIndexScale(yAxisScale.domain()[1])),
+                        Math.floor(xLeft + 0.5),
+                        Math.ceil(xRight - 0.5)));
+                }
+                else {
+                    points = heatmap.map(function (v, i) {
+                        return [yValues[yValues.length - 1 - i], v[xv]];
+                    });
+                }
                 plotting.recalculateDomainFromPoints(rightPanelXScale, points, yAxisScale.domain(), true);
                 drawLineout('y', xv, points, rightPanelCutLine);
                 focusPointY.load(points, true);
