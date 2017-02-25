@@ -1,0 +1,49 @@
+{
+    "models": {
+        "bendingMagnet": {
+            "bener": 6.03999996,
+            "epsi_dx": 0,
+            "epsi_dz": 0,
+            "epsi_x": 3.89999997,
+            "epsi_z": 0.389999988,
+            "f_pol": "3",
+            "fdistr": "4",
+            "hdiv1": 0.500000024,
+            "hdiv2": 0.500000024,
+            "istar1": 567656,
+            "npoint": 5000,
+            "ph1": 8000,
+            "ph2": 8000.001,
+            "r_magnet": 25.1772003,
+            "sigmax": 395.000018,
+            "sigmaz": 368.999992,
+            "vdiv1": 1000,
+            "vdiv2": 1000
+        },
+        "histogramReport": {
+            "column": "6",
+            "histogramBins": 100,
+            "weight": "22"
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "plotXYReport": {
+            "histogramBins": 100,
+            "weight": "22",
+            "x": "2",
+            "y": "1"
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "shadow example",
+            "outOfSessionSimulationId": "",
+            "simulationId": "gLicZdXs",
+            "simulationSerial": 1487981155340231
+        },
+        "simulationStatus": {}
+    },
+    "simulationType": "shadow",
+    "version": "20170214.000000"
+}

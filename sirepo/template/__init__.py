@@ -9,7 +9,7 @@ import importlib
 from pykern.pkdebug import pkdc, pkdp
 
 #: valid simulations
-SIM_TYPES = ['srw', 'warp', 'elegant']
+SIM_TYPES = ['srw', 'warp', 'elegant', 'shadow']
 
 
 def import_module(type_or_data):

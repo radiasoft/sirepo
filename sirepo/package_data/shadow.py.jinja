@@ -1,0 +1,44 @@
+import Shadow
+
+source = Shadow.Source()
+beam = Shadow.Beam()
+
+# bending magnet defaults
+source.FSOURCE_DEPTH = 4
+source.F_COLOR = 3
+source.F_PHOT = 0
+source.F_POLAR = 1
+source.NCOL = 0
+source.N_COLOR = 0
+source.POL_DEG = 0.0
+source.SIGDIX = 0.0
+source.SIGDIZ = 0.0
+source.SIGMAY = 0.0
+source.WXSOU = 0.0
+source.WYSOU = 0.0
+source.WZSOU = 0.0
+source.F_WIGGLER = 0
+
+# bending magnet settings
+source.NPOINT = {{bendingMagnet_npoint}}
+source.ISTAR1 = {{bendingMagnet_istar1}}
+source.PH1 = {{bendingMagnet_ph1}}
+source.PH2 = {{bendingMagnet_ph2}}
+source.F_POL = {{bendingMagnet_f_pol}}
+source.SIGMAX = {{bendingMagnet_sigmax}}
+source.SIGMAZ = {{bendingMagnet_sigmaz}}
+source.EPSI_X = {{bendingMagnet_epsi_x}}
+source.EPSI_Z = {{bendingMagnet_epsi_z}}
+source.BENER = {{bendingMagnet_bener}}
+source.EPSI_DX = {{bendingMagnet_epsi_dx}}
+source.EPSI_DZ = {{bendingMagnet_epsi_dz}}
+source.R_MAGNET = {{bendingMagnet_r_magnet}}
+source.HDIV1 = {{bendingMagnet_hdiv1}}
+source.HDIV2 = {{bendingMagnet_hdiv2}}
+source.VDIV1 = {{bendingMagnet_vdiv1}}
+source.VDIV2 = {{bendingMagnet_vdiv2}}
+source.FDISTR = {{bendingMagnet_fdistr}}
+
+source.R_ALADDIN = source.R_MAGNET * 100
+
+beam.genSource(source)

@@ -1,0 +1,198 @@
+{
+    "enum": {
+        "BendingMagnetMode": [
+            ["4", "Synchrotron"],
+            ["6", "Exact Synchrotron"]
+        ],
+        "ColumnValue": [
+            ["1", "X"],
+            ["2", "Y"],
+            ["3", "Z"],
+            ["4", "X'"],
+            ["5", "Y'"],
+            ["6", "Z'"],
+            ["7", "Es X"],
+            ["8", "Es Y"],
+            ["9", "Es Z"],
+            ["10", "Ray Flag"],
+            ["11", "Energy"],
+            ["12", "Ray Index"],
+            ["13", "Optical Path"],
+            ["14", "Phase s"],
+            ["15", "Phase p"],
+            ["16", "Ep X"],
+            ["17", "Ep Y"],
+            ["18", "Ep Z"],
+            ["19", "Wavelength"],
+            ["20", "R = sqrt(X² + Y² + Z²)"],
+            ["21", "Theta (angle from Y axis)"],
+            ["22", "Magnitude = |Es| + |Ep|"],
+            ["23", "Total Intensity = |Es|² + |Ep|²"],
+            ["24", "S Intensity = |Es|²"],
+            ["25", "P Intensity = |Ep|²"],
+            ["26", "|K|"],
+            ["27", "K X"],
+            ["28", "K Y"],
+            ["29", "K Z"],
+            ["30", "S0-stokes = |Ep|² + |Es|²"],
+            ["31", "S1-stokes = |Ep|² - |Es|²"],
+            ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
+            ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
+        ],
+        "ColumnWeight": [
+            ["0", "No Weight"],
+            ["1", "X"],
+            ["2", "Y"],
+            ["3", "Z"],
+            ["4", "X'"],
+            ["5", "Y'"],
+            ["6", "Z'"],
+            ["7", "Es X"],
+            ["8", "Es Y"],
+            ["9", "Es Z"],
+            ["10", "Ray Flag"],
+            ["11", "Energy"],
+            ["12", "Ray Index"],
+            ["13", "Optical Path"],
+            ["14", "Phase s"],
+            ["15", "Phase p"],
+            ["16", "Ep X"],
+            ["17", "Ep Y"],
+            ["18", "Ep Z"],
+            ["19", "Wavelength"],
+            ["20", "R = sqrt(X² + Y² + Z²)"],
+            ["21", "Theta (angle from Y axis)"],
+            ["22", "Magnitude = |Es| + |Ep|"],
+            ["23", "Total Intensity = |Es|² + |Ep|²"],
+            ["24", "S Intensity = |Es|²"],
+            ["25", "P Intensity = |Ep|²"],
+            ["26", "|K|"],
+            ["27", "K X"],
+            ["28", "K Y"],
+            ["29", "K Z"],
+            ["30", "S0-stokes = |Ep|² + |Es|²"],
+            ["31", "S1-stokes = |Ep|² - |Es|²"],
+            ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
+            ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
+        ],
+        "PolarizationComponent": [
+            ["1", "Only Parallel"],
+            ["2", "Only Perpendicular"],
+            ["3", "Total"]
+        ]
+    },
+    "model": {
+        "bendingMagnet": {
+            "npoint": ["Number of Rays", "Integer", 5000],
+            "istar1": ["Seed", "Integer", 567656],
+            "ph1": ["Minimum Energy [eV]", "Float"],
+            "ph2": ["Maximum Energy [eV]", "Float"],
+            "f_pol": ["Polaization Component", "PolarizationComponent", "3"],
+
+            "sigmax": ["X Sigma [µm]", "Float"],
+            "sigmaz": ["Z Sigma [µm]", "Float"],
+            "epsi_x": ["X Emittance [nrad]", "Float"],
+            "epsi_z": ["Z Emittance [nrad]", "Float"],
+            "bener": ["Energy [GeV]", "Float"],
+            "epsi_dx": ["X Distance From Waist [µm]", "Float"],
+            "epsi_dz": ["Z Distance From Waist [µm]", "Float"],
+
+            "r_magnet": ["Magnet Radius [m]", "Float"],
+            "hdiv1": ["Horizontal Divergence +X [mrad]", "Float"],
+            "hdiv2": ["Horizontal Divergence -X [mrad]", "Float"],
+            "vdiv1": ["Vertical Divergence +Z [mrad]", "Float"],
+            "vdiv2": ["Vertical Divergence -Z [mrad]", "Float"],
+            "fdistr": ["Calculation Mode", "BendingMagnetMode"]
+        },
+        "histogramReport": {
+            "column": ["Column", "ColumnValue"],
+            "weight": ["Weight", "ColumnWeight"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "plotXYReport": {
+            "x": ["X Column", "ColumnValue"],
+            "y": ["Y Column", "ColumnValue"],
+            "weight": ["Weight", "ColumnWeight"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        }
+    },
+    "view": {
+        "bendingMagnet": {
+            "title": "Bending Magnet",
+            "basic": [
+                "ph1",
+                "ph2",
+                "bener"
+            ],
+            "advanced": [
+                ["Basic Settings", [
+                    "npoint",
+                    "istar1",
+                    "ph1",
+                    "ph2",
+                    "f_pol"
+                ]],
+                ["Beam Parameters", [
+                    "bener",
+                    [
+                        ["X",  [
+                            "sigmax",
+                            "epsi_x",
+                            "epsi_dx"
+                        ]],
+                        ["Z", [
+                            "sigmaz",
+                            "epsi_z",
+                            "epsi_dz"
+                        ]]
+                    ]
+                ]],
+                ["Magnet Parameters", [
+                    "r_magnet",
+                    "hdiv1",
+                    "hdiv2",
+                    "vdiv1",
+                    "vdiv2",
+                    "fdistr"
+                ]]
+            ]
+        },
+        "histogramReport": {
+            "title": "Histogram",
+            "basic": [],
+            "advanced": [
+                "column",
+                "weight",
+                "histogramBins"
+            ]
+        },
+        "plotXYReport": {
+            "title": "Plot XY",
+            "basic": [],
+            "advanced": [
+                "x",
+                "y",
+                "weight",
+                "histogramBins"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    }
+}
