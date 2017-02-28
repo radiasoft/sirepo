@@ -8,7 +8,8 @@ build_vars() {
     sirepo_tini_file=$boot_dir/tini
     sirepo_boot=$boot_dir/start
     build_docker_cmd='["'"$sirepo_tini_file"'", "--", "'"$sirepo_boot"'"]'
-    build_dockerfile_aux="USER $build_run_user"
+    #TODO(robnagler) don't set build user
+    #build_dockerfile_aux="USER $build_run_user"
 }
 
 build_as_root() {
