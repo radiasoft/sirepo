@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -12,13 +13,34 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
-            controller: 'SHADOWSourceController as source',
+            controller: 'ShadowSourceController as source',
             templateUrl: '/static/html/shadow-source.html' + SIREPO.SOURCE_CACHE_KEY,
+        })
+        .when(localRoutes.beamline, {
+            controller: 'ShadowBeamlineController as beamline',
+            templateUrl: '/static/html/shadow-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
-SIREPO.app.controller('SHADOWSourceController', function(appState) {
+SIREPO.app.factory('shadowService', function(beamlineService) {
+    var self = {};
+    self.getReportTitle = beamlineService.getReportTitle;
+    return self;
+});
+
+SIREPO.app.controller('ShadowBeamlineController', function (beamlineService) {
     var self = this;
+    self.beamlineService = beamlineService;
+    self.beamlineModels = ['beamline'];
+    //TODO(pjm): also KB Mirror and  Monocromator
+    //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'watch'];
+    self.prepareToSave = function() {};
+});
+
+SIREPO.app.controller('ShadowSourceController', function(shadowService) {
+    var self = this;
+    self.shadowService = shadowService;
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
@@ -36,6 +58,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',

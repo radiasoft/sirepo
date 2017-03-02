@@ -56,8 +56,8 @@ def run(cfg_dir):
         model = data['models'][data['report']]
         column_values = _SCHEMA['enum']['ColumnValue']
 
-        if data['report'] == 'plotXYReport':
-            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=int(model['histogramBins']), ref=int(model['weight']))
+        if 'y' in model:
+            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=int(model['histogramBins']), ref=int(model['weight']), nolost=1)
             res = {
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
                 'y_range': [ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
@@ -70,7 +70,7 @@ def run(cfg_dir):
             }
         else:
             weight = int(model['weight'])
-            ticket = beam.histo1(int(model['column']), nbins=int(model['histogramBins']), ref=weight)
+            ticket = beam.histo1(int(model['column']), nbins=int(model['histogramBins']), ref=weight, nolost=1)
             res = {
                 'title': _label(model['column'], column_values),
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins']],
@@ -81,7 +81,7 @@ def run(cfg_dir):
                 'points': ticket['histogram'].T.tolist(),
                 'frameCount': 1,
             }
-            #pkdp('range amount: {}', abs(res['x_range'][1] - res['x_range'][0]))
+            #pkdp('range amount: {}', res['x_range'][1] - res['x_range'][0])
             #1.55431223448e-15
             dist = res['x_range'][1] - res['x_range'][0]
             #TODO(pjm): only rebalance range if outside of 0
@@ -117,7 +117,6 @@ def _label_with_units(column, values):
     if column in _PLOT_LABELS:
         return _PLOT_LABELS[column][0]
     return _label(column, values)
-
 
 
 def _run_shadow():

@@ -1,0 +1,14 @@
+<div class="container-fluid">
+  <div data-beamline-toolbar="beamline.toolbarItemNames"></div>
+  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels"></div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div data-beamline-reports=""></div>
+  </div>
+  <div class="clearfix"></div>
+</div>
+
+<!-- modal dialogs -->
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>

@@ -42,3 +42,11 @@ source.FDISTR = {{bendingMagnet_fdistr}}
 source.R_ALADDIN = source.R_MAGNET * 100
 
 beam.genSource(source)
+
+{% if distanceFromSource and distanceFromSource != 0 %}
+beam.retrace({{distanceFromSource}})
+{% endif %}
+
+{% if beamlineOptics %}
+{{beamlineOptics}}
+{% endif %}

@@ -1,5 +1,9 @@
 {
     "enum": {
+        "ApertureShape": [
+            ["0", "Rectangular"],
+            ["1", "Ellipse"]
+        ],
         "BendingMagnetMode": [
             ["4", "Synchrotron"],
             ["6", "Exact Synchrotron"]
@@ -82,13 +86,21 @@
         ]
     },
     "model": {
+        "aperture": {
+            "title": ["Element Name", "String", "Aperture"],
+            "position": ["Nominal Position [m]", "Float"],
+            "shape": ["Shape", "ApertureShape", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
+            "verticalSize": ["Vertical Size [mm]", "Float", 1],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+        },
         "bendingMagnet": {
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656],
             "ph1": ["Minimum Energy [eV]", "Float"],
             "ph2": ["Maximum Energy [eV]", "Float"],
             "f_pol": ["Polaization Component", "PolarizationComponent", "3"],
-
             "sigmax": ["X Sigma [µm]", "Float"],
             "sigmaz": ["Z Sigma [µm]", "Float"],
             "epsi_x": ["X Emittance [nrad]", "Float"],
@@ -96,7 +108,6 @@
             "bener": ["Energy [GeV]", "Float"],
             "epsi_dx": ["X Distance From Waist [µm]", "Float"],
             "epsi_dz": ["Z Distance From Waist [µm]", "Float"],
-
             "r_magnet": ["Magnet Radius [m]", "Float"],
             "hdiv1": ["Horizontal Divergence +X [mrad]", "Float"],
             "hdiv2": ["Horizontal Divergence -X [mrad]", "Float"],
@@ -105,11 +116,28 @@
             "fdistr": ["Calculation Mode", "BendingMagnetMode"]
         },
         "histogramReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "column": ["Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"]
         },
+        "initialIntensityReport": {
+            "x": ["X Column", "ColumnValue"],
+            "y": ["Y Column", "ColumnValue"],
+            "weight": ["Weight", "ColumnWeight"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "obstacle": {
+            "title": ["Element Name", "String", "Obstacle"],
+            "position": ["Nominal Position [m]", "Float"],
+            "shape": ["Shape", "ApertureShape", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5],
+            "verticalSize": ["Vertical Size [mm]", "Float", 0.5],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+        },
         "plotXYReport": {
+            "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
@@ -120,9 +148,38 @@
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
+        },
+        "watch": {
+            "title": ["Element Name", "String", "Watchpoint"],
+            "position": ["Nominal Position [m]", "Float"]
+        },
+        "watchpointReport": {
+            "x": ["X Column", "ColumnValue"],
+            "y": ["Y Column", "ColumnValue"],
+            "weight": ["Weight", "ColumnWeight"],
+            "histogramBins": ["Number of Bins", "Integer"]
         }
     },
     "view": {
+        "aperture": {
+            "title": "Aperture",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
+            ]
+        },
         "bendingMagnet": {
             "title": "Bending Magnet",
             "basic": [
@@ -167,15 +224,46 @@
             "title": "Histogram",
             "basic": [],
             "advanced": [
+                "distanceFromSource",
                 "column",
                 "weight",
                 "histogramBins"
+            ]
+        },
+        "initialIntensityReport": {
+            "title": "Initial Intensity Report",
+            "basic": [],
+            "advanced": [
+                "x",
+                "y",
+                "weight",
+                "histogramBins"
+            ]
+        },
+        "obstacle": {
+            "title": "Obstacle",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "shape",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "plotXYReport": {
             "title": "Plot XY",
             "basic": [],
             "advanced": [
+                "distanceFromSource",
                 "x",
                 "y",
                 "weight",
@@ -192,6 +280,24 @@
             "title": "New Folder",
             "advanced": [
                 "name"
+            ]
+        },
+        "watch": {
+            "title": "Watchpoint",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position"
+            ]
+        },
+        "watchpointReport": {
+            "title": "Watchpoint Report",
+            "basic": [],
+            "advanced": [
+                "x",
+                "y",
+                "weight",
+                "histogramBins"
             ]
         }
     }

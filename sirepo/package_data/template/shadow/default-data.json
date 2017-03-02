@@ -21,6 +21,7 @@
             "vdiv2": 1000
         },
         "histogramReport": {
+            "distanceFromSource": 0,
             "column": "6",
             "histogramBins": 100,
             "weight": "22"
@@ -29,6 +30,7 @@
             "hidden": []
         },
         "plotXYReport": {
+            "distanceFromSource": 0,
             "histogramBins": 100,
             "weight": "22",
             "x": "2",
