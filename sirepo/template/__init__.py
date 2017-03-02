@@ -7,9 +7,10 @@ u"""Templates are used to configure codes
 from __future__ import absolute_import, division, print_function
 import importlib
 from pykern.pkdebug import pkdc, pkdp
+from pykern import pkconfig
 
 #: valid simulations
-SIM_TYPES = ['srw', 'warp', 'elegant', 'shadow']
+SIM_TYPES = ['srw', 'warp', 'elegant', 'shadow'] if pkconfig.channel_in('dev') else ['srw', 'warp', 'elegant']
 
 
 def import_module(type_or_data):
