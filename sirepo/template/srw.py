@@ -263,7 +263,7 @@ def extract_report_data(filename, model_data):
         'points': data,
     })
     orig_rep_name = model_data['report']
-    rep_name = _WATCHPOINT_REPORT_NAME if _is_watchpoint(orig_rep_name) else orig_rep_name
+    rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(orig_rep_name) else orig_rep_name
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
         width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
         scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
@@ -328,7 +328,7 @@ def fixup_old_data(data):
             data['models']['simulation']['horizontalPointCount'] = 100
             data['models']['simulation']['verticalPointCount'] = 100
             for k in data['models']:
-                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
+                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
                     del data['models'][k]['sampleFactor']
     if data['models']['fluxReport']:
         data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
@@ -400,7 +400,7 @@ def fixup_old_data(data):
                 if field not in item:
                     item[field] = key_value_pairs[field]
     for k in data['models']:
-        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
+        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
                 data['models'][k]['fieldUnits'] = 1
     if 'samplingMethod' not in data['models']['simulation']:
@@ -410,7 +410,7 @@ def fixup_old_data(data):
             simulation[k] = data['models']['initialIntensityReport'][k]
     if 'horizontalPosition' in data['models']['initialIntensityReport']:
         for k in data['models']:
-            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or _is_watchpoint(k):
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
                 for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
                     del data['models'][k][f]
     if 'documentationUrl' not in data['models']['simulation']:
@@ -487,7 +487,7 @@ def fixup_old_data(data):
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
             if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
-                work_rep_name = k if _is_watchpoint(k) else rep_name
+                work_rep_name = k if template_common.is_watchpoint(k) else rep_name
                 if work_rep_name in data['models'] and 'intensityPlotsWidth' not in data['models'][work_rep_name]:
                     data['models'][work_rep_name]['intensityPlotsWidth'] = _SCHEMA['model'][rep_name]['intensityPlotsWidth'][2]
                 if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
@@ -575,7 +575,7 @@ def get_data_file(run_dir, model, frame):
 
 
 def get_filename_for_model(model):
-    if _is_watchpoint(model):
+    if template_common.is_watchpoint(model):
         model = _WATCHPOINT_REPORT_NAME
     return _DATA_FILE_FOR_MODEL[model]['filename']
 
@@ -631,7 +631,7 @@ def lib_files(data, source_lib, report=None):
         for k, v in _SCHEMA.model[m.type].items():
             t = v[1]
             if m[k] and t in ['MirrorFile', 'ImageFile']:
-                if not report or _is_watchpoint(report) or report == 'multiElectronAnimation':
+                if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
     return template_common.internal_lib_files(res, source_lib)
 
@@ -657,7 +657,7 @@ def models_related_to_report(data):
         r, 'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
-    watchpoint = _is_watchpoint(r)
+    watchpoint = template_common.is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
         res.extend([
             'simulation.horizontalPointCount',
@@ -674,7 +674,7 @@ def models_related_to_report(data):
         beamline = data['models']['beamline']
         res.append([beamline[0]['position'] if len(beamline) else 0])
     if watchpoint:
-        wid = _watchpoint_id(r)
+        wid = template_common.watchpoint_id(r)
         beamline = data['models']['beamline']
         propagation = data['models']['propagation']
         for item in beamline:
@@ -1410,7 +1410,7 @@ def _generate_parameters_file(data, plot_reports=False):
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
-    elif _is_watchpoint(report) or report == 'sourceIntensityReport':
+    elif template_common.is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
     if report == 'sourceIntensityReport':
@@ -1426,8 +1426,8 @@ def _generate_parameters_file(data, plot_reports=False):
 
     _validate_data(data, _SCHEMA)
     last_id = None
-    if _is_watchpoint(report):
-        last_id = _watchpoint_id(report)
+    if template_common.is_watchpoint(report):
+        last_id = template_common.watchpoint_id(report)
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
@@ -1470,7 +1470,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
-    if run_all or _is_watchpoint(report) or report == 'multiElectronAnimation':
+    if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
@@ -1495,7 +1495,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xxpyypz'")
-    if run_all or _is_watchpoint(report):
+    if run_all or template_common.is_watchpoint(report):
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
@@ -1616,10 +1616,6 @@ def _is_user_defined_model(ebeam):
     if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
         return False
     return True
-
-
-def _is_watchpoint(name):
-    return _WATCHPOINT_REPORT_NAME in name
 
 
 def _load_user_model_list(model_name):
@@ -1821,9 +1817,7 @@ def _user_model_map(model_list, field):
 
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
-    enum_info = template_common.validate_models(data, schema)
-    for m in data['models']['beamline']:
-        template_common.validate_model(m, schema['model'][m['type']], enum_info)
+    template_common.validate_models(data, schema)
     for item_id in data['models']['propagation']:
         _validate_propagation(data['models']['propagation'][item_id][0])
         _validate_propagation(data['models']['propagation'][item_id][1])
@@ -1833,13 +1827,6 @@ def _validate_data(data, schema):
 def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
-
-
-def _watchpoint_id(report):
-    m = re.search(_WATCHPOINT_REPORT_NAME + '(\d+)', report)
-    if not m:
-        raise RuntimeError('invalid watchpoint report name: ', report)
-    return int(m.group(1))
 
 
 _init()

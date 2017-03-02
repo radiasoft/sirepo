@@ -1,56 +1,9 @@
 <div class="container-fluid">
   <div data-mobile-app-title="nav"></div>
-
-  <!-- Toolbar -->
-  <div data-ng-if="beamline.isDefaultMode()" class="row">
-    <div class="col-sm-12">
-      <p class="text-center bg-info">
-        <span data-ng-repeat="item in beamline.toolbarItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-          <span data-beamline-icon="" data-item="item"></span><br>{{ item.title }}
-        </span>
-      </p>
-    </div>
+  <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamlineService.isEditable()"></div>
+  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels">
+      <div class="btn btn-default srw-propagation-button" data-ng-show="beamline.appState.models.beamline.length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small class="hidden-xs">Propagation</small></div>
   </div>
-
-  <!-- Beamline -->
-  <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="beamline.dropComplete($data, $event)">
-    <div class="btn btn-default srw-propagation-button" data-ng-show="beamline.getBeamline().length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small class="hidden-xs">Propagation</small></div>
-    <p class="lead text-center">beamline definition area<br>
-      <small data-ng-if="beamline.isDefaultMode()"><em>drag and drop optical elements here to define the beamline</em></small></p>
-    <div class="srw-beamline-container">
-
-      <div style="display: inline-block" data-ng-repeat="item in beamline.getBeamline() track by item.id">
-        <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamline.isTouchscreen() ? '' : 'srw-hover' }}" data-ng-class="{'srw-disabled-item': item.isDisabled}">
-        </div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="beamline.dropBetween($index + 1, $data)">&nbsp;</div>
-      </div>
-    </div>
-    <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
-    <div class="row">
-      <form>
-        <div class="col-md-6 col-sm-8 pull-right" data-ng-show="beamline.checkIfDirty()">
-          <button data-ng-click="beamline.saveBeamlineChanges()" class="btn btn-primary">Save Changes</button>
-          <button data-ng-click="beamline.cancelBeamlineChanges()" class="btn btn-default">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="srw-editor-holder" style="display:none">
-    <div id="srw-aperture-editor" data-beamline-item-editor="" data-model-name="aperture"></div>
-    <div id="srw-crl-editor" data-beamline-item-editor="" data-model-name="crl"></div>
-    <div id="srw-crystal-editor" data-beamline-item-editor="" data-model-name="crystal"></div>
-    <div id="srw-ellipsoidMirror-editor" data-beamline-item-editor="" data-model-name="ellipsoidMirror"></div>
-    <div id="srw-fiber-editor" data-beamline-item-editor="" data-model-name="fiber"></div>
-    <div id="srw-grating-editor" data-beamline-item-editor="" data-model-name="grating"></div>
-    <div id="srw-lens-editor" data-beamline-item-editor="" data-model-name="lens"></div>
-    <div id="srw-mask-editor" data-beamline-item-editor="" data-model-name="mask"></div>
-    <div id="srw-mirror-editor" data-beamline-item-editor="" data-model-name="mirror"></div>
-    <div id="srw-obstacle-editor" data-beamline-item-editor="" data-model-name="obstacle"></div>
-    <div id="srw-sample-editor" data-beamline-item-editor="" data-model-name="sample"></div>
-    <div id="srw-sphericalMirror-editor" data-beamline-item-editor="" data-model-name="sphericalMirror"></div>
-    <div id="srw-watch-editor" data-beamline-item-editor="" data-model-name="watch"></div>
-  </div>
-
 </div> <!-- /container -->
 
 <div class="container-fluid">
@@ -64,16 +17,11 @@
     </div>
   </div>
   <div data-ng-if="beamline.isSingleElectron()" class="row">
-    <div class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamline.srwService.getReportTitle('initialIntensityReport') }}"></div>
-    </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamline.getWatchItems() track by item.id">
-      <div data-watchpoint-report="" data-request-priority="{{ $index + 2 }}" data-item-id="item.id"></div>
-    </div>
+    <div data-beamline-reports=""></div>
   </div>
   <div data-ng-if="beamline.isMultiElectron()" class="row">
     <div class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title=" {{beamline.srwService.getReportTitle('multiElectronAnimation') }}"><div data-simulation-status-panel="multiElectronAnimation"></div></div>
+      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title=" {{beamlineService.getReportTitle('multiElectronAnimation') }}"><div data-simulation-status-panel="multiElectronAnimation"></div></div>
     </div>
   </div>
   <div class="clearfix"></div>
@@ -156,7 +104,7 @@
     <div class="modal-content">
       <div class="modal-header bg-warning">
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <span class="lead modal-title text-info">{{ beamline.mirrorReportTitle() }}</span>
+        <span class="lead modal-title text-info">{{ beamlineService.getActiveItemTitle() }}</span>
       </div>
       <div class="modal-body">
         <div class="container-fluid">
