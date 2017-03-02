@@ -531,6 +531,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                     '<div data-file-upload-dialog="" data-dialog-title="Upload File" data-file-type="fileType" data-model="model" data-field="fileField"></div>', $scope);
             };
             $scope.showFileReport = function() {
+                //TODO(pjm): uncouple from beamline controller
                 findParentAttribute('beamline').showFileReport($scope.fileType, $scope.model);
             };
         },

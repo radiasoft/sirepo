@@ -30,6 +30,7 @@ RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
+_WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
@@ -60,6 +61,10 @@ def internal_lib_files(files, source_lib):
             seen.add(f)
             res.append(source_lib.join(f))
     return res
+
+
+def is_watchpoint(name):
+    return _WATCHPOINT_REPORT_NAME in name
 
 
 def lib_files(data):
@@ -176,7 +181,17 @@ def validate_models(model_data, model_schema):
     for k in model_data['models']:
         if k in model_schema['model']:
             validate_model(model_data['models'][k], model_schema['model'][k], enum_info)
+    if 'beamline' in model_data['models']:
+        for m in model_data['models']['beamline']:
+            validate_model(m, model_schema['model'][m['type']], enum_info)
     return enum_info
+
+
+def watchpoint_id(report):
+    m = re.search(_WATCHPOINT_REPORT_NAME + '(\d+)', report)
+    if not m:
+        raise RuntimeError('invalid watchpoint report name: ', report)
+    return int(m.group(1))
 
 
 def _escape(v):
