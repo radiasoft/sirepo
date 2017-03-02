@@ -90,8 +90,8 @@
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Nominal Position [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "0"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
-            "verticalSize": ["Vertical Size [mm]", "Float", 1],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 10],
+            "verticalSize": ["Vertical Size [mm]", "Float", 10],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
             "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
         },
@@ -131,8 +131,8 @@
             "title": ["Element Name", "String", "Obstacle"],
             "position": ["Nominal Position [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "0"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5],
-            "verticalSize": ["Vertical Size [mm]", "Float", 0.5],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
+            "verticalSize": ["Vertical Size [mm]", "Float", 1],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
             "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
         },

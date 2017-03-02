@@ -18,6 +18,11 @@ SIM_TYPE = 'shadow'
 
 _DEFAULT_DISTANCE = 20
 
+
+def copy_related_files(data, source_path, target_path):
+    pass
+
+
 def fixup_old_data(data):
     pass
 

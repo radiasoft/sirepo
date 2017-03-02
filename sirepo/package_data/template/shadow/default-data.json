@@ -1,5 +1,6 @@
 {
     "models": {
+        "beamline": [],
         "bendingMagnet": {
             "bener": 6.03999996,
             "epsi_dx": 0,
@@ -35,6 +36,12 @@
             "weight": "22",
             "x": "2",
             "y": "1"
+        },
+        "initialIntensityReport": {
+            "histogramBins": 100,
+            "weight": "22",
+            "x": "1",
+            "y": "3"
         },
         "simulation": {
             "folder": "/",
