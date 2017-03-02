@@ -499,7 +499,25 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
     };
 });
 
-SIREPO.app.directive('beamlineToolbar', function (appState) {
+SIREPO.app.directive('beamlineReports', function(beamlineService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="col-md-6 col-xl-4">',
+              '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
+            '</div>',
+            '<div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
+              '<div data-watchpoint-report="" data-request-priority="{{ $index + 2 }}" data-item-id="item.id"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.beamlineService = beamlineService;
+        },
+    };
+});
+
+SIREPO.app.directive('beamlineToolbar', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -524,7 +542,7 @@ SIREPO.app.directive('beamlineToolbar', function (appState) {
         controller: function($scope) {
             function initToolbarItems() {
                 var items = [];
-                $scope.toolbarItemNames.forEach(function (name) {
+                $scope.toolbarItemNames.forEach(function(name) {
                     var featureName = name + '_in_toolbar';
                     if (featureName in SIREPO.APP_SCHEMA.feature_config) {
                         if (! SIREPO.APP_SCHEMA.feature_config[featureName]) {
