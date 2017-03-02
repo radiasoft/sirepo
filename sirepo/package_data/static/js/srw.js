@@ -281,7 +281,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     self.showPropagationModal = function() {
-        self.calculatePropagation();
+        self.prepareToSave();
         beamlineService.dismissPopup();
         $('#srw-propagation-parameters').modal('show');
     };
