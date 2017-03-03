@@ -14,6 +14,8 @@ import py.path
 import re
 import sirepo.template
 
+DEFAULT_INTENSITY_DISTANCE = 20
+
 #: Input json file
 INPUT_BASE_NAME = 'in'
 

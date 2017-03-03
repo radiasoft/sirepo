@@ -1508,7 +1508,7 @@ def _get_first_element_position(data):
     beamline = data['models']['beamline']
     if len(beamline):
         return beamline[0]['position']
-    return 20
+    return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
 def _height_profile_element(item, propagation, overwrite_propagation=False, height_profile_el_name='Mirror'):

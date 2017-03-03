@@ -6,6 +6,9 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.factory('beamlineService', function(appState) {
     var self = this;
     var canEdit = true;
+    //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
+    // consider moving to "constant" section of schema
+    var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
 
     self.dismissPopup = function() {
@@ -37,8 +40,13 @@ SIREPO.app.factory('beamlineService', function(appState) {
         else if (appState.isAnimationModelName(modelName)) {
             distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
         }
-        else if (appState.isReportModelName(modelName) && savedModelValues.beamline && savedModelValues.beamline.length) {
-            distance = ', ' + savedModelValues.beamline[0].position + 'm';
+        else if (modelName == 'initialIntensityReport') {
+            if (savedModelValues.beamline && savedModelValues.beamline.length) {
+                distance = ', ' + savedModelValues.beamline[0].position + 'm';
+            }
+            else {
+                distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
+            }
         }
         return appState.viewInfo(modelName).title + distance;
     };
