@@ -8,6 +8,10 @@
             ["4", "Synchrotron"],
             ["6", "Exact Synchrotron"]
         ],
+        "BoundSource": [
+            ["0", "No Filter"],
+            ["2", "Aperture"]
+        ],
         "ColumnValue": [
             ["1", "X"],
             ["2", "Y"],
@@ -143,6 +147,14 @@
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"]
         },
+        "rayFilter": {
+            "f_bound_sour": ["Optimize Source", "BoundSource", "0"],
+            "distance": ["Distance [m]", "Float", 1e-6],
+            "x1": ["X Minimum [mm]", "Float", -1e16],
+            "x2": ["X Maximum [mm]", "Float", 1e16],
+            "z1": ["Z Minimum [mm]", "Float", -1e16],
+            "z2": ["Z Maximum [mm]", "Float", 1e16]
+        },
         "simulation": {
             "name": ["Name", "String"]
         },
@@ -217,6 +229,20 @@
                     "vdiv1",
                     "vdiv2",
                     "fdistr"
+                ]],
+                ["Ray Filter", [
+                    "rayFilter.f_bound_sour",
+                    "rayFilter.distance",
+                    [
+                        ["Minimum", [
+                            "rayFilter.x1",
+                            "rayFilter.z1"
+                        ]],
+                        ["Maximum", [
+                            "rayFilter.x2",
+                            "rayFilter.z2"
+                        ]]
+                    ]
                 ]]
             ]
         },

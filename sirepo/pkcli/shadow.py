@@ -13,6 +13,7 @@ from sirepo.template import template_common
 import py.path
 import sirepo.template.shadow as template
 
+_CM_TO_M = 0.01
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 _PLOT_LABELS = {
@@ -43,7 +44,6 @@ _PLOT_LABELS = {
     '33': ['S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)', 'S3'],
 }
 
-
 def run(cfg_dir):
     """Run shadow in ``cfg_dir``
 
@@ -58,6 +58,7 @@ def run(cfg_dir):
 
         if 'y' in model:
             ticket = beam.histo2(int(model['x']), int(model['y']), nbins=int(model['histogramBins']), ref=int(model['weight']), nolost=1)
+            _scale_ticket(ticket)
             res = {
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
                 'y_range': [ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
@@ -71,6 +72,7 @@ def run(cfg_dir):
         else:
             weight = int(model['weight'])
             ticket = beam.histo1(int(model['column']), nbins=int(model['histogramBins']), ref=weight, nolost=1)
+            _scale_ticket(ticket)
             res = {
                 'title': _label(model['column'], column_values),
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins']],
@@ -89,8 +91,6 @@ def run(cfg_dir):
                 #TODO(pjm): include offset range for client
                 res['x_range'][0] = 0
                 res['x_range'][1] = dist
-
-
         simulation_db.write_result(res)
 
 
@@ -124,6 +124,15 @@ def _run_shadow():
     """
     exec(_script(), locals(), locals())
     return beam
+
+
+def _scale_ticket(ticket):
+    if 'xrange' in ticket:
+        ticket['xrange'][0] *= _CM_TO_M
+        ticket['xrange'][1] *= _CM_TO_M
+    if 'yrange' in ticket:
+        ticket['yrange'][0] *= _CM_TO_M
+        ticket['yrange'][1] *= _CM_TO_M
 
 
 def _script():

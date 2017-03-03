@@ -16,8 +16,6 @@ from sirepo.template import template_common
 #: Simulation type
 SIM_TYPE = 'shadow'
 
-_DEFAULT_DISTANCE = 20
-
 
 def copy_related_files(data, source_path, target_path):
     pass
@@ -39,6 +37,7 @@ def models_related_to_report(data):
     res = [
         r,
         'bendingMagnet',
+        'rayFilter',
     ]
     if r == 'initialIntensityReport' and len(data['models']['beamline']):
         res.append([data['models']['beamline'][0]['position']])
@@ -91,6 +90,29 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
+_CENTIMETER_FIELDS = {
+    'bendingMagnet': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z'],
+    'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
+    'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    'histogramReport': ['distanceFromSource'],
+    'plotXYReport': ['distanceFromSource'],
+    'watch': ['position'],
+}
+
+def _convert_meters_to_centimeters(models):
+    for m in models:
+        if isinstance(m, dict):
+            name = m['type']
+            model = m
+        else:
+            name = m
+            model = models[m]
+        if name in _CENTIMETER_FIELDS:
+            for f in _CENTIMETER_FIELDS[name]:
+                model[f] *= 100
+
+
 def _generate_beamline_optics(models, last_id):
     beamline = models['beamline']
     res = ''
@@ -115,7 +137,6 @@ oe.set_empty()
         else:
             raise RuntimeError('unknown item type: {}'.format(item))
         res += '''
-oe.DUMMY = 100.0
 oe.FWRITE = 3
 oe.T_IMAGE = 0.0
 oe.T_SOURCE = {}
@@ -129,13 +150,15 @@ beam.traceOE(oe, {})
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     _validate_data(data, simulation_db.get_schema(SIM_TYPE))
+    _convert_meters_to_centimeters(data['models'])
+    _convert_meters_to_centimeters(data['models']['beamline'])
     v = template_common.flatten_data(data['models'], {})
     r = data['report']
     report_model = data['models'][r]
     beamline = data['models']['beamline']
 
     if r == 'initialIntensityReport':
-        v['distanceFromSource'] = beamline[0]['position'] if len(beamline) else _DEFAULT_DISTANCE
+        v['distanceFromSource'] = beamline[0]['position'] if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE
     elif template_common.is_watchpoint(r):
         v['beamlineOptics'] = _generate_beamline_optics(data['models'], template_common.watchpoint_id(r))
     else:

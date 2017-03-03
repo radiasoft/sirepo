@@ -51,6 +51,14 @@
             "simulationId": "gLicZdXs",
             "simulationSerial": 1487981155340231
         },
+        "rayFilter": {
+            "distance": 0.5,
+            "f_bound_sour": "0",
+            "x1": -0.02,
+            "x2": 0.02,
+            "z1": -0.02,
+            "z2": 0.02
+        },
         "simulationStatus": {}
     },
     "simulationType": "shadow",
