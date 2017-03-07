@@ -97,6 +97,7 @@ _CENTIMETER_FIELDS = {
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
+    'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr'],
     'watch': ['position'],
 }
 
@@ -119,19 +120,26 @@ def _generate_beamline_optics(models, last_id):
     prev_position = 0
     last_element = False
     count = 0
-    for item in beamline:
+    for i in range(len(beamline)):
+        item = beamline[i]
         if 'isDisabled' in item and item['isDisabled']:
             continue
         count += 1
+        source_distance = item.position - prev_position
+        image_distance = 0
+        if i + 1 < len(beamline):
+            image_distance = beamline[i + 1].position - item.position
         res += '''
+
 oe = Shadow.OE()
-        '''
+oe.DUMMY = 1.0'''
         if item['type'] == 'aperture' or item['type'] == 'obstacle':
             res += _generate_screen(item)
+        elif item['type'] == 'mirror':
+            res += _generate_mirror(item, source_distance, image_distance)
         elif item['type'] == 'watch':
             res += '''
-oe.set_empty()
-            '''
+oe.set_empty()'''
             if last_id and last_id == int(item['id']):
                 last_element = True
         else:
@@ -140,11 +148,75 @@ oe.set_empty()
 oe.FWRITE = 3
 oe.T_IMAGE = 0.0
 oe.T_SOURCE = {}
-beam.traceOE(oe, {})
-        '''.format(item.position - prev_position, count)
-        prev_position = item.position
+beam.traceOE(oe, {})'''.format(source_distance, count)
         if last_element:
             break
+        prev_position = item.position
+    return res
+
+
+def _generate_mirror(item, source_distance, image_distance):
+    res = '''
+oe.FMIRR = {}
+oe.T_INCIDENCE = {}
+oe.T_REFLECTION = oe.T_INCIDENCE
+oe.ALPHA = {}
+oe.FHIT_C = {} '''.format(
+        item.fmirr,
+        item.t_incidence,
+        item.alpha,
+        item.fhit_c,
+        )
+    if item.fmirr == '1':
+        res += '''
+oe.F_EXT = {}
+oe.F_CONVEX = {}
+oe.FCYL = {}'''.format(item.f_ext, item.f_convex, item.fcyl)
+        if item.f_ext == '1':
+            res += '''
+oe.RMIRR = {}'''.format(item.rmirr)
+        else:
+            # always override f_default - generated t_image is always 0.0
+            if item.f_default == '1':
+                item.ssour = source_distance
+                item.simag = image_distance
+                item.theta = item.t_incidence
+            res += '''
+oe.F_DEFAULT = 0
+oe.SSOUR = {}
+oe.SIMAG = {}
+oe.THETA = {}'''.format(item.ssour, item.simag, item.theta)
+        if item.fcyl == '1':
+            res += '''
+oe.CIL_ANG = {}'''.format(item.cil_ang)
+    if item.fhit_c == '1':
+        res += '''
+oe.FSHAPE = {}'''.format(item.fshape)
+        if item.fshape == '1':
+            res += '''
+oe.RWIDX1 = {}
+oe.RWIDX2 = {}
+oe.RLEN1 = {}
+oe.RLEN2 = {}'''.format(
+                item.halfWidthX1,
+                item.halfWidthX2,
+                item.halfLengthY1,
+                item.halfLengthY2,
+            )
+        else:
+            res += '''
+oe.RWIDX2 = {}
+oe.RLEN2 = {}'''.format(
+                item.externalOutlineMajorAxis,
+                item.externalOutlineMinorAxis,
+            )
+            if item.fshape == '3':
+                res += '''
+oe.RWIDX1 = {}
+oe.RLEN1 = {}'''.format(
+                    item.internalOutlineMajorAxis,
+                    item.internalOutlineMinorAxis,
+                )
     return res
 
 
@@ -167,7 +239,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
 
 
 def _generate_screen(item):
-    res = '''
+    return '''
 oe.set_empty().set_screens()
 oe.I_SLIT[0] = 1
 oe.K_SLIT[0] = {}
@@ -175,8 +247,7 @@ oe.I_STOP[0] = {}
 oe.RX_SLIT[0] = {}
 oe.RZ_SLIT[0] = {}
 oe.CX_SLIT[0] = {}
-oe.CZ_SLIT[0] = {}
-    '''.format(
+oe.CZ_SLIT[0] = {}'''.format(
         item['shape'],
         0 if item['type'] == 'aperture' else 1,
         item['horizontalSize'],
@@ -184,7 +255,6 @@ oe.CZ_SLIT[0] = {}
         item['horizontalOffset'],
         item['verticalOffset'],
     )
-    return res
 
 
 def _validate_data(data, schema):

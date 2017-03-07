@@ -28,19 +28,71 @@ SIREPO.app.factory('shadowService', function(beamlineService) {
     return self;
 });
 
-SIREPO.app.controller('ShadowBeamlineController', function (beamlineService) {
+SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineService, panelState, $scope) {
     var self = this;
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
     //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'mirror', 'watch'];
     self.prepareToSave = function() {};
+
+    function updateMirrorDimensionFields(item) {
+        panelState.showField('mirror', 'fshape', item.fhit_c != '0');
+        ['halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2'].forEach(function(f) {
+            panelState.showField('mirror', f, item.fhit_c == '1' && item.fshape == '1');
+        });
+        ['externalOutlineMajorAxis', 'externalOutlineMinorAxis'].forEach(function(f) {
+            panelState.showField('mirror', f, item.fhit_c == '1' && (item.fshape == '2' || item.fshape == '3'));
+        });
+        ['internalOutlineMajorAxis', 'internalOutlineMinorAxis'].forEach(function(f) {
+            panelState.showField('mirror', f, item.fhit_c == '1' && item.fshape == '3');
+        });
+    }
+
+    function updateMirrorTypeFields(item) {
+        panelState.showTab('mirror', 2, item.fmirr == '1');
+    }
+
+    function updateMirrorSurfaceFields(item) {
+        panelState.showField('mirror', 'f_default', item.f_ext == '0');
+        panelState.showField('mirror', 'rmirr', item.f_ext == '1');
+        ['ssour', 'simag', 'theta'].forEach(function(f) {
+            panelState.showField('mirror', f, item.f_ext == '0' && item.f_default == '0');
+        });
+        panelState.showField('mirror', 'cil_ang', item.fcyl == '1');
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'mirror' && beamlineService.activeItem) {
+            updateMirrorTypeFields(beamlineService.activeItem);
+            updateMirrorDimensionFields(beamlineService.activeItem);
+            updateMirrorSurfaceFields(beamlineService.activeItem);
+        }
+    };
+
+    beamlineService.watchBeamlineField($scope, 'mirror', ['fmirr'], updateMirrorTypeFields);
+    beamlineService.watchBeamlineField($scope, 'mirror', ['f_ext', 'f_default', 'fcyl'], updateMirrorSurfaceFields);
+    beamlineService.watchBeamlineField($scope, 'mirror', ['fhit_c', 'fshape'], updateMirrorDimensionFields);
 });
 
-SIREPO.app.controller('ShadowSourceController', function(shadowService) {
+SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
     var self = this;
     self.shadowService = shadowService;
+
+    function updateRayFilterFields() {
+        var hasFilter = appState.models.rayFilter.f_bound_sour != '0';
+        panelState.showField('rayFilter', 'distance', hasFilter);
+        panelState.showRow('rayFilter', 'x1', hasFilter);
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'bendingMagnet') {
+            updateRayFilterFields();
+        }
+    };
+
+    appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {

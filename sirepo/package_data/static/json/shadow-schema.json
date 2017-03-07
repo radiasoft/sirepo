@@ -8,6 +8,10 @@
             ["4", "Synchrotron"],
             ["6", "Exact Synchrotron"]
         ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
         "BoundSource": [
             ["0", "No Filter"],
             ["2", "Aperture"]
@@ -83,10 +87,47 @@
             ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
             ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
         ],
+        "MirrorCurvature": [
+            ["0", "Concave"],
+            ["1", "Convex"]
+        ],
+        "MirrorDimensions": [
+            ["0", "Infinite"],
+            ["1", "Finite"]
+        ],
+        "MirrorReflectivity": [
+            ["0", "No Reflectivity Dependence"],
+            ["1", "Full Polarization Dependence"],
+            ["2", "No Polarization Dependence (Scalar)"]
+        ],
+        "MirrorShape": [
+            ["1", "Rectangular"],
+            ["2", "Ellipse"],
+            ["3", "Ellipse with Hole"]
+        ],
+        "MirrorType": [
+            ["10", "Conic Coefficients"],
+            ["2", "Ellipsoid"],
+            ["7", "Hyperboloid"],
+            ["4", "Paraboloid"],
+            ["5", "Plane"],
+            ["1", "Spherical"],
+            ["3", "Toroidal"]
+        ],
+        "OrientationAngle": [
+            ["0", "0"],
+            ["90", "90"],
+            ["180", "180"],
+            ["270", "270"]
+        ],
         "PolarizationComponent": [
             ["1", "Only Parallel"],
             ["2", "Only Perpendicular"],
             ["3", "Total"]
+        ],
+        "SurfaceType": [
+            ["0", "Calculated"],
+            ["1", "User Defined"]
         ]
     },
     "model": {
@@ -130,6 +171,32 @@
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "mirror": {
+            "title": ["Element Name", "String", "Mirror"],
+            "position": ["Nominal Position [m]", "Float"],
+            "fmirr": ["Mirror Type", "MirrorType", "5"],
+            "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
+            "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0],
+            "fhit_c": ["Mirror Dimensions", "MirrorDimensions", "0"],
+            "fshape": ["Mirror Shape", "MirrorShape", "1"],
+            "halfWidthX1": ["Half-width +X [mm]", "Float", 0.0],
+            "halfWidthX2": ["Half-width -X [mm]", "Float", 0.0],
+            "halfLengthY1": ["Half-length +Y [mm]", "Float", 0.0],
+            "halfLengthY2": ["Half-length -Y [mm]", "Float", 0.0],
+            "externalOutlineMajorAxis": ["Width (X) [mm]", "Float", 0.0],
+            "externalOutlineMinorAxis": ["Length (Y) [mm]", "Float", 0.0],
+            "internalOutlineMajorAxis": ["Hole Width (X) [mm]", "Float", 0.0],
+            "internalOutlineMinorAxis": ["Hole Length (Y) [mm]", "Float", 0.0],
+            "f_ext": ["Surface Type", "SurfaceType", "0"],
+            "f_default": ["Focii Placed at Continuation Planes?", "Boolean", "1"],
+            "ssour": ["Distance From Source To Mirror Center [m]", "Float", 0.01],
+            "simag": ["Distance From Mirror Center to Second Focus [m]", "Float", 0.03],
+            "theta": ["Incidence Angle [deg]", "Float", 35.0],
+            "rmirr": ["Spherical Radius [mm]", "Float", 16.551],
+            "f_convex": ["Surface Curvature", "MirrorCurvature", "0"],
+            "fcyl": ["Cylindrical", "Boolean", "1"],
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"]
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
@@ -264,6 +331,42 @@
                 "y",
                 "weight",
                 "histogramBins"
+            ]
+        },
+        "mirror": {
+            "title": "Mirror",
+            "basic": [],
+            "advanced": [
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    "fmirr",
+                    "t_incidence",
+                    "alpha"
+                ]],
+                ["Surface Shape", [
+                    "f_ext",
+                    "f_default",
+                    "ssour",
+                    "simag",
+                    "theta",
+                    "rmirr",
+                    "f_convex",
+                    "fcyl",
+                    "cil_ang"
+                ]],
+                ["Dimensions", [
+                    "fhit_c",
+                    "fshape",
+                    "halfWidthX1",
+                    "halfWidthX2",
+                    "halfLengthY1",
+                    "halfLengthY2",
+                    "externalOutlineMajorAxis",
+                    "externalOutlineMinorAxis",
+                    "internalOutlineMajorAxis",
+                    "internalOutlineMinorAxis"
+                ]]
             ]
         },
         "obstacle": {
