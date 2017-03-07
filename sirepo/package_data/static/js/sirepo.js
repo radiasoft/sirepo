@@ -116,7 +116,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, $rootScope, $interval, _) {
+SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, $document, $rootScope, $interval, _) {
     var self = {
         models: {},
     };
@@ -507,10 +507,26 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return SIREPO.APP_SCHEMA.view[name];
     };
 
+    self.watchModelFields = function($scope, modelFields, callback) {
+        $scope.appState = self;
+        modelFields.forEach(function(f) {
+            $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
+                if (self.isLoaded() && newValue != oldValue) {
+                    callback();
+                }
+            });
+        });
+    };
+
     self.whenModelsLoaded = function($scope, callback) {
-        $scope.$on('modelsLoaded', callback);
+        var wrappedCallback = function() {
+            $document.ready(function() {
+                callback();
+            });
+        };
+        $scope.$on('modelsLoaded', wrappedCallback);
         if (self.isLoaded()) {
-            callback();
+            wrappedCallback();
         }
     };
 
@@ -649,6 +665,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
+
     $rootScope.$on('clearCache', function() {
         self.clear();
     });
@@ -730,6 +747,15 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
             panels[name] = {};
         }
         panels[name][key] = value;
+    }
+
+    function showValue(selector, isShown) {
+        if (isShown) {
+            selector.show();
+        }
+        else {
+            selector.hide();
+        }
     }
 
     self.addPendingRequest = function(name, requestFunction) {
@@ -827,24 +853,16 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.showField = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        var formGroup = $(fieldClass(model, field)).closest('.form-group');
-        if (isShown) {
-            formGroup.show();
-        }
-        else {
-            formGroup.hide();
-        }
+        showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
     };
 
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        var row = $(fieldClass(model, field)).closest('.row');
-        if (isShown) {
-            row.show();
-        }
-        else {
-            row.hide();
-        }
+        showValue($(fieldClass(model, field)).closest('.row'), isShown);
+    };
+
+    self.showTab = function(model, pageNumber, isShown) {
+        showValue($('.' + model + '-page-' + pageNumber), isShown);
     };
 
     self.showModalEditor = function(modelKey, template, scope) {

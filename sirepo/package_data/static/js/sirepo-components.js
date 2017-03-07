@@ -21,7 +21,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             '<h5 data-ng-if="description">{{ description }}</h5>',
             '<form name="form" class="form-horizontal" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
-                '<li data-ng-repeat="page in pages" role="presentation" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
+                '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
               '<br data-ng-if="pages" />',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
@@ -48,7 +48,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 }
                 $scope.activePage = page;
                 page.isActive = true;
-                if ($scope.parentController && $scope.parentController.handleModalShown) {
+                if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     $timeout(function() {
                         $scope.parentController.handleModalShown($scope.modelName);
@@ -58,15 +58,19 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
                 $scope.pages = [];
+                var pageCount = 0;
                 for (i = 0; i < $scope.advancedFields.length; i++) {
+                    pageCount++;
                     var page = {
                         name: $scope.advancedFields[i][0],
                         items: [],
+                        class: $scope.modelName + '-page-' + pageCount,
                     };
                     $scope.pages.push(page);
                     var fields = $scope.advancedFields[i][1];
-                    for (var j = 0; j < fields.length; j++)
+                    for (var j = 0; j < fields.length; j++) {
                         page.items.push(fields[j]);
+                    }
                 }
             }
             // fieldsPerTab
