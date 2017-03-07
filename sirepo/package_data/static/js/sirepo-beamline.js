@@ -106,6 +106,20 @@ SIREPO.app.factory('beamlineService', function(appState) {
         };
     };
 
+    self.watchBeamlineField = function($scope, model, beamlineFields, callback) {
+        $scope.beamlineService = self;
+        beamlineFields.forEach(function(f) {
+            $scope.$watch('beamlineService.activeItem.' + f, function (newValue, oldValue) {
+                if (appState.isLoaded() && newValue != oldValue) {
+                    var item = self.activeItem;
+                    if (item && item.type == model) {
+                        callback(item);
+                    }
+                }
+            });
+        });
+    };
+
     return self;
 });
 
@@ -475,12 +489,13 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
     return {
         scope: {
             modelName: '@',
+            parentController: '=',
         },
         template: [
             '<div>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" novalidate>',
-                '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess"></div>',
+                '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
                     '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
@@ -530,6 +545,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
         restrict: 'A',
         scope: {
             toolbarItemNames: '=beamlineToolbar',
+            parentController: '=',
         },
         template: [
             '<div class="row">',
@@ -543,7 +559,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             '</div>',
             '<div class="srw-editor-holder" style="display:none">',
               '<div data-ng-repeat="item in ::toolbarItems">',
-                '<div id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}"></div>',
+                '<div id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
               '</div>',
             '</div>',
         ].join(''),
