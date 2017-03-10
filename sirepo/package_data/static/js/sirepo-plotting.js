@@ -766,7 +766,11 @@ SIREPO.app.directive('plot2d', function(plotting) {
                     points = [];
                     xAxisScale.domain(xdom);
                 }
-                yDomain = [d3.min(json.points), d3.max(json.points)];
+                var ymin = d3.min(json.points);
+                if (ymin > 0) {
+                    ymin = 0;
+                }
+                yDomain = [ymin, d3.max(json.points)];
                 yAxisScale.domain(yDomain).nice();
                 points = plotting.addConvergencePoints(select, '.plot-viewport', points, d3.zip(xPoints, json.points));
                 focusPoint.load(points[0], true);
