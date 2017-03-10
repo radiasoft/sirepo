@@ -1,8 +1,8 @@
-% 3 sto x
-% 1 x + sto y
+% 3 sto  x
+% 1 x +  sto y
 % 1 y + sto z 3 * sto a
-% x y z + + sto c
-% a y * sto b
+%  x  y  z  +  +  sto  c
+% a y * sto    b
 D1: DRIFT,l="c 0.1 +"
 W1: WATCH,filename="%s.w1"
 BL1: LINE=(D1,W1,D1)

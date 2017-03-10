@@ -97,6 +97,7 @@ def _parse_line(parser, line, models):
     if name == '%':
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
+        line = re.sub(r'\s+', ' ', line)
         _save_rpn_variables(line, models['rpnVariables'])
         return True
     if not name or not re.search(r'[0-9A-Z]', name[0], re.IGNORECASE):
