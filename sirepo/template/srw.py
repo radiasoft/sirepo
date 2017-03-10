@@ -399,6 +399,12 @@ def fixup_old_data(data):
             for field in key_value_pairs.keys():
                 if field not in item:
                     item[field] = key_value_pairs[field]
+    for item in data['models']['beamline']:
+        if item['type'] == 'sample':
+            if 'horizontalCenterCoordinate' not in item:
+                item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
+                item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
+
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
@@ -1351,10 +1357,13 @@ def _generate_beamline_optics(models, last_id):
                     thickness={},
                     delta={},
                     atten_len={},
+                    xc={},
+                    yc={},
                     is_save_images=True,
                     prefix='""" + file_name + """')""",
                 item,
-                ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength'],
+                ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
+                 'horizontalCenterCoordinate', 'verticalCenterCoordinate'],
                 propagation)
             res_el += el
             res_pp += pp
