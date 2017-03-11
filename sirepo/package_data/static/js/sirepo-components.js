@@ -774,6 +774,9 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
                 }
             }
             var viewInfo = appState.viewInfo($scope.viewName);
+            if (! viewInfo) {
+                throw 'missing view in schema: ' + $scope.viewName;
+            }
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
