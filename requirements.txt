@@ -15,4 +15,5 @@ pyIsEmail
 pykern
 pytz==2015.7
 scipy
+srxraylib
 uwsgi
