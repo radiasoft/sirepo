@@ -308,6 +308,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
+              '<div data-ng-switch-when="InputFile" class="col-sm-7">',
+                '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
+              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -357,6 +360,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            if (! $scope.info) {
+                throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+            }
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
             $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
             $scope.fieldClass = fieldClass($scope.info[1], $scope.fieldSize, $scope.wantEnumButtons);
