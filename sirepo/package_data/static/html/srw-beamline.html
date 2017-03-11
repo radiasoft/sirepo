@@ -30,7 +30,7 @@
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="initialIntensityReport" data-parent-controller="beamline"></div>
 <div data-modal-editor="" view-name="multiElectronAnimation"></div>
-<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
 
 <div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg">

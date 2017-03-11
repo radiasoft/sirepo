@@ -137,6 +137,7 @@ SIREPO.app.factory('srwService', function(appState, beamlineService, panelState,
 SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
     self.appState = appState;
+    self.beamlineService = beamlineService;
     self.srwService = srwService;
     self.postPropagation = [];
     self.propagations = [];
