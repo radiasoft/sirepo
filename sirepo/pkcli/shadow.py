@@ -16,6 +16,7 @@ import sirepo.template.shadow as template
 _CM_TO_M = 0.01
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
+_SCALE_COLUMNS = [1, 2, 3, 13, 20]
 _PLOT_LABELS = {
     '1': ['X [m]'],
     '2': ['Y [m]'],
@@ -128,11 +129,14 @@ def _run_shadow():
 
 def _scale_ticket(ticket):
     if 'xrange' in ticket:
-        ticket['xrange'][0] *= _CM_TO_M
-        ticket['xrange'][1] *= _CM_TO_M
+        col_h = ticket['col_h'] if 'col_h' in ticket else ticket['col']
+        if col_h in _SCALE_COLUMNS:
+            ticket['xrange'][0] *= _CM_TO_M
+            ticket['xrange'][1] *= _CM_TO_M
     if 'yrange' in ticket:
-        ticket['yrange'][0] *= _CM_TO_M
-        ticket['yrange'][1] *= _CM_TO_M
+        if ticket['col_v'] in _SCALE_COLUMNS:
+            ticket['yrange'][0] *= _CM_TO_M
+            ticket['yrange'][1] *= _CM_TO_M
 
 
 def _script():

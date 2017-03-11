@@ -1,25 +1,64 @@
 {
     "models": {
         "beamline": [],
-        "bendingMagnet": {
+        "electronBeam": {
             "bener": 6.04,
+            "sigmax": 395,
+            "sigmaz": 36.9,
             "epsi_dx": 0,
             "epsi_dz": 0,
             "epsi_x": 3.9,
-            "epsi_z": 0.39,
-            "f_pol": "3",
-            "fdistr": "4",
+            "epsi_z": 0.039,
+            "f_pol": "3"
+        },
+        "wiggler": {
+            "b_from": "1",
+            "kValue": 19.6,
+            "nPer": 1,
+            "per": 0.2,
+            "ph1": 20000,
+            "ph2": 20020,
+            "shift_betax_flag": "4",
+            "shift_betax_value": 0,
+            "shift_x_flag": "4",
+            "shift_x_value": 0,
+            "trajFile": "SW_3P.txt"
+        },
+        "geometricSource": {
+            "cone_max": 0,
+            "cone_min": 0,
+            "f_coher": "0",
+            "f_color": "3",
+            "f_polar": "1",
+            "fdist": "2",
+            "fdistr": "3",
+            "fsour": "3",
+            "fsource_depth": "3",
+            "ph1": 9998,
+            "ph2": 10002,
+            "pol_angle": 0,
+            "pol_deg": 1,
+            "sigdix": 8.84999972e-05,
+            "sigdiz": 7.1999998e-06,
+            "sigmax": 5700,
+            "sigmay": 100,
+            "sigmaz": 1040,
+            "singleEnergyValue": 1000,
+            "wxsou": 1.00000001,
+            "wysou": 2,
+            "wzsou": 2.00000003
+        },
+        "sourceDivergence": {
             "hdiv1": 0.5,
             "hdiv2": 0.5,
-            "istar1": 567656,
-            "npoint": 5000,
-            "ph1": 8000,
-            "ph2": 8000.001,
-            "r_magnet": 25.1772,
-            "sigmax": 395,
-            "sigmaz": 36.9,
             "vdiv1": 1000,
             "vdiv2": 1000
+        },
+        "bendingMagnet": {
+            "fdistr": "4",
+            "ph1": 8000,
+            "ph2": 8000.001,
+            "r_magnet": 25.1772
         },
         "histogramReport": {
             "distanceFromSource": 0,
@@ -49,7 +88,10 @@
             "name": "shadow example",
             "outOfSessionSimulationId": "",
             "simulationId": "gLicZdXs",
-            "simulationSerial": 1487981155340231
+            "simulationSerial": 1487981155340231,
+            "sourceType": "bendingMagnet",
+            "npoint": 5000,
+            "istar1": 567656
         },
         "rayFilter": {
             "distance": 0.5,

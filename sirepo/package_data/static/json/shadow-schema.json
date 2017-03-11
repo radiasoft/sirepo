@@ -1,8 +1,22 @@
 {
     "enum": {
+        "AngularDistribution": [
+            ["1", "Flat"],
+            ["2", "Uniform"],
+            ["3", "Gaussian"],
+            ["5", "Conical"]
+        ],
         "ApertureShape": [
             ["0", "Rectangular"],
             ["1", "Ellipse"]
+        ],
+        "BeamShift": [
+            ["0", "No shift"],
+            ["1", "Half excursion"],
+            ["2", "Minimum"],
+            ["3", "Maximum"],
+            ["4", "Value at zero"],
+            ["5", "User value"]
         ],
         "BendingMagnetMode": [
             ["4", "Synchrotron"],
@@ -87,6 +101,11 @@
             ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
             ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
         ],
+        "MagneticFieldType": [
+            ["0", " kValue (deflecting parameters)"],
+            ["1", "File with the magnetic field (y[m], B[T])"],
+            ["2", "File with the magnetic field harmonics (n, Bn[T])"]
+        ],
         "MirrorCurvature": [
             ["0", "Concave"],
             ["1", "Convex"]
@@ -106,7 +125,6 @@
             ["3", "Ellipse with Hole"]
         ],
         "MirrorType": [
-            ["10", "Conic Coefficients"],
             ["2", "Ellipsoid"],
             ["7", "Hyperboloid"],
             ["4", "Paraboloid"],
@@ -120,14 +138,44 @@
             ["180", "180"],
             ["270", "270"]
         ],
+        "ParaboloidFocusLocation": [
+            ["0", "Image"],
+            ["1", "Source"]
+        ],
+        "PhotonEnergyDistribution": [
+            ["1", "Single Line"],
+            ["3", "Uniform"]
+        ],
         "PolarizationComponent": [
             ["1", "Only Parallel"],
             ["2", "Only Perpendicular"],
             ["3", "Total"]
         ],
+        "SourceDepth": [
+            ["1", "No Depth"],
+            ["2", "Uniform"],
+            ["3", "Gaussian"]
+        ],
+        "SourceType": [
+            ["bendingMagnet", "Bending Magnet"],
+            ["geometricSource", "Geometric Source"],
+            ["wiggler", "Wiggler"]
+        ],
+        "SpatialType": [
+            ["0", "Point"],
+            ["1", "Rectangle"],
+            ["2", "Ellipse"],
+            ["3", "Gaussian"]
+        ],
         "SurfaceType": [
             ["0", "Calculated"],
             ["1", "User Defined"]
+        ],
+        "TorusPoleLocation": [
+ 	    ["0", "Lower/Outer (Concave/Concave)"],
+	    ["1", "Lower/Inner (Concave/Convex)"],
+	    ["2", "Upper/Inner (Convex/Concave)"],
+            ["3", "Upper/Outer (Convex/Convex)"]
         ]
     },
     "model": {
@@ -141,24 +189,49 @@
             "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
         },
         "bendingMagnet": {
-            "npoint": ["Number of Rays", "Integer", 5000],
-            "istar1": ["Seed", "Integer", 567656],
-            "ph1": ["Minimum Energy [eV]", "Float"],
-            "ph2": ["Maximum Energy [eV]", "Float"],
-            "f_pol": ["Polaization Component", "PolarizationComponent", "3"],
+            "ph1": ["Minimum Energy [eV]", "Float", 11160.0],
+            "ph2": ["Maximum Energy [eV]", "Float", 0.0],
+            "r_magnet": ["Magnet Radius [m]", "Float"],
+            "fdistr": ["Calculation Mode", "BendingMagnetMode"]
+        },
+        "electronBeam": {
+            "bener": ["Energy [GeV]", "Float"],
             "sigmax": ["X Sigma [µm]", "Float"],
             "sigmaz": ["Z Sigma [µm]", "Float"],
             "epsi_x": ["X Emittance [nrad]", "Float"],
             "epsi_z": ["Z Emittance [nrad]", "Float"],
-            "bener": ["Energy [GeV]", "Float"],
-            "epsi_dx": ["X Distance From Waist [µm]", "Float"],
-            "epsi_dz": ["Z Distance From Waist [µm]", "Float"],
-            "r_magnet": ["Magnet Radius [m]", "Float"],
-            "hdiv1": ["Horizontal Divergence +X [mrad]", "Float"],
-            "hdiv2": ["Horizontal Divergence -X [mrad]", "Float"],
-            "vdiv1": ["Vertical Divergence +Z [mrad]", "Float"],
-            "vdiv2": ["Vertical Divergence -Z [mrad]", "Float"],
-            "fdistr": ["Calculation Mode", "BendingMagnetMode"]
+            "epsi_dx": ["X Distance From Waist [m]", "Float"],
+            "epsi_dz": ["Z Distance From Waist [m]", "Float"],
+            "f_pol": ["Polaization Component", "PolarizationComponent", "3"]
+        },
+        "sourceDivergence": {
+            "hdiv1": ["Horizontal Divergence +X [mrad]", "Float", 0.0],
+            "hdiv2": ["Horizontal Divergence -X [mrad]", "Float", 0.0],
+            "vdiv1": ["Vertical Divergence +Z [mrad]", "Float", 0.06],
+            "vdiv2": ["Vertical Divergence -Z [mrad]", "Float", 0.06]
+        },
+        "geometricSource": {
+            "f_color": ["Photon Energy Distribution", "PhotonEnergyDistribution", "1"],
+            "singleEnergyValue": ["Value [eV]", "Float", 11160.0],
+            "ph1": ["Minimum Energy [eV]", "Float", 11160.0],
+            "ph2": ["Maximum Energy [eV]", "Float"],
+            "f_polar": ["Polarization", "Boolean", "1"],
+            "f_coher": ["Coherent Beam", "Boolean", "0"],
+            "pol_angle": ["Phase Difference [deg]", "Float", 0.0],
+            "pol_deg": ["Degree of Polarization [cos(phi)/(cos(phi)+sin(phi))]", "Float", 0.0],
+            "fsour": ["Spatial Type in X-Z Plane", "SpatialType", "0"],
+            "wxsou": ["Width (X) [mm]", "Float", 0.0],
+            "wzsou": ["Height (Z) [mm]", "Float", 0.0],
+            "sigmax": ["Sigma X [µm]", "Float", 0.0],
+            "sigmaz": ["Sigma Z [µm]", "Float", 0.0],
+            "fdistr": ["Angular Distribution", "AngularDistribution", "2"],
+            "sigdix": ["Horizontal Sigma (X) [rad]", "Float", 0.0],
+            "sigdiz": ["Vertical Sigma (Z) [rad]", "Float", 0.0],
+            "cone_max": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
+            "cone_min": ["Cone External Half-Aperture [rad]", "Float", 0.0],
+            "fsource_depth": ["Depth", "SourceDepth", "1"],
+            "wysou": ["Source Depth (y) [mm]", "Float", 0.0],
+            "sigmay": ["Sigma Y [µm]", "Float", 0.0]
         },
         "histogramReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
@@ -196,7 +269,15 @@
             "rmirr": ["Spherical Radius [mm]", "Float", 16.551],
             "f_convex": ["Surface Curvature", "MirrorCurvature", "0"],
             "fcyl": ["Cylindrical", "Boolean", "1"],
-            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"]
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"],
+            "r_maj": ["Torus Major Radius [m]", "Float", 0.0],
+            "r_min": ["Torus Minor Radius [m]", "Float", 0.0],
+            "f_torus": ["Torus Pole Location", "TorusPoleLocation", "0"],
+            "f_side": ["Focus Location", "ParaboloidFocusLocation", "0"],
+            "param": ["Paraboloid Parameter [mm]", "Float", 0.0],
+            "axmaj": ["Semi-major Axis [m]", "Float", 0.0],
+            "axmin": ["Semi-minor Axis [m]", "Float", 0.0],
+            "ell_the": ["Angle Between Semi-major Axis and Pole [CCW, deg]", "Float", 0.0]
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
@@ -223,7 +304,10 @@
             "z2": ["Z Maximum [mm]", "Float", 1e16]
         },
         "simulation": {
-            "name": ["Name", "String"]
+            "name": ["Name", "String"],
+            "sourceType": ["Source Type", "SourceType", "geometric"],
+            "npoint": ["Number of Rays", "Integer", 5000],
+            "istar1": ["Seed", "Integer", 567656]
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
@@ -237,6 +321,19 @@
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "wiggler": {
+            "ph1": ["Minimum Energy [eV]", "Float", 20000.0],
+            "ph2": ["Maximum Energy [eV]", "Float", 20020.0],
+            "b_from": ["Magnetic Field Definition", "MagneticFieldType", "0"],
+            "nPer": ["Number of Periods", "Integer", 12],
+            "per": ["ID Period [m]", "Float", 0.125],
+            "kValue": ["K Value", "Float", 14.0],
+            "trajFile": ["Trajectory File", "InputFile"],
+            "shift_x_flag": ["Shift Transversal Velocity", "BeamShift", "0"],
+            "shift_x_value": ["Value", "Float", 0.0],
+            "shift_betax_flag": ["Shift Transversal Coordinate", "BeamShift", "0"],
+            "shift_betax_value": ["Value", "Float", 0.0]
         }
     },
     "view": {
@@ -262,40 +359,101 @@
         "bendingMagnet": {
             "title": "Bending Magnet",
             "basic": [
+                "simulation.sourceType",
                 "ph1",
                 "ph2",
-                "bener"
+                "electronBeam.bener"
             ],
             "advanced": [
                 ["Basic Settings", [
-                    "npoint",
-                    "istar1",
+                    "simulation.npoint",
+                    "simulation.istar1",
                     "ph1",
-                    "ph2",
-                    "f_pol"
+                    "ph2"
                 ]],
                 ["Beam Parameters", [
-                    "bener",
+                    "electronBeam.bener",
+                    "electronBeam.f_pol",
                     [
                         ["X",  [
-                            "sigmax",
-                            "epsi_x",
-                            "epsi_dx"
+                            "electronBeam.sigmax",
+                            "electronBeam.epsi_x",
+                            "electronBeam.epsi_dx"
                         ]],
                         ["Z", [
-                            "sigmaz",
-                            "epsi_z",
-                            "epsi_dz"
+                            "electronBeam.sigmaz",
+                            "electronBeam.epsi_z",
+                            "electronBeam.epsi_dz"
                         ]]
                     ]
                 ]],
                 ["Magnet Parameters", [
                     "r_magnet",
-                    "hdiv1",
-                    "hdiv2",
-                    "vdiv1",
-                    "vdiv2",
+                    "sourceDivergence.hdiv1",
+                    "sourceDivergence.hdiv2",
+                    "sourceDivergence.vdiv1",
+                    "sourceDivergence.vdiv2",
                     "fdistr"
+                ]],
+                ["Ray Filter", [
+                    "rayFilter.f_bound_sour",
+                    "rayFilter.distance",
+                    [
+                        ["Minimum", [
+                            "rayFilter.x1",
+                            "rayFilter.z1"
+                        ]],
+                        ["Maximum", [
+                            "rayFilter.x2",
+                            "rayFilter.z2"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "geometricSource": {
+            "title": "Geometrical Source",
+            "basic": [
+                "simulation.sourceType",
+                "fsour",
+                "wxsou",
+                "wzsou",
+                "sigmax",
+                "sigmaz"
+            ],
+            "advanced": [
+                ["Basic Settings", [
+                    "simulation.npoint",
+                    "simulation.istar1"
+                ]],
+                ["Geometry Settings", [
+                    "fsour",
+                    "wxsou",
+                    "wzsou",
+                    "sigmax",
+                    "sigmaz",
+                    "fdistr",
+                    "sourceDivergence.hdiv1",
+                    "sourceDivergence.hdiv2",
+                    "sourceDivergence.vdiv1",
+                    "sourceDivergence.vdiv2",
+                    "sigdix",
+                    "sigdiz",
+                    "cone_max",
+                    "cone_min",
+                    "fsource_depth",
+                    "wysou",
+                    "sigmay"
+                ]],
+                ["Energy/Polarization Settings", [
+                    "f_color",
+                    "singleEnergyValue",
+                    "ph1",
+                    "ph2",
+                    "f_polar",
+                    "f_coher",
+                    "pol_angle",
+                    "pol_deg"
                 ]],
                 ["Ray Filter", [
                     "rayFilter.f_bound_sour",
@@ -350,10 +508,18 @@
                     "ssour",
                     "simag",
                     "theta",
+                    "f_side",
                     "rmirr",
+                    "param",
+                    "axmaj",
+                    "axmin",
+                    "ell_the",
                     "f_convex",
                     "fcyl",
-                    "cil_ang"
+                    "cil_ang",
+                    "r_maj",
+                    "r_min",
+                    "f_torus"
                 ]],
                 ["Dimensions", [
                     "fhit_c",
@@ -427,6 +593,63 @@
                 "y",
                 "weight",
                 "histogramBins"
+            ]
+        },
+        "wiggler": {
+            "title": "Wiggler",
+            "basic": [
+                "simulation.sourceType",
+                "ph1",
+                "ph2",
+                "electronBeam.bener"
+            ],
+            "advanced": [
+                ["Basic Settings", [
+                    "simulation.npoint",
+                    "simulation.istar1",
+                    "ph1",
+                    "ph2"
+                ]],
+                ["Beam Parameters", [
+                    "electronBeam.bener",
+                    [
+                        ["X",  [
+                            "electronBeam.sigmax",
+                            "electronBeam.epsi_x",
+                            "electronBeam.epsi_dx"
+                        ]],
+                        ["Z", [
+                            "electronBeam.sigmaz",
+                            "electronBeam.epsi_z",
+                            "electronBeam.epsi_dz"
+                        ]]
+                    ]
+                ]],
+                ["Wiggler Parameters", [
+                    "b_from",
+                    "kValue",
+                    "trajFile",
+                    "nPer",
+                    "per",
+                    "shift_x_flag",
+                    "shift_x_value",
+                    "shift_betax_flag",
+                    "shift_betax_value"
+                ]],
+                ["Ray Filter", [
+                    "rayFilter.f_bound_sour",
+                    "rayFilter.distance",
+                    [
+                        ["Minimum", [
+                            "rayFilter.x1",
+                            "rayFilter.z1"
+                        ]],
+                        ["Maximum", [
+                            "rayFilter.x2",
+                            "rayFilter.z2"
+                        ]]
+                    ]
+                ]]
             ]
         }
     }

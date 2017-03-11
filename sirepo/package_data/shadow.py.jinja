@@ -1,45 +1,44 @@
 import Shadow
+from srxraylib.sources import srfunc
 
 source = Shadow.Source()
 beam = Shadow.Beam()
 
-# bending magnet defaults
-source.FSOURCE_DEPTH = 4
-source.F_COLOR = 3
-source.F_PHOT = 0
-source.F_POLAR = 1
-source.NCOL = 0
-source.N_COLOR = 0
-source.POL_DEG = 0.0
-source.SIGDIX = 0.0
-source.SIGDIZ = 0.0
-source.SIGMAY = 0.0
-source.WXSOU = 0.0
-source.WYSOU = 0.0
-source.WZSOU = 0.0
-source.F_WIGGLER = 0
+source.NPOINT = {{simulation_npoint}}
+source.ISTAR1 = {{simulation_istar1}}
 
-# bending magnet settings
-source.NPOINT = {{bendingMagnet_npoint}}
-source.ISTAR1 = {{bendingMagnet_istar1}}
-source.PH1 = {{bendingMagnet_ph1}}
-source.PH2 = {{bendingMagnet_ph2}}
-source.F_POL = {{bendingMagnet_f_pol}}
-source.SIGMAX = {{bendingMagnet_sigmax}}
-source.SIGMAZ = {{bendingMagnet_sigmaz}}
-source.EPSI_X = {{bendingMagnet_epsi_x}}
-source.EPSI_Z = {{bendingMagnet_epsi_z}}
-source.BENER = {{bendingMagnet_bener}}
-source.EPSI_DX = {{bendingMagnet_epsi_dx}}
-source.EPSI_DZ = {{bendingMagnet_epsi_dz}}
-source.R_MAGNET = {{bendingMagnet_r_magnet}}
-source.HDIV1 = {{bendingMagnet_hdiv1}}
-source.HDIV2 = {{bendingMagnet_hdiv2}}
-source.VDIV1 = {{bendingMagnet_vdiv1}}
-source.VDIV2 = {{bendingMagnet_vdiv2}}
-source.FDISTR = {{bendingMagnet_fdistr}}
+{% if simulation_sourceType == 'bendingMagnet' %}
+{{bendingMagnetSettings}}
+{% endif %}
 
-source.R_ALADDIN = source.R_MAGNET * 100
+{% if simulation_sourceType == 'geometricSource' %}
+{{geometricSourceSettings}}
+{% endif %}
+
+{% if simulation_sourceType == 'wiggler' %}
+(traj, pars) = srfunc.wiggler_trajectory(
+    b_from={{wiggler_b_from}},
+    inData='{{wigglerTrajectoryInput}}',
+    nPer={{wiggler_nPer}},
+    nTrajPoints=501,
+    ener_gev={{electronBeam_bener}},
+    per={{wiggler_per}},
+    kValue={{wiggler_kValue}},
+    trajFile='tmp.traj',
+    shift_x_flag={{wiggler_shift_x_flag}},
+    shift_x_value={{wiggler_shift_x_value}},
+    shift_betax_flag={{wiggler_shift_betax_flag}},
+    shift_betax_value={{wiggler_shift_betax_value}},
+)
+srfunc.wiggler_cdf(
+    traj,
+    enerMin={{wiggler_ph1}},
+    enerMax={{wiggler_ph2}},
+    enerPoints=1001,
+    outFile='{{wigglerTrajectoryFilename}}',
+    elliptical=False)
+{{wigglerSettings}}
+{% endif %}
 
 source.F_BOUND_SOUR = {{rayFilter_f_bound_sour}}
 {% if rayFilter_f_bound_sour == '2' %}

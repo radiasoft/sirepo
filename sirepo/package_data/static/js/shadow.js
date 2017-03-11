@@ -38,7 +38,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     self.prepareToSave = function() {};
 
     function updateMirrorDimensionFields(item) {
-        panelState.showField('mirror', 'fshape', item.fhit_c != '0');
+        panelState.showField('mirror', 'fshape', item.fhit_c == '1');
         ['halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2'].forEach(function(f) {
             panelState.showField('mirror', f, item.fhit_c == '1' && item.fshape == '1');
         });
@@ -51,16 +51,28 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     }
 
     function updateMirrorTypeFields(item) {
-        panelState.showTab('mirror', 2, item.fmirr == '1');
+        panelState.showTab('mirror', 2, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '3' || item.fmirr == '4' || item.fmirr == '7');
     }
 
     function updateMirrorSurfaceFields(item) {
         panelState.showField('mirror', 'f_default', item.f_ext == '0');
-        panelState.showField('mirror', 'rmirr', item.f_ext == '1');
+        panelState.showField('mirror', 'f_side', item.f_ext == '0' && item.fmirr == '4');
+        panelState.showField('mirror', 'rmirr', item.f_ext == '1' && item.fmirr == '1');
+        ['axmaj', 'axmin', 'ell_the'].forEach(function(f) {
+            panelState.showField('mirror', f, item.f_ext == '1' && (item.fmirr == '2' || item.fmirr == '7'));
+        });
+        ['r_maj', 'r_min'].forEach(function(f) {
+            panelState.showField('mirror', f, item.f_ext == '1' && item.fmirr == '3');
+        });
+        panelState.showField('mirror', 'param', item.f_ext == '1' && item.fmirr == '4');
         ['ssour', 'simag', 'theta'].forEach(function(f) {
             panelState.showField('mirror', f, item.f_ext == '0' && item.f_default == '0');
         });
-        panelState.showField('mirror', 'cil_ang', item.fcyl == '1');
+        ['f_convex', 'fcyl'].forEach(function(f) {
+            panelState.showField('mirror', f, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7');
+        });
+        panelState.showField('mirror', 'cil_ang', item.fcyl == '1' && (item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7'));
+        panelState.showField('mirror', 'f_torus', item.fmirr == '3');
     }
 
     self.handleModalShown = function(name) {
@@ -81,18 +93,71 @@ SIREPO.app.controller('ShadowSourceController', function(appState, panelState, s
     self.shadowService = shadowService;
 
     function updateRayFilterFields() {
-        var hasFilter = appState.models.rayFilter.f_bound_sour != '0';
+        var hasFilter = appState.models.rayFilter.f_bound_sour == '2';
         panelState.showField('rayFilter', 'distance', hasFilter);
         panelState.showRow('rayFilter', 'x1', hasFilter);
     }
 
+    function updateGeometricSettings() {
+        var geo = appState.models.geometricSource;
+        ['wxsou', 'wzsou'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.fsour == '1' || geo.fsour == '2');
+        });
+        ['sigmax', 'sigmaz'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.fsour == '3');
+        });
+        ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2'].forEach(function(f) {
+            panelState.showField('sourceDivergence', f, geo.fdist == '1' || geo.fdist == '2' || geo.fdist == '3');
+        });
+        ['sigdix', 'sigdiz'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.fdist == '3');
+        });
+        ['cone_max', 'cone_min'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.fdist == '5');
+        });
+        panelState.showField('geometricSource', 'wysou', geo.fsource_depth == '2');
+        panelState.showField('geometricSource', 'sigmay', geo.fsource_depth == '3');
+        panelState.showField('geometricSource', 'singleEnergyValue', geo.f_color == '1');
+        ['ph1', 'ph2'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.f_color == '3');
+        });
+        ['f_coher', 'pol_angle', 'pol_deg'].forEach(function(f) {
+            panelState.showField('geometricSource', f, geo.f_polar == '1');
+        });
+    }
+
+    function updateWigglerSettings() {
+        var wiggler = appState.models.wiggler;
+        panelState.showField('wiggler', 'kValue', wiggler.b_from == '0');
+        panelState.showField('wiggler', 'trajFile', wiggler.b_from == '1' || wiggler.b_from == '2');
+        panelState.showField('wiggler', 'per', wiggler.b_from == '0' || wiggler.b_from == '2');
+        panelState.showField('wiggler', 'shift_x_value', wiggler.shift_x_flag == '5');
+        panelState.showField('wiggler', 'shift_betax_value', wiggler.shift_betax_flag == '5');
+    }
+
     self.handleModalShown = function(name) {
-        if (name == 'bendingMagnet') {
+        if (name == 'bendingMagnet' || name == 'geometricSource' || name == 'wiggler') {
             updateRayFilterFields();
+        }
+        if (name == 'geometricSource') {
+            updateGeometricSettings();
+        }
+        else if (name == 'wiggler') {
+            updateWigglerSettings();
         }
     };
 
+    self.isSource = function(name) {
+        return appState.isLoaded() && appState.models.simulation.sourceType == name;
+    };
+
     appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
+    appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdist', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
+    appState.watchModelFields($scope, ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings);
+
+    appState.whenModelsLoaded($scope, function() {
+        updateGeometricSettings();
+    });
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
