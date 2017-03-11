@@ -515,7 +515,9 @@
             "material": ["Material of the mask", "CRLMaterial", "Au"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 3.23075074E-05, "Tooltip"],
-            "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "Tooltip"]
+            "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "Tooltip"],
+            "horizontalCenterCoordinate": ["Horizontal Center Position [nm]", "Float", 0],
+            "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0]
         },
         "simulation": {
             "documentationUrl": ["Documentation URL", "OptionalString"],
@@ -1143,7 +1145,15 @@
                 "material",
                 "method",
                 "refractiveIndex",
-                "attenuationLength"
+                "attenuationLength",
+                [
+                    ["Horizontal", [
+                        "horizontalCenterCoordinate"
+                    ]],
+                    ["Vertical", [
+                        "verticalCenterCoordinate"
+                    ]]
+                ]
             ]
         },
         "simulation": {

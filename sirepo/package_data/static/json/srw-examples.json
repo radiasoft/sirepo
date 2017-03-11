@@ -62,7 +62,7 @@
                         "simulationName": "NSLS-II SRX beamline"
                     },
                     {
-                        "buttonText": "NSLS-II 17-ID-2\nFMX\nFrontier Microfocusing\nMacromolecular Crystallography",
+                        "image": "nsls-ii-fmx.png",
                         "simulationName": "NSLS-II FMX beamline"
                     },
                     {
