@@ -512,7 +512,8 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         modelFields.forEach(function(f) {
             $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
                 if (self.isLoaded() && newValue != oldValue) {
-                    callback();
+                    // call in next cycle to allow UI to change layout first
+                    $interval(callback, 1, 1, false);
                 }
             });
         });
