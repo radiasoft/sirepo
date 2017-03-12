@@ -626,6 +626,10 @@ def lib_files(data, source_lib, report=None):
         list: py.path.local of source files
     """
     res = []
+
+    #TODO(MR): possibly need to fix up old data before accessing the data - old tests fail.
+    # fixup_old_data(data)
+
     dm = data.models
     # the mirrorReport.heightProfileFile may be different than the file in the beamline
     if report == 'mirrorReport':
@@ -636,7 +640,7 @@ def lib_files(data, source_lib, report=None):
     for m in dm.beamline:
         for k, v in _SCHEMA.model[m.type].items():
             t = v[1]
-            if m[k] and t in ['MirrorFile', 'ImageFile']:
+            if k in m and m[k] and t in ['MirrorFile', 'ImageFile']:
                 if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
     return template_common.internal_lib_files(res, source_lib)
