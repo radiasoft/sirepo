@@ -12,9 +12,12 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import os.path
+import py.path
 
 #: Simulation type
 SIM_TYPE = 'shadow'
+_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
@@ -48,7 +51,11 @@ _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
 def copy_related_files(data, source_path, target_path):
-    pass
+    _copy_lib_files(
+        data,
+        py.path.local(os.path.dirname(source_path)).join('lib'),
+        py.path.local(os.path.dirname(target_path)).join('lib'),
+    )
 
 
 def fixup_old_data(data):
@@ -113,12 +120,30 @@ def prepare_for_save(data):
     return data
 
 
+def python_source_for_model(data, model):
+    beamline = data['models']['beamline']
+    watch_id = None
+    for b in beamline:
+        if b['type'] == 'watch':
+            watch_id = b['id']
+    if watch_id:
+        data['report'] = 'watchpointReport{}'.format(watch_id)
+    else:
+        data['report'] = 'plotXYReport'
+    return '''
+{}
+
+import Shadow.ShadowTools
+Shadow.ShadowTools.plotxy(beam, 1, 3, nbins=100, nolost=1)
+    '''.format(_generate_parameters_file(data, is_parallel=True))
+
+
 def remove_last_frame(run_dir):
     pass
 
 
 def resource_files():
-    return []
+    return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
