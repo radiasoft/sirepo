@@ -7,15 +7,15 @@ beam = Shadow.Beam()
 source.NPOINT = {{simulation_npoint}}
 source.ISTAR1 = {{simulation_istar1}}
 
-{% if simulation_sourceType == 'bendingMagnet' %}
+{%- if simulation_sourceType == 'bendingMagnet' %}
 {{bendingMagnetSettings}}
-{% endif %}
+{% endif -%}
 
-{% if simulation_sourceType == 'geometricSource' %}
+{%- if simulation_sourceType == 'geometricSource' %}
 {{geometricSourceSettings}}
-{% endif %}
+{% endif -%}
 
-{% if simulation_sourceType == 'wiggler' %}
+{%- if simulation_sourceType == 'wiggler' %}
 (traj, pars) = srfunc.wiggler_trajectory(
     b_from={{wiggler_b_from}},
     inData='{{wigglerTrajectoryInput}}',
@@ -38,24 +38,23 @@ srfunc.wiggler_cdf(
     outFile='{{wigglerTrajectoryFilename}}',
     elliptical=False)
 {{wigglerSettings}}
-{% endif %}
+{% endif -%}
 
 source.F_BOUND_SOUR = {{rayFilter_f_bound_sour}}
 {% if rayFilter_f_bound_sour == '2' %}
 fn = 'source-aperture.dat'
-f = open(fn, 'w')
-f.write(' {{rayFilter_distance}} {{rayFilter_x1}} {{rayFilter_x2}} {{rayFilter_z1}} {{rayFilter_z2}}')
-f.close()
+with open(fn, 'w') as f:
+  f.write(' {{rayFilter_distance}} {{rayFilter_x1}} {{rayFilter_x2}} {{rayFilter_z1}} {{rayFilter_z2}}')
 source.FILE_BOUND = fn
 source.NTOTALPOINT = 10000000
-{% endif %}
+{% endif -%}
 
 beam.genSource(source)
 
-{% if distanceFromSource and distanceFromSource != 0 %}
+{%- if distanceFromSource and distanceFromSource != 0 %}
 beam.retrace({{distanceFromSource}})
-{% endif %}
+{% endif -%}
 
-{% if beamlineOptics %}
+{%- if beamlineOptics %}
 {{beamlineOptics}}
-{% endif %}
+{% endif -%}

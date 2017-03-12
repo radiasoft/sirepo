@@ -4,7 +4,7 @@
             {
                 "horizontalOffset": 0,
                 "horizontalSize": 0.02,
-                "id": 6,
+                "id": 2,
                 "position": 0.5,
                 "shape": "0",
                 "title": "Aperture",
@@ -13,53 +13,73 @@
                 "verticalSize": 0.02
             },
             {
-                "id": 3,
+                "id": 5,
                 "position": 0.5,
                 "title": "Watchpoint",
                 "type": "watch"
             },
             {
-                "id": 4,
+                "id": 3,
                 "position": 0.75,
                 "title": "Watchpoint",
                 "type": "watch"
             },
             {
-                "id": 5,
+                "id": 4,
                 "position": 1,
                 "title": "Watchpoint",
                 "type": "watch"
             }
         ],
         "bendingMagnet": {
-            "bener": 6.03999996,
-            "epsi_dx": 0,
-            "epsi_dz": 0,
-            "epsi_x": 3.89999997,
-            "epsi_z": 0.0389999988,
-            "f_pol": "3",
             "fdistr": "4",
-            "hdiv1": 0.500000024,
-            "hdiv2": 0.500000024,
-            "istar1": 567656,
-            "npoint": 50000,
             "ph1": 8000,
             "ph2": 8000.001,
-            "r_magnet": 25.1772003,
-            "sigmax": 395.000018,
-            "sigmaz": 36.8999992,
-            "vdiv1": 1000,
-            "vdiv2": 1000
+            "r_magnet": 25.1772
+        },
+        "electronBeam": {
+            "bener": 6.04,
+            "epsi_dx": 0,
+            "epsi_dz": 0,
+            "epsi_x": 3.9,
+            "epsi_z": 0.039,
+            "f_pol": "3",
+            "sigmax": 395,
+            "sigmaz": 36.9
+        },
+        "geometricSource": {
+            "cone_max": 0,
+            "cone_min": 0,
+            "f_coher": "0",
+            "f_color": "3",
+            "f_polar": "1",
+            "fdist": "2",
+            "fdistr": "3",
+            "fsour": "3",
+            "fsource_depth": "3",
+            "ph1": 9998,
+            "ph2": 10002,
+            "pol_angle": 0,
+            "pol_deg": 1,
+            "sigdix": 8.84999972e-05,
+            "sigdiz": 7.1999998e-06,
+            "sigmax": 5700,
+            "sigmay": 100,
+            "sigmaz": 1040,
+            "singleEnergyValue": 1000,
+            "wxsou": 1.00000001,
+            "wysou": 2,
+            "wzsou": 2.00000003
         },
         "histogramReport": {
-            "column": "6",
+            "column": "11",
             "distanceFromSource": 0,
             "histogramBins": 100,
-            "weight": "22"
+            "weight": "0"
         },
         "initialIntensityReport": {
             "histogramBins": 100,
-            "weight": "0",
+            "weight": "22",
             "x": "1",
             "y": "3"
         },
@@ -69,7 +89,7 @@
         "plotXYReport": {
             "distanceFromSource": 0,
             "histogramBins": 100,
-            "weight": "22",
+            "weight": "0",
             "x": "1",
             "y": "3"
         },
@@ -84,29 +104,51 @@
         "simulation": {
             "folder": "/",
             "isExample": false,
+            "istar1": 567656,
             "name": "example14 part 2",
+            "npoint": 50000,
             "outOfSessionSimulationId": "",
-            "simulationId": "V3WGZVez",
-            "simulationSerial": 1488575800531243
+            "simulationId": "U4lFTB4x",
+            "simulationSerial": 1489336922069764,
+            "sourceType": "bendingMagnet"
         },
         "simulationStatus": {},
+        "sourceDivergence": {
+            "hdiv1": 0.5,
+            "hdiv2": 0.5,
+            "vdiv1": 1000,
+            "vdiv2": 1000
+        },
         "watchpointReport3": {
             "histogramBins": 100,
-            "weight": "0",
+            "weight": "22",
             "x": "1",
             "y": "3"
         },
         "watchpointReport4": {
             "histogramBins": 100,
-            "weight": "0",
+            "weight": "22",
             "x": "1",
             "y": "3"
         },
         "watchpointReport5": {
             "histogramBins": 100,
-            "weight": "0",
+            "weight": "22",
             "x": "1",
             "y": "3"
+        },
+        "wiggler": {
+            "b_from": "1",
+            "kValue": 19.6,
+            "nPer": 1,
+            "per": 0.2,
+            "ph1": 20000,
+            "ph2": 20020,
+            "shift_betax_flag": "4",
+            "shift_betax_value": 0,
+            "shift_x_flag": "4",
+            "shift_x_value": 0,
+            "trajFile": "SW_3P.txt"
         }
     },
     "simulationType": "shadow",
