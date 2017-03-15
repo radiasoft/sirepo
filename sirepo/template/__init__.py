@@ -55,4 +55,3 @@ cfg = pkconfig.init(
     codes=(codes(pkconfig.channel_in('dev')), _cfg_codes, 'control which codes are loaded in the server'),
 )
 SIM_TYPES = cfg.codes
-pkdp(SIM_TYPES)
