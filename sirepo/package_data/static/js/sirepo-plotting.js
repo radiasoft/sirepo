@@ -132,11 +132,28 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     return {
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
+            var i;
+            if (points.length > 1 && SIREPO.PLOTTING_SUMMED_LINEOUTS) {
+                var newPoints = [];
+                var dist = (points[1][0] - points[0][0]) / 2.0;
+                newPoints.push(points[0]);
+                var prevY = points[0][1];
+                for (i = 1; i < points.length; i++) {
+                    var p = points[i];
+                    if (prevY != p[1]) {
+                        var x = p[0] - dist;
+                        newPoints.push([x, prevY], [x, p[1]]);
+                        prevY = p[1];
+                    }
+                }
+                newPoints.push(points[points.length - 1]);
+                points = newPoints;
+            }
             pointsList.splice(0, 0, points);
             if (pointsList.length > MAX_PLOTS) {
                 pointsList = pointsList.slice(0, MAX_PLOTS);
             }
-            for (var i = 0; i < MAX_PLOTS; i++) {
+            for (i = 0; i < MAX_PLOTS; i++) {
                 select(parentClass + ' .line-' + i).datum(pointsList[i] || []);
             }
             return pointsList;
@@ -772,8 +789,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 }
                 yDomain = [ymin, d3.max(json.points)];
                 yAxisScale.domain(yDomain).nice();
-                points = plotting.addConvergencePoints(select, '.plot-viewport', points, d3.zip(xPoints, json.points));
-                focusPoint.load(points[0], true);
+                var p = d3.zip(xPoints, json.points);
+                plotting.addConvergencePoints(select, '.plot-viewport', points, p);
+                focusPoint.load(p, true);
                 select('.y-axis-label').text(json.y_label);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
