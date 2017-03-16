@@ -35,9 +35,25 @@ def _cfg_bool(value):
     return bool(value)
 
 
+@pkconfig.parse_none
+def _cfg_sim_types(value):
+    if not value:
+        return _codes()
+    user_specified_codes = tuple(value.split(':'))
+    for c in user_specified_codes:
+        assert c in _codes(), \
+            'simulation type(s) must be: {}. Provided value: {}'.format(', '.join(_codes()), c)
+    return user_specified_codes
+
+
+def _codes():
+    return ('srw', 'warp', 'elegant', 'shadow') if pkconfig.channel_in('dev') else ('srw', 'warp', 'elegant')
+
+
 cfg = pkconfig.init(
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the mask element in toolbar'),
         sample_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the sample element in toolbar'),
     ),
+    sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
 )

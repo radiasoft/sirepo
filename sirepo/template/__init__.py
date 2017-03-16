@@ -8,9 +8,7 @@ from __future__ import absolute_import, division, print_function
 import importlib
 from pykern.pkdebug import pkdc, pkdp
 from pykern import pkconfig
-
-#: valid simulations
-# SIM_TYPES = ['srw', 'warp', 'elegant', 'shadow'] if pkconfig.channel_in('dev') else ['srw', 'warp', 'elegant']
+from sirepo import feature_config
 
 
 def import_module(type_or_data):
@@ -36,22 +34,6 @@ def assert_sim_type(sim_type):
     Returns:
         str: sim_type
     """
-    assert sim_type in SIM_TYPES, \
+    assert sim_type in feature_config.cfg.sim_types, \
         '{}: invalid simulation type'
     return sim_type
-
-
-def codes(is_dev_channel):
-    return ('srw', 'warp', 'elegant', 'shadow') if is_dev_channel else ('srw', 'warp', 'elegant')
-
-
-def _cfg_codes(value):
-    if type(value) is tuple:
-        return value
-    return tuple(value.split(':'))
-
-
-cfg = pkconfig.init(
-    codes=(codes(pkconfig.channel_in('dev')), _cfg_codes, 'control which codes are loaded in the server'),
-)
-SIM_TYPES = cfg.codes

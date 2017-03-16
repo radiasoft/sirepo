@@ -39,9 +39,6 @@ SCHEMA_COMMON = None
 #: Simulation file name is globally unique to avoid collisions with simulation output
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
-#: Implemented apps
-SIMULATION_TYPES = sirepo.template.SIM_TYPES
-
 #: Where server files and static files are found
 STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 
@@ -996,7 +993,7 @@ def _user_dir_create():
     uid = _random_id(_user_dir_name())['id']
     # Must set before calling simulation_dir
     _server.session_user(uid)
-    for simulation_type in SIMULATION_TYPES:
+    for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
 
