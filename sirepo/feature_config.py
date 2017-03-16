@@ -10,6 +10,12 @@ from pykern import pkconfig
 from pykern import pkcollections
 import copy
 
+#: All possible codes
+_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow')
+
+#: Codes on test and prod
+_NON_DEV_CODES = _ALL_CODES[0:3]
+
 #: Configuration
 cfg = None
 
@@ -42,12 +48,12 @@ def _cfg_sim_types(value):
     user_specified_codes = tuple(value.split(':'))
     for c in user_specified_codes:
         assert c in _codes(), \
-            'simulation type(s) must be: {}. Provided value: {}'.format(', '.join(_codes()), c)
+            '{}: invalid sim_type, must be one of/combination of: {}'.format(c, _codes())
     return user_specified_codes
 
 
-def _codes():
-    return ('srw', 'warp', 'elegant', 'shadow') if pkconfig.channel_in('dev') else ('srw', 'warp', 'elegant')
+def _codes(want_all=pkconfig.channel_in('dev')):
+    return _ALL_CODES if want_all else _NON_DEV_CODES
 
 
 cfg = pkconfig.init(
