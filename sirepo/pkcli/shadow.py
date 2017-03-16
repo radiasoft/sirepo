@@ -58,7 +58,7 @@ def run(cfg_dir):
         column_values = _SCHEMA['enum']['ColumnValue']
 
         if 'y' in model:
-            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=int(model['histogramBins']), ref=int(model['weight']), nolost=1)
+            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=int(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0)
             _scale_ticket(ticket)
             res = {
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
@@ -66,13 +66,13 @@ def run(cfg_dir):
                 'x_label': _label_with_units(model['x'], column_values),
                 'y_label': _label_with_units(model['y'], column_values),
                 'z_label': 'Frequency',
-                'title': '{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
+                'title': u'{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
                 'z_matrix': ticket['histogram'].T.tolist(),
                 'frameCount': 1,
             }
         else:
             weight = int(model['weight'])
-            ticket = beam.histo1(int(model['column']), nbins=int(model['histogramBins']), ref=weight, nolost=1)
+            ticket = beam.histo1(int(model['column']), nbins=int(model['histogramBins']), ref=weight, nolost=1, calculate_widths=0)
             _scale_ticket(ticket)
             res = {
                 'title': _label(model['column'], column_values),

@@ -14,10 +14,12 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import os.path
 import py.path
+import xraylib
 
 #: Simulation type
 SIM_TYPE = 'shadow'
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
+_SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
@@ -27,7 +29,9 @@ _CENTIMETER_FIELDS = {
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
-    'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', "axmaj", "axmin", "ell_the"],
+    'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'prereflDensity', 'mlayerSubstrateDensity', 'mlayerEvenSublayerDensity', 'mlayerOddSublayerDensity'],
+    'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson'],
+    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensity', 'rulingDensityCenter', 'rulingDensityPolynomial', 'holo_r1', 'holo_r2', 'dist_fan', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4', 'hunt_h', 'hunt_l'],
     'watch': ['position'],
 }
 
@@ -42,6 +46,9 @@ _FIELD_ALIAS = {
     'horizontalSize': 'rx_slit[0]',
     'internalOutlineMajorAxis': 'rwidx1',
     'internalOutlineMinorAxis': 'rlen1',
+    'rulingDensity': 'ruling',
+    'rulingDensityCenter': 'ruling',
+    'rulingDensityPolynomial': 'ruling',
     'singleEnergyValue': 'ph1',
     'verticalOffset': 'cz_slit[0]',
     'verticalSize': 'rz_slit[0]',
@@ -60,6 +67,27 @@ def copy_related_files(data, source_path, target_path):
 
 def fixup_old_data(data):
     pass
+
+
+def get_application_data(data):
+    if data['method'] == 'validate_material':
+        name = data['material_name']
+        try:
+            xraylib.CompoundParser(str(name))
+            return {
+                'material_name': name,
+            }
+        except:
+            return {
+                'error': 'invalid material name',
+            }
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
+
+
+def get_data_file(run_dir, model, frame):
+    filename = _SHADOW_OUTPUT_FILE
+    with open(str(run_dir.join(filename))) as f:
+        return filename, f.read(), 'application/octet-stream'
 
 
 def lib_files(data, source_lib):
@@ -216,7 +244,14 @@ def _generate_beamline_optics(models, last_id):
         if item['type'] == 'aperture' or item['type'] == 'obstacle':
             res += _generate_screen(item)
         elif item['type'] == 'mirror':
-            res += _generate_mirror(item, source_distance, image_distance)
+            res += _generate_element(item, source_distance, image_distance)
+            res += _generate_mirror(item)
+        elif item['type'] == 'crystal':
+            res += _generate_element(item, source_distance, image_distance)
+            res += _generate_crystal(item)
+        elif item['type'] == 'grating':
+            res += _generate_element(item, source_distance, image_distance)
+            res += _generate_grating(item)
         elif item['type'] == 'watch':
             res += "\n" + 'oe.set_empty()'
             if last_id and last_id == int(item['id']):
@@ -243,20 +278,52 @@ def _generate_bending_magnet(data):
           + _field_value('source', 'r_aladdin', 'source.R_MAGNET * 100')
 
 
-def _generate_geometric_source(data):
-    geo = data['models']['geometricSource']
-    res = _source_field(geo, ['fsour', 'wxsou', 'wzsou', 'sigmax', 'sigmaz', 'fdistr', 'sigdix', 'sigdiz', 'cone_max', 'cone_min', 'fsource_depth', 'wysou', 'sigmay', 'f_color', 'f_polar', 'f_coher', 'pol_angle', 'pol_deg']) \
-          + _source_field(data['models']['sourceDivergence'], ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
-          + _field_value('source', 'f_phot', 0)
-    if geo['f_color'] == '1':
-        res += _source_field(geo, ['singleEnergyValue'])
-    else:
-        res += _source_field(geo, ['ph1', 'ph2'])
+def _generate_autotune_element(item):
+    res = _item_field(item, ['f_central'])
+    if item.f_central == '0':
+        res += _item_field(item, ['t_incidence', 't_reflection'])
+    elif item.f_central == '1':
+        res += _item_field(item, ['f_phot_cent'])
+        if item.f_phot_cent == '0':
+            res += _item_field(item, ['phot_cent'])
+        elif item.f_phot_cent == '1':
+            res += _item_field(item, ['r_lambda'])
     return res
 
 
-def _generate_mirror(item, source_distance, image_distance):
-    item.t_reflection = item.t_incidence
+def _generate_crystal(item):
+    res = _field_value('oe', 'f_crystal', '1')
+    res += _generate_autotune_element(item)
+    res += _item_field(item, ['f_refrac', 'f_mosaic'])
+    if item.f_mosaic == '0':
+        res += _item_field(item, ['f_bragg_a', 'f_johansson'])
+        if item.f_bragg_a == '1':
+            res += _item_field(item, ['a_bragg', 'thickness'])
+            if item.f_refrac == '1':
+                res += _item_field(item, ['order'])
+        if item.f_johansson:
+            res += _field_value('oe', 'f_ext', '1')
+            res += _item_field(item, ['r_johansson'])
+    elif item.f_mosaic == '1':
+        res += _item_field(item, ['spread_mos', 'thickness', 'mosaic_seed'])
+    bragg_filename = 'crystal-bragg-{}.txt'.format(item.id)
+    # def bragg(interactive=True, DESCRIPTOR="Si",H_MILLER_INDEX=1,K_MILLER_INDEX=1,L_MILLER_INDEX=1,TEMPERATURE_FACTOR=1.0,E_MIN=5000.0,E_MAX=15000.0,E_STEP=100.0,SHADOW_FILE="bragg.dat"):
+    res += "\n" + "bragg(interactive=False, DESCRIPTOR='{}', H_MILLER_INDEX={}, K_MILLER_INDEX={}, L_MILLER_INDEX={}, TEMPERATURE_FACTOR={}, E_MIN={}, E_MAX={}, E_STEP={}, SHADOW_FILE='{}')".format(
+        item.braggMaterial,
+        item.braggMillerH,
+        item.braggMillerK,
+        item.braggMillerL,
+        item.braggTemperaturFactor,
+        item.braggMinEnergy,
+        item.braggMaxEnergy,
+        item.braggEnergyStep,
+        bragg_filename,
+    )
+    res += _field_value('oe', 'file_refl', "'{}'".format(bragg_filename))
+    return res
+
+
+def _generate_element(item, source_distance, image_distance):
     if item.f_ext == '0':
         # always override f_default - generated t_image is always 0.0
         if item.f_default == '1':
@@ -264,7 +331,7 @@ def _generate_mirror(item, source_distance, image_distance):
             item.simag = image_distance
             item.theta = item.t_incidence
             item.f_default = '0'
-    res = _item_field(item, ['fmirr', 't_incidence', 't_reflection', 'alpha', 'fhit_c'])
+    res = _item_field(item, ['fmirr', 'alpha', 'fhit_c'])
     if item.fmirr in ('1', '2', '3', '4', '7'):
         res += _item_field(item, ['f_ext'])
         if item.f_ext == '0':
@@ -299,6 +366,77 @@ def _generate_mirror(item, source_distance, image_distance):
     return res
 
 
+def _generate_geometric_source(data):
+    geo = data['models']['geometricSource']
+    res = _source_field(geo, ['fsour', 'wxsou', 'wzsou', 'sigmax', 'sigmaz', 'fdistr', 'sigdix', 'sigdiz', 'cone_max', 'cone_min', 'fsource_depth', 'wysou', 'sigmay', 'f_color', 'f_polar', 'f_coher', 'pol_angle', 'pol_deg']) \
+          + _source_field(data['models']['sourceDivergence'], ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
+          + _field_value('source', 'f_phot', 0)
+    if geo['f_color'] == '1':
+        res += _source_field(geo, ['singleEnergyValue'])
+    else:
+        res += _source_field(geo, ['ph1', 'ph2'])
+    return res
+
+
+def _generate_grating(item):
+    res = _field_value('oe', 'f_grating', '1')
+    res += _generate_autotune_element(item)
+    res += _item_field(item, ['f_ruling', 'order'])
+    if item.f_ruling in ('0', '1'):
+        res += _item_field(item, ['rulingDensity'])
+    elif item.f_ruling == '2':
+        res += _item_field(item, ['holo_r1', 'holo_r2', 'holo_del', 'holo_gam', 'holo_w', 'holo_rt1', 'holo_rt2', 'f_pw', 'f_pw_c', 'f_virtual'])
+    elif item.f_ruling == '3':
+        res += _item_field(item, ['rulingDensityCenter'])
+    elif item.f_ruling == '5':
+        res += _item_field(item, ['rulingDensityPolynomial', 'f_rul_abs', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4'])
+    if item.f_central == '1':
+        res += _item_field(item, ['f_mono'])
+        if item.f_mono == '4':
+            res += _item_field(item, ['f_hunt', 'hunt_h', 'hunt_l', 'blaze'])
+    return res
+
+
+def _generate_mirror(item):
+    item.t_reflection = item.t_incidence
+    res = _item_field(item, ['t_incidence', 't_reflection'])
+
+    if item.f_reflec in ('1', '2'):
+        res += _item_field(item, ['f_reflec'])
+        if item.f_refl == '0':
+            prerefl_filename = 'mirror-prerefl-{}.txt'.format(item.id)
+            res += "\n" + "prerefl(interactive=False, SYMBOL='{}', DENSITY={}, FILE='{}', E_MIN={}, E_MAX={}, E_STEP={})".format(
+                item.prereflElement,
+                item.prereflDensity,
+                prerefl_filename,
+                item.reflectivityMinEnergy,
+                item.reflectivityMaxEnergy,
+                item.prereflStep,
+            )
+            res += _field_value('oe', 'file_refl', "'{}'".format(prerefl_filename))
+        elif item.f_refl == '2':
+            mlayer_filename = 'mirror-pre_mlayer-{}.txt'.format(item.id)
+            res += "\n" + "pre_mlayer(interactive=False, FILE='{}',E_MIN={},E_MAX={},S_DENSITY={},S_MATERIAL='{}',E_DENSITY={},E_MATERIAL='{}',O_DENSITY={},O_MATERIAL='{}',N_PAIRS={},THICKNESS={},GAMMA={},ROUGHNESS_EVEN={},ROUGHNESS_ODD={})".format(
+                mlayer_filename,
+                item.reflectivityMinEnergy,
+                item.reflectivityMaxEnergy,
+                item.mlayerSubstrateDensity,
+                item.mlayerSubstrateMaterial,
+                item.mlayerEvenSublayerDensity,
+                item.mlayerEvenSublayerMaterial,
+                item.mlayerOddSublayerDensity,
+                item.mlayerOddSublayerMaterial,
+                item.mlayerBilayerNumber,
+                item.mlayerBilayerThickness,
+                item.mlayerGammaRatio,
+                item.mlayerEvenRoughness,
+                item.mlayerOddRoughness,
+            )
+            res += _field_value('oe', 'file_refl', "'{}'".format(mlayer_filename))
+            res += _item_field(item, ['f_refl', 'f_thick'])
+    return res
+
+
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     _validate_data(data, simulation_db.get_schema(SIM_TYPE))
     _convert_meters_to_centimeters(data['models'])
@@ -307,6 +445,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     r = data['report']
     report_model = data['models'][r]
     beamline = data['models']['beamline']
+    v['shadowOutputFile'] = _SHADOW_OUTPUT_FILE
 
     if r == 'initialIntensityReport':
         v['distanceFromSource'] = beamline[0]['position'] if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE

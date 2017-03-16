@@ -1,4 +1,5 @@
 import Shadow
+from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
 from srxraylib.sources import srfunc
 
 source = Shadow.Source()
@@ -7,15 +8,15 @@ beam = Shadow.Beam()
 source.NPOINT = {{simulation_npoint}}
 source.ISTAR1 = {{simulation_istar1}}
 
-{%- if simulation_sourceType == 'bendingMagnet' %}
+{% if simulation_sourceType == 'bendingMagnet' %}
 {{bendingMagnetSettings}}
 {% endif -%}
 
-{%- if simulation_sourceType == 'geometricSource' %}
+{% if simulation_sourceType == 'geometricSource' %}
 {{geometricSourceSettings}}
 {% endif -%}
 
-{%- if simulation_sourceType == 'wiggler' %}
+{% if simulation_sourceType == 'wiggler' %}
 (traj, pars) = srfunc.wiggler_trajectory(
     b_from={{wiggler_b_from}},
     inData='{{wigglerTrajectoryInput}}',
@@ -51,10 +52,12 @@ source.NTOTALPOINT = 10000000
 
 beam.genSource(source)
 
-{%- if distanceFromSource and distanceFromSource != 0 %}
+{% if distanceFromSource and distanceFromSource != 0 %}
 beam.retrace({{distanceFromSource}})
 {% endif -%}
 
 {%- if beamlineOptics %}
 {{beamlineOptics}}
 {% endif -%}
+
+beam.write('{{shadowOutputFile}}')

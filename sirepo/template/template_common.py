@@ -152,7 +152,7 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             v = float(value)
-            if re.search('\[m(m|rad)\]', label):
+            if re.search('\[m(m|rad)\]', label) or re.search('\[Lines/mm', label):
                 v /= 1000
             elif re.search('\[n(m|rad)\]', label) or re.search('\[nm/pixel\]', label):
                 v /= 1e09
@@ -170,7 +170,7 @@ def validate_model(model_data, model_schema, enum_info):
                 'BeamList', 'MirrorFile', 'ImageFile', 'String', 'OptionalString', 'MagneticZipFile',
                 'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
                 'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
-                'RPNBoolean', 'UndulatorList',
+                'RPNBoolean', 'UndulatorList', 'ReflectivityMaterial',
         ):
             model_data[k] = _escape(value)
         else:
