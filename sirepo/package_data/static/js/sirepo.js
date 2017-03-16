@@ -859,7 +859,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        showValue($(fieldClass(model, field)).closest('.row'), isShown);
+        showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
     };
 
     self.showTab = function(model, pageNumber, isShown) {
