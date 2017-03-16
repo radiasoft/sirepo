@@ -1,5 +1,9 @@
 {
     "enum": {
+        "AbsoluteOrigin": [
+            ["0", "Absolute"],
+            ["1", "Origin"]
+        ],
         "AngularDistribution": [
             ["1", "Flat"],
             ["2", "Uniform"],
@@ -9,6 +13,10 @@
         "ApertureShape": [
             ["0", "Rectangular"],
             ["1", "Ellipse"]
+        ],
+        "AutotuneUnites": [
+            ["0", "eV"],
+            ["1", "Angstroms"]
         ],
         "BeamShift": [
             ["0", "No shift"],
@@ -101,36 +109,132 @@
             ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
             ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
         ],
-        "MagneticFieldType": [
-            ["0", " kValue (deflecting parameters)"],
-            ["1", "File with the magnetic field (y[m], B[T])"],
-            ["2", "File with the magnetic field harmonics (n, Bn[T])"]
+        "CrystalMaterial": [
+            ["AlphaAlumina", "AlphaAlumina"],
+            ["AlphaQuartz", "AlphaQuartz"],
+            ["Aluminum", "Aluminum"],
+            ["Be", "Be"],
+            ["Beryl", "Beryl"],
+            ["Copper", "Copper"],
+            ["CsCl", "CsCl"],
+            ["CsF", "CsF"],
+            ["Diamond", "Diamond"],
+            ["GaAs", "GaAs"],
+            ["GaP", "GaP"],
+            ["GaSb", "GaSb"],
+            ["Ge", "Ge"],
+            ["Gold", "Gold"],
+            ["Graphite", "Graphite"],
+            ["InAs", "InAs"],
+            ["InP", "InP"],
+            ["InSb", "InSb"],
+            ["Iron", "Iron"],
+            ["KAP", "KAP"],
+            ["KCl", "KCl"],
+            ["KTP", "KTP"],
+            ["LaB6", "LaB6"],
+            ["LaB6_NIST", "LaB6_NIST"],
+            ["LiF", "LiF"],
+            ["LiNbO3", "LiNbO3"],
+            ["Muscovite", "Muscovite"],
+            ["NaCl", "NaCl"],
+            ["PET", "PET"],
+            ["Platinum", "Platinum"],
+            ["RbAP", "RbAP"],
+            ["Sapphire", "Sapphire"],
+            ["Si", "Si"],
+            ["Si2", "Si2"],
+            ["SiC", "SiC"],
+            ["Si_NIST", "Si_NIST"],
+            ["Titanium", "Titanium"],
+            ["TlAP", "TlAP"]
         ],
-        "MirrorCurvature": [
-            ["0", "Concave"],
-            ["1", "Convex"]
-        ],
-        "MirrorDimensions": [
-            ["0", "Infinite"],
-            ["1", "Finite"]
-        ],
-        "MirrorReflectivity": [
-            ["0", "No Reflectivity Dependence"],
-            ["1", "Full Polarization Dependence"],
-            ["2", "No Polarization Dependence (Scalar)"]
-        ],
-        "MirrorShape": [
+        "ElementBoundary": [
             ["1", "Rectangular"],
             ["2", "Ellipse"],
             ["3", "Ellipse with Hole"]
         ],
-        "MirrorType": [
+        "ElementCurvature": [
+            ["0", "Concave"],
+            ["1", "Convex"]
+        ],
+        "ElementDimensions": [
+            ["0", "Infinite"],
+            ["1", "Finite"]
+        ],
+        "ElementShape": [
             ["2", "Ellipsoid"],
             ["7", "Hyperboloid"],
             ["4", "Paraboloid"],
             ["5", "Plane"],
             ["1", "Spherical"],
             ["3", "Toroidal"]
+        ],
+        "GratingCylindricalSource": [
+            ["0", "Spherical/Spherical"],
+            ["1", "Cylindrical/Spherical"],
+            ["2", "Spherical/Cylindrical"],
+            ["3", "Cylindrical/Cylindrical"]
+        ],
+        "GratingHunter": [
+            ["1", "First"],
+            ["2", "Second"]
+        ],
+        "GratingMonoType": [
+            ["0", "TGM/Seya"],
+            ["1", "ERG"],
+            ["2", "Constant Incidence Angle"],
+            ["3", "Constant Diffraction Angle"],
+            ["4", "Hunter"]
+        ],
+        "GratingPattern": [
+            ["0", "Spherical/Spherical"],
+            ["1", "Plane/Spherical"],
+            ["2", "Spherical/Plane"],
+            ["3", "Plane/Plane"]
+        ],
+        "GratingSourceType": [
+            ["0", "Real/Real"],
+            ["1", "Real/Virtual"],
+            ["2", "Virtual/Real"],
+            ["3", "Real/Real"]
+        ],
+        "LightPropagation": [
+            ["0", "Reflector"],
+            ["1", "Refractor"]
+        ],
+        "MagneticFieldType": [
+            ["0", " kValue (deflecting parameters)"],
+            ["1", "File with the magnetic field (y[m], B[T])"],
+            ["2", "File with the magnetic field harmonics (n, Bn[T])"]
+        ],
+        "MillerIndicesRange": [
+            ["0", "0"],
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"],
+            ["-1", "-1"],
+            ["-2", "-2"],
+            ["-3", "-3"],
+            ["-4", "-4"],
+            ["-5", "-5"],
+            ["-6", "-6"],
+            ["-7", "-7"],
+            ["-8", "-8"],
+            ["-9", "-9"],
+            ["-10", "-10"]
+        ],
+        "MirrorReflectivity": [
+            ["0", "No Reflectivity Dependence"],
+            ["1", "Full Polarization Dependence"],
+            ["2", "No Polarization Dependence (Scalar)"]
         ],
         "OrientationAngle": [
             ["0", "0"],
@@ -150,6 +254,17 @@
             ["1", "Only Parallel"],
             ["2", "Only Perpendicular"],
             ["3", "Total"]
+        ],
+        "ReflectivityFileSource": [
+            ["0", "PREREFL"],
+            ["2", "PRE_MLAYER"]
+        ],
+        "RulingType": [
+            ["0", "Constant on X-Y Plane"],
+            ["1", "Constant on Mirror Surface"],
+            ["2", "Holographic"],
+            ["3", "Fan Type"],
+            ["5", "Polynomial Line Density"]
         ],
         "SourceDepth": [
             ["1", "No Depth"],
@@ -194,6 +309,63 @@
             "r_magnet": ["Magnet Radius [m]", "Float"],
             "fdistr": ["Calculation Mode", "BendingMagnetMode"]
         },
+        "crystal": {
+            "title": ["Element Name", "String", "Crystal"],
+            "position": ["Nominal Position [m]", "Float"],
+            "fmirr": ["Crystal Shape", "ElementShape", "5"],
+            "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
+            "t_reflection": ["Reflection Angle [deg]", "Float", 35.0],
+            "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0],
+            "fhit_c": ["Crystal Dimensions", "ElementDimensions", "0"],
+            "fshape": ["Crystal Boundary", "ElementBoundary", "1"],
+            "halfWidthX1": ["Half-width +X [mm]", "Float", 0.0],
+            "halfWidthX2": ["Half-width -X [mm]", "Float", 0.0],
+            "halfLengthY1": ["Half-length +Y [mm]", "Float", 0.0],
+            "halfLengthY2": ["Half-length -Y [mm]", "Float", 0.0],
+            "externalOutlineMajorAxis": ["Width (X) [mm]", "Float", 0.0],
+            "externalOutlineMinorAxis": ["Length (Y) [mm]", "Float", 0.0],
+            "internalOutlineMajorAxis": ["Hole Width (X) [mm]", "Float", 0.0],
+            "internalOutlineMinorAxis": ["Hole Length (Y) [mm]", "Float", 0.0],
+            "f_ext": ["Surface Type", "SurfaceType", "0"],
+            "f_default": ["Focii Placed at Continuation Planes?", "Boolean", "1"],
+            "ssour": ["Distance From Source To Crystal Center [m]", "Float", 0.01],
+            "simag": ["Distance From Crystal Center to Second Focus [m]", "Float", 0.03],
+            "theta": ["Incidence Angle [deg]", "Float", 35.0],
+            "rmirr": ["Spherical Radius [mm]", "Float", 16.551],
+            "f_convex": ["Surface Curvature", "ElementCurvature", "0"],
+            "fcyl": ["Cylindrical", "Boolean", "1"],
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"],
+            "r_maj": ["Torus Major Radius [m]", "Float", 0.0],
+            "r_min": ["Torus Minor Radius [m]", "Float", 0.0],
+            "f_torus": ["Torus Pole Location", "TorusPoleLocation", "0"],
+            "f_side": ["Focus Location", "ParaboloidFocusLocation", "0"],
+            "param": ["Paraboloid Parameter [mm]", "Float", 0.0],
+            "axmaj": ["Semi-major Axis [m]", "Float", 0.0],
+            "axmin": ["Semi-minor Axis [m]", "Float", 0.0],
+            "ell_the": ["Angle Between Semi-major Axis and Pole [CCW, deg]", "Float", 0.0],
+            "f_central": ["Autotune Crystal", "Boolean", "1"],
+            "f_phot_cent": ["Autotune Units", "AutotuneUnites", "0"],
+            "phot_cent": ["Autotune Photon Energy [eV]", "Float", 10000.0],
+            "r_lambda": ["Autotune Wavelength [Å]", "Float", 5000.0],
+            "f_refrac": ["Light Propagation", "LightPropagation", "0"],
+            "f_mosaic": ["Mosaic Crystal", "Boolean", "1"],
+            "mosaic_seed": ["Mosaic Seed", "Integer", 4732094],
+            "spread_mos": ["Mosaic Spread FWHM [deg]", "Float", 0.4],
+            "f_bragg_a": ["Asymmetric Cut", "Boolean", "0"],
+            "a_bragg": ["Plane angle [deg]", "Float", 0.0],
+            "order": ["Diffraction Order, Negative Inside", "Float", 0.0],
+            "thickness": ["Crystal Thickness [m]", "Float", 0.01],
+            "f_johansson": ["Johansson Geometry", "Boolean", "0"],
+            "r_johansson": ["Johansson Radius [m]", "Float", 0.0],
+            "braggMaterial": ["", "CrystalMaterial", "Si"],
+            "braggMillerH": ["h", "MillerIndicesRange", "1"],
+            "braggMillerK": ["k", "MillerIndicesRange", "1"],
+            "braggMillerL": ["l", "MillerIndicesRange", "1"],
+            "braggTemperaturFactor": ["Temperature Factor", "Float", 1.0],
+            "braggMinEnergy": ["Minimum Energy [eV]", "Float", 5000.0],
+            "braggMaxEnergy": ["Maximum Energy [eV]", "Float", 55000.0],
+            "braggEnergyStep": ["Energy Step [eV]", "Float", 100.0]
+        },
         "electronBeam": {
             "bener": ["Energy [GeV]", "Float"],
             "sigmax": ["X Sigma [µm]", "Float"],
@@ -203,6 +375,73 @@
             "epsi_dx": ["X Distance From Waist [m]", "Float"],
             "epsi_dz": ["Z Distance From Waist [m]", "Float"],
             "f_pol": ["Polaization Component", "PolarizationComponent", "3"]
+        },
+        "grating": {
+            "title": ["Element Name", "String", "Grating"],
+            "position": ["Nominal Position [m]", "Float"],
+            "fmirr": ["Grating Shape", "ElementShape", "5"],
+            "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
+            "t_reflection": ["Reflection Angle [deg]", "Float", 35.0],
+            "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0],
+            "fhit_c": ["Grating Dimensions", "ElementDimensions", "0"],
+            "fshape": ["Grating Boundary", "ElementBoundary", "1"],
+            "halfWidthX1": ["Half-width +X [mm]", "Float", 0.0],
+            "halfWidthX2": ["Half-width -X [mm]", "Float", 0.0],
+            "halfLengthY1": ["Half-length +Y [mm]", "Float", 0.0],
+            "halfLengthY2": ["Half-length -Y [mm]", "Float", 0.0],
+            "externalOutlineMajorAxis": ["Width (X) [mm]", "Float", 0.0],
+            "externalOutlineMinorAxis": ["Length (Y) [mm]", "Float", 0.0],
+            "internalOutlineMajorAxis": ["Hole Width (X) [mm]", "Float", 0.0],
+            "internalOutlineMinorAxis": ["Hole Length (Y) [mm]", "Float", 0.0],
+            "f_ext": ["Surface Type", "SurfaceType", "0"],
+            "f_default": ["Focii Placed at Continuation Planes?", "Boolean", "1"],
+            "ssour": ["Distance From Source To Grating Center [m]", "Float", 0.01],
+            "simag": ["Distance From Grating Center to Second Focus [m]", "Float", 0.03],
+            "theta": ["Incidence Angle [deg]", "Float", 35.0],
+            "rmirr": ["Spherical Radius [mm]", "Float", 16.551],
+            "f_convex": ["Surface Curvature", "ElementCurvature", "0"],
+            "fcyl": ["Cylindrical", "Boolean", "1"],
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"],
+            "r_maj": ["Torus Major Radius [m]", "Float", 0.0],
+            "r_min": ["Torus Minor Radius [m]", "Float", 0.0],
+            "f_torus": ["Torus Pole Location", "TorusPoleLocation", "0"],
+            "f_side": ["Focus Location", "ParaboloidFocusLocation", "0"],
+            "param": ["Paraboloid Parameter [mm]", "Float", 0.0],
+            "axmaj": ["Semi-major Axis [m]", "Float", 0.0],
+            "axmin": ["Semi-minor Axis [m]", "Float", 0.0],
+            "ell_the": ["Angle Between Semi-major Axis and Pole [CCW, deg]", "Float", 0.0],
+            "f_central": ["Autotune Grating", "Boolean", "1"],
+            "f_phot_cent": ["Autotune Units", "AutotuneUnites", "0"],
+            "phot_cent": ["Autotune Photon Energy [eV]", "Float", 10000.0],
+            "r_lambda": ["Autotune Wavelength [Å]", "Float", 5000.0],
+            "order": ["Diffraction Order, Negative Inside", "Float", 0.0],
+            "f_ruling": ["Ruling Type", "RulingType", "0"],
+            "rulingDensity": ["Ruling Density [Lines/mm]", "Float", 0.0],
+            "rulingDensityCenter": ["Ruling Density at Center [Lines/mm]", "Float", 0.0],
+            "rulingDensityPolynomial": ["Ruling Density a0 [Lines/mm]", "Float", 0.0],
+            "holo_r1": ["Entrance Slit Distance [mm]", "Float", 0.0],
+            "holo_del": ["Entrance Slit Incidence Angle [deg]", "Float", 0.0],
+            "holo_rt1": ["Entrance Slit Rotation Angle [deg]", "Float", 0.0],
+            "holo_r2": ["Exit Slit Distance [mm]", "Float", 0.0],
+            "holo_gam": ["Exit Slit Incidence Angle [deg]", "Float", 0.0],
+            "holo_rt2": ["Exit Slit Rotation Angle [deg]", "Float", 0.0],
+            "f_pw": ["Pattern Type", "GratingPattern", "2"],
+            "f_pw_c": ["Cylindrical Source", "GratingCylindricalSource", "0"],
+            "f_virtual": ["Source Type", "GratingSourceType", "0"],
+            "holo_w": ["Recording Wavelength [Å]", "Float", 0.0],
+            "azim_fan": ["Angle From Y Axis [deg, CCW]", "Float", 0.0],
+            "dist_fan": ["Distance From Grating Center [mm]", "Float", 0.0],
+            "coma_fac": ["Coma Correction Factor", "Float", 0.0],
+            "rul_a1": ["Ruling Density a1 [Lines/mm²]", "Float", 0.0],
+            "rul_a2": ["Ruling Density a2 [Lines/mm³]", "Float", 0.0],
+            "rul_a3": ["Ruling Density a3 [Lines/mm⁴]", "Float", 0.0],
+            "rul_a4": ["Ruling Density a4 [Lines/mm⁵]", "Float", 0.0],
+            "f_rul_abs": ["Density Absolute/Signed from Origin", "AbsoluteOrigin", "0"],
+            "f_mono": ["Monochromator Type", "GratingMonoType", "0"],
+            "f_hunt": ["Grating Selected", "GratingHunter", "1"],
+            "hunt_h": ["Distance Between Beams [mm]", "Float", 0.0],
+            "hunt_l": ["Monochromator Length [mm]", "Float", 0.0],
+            "blaze": ["Blaze Angle [deg]", "Float", 0.0]
         },
         "sourceDivergence": {
             "hdiv1": ["Horizontal Divergence +X [mrad]", "Float", 0.0],
@@ -225,8 +464,8 @@
             "sigmax": ["Sigma X [µm]", "Float", 0.0],
             "sigmaz": ["Sigma Z [µm]", "Float", 0.0],
             "fdistr": ["Angular Distribution", "AngularDistribution", "2"],
-            "sigdix": ["Horizontal Sigma (X) [rad]", "Float", 0.0],
-            "sigdiz": ["Vertical Sigma (Z) [rad]", "Float", 0.0],
+            "sigdix": ["Horizontal Sigma (X) [mrad]", "Float", 0.0],
+            "sigdiz": ["Vertical Sigma (Z) [mrad]", "Float", 0.0],
             "cone_max": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
             "cone_min": ["Cone External Half-Aperture [rad]", "Float", 0.0],
             "fsource_depth": ["Depth", "SourceDepth", "1"],
@@ -248,11 +487,11 @@
         "mirror": {
             "title": ["Element Name", "String", "Mirror"],
             "position": ["Nominal Position [m]", "Float"],
-            "fmirr": ["Mirror Type", "MirrorType", "5"],
+            "fmirr": ["Mirror Shape", "ElementShape", "5"],
             "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
             "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0],
-            "fhit_c": ["Mirror Dimensions", "MirrorDimensions", "0"],
-            "fshape": ["Mirror Shape", "MirrorShape", "1"],
+            "fhit_c": ["Mirror Dimensions", "ElementDimensions", "0"],
+            "fshape": ["Mirror Boundary", "ElementBoundary", "1"],
             "halfWidthX1": ["Half-width +X [mm]", "Float", 0.0],
             "halfWidthX2": ["Half-width -X [mm]", "Float", 0.0],
             "halfLengthY1": ["Half-length +Y [mm]", "Float", 0.0],
@@ -267,7 +506,7 @@
             "simag": ["Distance From Mirror Center to Second Focus [m]", "Float", 0.03],
             "theta": ["Incidence Angle [deg]", "Float", 35.0],
             "rmirr": ["Spherical Radius [mm]", "Float", 16.551],
-            "f_convex": ["Surface Curvature", "MirrorCurvature", "0"],
+            "f_convex": ["Surface Curvature", "ElementCurvature", "0"],
             "fcyl": ["Cylindrical", "Boolean", "1"],
             "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"],
             "r_maj": ["Torus Major Radius [m]", "Float", 0.0],
@@ -277,7 +516,26 @@
             "param": ["Paraboloid Parameter [mm]", "Float", 0.0],
             "axmaj": ["Semi-major Axis [m]", "Float", 0.0],
             "axmin": ["Semi-minor Axis [m]", "Float", 0.0],
-            "ell_the": ["Angle Between Semi-major Axis and Pole [CCW, deg]", "Float", 0.0]
+            "ell_the": ["Angle Between Semi-major Axis and Pole [CCW, deg]", "Float", 0.0],
+            "f_reflec": ["Reflectivity", "MirrorReflectivity", "0"],
+            "f_refl": ["File Source", "ReflectivityFileSource", "0"],
+            "f_thick": ["Mlayer Thickness Vary as Cosine", "Boolean", "0"],
+            "prereflElement": ["Element/Compound Forumula", "ReflectivityMaterial", "Rh"],
+            "prereflDensity": ["Density [g/m]", "Float", 0.124],
+            "reflectivityMinEnergy": ["Minimum Energy [eV]", "Float", 5000.0],
+            "reflectivityMaxEnergy": ["Maximum Energy [eV]", "Float", 55000.0],
+            "prereflStep": ["Energy Step [eV]", "Float", 100.0],
+            "mlayerSubstrateMaterial": ["Material Substrate", "ReflectivityMaterial", "Si"],
+            "mlayerSubstrateDensity": ["Density Substrate", "Float", 2.33],
+            "mlayerEvenSublayerMaterial": ["Material Even Sublayer", "ReflectivityMaterial", "B4C"],
+            "mlayerEvenSublayerDensity": ["Density Even Sublayer", "Float", 2.4],
+            "mlayerOddSublayerMaterial": ["Material Odd Sublayer", "ReflectivityMaterial", "Ru"],
+            "mlayerOddSublayerDensity": ["Density Odd Sublayer", "Float", 9.4],
+            "mlayerBilayerNumber": ["Number of Bilayers", "Integer", 70],
+            "mlayerBilayerThickness": ["Bilayer Thickness [Å]", "Float", 33.1],
+            "mlayerGammaRatio": ["Gamma Ratio (t_even/(t_odd+t_even)", "Float", 0.483],
+            "mlayerEvenRoughness": ["Even Layer Roughness [Å]", "Float", 3.3],
+            "mlayerOddRoughness": ["Odd Layer Roughness [Å]", "Float", 3.1]
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
@@ -411,6 +669,83 @@
                 ]]
             ]
         },
+        "crystal": {
+            "title": "Crystal",
+            "basic": [],
+            "advanced": [
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    "fmirr",
+                    "f_central",
+                    "t_incidence",
+                    "t_reflection",
+                    "f_phot_cent",
+                    "phot_cent",
+                    "r_lambda",
+                    "alpha"
+                ]],
+                ["Surface Shape", [
+                    "f_ext",
+                    "f_default",
+                    "ssour",
+                    "simag",
+                    "theta",
+                    "f_side",
+                    "rmirr",
+                    "param",
+                    "axmaj",
+                    "axmin",
+                    "ell_the",
+                    "f_convex",
+                    "fcyl",
+                    "cil_ang",
+                    "r_maj",
+                    "r_min",
+                    "f_torus"
+                ]],
+                ["Crystal", [
+                    "f_refrac",
+                    "f_mosaic",
+                    "f_bragg_a",
+                    "a_bragg",
+                    "order",
+                    "spread_mos",
+                    "thickness",
+                    "mosaic_seed",
+                    "f_johansson",
+                    "r_johansson"
+                ]],
+                ["Bragg", [
+                    [
+                        ["Material of the crystal", [
+                            "braggMaterial"
+                        ]],
+                        ["Miller's indices", [
+                            "braggMillerH",
+                            "braggMillerK",
+                            "braggMillerL"
+                        ]]
+                    ],
+                    "braggTemperaturFactor",
+                    "braggMinEnergy",
+                    "braggMaxEnergy",
+                    "braggEnergyStep"
+                ]],
+                ["Dimensions", [
+                    "fhit_c",
+                    "fshape",
+                    "halfWidthX1",
+                    "halfWidthX2",
+                    "halfLengthY1",
+                    "halfLengthY2",
+                    "externalOutlineMajorAxis",
+                    "externalOutlineMinorAxis",
+                    "internalOutlineMajorAxis",
+                    "internalOutlineMinorAxis"
+                ]]
+            ]
+        },
         "geometricSource": {
             "title": "Geometrical Source",
             "basic": [
@@ -433,12 +768,18 @@
                     "sigmax",
                     "sigmaz",
                     "fdistr",
-                    "sourceDivergence.hdiv1",
-                    "sourceDivergence.hdiv2",
-                    "sourceDivergence.vdiv1",
-                    "sourceDivergence.vdiv2",
-                    "sigdix",
-                    "sigdiz",
+                    [
+                        ["Horizontal", [
+                            "sourceDivergence.hdiv1",
+                            "sourceDivergence.hdiv2",
+                            "sigdix"
+                        ]],
+                        ["Vertical", [
+                            "sourceDivergence.vdiv1",
+                            "sourceDivergence.vdiv2",
+                            "sigdiz"
+                        ]]
+                    ],
                     "cone_max",
                     "cone_min",
                     "fsource_depth",
@@ -468,6 +809,93 @@
                             "rayFilter.z2"
                         ]]
                     ]
+                ]]
+            ]
+        },
+        "grating": {
+            "title": "Grating",
+            "basic": [],
+            "advanced": [
+                ["Main Parameters", [
+                    "title",
+                    "position",
+                    "fmirr",
+                    "f_central",
+                    "t_incidence",
+                    "t_reflection",
+                    "f_phot_cent",
+                    "phot_cent",
+                    "r_lambda",
+                    "alpha"
+                ]],
+                ["Surface Shape", [
+                    "f_ext",
+                    "f_default",
+                    "ssour",
+                    "simag",
+                    "theta",
+                    "f_side",
+                    "rmirr",
+                    "param",
+                    "axmaj",
+                    "axmin",
+                    "ell_the",
+                    "f_convex",
+                    "fcyl",
+                    "cil_ang",
+                    "r_maj",
+                    "r_min",
+                    "f_torus"
+                ]],
+                ["Grating", [
+                    "f_ruling",
+                    "rulingDensity",
+                    "rulingDensityCenter",
+                    "rulingDensityPolynomial",
+                    [
+                        ["Entrance", [
+                            "holo_r1",
+                            "holo_del",
+                            "holo_rt1"
+                        ]],
+                        ["Exit", [
+                            "holo_r2",
+                            "holo_gam",
+                            "holo_rt2"
+                        ]]
+                    ],
+                    "f_pw",
+                    "f_pw_c",
+                    "f_virtual",
+                    "holo_w",
+                    "azim_fan",
+                    "dist_fan",
+                    "coma_fac",
+                    "rul_a1",
+                    "rul_a2",
+                    "rul_a3",
+                    "rul_a4",
+                    "f_rul_abs"
+                ]],
+                ["Diffraction", [
+                    "order",
+                    "f_mono",
+                    "f_hunt",
+                    "hunt_h",
+                    "hunt_l",
+                    "blaze"
+                ]],
+                ["Dimensions", [
+                    "fhit_c",
+                    "fshape",
+                    "halfWidthX1",
+                    "halfWidthX2",
+                    "halfLengthY1",
+                    "halfLengthY2",
+                    "externalOutlineMajorAxis",
+                    "externalOutlineMinorAxis",
+                    "internalOutlineMajorAxis",
+                    "internalOutlineMinorAxis"
                 ]]
             ]
         },
@@ -520,6 +948,33 @@
                     "r_maj",
                     "r_min",
                     "f_torus"
+                ]],
+                ["Reflectivity", [
+                    "f_reflec",
+                    "f_refl",
+                    "reflectivityMinEnergy",
+                    "reflectivityMaxEnergy",
+                    "prereflStep",
+                    "prereflElement",
+                    "prereflDensity",
+                    "f_thick",
+                    [
+                        ["Material", [
+                            "mlayerSubstrateMaterial",
+                            "mlayerEvenSublayerMaterial",
+                            "mlayerOddSublayerMaterial"
+                        ]],
+                        ["Density [g/m³]", [
+                            "mlayerSubstrateDensity",
+                            "mlayerEvenSublayerDensity",
+                            "mlayerOddSublayerDensity"
+                        ]]
+                    ],
+                    "mlayerBilayerNumber",
+                    "mlayerBilayerThickness",
+                    "mlayerGammaRatio",
+                    "mlayerEvenRoughness",
+                    "mlayerOddRoughness"
                 ]],
                 ["Dimensions", [
                     "fhit_c",

@@ -5,6 +5,11 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
+      '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
+    '</div>',
+].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -34,58 +39,138 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
     //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'mirror', 'watch'];
     self.prepareToSave = function() {};
 
-    function updateMirrorDimensionFields(item) {
-        panelState.showField('mirror', 'fshape', item.fhit_c == '1');
+    function updateAutoTuningFields(item) {
+        var modelName = item.type;
+        ['t_incidence', 't_reflection'].forEach(function(f) {
+            panelState.showField(modelName, f, item.f_central == '0');
+        });
+        panelState.showField(modelName, 'f_phot_cent', item.f_central == '1');
+        panelState.showField(modelName, 'phot_cent', item.f_central == '1' && item.f_phot_cent == '0');
+        panelState.showField(modelName, 'r_lambda', item.f_central == '1' && item.f_phot_cent == '1');
+    }
+
+    function updateCrystalFields(item) {
+        ['mosaic_seed', 'spread_mos'].forEach(function(f) {
+            panelState.showField('crystal', f, item.f_mosaic == '1');
+        });
+        panelState.showField('crystal', 'thickness', item.f_mosaic == '1' || (item.f_mosaic == '0' && item.f_bragg_a == '1'));
+        ['f_bragg_a', 'f_johansson'].forEach(function(f) {
+            panelState.showField('crystal', f, item.f_mosaic == '0');
+        });
+        panelState.showField('crystal', 'a_bragg', item.f_mosaic == '0' && item.f_bragg_a == '1');
+        panelState.showField('crystal', 'order', item.f_mosaic == '0' && item.f_bragg_a == '1' && item.f_refrac == '1');
+        panelState.showField('crystal', 'r_johansson', item.f_mosaic == '0' && item.f_johansson == '1');
+    }
+
+    function updateElementDimensionFields(item) {
+        var modelName = item.type;
+        panelState.showField(modelName, 'fshape', item.fhit_c == '1');
         ['halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2'].forEach(function(f) {
-            panelState.showField('mirror', f, item.fhit_c == '1' && item.fshape == '1');
+            panelState.showField(modelName, f, item.fhit_c == '1' && item.fshape == '1');
         });
         ['externalOutlineMajorAxis', 'externalOutlineMinorAxis'].forEach(function(f) {
-            panelState.showField('mirror', f, item.fhit_c == '1' && (item.fshape == '2' || item.fshape == '3'));
+            panelState.showField(modelName, f, item.fhit_c == '1' && (item.fshape == '2' || item.fshape == '3'));
         });
         ['internalOutlineMajorAxis', 'internalOutlineMinorAxis'].forEach(function(f) {
-            panelState.showField('mirror', f, item.fhit_c == '1' && item.fshape == '3');
+            panelState.showField(modelName, f, item.fhit_c == '1' && item.fshape == '3');
         });
     }
 
-    function updateMirrorTypeFields(item) {
-        panelState.showTab('mirror', 2, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '3' || item.fmirr == '4' || item.fmirr == '7');
-    }
-
-    function updateMirrorSurfaceFields(item) {
-        panelState.showField('mirror', 'f_default', item.f_ext == '0');
-        panelState.showField('mirror', 'f_side', item.f_ext == '0' && item.fmirr == '4');
-        panelState.showField('mirror', 'rmirr', item.f_ext == '1' && item.fmirr == '1');
+    function updateElementSurfaceFields(item) {
+        var modelName = item.type;
+        panelState.showField(modelName, 'f_default', item.f_ext == '0');
+        panelState.showField(modelName, 'f_side', item.f_ext == '0' && item.fmirr == '4');
+        panelState.showField(modelName, 'rmirr', item.f_ext == '1' && item.fmirr == '1');
         ['axmaj', 'axmin', 'ell_the'].forEach(function(f) {
-            panelState.showField('mirror', f, item.f_ext == '1' && (item.fmirr == '2' || item.fmirr == '7'));
+            panelState.showField(modelName, f, item.f_ext == '1' && (item.fmirr == '2' || item.fmirr == '7'));
         });
         ['r_maj', 'r_min'].forEach(function(f) {
-            panelState.showField('mirror', f, item.f_ext == '1' && item.fmirr == '3');
+            panelState.showField(modelName, f, item.f_ext == '1' && item.fmirr == '3');
         });
-        panelState.showField('mirror', 'param', item.f_ext == '1' && item.fmirr == '4');
+        panelState.showField(modelName, 'param', item.f_ext == '1' && item.fmirr == '4');
         ['ssour', 'simag', 'theta'].forEach(function(f) {
-            panelState.showField('mirror', f, item.f_ext == '0' && item.f_default == '0');
+            panelState.showField(modelName, f, item.f_ext == '0' && item.f_default == '0');
         });
         ['f_convex', 'fcyl'].forEach(function(f) {
-            panelState.showField('mirror', f, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7');
+            panelState.showField(modelName, f, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7');
         });
-        panelState.showField('mirror', 'cil_ang', item.fcyl == '1' && (item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7'));
-        panelState.showField('mirror', 'f_torus', item.fmirr == '3');
+        panelState.showField(modelName, 'cil_ang', item.fcyl == '1' && (item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7'));
+        panelState.showField(modelName, 'f_torus', item.fmirr == '3');
+    }
+
+    function updateElementShapeFields(item) {
+        var modelName = item.type;
+        panelState.showTab(modelName, 2, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '3' || item.fmirr == '4' || item.fmirr == '7');
+    }
+
+    function updateGratingFields(item) {
+        panelState.showField('grating', 'rulingDensity', item.f_ruling == '0' || item.f_ruling == '1');
+        panelState.showRow('grating', 'holo_r1', item.f_ruling == '2');
+        ['holo_w', 'f_pw', 'f_pw_c', 'f_virtual'].forEach(function(f) {
+            panelState.showField('grating', f, item.f_ruling == '2');
+        });
+        ['rulingDensityCenter', 'azim_fan', 'dist_fan', 'coma_fac'].forEach(function(f) {
+            panelState.showField('grating', f, item.f_ruling == '3');
+        });
+        ['f_rul_abs', 'rulingDensityPolynomial', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4'].forEach(function(f) {
+            panelState.showField('grating', f, item.f_ruling == '5');
+        });
+        panelState.showField('grating', 'f_mono', item.f_central == '1');
+        ['f_hunt', 'hunt_h', 'hunt_l', 'blaze'].forEach(function(f) {
+            panelState.showField('grating', f, item.f_central == '1' && item.f_mono == '4');
+        });
+    }
+
+    function updateMirrorReflectivityFields(item) {
+        ['f_refl', 'reflectivityMinEnergy', 'reflectivityMaxEnergy'].forEach(function(f) {
+            panelState.showField('mirror', f, item.f_reflec == '1' || item.f_reflec == '2');
+        });
+        ['prereflElement', 'prereflDensity', 'prereflStep'].forEach(function(f) {
+            panelState.showField('mirror', f, (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '0');
+        });
+        ['f_thick', 'mlayerMinEnergy', 'mlayerMaxEnergy', 'mlayerBilayerNumber', 'mlayerBilayerThickness', 'mlayerGammaRatio', 'mlayerEvenRoughness', 'mlayerOddRoughness'].forEach(function(f) {
+            panelState.showField('mirror', f, (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
+        });
+        panelState.showRow('mirror', 'mlayerSubstrateMaterial', (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
     }
 
     self.handleModalShown = function(name) {
-        if (name == 'mirror' && beamlineService.activeItem) {
-            updateMirrorTypeFields(beamlineService.activeItem);
-            updateMirrorDimensionFields(beamlineService.activeItem);
-            updateMirrorSurfaceFields(beamlineService.activeItem);
+        var item = beamlineService.activeItem;
+        if (beamlineService.activeItem) {
+            if (name == 'mirror' || name == 'crystal' || name == 'grating') {
+                updateElementShapeFields(item);
+                updateElementDimensionFields(item);
+                updateElementSurfaceFields(item);
+            }
+            if (name == 'crystal' || name == 'grating') {
+                updateAutoTuningFields(item);
+            }
+            if (name == 'mirror') {
+                updateMirrorReflectivityFields(item);
+            }
+            else if (name == 'crystal') {
+                updateCrystalFields(item);
+            }
+            else if (name == 'grating') {
+                updateGratingFields(item);
+            }
         }
     };
 
-    beamlineService.watchBeamlineField($scope, 'mirror', ['fmirr'], updateMirrorTypeFields);
-    beamlineService.watchBeamlineField($scope, 'mirror', ['f_ext', 'f_default', 'fcyl'], updateMirrorSurfaceFields);
-    beamlineService.watchBeamlineField($scope, 'mirror', ['fhit_c', 'fshape'], updateMirrorDimensionFields);
+    ['mirror', 'crystal', 'grating'].forEach(function(m) {
+        beamlineService.watchBeamlineField($scope, m, ['fmirr'], updateElementShapeFields);
+        beamlineService.watchBeamlineField($scope, m, ['f_ext', 'f_default', 'fcyl'], updateElementSurfaceFields);
+        beamlineService.watchBeamlineField($scope, m, ['fhit_c', 'fshape'], updateElementDimensionFields);
+    });
+    ['crystal', 'grating'].forEach(function(m) {
+        beamlineService.watchBeamlineField($scope, m, ['f_central', 'f_phot_cent'], updateAutoTuningFields);
+    });
+    beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
+    beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
+    beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
 });
 
 SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
@@ -107,13 +192,14 @@ SIREPO.app.controller('ShadowSourceController', function(appState, panelState, s
             panelState.showField('geometricSource', f, geo.fsour == '3');
         });
         ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2'].forEach(function(f) {
-            panelState.showField('sourceDivergence', f, geo.fdist == '1' || geo.fdist == '2' || geo.fdist == '3');
+            panelState.showField('sourceDivergence', f, geo.fdistr == '1' || geo.fdistr == '2' || geo.fdistr == '3');
         });
         ['sigdix', 'sigdiz'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fdist == '3');
+            panelState.showField('geometricSource', f, geo.fdistr == '3');
         });
+        panelState.showRow('sourceDivergence', 'hdiv1', geo.fdistr == '1' || geo.fdistr == '2' || geo.fdistr == '3');
         ['cone_max', 'cone_min'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fdist == '5');
+            panelState.showField('geometricSource', f, geo.fdistr == '5');
         });
         panelState.showField('geometricSource', 'wysou', geo.fsource_depth == '2');
         panelState.showField('geometricSource', 'sigmay', geo.fsource_depth == '3');
@@ -152,7 +238,7 @@ SIREPO.app.controller('ShadowSourceController', function(appState, panelState, s
     };
 
     appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
-    appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdist', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
+    appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdistr', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
     appState.watchModelFields($scope, ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings);
 
     appState.whenModelsLoaded($scope, function() {
@@ -195,5 +281,40 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 panelState.showModalEditor('simulation');
             };
         },
+    };
+});
+
+//TODO(pjm): consolidate this with similar code in rpnValue directive
+SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
+    var requestIndex = 0;
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return null;
+                requestIndex++;
+                var currentRequestIndex = requestIndex;
+                requestSender.getApplicationData(
+                    {
+                        method: 'validate_material',
+                        material_name: value,
+                    },
+                    function(data) {
+                        // check for a stale request
+                        if (requestIndex != currentRequestIndex)
+                            return;
+                        var err = data.error;
+                        ngModel.$setValidity('', err ? false : true);
+                    });
+                return value;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value))
+                    return value;
+                return value.toString();
+            });
+        }
     };
 });
