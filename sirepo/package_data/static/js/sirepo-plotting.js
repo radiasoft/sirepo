@@ -303,6 +303,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         linspace: function(start, stop, nsteps) {
             var delta = (stop - start) / (nsteps - 1);
             var res = d3.range(nsteps).map(function(d) { return start + d * delta; });
+            res[res.length - 1] = stop;
 
             if (res.length != nsteps) {
                 throw "invalid linspace steps: " + nsteps + " != " + res.length;
