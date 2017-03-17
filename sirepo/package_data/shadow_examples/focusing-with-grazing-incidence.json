@@ -1,0 +1,175 @@
+{
+    "models": {
+        "beamline": [
+            {
+                "alpha": 0,
+                "axmaj": 0,
+                "axmin": 0,
+                "cil_ang": "0",
+                "ell_the": 0,
+                "externalOutlineMajorAxis": 0,
+                "externalOutlineMinorAxis": 0,
+                "f_convex": "0",
+                "f_default": "1",
+                "f_ext": "0",
+                "f_refl": "0",
+                "f_reflec": "1",
+                "f_side": "0",
+                "f_thick": "0",
+                "f_torus": "0",
+                "fcyl": "1",
+                "fhit_c": "0",
+                "fmirr": "3",
+                "fshape": "1",
+                "halfLengthY1": 0,
+                "halfLengthY2": 0,
+                "halfWidthX1": 0,
+                "halfWidthX2": 0,
+                "id": 2,
+                "internalOutlineMajorAxis": 0,
+                "internalOutlineMinorAxis": 0,
+                "mlayerBilayerNumber": 70,
+                "mlayerBilayerThickness": 33.1,
+                "mlayerEvenRoughness": 3.3,
+                "mlayerEvenSublayerDensity": 2.4,
+                "mlayerEvenSublayerMaterial": "B4C",
+                "mlayerGammaRatio": 0.483,
+                "mlayerOddRoughness": 3.1,
+                "mlayerOddSublayerDensity": 9.4,
+                "mlayerOddSublayerMaterial": "Ru",
+                "mlayerSubstrateDensity": 2.33,
+                "mlayerSubstrateMaterial": "Si",
+                "param": 0,
+                "position": 30,
+                "prereflDensity": 0.124,
+                "prereflElement": "Rh",
+                "prereflStep": 100,
+                "r_maj": 0,
+                "r_min": 0,
+                "reflectivityMaxEnergy": 55000,
+                "reflectivityMinEnergy": 5000,
+                "rmirr": 16.551,
+                "simag": 0.03,
+                "ssour": 0.01,
+                "t_incidence": 89.885408,
+                "theta": 35,
+                "title": "Toroidal Mirror",
+                "type": "mirror"
+            },
+            {
+                "id": 3,
+                "position": 40,
+                "title": "Watchpoint",
+                "type": "watch"
+            }
+        ],
+        "bendingMagnet": {
+            "fdistr": "4",
+            "ph1": 8000,
+            "ph2": 8000.001,
+            "r_magnet": 25.1772
+        },
+        "electronBeam": {
+            "bener": 6.04,
+            "epsi_dx": 0,
+            "epsi_dz": 0,
+            "epsi_x": 3.9,
+            "epsi_z": 0.039,
+            "f_pol": "3",
+            "sigmax": 395,
+            "sigmaz": 36.9
+        },
+        "geometricSource": {
+            "cone_max": 0,
+            "cone_min": 0,
+            "f_coher": "0",
+            "f_color": "3",
+            "f_polar": "1",
+            "fdistr": "3",
+            "fsour": "3",
+            "fsource_depth": "1",
+            "ph1": 5000,
+            "ph2": 45000,
+            "pol_angle": 0,
+            "pol_deg": 1,
+            "sigdix": 0.0884999972,
+            "sigdiz": 0.0071999998,
+            "sigmax": 57,
+            "sigmay": 10,
+            "sigmaz": 10.4,
+            "singleEnergyValue": 1000,
+            "wxsou": 1.00000001,
+            "wysou": 2,
+            "wzsou": 2.00000003
+        },
+        "histogramReport": {
+            "column": "6",
+            "distanceFromSource": 0,
+            "histogramBins": 100,
+            "weight": "22"
+        },
+        "initialIntensityReport": {
+            "histogramBins": 100,
+            "weight": "22",
+            "x": "1",
+            "y": "3"
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "plotXYReport": {
+            "distanceFromSource": 0,
+            "histogramBins": 100,
+            "weight": "22",
+            "x": "1",
+            "y": "3"
+        },
+        "rayFilter": {
+            "distance": 0.5,
+            "f_bound_sour": "0",
+            "x1": -0.02,
+            "x2": 0.02,
+            "z1": -0.02,
+            "z2": 0.02
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "istar1": 6775431,
+            "name": "Focusing with Grazing Incidence",
+            "npoint": 5000,
+            "outOfSessionSimulationId": "",
+            "simulationId": "npItHGOL",
+            "simulationSerial": 1489775943491186,
+            "sourceType": "geometricSource"
+        },
+        "simulationStatus": {},
+        "sourceDivergence": {
+            "hdiv1": 0,
+            "hdiv2": 0,
+            "vdiv1": 0,
+            "vdiv2": 0
+        },
+        "watchpointReport3": {
+            "histogramBins": 100,
+            "weight": "22",
+            "x": "1",
+            "y": "3"
+        },
+        "wiggler": {
+            "b_from": "1",
+            "kValue": 19.6,
+            "nPer": 1,
+            "per": 0.2,
+            "ph1": 20000,
+            "ph2": 20020,
+            "shift_betax_flag": "4",
+            "shift_betax_value": 0,
+            "shift_x_flag": "4",
+            "shift_x_value": 0,
+            "trajFile": "SW_3P.txt"
+        }
+    },
+    "simulationType": "shadow",
+    "version": "20170315.000000"
+}

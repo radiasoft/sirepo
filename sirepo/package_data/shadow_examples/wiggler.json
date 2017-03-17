@@ -2,31 +2,8 @@
     "models": {
         "beamline": [
             {
-                "horizontalOffset": 0,
-                "horizontalSize": 0.02,
                 "id": 2,
-                "position": 0.5,
-                "shape": "0",
-                "title": "Aperture",
-                "type": "aperture",
-                "verticalOffset": 0,
-                "verticalSize": 0.02
-            },
-            {
-                "id": 5,
-                "position": 0.5,
-                "title": "Watchpoint",
-                "type": "watch"
-            },
-            {
-                "id": 3,
-                "position": 0.75,
-                "title": "Watchpoint",
-                "type": "watch"
-            },
-            {
-                "id": 4,
-                "position": 1,
+                "position": 0,
                 "title": "Watchpoint",
                 "type": "watch"
             }
@@ -41,11 +18,11 @@
             "bener": 6.04,
             "epsi_dx": 0,
             "epsi_dz": 0,
-            "epsi_x": 3.9,
-            "epsi_z": 0.039,
+            "epsi_x": 0,
+            "epsi_z": 0,
             "f_pol": "3",
-            "sigmax": 395,
-            "sigmaz": 36.9
+            "sigmax": 0,
+            "sigmaz": 0
         },
         "geometricSource": {
             "cone_max": 0,
@@ -60,27 +37,27 @@
             "ph2": 10002,
             "pol_angle": 0,
             "pol_deg": 1,
-            "sigdix": 8.84999972e-2,
-            "sigdiz": 7.1999998e-3,
-            "sigmax": 5700,
-            "sigmay": 100,
-            "sigmaz": 1040,
+            "sigdix": 0.0884999972,
+            "sigdiz": 0.0071999998,
+            "sigmax": 57,
+            "sigmay": 10,
+            "sigmaz": 10.4,
             "singleEnergyValue": 1000,
             "wxsou": 1.00000001,
             "wysou": 2,
             "wzsou": 2.00000003
         },
         "histogramReport": {
-            "column": "11",
+            "column": "6",
             "distanceFromSource": 0,
             "histogramBins": 100,
-            "weight": "0"
+            "weight": "22"
         },
         "initialIntensityReport": {
             "histogramBins": 100,
             "weight": "22",
             "x": "1",
-            "y": "3"
+            "y": "4"
         },
         "panelState": {
             "hidden": []
@@ -88,28 +65,28 @@
         "plotXYReport": {
             "distanceFromSource": 0,
             "histogramBins": 100,
-            "weight": "0",
-            "x": "1",
-            "y": "3"
+            "weight": "22",
+            "x": "2",
+            "y": "1"
         },
         "rayFilter": {
             "distance": 0.5,
-            "f_bound_sour": "2",
+            "f_bound_sour": "0",
             "x1": -0.02,
             "x2": 0.02,
             "z1": -0.02,
             "z2": 0.02
         },
         "simulation": {
-            "folder": "/",
+            "folder": "/Sources",
             "isExample": false,
-            "istar1": 567656,
-            "name": "example14 part 2",
-            "npoint": 50000,
+            "istar1": 5676561,
+            "name": "Wiggler",
+            "npoint": 5000,
             "outOfSessionSimulationId": "",
-            "simulationId": "U4lFTB4x",
-            "simulationSerial": 1489336922069764,
-            "sourceType": "bendingMagnet"
+            "simulationId": "UWuo7CRU",
+            "simulationSerial": 1489775816872051,
+            "sourceType": "wiggler"
         },
         "simulationStatus": {},
         "sourceDivergence": {
@@ -118,38 +95,26 @@
             "vdiv1": 1000,
             "vdiv2": 1000
         },
-        "watchpointReport3": {
+        "watchpointReport2": {
             "histogramBins": 100,
             "weight": "22",
             "x": "1",
-            "y": "3"
-        },
-        "watchpointReport4": {
-            "histogramBins": 100,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
-        },
-        "watchpointReport5": {
-            "histogramBins": 100,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
+            "y": "4"
         },
         "wiggler": {
-            "b_from": "1",
+            "b_from": "0",
             "kValue": 19.6,
-            "nPer": 1,
+            "nPer": 10,
             "per": 0.2,
-            "ph1": 20000,
-            "ph2": 20020,
-            "shift_betax_flag": "4",
+            "ph1": 9995,
+            "ph2": 10005,
+            "shift_betax_flag": "0",
             "shift_betax_value": 0,
-            "shift_x_flag": "4",
+            "shift_x_flag": "0",
             "shift_x_value": 0,
             "trajFile": "SW_3P.txt"
         }
     },
     "simulationType": "shadow",
-    "version": "20170214.000000"
+    "version": "20170315.000000"
 }
