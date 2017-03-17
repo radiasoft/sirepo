@@ -352,6 +352,7 @@ def move_user_simulations(to_uid):
             dir_path = os.path.dirname(path)
             new_dir_path = dir_path.replace(from_uid, to_uid)
             pkdlog('{} -> {}', dir_path, new_dir_path)
+            pkio.mkdir_parent(new_dir_path)
             os.rename(dir_path, new_dir_path)
 
 
