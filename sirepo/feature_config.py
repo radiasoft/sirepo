@@ -14,7 +14,7 @@ import copy
 _ALL_CODES = ('srw', 'warp', 'elegant', 'shadow')
 
 #: Codes on test and prod
-_NON_DEV_CODES = _ALL_CODES[0:3]
+_NON_DEV_CODES = _ALL_CODES
 
 #: Configuration
 cfg = None

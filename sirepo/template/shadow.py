@@ -23,7 +23,7 @@ _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
-    'geometricSource': ['wxsou', 'wzsou'],
+    'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
@@ -233,13 +233,18 @@ def _generate_beamline_optics(models, last_id):
     count = 0
     for i in range(len(beamline)):
         item = beamline[i]
-        if 'isDisabled' in item and item['isDisabled']:
+        if _is_disabled(item):
             continue
         count += 1
         source_distance = item.position - prev_position
         image_distance = 0
-        if i + 1 < len(beamline):
-            image_distance = beamline[i + 1].position - item.position
+        for j in range(i + 1, len(beamline)):
+            next_item = beamline[j]
+            if _is_disabled(next_item):
+                continue
+            image_distance = next_item.position - item.position
+            break
+        theta_recalc_required = item['type'] in ('crystal', 'grating') and item['f_default'] == '1' and item['f_central'] == '1'
         res += "\n\n" + 'oe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
         if item['type'] == 'aperture' or item['type'] == 'obstacle':
             res += _generate_screen(item)
@@ -258,6 +263,18 @@ def _generate_beamline_optics(models, last_id):
                 last_element = True
         else:
             raise RuntimeError('unknown item type: {}'.format(item))
+        if theta_recalc_required:
+            res += '''
+# use shadow to calculate THETA from the default position
+# but do not advance the original beam to the image depth
+calc_beam = beam.duplicate()
+calc_oe = oe.duplicate()
+calc_oe.F_DEFAULT = 1
+calc_oe.T_SOURCE = calc_oe.SSOUR
+calc_oe.T_IMAGE = calc_oe.SIMAG
+calc_beam.traceOE(calc_oe, 1)
+oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
+            '''
         res += _field_value('oe', 'fwrite', '3') \
                + _field_value('oe', 't_image', '0.0') \
                + _field_value('oe', 't_source', source_distance) \
@@ -280,7 +297,7 @@ def _generate_bending_magnet(data):
 
 def _generate_autotune_element(item):
     res = _item_field(item, ['f_central'])
-    if item.f_central == '0':
+    if item['type'] == 'grating' or item.f_central == '0':
         res += _item_field(item, ['t_incidence', 't_reflection'])
     elif item.f_central == '1':
         res += _item_field(item, ['f_phot_cent'])
@@ -301,7 +318,7 @@ def _generate_crystal(item):
             res += _item_field(item, ['a_bragg', 'thickness'])
             if item.f_refrac == '1':
                 res += _item_field(item, ['order'])
-        if item.f_johansson:
+        if item.f_johansson == '1':
             res += _field_value('oe', 'f_ext', '1')
             res += _item_field(item, ['r_johansson'])
     elif item.f_mosaic == '1':
@@ -319,7 +336,7 @@ def _generate_crystal(item):
         item.braggEnergyStep,
         bragg_filename,
     )
-    res += _field_value('oe', 'file_refl', "'{}'".format(bragg_filename))
+    res += _field_value('oe', 'file_refl', "b'{}'".format(bragg_filename))
     return res
 
 
@@ -413,7 +430,7 @@ def _generate_mirror(item):
                 item.reflectivityMaxEnergy,
                 item.prereflStep,
             )
-            res += _field_value('oe', 'file_refl', "'{}'".format(prerefl_filename))
+            res += _field_value('oe', 'file_refl', "b'{}'".format(prerefl_filename))
         elif item.f_refl == '2':
             mlayer_filename = 'mirror-pre_mlayer-{}.txt'.format(item.id)
             res += "\n" + "pre_mlayer(interactive=False, FILE='{}',E_MIN={},E_MAX={},S_DENSITY={},S_MATERIAL='{}',E_DENSITY={},E_MATERIAL='{}',O_DENSITY={},O_MATERIAL='{}',N_PAIRS={},THICKNESS={},GAMMA={},ROUGHNESS_EVEN={},ROUGHNESS_ODD={})".format(
@@ -432,7 +449,7 @@ def _generate_mirror(item):
                 item.mlayerEvenRoughness,
                 item.mlayerOddRoughness,
             )
-            res += _field_value('oe', 'file_refl', "'{}'".format(mlayer_filename))
+            res += _field_value('oe', 'file_refl', "b'{}'".format(mlayer_filename))
             res += _item_field(item, ['f_refl', 'f_thick'])
     return res
 
@@ -493,6 +510,10 @@ def _generate_wiggler(data):
 
 def _item_field(item, fields):
     return _fields('oe', item, fields)
+
+
+def _is_disabled(item):
+    return 'isDisabled' in item and item['isDisabled']
 
 
 def _source_field(model, fields):

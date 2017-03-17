@@ -647,11 +647,17 @@
                 ]],
                 ["Magnet Parameters", [
                     "r_magnet",
-                    "sourceDivergence.hdiv1",
-                    "sourceDivergence.hdiv2",
-                    "sourceDivergence.vdiv1",
-                    "sourceDivergence.vdiv2",
-                    "fdistr"
+                    "fdistr",
+                    [
+                        ["Horizontal", [
+                            "sourceDivergence.hdiv1",
+                            "sourceDivergence.hdiv2"
+                        ]],
+                        ["Vertical", [
+                            "sourceDivergence.vdiv1",
+                            "sourceDivergence.vdiv2"
+                        ]]
+                    ]
                 ]],
                 ["Ray Filter", [
                     "rayFilter.f_bound_sour",
@@ -821,11 +827,11 @@
                     "position",
                     "fmirr",
                     "f_central",
-                    "t_incidence",
-                    "t_reflection",
                     "f_phot_cent",
                     "phot_cent",
                     "r_lambda",
+                    "t_incidence",
+                    "t_reflection",
                     "alpha"
                 ]],
                 ["Surface Shape", [

@@ -45,7 +45,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     function updateAutoTuningFields(item) {
         var modelName = item.type;
         ['t_incidence', 't_reflection'].forEach(function(f) {
-            panelState.showField(modelName, f, item.f_central == '0');
+            panelState.showField(modelName, f, modelName == 'grating' || item.f_central == '0');
         });
         panelState.showField(modelName, 'f_phot_cent', item.f_central == '1');
         panelState.showField(modelName, 'phot_cent', item.f_central == '1' && item.f_phot_cent == '0');
@@ -139,7 +139,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
 
     self.handleModalShown = function(name) {
         var item = beamlineService.activeItem;
-        if (beamlineService.activeItem) {
+        if (item && item.type == name) {
             if (name == 'mirror' || name == 'crystal' || name == 'grating') {
                 updateElementShapeFields(item);
                 updateElementDimensionFields(item);
