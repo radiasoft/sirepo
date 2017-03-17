@@ -516,7 +516,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     });
 });
 
-SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $document, $scope) {
+SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
     var isReadyForInput = false;
     // required for $watch below
@@ -820,12 +820,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
     appState.whenModelsLoaded($scope, function() {
         //TODO(pjm): move isReadyForInput to panelState
-        $document.ready(function() {
-            isReadyForInput = true;
-            disableBasicEditorBeamName();
-            processUndulator();
-            processGaussianBeamSize();
-        });
+        isReadyForInput = true;
+        disableBasicEditorBeamName();
+        processUndulator();
+        processGaussianBeamSize();
     });
 });
 

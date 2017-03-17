@@ -101,7 +101,7 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, w
     self.persistentSimulationInit($scope);
 });
 
-SIREPO.app.controller('WARPSourceController', function(appState, frameCache, warpService, $document, $scope) {
+SIREPO.app.controller('WARPSourceController', function(appState, frameCache, warpService, $scope) {
     var self = this;
     $scope.appState = appState;
     var constants = {
@@ -306,12 +306,10 @@ SIREPO.app.controller('WARPSourceController', function(appState, frameCache, war
     }
 
     function updateFieldState() {
-        $document.ready(function() {
-            gridDimensionsChanged();
-            pulseDimensionsChanged();
-            beamRadiusMethodChanged();
-            beamBunchLengthMethodChanged();
-        });
+        gridDimensionsChanged();
+        pulseDimensionsChanged();
+        beamRadiusMethodChanged();
+        beamBunchLengthMethodChanged();
     }
 
     self.isLaserPulse = function() {

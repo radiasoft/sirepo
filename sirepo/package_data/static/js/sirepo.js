@@ -522,7 +522,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     self.whenModelsLoaded = function($scope, callback) {
         var wrappedCallback = function() {
             $document.ready(function() {
-                callback();
+                $scope.$applyAsync(callback);
             });
         };
         $scope.$on('modelsLoaded', wrappedCallback);
