@@ -32,6 +32,8 @@ RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
+_HISTOGRAM_BINS_MAX = 500
+
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 def flatten_data(d, res, prefix=''):
@@ -45,6 +47,16 @@ def flatten_data(d, res, prefix=''):
         else:
             res[prefix + k] = v
     return res
+
+
+def histogram_bins(nbins):
+    """Ensure the histogram count is in a valid range"""
+    nbins = int(nbins)
+    if nbins <= 0:
+        nbins = 1
+    elif nbins > _HISTOGRAM_BINS_MAX:
+        nbins = _HISTOGRAM_BINS_MAX
+    return nbins
 
 
 def internal_lib_files(files, source_lib):
