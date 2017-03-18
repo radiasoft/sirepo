@@ -299,7 +299,7 @@ def _generate_autotune_element(item):
     res = _item_field(item, ['f_central'])
     if item['type'] == 'grating' or item.f_central == '0':
         res += _item_field(item, ['t_incidence', 't_reflection'])
-    elif item.f_central == '1':
+    if item.f_central == '1':
         res += _item_field(item, ['f_phot_cent'])
         if item.f_phot_cent == '0':
             res += _item_field(item, ['phot_cent'])

@@ -1,0 +1,66 @@
+import math
+import Shadow
+from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
+from srxraylib.sources import srfunc
+
+source = Shadow.Source()
+beam = Shadow.Beam()
+
+source.NPOINT = 5000
+source.ISTAR1 = 5676561
+
+(traj, pars) = srfunc.wiggler_trajectory(
+    b_from=0,
+    inData='',
+    nPer=10,
+    nTrajPoints=501,
+    ener_gev=6.04,
+    per=0.2,
+    kValue=19.6,
+    trajFile='tmp.traj',
+    shift_x_flag=0,
+    shift_x_value=0.0,
+    shift_betax_flag=0,
+    shift_betax_value=0.0,
+)
+srfunc.wiggler_cdf(
+    traj,
+    enerMin=9995.0,
+    enerMax=10005.0,
+    enerPoints=1001,
+    outFile='xshwig.sha',
+    elliptical=False)
+
+source.SIGMAX = 0.0
+source.SIGMAZ = 0.0
+source.EPSI_X = 0.0
+source.EPSI_Z = 0.0
+source.BENER = 6.04
+source.EPSI_DX = 0.0
+source.EPSI_DZ = 0.0
+source.PH1 = 9995.0
+source.PH2 = 10005.0
+source.FDISTR = 0
+source.FSOURCE_DEPTH = 0
+source.F_WIGGLER = 1
+source.CONV_FACT = 100.0
+source.HDIV1 = 1.0
+source.HDIV2 = 1.0
+source.VDIV1 = 1.0
+source.VDIV2 = 1.0
+source.F_COLOR = 0
+source.F_PHOT = 0
+source.FILE_TRAJ = b'xshwig.sha'
+source.F_BOUND_SOUR = 0
+beam.genSource(source)
+
+
+
+oe = Shadow.OE()
+oe.DUMMY = 1.0
+oe.set_empty()
+oe.FWRITE = 3
+oe.T_IMAGE = 0.0
+oe.T_SOURCE = 0.0
+beam.traceOE(oe, 1)
+beam.write('shadow-output.dat')
