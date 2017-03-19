@@ -10,6 +10,8 @@ from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
 
+pytest.importorskip('xraylib')
+
 def test_generate_python():
     from pykern import pkio
     from pykern.pkunit import pkeq
