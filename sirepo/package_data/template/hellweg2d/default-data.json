@@ -16,6 +16,12 @@
             "spaceCharge": "none"
         },
         "beamReport": {
+            "reportType": "x-y",
+            "histogramBins": 100
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
         },
         "ellipticalDistribution": {
             "aX": 2.0,

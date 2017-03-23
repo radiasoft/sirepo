@@ -1,5 +1,21 @@
 {
     "enum": {
+        "BeamHistogramReportType": [
+            ["w", "Energy Spectrum"],
+            ["phi", "Phase Spectrum"],
+            ["r", "Radial Spectrum"],
+            ["x", "Horizontal Spectrum"],
+            ["y", "Vertical Spectrum"]
+        ],
+        "BeamReportType": [
+            ["r-ar", "Radial Phase Space (r, r')"],
+            ["x-ax", "Horizontal Phase Space (x, x')"],
+            ["y-ay", "Vertical Phase Space (y, y')"],
+            ["x-y", "Beam Cross Section (x, y)"],
+            ["r-th", "Cylindrical Cross Section (theta, r)"],
+            ["th-ath", "Azmuthal Phase Space (theta, theta')"],
+            ["phi-w", "Longitudinal Phase Space (phi, W)"]
+        ],
         "EnergyDistributionType": [
             ["uniform", "Uniform"],
             ["gaussian", "Gaussian"]
@@ -31,7 +47,13 @@
             "numberOfParticles": ["Particle Limit", "Integer"],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"]
         },
+        "beamHistogramReport": {
+            "reportType": ["Report", "BeamHistogramReportType"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
         "beamReport": {
+            "reportType": ["Report", "BeamReportType"],
+            "histogramBins": ["Number of Bins", "Integer"]
         },
         "ellipticalDistribution": {
             "aX": ["a(x) [cm]", "Float"],
@@ -118,9 +140,19 @@
             ],
             "advanced": []
         },
+        "beamHistogramReport": {
+            "title": "Beam Graph",
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
+        },
         "beamReport": {
             "title": "Beam Report",
-            "advanced": []
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
         },
         "simulation": {
             "title": "Simulation",
