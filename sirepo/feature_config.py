@@ -11,10 +11,10 @@ from pykern import pkcollections
 import copy
 
 #: All possible codes
-_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow')
+_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow', 'hellweg2d')
 
 #: Codes on test and prod
-_NON_DEV_CODES = _ALL_CODES
+_NON_DEV_CODES = _ALL_CODES[0:4]
 
 #: Configuration
 cfg = None

@@ -1,0 +1,52 @@
+{
+    "models": {
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "hellweg2d example",
+            "outOfSessionSimulationId": "",
+            "simulationId": "gLicZdXs",
+            "simulationSerial": 1487981155340231
+        },
+        "beam": {
+            "transversalDistribution": "twiss4d",
+            "longitudinalDistribution": "norm2d",
+            "current": 0.01,
+            "numberOfParticles": 1000,
+            "spaceCharge": "none"
+        },
+        "beamReport": {
+        },
+        "ellipticalDistribution": {
+            "aX": 2.0,
+            "bY": 0.5,
+            "rotationAngle": 0,
+            "rmsDeviationFactor": 1.0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "meanEnergy": 1.0,
+            "energySpread": 0.5,
+            "energyDeviation": 0.25,
+            "meanPhase": 90,
+            "phaseLength": 180,
+            "phaseDeviation": 20
+        },
+        "sphericalDistribution": {
+            "radialLimit": 0.564,
+            "curvature": "flat",
+            "curvatureFactor": 1.0,
+            "thermalEmittance": 0.0
+        },
+        "twissDistribution": {
+            "horizontalEmittance": 0.0005,
+            "horizontalBeta": 2.0,
+            "horizontalAlpha": 0.14,
+            "verticalEmittance": 0.0015,
+            "verticalBeta": 4.0,
+            "verticalAlpha": 0.28
+        }
+    },
+    "simulationType": "hellweg2d",
+    "version": "20170214.000000"
+}

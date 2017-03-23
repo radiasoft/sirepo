@@ -1,0 +1,138 @@
+{
+    "enum": {
+        "EnergyDistributionType": [
+            ["uniform", "Uniform"],
+            ["gaussian", "Gaussian"]
+        ],
+        "LongitudinalDistribution": [
+            ["norm2d", "Uniform/Gaussian"]
+        ],
+        "SpaceChargeAlgorithm": [
+            ["none", "None"],
+            ["coulomb", "Ellipsoid Bunch Approximation per Lapostolle Formula"],
+            ["elliptic", "Elliptic Integrals Form-Factors"]
+        ],
+        "SphericalCurvature": [
+            ["flat", "Flat"],
+            ["concave", "Concave"],
+            ["convex", "Convex"]
+        ],
+        "TransversalDistribution": [
+            ["twiss4d", "Twiss Parameters"],
+            ["sph2d", "Spherical"],
+            ["ell2d", "Elliptical"]
+        ]
+    },
+    "model": {
+        "beam": {
+            "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
+            "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
+            "current": ["Current [A]", "Float"],
+            "numberOfParticles": ["Particle Limit", "Integer"],
+            "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"]
+        },
+        "beamReport": {
+        },
+        "ellipticalDistribution": {
+            "aX": ["a(x) [cm]", "Float"],
+            "bY": ["b(y) [cm]", "Float"],
+            "rotationAngle": ["Rotation Angle [deg]", "Float", "0"],
+            "rmsDeviationFactor": ["RMS Deviation Factor (σ = a/factor)", "Float", "1"]
+        },
+        "energyPhaseDistribution": {
+            "distributionType": ["Distribution Type", "EnergyDistributionType"],
+            "meanEnergy": ["Mean Energy [MeV]", "Float"],
+            "energySpread": ["Energy Spread [MeV]", "Float"],
+            "energyDeviation": ["Energy RMS Deviation [MeV]", "Float"],
+            "meanPhase": ["Mean Phase [deg]", "Float"],
+            "phaseLength": ["Phase Length [deg]", "Float"],
+            "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
+        "sphericalDistribution": {
+            "radialLimit": ["Radial Limit [cm]", "Float"],
+            "curvature": ["Curvature", "SphericalCurvature"],
+            "curvatureFactor": ["Curvature Factor (r'=-sin(r/factor))", "Float"],
+            "thermalEmittance": ["Thermal Emittance [eV]", "Float"]
+        },
+        "twissDistribution": {
+            "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float"],
+            "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float"],
+            "horizontalAlpha": ["Horizontal Alpha [cm/rad]", "Float"],
+            "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float"],
+            "verticalBeta": ["Vertical Beta [cm/rad]", "Float"],
+            "verticalAlpha": ["Vertical Alpha [cm/rad]", "Float"]
+        }
+    },
+    "view": {
+        "beam": {
+            "title": "Beam",
+            "basic": [
+                ["Main", [
+                    "current",
+                    "numberOfParticles",
+                    "spaceCharge",
+                    "transversalDistribution",
+                    "longitudinalDistribution"
+                ]],
+                ["Transversal Distribution (Twiss)", [
+                    [
+                        ["Horizontal", [
+                            "twissDistribution.horizontalEmittance",
+                            "twissDistribution.horizontalBeta",
+                            "twissDistribution.horizontalAlpha"
+                        ]],
+                        ["Vertical", [
+                            "twissDistribution.verticalEmittance",
+                            "twissDistribution.verticalBeta",
+                            "twissDistribution.verticalAlpha"
+                        ]]
+                    ]
+                ]],
+                ["Transversal Distribution (Spherical)", [
+                    "sphericalDistribution.radialLimit",
+                    "sphericalDistribution.curvature",
+                    "sphericalDistribution.curvatureFactor",
+                    "sphericalDistribution.thermalEmittance"
+                ]],
+                ["Transversal Distribution (Elliptical)", [
+                    "ellipticalDistribution.aX",
+                    "ellipticalDistribution.bY",
+                    "ellipticalDistribution.rotationAngle",
+                    "ellipticalDistribution.rmsDeviationFactor"
+                ]],
+                ["Longitudinal Distribution", [
+                    "energyPhaseDistribution.distributionType",
+                    "energyPhaseDistribution.meanEnergy",
+                    "energyPhaseDistribution.energySpread",
+                    "energyPhaseDistribution.energyDeviation",
+                    "energyPhaseDistribution.meanPhase",
+                    "energyPhaseDistribution.phaseLength",
+                    "energyPhaseDistribution.phaseDeviation"
+                ]]
+            ],
+            "advanced": []
+        },
+        "beamReport": {
+            "title": "Beam Report",
+            "advanced": []
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    }
+}
