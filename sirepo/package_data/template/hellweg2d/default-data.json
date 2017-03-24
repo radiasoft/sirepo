@@ -38,6 +38,13 @@
             "phaseLength": 180,
             "phaseDeviation": 20
         },
+        "solenoid": {
+            "sourceDefinition": "values",
+            "fieldStrength": 1000,
+            "length": 20,
+            "z0": 0,
+            "fringeRegion": 1
+        },
         "sphericalDistribution": {
             "radialLimit": 0.564,
             "curvature": "flat",

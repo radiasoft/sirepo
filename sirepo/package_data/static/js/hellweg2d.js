@@ -34,6 +34,11 @@ SIREPO.app.controller('Hellweg2DLatticeController', function (appState, panelSta
 SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelState, $scope) {
     var self = this;
 
+    function updateAllFields() {
+        updateBeamFields();
+        updateSolenoidFields();
+    }
+
     function updateBeamFields() {
         var beam = appState.models.beam;
         panelState.showTab('beam', 2, beam.transversalDistribution == 'twiss4d');
@@ -45,12 +50,20 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
         });
     }
 
+    function updateSolenoidFields() {
+        var solenoid = appState.models.solenoid;
+        ['fieldStrength', 'length', 'z0', 'fringeRegion'].forEach(function(f) {
+            panelState.showField('solenoid', f, solenoid.sourceDefinition == 'values');
+        });
+    }
+
     self.handleModalShown = function(name) {
-        updateBeamFields();
+        updateAllFields();
     };
 
     appState.watchModelFields($scope, ['beam.transversalDistribution', 'sphericalDistribution.curvature', 'energyPhaseDistribution.distributionType'], updateBeamFields);
-    appState.whenModelsLoaded($scope, updateBeamFields);
+    appState.watchModelFields($scope, ['solenoid.sourceDefinition'], updateSolenoidFields);
+    appState.whenModelsLoaded($scope, updateAllFields);
 });
 
 SIREPO.app.controller('Hellweg2DVisualizationController', function (appState, panelState, $scope) {

@@ -23,6 +23,10 @@
         "LongitudinalDistribution": [
             ["norm2d", "Uniform/Gaussian"]
         ],
+        "SolenoidDefinition": [
+            ["none", "None"],
+            ["values", "From Field Values"]
+        ],
         "SpaceChargeAlgorithm": [
             ["none", "None"],
             ["coulomb", "Ellipsoid Bunch Approximation per Lapostolle Formula"],
@@ -75,6 +79,13 @@
         },
         "simulationFolder": {
             "name": ["Folder Name", "String"]
+        },
+        "solenoid": {
+            "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
+            "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
+            "length": ["Length [cm]", "Float"],
+            "z0": ["Longitudinal Coordination of Start (Z₀) [cm]", "Float"],
+            "fringeRegion": ["Fringe Field Region [cm]", "Float"]
         },
         "sphericalDistribution": {
             "radialLimit": ["Radial Limit [cm]", "Float"],
@@ -165,6 +176,16 @@
             "advanced": [
                 "name"
             ]
+        },
+        "solenoid": {
+            "title": "Solenoid",
+            "basic": [
+                "sourceDefinition",
+                "fieldStrength",
+                "length",
+                "z0"
+            ],
+            "advanced": []
         }
     }
 }

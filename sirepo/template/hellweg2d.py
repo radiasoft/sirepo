@@ -37,6 +37,7 @@ def models_related_to_report(data):
         'beam',
         'ellipticalDistribution',
         'energyPhaseDistribution',
+        'solenoid',
         'sphericalDistribution',
         'twissDistribution',
     ]
@@ -107,10 +108,22 @@ def _generate_longitude_dist(models):
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
+    v['solenoidCommand'] = _generate_solenoid(data['models'])
     v['beamCommand'] = _generate_beam(data['models'])
     v['currentCommand'] = _generate_current(data['models'])
     v['chargeCommand'] = _generate_charge(data['models'])
     return pkjinja.render_resource('hellweg2d_beam.py', v)
+
+
+def _generate_solenoid(models):
+    solenoid = models.solenoid
+    if solenoid.sourceDefinition == 'none':
+        return ''
+    if solenoid.sourceDefinition == 'values':
+        #TODO(pjm): latest version also has solenoid.fringeRegion
+        return 'SOLENOID {} {} {}'.format(
+            solenoid.fieldStrength, solenoid.length, solenoid.z0)
+    raise RuntimeError('unknown solenoidDefinition: {}'.format(solenoid.solenoidDefinition))
 
 
 def _generate_transverse_dist(models):
