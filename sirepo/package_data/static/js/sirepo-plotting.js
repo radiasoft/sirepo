@@ -110,9 +110,12 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 scope.advanceFrame(1);
             }
         };
-        if (scope.clearData) {
-            scope.$on('framesCleared', scope.clearData);
-        }
+        scope.$on('framesCleared', function() {
+            scope.prevFrameIndex = -1;
+            if (scope.clearData) {
+                scope.clearData();
+            }
+        });
         scope.$on('modelsLoaded', requestData);
         scope.$on('framesLoaded', function(event, oldFrameCount) {
             if (scope.prevFrameIndex < 0 || oldFrameCount === 0) {
