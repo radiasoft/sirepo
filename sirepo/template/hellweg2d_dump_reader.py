@@ -11,9 +11,9 @@ import math
 
 _LIVE_PARTICLE = 0
 _LOSS_VALUES = ['live', 'radius_lost', 'phase_lost', 'bz_lost', 'br_lost', 'bth_lost', 'beta_lost', 'step_lost']
-_We0 = 0.5110034e6;
+_We0 = 0.5110034e6
 
-_PARTICLE_ACCESS = {
+_BEAM_PARAMETER = {
     'r': lambda p, lmb: abs(p.r * lmb),
     'th': lambda p, lmb: p.Th * 180.0 / math.pi,
     'x': lambda p, lmb: p.r * math.cos(p.Th) * lmb,
@@ -33,6 +33,10 @@ _PARTICLE_ACCESS = {
     'z0': lambda p, lmb: p.z,
     'beta': lambda p, lmb: p.beta0,
     'w': lambda p, lmb: _velocity_to_mev(p.beta0),
+}
+
+_STRUCTURE_PARAMETER = {
+    'z': lambda s: s.ksi * s.lmb,
 }
 
 _PARTICLE_LABEL = {
@@ -99,30 +103,40 @@ class TParticle(ctypes.Structure):
                 ('lost', ctypes.c_int)]
 
 
+def beam_header(filename):
+    with open (filename, 'rb') as f:
+        header = THeader()
+        assert f.readinto(header) == ctypes.sizeof(header)
+        return header
+
+
 def beam_info(filename, idx):
     info = {}
     with open (filename, 'rb') as f:
         header = THeader()
         assert f.readinto(header) == ctypes.sizeof(header)
         info['Header'] = header
-        for i in range(header.NPoints):
-            x = TStructure()
-            assert f.readinto(x) == ctypes.sizeof(x)
-            if i == idx:
-                info['Structure'] = x
+        structure = TStructure()
+        size = ctypes.sizeof(structure)
+        if idx > 0:
+            f.seek(idx * size, 1)
+        assert f.readinto(structure) == size
+        info['Structure'] = structure
+        if idx < header.NPoints - 1:
+            f.seek((header.NPoints - idx - 1) * size, 1)
         info['Particles'] = []
-        for i in range(header.NPoints):
-            beam_header = TBeamHeader()
-            assert f.readinto(beam_header) == ctypes.sizeof(beam_header)
-            if i == idx:
-                info['BeamHeader'] = beam_header
-            for _ in range(header.NParticles):
-                p = TParticle()
-                assert f.readinto(p) == ctypes.sizeof(p)
-                if i == idx:
-                    info['Particles'].append(p)
-        assert f.readinto(header) == 0
-    assert 'Structure' in info
+        beam_header = TBeamHeader()
+        size = ctypes.sizeof(beam_header) + ctypes.sizeof(TParticle()) * header.NParticles
+        if idx > 0:
+            f.seek(idx * size, 1)
+        assert f.readinto(beam_header) == ctypes.sizeof(beam_header)
+        info['BeamHeader'] = beam_header
+        particles = []
+        for _ in range(header.NParticles):
+            p = TParticle()
+            assert f.readinto(p) == ctypes.sizeof(p)
+            particles.append(p)
+        info['Particles'] = particles
     return info
 
 
@@ -130,15 +144,19 @@ def get_label(field):
     return _PARTICLE_LABEL[field]
 
 
+def get_parameter(info, field):
+    fn = _STRUCTURE_PARAMETER[field]
+    return fn(info['Structure'])
+
+
 def get_points(info, field):
     res = []
-    fn = _PARTICLE_ACCESS[field]
+    fn = _BEAM_PARAMETER[field]
     lmb = info['BeamHeader'].beam_lmb
 
     for p in info['Particles']:
-        if p.lost != _LIVE_PARTICLE:
-            continue
-        res.append(fn(p, lmb))
+        if p.lost == _LIVE_PARTICLE:
+            res.append(fn(p, lmb))
     return res
 
 

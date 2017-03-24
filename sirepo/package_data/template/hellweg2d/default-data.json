@@ -1,5 +1,11 @@
 {
     "models": {
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "x-y",
+            "startTime": 1490386853
+        },
         "simulation": {
             "folder": "/",
             "isExample": false,

@@ -4,7 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -20,15 +19,30 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.lattice, {
             controller: 'Hellweg2DLatticeController as lattice',
             templateUrl: '/static/html/hellweg2d-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'Hellweg2DVisualizationController as visualization',
-            templateUrl: '/static/html/hellweg2d-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
-SIREPO.app.controller('Hellweg2DLatticeController', function (appState, panelState, $scope) {
+SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCache, persistentSimulation, $scope) {
     var self = this;
+    self.model = 'animation';
+
+    self.handleStatus = function(data) {
+        frameCache.setFrameCount(data.frameCount);
+        if (data.startTime) {
+            appState.models.beamAnimation.startTime = data.startTime;
+            appState.saveQuietly('beamAnimation');
+        }
+    };
+
+    self.getFrameCount = function() {
+        return frameCache.getFrameCount();
+    };
+
+    persistentSimulation.initProperties(self);
+    frameCache.setAnimationArgs({
+        beamAnimation: ['reportType', 'histogramBins', 'startTime'],
+    });
+    self.persistentSimulationInit($scope);
 });
 
 SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelState, $scope) {
@@ -66,10 +80,6 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('Hellweg2DVisualizationController', function (appState, panelState, $scope) {
-    var self = this;
-});
-
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
@@ -86,7 +96,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-if="hasLattice()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',

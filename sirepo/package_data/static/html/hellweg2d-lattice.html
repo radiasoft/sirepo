@@ -1,7 +1,50 @@
 <div class="container-fluid">
   <div class="row">
-    <div class="text-center">
-      <b>lattice</b>
+    <div class="col-md-6 col-xl-4">
+      <div class="panel panel-info">
+        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
+        <div class="panel-body" data-ng-hide="lattice.panelState.isHidden('simulationStatus')">
+          <form name="form" class="form-horizontal" novalidate data-ng-show="lattice.isStateProcessing()">
+            <div data-ng-show="lattice.isStatePending()">
+              <div class="col-sm-12">
+                 {{ lattice.stateAsText() }} {{ lattice.dots }}
+              </div>
+            </div>
+            <div data-ng-show="lattice.isStateRunning()">
+              <div class="col-sm-12">
+                <div data-ng-show="lattice.isInitializing()">
+                   Running Simulation {{ lattice.dots }}
+                </div>
+                <div data-ng-show="lattice.getFrameCount() > 0">
+                  Completed frame: {{ lattice.getFrameCount() }}
+                </div>
+                <div class="progress">
+                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': lattice.isInitializing() }" role="progressbar" aria-valuenow="{{ lattice.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ lattice.displayPercentComplete() }}%">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right">
+              <button class="btn btn-default" data-ng-click="lattice.cancelSimulation()">End Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" novalidate data-ng-show="lattice.isStateStopped()">
+            <div class="col-sm-12" data-ng-show="lattice.getFrameCount() >= 1">
+              Simulation
+              <span>{{ lattice.stateAsText() }}</span><span>:
+                {{ lattice.getFrameCount() }} animation frames
+              </span>
+              <br><br>
+            </div>
+            <div class="col-sm-6 pull-right">
+              <button class="btn btn-default" data-ng-click="lattice.runSimulation()">Start New Simulation</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="3d" data-model-name="beamAnimation"></div>
     </div>
   </div>
 </div>

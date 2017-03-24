@@ -1,5 +1,14 @@
 {
     "enum": {
+        "BeamAnimationReportType": [
+            ["r-ar", "Radial Phase Space (r, r')"],
+            ["x-ax", "Horizontal Phase Space (x, x')"],
+            ["y-ay", "Vertical Phase Space (y, y')"],
+            ["x-y", "Beam Cross Section (x, y)"],
+            ["r-th", "Cylindrical Cross Section (theta, r)"],
+            ["th-ath", "Azmuthal Phase Space (theta, theta')"],
+            ["phi-w", "Longitudinal Phase Space (phi, W)"]
+        ],
         "BeamHistogramReportType": [
             ["w", "Energy Spectrum"],
             ["phi", "Phase Spectrum"],
@@ -19,6 +28,14 @@
         "EnergyDistributionType": [
             ["uniform", "Uniform"],
             ["gaussian", "Gaussian"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
         ],
         "LongitudinalDistribution": [
             ["norm2d", "Uniform/Gaussian"]
@@ -51,6 +68,11 @@
             "numberOfParticles": ["Particle Limit", "Integer"],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"]
         },
+        "beamAnimation": {
+            "reportType": ["Report", "BeamAnimationReportType"],
+            "histogramBins": ["Number of Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
         "beamHistogramReport": {
             "reportType": ["Report", "BeamHistogramReportType"],
             "histogramBins": ["Number of Bins", "Integer"]
@@ -80,6 +102,7 @@
         "simulationFolder": {
             "name": ["Folder Name", "String"]
         },
+        "simulationStatus": {},
         "solenoid": {
             "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
             "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
@@ -151,6 +174,14 @@
             ],
             "advanced": []
         },
+        "beamAnimation": {
+            "title": "Beam Animation",
+            "advanced": [
+                "reportType",
+                "histogramBins",
+                "framesPerSecond"
+            ]
+        },
         "beamHistogramReport": {
             "title": "Beam Graph",
             "advanced": [
@@ -176,6 +207,10 @@
             "advanced": [
                 "name"
             ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
         },
         "solenoid": {
             "title": "Solenoid",
