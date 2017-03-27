@@ -22,15 +22,17 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
     var self = this;
     self.model = 'animation';
+    self.settingsModel = 'simulationSettings';
 
     self.handleStatus = function(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime) {
             appState.models.beamAnimation.startTime = data.startTime;
             appState.saveQuietly('beamAnimation');
+            $rootScope.$broadcast('animation.summaryData', data.summaryData);
         }
     };
 
@@ -48,6 +50,11 @@ SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCac
 SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelState, $scope) {
     var self = this;
 
+    function isActiveField(model, field) {
+        var fieldClass = '.model-' + model + '-' + field;
+        return $(fieldClass).find('input').is(':focus');
+    }
+
     function updateAllFields() {
         updateBeamFields();
         updateSolenoidFields();
@@ -55,13 +62,49 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
 
     function updateBeamFields() {
         var beam = appState.models.beam;
+        if (beam.transversalDistribution == 'sph2d') {
+            updateCurvature();
+        }
         panelState.showTab('beam', 2, beam.transversalDistribution == 'twiss4d');
         panelState.showTab('beam', 3, beam.transversalDistribution == 'sph2d');
         panelState.showTab('beam', 4, beam.transversalDistribution == 'ell2d');
-        panelState.showField('sphericalDistribution', 'curvatureFactor', beam.transversalDistribution == 'sph2d' && appState.models.sphericalDistribution.curvature != 'flat');
         ['energyDeviation', 'phaseDeviation'].forEach(function(f) {
             panelState.showField('energyPhaseDistribution', f, beam.longitudinalDistribution == 'norm2d' && appState.models.energyPhaseDistribution.distributionType == 'gaussian');
         });
+    }
+
+    function updateCurvature() {
+        var dist = appState.models.sphericalDistribution;
+        if (isActiveField('sphericalDistribution', 'curvatureFactor')) {
+            if (dist.curvatureFactor !== undefined) {
+                dist.curvature = dist.curvatureFactor > 0
+                    ? 'concave'
+                    : (dist.curvatureFactor < 0
+                       ? 'convex'
+                       : 'flat');
+            }
+        }
+        else {
+            if (dist.curvature == 'concave') {
+                if (dist.curvatureFactor === 0) {
+                    dist.curvatureFactor = 1;
+                }
+                else {
+                    dist.curvatureFactor = Math.abs(dist.curvatureFactor);
+                }
+            }
+            else if (dist.curvature == 'convex') {
+                if (dist.curvatureFactor === 0) {
+                    dist.curvatureFactor = -1;
+                }
+                else {
+                    dist.curvatureFactor = - Math.abs(dist.curvatureFactor);
+                }
+            }
+            else {
+                dist.curvatureFactor = 0;
+            }
+        }
     }
 
     function updateSolenoidFields() {
@@ -75,7 +118,7 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
         updateAllFields();
     };
 
-    appState.watchModelFields($scope, ['beam.transversalDistribution', 'sphericalDistribution.curvature', 'energyPhaseDistribution.distributionType'], updateBeamFields);
+    appState.watchModelFields($scope, ['beam.transversalDistribution', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
     appState.watchModelFields($scope, ['solenoid.sourceDefinition'], updateSolenoidFields);
     appState.whenModelsLoaded($scope, updateAllFields);
 });
@@ -118,5 +161,58 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 panelState.showModalEditor('simulation');
             };
         },
+    };
+});
+
+SIREPO.app.directive('summaryTable', function(appState, panelState, $interval) {
+    return {
+        restirct: 'A',
+        scope: {
+            modelName: '@summaryTable',
+        },
+        template: [
+            '<div class="col-sm-12">',
+              '<div class="lead" data-ng-if="summaryRows">Results</div>',
+                '<table>',
+                '<tr data-ng-repeat="item in summaryRows">',
+                  '<td data-ng-if="item.length == 1"><br /><strong>{{ item[0] }}</strong></td>',
+                  '<td data-ng-if="item.length > 1">{{ item[0] }}:</td>',
+                  '<td>&nbsp;</td>',
+                  '<td>{{ item[1] }}</td>',
+                '</tr>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function parseSummaryRows(summaryText) {
+                var text = summaryText.replace(/^(\n|.)*RESULTS\n+==+/, '').replace(/==+/, '');
+                var label = null;
+                $scope.summaryRows = [];
+                text.split(/\n+/).forEach(function(line) {
+                    line.split(/\s*=\s*/).forEach(function(v) {
+                        if (label) {
+                            $scope.summaryRows.push([label, v]);
+                            label = null;
+                        }
+                        else if (v.indexOf(':') >= 0) {
+                            $scope.summaryRows.push([v]);
+                        }
+                        else {
+                            label = v;
+                        }
+                    });
+                });
+            }
+
+            function updateSummaryInfo(e, summaryText) {
+                if (summaryText) {
+                    parseSummaryRows(summaryText);
+                }
+                else {
+                    $scope.summaryRows = null;
+                }
+            }
+            $scope.$on($scope.modelName + '.summaryData', updateSummaryInfo);
+        }
     };
 });

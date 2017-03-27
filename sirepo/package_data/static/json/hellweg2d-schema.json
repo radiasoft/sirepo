@@ -54,6 +54,11 @@
             ["concave", "Concave"],
             ["convex", "Convex"]
         ],
+        "SplineInterpolation": [
+            ["0", "L-Spline"],
+            ["1", "C-Spline"],
+            ["2", "S-Spline"]
+        ],
         "TransversalDistribution": [
             ["twiss4d", "Twiss Parameters"],
             ["sph2d", "Spherical"],
@@ -102,12 +107,17 @@
         "simulationFolder": {
             "name": ["Folder Name", "String"]
         },
+        "simulationSettings": {
+            "meshPoints": ["Number of Mesh Points", "Integer", 20],
+            "splineInterpolation": ["Spline Interpolation", "SplineInterpolation", "0"],
+            "smoothing": ["Smoothing", "Float", 0.95]
+        },
         "simulationStatus": {},
         "solenoid": {
             "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
             "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
             "length": ["Length [cm]", "Float"],
-            "z0": ["Longitudinal Coordination of Start (Z₀) [cm]", "Float"],
+            "z0": ["Longitudinal Coordinate of Start (Z₀) [cm]", "Float"],
             "fringeRegion": ["Fringe Field Region [cm]", "Float"]
         },
         "sphericalDistribution": {
@@ -206,6 +216,14 @@
             "title": "New Folder",
             "advanced": [
                 "name"
+            ]
+        },
+        "simulationSettings": {
+            "title" : "Simulation Settings",
+            "advanced": [
+                "meshPoints",
+                "splineInterpolation",
+                "smoothing"
             ]
         },
         "simulationStatus": {

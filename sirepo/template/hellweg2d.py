@@ -17,6 +17,8 @@ import os.path
 
 HELLWEG2D_DUMP_FILE = 'all-data.bin'
 
+HELLWEG2D_SUMMARY_FILE = 'output.txt'
+
 #: Simulation type
 SIM_TYPE = 'hellweg2d'
 
@@ -37,6 +39,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
         'lastUpdateTime': last_update_time,
         'percentComplete': 100,
         'frameCount': frame_count,
+        'summaryData': _summary_text(run_dir),
     }
 
 
@@ -70,6 +73,7 @@ def extract_beam_report(report, run_dir, frame):
         'title': _report_title(report.reportType, simulation_db.get_schema(SIM_TYPE)['enum']['BeamReportType'], beam_info),
         'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
+        'summaryData': _summary_text(run_dir),
     }
 
 
@@ -132,6 +136,10 @@ def prepare_for_save(data):
     return data
 
 
+def remove_last_frame(run_dir):
+    pass
+
+
 def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
@@ -192,7 +200,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['chargeCommand'] = _generate_charge(data['models'])
     if is_parallel:
         #TODO(pjm): generate lattice
-        v['latticeCommands'] = 'DRIFT 100.0 10.0 100' + "\n"
+        #v['latticeCommands'] = 'DRIFT 100.0 10.0 100' + "\n"
+        v['latticeCommands'] = 'DRIFT 100.0 10.0' + "\n"
     else:
         # lattice element is required so make it very short and wide drift
         v['latticeCommands'] = 'DRIFT 1e-16 1e+16 2' + "\n"
@@ -219,16 +228,9 @@ def _generate_transverse_dist(models):
             dist.verticalAlpha, dist.verticalBeta, dist.verticalEmittance)
     if dist_type == 'sph2d':
         dist = models.sphericalDistribution
-        curvature_factor = abs(dist.curvatureFactor)
         if dist.curvature == 'flat':
-            curvature_factor = 0
-        elif dist.curvature == 'concave':
-            pass
-        elif dist.curvature == 'convex':
-            curvature_factor = -curvature_factor
-        else:
-            raise RuntimeError('unknown curvature: {}'.format(dist.curvature))
-        return 'SPH2D {} {} {}'.format(dist.radialLimit, curvature_factor, dist.thermalEmittance)
+            dist.curvatureFactor = 0
+        return 'SPH2D {} {} {}'.format(dist.radialLimit, dist.curvatureFactor, dist.thermalEmittance)
     if dist_type == 'ell2d':
         dist = models.ellipticalDistribution
         return 'ELL2D {} {} {} {}'.format(dist.aX, dist.bY, dist.rotationAngle, dist.rmsDeviationFactor)
@@ -240,3 +242,7 @@ def _report_title(report_type, enum_values, beam_info):
         if e[0] == report_type:
             return '{}, z={} cm'.format(e[1], 100 * hellweg2d_dump_reader.get_parameter(beam_info, 'z'))
     raise RuntimeError('unknown report type: {}'.format(report_type))
+
+
+def _summary_text(run_dir):
+    return pkio.read_text(os.path.join(str(run_dir), HELLWEG2D_SUMMARY_FILE))

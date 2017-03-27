@@ -40,10 +40,8 @@ def _run_hellweg2d(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
         pkio.write_text('input.txt', input_file)
-        #TODO(pjm): get ini values from template
-        pkio.write_text('defaults.ini', '')
+        pkio.write_text('defaults.ini', ini_file)
         solver = BeamSolver('defaults.ini', 'input.txt')
         solver.solve()
-        #TODO(pjm): save output to known filename
-        solver.save_output('output.txt')
+        solver.save_output(template.HELLWEG2D_SUMMARY_FILE)
         solver.dump_bin(template.HELLWEG2D_DUMP_FILE)
