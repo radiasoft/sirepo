@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -132,6 +132,53 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         return requestData;
     }
 
+    function initPlot(scope) {
+        var priority = 0;
+        var current = scope.$parent;
+        while (current) {
+            if (current.requestPriority) {
+                priority = current.requestPriority;
+                break;
+            }
+            current = current.$parent;
+        }
+        var interval = null;
+        var requestData = function(forceRunCount) {
+            interval = $interval(function() {
+                if (interval) {
+                    $interval.cancel(interval);
+                    interval = null;
+                }
+                if (! scope.element) {
+                    return;
+                }
+                panelState.requestData(scope.modelName, function(data) {
+                    if (! scope.element) {
+                        return;
+                    }
+                    forceRunCount = forceRunCount || 0;
+                    if (data.x_range) {
+                        scope.clearData();
+                        scope.load(data);
+                        if (data.summaryData) {
+                            $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                        }
+                    }
+                    else if (forceRunCount++ <= 2) {
+                        // try again, probably bad data
+                        panelState.clear(scope.modelName);
+                        requestData(forceRunCount);
+                    }
+                    else {
+                        panelState.setError(scope.modelName, 'server error: incomplete result');
+                        srlog('incomplete response: ', data);
+                    }
+                }, forceRunCount ? true : false);
+            }, 50 + priority * 10, 1);
+        };
+        return requestData;
+    }
+
     return {
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
@@ -214,15 +261,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         },
 
         linkPlot: function(scope, element) {
-            var priority = 0;
-            var current = scope.$parent;
-            while (current) {
-                if (current.requestPriority) {
-                    priority = current.requestPriority;
-                    break;
-                }
-                current = current.$parent;
-            }
             d3Service.d3().then(function(d3) {
                 scope.element = element[0];
                 scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
@@ -235,38 +273,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     requestData = function() {};
                 }
                 else {
-                    var interval = null;
-                    requestData = function(forceRunCount) {
-                        //TODO(pjm): timeout is a hack to give time for invalid reports to be destroyed
-                        interval = $interval(function() {
-                            if (interval) {
-                                $interval.cancel(interval);
-                                interval = null;
-                            }
-                            if (! scope.element) {
-                                return;
-                            }
-                            panelState.requestData(scope.modelName, function(data) {
-                                if (! scope.element) {
-                                    return;
-                                }
-                                forceRunCount = forceRunCount || 0;
-                                if (data.x_range) {
-                                    scope.clearData();
-                                    scope.load(data);
-                                }
-                                else if (forceRunCount++ <= 2) {
-                                    // try again, probably bad data
-                                    panelState.clear(scope.modelName);
-                                    requestData(forceRunCount);
-                                }
-                                else {
-                                    panelState.setError(scope.modelName, 'server error: incomplete result');
-                                    srlog('incomplete response: ', data);
-                                }
-                            }, forceRunCount ? true : false);
-                        }, 50 + priority * 10, 1);
-                    };
+                    requestData = initPlot(scope);
                 }
 
                 scope.windowResize = debounce(function() {
@@ -1147,7 +1154,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     [json.x_range[0], json.x_range[1]],
                     [json.y_range[0], json.y_range[1]],
                 ];
-                if (! appState.deepEquals(fullDomain, newFullDomain)) {
+                if ((yValues && yValues.length != json.z_matrix.length)
+                    || ! appState.deepEquals(fullDomain, newFullDomain)) {
                     fullDomain = newFullDomain;
                     lineOuts = {};
                     xValues = plotting.linspace(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
