@@ -136,6 +136,15 @@ def prepare_for_save(data):
     return data
 
 
+def resource_files():
+    """Library shared between simulations of this type
+
+    Returns:
+        list: py.path.local objects
+    """
+    return []
+
+
 def remove_last_frame(run_dir):
     pass
 
