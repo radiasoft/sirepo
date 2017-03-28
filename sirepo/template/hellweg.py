@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Hellweg2D execution template.
+u"""Hellweg execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,16 +11,16 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common, hellweg2d_dump_reader
+from sirepo.template import template_common, hellweg_dump_reader
 import numpy
 import os.path
 
-HELLWEG2D_DUMP_FILE = 'all-data.bin'
+HELLWEG_DUMP_FILE = 'all-data.bin'
 
-HELLWEG2D_SUMMARY_FILE = 'output.txt'
+HELLWEG_SUMMARY_FILE = 'output.txt'
 
 #: Simulation type
-SIM_TYPE = 'hellweg2d'
+SIM_TYPE = 'hellweg'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -32,7 +32,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'frameCount': 0,
         }
     dump_file = _dump_file(run_dir)
-    beam_header = hellweg2d_dump_reader.beam_header(dump_file)
+    beam_header = hellweg_dump_reader.beam_header(dump_file)
     last_update_time = int(os.path.getmtime(dump_file))
     frame_count = beam_header.NPoints
     return {
@@ -44,31 +44,31 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def extract_beam_histrogram(report, run_dir, frame):
-    beam_info = hellweg2d_dump_reader.beam_info(_dump_file(run_dir), frame)
-    points = hellweg2d_dump_reader.get_points(beam_info, report.reportType)
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
+    points = hellweg_dump_reader.get_points(beam_info, report.reportType)
     hist, edges = numpy.histogram(points, template_common.histogram_bins(report.histogramBins))
     return {
         'title': _report_title(report.reportType, simulation_db.get_schema(SIM_TYPE)['enum']['BeamHistogramReportType'], beam_info),
         'x_range': [edges[0], edges[-1]],
         'y_label': 'Number of Particles',
-        'x_label': hellweg2d_dump_reader.get_label(report.reportType),
+        'x_label': hellweg_dump_reader.get_label(report.reportType),
         'points': hist.T.tolist(),
     }
 
 
 def extract_beam_report(report, run_dir, frame):
-    beam_info = hellweg2d_dump_reader.beam_info(_dump_file(run_dir), frame)
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
     x, y = report.reportType.split('-')
     data_list = [
-        hellweg2d_dump_reader.get_points(beam_info, x),
-        hellweg2d_dump_reader.get_points(beam_info, y),
+        hellweg_dump_reader.get_points(beam_info, x),
+        hellweg_dump_reader.get_points(beam_info, y),
     ]
     hist, edges = numpy.histogramdd(data_list, template_common.histogram_bins(report.histogramBins))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': hellweg2d_dump_reader.get_label(x),
-        'y_label': hellweg2d_dump_reader.get_label(y),
+        'x_label': hellweg_dump_reader.get_label(x),
+        'y_label': hellweg_dump_reader.get_label(y),
         'title': _report_title(report.reportType, simulation_db.get_schema(SIM_TYPE)['enum']['BeamReportType'], beam_info),
         'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
@@ -197,7 +197,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
 
 
 def _dump_file(run_dir):
-    return os.path.join(str(run_dir), HELLWEG2D_DUMP_FILE)
+    return os.path.join(str(run_dir), HELLWEG_DUMP_FILE)
 
 
 def _generate_beam(models):
@@ -248,7 +248,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     else:
         # lattice element is required so make it very short and wide drift
         v['latticeCommands'] = 'DRIFT 1e-16 1e+16 2' + "\n"
-    return pkjinja.render_resource('hellweg2d.py', v)
+    return pkjinja.render_resource('hellweg.py', v)
 
 
 def _generate_solenoid(models):
@@ -283,9 +283,9 @@ def _generate_transverse_dist(models):
 def _report_title(report_type, enum_values, beam_info):
     for e in enum_values:
         if e[0] == report_type:
-            return '{}, z={} cm'.format(e[1], 100 * hellweg2d_dump_reader.get_parameter(beam_info, 'z'))
+            return '{}, z={} cm'.format(e[1], 100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
     raise RuntimeError('unknown report type: {}'.format(report_type))
 
 
 def _summary_text(run_dir):
-    return pkio.read_text(os.path.join(str(run_dir), HELLWEG2D_SUMMARY_FILE))
+    return pkio.read_text(os.path.join(str(run_dir), HELLWEG_SUMMARY_FILE))

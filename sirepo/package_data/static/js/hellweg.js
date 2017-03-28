@@ -13,16 +13,16 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
-            controller: 'Hellweg2DSourceController as source',
-            templateUrl: '/static/html/hellweg2d-source.html' + SIREPO.SOURCE_CACHE_KEY,
+            controller: 'HellwegSourceController as source',
+            templateUrl: '/static/html/hellweg-source.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.lattice, {
-            controller: 'Hellweg2DLatticeController as lattice',
-            templateUrl: '/static/html/hellweg2d-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+            controller: 'HellwegLatticeController as lattice',
+            templateUrl: '/static/html/hellweg-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
-SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('HellwegLatticeController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
     var self = this;
     self.model = 'animation';
     self.settingsModel = 'simulationSettings';
@@ -50,7 +50,7 @@ SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCac
     self.persistentSimulationInit($scope);
 });
 
-SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelState, $scope) {
+SIREPO.app.controller('HellwegSourceController', function (appState, panelState, $scope) {
     var self = this;
 
     function isActiveField(model, field) {
@@ -136,7 +136,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">Hellweg2D</a></div>',
+              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">Hellweg</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',

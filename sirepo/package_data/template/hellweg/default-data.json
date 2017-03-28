@@ -9,7 +9,7 @@
         "simulation": {
             "folder": "/",
             "isExample": false,
-            "name": "hellweg2d example",
+            "name": "hellweg example",
             "outOfSessionSimulationId": "",
             "simulationId": "gLicZdXs",
             "simulationSerial": 1487981155340231
@@ -79,6 +79,6 @@
             "verticalAlpha": 0.28
         }
     },
-    "simulationType": "hellweg2d",
+    "simulationType": "hellweg",
     "version": "20170214.000000"
 }

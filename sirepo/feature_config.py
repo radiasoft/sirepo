@@ -11,7 +11,7 @@ from pykern import pkcollections
 import copy
 
 #: All possible codes
-_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow', 'hellweg2d')
+_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow', 'hellweg')
 
 #: Codes on test and prod
 _NON_DEV_CODES = _ALL_CODES[0:4]
