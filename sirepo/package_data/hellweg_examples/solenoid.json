@@ -1,0 +1,98 @@
+{
+    "models": {
+        "beam": {
+            "current": 0,
+            "longitudinalDistribution": "norm2d",
+            "numberOfParticles": 1000,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "sph2d"
+        },
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "x-y",
+            "startTime": 1490721708
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r",
+            "startTime": 1490721708
+        },
+        "beamHistogramReport": {
+            "histogramBins": 101,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 101,
+            "reportType": "x-y"
+        },
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "energyDeviation": 0.25,
+            "energySpread": 1e-05,
+            "meanEnergy": 0.03,
+            "meanPhase": 0,
+            "phaseDeviation": 20,
+            "phaseLength": 180
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "Solenoid",
+            "outOfSessionSimulationId": "",
+            "simulationId": "gtpEpims",
+            "simulationSerial": 1490721829664784
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 100,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "simulationStatus": {
+            "animation": {
+                "elapsedTime": 2,
+                "frameCount": 101,
+                "isStateProcessing": false,
+                "lastUpdateTime": 1490721710,
+                "parametersChanged": false,
+                "percentComplete": 100,
+                "report": "animation",
+                "startTime": 1490721708,
+                "state": "completed",
+                "summaryData": "========================================\nINPUT DATA from:\ninput.txt\n========================================\nSOLENOID \t500.0 \t25.0 \t1.0\nBEAM \tSPH2D \t0.5 \t0.5 \t0.5 \tNORM2D \t0.03 \t1e-05 \t0.0 \t180.0\nCURRENT\t0.0\t1000\nDRIFT 100.0 \t10.0\nEND\n========================================\nRESULTS\n========================================\n\nTotal Length = 100.000 cm\nAverage Energy = 0.030 MeV\nMaximum Energy = 0.030 MeV\nEnergy Spectrum (FWHM) = 0.14 %\nInput Current = 0.00 mA\nBeam Current = 0.00 mA\nParticles Transmitted = 72.80 %\nBeam Radius (RMS) = 23.68 mm\nAverage Phase = -739.83 deg\nPhase Length (FWHM) = 360.26 deg\nTwiss Parameters (R):\nalpha= -63.09281\nbetta = 4667.92920 cm/rad\nemittance = 12.012372 um\nemittance (norm) = 4.174587 um\nTwiss Parameters (X):\nalpha= -35.50878\nbetta = 2618.35278 cm/rad\nemittance = 87.315536 um\nemittance (norm) = 30.344242 um\nTwiss Parameters (Y):\nalpha= -34.41360\nbetta = 2535.96069 cm/rad\nemittance = 87.277016 um\nemittance (norm) = 30.330854 um\n========================================\n"
+            }
+        },
+        "solenoid": {
+            "fieldStrength": 500,
+            "fringeRegion": 1,
+            "length": 25,
+            "sourceDefinition": "values",
+            "z0": 1
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 0,
+            "radialLimit": 0.5,
+            "thermalEmittance": 0
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.0015
+        }
+    },
+    "simulationType": "hellweg",
+    "version": "20170328.000000"
+}
