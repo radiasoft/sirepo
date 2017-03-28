@@ -14,12 +14,19 @@
             "simulationId": "gLicZdXs",
             "simulationSerial": 1487981155340231
         },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
         "beam": {
             "transversalDistribution": "twiss4d",
             "longitudinalDistribution": "norm2d",
             "current": 0.01,
             "numberOfParticles": 1000,
-            "spaceCharge": "none"
+            "spaceCharge": "none",
+            "spaceChargeCore": 3.0
         },
         "beamReport": {
             "reportType": "x-y",
@@ -28,6 +35,12 @@
         "beamHistogramReport": {
             "histogramBins": 100,
             "reportType": "r"
+        },
+        "beamHistogramAnimation": {
+            "histogramBins": 100,
+            "reportType": "r",
+            "framesPerSecond": "5",
+            "startTime": 1490386853
         },
         "ellipticalDistribution": {
             "aX": 2.0,

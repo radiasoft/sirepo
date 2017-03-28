@@ -32,6 +32,8 @@ SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCac
         if (data.startTime) {
             appState.models.beamAnimation.startTime = data.startTime;
             appState.saveQuietly('beamAnimation');
+            appState.models.beamHistogramAnimation.startTime = data.startTime;
+            appState.saveQuietly('beamHistogramAnimation');
             $rootScope.$broadcast('animation.summaryData', data.summaryData);
         }
     };
@@ -43,6 +45,7 @@ SIREPO.app.controller('Hellweg2DLatticeController', function (appState, frameCac
     persistentSimulation.initProperties(self);
     frameCache.setAnimationArgs({
         beamAnimation: ['reportType', 'histogramBins', 'startTime'],
+        beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
     });
     self.persistentSimulationInit($scope);
 });
@@ -65,6 +68,7 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
         if (beam.transversalDistribution == 'sph2d') {
             updateCurvature();
         }
+        panelState.showField('beam', 'spaceChargeCore', beam.spaceCharge == 'coulomb' || beam.spaceCharge == 'elliptic');
         panelState.showTab('beam', 2, beam.transversalDistribution == 'twiss4d');
         panelState.showTab('beam', 3, beam.transversalDistribution == 'sph2d');
         panelState.showTab('beam', 4, beam.transversalDistribution == 'ell2d');
@@ -118,7 +122,7 @@ SIREPO.app.controller('Hellweg2DSourceController', function (appState, panelStat
         updateAllFields();
     };
 
-    appState.watchModelFields($scope, ['beam.transversalDistribution', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
+    appState.watchModelFields($scope, ['beam.transversalDistribution', 'beam.spaceCharge', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
     appState.watchModelFields($scope, ['solenoid.sourceDefinition'], updateSolenoidFields);
     appState.whenModelsLoaded($scope, updateAllFields);
 });

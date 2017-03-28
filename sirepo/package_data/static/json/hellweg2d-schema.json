@@ -1,14 +1,5 @@
 {
     "enum": {
-        "BeamAnimationReportType": [
-            ["r-ar", "Radial Phase Space (r, r')"],
-            ["x-ax", "Horizontal Phase Space (x, x')"],
-            ["y-ay", "Vertical Phase Space (y, y')"],
-            ["x-y", "Beam Cross Section (x, y)"],
-            ["r-th", "Cylindrical Cross Section (theta, r)"],
-            ["th-ath", "Azmuthal Phase Space (theta, theta')"],
-            ["phi-w", "Longitudinal Phase Space (phi, W)"]
-        ],
         "BeamHistogramReportType": [
             ["w", "Energy Spectrum"],
             ["phi", "Phase Spectrum"],
@@ -24,6 +15,10 @@
             ["r-th", "Cylindrical Cross Section (theta, r)"],
             ["th-ath", "Azmuthal Phase Space (theta, theta')"],
             ["phi-w", "Longitudinal Phase Space (phi, W)"]
+        ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
         ],
         "EnergyDistributionType": [
             ["uniform", "Uniform"],
@@ -71,10 +66,16 @@
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
             "current": ["Current [A]", "Float"],
             "numberOfParticles": ["Particle Limit", "Integer"],
-            "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"]
+            "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
+            "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0]
         },
         "beamAnimation": {
-            "reportType": ["Report", "BeamAnimationReportType"],
+            "reportType": ["Report", "BeamReportType"],
+            "histogramBins": ["Number of Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "beamHistogramAnimation": {
+            "reportType": ["Report", "BeamHistogramReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
@@ -108,6 +109,7 @@
             "name": ["Folder Name", "String"]
         },
         "simulationSettings": {
+            "allowBackwardWaves": ["Allow Backward Travelling Waves", "Boolean", "0"],
             "meshPoints": ["Number of Mesh Points", "Integer", 20],
             "splineInterpolation": ["Spline Interpolation", "SplineInterpolation", "0"],
             "smoothing": ["Smoothing", "Float", 0.95]
@@ -143,6 +145,7 @@
                     "current",
                     "numberOfParticles",
                     "spaceCharge",
+                    "spaceChargeCore",
                     "transversalDistribution",
                     "longitudinalDistribution"
                 ]],
@@ -192,6 +195,13 @@
                 "framesPerSecond"
             ]
         },
+        "beamHistogramAnimation": {
+            "title": "Beam Graph Animation",
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
+        },
         "beamHistogramReport": {
             "title": "Beam Graph",
             "advanced": [
@@ -221,6 +231,7 @@
         "simulationSettings": {
             "title" : "Simulation Settings",
             "advanced": [
+                "allowBackwardWaves",
                 "meshPoints",
                 "splineInterpolation",
                 "smoothing"

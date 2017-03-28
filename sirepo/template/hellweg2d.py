@@ -53,7 +53,6 @@ def extract_beam_histrogram(report, run_dir, frame):
         'y_label': 'Number of Particles',
         'x_label': hellweg2d_dump_reader.get_label(report.reportType),
         'points': hist.T.tolist(),
-        'frameCount': 1,
     }
 
 
@@ -88,14 +87,25 @@ def get_animation_name(data):
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     args = data['animationArgs'].split('_')
-    return extract_beam_report(
-        pkcollections.Dict({
-            'reportType': args[0],
-            'histogramBins': args[1],
-        }),
-        run_dir,
-        frame_index,
-    )
+    if data['modelName'] == 'beamAnimation':
+        return extract_beam_report(
+            pkcollections.Dict({
+                'reportType': args[0],
+                'histogramBins': args[1],
+            }),
+            run_dir,
+            frame_index,
+        )
+    elif data['modelName'] == 'beamHistogramAnimation':
+        return extract_beam_histrogram(
+            pkcollections.Dict({
+                'reportType': args[0],
+                'histogramBins': args[1],
+            }),
+            run_dir,
+            frame_index,
+        )
+    raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
 def models_related_to_report(data):
@@ -122,6 +132,24 @@ def models_related_to_report(data):
 
 def new_simulation(data, new_simulation_data):
     pass
+
+
+def python_source_for_model(data, model):
+    return '''
+from rslinac.solver import BeamSolver
+
+{}
+
+with open('input.txt', 'w') as f:
+    f.write(input_file)
+
+with open('defaults.ini', 'w') as f:
+    f.write(ini_file)
+
+solver = BeamSolver('defaults.ini', 'input.txt')
+solver.solve()
+solver.save_output('output.txt')
+    '''.format(_generate_parameters_file(data, is_parallel=True))
 
 
 def prepare_aux_files(run_dir, data):
@@ -180,7 +208,7 @@ def _generate_beam(models):
 def _generate_charge(models):
     if models.beam.spaceCharge == 'none':
         return ''
-    return 'SPCHARGE {}'.format(models.beam.spaceCharge.upper())
+    return 'SPCHARGE {} {}'.format(models.beam.spaceCharge.upper(), models.beam.spaceChargeCore)
 
 
 def _generate_current(models):
@@ -200,16 +228,22 @@ def _generate_longitude_dist(models):
     raise RuntimeError('unknown longitudinal distribution: {}'.format(models.beam.longitudinalDistribution))
 
 
+def _generate_options(models):
+    if models.simulationSettings.allowBackwardWaves == '1':
+        return 'OPTIONS REVERSE'
+    return ''
+
+
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
+    v['optionsCommand'] = _generate_options(data['models'])
     v['solenoidCommand'] = _generate_solenoid(data['models'])
     v['beamCommand'] = _generate_beam(data['models'])
     v['currentCommand'] = _generate_current(data['models'])
     v['chargeCommand'] = _generate_charge(data['models'])
     if is_parallel:
         #TODO(pjm): generate lattice
-        #v['latticeCommands'] = 'DRIFT 100.0 10.0 100' + "\n"
         v['latticeCommands'] = 'DRIFT 100.0 10.0' + "\n"
     else:
         # lattice element is required so make it very short and wide drift

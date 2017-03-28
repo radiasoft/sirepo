@@ -132,7 +132,7 @@ def beam_info(filename, idx):
         assert f.readinto(beam_header) == ctypes.sizeof(beam_header)
         info['BeamHeader'] = beam_header
         particles = []
-        for _ in range(header.NParticles):
+        for _ in xrange(header.NParticles):
             p = TParticle()
             assert f.readinto(p) == ctypes.sizeof(p)
             particles.append(p)
