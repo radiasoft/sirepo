@@ -794,6 +794,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
                     points = [];
                     xAxisScale.domain(xdom);
                 }
+                if (! SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS) {
+                    points = [];
+                }
                 var ymin = d3.min(json.points);
                 if (ymin > 0) {
                     ymin = 0;
