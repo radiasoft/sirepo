@@ -1,5 +1,14 @@
 {
     "models": {
+        "beamline": [
+            {
+                "id": 2,
+                "length": 100,
+                "meshPoints": 100,
+                "radius": 10,
+                "type": "driftElement"
+            }
+        ],
         "beam": {
             "current": 0,
             "longitudinalDistribution": "norm2d",

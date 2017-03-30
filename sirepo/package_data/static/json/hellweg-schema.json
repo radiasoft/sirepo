@@ -35,6 +35,18 @@
         "LongitudinalDistribution": [
             ["norm2d", "Uniform/Gaussian"]
         ],
+        "ParticleRange": [
+            ["all", "All Particles"],
+            ["count", "Particle Count"],
+            ["range", "Particle Range"]
+        ],
+        "SaveFileFormat": [
+            ["PID", "CST PID Format"],
+            ["PIT", "CST PIT Format"],
+            ["ASTRA", "ASTRA Format"],
+            ["LIVE", "Live Particles"],
+            ["LOST", "Lost Particles"]
+        ],
         "SolenoidDefinition": [
             ["none", "None"],
             ["values", "From Field Values"]
@@ -87,6 +99,26 @@
             "reportType": ["Report", "BeamReportType"],
             "histogramBins": ["Number of Bins", "Integer"]
         },
+        "cellElement": {
+            "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
+            "phaseVelocity": ["Relative Phase Velocity", "Float", 0.999],
+            "acceleratingInvariant": ["Accelerating Field Invariant (Eλ/√P)", "Float", 200.0],
+            "attenuation": ["Normalized Attenuation [√m]", "Float", 0.01],
+            "aperture": ["Normalized Aperture", "Float", 0.12]
+        },
+        "cellsElement": {
+            "repeat": ["Repeat Count", "Integer", 2],
+            "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
+            "phaseVelocity": ["Relative Phase Velocity", "Float", 0.999],
+            "acceleratingInvariant": ["Accelerating Field Invariant (Eλ/√P)", "Float", 200.0],
+            "attenuation": ["Normalized Attenuation [√m]", "Float", 0.01],
+            "aperture": ["Normalized Aperture", "Float", 0.12]
+        },
+        "driftElement": {
+            "length": ["Length [cm]", "Float", 10.0],
+            "radius": ["Radius [cm]", "Float", 2.0],
+            "meshPoints": ["Mesh Points", "Integer", 20]
+        },
         "ellipticalDistribution": {
             "aX": ["a(x) [cm]", "Float"],
             "bY": ["b(y) [cm]", "Float"],
@@ -101,6 +133,19 @@
             "meanPhase": ["Mean Phase [deg]", "Float"],
             "phaseLength": ["Phase Length [deg]", "Float"],
             "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+        },
+        "powerElement": {
+            "inputPower": ["Pulsed Input Power [MW]", "Float", 2.0],
+            "frequency": ["Operating Frequency [MHz]", "Float", 2856.0],
+            "phaseShift": ["Phase Shift [deg]", "Float", 0.0]
+        },
+        "saveElement": {
+            "name": ["File Name", "String", ""],
+            "particleRange": ["Particles", "ParticleRange", "all"],
+            "particleLimit": ["Particle Limit", "Integer", 500],
+            "particleStart": ["Particle Start", "Integer", 500],
+            "particleEnd": ["Particle End", "Integer", 1000],
+            "format": ["File Format", "SaveFileFormat", "PID"]
         },
         "simulation": {
             "name": ["Name", "String"]
@@ -214,6 +259,54 @@
             "advanced": [
                 "reportType",
                 "histogramBins"
+            ]
+        },
+        "cellElement": {
+            "title": "Cell",
+            "advanced": [
+                "phaseAdvance",
+                "phaseVelocity",
+                "acceleratingInvariant",
+                "attenuation",
+                "aperture"
+            ]
+        },
+        "cellsElement": {
+            "title": "Cells",
+            "advanced": [
+                "repeat",
+                "phaseAdvance",
+                "phaseVelocity",
+                "acceleratingInvariant",
+                "attenuation",
+                "aperture"
+            ]
+        },
+        "driftElement": {
+            "title": "Drift",
+            "advanced": [
+                "length",
+                "radius",
+                "meshPoints"
+            ]
+        },
+        "powerElement": {
+            "title": "Power",
+            "advanced": [
+                "inputPower",
+                "frequency",
+                "phaseShift"
+            ]
+        },
+        "saveElement": {
+            "title": "Save",
+            "advanced": [
+                "name",
+                "particleRange",
+                "particleLimit",
+                "particleStart",
+                "particleEnd",
+                "format"
             ]
         },
         "simulation": {

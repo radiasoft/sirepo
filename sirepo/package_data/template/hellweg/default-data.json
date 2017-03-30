@@ -1,5 +1,6 @@
 {
     "models": {
+        "beamline": [],
         "beamAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,

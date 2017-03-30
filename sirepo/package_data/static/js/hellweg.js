@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
+SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -19,35 +20,158 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.lattice, {
             controller: 'HellwegLatticeController as lattice',
             templateUrl: '/static/html/hellweg-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+        })
+        .when(localRoutes.visualization, {
+            controller: 'HellwegVisualizationController as visualization',
+            templateUrl: '/static/html/hellweg-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
-SIREPO.app.controller('HellwegLatticeController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
     var self = this;
-    self.model = 'animation';
-    self.settingsModel = 'simulationSettings';
+    self.appState = appState;
+    self.toolbarItems = ['powerElement', 'cellElement', 'cellsElement', 'driftElement', 'saveElement'];
 
-    self.handleStatus = function(data) {
-        frameCache.setFrameCount(data.frameCount);
-        if (data.startTime) {
-            appState.models.beamAnimation.startTime = data.startTime;
-            appState.saveQuietly('beamAnimation');
-            appState.models.beamHistogramAnimation.startTime = data.startTime;
-            appState.saveQuietly('beamHistogramAnimation');
-            $rootScope.$broadcast('animation.summaryData', data.summaryData);
+    function isElementModelName(modelName) {
+        return modelName.indexOf('Element') >= 0;
+    }
+
+    function itemIndex(item) {
+        var beamline = appState.models.beamline;
+        for (var i = 0; i < beamline.length; i++) {
+            if (beamline[i].id == item.id) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function newItem(modelName) {
+        return appState.setModelDefaults({
+            type: modelName,
+        }, modelName);
+    }
+
+    function updateSaveElementFields() {
+        var m = appState.models.saveElement;
+        if (m) {
+            panelState.showField('saveElement', 'particleLimit', m.particleRange == 'count');
+            ['particleStart', 'particleEnd'].forEach(function(f) {
+                panelState.showField('saveElement', f, m.particleRange == 'range');
+            });
+        }
+    }
+
+    self.deleteItem = function(item) {
+        if (! item) {
+            return;
+        }
+        self.selectItem(item);
+        $('#hellweg-delete-element-confirmation').modal('show');
+    };
+
+    self.deleteSelected = function() {
+        if (self.selectedItem) {
+            var index = itemIndex(self.selectedItem);
+            if (index >= 0) {
+                self.selectedItem = null;
+                appState.models.beamline.splice(index, 1);
+                appState.saveChanges('beamline');
+            }
         }
     };
 
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
+    self.dropItem = function(index, item) {
+        if (! item) {
+            return;
+        }
+        if (angular.isObject(item)) {
+            var beamline = appState.models.beamline;
+            var i = itemIndex(item);
+            if (index == i) {
+                return;
+            }
+            item = beamline.splice(i, 1)[0];
+            if (i < index) {
+                index--;
+            }
+            beamline.splice(index, 0, item);
+            appState.saveChanges('beamline');
+            self.selectItem(item);
+        }
+        else {
+            self.selectedIndex = index;
+            self.editItem(newItem(item));
+        }
     };
 
-    persistentSimulation.initProperties(self);
-    frameCache.setAnimationArgs({
-        beamAnimation: ['reportType', 'histogramBins', 'startTime'],
-        beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
+    self.dropLast = function(item) {
+        self.dropItem(appState.models.beamline.length, item);
+    };
+
+    self.editItem = function(item) {
+        appState.models[item.type] = item;
+        panelState.showModalEditor(item.type);
+    };
+
+    self.handleModalShown = function(name) {
+        if (name == 'saveElement') {
+            updateSaveElementFields();
+        }
+    };
+
+    self.isSelected = function(item) {
+        if (self.selectedItem) {
+            return item.id == self.selectedItem.id;
+        }
+        return false;
+    };
+
+    self.itemName = function(item) {
+        var modelName = angular.isObject(item) ? item.type : item;
+        if (modelName) {
+            return appState.viewInfo(modelName).title;
+        }
+        return '';
+    };
+
+    self.itemValues = function(item) {
+        return appState.viewInfo(item.type).advanced.map(function(f) {
+            return item[f];
+        }).join(' ');
+    };
+
+    self.selectItem = function(item) {
+        self.selectedItem = angular.isObject(item) ? item : null;
+    };
+
+    self.selectedItemName = function() {
+        if (self.selectedItem) {
+            return self.itemName(self.selectedItem) + ' ' + self.itemValues(self.selectedItem);
+        }
+        return '';
+    };
+
+    $scope.$on('cancelChanges', function(e, name) {
+        if (isElementModelName(name)) {
+            appState.removeModel(name);
+            appState.cancelChanges('beamline');
+        }
     });
-    self.persistentSimulationInit($scope);
+
+    $scope.$on('modelChanged', function(e, name) {
+        if (isElementModelName(name)) {
+            if (! appState.models[name].id) {
+                appState.models[name].id = appState.maxId(appState.models.beamline) + 1;
+                appState.models.beamline.splice(self.selectedIndex, 0, appState.models[name]);
+                self.selectedItem = appState.models[name];
+            }
+            appState.removeModel(name);
+            appState.saveChanges('beamline');
+        }
+    });
+
+    appState.watchModelFields($scope, ['saveElement.particleRange'], updateSaveElementFields);
 });
 
 SIREPO.app.controller('HellwegSourceController', function (appState, panelState, $scope) {
@@ -127,6 +251,36 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
+    var self = this;
+    self.model = 'animation';
+    self.settingsModel = 'simulationSettings';
+    self.simulationErrors = '';
+
+    self.handleStatus = function(data) {
+        self.simulationErrors = data.errors || '';
+        frameCache.setFrameCount(data.frameCount);
+        if (data.startTime) {
+            appState.models.beamAnimation.startTime = data.startTime;
+            appState.saveQuietly('beamAnimation');
+            appState.models.beamHistogramAnimation.startTime = data.startTime;
+            appState.saveQuietly('beamHistogramAnimation');
+            $rootScope.$broadcast('animation.summaryData', data.summaryData);
+        }
+    };
+
+    self.getFrameCount = function() {
+        return frameCache.getFrameCount();
+    };
+
+    persistentSimulation.initProperties(self);
+    frameCache.setAnimationArgs({
+        beamAnimation: ['reportType', 'histogramBins', 'startTime'],
+        beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
+    });
+    self.persistentSimulationInit($scope);
+});
+
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restirct: 'A',
@@ -143,6 +297,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
