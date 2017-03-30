@@ -3,7 +3,7 @@
         "beam": {
             "current": 0,
             "longitudinalDistribution": "norm2d",
-            "numberOfParticles": 1000,
+            "numberOfParticles": 10000,
             "spaceCharge": "none",
             "spaceChargeCore": 3,
             "transversalDistribution": "sph2d"
@@ -11,14 +11,14 @@
         "beamAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
-            "reportType": "x-y",
-            "startTime": 1490894383
+            "reportType": "r-ar",
+            "startTime": 1490893613
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r",
-            "startTime": 1490894383
+            "startTime": 1490893613
         },
         "beamHistogramReport": {
             "histogramBins": 100,
@@ -31,9 +31,9 @@
         "beamline": [
             {
                 "id": 2,
-                "length": 25,
+                "length": 10,
                 "meshPoints": 500,
-                "radius": 1,
+                "radius": 2.5,
                 "type": "driftElement"
             }
         ],
@@ -46,19 +46,22 @@
         "energyPhaseDistribution": {
             "distributionType": "uniform",
             "energyDeviation": 0.25,
-            "energySpread": 1e-05,
-            "meanEnergy": 0.03,
+            "energySpread": 0.001,
+            "meanEnergy": 1,
             "meanPhase": 0,
             "phaseDeviation": 20,
             "phaseLength": 180
         },
+        "panelState": {
+            "hidden": []
+        },
         "simulation": {
             "folder": "/",
             "isExample": true,
-            "name": "Solenoid",
+            "name": "Drift Tube",
             "outOfSessionSimulationId": "",
-            "simulationId": "LUV9dLw2",
-            "simulationSerial": 1490894709088191
+            "simulationId": "kc2EEDr4",
+            "simulationSerial": 1490894013614259
         },
         "simulationSettings": {
             "allowBackwardWaves": "0",
@@ -67,17 +70,17 @@
             "splineInterpolation": "0"
         },
         "solenoid": {
-            "fieldStrength": 500,
+            "fieldStrength": 1000,
             "fringeRegion": 1,
-            "length": 25,
-            "sourceDefinition": "values",
-            "z0": 1
+            "length": 20,
+            "sourceDefinition": "none",
+            "z0": 0
         },
         "sphericalDistribution": {
             "curvature": "flat",
             "curvatureFactor": 0,
-            "radialLimit": 0.5,
-            "thermalEmittance": 0
+            "radialLimit": 5,
+            "thermalEmittance": 10
         },
         "twissDistribution": {
             "horizontalAlpha": 0.14,

@@ -1,24 +1,24 @@
 {
     "models": {
         "beam": {
-            "current": 0,
+            "current": 1,
             "longitudinalDistribution": "norm2d",
             "numberOfParticles": 1000,
-            "spaceCharge": "none",
+            "spaceCharge": "elliptic",
             "spaceChargeCore": 3,
-            "transversalDistribution": "sph2d"
+            "transversalDistribution": "twiss4d"
         },
         "beamAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
-            "reportType": "x-y",
-            "startTime": 1490894383
+            "reportType": "r-ar",
+            "startTime": 1490893953
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r",
-            "startTime": 1490894383
+            "startTime": 1490893953
         },
         "beamHistogramReport": {
             "histogramBins": 100,
@@ -31,9 +31,9 @@
         "beamline": [
             {
                 "id": 2,
-                "length": 25,
+                "length": 30,
                 "meshPoints": 500,
-                "radius": 1,
+                "radius": 10,
                 "type": "driftElement"
             }
         ],
@@ -46,19 +46,19 @@
         "energyPhaseDistribution": {
             "distributionType": "uniform",
             "energyDeviation": 0.25,
-            "energySpread": 1e-05,
-            "meanEnergy": 0.03,
-            "meanPhase": 0,
+            "energySpread": 0.001,
+            "meanEnergy": 0.1,
+            "meanPhase": 90,
             "phaseDeviation": 20,
-            "phaseLength": 180
+            "phaseLength": 10
         },
         "simulation": {
             "folder": "/",
             "isExample": true,
-            "name": "Solenoid",
+            "name": "Space Charge",
             "outOfSessionSimulationId": "",
-            "simulationId": "LUV9dLw2",
-            "simulationSerial": 1490894709088191
+            "simulationId": "Wc0Nn2js",
+            "simulationSerial": 1490894235883413
         },
         "simulationSettings": {
             "allowBackwardWaves": "0",
@@ -67,25 +67,25 @@
             "splineInterpolation": "0"
         },
         "solenoid": {
-            "fieldStrength": 500,
+            "fieldStrength": 1000,
             "fringeRegion": 1,
-            "length": 25,
-            "sourceDefinition": "values",
-            "z0": 1
+            "length": 20,
+            "sourceDefinition": "none",
+            "z0": 0
         },
         "sphericalDistribution": {
             "curvature": "flat",
-            "curvatureFactor": 0,
-            "radialLimit": 0.5,
+            "curvatureFactor": 1,
+            "radialLimit": 0.564,
             "thermalEmittance": 0
         },
         "twissDistribution": {
-            "horizontalAlpha": 0.14,
-            "horizontalBeta": 2,
-            "horizontalEmittance": 0.0005,
-            "verticalAlpha": 0.28,
+            "horizontalAlpha": 0,
+            "horizontalBeta": 3,
+            "horizontalEmittance": 0.004,
+            "verticalAlpha": 0,
             "verticalBeta": 4,
-            "verticalEmittance": 0.0015
+            "verticalEmittance": 0.004
         }
     },
     "simulationType": "hellweg",

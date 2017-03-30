@@ -222,6 +222,9 @@ def _generate_beam(models):
 
 
 def _generate_cell_params(el):
+    #TODO(pjm): add an option field to select auto-calculate
+    if el.attenuation == 0 and el.aperture == 0:
+        return '{} {} {}'.format(el.phaseAdvance, el.phaseVelocity, el.acceleratingInvariant)
     return '{} {} {} {} {}'.format(el.phaseAdvance, el.phaseVelocity, el.acceleratingInvariant, el.attenuation, el.aperture)
 
 
