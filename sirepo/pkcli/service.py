@@ -200,9 +200,11 @@ cfg = pkconfig.init(
     nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
     port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
     processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
-    run_dir=('{SIREPO_PKCLI_SERVICE_DB_DIR}', str, 'where to run the program'),
+    run_dir=(None, str, 'where to run the program (defaults db_dir)'),
     # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
     # so limit to 128, which is probably more than enough with
     # this application.
     threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
 )
+if not cfg.run_dir:
+    cfg.run_dir = cfg.db_dir

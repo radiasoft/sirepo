@@ -985,7 +985,7 @@ def _validate_serial(data):
 
 cfg = pkconfig.init(
     beaker_session=dict(
-        key=('sirepo_{PYKERN_PKCONFIG_CHANNEL}', str, 'Beaker: Name of the cookie key used to save the session under'),
+        key=('sirepo_' + pkconfig.cfg.channel, str, 'Beaker: Name of the cookie key used to save the session under'),
         secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),

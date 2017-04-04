@@ -1,0 +1,348 @@
+{
+    "enum": {
+        "BeamHistogramReportType": [
+            ["w", "Energy Spectrum"],
+            ["phi", "Phase Spectrum"],
+            ["r", "Radial Spectrum"],
+            ["x", "Horizontal Spectrum"],
+            ["y", "Vertical Spectrum"]
+        ],
+        "BeamReportType": [
+            ["r-ar", "Radial Phase Space (r, r')"],
+            ["x-ax", "Horizontal Phase Space (x, x')"],
+            ["y-ay", "Vertical Phase Space (y, y')"],
+            ["x-y", "Beam Cross Section (x, y)"],
+            ["r-th", "Cylindrical Cross Section (theta, r)"],
+            ["th-ath", "Azmuthal Phase Space (theta, theta')"],
+            ["phi-w", "Longitudinal Phase Space (phi, W)"]
+        ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
+        "EnergyDistributionType": [
+            ["uniform", "Uniform"],
+            ["gaussian", "Gaussian"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
+        "LongitudinalDistribution": [
+            ["norm2d", "Uniform/Gaussian"]
+        ],
+        "ParticleRange": [
+            ["all", "All Particles"],
+            ["count", "Particle Count"],
+            ["range", "Particle Range"]
+        ],
+        "SaveFileFormat": [
+            ["PID", "CST PID Format"],
+            ["PIT", "CST PIT Format"],
+            ["ASTRA", "ASTRA Format"],
+            ["LIVE", "Live Particles"],
+            ["LOST", "Lost Particles"]
+        ],
+        "SolenoidDefinition": [
+            ["none", "None"],
+            ["values", "From Field Values"]
+        ],
+        "SpaceChargeAlgorithm": [
+            ["none", "None"],
+            ["coulomb", "Ellipsoid Bunch Approximation per Lapostolle Formula"],
+            ["elliptic", "Elliptic Integrals Form-Factors"]
+        ],
+        "SphericalCurvature": [
+            ["flat", "Flat"],
+            ["concave", "Concave"],
+            ["convex", "Convex"]
+        ],
+        "SplineInterpolation": [
+            ["0", "L-Spline"],
+            ["1", "C-Spline"],
+            ["2", "S-Spline"]
+        ],
+        "TransversalDistribution": [
+            ["twiss4d", "Twiss Parameters"],
+            ["sph2d", "Spherical"],
+            ["ell2d", "Elliptical"]
+        ]
+    },
+    "model": {
+        "beam": {
+            "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
+            "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
+            "current": ["Current [A]", "Float"],
+            "numberOfParticles": ["Particle Limit", "Integer"],
+            "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
+            "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0]
+        },
+        "beamAnimation": {
+            "reportType": ["Report", "BeamReportType"],
+            "histogramBins": ["Number of Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "beamHistogramAnimation": {
+            "reportType": ["Report", "BeamHistogramReportType"],
+            "histogramBins": ["Number of Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "beamHistogramReport": {
+            "reportType": ["Report", "BeamHistogramReportType"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "beamReport": {
+            "reportType": ["Report", "BeamReportType"],
+            "histogramBins": ["Number of Bins", "Integer"]
+        },
+        "cellElement": {
+            "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
+            "phaseVelocity": ["Relative Phase Velocity", "Float", 0.999],
+            "acceleratingInvariant": ["Accelerating Field Invariant (Eλ/√P)", "Float", 200.0],
+            "attenuation": ["Normalized Attenuation [√m]", "Float", 0.01],
+            "aperture": ["Normalized Aperture", "Float", 0.12]
+        },
+        "cellsElement": {
+            "repeat": ["Repeat Count", "Integer", 2],
+            "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
+            "phaseVelocity": ["Relative Phase Velocity", "Float", 0.999],
+            "acceleratingInvariant": ["Accelerating Field Invariant (Eλ/√P)", "Float", 200.0],
+            "attenuation": ["Normalized Attenuation [√m]", "Float", 0.01],
+            "aperture": ["Normalized Aperture", "Float", 0.12]
+        },
+        "driftElement": {
+            "length": ["Length [cm]", "Float", 10.0],
+            "radius": ["Radius [cm]", "Float", 2.0],
+            "meshPoints": ["Mesh Points", "Integer", 20]
+        },
+        "ellipticalDistribution": {
+            "aX": ["a(x) [cm]", "Float"],
+            "bY": ["b(y) [cm]", "Float"],
+            "rotationAngle": ["Rotation Angle [deg]", "Float", "0"],
+            "rmsDeviationFactor": ["RMS Deviation Factor (σ = a/factor)", "Float", "1"]
+        },
+        "energyPhaseDistribution": {
+            "distributionType": ["Distribution Type", "EnergyDistributionType"],
+            "meanEnergy": ["Mean Energy [MeV]", "Float"],
+            "energySpread": ["Energy Spread [MeV]", "Float"],
+            "energyDeviation": ["Energy RMS Deviation [MeV]", "Float"],
+            "meanPhase": ["Mean Phase [deg]", "Float"],
+            "phaseLength": ["Phase Length [deg]", "Float"],
+            "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+        },
+        "powerElement": {
+            "inputPower": ["Pulsed Input Power [MW]", "Float", 2.0],
+            "frequency": ["Operating Frequency [MHz]", "Float", 2856.0],
+            "phaseShift": ["Phase Shift [deg]", "Float", 0.0]
+        },
+        "saveElement": {
+            "name": ["File Name", "String", ""],
+            "particleRange": ["Particles", "ParticleRange", "all"],
+            "particleLimit": ["Particle Limit", "Integer", 500],
+            "particleStart": ["Particle Start", "Integer", 500],
+            "particleEnd": ["Particle End", "Integer", 1000],
+            "format": ["File Format", "SaveFileFormat", "PID"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": ["Allow Backward Travelling Waves", "Boolean", "0"],
+            "meshPoints": ["Number of Mesh Points", "Integer", 20],
+            "splineInterpolation": ["Spline Interpolation", "SplineInterpolation", "0"],
+            "smoothing": ["Smoothing", "Float", 0.95]
+        },
+        "simulationStatus": {},
+        "solenoid": {
+            "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
+            "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
+            "length": ["Length [cm]", "Float"],
+            "z0": ["Longitudinal Coordinate of Start (Z₀) [cm]", "Float"],
+            "fringeRegion": ["Fringe Field Region [cm]", "Float"]
+        },
+        "sphericalDistribution": {
+            "radialLimit": ["Radial Limit [cm]", "Float"],
+            "curvature": ["Curvature", "SphericalCurvature"],
+            "curvatureFactor": ["Curvature Factor (r'=-sin(r/factor))", "Float"],
+            "thermalEmittance": ["Thermal Emittance [eV]", "Float"]
+        },
+        "twissDistribution": {
+            "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float"],
+            "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float"],
+            "horizontalAlpha": ["Horizontal Alpha [cm/rad]", "Float"],
+            "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float"],
+            "verticalBeta": ["Vertical Beta [cm/rad]", "Float"],
+            "verticalAlpha": ["Vertical Alpha [cm/rad]", "Float"]
+        }
+    },
+    "view": {
+        "beam": {
+            "title": "Beam",
+            "basic": [
+                ["Main", [
+                    "current",
+                    "numberOfParticles",
+                    "spaceCharge",
+                    "spaceChargeCore",
+                    "transversalDistribution",
+                    "longitudinalDistribution"
+                ]],
+                ["Transversal Distribution (Twiss)", [
+                    [
+                        ["Horizontal", [
+                            "twissDistribution.horizontalEmittance",
+                            "twissDistribution.horizontalBeta",
+                            "twissDistribution.horizontalAlpha"
+                        ]],
+                        ["Vertical", [
+                            "twissDistribution.verticalEmittance",
+                            "twissDistribution.verticalBeta",
+                            "twissDistribution.verticalAlpha"
+                        ]]
+                    ]
+                ]],
+                ["Transversal Distribution (Spherical)", [
+                    "sphericalDistribution.radialLimit",
+                    "sphericalDistribution.curvature",
+                    "sphericalDistribution.curvatureFactor",
+                    "sphericalDistribution.thermalEmittance"
+                ]],
+                ["Transversal Distribution (Elliptical)", [
+                    "ellipticalDistribution.aX",
+                    "ellipticalDistribution.bY",
+                    "ellipticalDistribution.rotationAngle",
+                    "ellipticalDistribution.rmsDeviationFactor"
+                ]],
+                ["Longitudinal Distribution", [
+                    "energyPhaseDistribution.distributionType",
+                    "energyPhaseDistribution.meanEnergy",
+                    "energyPhaseDistribution.energySpread",
+                    "energyPhaseDistribution.energyDeviation",
+                    "energyPhaseDistribution.meanPhase",
+                    "energyPhaseDistribution.phaseLength",
+                    "energyPhaseDistribution.phaseDeviation"
+                ]]
+            ],
+            "advanced": []
+        },
+        "beamAnimation": {
+            "title": "Beam Animation",
+            "advanced": [
+                "reportType",
+                "histogramBins",
+                "framesPerSecond"
+            ]
+        },
+        "beamHistogramAnimation": {
+            "title": "Beam Graph Animation",
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
+        },
+        "beamHistogramReport": {
+            "title": "Beam Graph",
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
+        },
+        "beamReport": {
+            "title": "Beam Report",
+            "advanced": [
+                "reportType",
+                "histogramBins"
+            ]
+        },
+        "cellElement": {
+            "title": "Cell",
+            "advanced": [
+                "phaseAdvance",
+                "phaseVelocity",
+                "acceleratingInvariant",
+                "attenuation",
+                "aperture"
+            ]
+        },
+        "cellsElement": {
+            "title": "Cells",
+            "advanced": [
+                "repeat",
+                "phaseAdvance",
+                "phaseVelocity",
+                "acceleratingInvariant",
+                "attenuation",
+                "aperture"
+            ]
+        },
+        "driftElement": {
+            "title": "Drift",
+            "advanced": [
+                "length",
+                "radius",
+                "meshPoints"
+            ]
+        },
+        "powerElement": {
+            "title": "Power",
+            "advanced": [
+                "inputPower",
+                "frequency",
+                "phaseShift"
+            ]
+        },
+        "saveElement": {
+            "title": "Save",
+            "advanced": [
+                "name",
+                "particleRange",
+                "particleLimit",
+                "particleStart",
+                "particleEnd",
+                "format"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationSettings": {
+            "title" : "Simulation Settings",
+            "advanced": [
+                "allowBackwardWaves",
+                "meshPoints",
+                "splineInterpolation",
+                "smoothing"
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "solenoid": {
+            "title": "Solenoid",
+            "basic": [
+                "sourceDefinition",
+                "fieldStrength",
+                "length",
+                "z0"
+            ],
+            "advanced": []
+        }
+    }
+}

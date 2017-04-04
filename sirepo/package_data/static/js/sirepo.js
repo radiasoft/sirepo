@@ -513,7 +513,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
                 if (self.isLoaded() && newValue != oldValue) {
                     // call in next cycle to allow UI to change layout first
-                    $interval(callback, 1, 1, false);
+                    $interval(callback, 1, 1);
                 }
             });
         });
