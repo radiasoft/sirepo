@@ -374,6 +374,8 @@ def fixup_old_data(data):
         })
     if 'numberOfMacroElectrons' not in data['models']['multiElectronAnimation']:  # added 08/10/2016 for ticket #278
         data['models']['multiElectronAnimation']['numberOfMacroElectrons'] = 100000
+    if 'photonEnergyBandWidth' not in data['models']['multiElectronAnimation']:  # added 03/29/2017 for ticket #708
+        data['models']['multiElectronAnimation']['photonEnergyBandWidth'] = _SCHEMA['model']['multiElectronAnimation']['photonEnergyBandWidth'][2]
     for item in data['models']['beamline']:
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
@@ -1436,6 +1438,16 @@ def _generate_parameters_file(data, plot_reports=False):
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
             data['models']['tabulatedUndulator']['indexFileName'] = ''
+
+    if report != 'multiElectronAnimation' or data['models']['multiElectronAnimation']['photonEnergyBandWidth'] <= 0:
+        data['models']['multiElectronAnimation']['photonEnergyIntegration'] = 0
+        data['models']['simulation']['finalPhotonEnergy'] = -1.0
+    else:
+        data['models']['multiElectronAnimation']['photonEnergyIntegration'] = 1
+        half_width = float(data['models']['multiElectronAnimation']['photonEnergyBandWidth']) / 2.0
+        data['models']['simulation']['photonEnergy'] = float(data['models']['simulation']['photonEnergy'])
+        data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
+        data['models']['simulation']['photonEnergy'] -= half_width
 
     _validate_data(data, _SCHEMA)
     last_id = None

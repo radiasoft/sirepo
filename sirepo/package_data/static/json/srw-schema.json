@@ -477,7 +477,8 @@
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "400"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -1077,7 +1078,8 @@
                 ["Main", [
                     "simulation.photonEnergy",
                     "stokesParameter",
-                    "numberOfMacroElectrons"
+                    "numberOfMacroElectrons",
+                    "photonEnergyBandWidth"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",

@@ -176,7 +176,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm', '', '{{multiElectronAnimation}}', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
 
     ['w_e', 'f', {{simulation_photonEnergy}}, 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_ef', 'f', {{simulation_finalPhotonEnergy}}, 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ne', 'i', 1, 'number of points vs photon energy for calculation of intensity distribution'],
     ['w_x', 'f', {{simulation_horizontalPosition}}, 'central horizontal position [m] for calculation of intensity distribution'],
     ['w_rx', 'f', {{simulation_horizontalRange}}, 'range of horizontal position [m] for calculation of intensity distribution'],
@@ -204,7 +204,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_ap', 'i', {{multiElectronAnimation_stokesParameter}}, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
     ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
     ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],
-    ['wm_ei', 'i', 0, 'integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from w_e, w_ef'],
+    ['wm_ei', 'i', {{multiElectronAnimation_photonEnergyIntegration}}, 'integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from w_e, w_ef'],
     ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
     ['wm_fni', 's', '{{multiElectronAnimationFilename}}', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
