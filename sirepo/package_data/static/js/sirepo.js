@@ -1050,11 +1050,8 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             });
     };
 
-    self.localRedirect = function(routeName, params, search) {
+    self.localRedirect = function(routeName, params) {
         $location.path(self.formatUrlLocal(routeName, params));
-        if (search) {
-            $location.search(search);
-        }
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
@@ -1596,8 +1593,8 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
 SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
-    function openSection(name, search) {
-        requestSender.localRedirect(name, sectionParams(name), search);
+    function openSection(name) {
+        requestSender.localRedirect(name, sectionParams(name));
     }
 
     function sectionParams(name) {
@@ -1616,9 +1613,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     self.openSection = function(name) {
         if (name == 'simulations' && appState.isLoaded()) {
             appState.autoSave(function() {
-                openSection(name, {
-                    show_item_id: appState.models.simulation.simulationId,
-                });
+                openSection(name);
             });
         }
         else {
@@ -1730,7 +1725,6 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     self.fileTree = [];
     self.selectedItem = null;
     self.sortField = 'name';
-    var showItemId = $location.search().show_item_id;
 
     function addToTree(item) {
         var path = item.folder == '/'
@@ -1795,6 +1789,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
 
     function loadList() {
         var showItem = null;
+        var activeFolder = appState.getActiveFolderPath();
         appState.listSimulations(
             $location.search(),
             function(data) {
@@ -1810,7 +1805,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                 ];
                 for (var i = 0; i < data.length; i++) {
                     var item = addToTree(data[i]);
-                    if (showItemId && (item.simulationId == showItemId)) {
+                    if (activeFolder && data[i].folder == activeFolder) {
                         showItem = item;
                     }
                 }
