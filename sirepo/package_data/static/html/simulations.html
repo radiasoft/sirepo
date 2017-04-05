@@ -39,7 +39,7 @@
         </table>
         </div></div>
 
-        <div data-ng-show="simulations.isIconView" style="margin-right: -10px"><div data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', 'name']" class="sr-icon-col">
+        <div data-ng-show="simulations.isIconView" style="margin-right: 65px"><div data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', 'name']" class="sr-icon-col">
           <div class="sr-thumbnail text-center dropdown">
             <a class="sr-item-icon" data-toggle="dropdown">
               <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder}"></span><span class="caret"></span>
