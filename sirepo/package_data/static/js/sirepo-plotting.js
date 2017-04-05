@@ -854,6 +854,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.rightPanelMargin = {left: 10, right: 40};
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
+            $scope.titleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 50;
             $scope.dataCleared = true;
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
@@ -885,6 +886,18 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                         return;
                     }
                     scale.domain(domain);
+                }
+            }
+
+            function centerTitle() {
+                // center the title over the image, if text is too large, center it over whole plot
+                var titleNode = select('text.main-title').node();
+                if (titleNode) {
+                    var width = titleNode.getBBox().width;
+                    $scope.titleCenter = $scope.canvasSize / 2;
+                    if (width > $scope.canvasSize) {
+                        $scope.titleCenter += $scope.rightPanelWidth / 2;
+                    }
                 }
             }
 
@@ -1078,6 +1091,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     xAxisScale.domain(),
                     yAxisScale.domain(),
                 ];
+                centerTitle();
             }
 
             function resetZoom() {
