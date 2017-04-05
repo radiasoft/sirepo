@@ -100,6 +100,11 @@ def get_animation_name(data):
     return 'animation'
 
 
+def lib_files(data, source_lib):
+    res = []
+    return template_common.internal_lib_files(res, source_lib)
+
+
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     args = data['animationArgs'].split('_')
