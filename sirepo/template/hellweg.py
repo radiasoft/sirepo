@@ -339,7 +339,7 @@ def _parse_error_message(run_dir):
 def _report_title(report_type, enum_values, beam_info):
     for e in enum_values:
         if e[0] == report_type:
-            return '{}, z={} cm'.format(e[1], 100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
+            return '{}, z={:.4f} cm'.format(e[1], 100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
     raise RuntimeError('unknown report type: {}'.format(report_type))
 
 
