@@ -199,7 +199,7 @@ with open('defaults.ini', 'w') as f:
 solver = BeamSolver('defaults.ini', 'input.txt')
 solver.solve()
 solver.save_output('output.txt')
-    '''.format(_generate_parameters_file(data, is_parallel=True))
+    '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
 
 
 def prepare_aux_files(run_dir, data):
