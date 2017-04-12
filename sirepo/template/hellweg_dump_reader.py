@@ -56,10 +56,27 @@ _PARTICLE_LABEL = {
     # 'az': '',
     'phi': 'phi [deg]',
     # 'zrel': '',
-    # 'z0': '',
+    'z0': 'z [m]',
     # 'beta': '',
     'w': 'W [eV]',
 }
+
+# TDimension, TPivot and TFieldMap2D are used in future versions
+# pointer fields are typed as c_int for TPivot and TFieldMap2D
+class TDimension(ctypes.Structure):
+    _fields_ = [('Nx', ctypes.c_int),
+                ('Ny', ctypes.c_int),
+                ('Nz', ctypes.c_int)]
+
+class TPivot(ctypes.Structure):
+    _fields_ = [('X', ctypes.c_int),
+                ('Y', ctypes.c_int),
+                ('Z', ctypes.c_int)]
+
+class TFieldMap2D(ctypes.Structure):
+    _fields_ = [('Dim', TDimension),
+                ('Piv', TPivot),
+                ('Field', ctypes.c_int)]
 
 class THeader(ctypes.Structure):
     _fields_ = [('NPoints', ctypes.c_int),
@@ -83,6 +100,8 @@ class TStructure(ctypes.Structure):
                 ('betta', ctypes.c_double),
                 ('Ra', ctypes.c_double),
                 ('Hext', TField),
+                # Bmap replaces Hext in future versions
+                #('Bmap', TFieldMap2D),
                 ('jump', ctypes.c_bool),
                 ('drift', ctypes.c_bool),
                 ('CellNumber', ctypes.c_int)]
@@ -124,7 +143,6 @@ def beam_info(filename, idx):
         info['Structure'] = structure
         if idx < header.NPoints - 1:
             f.seek((header.NPoints - idx - 1) * size, 1)
-        info['Particles'] = []
         beam_header = TBeamHeader()
         size = ctypes.sizeof(beam_header) + ctypes.sizeof(TParticle()) * header.NParticles
         if idx > 0:
@@ -137,6 +155,10 @@ def beam_info(filename, idx):
             assert f.readinto(p) == ctypes.sizeof(p)
             particles.append(p)
         info['Particles'] = particles
+        # ensure the expected bytes are present
+        if idx < header.NPoints - 1:
+            f.seek((header.NPoints - idx - 1) * (ctypes.sizeof(beam_header) + ctypes.sizeof(p) * header.NParticles), 1)
+        assert f.readinto(header) == 0
     return info
 
 
@@ -158,6 +180,65 @@ def get_points(info, field):
         if p.lost == _LIVE_PARTICLE:
             res.append(fn(p, lmb))
     return res
+
+
+def particle_info(filename, field, count):
+    info = {}
+    with open (filename, 'rb') as f:
+        header = THeader()
+        assert f.readinto(header) == ctypes.sizeof(header)
+        info['Header'] = header
+        if count > header.NPoints:
+            count = header.NPoints
+        z_values = []
+        yfn = _BEAM_PARAMETER[field]
+        zfn = _STRUCTURE_PARAMETER['z']
+        for _ in xrange(header.NPoints):
+            structure = TStructure()
+            assert f.readinto(structure) == ctypes.sizeof(structure)
+            z_values.append(zfn(structure))
+        info['z_values'] = z_values
+        beam_header_size = ctypes.sizeof(TBeamHeader())
+        particle_size = ctypes.sizeof(TParticle())
+        y_map = {}
+        indices = []
+        for i in xrange(count):
+            idx = int(round((i * header.NParticles) / count))
+            y_map[idx] = []
+            indices.append(idx)
+        y_range = None
+
+        for _ in xrange(header.NPoints):
+            beam_header = TBeamHeader()
+            assert f.readinto(beam_header) == beam_header_size
+            lmb = beam_header.beam_lmb
+            pi = 0
+            for idx in indices:
+                assert idx >= pi
+                if idx > pi:
+                    f.seek((idx - pi) * particle_size, 1)
+                p = TParticle()
+                assert f.readinto(p) == particle_size
+                if p.lost == _LIVE_PARTICLE:
+                    v = yfn(p, lmb)
+                    y_map[idx].append(v)
+                    if y_range:
+                        if v < y_range[0]:
+                            y_range[0] = v
+                        elif v > y_range[1]:
+                            y_range[1] = v
+                    else:
+                        y_range = [v, v]
+                pi = idx + 1
+            if pi < header.NParticles:
+                f.seek((header.NParticles - pi) * particle_size, 1)
+        assert f.readinto(header) == 0
+        y_values = []
+        for idx in sorted(y_map.keys()):
+            y_values.append(y_map[idx])
+        info['y_values'] = y_values
+        info['y_range'] = y_range
+    return info
 
 
 def _gamma_to_mev(g):

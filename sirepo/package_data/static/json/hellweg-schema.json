@@ -40,6 +40,20 @@
             ["count", "Particle Count"],
             ["range", "Particle Range"]
         ],
+        "ParticleRenderCount": [
+            ["1000", "1000"],
+            ["800", "800"],
+            ["500", "500"],
+            ["300", "300"],
+            ["100", "100"]
+        ],
+        "ParticleReportType": [
+            ["w", "Energy"],
+            ["phi", "Phase"],
+            ["r", "Radius (r)"],
+            ["x", "Radius (x)"],
+            ["y", "Radius (y)"]
+        ],
         "SaveFileFormat": [
             ["PID", "CST PID Format"],
             ["PIT", "CST PIT Format"],
@@ -133,6 +147,10 @@
             "meanPhase": ["Mean Phase [deg]", "Float"],
             "phaseLength": ["Phase Length [deg]", "Float"],
             "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+        },
+        "particleAnimation": {
+            "reportType": ["Report", "ParticleReportType"],
+            "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
         "powerElement": {
             "inputPower": ["Pulsed Input Power [MW]", "Float", 2.0],
@@ -288,6 +306,13 @@
                 "length",
                 "radius",
                 "meshPoints"
+            ]
+        },
+        "particleAnimation": {
+            "title": "Particle Report",
+            "advanced": [
+                "reportType",
+                "renderCount"
             ]
         },
         "powerElement": {
