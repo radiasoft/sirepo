@@ -1,9 +1,17 @@
 {
-    "version": "20170405.000001",
+    "version": "20170412.000000",
     "appInfo": {
         "elegant": {
             "longName": "Elegant",
             "shortName": "Elegant"
+        },
+        "hellweg": {
+            "longName": "Hellweg",
+            "shortName": "Hellweg"
+        },
+        "shadow": {
+            "longName": "SHADOW",
+            "shortName": "SHADOW"
         },
         "srw": {
             "longName": "Synchrotron Radiation Workshop",

@@ -92,12 +92,37 @@ def extract_beam_report(report, run_dir, frame):
     }
 
 
+def extract_particle_report(report, run_dir, frame):
+    x_field = 'z0'
+    particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), report.reportType, int(report.renderCount))
+    x = particle_info['z_values']
+    print('y_range: {}'.format(particle_info['y_range']))
+    return {
+        'title': _enum_text(simulation_db.get_schema(SIM_TYPE)['enum']['ParticleReportType'], report.reportType),
+        'x_range': [numpy.min(x), numpy.max(x)],
+        'y_label': hellweg_dump_reader.get_label(report.reportType),
+        'x_label': hellweg_dump_reader.get_label(x_field),
+        'x_points': x,
+        'points': particle_info['y_values'],
+        'y_range': particle_info['y_range'],
+    }
+
+
 def fixup_old_data(data):
-    pass
+    if 'particleAnimation' not in data['models']:
+        data['models']['particleAnimation'] = pkcollections.Dict({
+            'reportType': 'w',
+            'renderCount': '300',
+        })
 
 
 def get_animation_name(data):
     return 'animation'
+
+
+def lib_files(data, source_lib):
+    res = []
+    return template_common.internal_lib_files(res, source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -117,6 +142,15 @@ def get_simulation_frame(run_dir, data, model_data):
             pkcollections.Dict({
                 'reportType': args[0],
                 'histogramBins': args[1],
+            }),
+            run_dir,
+            frame_index,
+        )
+    elif data['modelName'] == 'particleAnimation':
+        return extract_particle_report(
+            pkcollections.Dict({
+                'reportType': args[0],
+                'renderCount': args[1],
             }),
             run_dir,
             frame_index,
@@ -214,6 +248,13 @@ def write_parameters(data, schema, run_dir, is_parallel):
 
 def _dump_file(run_dir):
     return os.path.join(str(run_dir), HELLWEG_DUMP_FILE)
+
+
+def _enum_text(enum_values, v):
+    for e in enum_values:
+        if e[0] == v:
+            return e[1]
+    raise RuntimeError('invalid enum value: {}, {}'.format(enum_values, v))
 
 
 def _generate_beam(models):
@@ -337,10 +378,9 @@ def _parse_error_message(run_dir):
 
 
 def _report_title(report_type, enum_values, beam_info):
-    for e in enum_values:
-        if e[0] == report_type:
-            return '{}, z={:.4f} cm'.format(e[1], 100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
-    raise RuntimeError('unknown report type: {}'.format(report_type))
+    return '{}, z={:.4f} cm'.format(
+        _enum_text(enum_values, report_type),
+        100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
 
 
 def _summary_text(run_dir):
