@@ -96,7 +96,6 @@ def extract_particle_report(report, run_dir, frame):
     x_field = 'z0'
     particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), report.reportType, int(report.renderCount))
     x = particle_info['z_values']
-    print('y_range: {}'.format(particle_info['y_range']))
     return {
         'title': _enum_text(simulation_db.get_schema(SIM_TYPE)['enum']['ParticleReportType'], report.reportType),
         'x_range': [numpy.min(x), numpy.max(x)],
