@@ -292,6 +292,24 @@
     .sr-plot path.line-11 {
       opacity: 0.15;
     }
+    .sr-plot path.line-y1 {
+      fill: none;
+      stroke: rgb(31, 119, 180);
+      stroke-width: 2px;
+    }
+    .sr-plot circle.line-y1 {
+      fill: rgb(31, 119, 180);
+      stroke: rgb(31, 119, 180);
+    }
+    .sr-plot path.line-y2 {
+      fill: none;
+      stroke: rgb(255, 127, 14);
+      stroke-width: 2px;
+    }
+    .sr-plot circle.line-y2 {
+      fill: rgb(255, 127, 14);
+      stroke: rgb(255, 127, 14);
+    }
     .sr-plot .overlay {
       fill: none;
       pointer-events: all;

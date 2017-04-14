@@ -3,7 +3,7 @@
     <div class="col-md-6 col-xl-4">
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
+        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationSettings')">
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateProcessing()">
             <div data-ng-show="visualization.isStatePending()">
               <div class="col-sm-12">
@@ -52,6 +52,9 @@
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-model-name="beamAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="particle" data-model-name="particleAnimation"></div>

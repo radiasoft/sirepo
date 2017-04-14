@@ -11,6 +11,7 @@ import math
 
 _LIVE_PARTICLE = 0
 _LOSS_VALUES = ['live', 'radius_lost', 'phase_lost', 'bz_lost', 'br_lost', 'bth_lost', 'beta_lost', 'step_lost']
+_STRUCTURE_VALUES = ['ksi', 'z', 'a', 'rp', 'alpha', 'sbeta', 'ra', 'rb', 'b_ext', 'num', 'e0', 'ereal', 'prf', 'pbeam', 'bbeta', 'wav', 'wmax', 'xb', 'yb', 'er', 'ex', 'ey', 'enr', 'enx', 'eny', 'e4d', 'e4dn', 'et', 'ent']
 _We0 = 0.5110034e6
 
 _BEAM_PARAMETER = {
@@ -37,6 +38,43 @@ _BEAM_PARAMETER = {
 
 _STRUCTURE_PARAMETER = {
     'z': lambda s: s.ksi * s.lmb,
+}
+
+_STRUCTURE_TITLE = {
+    'wav': 'Average Energy',
+    'wmax': 'Maximum Energy',
+    'bbeta': 'Beam Velocity',
+    'sbeta': 'Phase Velocity',
+    'ra': 'Aperture',
+    'rb': 'Beam Radius (rms)',
+    'pbeam': 'Beam Power',
+    'prf': 'RF Power',
+    'e0': 'With Beam Load',
+    'ereal': 'Without Beam Load',
+    'er': 'Actual (rms)',
+    'enr': 'Normalized (rms)',
+    'ex': 'Actual (rms)',
+    'enx': 'Normalized (rms)',
+    'ey': 'Actual (rms)',
+    'eny': 'Normalized (rms)',
+    'e4d': 'Actual (rms)',
+    'e4dn': 'Normalized (rms)',
+    'et': 'Actual (rms)',
+    'ent': 'Normalized (rms)',
+}
+
+_STRUCTURE_LABEL = {
+    'wav': 'W [eV]',
+    'sbeta': 'Beta',
+    'rb': 'r [m]',
+    'prf': 'P [W]',
+    'e0': 'E, (MV/m)',
+    'er': 'er [m]',
+    'ex': 'ex [m]',
+    'ey': 'ey [m]',
+    'e4d': 'e4D [m]',
+    'et': 'eth [m]',
+    'z': 'z [m]',
 }
 
 _PARTICLE_LABEL = {
@@ -171,6 +209,14 @@ def get_parameter(info, field):
     return fn(info['Structure'])
 
 
+def get_parameter_label(field):
+    return _STRUCTURE_LABEL[field]
+
+
+def get_parameter_title(field):
+    return _STRUCTURE_TITLE[field]
+
+
 def get_points(info, field):
     res = []
     fn = _BEAM_PARAMETER[field]
@@ -180,6 +226,10 @@ def get_points(info, field):
         if p.lost == _LIVE_PARTICLE:
             res.append(fn(p, lmb))
     return res
+
+
+def parameter_index(name):
+    return _STRUCTURE_VALUES.index(name)
 
 
 def particle_info(filename, field, count):

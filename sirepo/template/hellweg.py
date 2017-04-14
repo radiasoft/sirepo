@@ -20,6 +20,10 @@ HELLWEG_DUMP_FILE = 'all-data.bin'
 
 HELLWEG_SUMMARY_FILE = 'output.txt'
 
+HELLWEG_INI_FILE = 'defaults.ini'
+
+HELLWEG_INPUT_FILE = 'input.txt'
+
 #: Simulation type
 SIM_TYPE = 'hellweg'
 
@@ -64,7 +68,7 @@ def extract_beam_histrogram(report, run_dir, frame):
     points = hellweg_dump_reader.get_points(beam_info, report.reportType)
     hist, edges = numpy.histogram(points, template_common.histogram_bins(report.histogramBins))
     return {
-        'title': _report_title(report.reportType, simulation_db.get_schema(SIM_TYPE)['enum']['BeamHistogramReportType'], beam_info),
+        'title': _report_title(report.reportType, 'BeamHistogramReportType', beam_info),
         'x_range': [edges[0], edges[-1]],
         'y_label': 'Number of Particles',
         'x_label': hellweg_dump_reader.get_label(report.reportType),
@@ -85,19 +89,48 @@ def extract_beam_report(report, run_dir, frame):
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         'x_label': hellweg_dump_reader.get_label(x),
         'y_label': hellweg_dump_reader.get_label(y),
-        'title': _report_title(report.reportType, simulation_db.get_schema(SIM_TYPE)['enum']['BeamReportType'], beam_info),
+        'title': _report_title(report.reportType, 'BeamReportType', beam_info),
         'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
         'summaryData': _summary_text(run_dir),
     }
 
 
-def extract_particle_report(report, run_dir, frame):
+def extract_parameter_report(report, run_dir):
+    from rslinac.solver import BeamSolver
+    solver = BeamSolver(
+        os.path.join(str(run_dir), HELLWEG_INI_FILE),
+        os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
+    solver.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
+    y1_var, y2_var = report.reportType.split('-')
+    x_field = 'z'
+    x = solver.get_structure_parameters(_parameter_index(x_field))
+    y1 = solver.get_structure_parameters(_parameter_index(y1_var))
+    y1_extent = [numpy.min(y1), numpy.max(y1)]
+    y2 = solver.get_structure_parameters(_parameter_index(y2_var))
+    y2_extent = [numpy.min(y2), numpy.max(y2)]
+    return {
+        'title': _enum_text('ParameterReportType', report.reportType),
+        'x_range': [x[0], x[-1]],
+        'y_label': hellweg_dump_reader.get_parameter_label(y1_var),
+        'x_label': hellweg_dump_reader.get_parameter_label(x_field),
+        'x_points': x,
+        'points': [
+            y1,
+            y2,
+        ],
+        'y_range': [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
+        'y1_title': hellweg_dump_reader.get_parameter_title(y1_var),
+        'y2_title': hellweg_dump_reader.get_parameter_title(y2_var),
+    }
+
+
+def extract_particle_report(report, run_dir):
     x_field = 'z0'
     particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), report.reportType, int(report.renderCount))
     x = particle_info['z_values']
     return {
-        'title': _enum_text(simulation_db.get_schema(SIM_TYPE)['enum']['ParticleReportType'], report.reportType),
+        'title': _enum_text('ParticleReportType', report.reportType),
         'x_range': [numpy.min(x), numpy.max(x)],
         'y_label': hellweg_dump_reader.get_label(report.reportType),
         'x_label': hellweg_dump_reader.get_label(x_field),
@@ -112,6 +145,10 @@ def fixup_old_data(data):
         data['models']['particleAnimation'] = pkcollections.Dict({
             'reportType': 'w',
             'renderCount': '300',
+        })
+    if 'parameterAnimation' not in data['models']:
+        data['models']['parameterAnimation'] = pkcollections.Dict({
+            'reportType': 'wav-wmax',
         })
 
 
@@ -152,7 +189,13 @@ def get_simulation_frame(run_dir, data, model_data):
                 'renderCount': args[1],
             }),
             run_dir,
-            frame_index,
+        )
+    elif data['modelName'] == 'parameterAnimation':
+        return extract_parameter_report(
+            pkcollections.Dict({
+                'reportType': args[0],
+            }),
+            run_dir,
         )
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
@@ -249,7 +292,8 @@ def _dump_file(run_dir):
     return os.path.join(str(run_dir), HELLWEG_DUMP_FILE)
 
 
-def _enum_text(enum_values, v):
+def _enum_text(enum_name, v):
+    enum_values = simulation_db.get_schema(SIM_TYPE)['enum'][enum_name]
     for e in enum_values:
         if e[0] == v:
             return e[1]
@@ -364,6 +408,10 @@ def _generate_transverse_dist(models):
     raise RuntimeError('unknown transverse distribution: {}'.format(dist_type))
 
 
+def _parameter_index(name):
+    return hellweg_dump_reader.parameter_index(name)
+
+
 def _parse_error_message(run_dir):
     path = os.path.join(str(run_dir), _HELLWEG_PARSED_FILE)
     if not os.path.exists(path):
@@ -376,9 +424,9 @@ def _parse_error_message(run_dir):
     return 'No output generated'
 
 
-def _report_title(report_type, enum_values, beam_info):
+def _report_title(report_type, enum_name, beam_info):
     return '{}, z={:.4f} cm'.format(
-        _enum_text(enum_values, report_type),
+        _enum_text(enum_name, report_type),
         100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
 
 

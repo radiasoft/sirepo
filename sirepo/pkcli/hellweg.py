@@ -39,9 +39,9 @@ def run_background(cfg_dir):
 def _run_hellweg(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-        pkio.write_text('input.txt', input_file)
-        pkio.write_text('defaults.ini', ini_file)
-        solver = BeamSolver('defaults.ini', 'input.txt')
+        pkio.write_text(template.HELLWEG_INPUT_FILE, input_file)
+        pkio.write_text(template.HELLWEG_INI_FILE, ini_file)
+        solver = BeamSolver(template.HELLWEG_INI_FILE, template.HELLWEG_INPUT_FILE)
         solver.solve()
         solver.save_output(template.HELLWEG_SUMMARY_FILE)
         solver.dump_bin(template.HELLWEG_DUMP_FILE)

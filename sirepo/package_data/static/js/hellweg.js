@@ -261,12 +261,13 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         self.simulationErrors = data.errors || '';
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime) {
-            ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation'].forEach(function(modelName) {
+            ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
                 appState.models[modelName].startTime = data.startTime;
                 appState.saveQuietly(modelName);
             });
             $rootScope.$broadcast('animation.summaryData', data.summaryData);
             frameCache.setFrameCount(1, 'particleAnimation');
+            frameCache.setFrameCount(1, 'parameterAnimation');
         }
     };
 
@@ -279,6 +280,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         beamAnimation: ['reportType', 'histogramBins', 'startTime'],
         beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
         particleAnimation: ['reportType', 'renderCount', 'startTime'],
+        parameterAnimation: ['reportType', 'startTime'],
     });
     self.persistentSimulationInit($scope);
 });
@@ -378,6 +380,151 @@ SIREPO.app.directive('summaryTable', function(appState, panelState, $interval) {
     };
 });
 
+
+//TODO(pjm): consolidate plot code into sirepo-plotting
+SIREPO.app.directive('parameterPlot', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            var ASPECT_RATIO = 4.0 / 7;
+            $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
+            $scope.width = $scope.height = 0;
+            $scope.dataCleared = true;
+            var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, y1Label, y2Label, zoom, xPoints;
+
+            function refresh() {
+                if (! xDomain) {
+                    return;
+                }
+                var xdom = xAxisScale.domain();
+                var zoomWidth = xdom[1] - xdom[0];
+
+                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                    select('.overlay').attr('class', 'overlay mouse-zoom');
+                    xAxisScale.domain(xDomain);
+                    yAxisScale.domain(yDomain).nice();
+                }
+                else {
+                    select('.overlay').attr('class', 'overlay mouse-move-ew');
+                    if (xdom[0] < xDomain[0]) {
+                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
+                    }
+                    if (xdom[1] > xDomain[1]) {
+                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
+                    }
+                }
+                resetZoom();
+                select('.overlay').call(zoom);
+                select('.x.axis').call(xAxis);
+                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
+                select('.y.axis').call(yAxis);
+                select('.y.axis.grid').call(yAxisGrid);
+                select('.plot-viewport').selectAll('.line').attr('d', graphLine);
+            }
+
+            function resetZoom() {
+                zoom = d3.behavior.zoom()
+                    .x(xAxisScale)
+                    .on('zoom', refresh);
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+                xDomain = null;
+            };
+
+            $scope.destroy = function() {
+                zoom.on('zoom', null);
+                $('.overlay').off();
+            };
+
+            $scope.init = function() {
+                select('svg').attr('height', plotting.initialHeight($scope));
+                xAxisScale = d3.scale.linear();
+                yAxisScale = d3.scale.linear();
+                xAxis = plotting.createAxis(xAxisScale, 'bottom');
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
+                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
+                yAxis = plotting.createAxis(yAxisScale, 'left');
+                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
+                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                graphLine = d3.svg.line()
+                    .x(function(d, i) {
+                        return xAxisScale(xPoints[i]);
+                    })
+                    .y(function(d) {
+                        return yAxisScale(d);
+                    });
+                resetZoom();
+                // y1/y2 legend
+                select('svg')
+                    .append('circle').attr('class', 'line-y1').attr('r', 5).attr('cx', 8).attr('cy', 10);
+                y1Label = select('svg')
+                    .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16);
+                select('svg')
+                    .append('circle').attr('class', 'line-y2').attr('r', 5).attr('cx', 8).attr('cy', 30);
+                y2Label = select('svg')
+                    .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36);
+            };
+
+            $scope.load = function(json) {
+                $scope.dataCleared = false;
+                xPoints = json.x_points
+                    ? json.x_points
+                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
+                $scope.xRange = json.x_range;
+                var xdom = [json.x_range[0], json.x_range[1]];
+                xDomain = xdom;
+                xAxisScale.domain(xdom);
+                yDomain = [json.y_range[0], json.y_range[1]];
+                yAxisScale.domain(yDomain).nice();
+                var viewport = select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                viewport.append('path').attr('class', 'line line-y1').datum(json.points[0]);
+                viewport.append('path').attr('class', 'line line-y2').datum(json.points[1]);
+                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.main-title').text(json.title);
+                $scope.resize();
+                y1Label.text(json.y1_title);
+                y2Label.text(json.y2_title);
+            };
+
+            $scope.resize = function() {
+                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (! xPoints || isNaN(width)) {
+                    return;
+                }
+                $scope.width = width;
+                $scope.height = ASPECT_RATIO * $scope.width;
+                select('svg')
+                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                plotting.ticks(xAxis, $scope.width, true);
+                plotting.ticks(xAxisGrid, $scope.width, true);
+                plotting.ticks(yAxis, $scope.height, false);
+                plotting.ticks(yAxisGrid, $scope.height, false);
+                xAxisScale.range([0, $scope.width]);
+                yAxisScale.range([$scope.height, 0]);
+                xAxisGrid.tickSize(-$scope.height);
+                yAxisGrid.tickSize(-$scope.width);
+                refresh();
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
 
 SIREPO.app.directive('particle', function(plotting) {
     return {
@@ -480,8 +627,6 @@ SIREPO.app.directive('particle', function(plotting) {
                 json.points.forEach(function(p) {
                     viewport.append('path').attr('class', 'line line-7').datum(p);
                 });
-
-                //select('.y-axis-label').text(json.y_label);
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);

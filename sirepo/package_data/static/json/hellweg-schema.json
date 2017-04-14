@@ -35,6 +35,18 @@
         "LongitudinalDistribution": [
             ["norm2d", "Uniform/Gaussian"]
         ],
+        "ParameterReportType": [
+            ["wav-wmax", "Energy"],
+            ["sbeta-bbeta", "Velocity"],
+            ["rb-ra", "Radius"],
+            ["prf-pbeam", "Power"],
+            ["e0-ereal", "Field Strength"],
+            ["er-enr", "Emittance (r)"],
+            ["ex-enx", "Emittance (x)"],
+            ["ey-eny", "Emittance (y)"],
+            ["e4d-e4dn", "Emittance (4D)"],
+            ["et-ent", "Emittance (th)"]
+        ],
         "ParticleRange": [
             ["all", "All Particles"],
             ["count", "Particle Count"],
@@ -147,6 +159,9 @@
             "meanPhase": ["Mean Phase [deg]", "Float"],
             "phaseLength": ["Phase Length [deg]", "Float"],
             "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+        },
+        "parameterAnimation": {
+            "reportType": ["Report", "ParameterReportType"]
         },
         "particleAnimation": {
             "reportType": ["Report", "ParticleReportType"],
@@ -306,6 +321,12 @@
                 "length",
                 "radius",
                 "meshPoints"
+            ]
+        },
+        "parameterAnimation": {
+            "title": "Parameter Report",
+            "advanced": [
+                "reportType"
             ]
         },
         "particleAnimation": {
