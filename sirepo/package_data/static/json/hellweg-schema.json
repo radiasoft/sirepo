@@ -1,5 +1,10 @@
 {
     "enum": {
+        "BeamDefinition": [
+            ["cst_pid", "CST PID Input File"],
+            ["cst_pit", "CST PIT Input File"],
+            ["transverse_longitude", "Transverse/Longitude Definition"]
+        ],
         "BeamHistogramReportType": [
             ["w", "Energy Spectrum"],
             ["phi", "Phase Spectrum"],
@@ -33,7 +38,9 @@
             ["20", "20"]
         ],
         "LongitudinalDistribution": [
-            ["norm2d", "Uniform/Gaussian"]
+            ["norm2d", "Uniform/Gaussian"],
+            ["file1d", "Energy Input File (W)"],
+            ["file2d", "Energy Input File (φ, W)"]
         ],
         "ParameterReportType": [
             ["wav-wmax", "Energy"],
@@ -75,7 +82,8 @@
         ],
         "SolenoidDefinition": [
             ["none", "None"],
-            ["values", "From Field Values"]
+            ["values", "From Field Values"],
+            ["file", "From File"]
         ],
         "SpaceChargeAlgorithm": [
             ["none", "None"],
@@ -95,7 +103,9 @@
         "TransversalDistribution": [
             ["twiss4d", "Twiss Parameters"],
             ["sph2d", "Spherical"],
-            ["ell2d", "Elliptical"]
+            ["ell2d", "Elliptical"],
+            ["file2d", "Input File (r, r')"],
+            ["file4d", "Input File (x, x', y, y')"]
         ]
     },
     "model": {
@@ -105,7 +115,14 @@
             "current": ["Current [A]", "Float"],
             "numberOfParticles": ["Particle Limit", "Integer"],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
-            "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0]
+            "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0],
+            "beamDefinition": ["Beam Particle Definition", "BeamDefinition", "transverse_longitude"],
+            "cstCompress": ["Compress Particles into One Bunch", "Boolean"],
+            "transversalFile2d": ["Transversal File (r, r')", "InputFile"],
+            "transversalFile4d": ["Transversal File (x, x', y, y')", "InputFile"],
+            "longitudinalFile1d": ["Longitudinal File (W)", "InputFile"],
+            "longitudinalFile2d": ["Longitudinal File (φ, W)", "InputFile"],
+            "cstFile": ["CST File", "InputFile"]
         },
         "beamAnimation": {
             "reportType": ["Report", "BeamReportType"],
@@ -197,6 +214,7 @@
             "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
             "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
             "length": ["Length [cm]", "Float"],
+            "solenoidFile": ["Solenoid File", "InputFile"],
             "z0": ["Longitudinal Coordinate of Start (Z₀) [cm]", "Float"],
             "fringeRegion": ["Fringe Field Region [cm]", "Float"]
         },
@@ -225,7 +243,13 @@
                     "spaceCharge",
                     "spaceChargeCore",
                     "transversalDistribution",
-                    "longitudinalDistribution"
+                    "transversalFile2d",
+                    "transversalFile4d",
+                    "longitudinalDistribution",
+                    "longitudinalFile1d",
+                    "longitudinalFile2d",
+                    "cstFile",
+                    "cstCompress"
                 ]],
                 ["Transversal Distribution (Twiss)", [
                     [
@@ -258,6 +282,12 @@
                     "energyPhaseDistribution.meanEnergy",
                     "energyPhaseDistribution.energySpread",
                     "energyPhaseDistribution.energyDeviation",
+                    "energyPhaseDistribution.meanPhase",
+                    "energyPhaseDistribution.phaseLength",
+                    "energyPhaseDistribution.phaseDeviation"
+                ]],
+                ["Phase Distribution", [
+                    "energyPhaseDistribution.distributionType",
                     "energyPhaseDistribution.meanPhase",
                     "energyPhaseDistribution.phaseLength",
                     "energyPhaseDistribution.phaseDeviation"
@@ -386,6 +416,7 @@
                 "sourceDefinition",
                 "fieldStrength",
                 "length",
+                "solenoidFile",
                 "z0"
             ],
             "advanced": []

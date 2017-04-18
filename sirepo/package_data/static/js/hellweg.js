@@ -30,7 +30,8 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
 SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
     var self = this;
     self.appState = appState;
-    self.toolbarItems = ['powerElement', 'cellElement', 'cellsElement', 'driftElement', 'saveElement'];
+    //self.toolbarItems = ['powerElement', 'cellElement', 'cellsElement', 'driftElement', 'saveElement'];
+    self.toolbarItems = ['powerElement', 'cellElement', 'cellsElement', 'driftElement'];
 
     function isElementModelName(modelName) {
         return modelName.indexOf('Element') >= 0;
@@ -192,13 +193,24 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
         if (beam.transversalDistribution == 'sph2d') {
             updateCurvature();
         }
+        var isDistribution = beam.beamDefinition == 'transverse_longitude';
         panelState.showField('beam', 'spaceChargeCore', beam.spaceCharge == 'coulomb' || beam.spaceCharge == 'elliptic');
-        panelState.showTab('beam', 2, beam.transversalDistribution == 'twiss4d');
-        panelState.showTab('beam', 3, beam.transversalDistribution == 'sph2d');
-        panelState.showTab('beam', 4, beam.transversalDistribution == 'ell2d');
-        ['energyDeviation', 'phaseDeviation'].forEach(function(f) {
-            panelState.showField('energyPhaseDistribution', f, beam.longitudinalDistribution == 'norm2d' && appState.models.energyPhaseDistribution.distributionType == 'gaussian');
+        panelState.showTab('beam', 2, isDistribution && beam.transversalDistribution == 'twiss4d');
+        panelState.showTab('beam', 3, isDistribution && beam.transversalDistribution == 'sph2d');
+        panelState.showTab('beam', 4, isDistribution && beam.transversalDistribution == 'ell2d');
+        panelState.showTab('beam', 5, isDistribution && beam.longitudinalDistribution == 'norm2d');
+        panelState.showTab('beam', 6, beam.beamDefinition == 'cst_pid' || (isDistribution && beam.longitudinalDistribution == 'file1d'));
+        panelState.showField('energyPhaseDistribution', 'energyDeviation', beam.longitudinalDistribution == 'norm2d' && appState.models.energyPhaseDistribution.distributionType == 'gaussian');
+        panelState.showField('energyPhaseDistribution', 'phaseDeviation', (beam.longitudinalDistribution == 'norm2d' || beam.longitudinalDistribution == 'file1d') && appState.models.energyPhaseDistribution.distributionType == 'gaussian');
+        panelState.showField('beam', 'cstCompress', beam.beamDefinition == 'cst_pit');
+        ['transversalDistribution', 'longitudinalDistribution'].forEach(function(f) {
+            panelState.showField('beam', f, isDistribution);
         });
+        panelState.showField('beam', 'transversalFile2d', beam.transversalDistribution == 'file2d');
+        panelState.showField('beam', 'transversalFile4d', beam.transversalDistribution == 'file4d');
+        panelState.showField('beam', 'longitudinalFile1d', beam.longitudinalDistribution == 'file1d');
+        panelState.showField('beam', 'longitudinalFile2d', beam.longitudinalDistribution == 'file2d');
+        panelState.showField('beam', 'cstFile', ! isDistribution);
     }
 
     function updateCurvature() {
@@ -237,16 +249,17 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
 
     function updateSolenoidFields() {
         var solenoid = appState.models.solenoid;
-        ['fieldStrength', 'length', 'z0', 'fringeRegion'].forEach(function(f) {
+        ['fieldStrength', 'length', 'fringeRegion', 'z0'].forEach(function(f) {
             panelState.showField('solenoid', f, solenoid.sourceDefinition == 'values');
         });
+        panelState.showField('solenoid', 'solenoidFile', solenoid.sourceDefinition == 'file');
     }
 
     self.handleModalShown = function(name) {
         updateAllFields();
     };
 
-    appState.watchModelFields($scope, ['beam.transversalDistribution', 'beam.spaceCharge', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
+    appState.watchModelFields($scope, ['beam.transversalDistribution', 'beam.longitudinalDistribution', 'beam.spaceCharge', 'beam.beamDefinition', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
     appState.watchModelFields($scope, ['solenoid.sourceDefinition'], updateSolenoidFields);
     appState.whenModelsLoaded($scope, updateAllFields);
 });
@@ -260,7 +273,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
     self.handleStatus = function(data) {
         self.simulationErrors = data.errors || '';
         frameCache.setFrameCount(data.frameCount);
-        if (data.startTime) {
+        if (data.startTime && ! data.error) {
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
                 appState.models[modelName].startTime = data.startTime;
                 appState.saveQuietly(modelName);
@@ -301,7 +314,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
               '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+              '<li data-ng-if="showVisualizationTab()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
@@ -313,8 +326,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 return appState.isLoaded();
             };
             $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations'))
+                if ($scope.nav.isActive('simulations')) {
                     return false;
+                }
                 return appState.isLoaded();
             };
             $scope.showNewFolderModal = function() {
@@ -322,6 +336,12 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             };
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
+            };
+            $scope.showVisualizationTab = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.beamline.length;
+                }
+                return false;
             };
         },
     };
