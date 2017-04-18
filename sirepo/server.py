@@ -569,6 +569,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     if p.check():
         err = 'file exists: {}'.format(filename)
     if not err:
+        pkio.mkdir_parent_only(p)
         f.save(str(p))
         err = template.validate_file(file_type, str(p))
         if err:

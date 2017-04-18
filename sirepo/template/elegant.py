@@ -95,7 +95,7 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
     # copy element InputFiles to lib
     #TODO(robnagler) only should copy valid files. Make sure no path names
-    _copy_lib_files(
+    template_common.copy_lib_files(
         data,
         py.path.local(os.path.dirname(source_path)).join('lib'),
         py.path.local(os.path.dirname(target_path)).join('lib'),
@@ -364,11 +364,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def prepare_aux_files(run_dir, data):
-    _copy_lib_files(
-        data,
-        simulation_db.simulation_lib_dir(elegant_common.SIM_TYPE),
-        run_dir,
-    )
+    template_common.copy_lib_files(data, None, run_dir)
 
 
 def prepare_for_client(data):
@@ -526,20 +522,6 @@ def _compute_percent_complete(data, last_element):
     if res > 100:
         return 100
     return res
-
-
-def _copy_lib_files(data, source_lib, target):
-    """Copy auxiliary files to target
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path.local): source directory
-        target (py.path): destination directory
-    """
-    for f in lib_files(data, source_lib):
-        path = target.join(f.basename)
-        if not path.exists():
-            f.copy(path)
 
 
 def _create_command(model_name, data):

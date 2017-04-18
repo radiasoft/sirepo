@@ -58,7 +58,7 @@ _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
 def copy_related_files(data, source_path, target_path):
-    _copy_lib_files(
+    template_common.copy_lib_files(
         data,
         py.path.local(os.path.dirname(source_path)).join('lib'),
         py.path.local(os.path.dirname(target_path)).join('lib'),
@@ -133,11 +133,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def prepare_aux_files(run_dir, data):
-    _copy_lib_files(
-        data,
-        simulation_db.simulation_lib_dir(SIM_TYPE),
-        run_dir,
-    )
+    template_common.copy_lib_files(data, None, run_dir)
 
 
 def prepare_for_client(data):
@@ -174,6 +170,10 @@ def resource_files():
     return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
 
 
+def validate_file(file_type, path):
+    pass
+
+
 def write_parameters(data, schema, run_dir, is_parallel):
     """Write the parameters file
 
@@ -204,13 +204,6 @@ def _convert_meters_to_centimeters(models):
         if name in _CENTIMETER_FIELDS:
             for f in _CENTIMETER_FIELDS[name]:
                 model[f] *= 100
-
-
-def _copy_lib_files(data, source_lib, target):
-    for f in lib_files(data, source_lib):
-        path = target.join(f.basename)
-        if not path.exists():
-            f.copy(path)
 
 
 def _field_value(name, field, value):

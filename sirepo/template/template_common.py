@@ -5,8 +5,9 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdc, pkdp
+from pykern import pkio
 from pykern import pkresource
+from pykern.pkdebug import pkdc, pkdp
 import copy
 import hashlib
 import json
@@ -35,6 +36,21 @@ LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 _HISTOGRAM_BINS_MAX = 500
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
+
+
+def copy_lib_files(data, source, target):
+    """Copy auxiliary files to target
+
+    Args:
+        data (dict): simulation db
+        target (py.path): destination directory
+    """
+    for f in lib_files(data, source):
+        path = target.join(f.basename)
+        pkio.mkdir_parent_only(path)
+        if not path.exists():
+            f.copy(path)
+
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
@@ -81,7 +97,11 @@ def is_watchpoint(name):
     return _WATCHPOINT_REPORT_NAME in name
 
 
-def lib_files(data):
+def lib_file_name(model_name, field, value):
+    return '{}-{}.{}'.format(model_name, field, value)
+
+
+def lib_files(data, source_lib=None):
     """Return list of files used by the simulation
 
     Args:
@@ -94,7 +114,7 @@ def lib_files(data):
     sim_type = data.simulationType
     return sirepo.template.import_module(data).lib_files(
         data,
-        simulation_db.simulation_lib_dir(sim_type),
+        source_lib or simulation_db.simulation_lib_dir(sim_type),
     )
 
 
