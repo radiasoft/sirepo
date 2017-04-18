@@ -1,7 +1,7 @@
 <div class="lp-about-page">
   <div class="lead text-center"></div>
 
-   <center><h1>Sirepo brings computational science to the cloud.</h1></center>
+   <center><h2>Sirepo brings computational science to the cloud.</h2></center>
 
   <h3>Fun examples:</h3>
   <table class="lp-example-table">
@@ -19,33 +19,31 @@
     </tr>
   </table>
 
-  <h3>Beta Test</h3>
-  Beta test the Sirepo apps below to explore the world of electromagnetic radiation and particle accelerators!
-
-  <p>Please create a GitHub issue for comments and questions: &nbsp <a target="_blank" class="btn btn-sm btn-default" href="https://github.com/radiasoft/sirepo/issues">Provide Beta Test Feedback</a>.<br />
-     This helps us improve Sirepo while building an open forum for community participation.<br />
-     If you prefer, you can email your comments and questions to <a target="_blank" href="mailto:support@radiasoft.net">RadiaSoft support</a>.</p>
-  <p> &nbsp </p>
-
   <center><h2>X-ray Optics</h2></center>
 
   <div class="text-left">
-    <a target="_blank" class="btn btn-default" href="/light"><h4>SRW</h4></a>
     <div class="lp-summary">
-      <p>SRW (Synchrotron Radiation Workshop) computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. <a target="_blank" href="https://github.com/ochubar/srw">The SRW source code</a> is available on GitHub. The code is primarily supported by <a target="_blank" href="http://staff.ps.bnl.gov/staff.aspx?id=63004">Oleg Chubar</a> of NSLS-II at Brookhaven National Laboratory.</p>
-      <p>O. Chubar and P. Elleaume, “Accurate and Efficient Computation of Synchrotron Radiation in the Near Field Region” <a target="_blank" href="https://accelconf.web.cern.ch/AccelConf/e98/PAPERS/THP01G.PDF">Proc. European Part. Accel. Conf., 1177 (1998).</a></p>
-      <p>O. Chubar, Elleaume, P., Kuznetsov, S. and Snigirev, A., “Physical Optics Computer Code Optimized for Synchrotron Radiation,” <a target="_blank" href="http://proceedings.spiedigitallibrary.org/proceeding.aspx?articleid=892891">Proc. SPIE 4769, 145 (2002).</a><p>
-      <p>O. Chubar, Fluerasu, A., Berman, L., Kaznatcheev and K., Wiegart, L. “Wavefront propagation simulations for beamlines and experiments with ‘Synchrotron Radiation Workshop’,” <a target="_blank" href="http://iopscience.iop.org/article/10.1088/1742-6596/425/16/162001">J. Phys.: Conf. Ser. 425, 162001 (2013).</a><p>
+      <a target="_blank" class="btn btn-default lp-code-button" href="/light"><h4>SRW</h4></a>
+      <p><a target="_blank" href="/light">SRW (Synchrotron Radiation Workshop)</a> computes synchrotron radiation from relativistic electrons in arbitrary magnetic fields and propagates the radiation wavefronts through optical beamlines. <a target="_blank" href="https://github.com/ochubar/srw">The SRW source code</a> is available on GitHub. The code is primarily supported by <a target="_blank" href="http://staff.ps.bnl.gov/staff.aspx?id=63004">Oleg Chubar</a> of NSLS-II at Brookhaven National Laboratory. <small><a href style="float: right" data-ng-hide="showSRW" data-ng-click="showSRW = ! showSRW"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small></p>
+      <div class="lp-more-text" data-ng-show="showSRW">
+        <p>O. Chubar and P. Elleaume, “Accurate and Efficient Computation of Synchrotron Radiation in the Near Field Region” <a target="_blank" href="https://accelconf.web.cern.ch/AccelConf/e98/PAPERS/THP01G.PDF">Proc. European Part. Accel. Conf., 1177 (1998).</a></p>
+        <p>O. Chubar, Elleaume, P., Kuznetsov, S. and Snigirev, A., “Physical Optics Computer Code Optimized for Synchrotron Radiation,” <a target="_blank" href="http://proceedings.spiedigitallibrary.org/proceeding.aspx?articleid=892891">Proc. SPIE 4769, 145 (2002).</a><p>
+        <p>O. Chubar, Fluerasu, A., Berman, L., Kaznatcheev and K., Wiegart, L. “Wavefront propagation simulations for beamlines and experiments with ‘Synchrotron Radiation Workshop’,” <a target="_blank" href="http://iopscience.iop.org/article/10.1088/1742-6596/425/16/162001">J. Phys.: Conf. Ser. 425, 162001 (2013).</a><p>
+        <small><a href style="float: right" data-ng-show="showSRW" data-ng-click="showSRW = ! showSRW">less <span class="glyphicon glyphicon-chevron-up"></span></a></small>
+      </div>
       <p> &nbsp </p>
     </div>
   </div>
 
   <div class="text-left">
-    <a target="_blank" class="btn btn-default" href="/shadow"><h4>Shadow3</h4></a>
     <div class="lp-summary">
-      <p>Shadow3 is a ray optics code with many sophisticated features for X-ray beamlines. <a target="_blank" href="https://github.com/srio/shadow3">The Shadow3 source code</a> is available on GitHub. A <a target="_blank" href="http://ftp.esrf.eu/pub/scisoft/shadow3/Shadow3Primer.pdf">user manual</a> is provided. The code is primarily supported by <a target="_blank" href="http://www.esrf.eu/home/Members/content/staff-web-pages/srio.html">Manuel Sanchez del Rio</a> and colleagues at the <a target="_blank" href="http://www.esrf.eu/Instrumentation/software/data-analysis/OurSoftware/raytracing">European Synchrotron Radiation Facility</a>.</p>
-      <p>C. Welnak, G.J. Chen and F. Cerrina, "SHADOW: A synchrotron radiation and X-ray optics simulation tool," <a target="_blank" href="https://doi.org/10.1016/0168-9002(94)91906-2">Nuclear Instruments and Methods in Physics Research Volume A347, p. 344 (1994).</a></p>
-      <p> M. Sanchez del Rio, N. Canestrari, F. Jiang and F. Cerrina, "SHADOW3: a new version of the synchrotron X-ray optics modelling package," <a target="_blank" href="https://dx.doi.org/10.1107%2FS0909049511026306">J. Synchrotron Radiat., p. 708 (2011).</a></p>
+      <a target="_blank" class="btn btn-default lp-code-button" href="/shadow"><h4>Shadow3</h4></a>
+      <p><a target="_blank" href="/shadow">Shadow3</a> is a ray optics code with many sophisticated features for X-ray beamlines. <a target="_blank" href="https://github.com/srio/shadow3">The Shadow3 source code</a> is available on GitHub. A <a target="_blank" href="http://ftp.esrf.eu/pub/scisoft/shadow3/Shadow3Primer.pdf">user manual</a> is provided. The code is primarily supported by <a target="_blank" href="http://www.esrf.eu/home/Members/content/staff-web-pages/srio.html">Manuel Sanchez del Rio</a> and colleagues at the <a target="_blank" href="http://www.esrf.eu/Instrumentation/software/data-analysis/OurSoftware/raytracing">European Synchrotron Radiation Facility</a>. <small><a href style="float: right" data-ng-hide="showShadow" data-ng-click="showShadow = ! showShadow"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small></p>
+      <div class="lp-more-text" data-ng-show="showShadow">
+        <p>C. Welnak, G.J. Chen and F. Cerrina, "SHADOW: A synchrotron radiation and X-ray optics simulation tool," <a target="_blank" href="https://doi.org/10.1016/0168-9002(94)91906-2">Nuclear Instruments and Methods in Physics Research Volume A347, p. 344 (1994).</a></p>
+        <p> M. Sanchez del Rio, N. Canestrari, F. Jiang and F. Cerrina, "SHADOW3: a new version of the synchrotron X-ray optics modelling package," <a target="_blank" href="https://dx.doi.org/10.1107%2FS0909049511026306">J. Synchrotron Radiat., p. 708 (2011).</a></p>
+        <small><a href style="float: right" data-ng-show="showShadow" data-ng-click="showShadow = ! showShadow">less <span class="glyphicon glyphicon-chevron-up"></span></a></small>
+      </div>
     </div>
   </div>
 
@@ -53,36 +51,53 @@
   <center><h2>Particle Accelerators</small></h2></center>
 
   <div class="text-left">
-    <a target="_blank" class="btn btn-default" href="/elegant"><h4>elegant</h4></a>
     <div class="lp-summary">
-      <p>Elegant simulates all types of charged particle accelerators with a wide range of features, including support for nonlinear optimization and design. Elegant is <a target="_blank" href="http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/software.shtml#elegant">freely available</a>. A <a target="_blank" href="http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/elegant_latest/elegant.html">user manual</a> is provided, and there is also an active <a target="_blank" href="https://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/phpBB3/">online user forum</a>. The code is primarily supported by <a target="_blank" href="https://www.linkedin.com/in/michael-borland-3a228526/">Michael Borland</a> and colleagues at the <a target="_blank" href="https://www1.aps.anl.gov/">Argonne National Laboratory</a>. Contributors include M. Borland, M. Carla, N. Carmignani, M. Ehrlichman, L. Emery, W. Guo, R. Lindberg, V. Sajaev, R. Soliday, Y.-P. Sun, C.-X. Wang, Y. Wang, Y. Wu and A. Xiao.</p>
-      <p>M. Borland, "elegant: A Flexible SDDS-Compliant Code for Accelerator Simulation," <a target="_blank" href="https://www1.aps.anl.gov/icms_files/lsnotes/files/APS_1418218.pdf">Advanced Photon Source LS-287 (2000).</a></p>
-      <p>Y. Wang and M. Borland, "Pelegant: A Parallel Accelerator Simulation Code for Electron Generation and Tracking," <a target="_blank" href="http://aip.scitation.org/doi/pdf/10.1063/1.2409141">AIP Conf. Proc. 877, 241 (2006).</a></p>
+      <a target="_blank" class="btn btn-default lp-code-button" href="/elegant"><h4>elegant</h4></a>
+      <p><a target="_blank" href="/elegant">Elegant</a> simulates all types of charged particle accelerators with a wide range of features, including support for nonlinear optimization and design. Elegant is <a target="_blank" href="http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/software.shtml#elegant">freely available</a>. A <a target="_blank" href="http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/elegant_latest/elegant.html">user manual</a> is provided, and there is also an active <a target="_blank" href="https://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/phpBB3/">online user forum</a>. The code is primarily supported by <a target="_blank" href="https://www.linkedin.com/in/michael-borland-3a228526/">Michael Borland</a> and colleagues at the <a target="_blank" href="https://www1.aps.anl.gov/">Argonne National Laboratory</a>. Contributors include M. Borland, M. Carla, N. Carmignani, M. Ehrlichman, L. Emery, W. Guo, R. Lindberg, V. Sajaev, R. Soliday, Y.-P. Sun, C.-X. Wang, Y. Wang, Y. Wu and A. Xiao. <small><a href style="float: right" data-ng-hide="showElegant" data-ng-click="showElegant = ! showElegant"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small></p>
+      <div class="lp-more-text" data-ng-show="showElegant">
+        <p>M. Borland, "elegant: A Flexible SDDS-Compliant Code for Accelerator Simulation," <a target="_blank" href="https://www1.aps.anl.gov/icms_files/lsnotes/files/APS_1418218.pdf">Advanced Photon Source LS-287 (2000).</a></p>
+        <p>Y. Wang and M. Borland, "Pelegant: A Parallel Accelerator Simulation Code for Electron Generation and Tracking," <a target="_blank" href="http://aip.scitation.org/doi/pdf/10.1063/1.2409141">AIP Conf. Proc. 877, 241 (2006).</a></p>
+        <small><a href style="float: right" data-ng-show="showElegant" data-ng-click="showElegant = ! showElegant">less <span class="glyphicon glyphicon-chevron-up"></span></a></small>
+      </div>
       <p> &nbsp </p>
     </div>
   </div>
 
   <div class="text-left">
-    <a target="_blank" class="btn btn-default" href="/hellweg"><h4>Hellweg</h4></a>
     <div class="lp-summary">
-      <p>Hellweg simulates traveling wave (TW) electron linacs with beam loading and beam transport with a variety of standard elements. <a target="_blank" href="https://github.com/radiasoft/rslinac">The Hellweg source code</a> is open source on GitHub. A <a target="_blank" href="https://github.com/radiasoft/rslinac/blob/master/docs/hellweg2d_user_guide.pdf">user manual</a> is provided. Hellweg was initially developed in the <a target="_blank" href="http://rflab.mephi.ru/en/">RF laboratory of National Research Nuclear University (MEPhI)</a>. The code is primarily developed by <a target="_blank" href="https://www.linkedin.com/in/sergey-kutsaev-9990147/">Sergey Kutsaev</a> at RadiaBeam Technologies, with support from RadiaSoft LLC personnel.</p>
-      <p>S.V. Kutsaev, “Electron dynamics simulations with Hellweg 2D code”, <a target="_blank" href="http://www.sciencedirect.com/science/article/pii/S0168900210003141">Nuclear Instruments and Methods in Physics Research A618, pp. 298–305 (2010).</a></p>
-      <p>S.V. Kutsaev, Y. Eidelman, D.L. Bruhwiler, P. Moeller, R. Nagler and J. Barbe Welzel, “Cloud-based design of high average power traveling wave linacs,” Physics Procedia (2017), submitted.</p>
-      <p>S.V. Kutsaev, Y. Eidelman and D.L. Bruhwiler, “Self-consistent 3D beam dynamics model with space charge for Hellweg code enhancement,” Phys. Rev. Accel. Beams (2017), in preparation.</p>
+      <a target="_blank" class="btn btn-default lp-code-button" href="/hellweg"><h4>Hellweg</h4></a>
+      <p><a target="_blank" href="/hellweg">Hellweg</a> simulates traveling wave (TW) electron linacs with beam loading and beam transport with a variety of standard elements. <a target="_blank" href="https://github.com/radiasoft/rslinac">The Hellweg source code</a> is open source on GitHub. A <a target="_blank" href="https://github.com/radiasoft/rslinac/blob/master/docs/hellweg2d_user_guide.pdf">user manual</a> is provided. Hellweg was initially developed in the <a target="_blank" href="http://rflab.mephi.ru/en/">RF laboratory of National Research Nuclear University (MEPhI)</a>. The code is primarily developed by <a target="_blank" href="https://www.linkedin.com/in/sergey-kutsaev-9990147/">Sergey Kutsaev</a> at RadiaBeam Technologies, with support from RadiaSoft LLC personnel. <small><a href style="float: right" data-ng-hide="showHellweg" data-ng-click="showHellweg = ! showHellweg"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small></p>
+      <div class="lp-more-text" data-ng-show="showHellweg">
+        <p>S.V. Kutsaev, “Electron dynamics simulations with Hellweg 2D code”, <a target="_blank" href="http://www.sciencedirect.com/science/article/pii/S0168900210003141">Nuclear Instruments and Methods in Physics Research A618, pp. 298–305 (2010).</a></p>
+        <p>S.V. Kutsaev, Y. Eidelman, D.L. Bruhwiler, P. Moeller, R. Nagler and J. Barbe Welzel, “Cloud-based design of high average power traveling wave linacs,” Physics Procedia (2017), submitted.</p>
+        <p>S.V. Kutsaev, Y. Eidelman and D.L. Bruhwiler, “Self-consistent 3D beam dynamics model with space charge for Hellweg code enhancement,” Phys. Rev. Accel. Beams (2017), in preparation.</p>
+        <small><a href style="float: right" data-ng-show="showHellweg" data-ng-click="showHellweg = ! showHellweg">less <span class="glyphicon glyphicon-chevron-up"></span></a></small>
+      </div>
       <p> &nbsp </p>
     </div>
   </div>
 
   <div class="text-left">
-    <a target="_blank" class="btn btn-default" href="/warp"><h4>Warp</h4></a>
     <div class="lp-summary">
-      <p>Warp is a particle-in-cell (PIC) code designed to simulate high-intensity charged particle beams and plasmas in both the electrostatic and electromagnetic regimes, with a wide variety of integrated physics models and diagnostics. At present, Sirepo supports a small subset of Warp’s capabilities. <a target="_blank" href="https://bitbucket.org/berkeleylab/warp/src">The Warp source code</a> is available on Bitbucket. The code is primarily supported by David Grote, Jean-Luc Vay, Remi Lehe and other colleagues at Lawrence Berkeley National Laboratory and Lawrence Livermore National Laboratory. Warp is part of the <a target="_blank" href="http://blast.lbl.gov/codes/">Berkeley Lab Accelerator Simulation Toolkit</a></p>
-      <p>D.P. Grote, A. Friedman, J.-L. Vay and I. Haber, "The WARP Code: Modeling High Intensity Ion Beams," in <a target="_blank" href="http://aip.scitation.org/doi/abs/10.1063/1.1893366">AIP Conference Proceedings 749, 3 (2005).</a></p>
-      <p>J.-L. Vay, D.P. Grote, R.H. Cohen and A. Friedman, "Novel Methods in the Particle-In-Cell Accelerator Code-Framework Warp," <a target="_blank" href="http://iopscience.iop.org/article/10.1088/1749-4699/5/1/014019/meta">Comput. Sci. Disc. 5, 014019 (2012).</a></p>
-      <p>A. Friedman, R.H. Cohen, D.P. Grote, S.M. Lund, W.M. Sharp, J.-L. Vay, I. Haber and R.A. Kishek, "Computational Methods in the Warp Code Framework for Kinetic Simulations of Particle Beams and Plasmas," <a target="_blank" href="http://ieeexplore.ieee.org/abstract/document/6774976/">IEEE Trans. Plasma Science 42, p. 1321 (2014).</a></p>
-      <p>B.B. Godfrey, M. Kirchen, R. Lehe and J.-L. Vay, "Novel approaches to suppress the numerical Cherenkov instability in Pseudo-Spectral Particle-in-Cell plasma simulation codes," in <a target="_blank" href="https://doi.org/10.1109/PLASMA.2016.7534302">Proc. International Conference on Plasma Science (ICOPS) (2016).</a></p>
+      <a target="_blank" class="btn btn-default lp-code-button" href="/warp"><h4>Warp</h4></a>
+      <p><a target="_blank" href="/warp">Warp</a> is a particle-in-cell (PIC) code designed to simulate high-intensity charged particle beams and plasmas in both the electrostatic and electromagnetic regimes, with a wide variety of integrated physics models and diagnostics. At present, Sirepo supports a small subset of Warp’s capabilities. <a target="_blank" href="https://bitbucket.org/berkeleylab/warp/src">The Warp source code</a> is available on Bitbucket. The code is primarily supported by David Grote, Jean-Luc Vay, Remi Lehe and other colleagues at Lawrence Berkeley National Laboratory and Lawrence Livermore National Laboratory. Warp is part of the <a target="_blank" href="http://blast.lbl.gov/codes/">Berkeley Lab Accelerator Simulation Toolkit</a> <small><a href style="float: right" data-ng-hide="showWarp" data-ng-click="showWarp = ! showWarp"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small></p>
+      <div class="lp-more-text" data-ng-show="showWarp">
+        <p>D.P. Grote, A. Friedman, J.-L. Vay and I. Haber, "The WARP Code: Modeling High Intensity Ion Beams," in <a target="_blank" href="http://aip.scitation.org/doi/abs/10.1063/1.1893366">AIP Conference Proceedings 749, 3 (2005).</a></p>
+        <p>J.-L. Vay, D.P. Grote, R.H. Cohen and A. Friedman, "Novel Methods in the Particle-In-Cell Accelerator Code-Framework Warp," <a target="_blank" href="http://iopscience.iop.org/article/10.1088/1749-4699/5/1/014019/meta">Comput. Sci. Disc. 5, 014019 (2012).</a></p>
+        <p>A. Friedman, R.H. Cohen, D.P. Grote, S.M. Lund, W.M. Sharp, J.-L. Vay, I. Haber and R.A. Kishek, "Computational Methods in the Warp Code Framework for Kinetic Simulations of Particle Beams and Plasmas," <a target="_blank" href="http://ieeexplore.ieee.org/abstract/document/6774976/">IEEE Trans. Plasma Science 42, p. 1321 (2014).</a></p>
+        <p>B.B. Godfrey, M. Kirchen, R. Lehe and J.-L. Vay, "Novel approaches to suppress the numerical Cherenkov instability in Pseudo-Spectral Particle-in-Cell plasma simulation codes," in <a target="_blank" href="https://doi.org/10.1109/PLASMA.2016.7534302">Proc. International Conference on Plasma Science (ICOPS) (2016).</a></p>
+        <small><a href style="float: right" data-ng-show="showWarp" data-ng-click="showWarp = ! showWarp">less <span class="glyphicon glyphicon-chevron-up"></span></a></small>
+      </div>
     </div>
   </div>
+
+  <p> &nbsp </p>
+  <h3>Beta Test</h3>
+  Beta test the Sirepo apps below to explore the world of electromagnetic radiation and particle accelerators!
+
+  <p>Please create a GitHub issue for comments and questions: &nbsp <a target="_blank" class="btn btn-sm btn-default" href="https://github.com/radiasoft/sirepo/issues">Provide Beta Test Feedback</a>.<br />
+     This helps us improve Sirepo while building an open forum for community participation.<br />
+     If you prefer, you can email your comments and questions to <a target="_blank" href="mailto:support@radiasoft.net">RadiaSoft support</a>.</p>
 
   <h3>Run a Sirepo server locally:</h3>
 
