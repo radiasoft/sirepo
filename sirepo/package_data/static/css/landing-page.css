@@ -35,9 +35,13 @@
   margin: 0 auto;
 }
 
+.lp-summary {
+  margin-bottom: 4ex;
+}
+
 .lp-code-button {
-  float: left;
   margin-right: 1em;
+  margin-top: 12px;
   min-width: 8em;
 }
 

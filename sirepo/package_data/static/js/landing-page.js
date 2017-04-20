@@ -103,6 +103,7 @@ app.controller('LandingPageController', function ($location, appRoutes) {
 
 app.directive('bigButton', function() {
     return {
+        restrict: 'A',
         scope: {
             item: '=bigButton',
             wideCol: '@',
@@ -134,6 +135,7 @@ app.directive('bigButton', function() {
 
 app.directive('buttonList', function() {
     return {
+        restrict: 'A',
         scope: {
             item: '=buttonList',
         },
@@ -147,6 +149,73 @@ app.directive('buttonList', function() {
               '</div>',
             '</div>',
         ].join(''),
+    };
+});
+
+function lpCodeDetailsClass(codeName) {
+    return 'lp-' + codeName.toLowerCase() + '-details';
+}
+
+app.directive('codeDetails', function() {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            codeName: '@codeDetails',
+        },
+        template: [
+            '<div style="display: none" data-ng-attr-class="{{ moreClass }}">',
+              '<div style="display: inline" data-ng-transclude=""></div> ',
+              '<div class="text-right"><small><a href data-ng-click="hideDetails()">less <span class="glyphicon glyphicon-chevron-up"></span></a></small></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.moreClass = lpCodeDetailsClass($scope.codeName);
+            $scope.hideDetails = function() {
+                $('.' + $scope.moreClass).slideUp(
+                    400,
+                    function() {
+                        $scope.$parent[$scope.codeName] = false;
+                        $scope.$apply();
+                    });
+            };
+        },
+    };
+});
+
+app.directive('codeSummary', function() {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            codeName: '@codeSummary',
+        },
+        template: [
+            '<table><tr><td valign="top">',
+              '<a target="_blank" class="btn btn-default lp-code-button" data-ng-href="{{ codeHref() }}"><h4>{{ codeName }}</h4></a>',
+            '</td><td>',
+              '<p>',
+                '<div style="display: inline" data-ng-transclude=""></div> ',
+                '<small><a href style="float: right" data-ng-hide="$parent[codeName]" data-ng-click="showDetails()"><i>more</i> <span class="glyphicon glyphicon-chevron-down"></span></a></small>',
+              '</p>',
+            '</td></tr></table>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.$parent[$scope.codeName] = false;
+            $scope.codeHref = function() {
+                if ($scope.codeName == 'SRW') {
+                    return '/light';
+                }
+                if ($scope.codeName == 'Shadow3') {
+                    return '/shadow';
+                }
+                return '/' + $scope.codeName.toLowerCase();
+            };
+            $scope.showDetails = function() {
+                $('.' + lpCodeDetailsClass($scope.codeName)).slideDown();
+                $scope.$parent[$scope.codeName] = true;
+            };
+        },
     };
 });
 
@@ -165,6 +234,7 @@ app.directive('pageHeading', function() {
         ].join('');
     }
     return {
+        restrict: 'A',
         scope: {
             landingPage: '=',
         },
