@@ -7,6 +7,7 @@ SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
+SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',

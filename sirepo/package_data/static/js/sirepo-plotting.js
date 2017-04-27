@@ -7,11 +7,22 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
+    var COLOR_MAP = {
+        grayscale: ['#333', '#fff'],
+        afmhot: colorsFromString('0000000200000400000600000800000a00000c00000e00001000001200001400001600001800001a00001c00001e00002000002200002400002600002800002a00002c00002e00003000003200003400003600003800003a00003c00003e00004000004200004400004600004800004a00004c00004e00005000005200005400005600005800005a00005c00005e00006000006200006400006600006800006a00006c00006e00007000007200007400007600007800007a00007c00007e0000800000810200830400850600870800890a008b0c008d0e008f1000911200931400951600971800991a009b1c009d1e009f2000a12200a32400a52600a72800a92a00ab2c00ad2e00af3000b13200b33400b53600b73800b93a00bb3c00bd3e00bf4000c14200c34400c54600c74800c94a00cb4c00cd4e00cf5000d15200d35400d55600d75800d95a00db5c00dd5e00df6000e16200e36400e56600e76800e96a00eb6c00ed6e00ef7000f17200f37400f57600f77800f97a00fb7c00fd7e00ff8000ff8102ff8304ff8506ff8708ff890aff8b0cff8d0eff8f10ff9112ff9314ff9516ff9718ff991aff9b1cff9d1eff9f20ffa122ffa324ffa526ffa728ffa92affab2cffad2effaf30ffb132ffb334ffb536ffb738ffb93affbb3cffbd3effbf40ffc142ffc344ffc546ffc748ffc94affcb4cffcd4effcf50ffd152ffd354ffd556ffd758ffd95affdb5cffdd5effdf60ffe162ffe364ffe566ffe768ffe96affeb6cffed6effef70fff172fff374fff576fff778fff97afffb7cfffd7effff80ffff81ffff83ffff85ffff87ffff89ffff8bffff8dffff8fffff91ffff93ffff95ffff97ffff99ffff9bffff9dffff9fffffa1ffffa3ffffa5ffffa7ffffa9ffffabffffadffffafffffb1ffffb3ffffb5ffffb7ffffb9ffffbbffffbdffffbfffffc1ffffc3ffffc5ffffc7ffffc9ffffcbffffcdffffcfffffd1ffffd3ffffd5ffffd7ffffd9ffffdbffffddffffdfffffe1ffffe3ffffe5ffffe7ffffe9ffffebffffedffffeffffff1fffff3fffff5fffff7fffff9fffffbfffffd'),
+        viridis: colorsFromString('44015444025645045745055946075a46085c460a5d460b5e470d60470e6147106347116447136548146748166848176948186a481a6c481b6d481c6e481d6f481f70482071482173482374482475482576482677482878482979472a7a472c7a472d7b472e7c472f7d46307e46327e46337f463480453581453781453882443983443a83443b84433d84433e85423f854240864241864142874144874045884046883f47883f48893e49893e4a893e4c8a3d4d8a3d4e8a3c4f8a3c508b3b518b3b528b3a538b3a548c39558c39568c38588c38598c375a8c375b8d365c8d365d8d355e8d355f8d34608d34618d33628d33638d32648e32658e31668e31678e31688e30698e306a8e2f6b8e2f6c8e2e6d8e2e6e8e2e6f8e2d708e2d718e2c718e2c728e2c738e2b748e2b758e2a768e2a778e2a788e29798e297a8e297b8e287c8e287d8e277e8e277f8e27808e26818e26828e26828e25838e25848e25858e24868e24878e23888e23898e238a8d228b8d228c8d228d8d218e8d218f8d21908d21918c20928c20928c20938c1f948c1f958b1f968b1f978b1f988b1f998a1f9a8a1e9b8a1e9c891e9d891f9e891f9f881fa0881fa1881fa1871fa28720a38620a48621a58521a68522a78522a88423a98324aa8325ab8225ac8226ad8127ad8128ae8029af7f2ab07f2cb17e2db27d2eb37c2fb47c31b57b32b67a34b67935b77937b87838b9773aba763bbb753dbc743fbc7340bd7242be7144bf7046c06f48c16e4ac16d4cc26c4ec36b50c46a52c56954c56856c66758c7655ac8645cc8635ec96260ca6063cb5f65cb5e67cc5c69cd5b6ccd5a6ece5870cf5773d05675d05477d1537ad1517cd2507fd34e81d34d84d44b86d54989d5488bd6468ed64590d74393d74195d84098d83e9bd93c9dd93ba0da39a2da37a5db36a8db34aadc32addc30b0dd2fb2dd2db5de2bb8de29bade28bddf26c0df25c2df23c5e021c8e020cae11fcde11dd0e11cd2e21bd5e21ad8e219dae319dde318dfe318e2e418e5e419e7e419eae51aece51befe51cf1e51df4e61ef6e620f8e621fbe723fde725'),
+    };
 
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
         return v;
+    }
+
+    function colorsFromString(s) {
+        return s.match(/.{6}/g).map(function(x) {
+            return "#" + x;
+        });
     }
 
     function createAxis(scale, orient) {
@@ -179,6 +190,17 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         return requestData;
     }
 
+    function linspace(start, stop, nsteps) {
+        var delta = (stop - start) / (nsteps - 1);
+        var res = d3.range(nsteps).map(function(d) { return start + d * delta; });
+        res[res.length - 1] = stop;
+
+        if (res.length != nsteps) {
+            throw "invalid linspace steps: " + nsteps + " != " + res.length;
+        }
+        return res;
+    }
+
     return {
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
@@ -260,6 +282,28 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
+        initImage: function(zMin, zMax, heatmap, ctx) {
+            var colorRange = COLOR_MAP[SIREPO.PLOTTING_COLOR_MAP || 'viridis'];
+            var colorScale = d3.scale.linear()
+                .domain(linspace(zMin, zMax, colorRange.length))
+                .range(colorRange);
+            var xSize = heatmap[0].length;
+            var ySize = heatmap.length;
+            var img = ctx.createImageData(xSize, ySize);
+
+            for (var yi = 0, p = -1; yi < ySize; ++yi) {
+                for (var xi = 0; xi < xSize; ++xi) {
+                    var c = d3.rgb(colorScale(heatmap[yi][xi]));
+                    img.data[++p] = c.r;
+                    img.data[++p] = c.g;
+                    img.data[++p] = c.b;
+                    img.data[++p] = 255;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            return colorScale;
+        },
+
         linkPlot: function(scope, element) {
             d3Service.d3().then(function(d3) {
                 scope.element = element[0];
@@ -310,16 +354,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             });
         },
 
-        linspace: function(start, stop, nsteps) {
-            var delta = (stop - start) / (nsteps - 1);
-            var res = d3.range(nsteps).map(function(d) { return start + d * delta; });
-            res[res.length - 1] = stop;
-
-            if (res.length != nsteps) {
-                throw "invalid linspace steps: " + nsteps + " != " + res.length;
-            }
-            return res;
-        },
+        linspace: linspace,
 
         recalculateDomainFromPoints: function(yScale, points, xDomain, invertAxis) {
             var ydom;
@@ -1037,24 +1072,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function initDraw(zmin, zmax) {
-                var color = d3.scale.linear()
-                    .domain([zmin, zmax])
-                    .range(['#333', '#fff']);
-                var xmax = xValues.length - 1;
-                var ymax = yValues.length - 1;
-
-                // Compute the pixel colors; scaled by CSS.
-                var img = ctx.createImageData(xValues.length, yValues.length);
-                for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-                    for (var xi = 0; xi <= xmax; ++xi) {
-                        var c = d3.rgb(color(heatmap[yi][xi]));
-                        img.data[++p] = c.r;
-                        img.data[++p] = c.g;
-                        img.data[++p] = c.b;
-                        img.data[++p] = 255;
-                    }
-                }
-                ctx.putImageData(img, 0, 0);
+                plotting.initImage(zmin, zmax, heatmap, ctx);
                 imageObj.src = canvas.node().toDataURL();
             }
 
@@ -1267,7 +1285,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
             $scope.canvasSize = 0;
             $scope.dataCleared = true;
 
-            var xAxis, canvas, colorbar, ctx, heatmap, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange, pointer;
+            var xAxis, canvas, colorbar, ctx, heatmap, imageObj, mouseRect, yAxis, xAxisScale, xValueMax, xValueMin, xValueRange, yAxisScale, yValueMax, yValueMin, yValueRange, pointer;
 
             var EMA = function() {
                 var avg = null;
@@ -1283,61 +1301,11 @@ SIREPO.app.directive('heatmap', function(plotting) {
             var allFrameMin = new EMA();
             var allFrameMax = new EMA();
 
-            function colorMap(levels) {
-                var colorMap = [];
-                var mapGen = {
-                    afmhot: function(x) {
-                        return hex(2 * x) + hex(2 * x - 0.5) + hex(2 * x - 1);
-                    },
-                    grayscale: function(x) {
-                        return hex(x) + hex(x) + hex(x);
-                    }
-                };
-
-                function hex(v) {
-                    if (v > 1) {
-                        v = 1;
-                    }
-                    else if (v < 0) {
-                        v = 0;
-                    }
-                    return ('0' + Math.round(v * 255).toString(16)).slice(-2);
-                }
-
-                var gen = mapGen.afmhot;
-
-                for (var i = 0; i < levels; i++) {
-                    var x = i / (levels - 1);
-                    colorMap.push('#' + gen(x));
-                }
-                return colorMap;
-            }
-
             function initDraw(zmin, zmax) {
-                var levels = 50;
-                var colorRange = d3.range(zmin, zmax, (zmax - zmin) / levels);
-                colorRange.push(zmax);
-                var color = d3.scale.linear()
-                    .domain(colorRange)
-                    .range(colorMap(levels));
-                var xmax = xValueRange.length - 1;
-                var ymax = yValueRange.length - 1;
-                var img = ctx.createImageData(xValueRange.length, yValueRange.length);
-
-                for (var yi = 0, p = -1; yi <= ymax; ++yi) {
-                for (var xi = 0; xi <= xmax; ++xi) {
-                    var c = d3.rgb(color(heatmap[yi][xi]));
-                    img.data[++p] = c.r;
-                    img.data[++p] = c.g;
-                    img.data[++p] = c.b;
-                    img.data[++p] = 255;
-                }
-                }
-                ctx.putImageData(img, 0, 0);
-                $scope.imageObj.src = canvas.node().toDataURL();
-
+                var colorScale = plotting.initImage(zmin, zmax, heatmap, ctx);
+                imageObj.src = canvas.node().toDataURL();
                 colorbar = Colorbar()
-                    .scale(color)
+                    .scale(colorScale)
                     .thickness(30)
                     .margin({top: 0, right: 60, bottom: 20, left: 10})
                     .orient("vertical");
@@ -1368,12 +1336,12 @@ SIREPO.app.directive('heatmap', function(plotting) {
                         0,
                         Math.max(
                             tx,
-                            $scope.canvasSize - (s * $scope.imageObj.width) / ($scope.imageObj.width / $scope.canvasSize)));
+                            $scope.canvasSize - (s * imageObj.width) / (imageObj.width / $scope.canvasSize)));
                     ty = Math.min(
                         0,
                         Math.max(
                             ty,
-                            $scope.canvasSize - (s * $scope.imageObj.height) / ($scope.imageObj.height / $scope.canvasSize)));
+                            $scope.canvasSize - (s * imageObj.height) / (imageObj.height / $scope.canvasSize)));
 
                     var xdom = xAxisScale.domain();
                     var ydom = yAxisScale.domain();
@@ -1426,7 +1394,7 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 ctx.imageSmoothingEnabled = false;
                 ctx.msImageSmoothingEnabled = false;
                 ctx.drawImage(
-                    $scope.imageObj,
+                    imageObj,
                     tx,
                     ty,
                     $scope.canvasSize * s,
@@ -1480,8 +1448,8 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 mouseRect = select('.mouse-rect');
                 mouseRect.on('mousemove', mouseMove);
                 ctx = canvas.node().getContext('2d');
-                $scope.imageObj = new Image();
-                $scope.imageObj.onload = refresh;
+                imageObj = new Image();
+                imageObj.onload = refresh;
             };
 
             $scope.load = function(json) {
@@ -1535,8 +1503,8 @@ SIREPO.app.directive('heatmap', function(plotting) {
                 if ($scope.zoom) {
                     $scope.zoom.on('zoom', null);
                 }
-                if ($scope.imageObj) {
-                    $scope.imageObj.onload = null;
+                if (imageObj) {
+                    imageObj.onload = null;
                 }
             };
         },

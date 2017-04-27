@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamList">',
