@@ -166,7 +166,7 @@ app.directive('codeDetails', function() {
         template: [
             '<div style="display: none" data-ng-attr-class="{{ moreClass }}">',
               '<div style="display: inline" data-ng-transclude=""></div> ',
-              '<div class="text-right"><small><a href data-ng-click="hideDetails()">less <span class="glyphicon glyphicon-chevron-up"></span></a></small></div>',
+              '<div class="text-right"><small><a href data-ng-click="hideDetails()"><i>less</i> <span class="glyphicon glyphicon-chevron-up"></span></a></small></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
