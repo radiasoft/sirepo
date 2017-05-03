@@ -781,7 +781,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
         // var distance = tag.text().split(',')[1];
         var distance = appState.models[modelName].distanceFromSource + 'm';
-        var repName = SIREPO.APP_SCHEMA.view[modelName]['title'].replace(
+        var repName = SIREPO.APP_SCHEMA.view[modelName].title.replace(
             'Flux',
             SIREPO.APP_SCHEMA.enum.Flux[appState.models[modelName].fluxType-1][1]
         ) + ', ' + distance;
