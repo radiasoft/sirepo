@@ -854,12 +854,16 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.showField = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
+        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+            showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
+        });
     };
 
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
+        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+            showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
+        });
     };
 
     self.showTab = function(model, pageNumber, isShown) {
