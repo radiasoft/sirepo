@@ -777,6 +777,23 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
     watchModelFields(['electronBeam.horizontalEmittance', 'electronBeam.horizontalBeta', 'electronBeam.horizontalAlpha', 'electronBeam.horizontalDispersion', 'electronBeam.horizontalDispersionDerivative', 'electronBeam.verticalEmittance', 'electronBeam.verticalBeta', 'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion', 'electronBeam.verticalDispersionDerivative'], processBeamParameters);
 
+    function changeFluxReportName(modelName) {
+        var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
+        // var distance = tag.text().split(',')[1];
+        var distance = appState.models[modelName].distanceFromSource + 'm';
+        var repName = SIREPO.APP_SCHEMA.view[modelName].title.replace(
+            'Flux',
+            SIREPO.APP_SCHEMA.enum.Flux[appState.models[modelName].fluxType-1][1]
+        ) + ', ' + distance;
+        tag.text(repName);
+    }
+
+    ['fluxReport', 'fluxAnimation'].forEach(function(f) {
+        watchModelFields([f + '.fluxType', f + '.distanceFromSource'], function() {
+            changeFluxReportName(f);
+        });
+    });
+
     watchModelFields(['fluxAnimation.method'], processFluxAnimation);
 
     watchModelFields(['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'simulation.photonEnergy'], function() {
@@ -822,6 +839,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     appState.whenModelsLoaded($scope, function() {
         //TODO(pjm): move isReadyForInput to panelState
         isReadyForInput = true;
+        changeFluxReportName('fluxReport');
+        changeFluxReportName('fluxAnimation');
         disableBasicEditorBeamName();
         processUndulator();
         processGaussianBeamSize();
