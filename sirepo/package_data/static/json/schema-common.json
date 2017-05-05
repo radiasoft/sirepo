@@ -1,9 +1,13 @@
 {
-    "version": "20170420.000000",
+    "version": "20170505.000000",
     "appInfo": {
         "elegant": {
             "longName": "Elegant",
             "shortName": "Elegant"
+        },
+        "fete": {
+            "longName": "FETE",
+            "shortName": "FETE"
         },
         "hellweg": {
             "longName": "Hellweg",

@@ -1,0 +1,141 @@
+{
+    "enum": {
+        "BeamSpecies": [
+            ["Electron", "Electron"]
+        ],
+        "CurrentMode": [
+            ["1", "User Specified"],
+            ["2", "Child-Langmuir Emission"],
+            ["3", "Thermionic Emission"]
+        ],
+        "Field": [
+            ["x", "E x"],
+            ["z", "E z"],
+            ["phi", "Phi"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
+        "ParticleRenderCount": [
+            ["500", "500"],
+            ["400", "400"],
+            ["250", "250"],
+            ["150", "150"],
+            ["50", "50"]
+        ]
+    },
+    "model": {
+        "beam": {
+            "currentMode": ["Current Mode", "CurrentMode"],
+            "species": ["Beam Species", "BeamSpecies"],
+            "x_radius": ["Beam X Radius [µm]", "Float"],
+            "beam_current": ["Beam Current [A]", "Float"],
+            "cathode_temperature": ["Cathode Temperature [K]", "Float"],
+            "cathode_work_function": ["Cathode Work Function [eV]", "Float"],
+            "anode_work_function": ["Anode Work Function [eV]", "Float"],
+            "grid_bias": ["Grid Bias [eV]", "Float"]
+        },
+        "currentAnimation": {
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "fieldAnimation": {
+            "field": ["Field", "Field"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
+        "particleAnimation": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
+        "simulationGrid": {
+            "plate_spacing": ["Plate Spacing [µm]", "Float"],
+            "channel_width": ["Channel Width [µm]", "Float"],
+            "num_x": ["X Grid Points", "Integer"],
+            "num_z": ["Z Grid Points", "Integer"],
+            "particles_per_step": ["Particles Per Step", "Integer"],
+            "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
+            "num_steps": ["Simulation Steps", "Integer"]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+        "beam": {
+            "title": "Beam",
+            "basic": [
+                "currentMode",
+                "beam_current",
+                "species"
+            ],
+            "advanced": [
+                "currentMode",
+                "beam_current",
+                "species",
+                "x_radius",
+                "cathode_temperature",
+                "cathode_work_function",
+                "anode_work_function",
+                "grid_bias"
+            ]
+        },
+        "currentAnimation": {
+            "title": "Current Animation",
+            "advanced": [
+                "framesPerSecond"
+            ]
+        },
+        "fieldAnimation": {
+            "title": "Field Animation",
+            "advanced": [
+                "field",
+                "framesPerSecond"
+            ]
+        },
+        "particleAnimation": {
+            "title": "Particle Trace",
+            "advanced": [
+                "renderCount"
+            ]
+        },
+        "simulationGrid": {
+            "title": "Simulation Grid",
+            "basic": [
+                "plate_spacing",
+                "channel_width"
+            ],
+            "advanced": [
+                "plate_spacing",
+                "channel_width",
+                "num_x",
+                "num_z",
+                "particles_per_step",
+                "z_particle_min",
+                "num_steps"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
+    }
+}

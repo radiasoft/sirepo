@@ -1,0 +1,49 @@
+{
+    "models": {
+        "beam": {
+            "anode_work_function": 0.1,
+            "beam_current": 0.0025,
+            "cathode_temperature": 1273.15,
+            "cathode_work_function": 2,
+            "currentMode": "3",
+            "grid_bias": 0.4,
+            "species": "Electron",
+            "x_radius": 0.055
+        },
+        "currentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1494013105
+        },
+        "fieldAnimation": {
+            "field": "phi",
+            "framesPerSecond": "2",
+            "startTime": 1494013105
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "particleAnimation": {
+            "renderCount": 150,
+            "startTime": 1494013105
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "test3",
+            "outOfSessionSimulationId": "",
+            "simulationId": "bEx5S3NV",
+            "simulationSerial": 1494020123970251
+        },
+        "simulationGrid": {
+            "channel_width": 0.11,
+            "num_steps": 1000,
+            "num_x": 11,
+            "num_z": 512,
+            "particles_per_step": 110,
+            "plate_spacing": 10,
+            "z_particle_min": 0.00244140625
+        }
+    },
+    "simulationType": "fete",
+    "version": "20170420.000000"
+}
