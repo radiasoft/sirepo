@@ -1441,15 +1441,8 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             '</form>',
         ].join(''),
         controller: function($scope) {
-            $scope.displayPercentComplete = function() {
-                if ($scope.isInitializing() || $scope.isStatePending()) {
-                    return 100;
-                }
-                return $scope.percentComplete;
-            };
             $scope.handleStatus = function(data) {
                 if (data.percentComplete) {
-                    $scope.percentComplete = data.percentComplete;
                     $scope.particleNumber = data.particleNumber;
                     $scope.particleCount = data.particleCount;
                 }

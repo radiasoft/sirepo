@@ -387,7 +387,11 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.modelInfo = function(name) {
-        return SIREPO.APP_SCHEMA.model[name];
+        var info = SIREPO.APP_SCHEMA.model[name];
+        if (! info) {
+            throw 'invalid model name: ' + name;
+        }
+        return info;
     };
 
     self.newSimulation = function(model, op) {
@@ -1367,6 +1371,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             elapsedTime: null,
         };
         scope.panelState = panelState;
+        scope.percentComplete = 0;
 
         function handleStatus(data) {
             setSimulationStatus(data);
@@ -1374,6 +1379,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
                 scope.timeData.elapsedTime = new Date(1970, 0, 1);
                 scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
+            }
+            if (data.percentComplete) {
+                scope.percentComplete = data.percentComplete;
             }
             if (data.isStateProcessing) {
                 scope.dots += '.';
@@ -1420,17 +1428,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             }
         }
 
-        scope.simulationState = function() {
-            return scope.simulationStatus().state;
-        };
-
-        scope.simulationStatus = function() {
-            if (appState.models.simulationStatus && appState.models.simulationStatus[scope.model]) {
-                return appState.models.simulationStatus[scope.model];
-            }
-            return {state: 'pending'};
-        };
-
         scope.cancelSimulation = function() {
             setSimulationStatus({state: 'canceled'});
             simulationQueue.cancelItem(scope.simulationQueueItem);
@@ -1440,6 +1437,13 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         scope.clearSimulation = function() {
             simulationQueue.removeItem(scope.simulationQueueItem);
             scope.simulationQueueItem = null;
+        };
+
+        scope.displayPercentComplete = function() {
+            if (scope.isInitializing() || scope.isStatePending()) {
+                return 100;
+            }
+            return scope.percentComplete;
         };
 
         scope.hasTimeData = function () {
@@ -1484,6 +1488,17 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
                 appState.models,
                 handleStatus
             );
+        };
+
+        scope.simulationState = function() {
+            return scope.simulationStatus().state;
+        };
+
+        scope.simulationStatus = function() {
+            if (appState.models.simulationStatus && appState.models.simulationStatus[scope.model]) {
+                return appState.models.simulationStatus[scope.model];
+            }
+            return {state: 'pending'};
         };
 
         scope.stateAsText = function() {

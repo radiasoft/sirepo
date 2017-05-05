@@ -62,24 +62,15 @@ SIREPO.app.factory('warpService', function(appState, $rootScope) {
 SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, warpService, persistentSimulation, $scope) {
     var self = this;
     self.model = 'animation';
-    self.percentComplete = 0;
 
     self.handleStatus = function(data) {
         frameCache.setFrameCount(data.frameCount);
-        if (self.isStateProcessing())
-            self.percentComplete = data.percentComplete;
         if (data.startTime) {
             ['fieldAnimation', 'particleAnimation', 'beamAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
         }
-    };
-
-    self.displayPercentComplete = function() {
-        if (self.percentComplete < 1)
-            return 100;
-        return self.percentComplete;
     };
 
     self.getFrameCount = function() {
