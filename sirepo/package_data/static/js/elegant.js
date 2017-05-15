@@ -2448,7 +2448,7 @@ SIREPO.app.directive('inputFileXY', function() {
     };
 });
 
-SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window) {
+SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnService, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -2457,14 +2457,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
-            var p = $scope;
-            while (p.$parent) {
-                p = p.$parent;
-                if (p.lattice) {
-                    $scope.latticeController = p.lattice;
-                    break;
-                }
-            }
+            $scope.latticeController = panelState.findParentAttribute($scope, 'lattice');
             $scope.isClientOnly = true;
             $scope.margin = 3;
             $scope.width = 1;
@@ -2901,6 +2894,7 @@ SIREPO.app.directive('lattice', function(plotting, appState, rpnService, $window
                 $scope.zoom = d3.behavior.zoom()
                     .scaleExtent([1, 50])
                     .on('zoom', zoomed);
+                //TODO(pjm): call stopPropagation() on item double-click instead, would allow double-click zoom on empty space
                 select('svg').call($scope.zoom)
                     .on('dblclick.zoom', null);
                 $scope.container = select('.sr-zoom-plot');

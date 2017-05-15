@@ -787,6 +787,13 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.findParentAttribute = function(scope, name) {
+        while (scope && ! scope[name]) {
+            scope = scope.$parent;
+        }
+        return scope[name];
+    };
+
     self.getError = function(name) {
         return getPanelValue(name, 'error');
     };

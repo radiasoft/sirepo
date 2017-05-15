@@ -446,14 +446,6 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
         ].join(''),
         controller: function($scope) {
 
-            function findParentAttribute(name) {
-                var scope = $scope;
-                while (scope && ! scope[name]) {
-                    scope = scope.$parent;
-                }
-                return scope[name];
-            }
-
             $scope.downloadFileUrl = function() {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadFile', {
@@ -543,7 +535,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             };
             $scope.showFileReport = function() {
                 //TODO(pjm): uncouple from beamline controller
-                findParentAttribute('beamline').showFileReport($scope.fileType, $scope.model);
+                panelState.findParentAttribute($scope, 'beamline').showFileReport($scope.fileType, $scope.model);
             };
         },
     };
@@ -1009,6 +1001,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
               '</div>',
               '<div data-ng-transclude=""></div>',
             '</div>',
