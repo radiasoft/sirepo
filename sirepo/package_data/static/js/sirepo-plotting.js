@@ -271,7 +271,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
                 var v = format(n);
                 //TODO(pjm): use a regexp
-                if ((v && v.indexOf('z') > 0) || v == '0.00' || v == '0.0000') {
+                if ((v && (v.indexOf('z') > 0 || v.indexOf('y') > 0)) || v == '0.00' || v == '0.0000') {
                     return '0';
                 }
                 v = cleanNumber(v);
@@ -849,6 +849,9 @@ SIREPO.app.directive('plot2d', function(plotting) {
             };
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! points || isNaN(width)) {
                     return;
@@ -1242,7 +1245,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             };
 
             $scope.resize = function() {
-                //TODO(pjm): occasionally dies here in d3 when switching tabs
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width')) - 2 * $scope.margin;
                 if (! heatmap || isNaN(width)){
                     return;
@@ -1406,6 +1411,9 @@ SIREPO.app.directive('heatmap', function(plotting) {
             }
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var canvasSize = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! heatmap || isNaN(canvasSize)) {
                     return;
@@ -1634,6 +1642,9 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
             };
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! xPoints || isNaN(width)) {
                     return;
@@ -1776,6 +1787,9 @@ SIREPO.app.directive('particle', function(plotting) {
             };
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                 if (! xDomain || isNaN(width)) {
                     return;
