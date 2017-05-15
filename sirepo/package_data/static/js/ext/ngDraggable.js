@@ -429,7 +429,22 @@ angular.module("ngDraggable", [])
                     var reset = function() {
                         element.css({left:0,top:0, position:'fixed', 'z-index':-1, visibility:'hidden'});
                     };
+
+                    function scrollTop() {
+                        var v = document.body.scrollTop;
+                        if (v == 0) {
+                            if (window.pageYOffset) {
+                                v = window.pageYOffset;
+                            }
+                            else {
+                                v = document.body.parentElement ? document.body.parentElement.scrollTop : 0;
+                            }
+                        }
+                        return v;
+                    }
+
                     var moveElement = function(x,y) {
+                        y += scrollTop() / 2;
                         element.css({
                             transform: 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, '+x+', '+y+', 0, 1)', 'z-index': 99999, 'visibility': 'visible',
                             '-webkit-transform': 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, '+x+', '+y+', 0, 1)',
