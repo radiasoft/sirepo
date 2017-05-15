@@ -1,0 +1,92 @@
+{
+    "models": {
+        "beam": {
+            "anode_voltage": 0.4,
+            "anode_work_function": 0.1,
+            "beam_current": 0.0025,
+            "cathode_temperature": 1273.15,
+            "cathode_work_function": 2,
+            "currentMode": "3",
+            "species": "Electron",
+            "x_radius": 0.055
+        },
+        "conductorGridReport": {},
+        "conductorTypes": [
+            {
+                "id": 3,
+                "name": "Head",
+                "voltage": 30,
+                "xLength": 0.02,
+                "zLength": 0.01
+            },
+            {
+                "id": 2,
+                "name": "Post",
+                "voltage": 0,
+                "xLength": 0.005,
+                "zLength": 0.5
+            }
+        ],
+        "conductors": [
+            {
+                "conductorTypeId": 2,
+                "id": 2,
+                "xCenter": "0.036363636",
+                "zCenter": "4.7500000"
+            },
+            {
+                "conductorTypeId": 2,
+                "id": 3,
+                "xCenter": "-0.036363636",
+                "zCenter": "4.7500000"
+            },
+            {
+                "conductorTypeId": 3,
+                "id": 4,
+                "xCenter": "0.036363636",
+                "zCenter": "4.4950000"
+            },
+            {
+                "conductorTypeId": 3,
+                "id": 5,
+                "xCenter": "-0.036363636",
+                "zCenter": "4.4950000"
+            }
+        ],
+        "currentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1494885533
+        },
+        "fieldAnimation": {
+            "field": "phi",
+            "framesPerSecond": "2",
+            "startTime": 1494885533
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "particleAnimation": {
+            "renderCount": 150,
+            "startTime": 1494885533
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "Two Poles",
+            "outOfSessionSimulationId": "",
+            "simulationId": "UIQuUQEJ",
+            "simulationSerial": 1494885646601878
+        },
+        "simulationGrid": {
+            "channel_width": 0.2,
+            "num_steps": 4000,
+            "num_x": 11,
+            "num_z": 512,
+            "particles_per_step": 110,
+            "plate_spacing": 5,
+            "z_particle_min": 0.001220703125
+        }
+    },
+    "simulationType": "fete",
+    "version": "20170515.000000"
+}

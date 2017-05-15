@@ -1,75 +1,30 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-6">
-      <div class="row">
-        <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-view-name="simulationGrid" data-parent-controller="source"></div>
-        </div>
-        <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-view-name="beam" data-parent-controller="source"></div>
-        </div>
-      </div>
+        <div data-basic-editor-panel="" data-view-name="simulationGrid" data-parent-controller="source"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6">
+        <div data-basic-editor-panel="" data-view-name="beam" data-parent-controller="source"></div>
+    </div>
+    <div class="col-md-8">
+      <div data-report-panel="conductorGrid" data-model-name="conductorGridReport"></div>
+    </div>
+    <div class="col-md-4">
       <div class="panel panel-info">
-        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
-        <div class="panel-body" data-ng-hide="source.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="source.isStateProcessing()">
-            <div data-ng-show="source.isStatePending()">
-              <div class="col-sm-12">
-                 {{ source.stateAsText() }} {{ source.dots }}
-              </div>
-            </div>
-            <div data-ng-show="source.isStateRunning()">
-              <div class="col-sm-12">
-                <div data-ng-show="source.isInitializing()">
-                   Running Simulation {{ source.dots }}
-                </div>
-                <div data-ng-show="source.getFrameCount() > 0">
-                  Completed frame: {{ source.getFrameCount() }}
-                </div>
-                <div class="progress">
-                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': source.isInitializing() }" role="progressbar" aria-valuenow="{{ source.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ source.displayPercentComplete() }}%">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="source.cancelSimulation()">End Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="source.isStateStopped()">
-            <div class="col-sm-12" data-ng-show="source.getFrameCount() >= 1">
-              Simulation
-              <span>{{ source.stateAsText() }}</span><span>:
-                {{ source.getFrameCount() }} animation frames
-              </span>
-              <br><br>
-            </div>
-            <div data-ng-show="source.simulationState() =='error'">
-              <div class="col-sm-12">
-                {{ source.stateAsText() }}
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="source.runSimulation()">Start New Simulation</button>
-            </div>
-          </form>
-          <div class="clearfix"></div>
-          <div data-summary-table="animation"></div>
+        <div class="panel-heading"><span class="sr-panel-heading">Conductor Types</span></div>
+        <div class="panel-body">
+          <div class="pull-right">
+            <button class="btn btn-info btn-xs" data-ng-click="source.createConductorType('box')" accesskey="N"><span class="glyphicon glyphicon-plus"></span> <u>N</u>ew Conductor Type</button>
+          </div>
+          <div data-conductor-table="" data-controller="source"></div>
         </div>
       </div>
-    </div>
-    <div class="col-md-6 col-xl-4">
-      <div data-report-panel="particle" data-model-name="particleAnimation"></div>
-    </div>
-    <div class="col-md-6 col-xl-4">
-      <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
-    </div>
-    <div class="col-md-6 col-xl-4">
-      <div data-report-panel="parameter" data-model-name="currentAnimation"></div>
     </div>
   </div>
 </div>
 <div data-modal-editor="" view-name="beam" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="simulationGrid" data-parent-controller="source"></div>
+
+<div data-confirmation-modal="" data-id="sr-delete-conductorType-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductorType()">Delete <strong>{{ source.deleteWarning.name }}</strong>? {{ source.deleteWarning.message }}</div>
+<div data-confirmation-modal="" data-id="sr-delete-conductor-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductor()">Delete <strong>{{ source.deleteWarning.name }}</strong>?</div>
+<div data-ng-drag-clone="" class="sr-drag-clone"><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>

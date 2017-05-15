@@ -22,10 +22,11 @@ import re
 
 SIM_TYPE = 'fete'
 
-#TODO(pjm): change to True
-WANT_BROWSER_FRAME_CACHE = False
+WANT_BROWSER_FRAME_CACHE = True
 
 _PARTICLE_PERIOD = 100
+
+_PARTICLE_FILE = 'particles.npy'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -60,6 +61,22 @@ def fixup_old_data(data):
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_data_file(run_dir, model, frame):
+    if model == 'particleAnimation':
+        filename = str(run_dir.join(_PARTICLE_FILE))
+        with open(filename) as f:
+            return os.path.basename(filename), f.read(), 'application/octet-stream'
+    #TODO(pjm): consolidate with template/warp.py
+    files = _h5_file_list(run_dir, model)
+    #TODO(pjm): last client file may have been deleted on a canceled animation,
+    # give the last available file instead.
+    if len(files) < frame + 1:
+        frame = -1
+    filename = str(files[int(frame)])
+    with open(filename) as f:
+        return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
 def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
@@ -146,11 +163,19 @@ def prepare_for_save(data):
     return data
 
 
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data, is_parallel=True)
+
+
 def remove_last_frame(run_dir):
     for m in ('currentAnimation', 'fieldAnimation'):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
+
+
+def resource_files():
+    return []
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -186,7 +211,7 @@ def _extract_current(data, data_file):
     beam = data['models']['beam']
     cathode_area = 2. * beam['x_radius'] * 1e-6
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
-    JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['grid_bias'], plate_spacing) * cathode_area
+    JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
     if beam['currentMode'] == '2' or (beam['currentMode'] == '1' and beam['beam_current'] >= JCL_ideal):
         curr2 = np.full_like(zmesh, JCL_ideal)
@@ -239,8 +264,9 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_particle(run_dir, render_count, data):
-    v = np.load(str(run_dir.join('particles.npy')))
+    v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
+    #TODO(pjm): include lost electrons in list and show on reports
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -251,7 +277,6 @@ def _extract_particle(run_dir, render_count, data):
     for i in range(len(kept_electrons[1])):
         x_points.append(kept_electrons[1][i].tolist())
         y_points.append(kept_electrons[0][i].tolist())
-
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -262,12 +287,34 @@ def _extract_particle(run_dir, render_count, data):
         'y_range': [-radius, radius],
     }
 
+def _generate_lattice(data):
+    conductorTypeMap = {}
+    for ct in data.models.conductorTypes:
+        conductorTypeMap[ct.id] = ct
+
+    res = 'conductors = ['
+    for c in data.models.conductors:
+        ct = conductorTypeMap[c.conductorTypeId]
+        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}),'.format(
+            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6)
+    res += '''
+]
+for c in conductors:
+    if c.voltage != 0.0:
+      installconductor(c)
+
+scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
+    '''
+    return res
+
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
+    v['particleFile'] = _PARTICLE_FILE
+    v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
     return pkjinja.render_resource('fete.py', v)
 
 

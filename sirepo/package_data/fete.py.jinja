@@ -80,7 +80,7 @@ zmesh = np.linspace(0,Z_MAX,NUM_Z+1) #holds the z-axis grid points in an array
 CATHODE_TEMP = {{ beam_cathode_temperature }} #cathode temperature in K
 CATHODE_PHI = {{ beam_cathode_work_function }} #work function in eV
 ANODE_WF = {{ beam_anode_work_function }}
-GRID_BIAS = {{ beam_grid_bias }} #voltage applied to any grid of electrodes
+GRID_BIAS = {{ beam_anode_voltage }} #voltage applied to any grid of electrodes
 
 vacuum_level = CATHODE_PHI - ANODE_WF + GRID_BIAS
 
@@ -204,28 +204,8 @@ plate = ZPlane(voltage=extractor_voltage, zcent=zplate)
 installconductor(plate,dfill=largepos)
 
 #####
-# conductor = Box(10e-9, 10e-9, 10e-9, voltage=2.0, xcent=-30e-9, ycent=0., zcent=9e-6)
-# installconductor(conductor)
-# conductor2 = Box(10e-9, 10e-9, 10e-9, voltage=2.0, xcent=40e-9, ycent=0., zcent=6e-6)
-# installconductor(conductor2)
-#post = Box(3.*cm, 15.*cm, 100.*cm, voltage=0., xcent=1.5*cm, ycent=0., zcent=6.*cm)
-#installconductor(post)
 
-column_width = 12e-9
-column_length = 90e-9
-column = Box(column_width,1.,column_length,voltage=0.,xcent=0.,ycent=0.0,zcent=zplate - column_length / 2.)
-
-# Install Grid
-grid_length =  10e-9
-grid = Box(column_width,10.,grid_length,voltage=10.0,
-           xcent=0., ycent=0.0, zcent=zplate - column_length - grid_length / 2.)
-installconductor(grid)
-
-####
-
-# Setup the particle scraper
-#scraper = ParticleScraper([source, plate])
-scraper = ParticleScraper([source, plate, column, grid], lcollectlpdata=True)
+{{ conductorLatticeAndParticleScraper }}
 
 #------
 
@@ -333,4 +313,4 @@ time1 = time.time()
 time_per_step = (time1-time0)/num_steps
 
 kept_electrons, lost_electrons = particle_trace(electron_tracker_0, electron_tracker_0.nn)
-np.save('particles.npy', [kept_electrons, lost_electrons])
+np.save('{{ particleFile }}', [kept_electrons, lost_electrons])

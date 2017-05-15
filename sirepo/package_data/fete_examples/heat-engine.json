@@ -1,0 +1,80 @@
+{
+    "models": {
+        "beam": {
+            "anode_voltage": 9.5,
+            "anode_work_function": 1.5,
+            "beam_current": 0.0025,
+            "cathode_temperature": 1273.15,
+            "cathode_work_function": 2,
+            "currentMode": "3",
+            "species": "Electron",
+            "x_radius": 0.06
+        },
+        "conductorGridReport": {},
+        "conductorTypes": [
+            {
+                "id": 2,
+                "name": "Column",
+                "voltage": 0,
+                "xLength": 0.012,
+                "zLength": 0.09
+            },
+            {
+                "id": 3,
+                "name": "Grid",
+                "voltage": 20,
+                "xLength": 0.012,
+                "zLength": 0.01
+            }
+        ],
+        "conductors": [
+            {
+                "conductorTypeId": 2,
+                "id": 2,
+                "xCenter": "0.0000000",
+                "zCenter": "9.9550000"
+            },
+            {
+                "conductorTypeId": 3,
+                "id": 3,
+                "xCenter": "0.0000000",
+                "zCenter": "9.9050000"
+            }
+        ],
+        "currentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1494882921
+        },
+        "fieldAnimation": {
+            "field": "phi",
+            "framesPerSecond": "2",
+            "startTime": 1494882921
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "particleAnimation": {
+            "renderCount": 150,
+            "startTime": 1494882921
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "Heat Engine",
+            "outOfSessionSimulationId": "",
+            "simulationId": "DNkLnmgP",
+            "simulationSerial": 1494882978841550
+        },
+        "simulationGrid": {
+            "channel_width": 0.12,
+            "num_steps": 8000,
+            "num_x": 12,
+            "num_z": 1000,
+            "particles_per_step": 120,
+            "plate_spacing": 10,
+            "z_particle_min": 0.00125
+        }
+    },
+    "simulationType": "fete",
+    "version": "20170515.000000"
+}

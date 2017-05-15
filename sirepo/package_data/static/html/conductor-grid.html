@@ -1,0 +1,17 @@
+  <p class="lead text-center"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
+  <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+    <div><svg class="sr-plot">
+      <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+        <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+        <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
+        <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
+        <g class="y axis"></g>
+        <g class="y axis grid"></g>
+        <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+        <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
+        <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+            <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
+        </svg>
+      </g>
+    </svg></div>
+  </div>

@@ -757,3 +757,38 @@ p.hellweg-drop-zone {
   margin: 0;
   padding-bottom: 25px;
 }
+
+.fete-plate {
+  fill: rgba(105, 146, 255, 0.3);
+  stroke: rgb(95, 176, 228);
+  cursor: pointer;
+}
+.fete-plate-voltage {
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
+}
+.fete-shape {
+  cursor: move;
+  stroke: rgb(95, 176, 228);
+  stroke-width: 2;
+  fill: rgba(105, 146, 255, 0.3);
+}
+.fete-shape-voltage {
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
+}
+.fete-shape:hover {
+  fill: lightgreen;
+  filter: drop-shadow(2px 2px 2px #999);
+}
+.fete-drag-shadow {
+  fill: black;
+  stroke-width: 0;
+  filter: drop-shadow(2px 2px 2px #999);
+}
+.fete-drag-shadow:hover {
+  fill: black;
+}
+.sr-drag-clone-hidden {
+  opacity: 0;
+}

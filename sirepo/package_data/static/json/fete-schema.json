@@ -38,7 +38,18 @@
             "cathode_temperature": ["Cathode Temperature [K]", "Float"],
             "cathode_work_function": ["Cathode Work Function [eV]", "Float"],
             "anode_work_function": ["Anode Work Function [eV]", "Float"],
-            "grid_bias": ["Grid Bias [eV]", "Float"]
+            "anode_voltage": ["Anode Voltage [eV]", "Float"]
+        },
+        "box": {
+            "name": ["Name", "String"],
+            "voltage": ["Voltage [eV]", "Float"],
+            "xLength": ["Width (X) [µm]", "Float"],
+            "zLength": ["Length (Z) [µm]", "Float"]
+        },
+        "conductorGridReport": {},
+        "conductorPosition": {
+            "xCenter": ["Center X [µm]", "Float"],
+            "zCenter": ["Center Z [µm]", "Float"]
         },
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
@@ -68,6 +79,13 @@
         "simulationStatus": {}
     },
     "view": {
+        "anode": {
+            "title": "Anode",
+            "advanced": [
+                "beam.anode_voltage",
+                "beam.anode_work_function"
+            ]
+        },
         "beam": {
             "title": "Beam",
             "basic": [
@@ -82,8 +100,35 @@
                 "x_radius",
                 "cathode_temperature",
                 "cathode_work_function",
-                "anode_work_function",
-                "grid_bias"
+                "anode_voltage",
+                "anode_work_function"
+            ]
+        },
+        "box": {
+            "title": "Box Conductor",
+            "advanced": [
+                "name",
+                "voltage",
+                "zLength",
+                "xLength"
+            ]
+        },
+        "cathode": {
+            "title": "Cathode",
+            "advanced": [
+                "beam.cathode_temperature",
+                "beam.cathode_work_function"
+            ]
+        },
+        "conductorGridReport": {
+            "title": "Conductor Grid",
+            "advanced": []
+        },
+        "conductorPosition": {
+            "title": "Conductor Position",
+            "advanced": [
+                "zCenter",
+                "xCenter"
             ]
         },
         "currentAnimation": {
@@ -135,7 +180,10 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": []
+            "advanced": [
+                "simulationGrid.num_steps",
+                "simulationGrid.particles_per_step"
+            ]
         }
     }
 }
