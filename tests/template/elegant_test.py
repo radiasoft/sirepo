@@ -7,8 +7,9 @@ u"""Test for sirepo.template.elegant
 from __future__ import absolute_import, division, print_function
 import pytest
 
-elegant = None
+pytest.importorskip('sdds')
 
+elegant = None
 
 def test_get_application_data():
     _expr('1 1 +', 2.0)
