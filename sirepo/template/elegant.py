@@ -291,7 +291,7 @@ def get_simulation_frame(run_dir, data, model_data):
     return extract_report_data(str(run_dir.join(filename)), frame_data, model_data['models']['bunch']['p_central_mev'], frame_index)
 
 
-def get_data_file(run_dir, model, frame):
+def get_data_file(run_dir, model, frame, options=None):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # ex. elementAnimation17-55
@@ -311,11 +311,18 @@ def get_data_file(run_dir, model, frame):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    for path in glob.glob(str(run_dir.join('elegant.bun'))):
-        path = str(py.path.local(path))
-        with open(path) as f:
-            return os.path.basename(path), f.read(), 'application/octet-stream'
-    raise RuntimeError('no datafile found in run_dir: {}'.format(run_dir))
+    path = run_dir.join('elegant.bun')
+    assert path.check(file=True, exists=True), \
+        '{}: not found'.format(path)
+    if not options.suffix:
+        with open(str(path)) as f:
+            return path.basename, f.read(), 'application/octet-stream'
+    if options.suffix == 'csv':
+        out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
+        assert out, \
+            '{}: invalid or empty output from sddsprintout'.format(path)
+        return path.purebasename + '.csv', out, 'text/csv'
+    raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):

@@ -1,5 +1,5 @@
 {
-    "version": "20170515.000001",
+    "version": "20170516.000001",
     "appInfo": {
         "elegant": {
             "longName": "Elegant",
@@ -34,7 +34,7 @@
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteSimulation": "/delete-simulation",
-        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>",
+        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",

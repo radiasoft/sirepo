@@ -575,7 +575,7 @@ def get_application_data(data):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
-def get_data_file(run_dir, model, frame):
+def get_data_file(run_dir, model, frame, **kwargs):
     filename = get_filename_for_model(model)
     with open(str(run_dir.join(filename))) as f:
         return filename, f.read(), 'application/octet-stream'

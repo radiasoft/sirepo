@@ -916,7 +916,10 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
                   '<li role="separator" class="divider"></li>',
-                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  '<li><a data-ng-href="{{ dataFileURL(\'\') }}" target="_blank">Raw Data File</a></li>',
+                  SIREPO.APP_NAME == 'elegant'
+                      ? '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>'
+                      : '',
                   SIREPO.APP_NAME == 'srw'
                       ? '<li><a href data-ng-click="srwExportPython()">Export Python Code</a></li>'
                       : '',
@@ -933,16 +936,20 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
             $scope.panelState = panelState;
 
-            $scope.dataFileURL = function() {
+            $scope.dataFileURL = function(suffix) {
                 if (appState.isLoaded()) {
-                    return requestSender.formatUrl('downloadDataFile', {
+                    var params = {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<model>': $scope.modelKey,
                         '<frame>': appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
                             : -1,
-                    });
+                    };
+                    if (suffix) {
+                        params['<suffix>'] = suffix;
+                    }
+                    return requestSender.formatUrl('downloadDataFile', params);
                 }
                 return '';
             };
