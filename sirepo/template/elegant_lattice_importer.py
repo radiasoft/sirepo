@@ -107,20 +107,39 @@ def max_id(data):
 def parse_rpn_value(value, variable_list):
     variables = {x['name']: x['value'] for x in variable_list}
     depends = build_variable_dependency(value, variables, [])
+    #TODO(robnagler) scan variable values for strings. Need to be parsable
     var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
     #TODO(pjm): security - need to scrub field value
-    out = ''
+    #     execn  send top of string stack to UNIX and put result on numerical stack
+    #     execs     send top of string stack to UNIX and put output on string stack
+    # csh                       start and enter C shell subprocess
+    # cshs                       send top of string stack to C shell
+    # gets                       get string from input file
+    # seems like this would be bad, because you could construct a string that could be executed
+    # mudf    make user defined function from string stack (name commands mudf)
+    # open                       open input/output file
+    # puts                       put string to file
+    # sleep                       sleep for number of seconds
+    # @                       push command input file
+    stderr = None
+    pkdc('rpn variables={} expr="{}"', var_list, value)
+    cmd = ['rpnl', '{} {}'.format(var_list, value)]
+    err = None
+    out = None
     try:
-        with open(os.devnull, 'w') as devnull:
-            pkdc('rpnl "{}" "{}"', var_list, value)
-            out = subprocess.check_output(
-                ['rpnl', '{} {}'.format(var_list, value)],
-                env=elegant_common.subprocess_env(),
-                stderr=devnull,
-            )
+        p = subprocess.Popen(
+            cmd,
+            env=elegant_common.subprocess_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        out, err = p.communicate()
+        if p.wait() != 0:
+            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
     except subprocess.CalledProcessError as e:
+        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
         return None, 'invalid'
-    if len(out):
+    if out != None and len(out):
         return float(out.strip()), None
     return None, 'empty'
 

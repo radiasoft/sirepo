@@ -8,12 +8,13 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
+import ast
 import glob
 import numpy as np
 import os
@@ -60,6 +61,17 @@ _SDDS_STRING_TYPE = 7
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
+_INFIX_TO_RPN = {
+    ast.Add: '+',
+    ast.Div: '/',
+    ast.Invert: '!',
+    ast.Mult: '*',
+    ast.Not: '!',
+    ast.Pow: 'pow',
+    ast.Sub: '-',
+    ast.UAdd: '+',
+    ast.USub: '+',
+}
 
 def background_percent_complete(report, run_dir, is_running, schema):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
@@ -251,7 +263,7 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'rpn_value':
-        value, error = elegant_lattice_importer.parse_rpn_value(data['value'], data['variables'])
+        value, error = _parse_expr(data['value'], data['variables'])
         if error:
             data['error'] = error
         else:
@@ -259,7 +271,7 @@ def get_application_data(data):
         return data
     if data['method'] == 'recompute_rpn_cache_values':
         for k in data['cache']:
-            value, error = elegant_lattice_importer.parse_rpn_value(k, data['variables'])
+            value, error = _parse_expr(k, data['variables'])
             if not error:
                 data['cache'][k] = value
         return data
@@ -465,6 +477,53 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
         if id in beamlines:
             _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
     ordered_beamlines.append(beamline)
+
+
+def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  '):
+    """
+    Taken from:
+    https://bitbucket.org/takluyver/greentreesnakes/src/587ad72894bc7595bc30e33affaa238ac32f0740/astpp.py?at=default&fileviewer=file-view-default
+
+    Return a formatted dump of the tree in *node*.  This is mainly useful for
+    debugging purposes.  The returned string will show the names and the values
+    for fields.  This makes the code impossible to evaluate, so if evaluation is
+    wanted *annotate_fields* must be set to False.  Attributes such as line
+    numbers and column offsets are not dumped by default.  If this is wanted,
+    *include_attributes* can be set to True.
+    """
+
+    def _format(node, level=0):
+        if isinstance(node, ast.AST):
+            fields = [(a, _format(b, level)) for a, b in ast.iter_fields(node)]
+            if include_attributes and node._attributes:
+                fields.extend(
+                    [(a, _format(getattr(node, a), level))
+                     for a in node._attributes],
+                )
+            return ''.join([
+                node.__class__.__name__,
+                '(',
+                ', '.join(('%s=%s' % field for field in fields)
+                           if annotate_fields else
+                           (b for a, b in fields)),
+                ')',
+            ])
+        elif isinstance(node, list):
+            lines = ['[']
+            lines.extend(
+                (indent * (level + 2) + _format(x, level + 2) + ','
+                 for x in node),
+            )
+            if len(lines) > 1:
+                lines.append(indent * (level + 1) + ']')
+            else:
+                lines[-1] += ']'
+            return '\n'.join(lines)
+        return repr(node)
+
+    if not isinstance(node, ast.AST):
+        raise TypeError('expected AST, got %r' % node.__class__.__name__)
+    return _format(node)
 
 
 def _build_beamline_map(data):
@@ -835,6 +894,57 @@ def _parse_elegant_log(run_dir):
             else:
                 res += line + "\n"
     return res, last_element
+
+
+def _parse_expr(expr, variables):
+    """If not infix, default to rpn"""
+    try:
+        rpn = _parse_expr_infix(expr)
+        pkdc('{} => {}', expr, rpn)
+        expr = rpn
+    except Exception as e:
+        pkdc('{}: not infix: {}', expr, e)
+    return elegant_lattice_importer.parse_rpn_value(expr, variables)
+
+
+def _parse_expr_infix(expr):
+    """Use Python parser (ast) and return depth first (RPN) tree"""
+
+    # https://bitbucket.org/takluyver/greentreesnakes/src/587ad72894bc7595bc30e33affaa238ac32f0740/astpp.py?at=default&fileviewer=file-view-default
+
+    def _do(n):
+        # http://greentreesnakes.readthedocs.io/en/latest/nodes.html
+        if isinstance(n, ast.Str):
+            assert not re.search('^[^\'"]*$', n.s), \
+                '{}: invalid string'.format(n.s)
+            return ['"{}"'.format(n.s)]
+        elif isinstance(n, ast.Name):
+            return [str(n.id)]
+        elif isinstance(n, ast.Num):
+            return [str(n.n)]
+        elif isinstance(n, ast.Expression):
+            return _do(n.body)
+        elif isinstance(n, ast.Call):
+            res = []
+            for x in n.args:
+                res.extend(_do(x))
+            return res + [n.func.id]
+        elif isinstance(n, ast.BinOp):
+            return _do(n.left) + _do(n.right) + _do(n.op)
+        elif isinstance(n, ast.UnaryOp):
+            return _do(n.operand) + _do(n.op)
+        elif isinstance(n, ast.IfExp):
+            return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
+        else:
+            x = _INFIX_TO_RPN.get(type(n), None)
+            if x:
+                return [x]
+        raise ValueError('{}: invalid node'._ast_dump(n))
+
+    tree = ast.parse(expr, filename='eval', mode='eval')
+    assert isinstance(tree, ast.Expression), \
+        "{}: must be an expression".format(tree)
+    return ' '.join(_do(tree))
 
 
 def _plot_title(xfield, yfield, page_index):
