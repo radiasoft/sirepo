@@ -24,9 +24,7 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run fete in
     """
     with pkio.save_chdir(cfg_dir):
-        #TODO(pjm): use mpi
-        #mpi.run_script(_script())
-        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        mpi.run_script(_script())
         simulation_db.write_result({})
 
 
