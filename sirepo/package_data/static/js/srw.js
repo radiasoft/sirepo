@@ -1473,8 +1473,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                 }
             };
 
-            persistentSimulation.initProperties($scope);
-            frameCache.setAnimationArgs({
+            persistentSimulation.initProperties($scope, $scope, {
                 multiElectronAnimation: [],
                 fluxAnimation: ['fluxType'],
             });
@@ -1487,7 +1486,6 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                     $scope.particleNumber = 0;
                 }
             });
-            $scope.persistentSimulationInit($scope);
         },
     };
 });

@@ -81,15 +81,11 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, w
         return warpService.isElectronBeam();
     };
 
-    persistentSimulation.initProperties(self);
-
-    frameCache.setAnimationArgs(
-        {
-            fieldAnimation: ['field', 'coordinate', 'mode', 'startTime'],
-            particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
-            beamAnimation: ['x', 'y', 'histogramBins', 'startTime'],
-        });
-    self.persistentSimulationInit($scope);
+    persistentSimulation.initProperties(self, $scope, {
+        fieldAnimation: ['field', 'coordinate', 'mode', 'startTime'],
+        particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
+        beamAnimation: ['x', 'y', 'histogramBins', 'startTime'],
+    });
 });
 
 SIREPO.app.controller('WARPSourceController', function(appState, frameCache, warpService, $scope) {

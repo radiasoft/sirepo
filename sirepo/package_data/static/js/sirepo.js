@@ -433,7 +433,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         savedModelValues[name] = self.cloneModel(name);
     };
 
-    self.saveChanges = function(name) {
+    self.saveChanges = function(name, callback) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string') {
             name = [name];
@@ -466,6 +466,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         self.autoSave(function() {
             if (requireReportUpdate) {
                 updateReports();
+            }
+            if (callback) {
+                callback();
             }
         });
     };
@@ -1371,39 +1374,39 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
     var self = {};
-    self.initProperties = function(scope) {
-        scope.frameId = '-1';
-        scope.frameCount = 1;
-        scope.isReadyForModelChanges = false;
-        scope.simulationQueueItem = null;
-        scope.dots = '.';
-        scope.timeData = {
+    self.initProperties = function(controller, $scope, animationArgs) {
+        controller.frameId = '-1';
+        controller.frameCount = 1;
+        controller.isReadyForModelChanges = false;
+        controller.simulationQueueItem = null;
+        controller.dots = '.';
+        controller.timeData = {
             elapsedDays: null,
             elapsedTime: null,
         };
-        scope.panelState = panelState;
-        scope.percentComplete = 0;
+        controller.panelState = panelState;
+        controller.percentComplete = 0;
 
         function handleStatus(data) {
             setSimulationStatus(data);
             if (data.elapsedTime) {
-                scope.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                scope.timeData.elapsedTime = new Date(1970, 0, 1);
-                scope.timeData.elapsedTime.setSeconds(data.elapsedTime);
+                controller.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                controller.timeData.elapsedTime = new Date(1970, 0, 1);
+                controller.timeData.elapsedTime.setSeconds(data.elapsedTime);
             }
             if (data.percentComplete) {
-                scope.percentComplete = data.percentComplete;
+                controller.percentComplete = data.percentComplete;
             }
             if (data.isStateProcessing) {
-                scope.dots += '.';
-                if (scope.dots.length > 3) {
-                    scope.dots = '.';
+                controller.dots += '.';
+                if (controller.dots.length > 3) {
+                    controller.dots = '.';
                 }
             }
             else {
-                scope.simulationQueueItem = null;
+                controller.simulationQueueItem = null;
             }
-            scope.handleStatus(data);
+            controller.handleStatus(data);
         }
 
         function isState(state) {
@@ -1418,10 +1421,17 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             return false;
         }
 
+        function persistentSimulationInit($scope) {
+            setSimulationStatus({state: 'stopped'});
+            frameCache.setFrameCount(0);
+            $scope.$on('$destroy', controller.clearSimulation);
+            appState.whenModelsLoaded($scope, runStatus);
+        }
+
         function runStatus() {
-            scope.isReadyForModelChanges = true;
-            scope.simulationQueueItem = simulationQueue.addPersistentStatusItem(
-                scope.model,
+            controller.isReadyForModelChanges = true;
+            controller.simulationQueueItem = simulationQueue.addPersistentStatusItem(
+                controller.model,
                 appState.models,
                 handleStatus
             );
@@ -1431,93 +1441,93 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             if (!appState.models.simulationStatus) {
                 appState.models.simulationStatus = {};
             }
-            data.report = scope.model;
-            appState.models.simulationStatus[scope.model] = data;
+            data.report = controller.model;
+            appState.models.simulationStatus[controller.model] = data;
             if (appState.isLoaded()) {
                 // simulationStatus is not saved to server from client
                 appState.saveQuietly('simulationStatus');
             }
         }
 
-        scope.cancelSimulation = function() {
+        controller.cancelSimulation = function() {
             setSimulationStatus({state: 'canceled'});
-            simulationQueue.cancelItem(scope.simulationQueueItem);
-            scope.simulationQueueItem = null;
+            simulationQueue.cancelItem(controller.simulationQueueItem);
+            controller.simulationQueueItem = null;
         };
 
-        scope.clearSimulation = function() {
-            simulationQueue.removeItem(scope.simulationQueueItem);
-            scope.simulationQueueItem = null;
+        controller.clearSimulation = function() {
+            simulationQueue.removeItem(controller.simulationQueueItem);
+            controller.simulationQueueItem = null;
         };
 
-        scope.displayPercentComplete = function() {
-            if (scope.isInitializing() || scope.isStatePending()) {
+        controller.displayPercentComplete = function() {
+            if (controller.isInitializing() || controller.isStatePending()) {
                 return 100;
             }
-            return scope.percentComplete;
+            return controller.percentComplete;
         };
 
-        scope.hasTimeData = function () {
-            return scope.timeData && scope.timeData.elapsedTime !== null;
+        controller.hasTimeData = function () {
+            return controller.timeData && controller.timeData.elapsedTime !== null;
         };
 
-        scope.isInitializing = function() {
-            if (scope.isStateProcessing() && ! scope.isStatePending()) {
+        controller.isInitializing = function() {
+            if (controller.isStateProcessing() && ! controller.isStatePending()) {
                 return frameCache.getFrameCount() < 1;
             }
             return false;
         };
 
-        scope.isStatePending = function() {
-            return scope.simulationStatus().state == 'pending';
+        controller.isStatePending = function() {
+            return controller.simulationStatus().state == 'pending';
         };
 
-        scope.isStateProcessing = function() {
-            return scope.simulationStatus().isStateProcessing;
+        controller.isStateProcessing = function() {
+            return controller.simulationStatus().isStateProcessing;
         };
 
-        scope.isStateRunning = function() {
-            return scope.simulationStatus().state == 'running';
+        controller.isStateRunning = function() {
+            return controller.simulationStatus().state == 'running';
         };
 
-        scope.isStateStopped = function() {
-            return ! scope.isStateProcessing();
+        controller.isStateStopped = function() {
+            return ! controller.isStateProcessing();
         };
 
-        scope.runSimulation = function() {
-            if (scope.isStateProcessing()) {
+        controller.runSimulation = function() {
+            if (controller.isStateProcessing()) {
                 //TODO(robnagler) this shouldn't happen? (double click?)
                 return;
             }
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
-            scope.timeData.elapsedTime = null;
-            scope.timeData.elapsedDays = null;
+            controller.timeData.elapsedTime = null;
+            controller.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
-            scope.simulationQueueItem = simulationQueue.addPersistentItem(
-                scope.model,
+            controller.simulationQueueItem = simulationQueue.addPersistentItem(
+                controller.model,
                 appState.models,
                 handleStatus
             );
         };
 
-        scope.simulationState = function() {
-            return scope.simulationStatus().state;
+        controller.simulationState = function() {
+            return controller.simulationStatus().state;
         };
 
-        scope.simulationStatus = function() {
-            if (appState.models.simulationStatus && appState.models.simulationStatus[scope.model]) {
-                return appState.models.simulationStatus[scope.model];
+        controller.simulationStatus = function() {
+            if (appState.models.simulationStatus && appState.models.simulationStatus[controller.model]) {
+                return appState.models.simulationStatus[controller.model];
             }
             return {state: 'pending'};
         };
 
-        scope.stateAsText = function() {
-            var s = scope.simulationState();
+        controller.stateAsText = function() {
+            var s = controller.simulationState();
             var msg;
             msg = s.charAt(0).toUpperCase() + s.slice(1);
             if (s == 'error') {
-                var e = scope.simulationStatus().error;
+                var e = controller.simulationStatus().error;
                 if (e) {
                     msg += ': ' + e.split(/[\n\r]+/)[0];
                 }
@@ -1525,12 +1535,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             return msg;
         };
 
-        scope.persistentSimulationInit = function($scope) {
-            setSimulationStatus({state: 'stopped'});
-            frameCache.setFrameCount(0);
-            $scope.$on('$destroy', scope.clearSimulation);
-            appState.whenModelsLoaded($scope, runStatus);
-        };
+        frameCache.setAnimationArgs(animationArgs);
+        persistentSimulationInit($scope);
     };
     return self;
 });

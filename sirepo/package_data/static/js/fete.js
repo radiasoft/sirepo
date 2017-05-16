@@ -47,7 +47,7 @@ SIREPO.app.factory('feteService', function(appState, panelState) {
     return self;
 });
 
-SIREPO.app.controller('FeteSourceController', function (appState, feteService, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('FeteSourceController', function (appState, feteService, frameCache, panelState, $scope) {
     var self = this;
 
     function updateAllFields() {
@@ -225,13 +225,11 @@ SIREPO.app.controller('FeteVisualizationController', function (appState, frameCa
         return frameCache.getFrameCount();
     };
 
-    persistentSimulation.initProperties(self);
-    frameCache.setAnimationArgs({
+    persistentSimulation.initProperties(self, $scope, {
         currentAnimation: ['startTime'],
         fieldAnimation: ['field', 'startTime'],
         particleAnimation: ['renderCount', 'startTime'],
     });
-    self.persistentSimulationInit($scope);
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 

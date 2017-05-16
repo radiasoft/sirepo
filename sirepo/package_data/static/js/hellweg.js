@@ -288,14 +288,12 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         return frameCache.getFrameCount();
     };
 
-    persistentSimulation.initProperties(self);
-    frameCache.setAnimationArgs({
+    persistentSimulation.initProperties(self, $scope, {
         beamAnimation: ['reportType', 'histogramBins', 'startTime'],
         beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
         particleAnimation: ['reportType', 'renderCount', 'startTime'],
         parameterAnimation: ['reportType', 'startTime'],
     });
-    self.persistentSimulationInit($scope);
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
