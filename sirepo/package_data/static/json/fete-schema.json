@@ -161,9 +161,7 @@
                 "channel_width",
                 "num_x",
                 "num_z",
-                "particles_per_step",
-                "z_particle_min",
-                "num_steps"
+                "z_particle_min"
             ]
         },
         "simulation": {

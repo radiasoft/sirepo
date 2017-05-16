@@ -55,6 +55,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
+def copy_related_files(data, source_path, target_path):
+    pass
+
+
 def fixup_old_data(data):
     pass
 
