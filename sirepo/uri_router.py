@@ -121,7 +121,7 @@ def uri_for_api(api_name, params=None, external=True):
         external (bool): external uri? [True]
 
     Returns:
-g        str: formmatted external URI
+        str: formmatted external URI
     """
     import flask
     import urllib
