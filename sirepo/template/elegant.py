@@ -297,7 +297,6 @@ def get_data_file(run_dir, model, frame, options=None):
         assert path.check(file=True, exists=True), \
             '{}: not found'.format(path)
         if not options.suffix:
-            pkdp(options)
             with open(str(path)) as f:
                 return path.basename, f.read(), 'application/octet-stream'
         if options.suffix == 'csv':
