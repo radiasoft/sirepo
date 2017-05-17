@@ -67,7 +67,7 @@ def get_animation_name(data):
     return 'animation'
 
 
-def get_data_file(run_dir, model, frame):
+def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'particleAnimation':
         filename = str(run_dir.join(_PARTICLE_FILE))
         with open(filename) as f:

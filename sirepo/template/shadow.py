@@ -84,7 +84,7 @@ def get_application_data(data):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
-def get_data_file(run_dir, model, frame):
+def get_data_file(run_dir, model, frame, **kwargs):
     filename = _SHADOW_OUTPUT_FILE
     with open(str(run_dir.join(filename))) as f:
         return filename, f.read(), 'application/octet-stream'

@@ -116,12 +116,14 @@ def api_deleteSimulation():
 app_delete_simulation = api_deleteSimulation
 
 
-def api_downloadDataFile(simulation_type, simulation_id, model, frame):
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
     data = {
         'simulationType': simulation_type,
         'simulationId': simulation_id,
         'modelName': model,
     }
+    options = pkcollections.Dict(data)
+    options.suffix = suffix
     frame = int(frame)
     template = sirepo.template.import_module(data)
     if frame >= 0:
@@ -129,7 +131,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame):
     else:
         data['report'] = model
     run_dir = simulation_db.simulation_run_dir(data)
-    filename, content, content_type = template.get_data_file(run_dir, model, frame)
+    filename, content, content_type = template.get_data_file(run_dir, model, frame, options=options)
     return _as_attachment(flask.make_response(content), content_type, filename)
 app_download_data_file = api_downloadDataFile
 

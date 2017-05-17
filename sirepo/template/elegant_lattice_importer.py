@@ -121,25 +121,11 @@ def parse_rpn_value(value, variable_list):
     # puts                       put string to file
     # sleep                       sleep for number of seconds
     # @                       push command input file
-    stderr = None
     pkdc('rpn variables={} expr="{}"', var_list, value)
-    cmd = ['rpnl', '{} {}'.format(var_list, value)]
-    err = None
-    out = None
-    try:
-        p = subprocess.Popen(
-            cmd,
-            env=elegant_common.subprocess_env(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        out, err = p.communicate()
-        if p.wait() != 0:
-            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
-    except subprocess.CalledProcessError as e:
-        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
+    out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, value)])
+    if out is None:
         return None, 'invalid'
-    if out != None and len(out):
+    if len(out):
         return float(out.strip()), None
     return None, 'empty'
 

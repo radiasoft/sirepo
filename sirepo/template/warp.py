@@ -273,7 +273,7 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def get_data_file(run_dir, model, frame):
+def get_data_file(run_dir, model, frame, **kwargs):
     files = _h5_file_list(run_dir)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.

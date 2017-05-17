@@ -5,6 +5,7 @@ u"""Support for unit tests
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog
 from pykern import pkcollections
 from pykern import pkunit, pkio
 from sirepo import server
@@ -138,7 +139,6 @@ def _req(route_name, params, op, raw_response):
             return resp
         return simulation_db.json_load(resp.data)
     except Exception as e:
-        from pykern.pkdebug import pkdexc, pkdlog
         pkdlog('{}: uri={} resp={}', e, uri, resp)
         pkdexc()
         raise
