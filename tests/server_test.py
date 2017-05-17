@@ -53,11 +53,16 @@ def test_get_data_file():
             simulationType=data.simulationType,
         ),
     )
-    time.sleep(2)
-    run = fc.sr_post(
-        'runStatus',
-        run.nextRequest
-    )
+    for _ in range(10):
+        run = fc.sr_post(
+            'runStatus',
+            run.nextRequest
+        )
+        if run.state == 'completed':
+            break
+        time.sleep(1)
+    else:
+        pkunit.pkfail('runStatus: failed to complete: {}', run)
     resp = fc.sr_get(
         'downloadDataFile',
         dict(
@@ -69,7 +74,7 @@ def test_get_data_file():
         ),
         raw_response=True,
     )
-    rows = csv.reader(StringIO.StringIO(resp.data))
+    rows = csv.reader(StringIO.StringIO(resp.get_data()))
     assert len(list(rows)) == 5001
     resp = fc.sr_get(
         'downloadDataFile',
