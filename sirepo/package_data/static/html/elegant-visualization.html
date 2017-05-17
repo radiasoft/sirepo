@@ -19,9 +19,6 @@
           </div>
         </div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.iStopped()">
-            <div data-run-simulation-fields=""></div>
-          </form>
           <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateProcessing()">
             <div class="col-sm-12" data-ng-show="visualization.isStatePending()">
               <div>
