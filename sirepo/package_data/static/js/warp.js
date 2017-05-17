@@ -361,7 +361,7 @@ SIREPO.app.directive('appFooter', function() {
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },

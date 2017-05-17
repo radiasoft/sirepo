@@ -248,7 +248,7 @@ SIREPO.app.controller('ShadowSourceController', function(appState, panelState, s
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },

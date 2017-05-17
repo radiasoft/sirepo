@@ -298,7 +298,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
@@ -347,7 +347,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 
 SIREPO.app.directive('summaryTable', function(appState, panelState, $interval) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             modelName: '@summaryTable',
         },

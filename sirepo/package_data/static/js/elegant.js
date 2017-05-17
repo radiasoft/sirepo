@@ -1131,7 +1131,7 @@ SIREPO.app.directive('appFooter', function() {
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
@@ -1206,7 +1206,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 
 SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             lattice: '=controller',
         },
@@ -1416,7 +1416,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
 
 SIREPO.app.directive('beamlineTable', function(appState, $window) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             lattice: '=controller',
         },
@@ -1528,7 +1528,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
 
 SIREPO.app.directive('commandTable', function(appState, elegantService, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {},
         template: [
             '<div class="elegant-cmd-table">',
@@ -1770,7 +1770,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
 
 SIREPO.app.directive('elegantBeamlineList', function(appState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             model: '=',
             field: '=',
@@ -1795,7 +1795,7 @@ SIREPO.app.directive('elegantBeamlineList', function(appState) {
 
 SIREPO.app.directive('elegantLatticeList', function(appState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             model: '=',
             field: '=',
@@ -1830,7 +1830,7 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
 
 SIREPO.app.directive('elementPicker', function() {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             controller: '=',
             title: '@',
@@ -1889,7 +1889,7 @@ SIREPO.app.directive('elementPicker', function() {
 
 SIREPO.app.directive('elementTable', function(appState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             lattice: '=controller',
         },
@@ -2389,7 +2389,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
 
 SIREPO.app.directive('inputFileXY', function() {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             modelName: '=',
             model: '=',
@@ -2900,7 +2900,7 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
 
 SIREPO.app.directive('outputFileField', function(appState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             field: '=outputFileField',
             model: '=',
@@ -2950,7 +2950,7 @@ SIREPO.app.directive('outputFileField', function(appState) {
 
 SIREPO.app.directive('rpnBoolean', function(rpnService) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             model: '=',
             field: '=',
@@ -3105,7 +3105,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
 
 SIREPO.app.directive('rpnStatic', function(rpnService) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             model: '=',
             field: '=',

@@ -283,7 +283,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
 
 SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             modelName: '=',
             field: '=fieldEditor',
@@ -380,7 +380,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
 
 SIREPO.app.directive('loginMenu', function(requestSender) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {},
         template: [
               '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',

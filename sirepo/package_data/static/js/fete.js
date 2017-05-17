@@ -235,7 +235,7 @@ SIREPO.app.controller('FeteVisualizationController', function (appState, frameCa
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
@@ -277,7 +277,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 
 SIREPO.app.directive('conductorTable', function(appState) {
     return {
-        restirct: 'A',
+        restrict: 'A',
         scope: {
             source: '=controller',
         },
