@@ -292,14 +292,26 @@ def get_simulation_frame(run_dir, data, model_data):
 
 
 def get_data_file(run_dir, model, frame, options=None):
+    def _sdds(filename):
+        path = run_dir.join(filename)
+        assert path.check(file=True, exists=True), \
+            '{}: not found'.format(path)
+        if not options.suffix:
+            pkdp(options)
+            with open(str(path)) as f:
+                return path.basename, f.read(), 'application/octet-stream'
+        if options.suffix == 'csv':
+            out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
+            assert out, \
+                '{}: invalid or empty output from sddsprintout'.format(path)
+            return path.purebasename + '.csv', out, 'text/csv'
+        raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
+
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # ex. elementAnimation17-55
-        id = re.sub(r'elementAnimation', '', model).split('-')
-        filename = _get_filename_for_element_id(id, data)
-        path = str(run_dir.join(filename))
-        with open(path) as f:
-            return os.path.basename(path), f.read(), 'application/octet-stream'
+        i = re.sub(r'elementAnimation', '', model).split('-')
+        return _sdds(_get_filename_for_element_id(i, data))
 
     if model == 'animation':
         path = str(run_dir.join(ELEGANT_LOG_FILE))
@@ -311,18 +323,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    path = run_dir.join('elegant.bun')
-    assert path.check(file=True, exists=True), \
-        '{}: not found'.format(path)
-    if not options.suffix:
-        with open(str(path)) as f:
-            return path.basename, f.read(), 'application/octet-stream'
-    if options.suffix == 'csv':
-        out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
-        assert out, \
-            '{}: invalid or empty output from sddsprintout'.format(path)
-        return path.purebasename + '.csv', out, 'text/csv'
-    raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
+    return _sdds('elegant.bun')
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
