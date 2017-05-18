@@ -3181,21 +3181,20 @@ SIREPO.app.directive('runSimulationFields', function() {
 });
 
 
-SIREPO.app.directive('parameterTable', function(appState, panelState) {
+SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@parameterTable',
         },
         template: [
-            // TODO center
             '<div data-ng-if="parameterRows">',
               '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
                 '<form name="form" class="form-horizontal">',
                 '<div data-ng-repeat="item in parameterRows">',
                 '<div class="elegant-parameter-table-row form-group form-group-sm">',
-                   '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item[0] }}" data-tooltip="{{ item[3] }}"></div>',
-                   '<div class="col-sm-5 elegant-parameter-table-value">{{ item[1] }} {{ item[2] }}</div>',
+                   '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',
+                   '<div class="col-sm-5 elegant-parameter-table-value">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>',
                 '</div>',
                 '</div>',
                 '</form>',
@@ -3261,9 +3260,27 @@ SIREPO.app.directive('parameterTable', function(appState, panelState) {
                         return a.localeCompare(b);
                     }
                 ).forEach(function (k) {
-                    rows.push([k, params[k][page], defs[k].units, defs[k].description]);
+                    rows.push({
+                        name: k,
+                        value: params[k][page],
+                        units: unitsAsHtml(defs[k].units),
+                        description: defs[k].description,
+                    });
                 });
                 $scope.parameterRows = rows;
+            }
+
+            function unitsAsHtml(units) {
+                if (units == 'm$be$nc') {
+                    return $sce.trustAsHtml(' m<sub>e</sub>c');
+                }
+                if (/^\w+$/.exec(units)) {
+                    return $sce.trustAsHtml(' ' + units);
+                }
+                if (units) {
+                    srlog(units, ': unable to convert elegant units to HTML');
+                }
+                return $sce.trustAsHtml('');
             }
 
             $scope.appState = appState;
