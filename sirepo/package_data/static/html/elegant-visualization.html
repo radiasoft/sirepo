@@ -57,7 +57,10 @@
           </form>
         </div>
       </div>
+    </div>
 
+    <div class="col-md-6 col-xl-4">
+        <div data-parameter-table="elementAnimation"></div>
     </div>
     <div class="clearfix"></div>
     <div data-ng-repeat="item in visualization.outputFiles" class="col-md-6 col-xl-4">
@@ -67,3 +70,28 @@
   </div> <!-- /row -->
 </div> <!-- /container -->
 <div data-element-animation-modal-editor="" data-ng-repeat="item in visualization.outputFiles" data-model-key="{{ item.modelAccess.modelKey }}" data-parent-controller="visualization"></div>
+
+
+<!--
+          <span class="sr-panel-heading">Parameters</span>
+          <div class="sr-panel-options pull-right">
+            <div class="dropdown" style="display: inline-block">
+              <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-hide="visualization.panelState.isHidden('simulationStatus')" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-triangle-top"></span></a>
+              <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-show="visualization.panelState.isHidden('simulationStatus')" title="Show"><span class="sr-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
+          <form name="form" class="form-horizontal" novalidate>
+            <div class="col-sm-12">
+              <div>
+                <div data-parameter-table="elementAnimation"></div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+</div>
+
+-->

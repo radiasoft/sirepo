@@ -676,34 +676,43 @@ def _file_info(filename, run_dir, id, output_index):
                 'lastUpdateTime': int(os.path.getmtime(str(file_path))),
             }
         return None
-    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
-        sdds.sddsdata.Terminate(_SDDS_INDEX)
-        return None
-    column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-    plottable_columns = []
-    double_column_count = 0
-    for col in column_names:
-        col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
-        if col_type < _SDDS_STRING_TYPE:
-            plottable_columns.append(col)
-        if col_type == _SDDS_DOUBLE_TYPE:
-            double_column_count += 1
-    page_count = 1
-    page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
-    while page > 0:
-        page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
-        if page > 0:
+    try:
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
+            return None
+        column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
+        plottable_columns = []
+        double_column_count = 0
+        for col in column_names:
+            col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
+            if col_type < _SDDS_STRING_TYPE:
+                plottable_columns.append(col)
+            if col_type == _SDDS_DOUBLE_TYPE:
+                double_column_count += 1
+        parameter_names = sdds.sddsdata.GetParameterNames(_SDDS_INDEX)
+        parameters = dict([(p, []) for p in parameter_names])
+        page_count = 0
+        while True:
+            page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
+            if page <= 0:
+                break
             page_count += 1
-    sdds.sddsdata.Terminate(_SDDS_INDEX)
-    return {
-        'isAuxFile': False if double_column_count > 1 else True,
-        'filename': filename,
-        'id': '{}-{}'.format(id, output_index),
-        'pageCount': page_count,
-        'columns': column_names,
-        'plottableColumns': plottable_columns,
-        'lastUpdateTime': int(os.path.getmtime(str(file_path))),
-    }
+            for i, p in enumerate(parameter_names):
+                parameters[p].append(sdds.sddsdata.GetParameter(_SDDS_INDEX, i))
+        return {
+            'isAuxFile': False if double_column_count > 1 else True,
+            'filename': filename,
+            'id': '{}-{}'.format(id, output_index),
+            'pageCount': page_count,
+            'columns': column_names,
+            'parameters': parameters,
+            'plottableColumns': plottable_columns,
+            'lastUpdateTime': int(os.path.getmtime(str(file_path))),
+        }
+    finally:
+        try:
+            sdds.sddsdata.Terminate(_SDDS_INDEX)
+        except Exception:
+            pass
 
 
 def _generate_commands(data, filename_map, beamline_map, v):

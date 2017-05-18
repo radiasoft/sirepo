@@ -139,6 +139,7 @@ SIREPO.app.directive('srAlert', function(errorService) {
 SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             viewName: '@',
             parentController: '=',
@@ -149,6 +150,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
                 '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
                   //TODO(pjm): not really an advanced editor pane anymore, should get renamed
                   '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-parent-controller="parentController"></div>',
+              '<div data-ng-transclude=""></div>',
               '</div>',
             '</div>',
         ].join(''),

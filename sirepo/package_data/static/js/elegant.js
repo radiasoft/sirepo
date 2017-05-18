@@ -1033,6 +1033,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
         }
+        $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
 
@@ -3172,6 +3173,46 @@ SIREPO.app.directive('runSimulationFields', function() {
               '</div>',
             '</div>',
         ].join(''),
+    };
+});
+
+
+SIREPO.app.directive('parameterTable', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@parameterTable',
+        },
+        template: [
+            '<div class="col-sm-12" data-ng-if="parameterRows">',
+              '<div data-basic-editor-panel="" data-view-name="parameterTable" data-extra-html="hello" data-parent-controller="visualization">',
+              '<table>',
+              '<tr data-ng-repeat="item in parameterRows">',
+                '<td data-ng-if="item.length == 1"><br /><strong>{{ item[0] }}</strong></td>',
+                '<td data-ng-if="item.length > 1">{{ item[0] }}:</td>',
+                '<td>&nbsp;</td>',
+                '<td>{{ item[1] }}</td>',
+               '</tr>',
+             '</table>',
+            '</div></div>',
+        ].join(''),
+        controller: function($scope) {
+            function update(e, outputInfo) {
+                $scope.outputInfo = outputInfo;
+                if (outputInfo.length > 0 && outputInfo[0].parameters) {
+                    var params = outputInfo[0].parameters;
+                    var rows = [];
+                    Object.keys(params).forEach(function (k) {
+                        rows.push([k, params[k][0]])
+                    });
+                    $scope.parameterRows = rows;
+                }
+            }
+            /*if (! panelState.isHidden('parameterTable')) {
+                1; // panelState.toggleHidden('parameterTable');
+            }*/
+            $scope.$on($scope.modelName + '.outputInfo', update);
+        }
     };
 });
 
