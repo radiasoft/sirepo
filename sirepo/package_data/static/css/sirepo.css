@@ -724,6 +724,16 @@ li.sr-model-list-item > a {
 .elegant-cmd-table table tr td.drag-enter div.dragging {
   padding-top: 0;
 }
+.elegant-parameter-table-row {
+  margin-bottom: 0;
+  padding: 0;
+}
+.elegant-parameter-table-value {
+  /* matching control-label */
+  padding-top: 6px;
+  /* normal spacing */
+  padding-left: 1.7em;
+}
 .hellweg-icon {
   -moz-user-select: none;
   display: inline-block;

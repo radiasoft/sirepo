@@ -143,13 +143,14 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
         scope: {
             viewName: '@',
             parentController: '=',
+            wantButtons: '@',
         },
         template: [
             '<div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
                 '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
                   //TODO(pjm): not really an advanced editor pane anymore, should get renamed
-                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-parent-controller="parentController"></div>',
+                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtonsEval }}" data-field-def="basic" data-parent-controller="parentController"></div>',
               '<div data-ng-transclude=""></div>',
               '</div>',
             '</div>',
@@ -159,6 +160,12 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.panelState = panelState;
             $scope.panelTitle = viewInfo.title;
+            if ($scope.wantButtons == null) {
+                $scope.wantButtonsEval = '1';
+            }
+            else {
+                $scope.wantButtonsEval = $scope.wantButtons;
+            }
         },
     };
 });

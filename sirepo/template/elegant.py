@@ -705,6 +705,7 @@ def _file_info(filename, run_dir, id, output_index):
             'pageCount': page_count,
             'columns': column_names,
             'parameters': parameters,
+            'parameterDefinitions': _parameter_definitions(parameters),
             'plottableColumns': plottable_columns,
             'lastUpdateTime': int(os.path.getmtime(str(file_path))),
         }
@@ -884,6 +885,17 @@ def _output_info(run_dir, data, schema):
         info = _file_info(filename, run_dir, id[0], id[1])
         if info:
             res.append(info)
+    return res
+
+
+def _parameter_definitions(parameters):
+    """Convert parameters to useful definitions"""
+    res = {}
+    for p in parameters:
+        res[p] = dict(zip(
+            ['symbol', 'units', 'description', 'format_string', 'type', 'fixed_value'],
+            sdds.sddsdata.GetParameterDefinition(_SDDS_INDEX, p),
+        ))
     return res
 
 

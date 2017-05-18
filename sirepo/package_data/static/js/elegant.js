@@ -40,7 +40,7 @@ SIREPO.appFieldEditors = [
       '<input data-ng-model="model[field]" class="form-control" required />',
     '</div>',
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'values\']"></select>',
+      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
 ].join('');
 
@@ -1004,6 +1004,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 },
             });
             animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId', 'startTime'];
+            var valueList = {
+                x: info.plottableColumns,
+                y: info.plottableColumns,
+            };
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
                 m.startTime = startTime;
@@ -1014,7 +1018,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     m.y = info.plottableColumns[1];
                 }
                 m.fileId = info.id;
-                m.values = info.plottableColumns;
+                m.valueList = valueList;
             }
             else {
                 appState.models[modelKey] = {
@@ -1022,7 +1026,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     y: defaultYColumn(info.plottableColumns),
                     histogramBins: 200,
                     fileId: info.id,
-                    values: info.plottableColumns,
+                    valueList: valueList,
                     framesPerSecond: 2,
                     startTime: startTime,
                 };
@@ -3184,34 +3188,89 @@ SIREPO.app.directive('parameterTable', function(appState, panelState) {
             modelName: '@parameterTable',
         },
         template: [
-            '<div class="col-sm-12" data-ng-if="parameterRows">',
-              '<div data-basic-editor-panel="" data-view-name="parameterTable" data-extra-html="hello" data-parent-controller="visualization">',
-              '<table>',
-              '<tr data-ng-repeat="item in parameterRows">',
-                '<td data-ng-if="item.length == 1"><br /><strong>{{ item[0] }}</strong></td>',
-                '<td data-ng-if="item.length > 1">{{ item[0] }}:</td>',
-                '<td>&nbsp;</td>',
-                '<td>{{ item[1] }}</td>',
-               '</tr>',
-             '</table>',
-            '</div></div>',
+            // TODO center
+            '<div data-ng-if="parameterRows">',
+              '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
+                '<form name="form" class="form-horizontal">',
+                '<div data-ng-repeat="item in parameterRows">',
+                '<div class="elegant-parameter-table-row form-group form-group-sm">',
+                   '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item[0] }}" data-tooltip="{{ item[3] }}"></div>',
+                   '<div class="col-sm-5 elegant-parameter-table-value">{{ item[1] }} {{ item[2] }}</div>',
+                '</div>',
+                '</div>',
+                '</form>',
+              '</div>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
-            function update(e, outputInfo) {
-                $scope.outputInfo = outputInfo;
-                if (outputInfo.length > 0 && outputInfo[0].parameters) {
-                    var params = outputInfo[0].parameters;
-                    var rows = [];
-                    Object.keys(params).forEach(function (k) {
-                        rows.push([k, params[k][0]])
-                    });
-                    $scope.parameterRows = rows;
+
+            function fileChanged() {
+                // TODO save to server
+                if (! $scope.outputInfo) {
+                    return;
                 }
+                $scope.fileInfo = $scope.outputInfo[0];
+                $scope.outputInfo.forEach(function (v) {
+                    if (v.filename == appState.models.parameterTable.file) {
+                        $scope.fileInfo = v;
+                    }
+                });
+                appState.models.parameterTable.file = $scope.fileInfo.filename;
+                var pages = [];
+                for (var i = 0; i < $scope.fileInfo.pageCount; i++) {
+                    pages.push(i);
+                }
+                appState.models.parameterTable.valueList.page = pages;
+                appState.models.parameterTable.page = 0;
+                pageChanged();
             }
-            /*if (! panelState.isHidden('parameterTable')) {
-                1; // panelState.toggleHidden('parameterTable');
-            }*/
-            $scope.$on($scope.modelName + '.outputInfo', update);
+
+            function modelsLoaded() {
+                appState.models.parameterTable = {
+                    file: null,
+                    page: null,
+                    valueList: {
+                        file: null,
+                        page: null,
+                    },
+                };
+            }
+
+            function outputInfoChanged(e, outputInfo) {
+                $scope.outputInfo = outputInfo;
+                var files = [];
+                $scope.outputInfo.forEach(function (v) {
+                    files.push(v.filename);
+                });
+                appState.models.parameterTable.valueList.file = files;
+                // keep selection here?
+                appState.models.parameterTable.file = files[0];
+                fileChanged();
+            }
+
+            function pageChanged() {
+                if (! $scope.fileInfo) {
+                    return;
+                }
+                var params = $scope.fileInfo.parameters;
+                var defs = $scope.fileInfo.parameterDefinitions;
+                var rows = [];
+                var page = appState.models.parameterTable.page;
+                Object.keys(params).sort(
+                    function(a, b) {
+                        return a.localeCompare(b);
+                    }
+                ).forEach(function (k) {
+                    rows.push([k, params[k][page], defs[k].units, defs[k].description]);
+                });
+                $scope.parameterRows = rows;
+            }
+
+            $scope.appState = appState;
+            appState.whenModelsLoaded($scope, modelsLoaded);
+            $scope.$on($scope.modelName + '.outputInfo', outputInfoChanged);
+            appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
+            appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
         }
     };
 });
