@@ -3541,7 +3541,7 @@
             ]
         },
         "parameterTable": {
-            "title": "Parameters",
+            "title": "Output Parameters",
             "basic": [
                 "file",
                 "page"
