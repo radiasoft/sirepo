@@ -360,6 +360,10 @@
             "fileId": ["File ID", "String", ""],
             "values": ["Values", "Array", []]
         },
+        "parameterTable": {
+            "file": ["File", "ValueList", ""],
+            "page": ["Page", "ValueList", ""]
+        },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
@@ -3535,6 +3539,14 @@
                 "histogramBins",
                 "framesPerSecond"
             ]
+        },
+        "parameterTable": {
+            "title": "Output Parameters",
+            "basic": [
+                "file",
+                "page"
+            ],
+            "advanced": []
         },
         "simulation": {
             "title": "Simulation",

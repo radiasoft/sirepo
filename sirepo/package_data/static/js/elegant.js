@@ -40,7 +40,7 @@ SIREPO.appFieldEditors = [
       '<input data-ng-model="model[field]" class="form-control" required />',
     '</div>',
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'values\']"></select>',
+      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
 ].join('');
 
@@ -1004,6 +1004,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 },
             });
             animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId', 'startTime'];
+            var valueList = {
+                x: info.plottableColumns,
+                y: info.plottableColumns,
+            };
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
                 m.startTime = startTime;
@@ -1014,7 +1018,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     m.y = info.plottableColumns[1];
                 }
                 m.fileId = info.id;
-                m.values = info.plottableColumns;
+                m.valueList = valueList;
             }
             else {
                 appState.models[modelKey] = {
@@ -1022,7 +1026,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     y: defaultYColumn(info.plottableColumns),
                     histogramBins: 200,
                     fileId: info.id,
-                    values: info.plottableColumns,
+                    valueList: valueList,
                     framesPerSecond: 2,
                     startTime: startTime,
                 };
@@ -1033,6 +1037,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
         }
+        $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
 
@@ -3172,6 +3177,126 @@ SIREPO.app.directive('runSimulationFields', function() {
               '</div>',
             '</div>',
         ].join(''),
+    };
+});
+
+
+SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+            '<div data-ng-if="outputInfo">',
+              '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
+                '<form name="form" class="form-horizontal">',
+                  '<div data-ng-repeat="item in parameterRows">',
+                    '<div class="elegant-parameter-table-row form-group form-group-sm">',
+                      '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',
+                      '<div class="col-sm-5 elegant-parameter-table-value">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>',
+                    '</div>',
+                  '</div>',
+                '</form>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            function fileChanged() {
+                if (! $scope.outputInfo) {
+                    return;
+                }
+                // If not found, just set to first file
+                $scope.fileInfo = $scope.outputInfo[0];
+                $scope.outputInfo.forEach(function (v) {
+                    if (v.filename == appState.models.parameterTable.file) {
+                        $scope.fileInfo = v;
+                    }
+                });
+                appState.models.parameterTable.file = $scope.fileInfo.filename;
+                var pages = [];
+                for (var i = 0; i < $scope.fileInfo.pageCount; i++) {
+                    pages.push(i);
+                }
+                appState.models.parameterTable.valueList.page = pages;
+                pageChanged();
+            }
+
+            function modelsLoaded() {
+                if (!appState.models.parameterTable) {
+                    appState.models.parameterTable = {
+                        file: null,
+                        page: null,
+                        valueList: {
+                            file: null,
+                            page: null,
+                        },
+                    };
+                }
+            }
+
+            function outputInfoChanged(e, outputInfo) {
+                $scope.outputInfo = outputInfo;
+                if (! outputInfo) {
+                    return;
+                }
+                var files = [];
+                $scope.outputInfo.forEach(function (v) {
+                    files.push(v.filename);
+                });
+                appState.models.parameterTable.valueList.file = files;
+                fileChanged();
+            }
+
+            function pageChanged() {
+                if (! $scope.fileInfo) {
+                    return;
+                }
+                var page = appState.models.parameterTable.page;
+                // If no page or more than count, reset to 0
+                if (!page || page >= $scope.fileInfo.pageCount) {
+                    appState.models.parameterTable.page = page = 0;
+                }
+                var params = $scope.fileInfo.parameters;
+                var defs = $scope.fileInfo.parameterDefinitions;
+                var rows = [];
+                Object.keys(params).sort(
+                    function(a, b) {
+                        return a.localeCompare(b);
+                    }
+                ).forEach(function (k) {
+                    rows.push({
+                        name: k,
+                        value: params[k][page],
+                        units: unitsAsHtml(defs[k].units),
+                        description: defs[k].description,
+                    });
+                });
+                $scope.parameterRows = rows;
+                appState.saveChanges('parameterTable');
+            }
+
+            function unitsAsHtml(units) {
+                //TODO(robnagler) Needs to be generalized. Don't know all the cases though
+                if (units == 'm$be$nc') {
+                    return $sce.trustAsHtml(' m<sub>e</sub>c');
+                }
+                if (/^\w+$/.exec(units)) {
+                    return $sce.trustAsHtml(' ' + units);
+                }
+                if (units) {
+                    srlog(units, ': unable to convert elegant units to HTML');
+                }
+                return $sce.trustAsHtml('');
+            }
+
+            $scope.outputInfo = null;
+            $scope.appState = appState;
+            appState.whenModelsLoaded($scope, modelsLoaded);
+            $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
+            appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
+            appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
+        }
     };
 });
 
