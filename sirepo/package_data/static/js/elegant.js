@@ -981,21 +981,21 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.auxFiles = [];
         var animationArgs = {};
 
-        for (var i = 0; i < outputInfo.length; i++) {
-            var info = outputInfo[i];
+        outputInfo.forEach(function (info, i) {
             if (info.isAuxFile) {
                 self.auxFiles.push({
                     filename: info.filename,
                     id: info.id,
                 });
-                continue;
+                return;
             }
             if (! info.columns) {
-                continue;
+                return;
             }
             var modelKey = 'elementAnimation' + info.id;
             panelState.setError(modelKey, null);
             self.outputFiles.push({
+                info: info,
                 reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
                 filename: info.filename,
@@ -1003,10 +1003,17 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     modelKey: modelKey,
                 },
             });
+        });
+
+        self.outputFiles.forEach(function (outputFile, i) {
+            var info = outputFile.info;
+            var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId', 'startTime'];
             var valueList = {
                 x: info.plottableColumns,
                 y: info.plottableColumns,
+                file_x: [info.filename],
+                file_y: [info.filename],
             };
             if (appState.models[modelKey]) {
                 var m = appState.models[modelKey];
@@ -1019,10 +1026,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 }
                 m.fileId = info.id;
                 m.valueList = valueList;
+                m.file_x = valueList.file_x[0];
+                m.file_y = valueList.file_y[0];
             }
             else {
                 appState.models[modelKey] = {
                     x: info.plottableColumns[0],
+                    file_x: valueList.file_x[0],
+                    file_y: valueList.file_y[0],
                     y: defaultYColumn(info.plottableColumns),
                     histogramBins: 200,
                     fileId: info.id,
@@ -1030,13 +1041,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     framesPerSecond: 2,
                     startTime: startTime,
                 };
+                // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
                 }
             }
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
-        }
+        });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
