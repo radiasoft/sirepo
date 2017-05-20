@@ -140,6 +140,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         $rootScope.$broadcast('modelsLoaded');
     }
 
+    function propertyToIndexForm(key) {
+        return key.split('.').map(function (x) {return "['" + x + "']"}).join('');
+    }
+
     function refreshSimulationData(data) {
         self.models = data.models;
         self.models.simulationStatus = {};
@@ -517,7 +521,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     self.watchModelFields = function($scope, modelFields, callback) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
-            $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
+            // elegant uses '-' in modelKey
+            f = propertyToIndexForm(f);
+            $scope.$watch('appState.models' + f, function (newValue, oldValue) {
                 if (self.isLoaded() && newValue != oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1);
