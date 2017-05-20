@@ -5,6 +5,7 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdp
@@ -36,6 +37,8 @@ LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 _HISTOGRAM_BINS_MAX = 500
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
+
+ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
 
 def copy_lib_files(data, source, target):
@@ -116,6 +119,31 @@ def lib_files(data, source_lib=None):
         data,
         source_lib or simulation_db.simulation_lib_dir(sim_type),
     )
+
+
+def parse_animation_args(data, key_map):
+    """Parse animation args according to key_map
+
+    Args:
+        data (dict): contains animationArgs
+        key_map (dict): version to keys mapping, default is ''
+    Returns:
+        Dict: mapped animationArgs with version
+    """
+    a = data['animationArgs'].split('_')
+    m = ANIMATION_ARGS_VERSION_RE.search(a[0])
+    if m:
+        a.pop(0)
+        v = int(m.group(1))
+    else:
+        v = 1
+    try:
+        keys = key_map[v]
+    except KeyError:
+        keys = key_map['']
+    res = pkcollections.Dict(zip(keys, a))
+    res.version = v
+    return res
 
 
 def parse_enums(enum_schema):

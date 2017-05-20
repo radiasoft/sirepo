@@ -82,9 +82,9 @@ SIREPO.app.controller('WARPDynamicsController', function(appState, frameCache, w
     };
 
     persistentSimulation.initProperties(self, $scope, {
-        fieldAnimation: ['field', 'coordinate', 'mode', 'startTime'],
-        particleAnimation: ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
-        beamAnimation: ['x', 'y', 'histogramBins', 'startTime'],
+        fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'coordinate', 'mode', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
+        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
     });
 });
 

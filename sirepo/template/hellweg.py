@@ -195,40 +195,30 @@ def lib_files(data, source_lib):
 
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
-    args = data['animationArgs'].split('_')
     if data['modelName'] == 'beamAnimation':
-        return extract_beam_report(
-            pkcollections.Dict({
-                'reportType': args[0],
-                'histogramBins': args[1],
-            }),
-            run_dir,
-            frame_index,
+        args = template_common.parse_animation_args(
+            data,
+            {'': ['reportType', 'histogramBins', 'startTime']},
         )
+        return extract_beam_report(args, run_dir, frame_index)
     elif data['modelName'] == 'beamHistogramAnimation':
-        return extract_beam_histrogram(
-            pkcollections.Dict({
-                'reportType': args[0],
-                'histogramBins': args[1],
-            }),
-            run_dir,
-            frame_index,
+        args = template_common.parse_animation_args(
+            data,
+            {'': ['reportType', 'histogramBins', 'startTime']},
         )
+        return extract_beam_histrogram(args, run_dir, frame_index)
     elif data['modelName'] == 'particleAnimation':
-        return extract_particle_report(
-            pkcollections.Dict({
-                'reportType': args[0],
-                'renderCount': args[1],
-            }),
-            run_dir,
+        args = template_common.parse_animation_args(
+            data,
+            {'': ['reportType', 'renderCount', 'startTime']},
         )
+        return extract_particle_report(args, run_dir)
     elif data['modelName'] == 'parameterAnimation':
-        return extract_parameter_report(
-            pkcollections.Dict({
-                'reportType': args[0],
-            }),
-            run_dir,
+        args = template_common.parse_animation_args(
+            data,
+            {'': ['reportType', 'startTime']},
         )
+        return extract_parameter_report(args, run_dir)
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 

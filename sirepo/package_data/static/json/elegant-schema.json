@@ -354,9 +354,8 @@
         },
         "elementAnimation": {
             "x": ["X Value", "ValueList", ""],
-            "file_x": ["X File", "ValueList", ""],
+            "yFile": ["Y File", "ValueList", ""],
             "y": ["Y Value", "ValueList", ""],
-            "file_y": ["Y File", "ValueList", ""],
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "fileId": ["File ID", "String", ""],
@@ -3537,9 +3536,8 @@
             "title": "Output Report",
             "advanced": [
                 "x",
-                "file_x",
+                "yFile",
                 "y",
-                "file_y",
                 "histogramBins",
                 "framesPerSecond"
             ]

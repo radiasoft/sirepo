@@ -44,6 +44,11 @@ SIREPO.appDefaultSimulationValues = {
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
+
+SIREPO.ANIMATION_ARGS_VERSION = 'v';
+
+SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
+
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
         var _emit = $delegate.$emit;
@@ -556,10 +561,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
         var fields = self.animationArgFields[modelName];
-        var args = [];
-        for (var i = 0; i < fields.length; i++) {
-            args.push(values[fields[i]]);
-        }
+        var args = fields.map(function (f) {
+            return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
+        });
         return args.join('_');
     }
 
