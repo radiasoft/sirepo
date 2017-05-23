@@ -146,7 +146,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     }
 
     function propertyToIndexForm(key) {
-        return key.split('.').map(function (x) {return "['" + x + "']"}).join('');
+        return key.split('.').map(function (x) {
+            return "['" + x + "']";
+        }).join('');
     }
 
     function refreshSimulationData(data) {

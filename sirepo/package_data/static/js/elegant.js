@@ -1069,7 +1069,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             appState.watchModelFields(
                 $scope,
                 [modelKey + '.yFile'],
-                function () {self.yFileUpdate(modelKey)}
+                function () {self.yFileUpdate(modelKey);}
             );
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
