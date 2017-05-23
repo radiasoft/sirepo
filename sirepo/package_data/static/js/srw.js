@@ -1474,8 +1474,8 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             };
 
             persistentSimulation.initProperties($scope, $scope, {
-                multiElectronAnimation: [],
-                fluxAnimation: ['fluxType'],
+                multiElectronAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
+                fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'fluxType'],
             });
             $scope.$on($scope.model + '.changed', function() {
                 if ($scope.isReadyForModelChanges) {

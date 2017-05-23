@@ -44,6 +44,11 @@ SIREPO.appDefaultSimulationValues = {
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
+
+SIREPO.ANIMATION_ARGS_VERSION = 'v';
+
+SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
+
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
         var _emit = $delegate.$emit;
@@ -138,6 +143,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 
     function broadcastLoaded() {
         $rootScope.$broadcast('modelsLoaded');
+    }
+
+    function propertyToIndexForm(key) {
+        return key.split('.').map(function (x) {return "['" + x + "']"}).join('');
     }
 
     function refreshSimulationData(data) {
@@ -517,7 +526,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     self.watchModelFields = function($scope, modelFields, callback) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
-            $scope.$watch('appState.models.' + f, function (newValue, oldValue) {
+            // elegant uses '-' in modelKey
+            f = propertyToIndexForm(f);
+            $scope.$watch('appState.models' + f, function (newValue, oldValue) {
                 if (self.isLoaded() && newValue != oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1);
@@ -550,10 +561,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
         var fields = self.animationArgFields[modelName];
-        var args = [];
-        for (var i = 0; i < fields.length; i++) {
-            args.push(values[fields[i]]);
-        }
+        var args = fields.map(function (f) {
+            return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
+        });
         return args.join('_');
     }
 

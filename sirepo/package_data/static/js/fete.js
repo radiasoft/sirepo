@@ -226,9 +226,9 @@ SIREPO.app.controller('FeteVisualizationController', function (appState, frameCa
     };
 
     persistentSimulation.initProperties(self, $scope, {
-        currentAnimation: ['startTime'],
-        fieldAnimation: ['field', 'startTime'],
-        particleAnimation: ['renderCount', 'startTime'],
+        currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
+        fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'renderCount', 'startTime'],
     });
     appState.whenModelsLoaded($scope, updateAllFields);
 });

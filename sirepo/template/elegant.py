@@ -46,6 +46,9 @@ _FIELD_LABEL = {
     'GammaDeriv': 'GammaDeriv [1/m]',
 }
 
+#
+_FILE_ID_SEP = '-'
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -114,27 +117,19 @@ def copy_related_files(data, source_path, target_path):
     )
 
 
-def extract_report_data(filename, data, p_central_mev, page_index):
+def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     xfield = data['x']
     yfield = data['y']
     bins = data['histogramBins']
-    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
-        return _sdds_error()
-    column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-    count = page_index
-    while count >= 0:
-        if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
-            break
-        count -= 1
-    try:
-        x = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(xfield))
-    except SystemError as e:
-        return _sdds_error('no data for page {}'.format(page_index))
-    y = sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index(yfield))
 
+    x, column_names, err = _extract_sdds_column(xFilename, xfield, page_index)
+    if err:
+        return err
+    y, _, err = _extract_sdds_column(yFilename, yfield, page_index)
+    if err:
+        return err
     if _is_2d_plot(column_names):
         # 2d plot
-        sdds.sddsdata.Terminate(_SDDS_INDEX)
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
@@ -144,7 +139,6 @@ def extract_report_data(filename, data, p_central_mev, page_index):
             'x_points': x,
         }
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
-    sdds.sddsdata.Terminate(_SDDS_INDEX)
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -280,15 +274,26 @@ def get_application_data(data):
 
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
-    args = data['animationArgs'].split('_')
-    frame_data = {
-        'x': args[0],
-        'y': args[1],
-        'histogramBins': args[2],
-    }
-    id = args[3].split('-')
-    filename = _get_filename_for_element_id(id, model_data)
-    return extract_report_data(str(run_dir.join(filename)), frame_data, model_data['models']['bunch']['p_central_mev'], frame_index)
+    frame_data = template_common.parse_animation_args(
+        data,
+        {
+            '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
+            '': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
+        },
+    )
+    if frame_data.version <= 1:
+        frame_data.yFileId = frame_data.xFileId;
+    xFileId = frame_data.xFileId.split(_FILE_ID_SEP)
+    yFileId = frame_data.yFileId.split(_FILE_ID_SEP)
+    xFilename = _get_filename_for_element_id(xFileId, model_data)
+    yFilename = _get_filename_for_element_id(yFileId, model_data)
+    return extract_report_data(
+        str(run_dir.join(xFilename)),
+        str(run_dir.join(yFilename)),
+        frame_data,
+        model_data['models']['bunch']['p_central_mev'],
+        frame_index,
+    )
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -309,7 +314,7 @@ def get_data_file(run_dir, model, frame, options=None):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # ex. elementAnimation17-55
-        i = re.sub(r'elementAnimation', '', model).split('-')
+        i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
     if model == 'animation':
@@ -565,7 +570,7 @@ def _build_filename_map(data):
                     else:
                         suffix = 'lte' if model['_type'] == 'save_lattice' else 'sdds';
                         filename = '{}{}.{}.{}'.format(model['_type'], model_index[model_name] if model_index[model_name] > 1 else '', k, suffix)
-                    k = '{}-{}'.format(model['_id'], field_index)
+                    k = '{}{}{}'.format(model['_id'], _FILE_ID_SEP, field_index)
                     res[k] = filename
                     res['keys_in_order'].append(k)
     return res
@@ -659,6 +664,37 @@ def _create_default_commands(data):
     ]
 
 
+def _extract_sdds_column(filename, field, page_index):
+    try:
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
+            err = _sdds_error('{}: cannot access'.format(filename))
+        else:
+            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
+            #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
+            for _ in xrange(page_index + 1):
+                if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
+                    #TODO(robnagler) is this an error?
+                    break
+            try:
+                return (
+                    sdds.sddsdata.GetColumn(
+                        _SDDS_INDEX,
+                        column_names.index(field),
+                    ),
+                    column_names,
+                    None,
+                )
+            except SystemError as e:
+                err = _sdds_error(
+                    '{}: page not found in {}'.format(page_index, filename))
+    finally:
+        try:
+            sdds.sddsdata.Terminate(_SDDS_INDEX)
+        except Exception:
+            pass
+    return None, None, err
+
+
 def _field_label(field):
     if field in _FIELD_LABEL:
         return _FIELD_LABEL[field]
@@ -672,7 +708,7 @@ def _file_info(filename, run_dir, id, output_index):
             return {
                 'isAuxFile': True,
                 'filename': filename,
-                'id': '{}-{}'.format(id, output_index),
+                'id': '{}{}{}'.format(id, _FILE_ID_SEP, output_index),
                 'lastUpdateTime': int(os.path.getmtime(str(file_path))),
             }
         return None
@@ -691,10 +727,12 @@ def _file_info(filename, run_dir, id, output_index):
         parameter_names = sdds.sddsdata.GetParameterNames(_SDDS_INDEX)
         parameters = dict([(p, []) for p in parameter_names])
         page_count = 0
+        row_counts = []
         while True:
             page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
             if page <= 0:
                 break
+            row_counts.append(sdds.sddsdata.RowCount(_SDDS_INDEX))
             page_count += 1
             for i, p in enumerate(parameter_names):
                 parameters[p].append(sdds.sddsdata.GetParameter(_SDDS_INDEX, i))
@@ -702,6 +740,7 @@ def _file_info(filename, run_dir, id, output_index):
             'isAuxFile': False if double_column_count > 1 else True,
             'filename': filename,
             'id': '{}-{}'.format(id, output_index),
+            'rowCounts': row_counts,
             'pageCount': page_count,
             'columns': column_names,
             'parameters': parameters,
@@ -748,7 +787,7 @@ def _generate_variables(data):
 
 
 def _get_filename_for_element_id(id, data):
-    return _build_filename_map(data)['{}-{}'.format(id[0], id[1])]
+    return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
 
 
 #TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
@@ -794,7 +833,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                 else:
                     #TODO(pjm): combine with lattice file input formatting below
                     if element_schema[1] == 'OutputFile':
-                        value = state['filename_map']['{}-{}'.format(model['_id'], state['field_index'])]
+                        value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                     elif element_schema[1].startswith('InputFile'):
                         value = 'command_{}-{}.{}'.format(model['_type'], field_name, value)
                     elif element_schema[1] == 'BeamInputFile':
@@ -839,7 +878,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                     if element_schema[1] == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif element_schema[1] == 'OutputFile':
-                    value = state['filename_map']['{}-{}'.format(model['_id'], state['field_index'])]
+                    value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                 state['lattice'] += '{}="{}",'.format(field_name, value)
     else:
         state['field_index'] = 0
@@ -881,7 +920,7 @@ def _output_info(run_dir, data, schema):
     filename_map = _build_filename_map(data)
     for k in filename_map['keys_in_order']:
         filename = filename_map[k]
-        id = k.split('-')
+        id = k.split(_FILE_ID_SEP)
         info = _file_info(filename, run_dir, id[0], id[1])
         if info:
             res.append(info)

@@ -289,10 +289,10 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
     };
 
     persistentSimulation.initProperties(self, $scope, {
-        beamAnimation: ['reportType', 'histogramBins', 'startTime'],
-        beamHistogramAnimation: ['reportType', 'histogramBins', 'startTime'],
-        particleAnimation: ['reportType', 'renderCount', 'startTime'],
-        parameterAnimation: ['reportType', 'startTime'],
+        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
+        beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],
+        parameterAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'startTime'],
     });
 });
 

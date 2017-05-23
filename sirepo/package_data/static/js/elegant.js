@@ -948,14 +948,19 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         elapsedTime: null,
     };
     self.outputFiles = [];
+    self.outputFileMap = {};
     self.auxFiles = [];
 
-    function defaultYColumn(columns) {
-        for (var i = 1; i < columns.length; i++) {
-            if (columns[i].indexOf('Element') >= 0) {
-                continue;
+    function cleanFilename(fn) {
+        return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
+    }
+
+    function defaultYColumn(columns, xCol) {
+        for (var i = 0; i < columns.length; i++) {
+            // Ignore "ElementOccurence" column
+            if (columns[i].indexOf('Element') < 0 && columns[i] != xCol ) {
+                return columns[i];
             }
-            return columns[i];
         }
         return columns[1];
     }
@@ -978,65 +983,95 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     function loadElementReports(outputInfo, startTime) {
         self.outputFiles = [];
+        self.outputFileMap = {};
         self.auxFiles = [];
         var animationArgs = {};
+        var similarRowCounts = {};
 
-        for (var i = 0; i < outputInfo.length; i++) {
-            var info = outputInfo[i];
+        outputInfo.forEach(function (info, i) {
             if (info.isAuxFile) {
                 self.auxFiles.push({
                     filename: info.filename,
                     id: info.id,
                 });
-                continue;
+                return;
             }
             if (! info.columns) {
-                continue;
+                return;
             }
             var modelKey = 'elementAnimation' + info.id;
             panelState.setError(modelKey, null);
-            self.outputFiles.push({
+            var outputFile = {
+                info: info,
                 reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
                     modelKey: modelKey,
                 },
-            });
-            animationArgs[modelKey] = ['x', 'y', 'histogramBins', 'fileId', 'startTime'];
-            var valueList = {
-                x: info.plottableColumns,
-                y: info.plottableColumns,
             };
+            self.outputFiles.push(outputFile);
+            self.outputFileMap[outputFile.filename] = outputFile;
+            var rowCountsKey = info.rowCounts.join(' ');
+            if (!(rowCountsKey in similarRowCounts)) {
+                similarRowCounts[rowCountsKey] = [];
+            }
+            similarRowCounts[rowCountsKey].push(info.filename);
+            info.similarFiles = similarRowCounts[rowCountsKey];
+        });
+
+        self.outputFiles.forEach(function (outputFile, i) {
+            var info = outputFile.info;
+            var modelKey = outputFile.modelAccess.modelKey;
+            animationArgs[modelKey] = [
+                SIREPO.ANIMATION_ARGS_VERSION + '2',
+                'x',
+                'y',
+                'histogramBins',
+                'xFileId',
+                'yFileId',
+                'startTime',
+            ];
+            var m = null;
             if (appState.models[modelKey]) {
-                var m = appState.models[modelKey];
+                m = appState.models[modelKey];
                 m.startTime = startTime;
+                m.xFileId = info.id;
+                m.xFile = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
-                if (info.plottableColumns.indexOf(m.y) < 0) {
-                    m.y = info.plottableColumns[1];
-                }
-                m.fileId = info.id;
-                m.valueList = valueList;
             }
             else {
-                appState.models[modelKey] = {
+                m = appState.models[modelKey] = {
+                    xFile: info.filename,
+                    yFile: info.filename,
                     x: info.plottableColumns[0],
-                    y: defaultYColumn(info.plottableColumns),
+                    y: null,
                     histogramBins: 200,
                     fileId: info.id,
-                    valueList: valueList,
+                    yFileId: info.id,
                     framesPerSecond: 2,
                     startTime: startTime,
                 };
+                // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
                 }
             }
+            m.valueList = {
+                x: info.plottableColumns,
+                yFile: info.similarFiles,
+            };
+            self.yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
-        }
+            appState.watchModelFields(
+                $scope,
+                [modelKey + '.yFile'],
+                function () {self.yFileUpdate(modelKey)}
+            );
+        });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
@@ -1061,8 +1096,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     };
 
     self.handleModalShown = function(name, modelKey) {
-        for (var i = 0; i < self.outputFiles.length; i++) {
-            var info = self.outputFiles[i];
+        self.outputFiles.forEach(function(info) {
             if (info.modelAccess.modelKey == modelKey) {
                 if (info.reportType == 'heatmap') {
                     showField(name, 'histogramBins');
@@ -1077,9 +1111,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                         hideField(name, 'framesPerSecond');
                     }
                 }
-                break;
             }
-        }
+        });
     };
 
     self.handleStatus = function(data) {
@@ -1095,6 +1128,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     self.simulationErrors = 'No output produced. View the elegant log for more information.';
                 }
                 self.outputFiles = [];
+                self.outputFileMap = {};
             }
         }
     };
@@ -1109,6 +1143,23 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.saveAndRunSimulation = function() {
         appState.saveChanges('simulation', self.runSimulation);
+    };
+
+    self.yFileUpdate = function (modelKey) {
+        var m = appState.models[modelKey];
+        if (m.valueList.yFile.indexOf(m.yFile) < 0) {
+            m.yFile = m.xFile;
+        }
+        var info = self.outputFileMap[m.yFile].info;
+        m.yFileId = info.id;
+        var cols = m.valueList.y = info.plottableColumns;
+        if (!m.y || cols.indexOf(m.y) < 0) {
+            m.y = defaultYColumn(cols, m.x);
+        }
+        m.panelTitle = cleanFilename(m.xFile);
+        if (m.xFile != m.yFile) {
+            m.panelTitle += ' / ' + cleanFilename(m.yFile);
+        }
     };
 
     persistentSimulation.initProperties(self, $scope, {});

@@ -104,15 +104,17 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
-    args = data['animationArgs'].split('_')
     if data['modelName'] == 'currentAnimation':
+        args = template_common.parse_animation_args(data, {'': ['startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_current(model_data, data_file)
     if data['modelName'] == 'fieldAnimation':
+        args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return _extract_field(args[0], model_data, data_file)
+        return _extract_field(args.field, model_data, data_file)
     if data['modelName'] == 'particleAnimation':
-        return _extract_particle(run_dir, args[0], model_data)
+        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
+        return _extract_particle(run_dir, args.renderCount, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
