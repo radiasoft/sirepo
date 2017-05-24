@@ -828,7 +828,7 @@
             ]
         },
         "fluxAnimation": {
-            "title": "Spectral Flux for Finite Emittance Electron Beam",
+            "title": "Spectral Flux",
             "basic": [],
             "advanced": [
                 ["Main", [
