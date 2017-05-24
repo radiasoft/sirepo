@@ -32,6 +32,13 @@ _db = None
 _db_serial_lock = threading.RLock()
 
 
+def all_uids(app):
+    res = set()
+    for u in User.query.all():
+        res.add(u.uid)
+    return res
+
+
 def authorize(simulation_type, app, oauth_type):
     """Redirects to an OAUTH request for the specified oauth_type ('github').
 

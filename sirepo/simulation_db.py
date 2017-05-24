@@ -157,7 +157,7 @@ def examples(app):
 def find_global_simulation(simulation_type, sid):
     global_path = None
     for path in glob.glob(
-        str(_user_dir_name().join('*', simulation_type, sid))
+        str(user_dir_name().join('*', simulation_type, sid))
     ):
         if global_path:
             raise RuntimeError('{}: duplicate value for global sid'.format(sid))
@@ -343,7 +343,7 @@ def move_user_simulations(to_uid):
     from_uid = _server.session_user()
     with _global_lock:
         for path in glob.glob(
-                str(_user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
+                str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
             data = read_json(path)
             sim = data['models']['simulation']
@@ -742,6 +742,34 @@ def tmp_dir():
     return pkio.mkdir_parent(d)
 
 
+def uid_from_dir_name(dir_name):
+    """Extra user id from user_dir_name
+
+    Args:
+        dir_name (py.path): must be top level user dir
+    Return:
+        str: user id
+    """
+    res = dir_name.basename
+    assert _ID_RE.search(res), \
+        '{}: invalid user dir'.format(dir_name)
+    return res
+
+
+def user_dir_name(uid=None):
+    """String name for user name
+
+    Args:
+        uid (str): properly formated user name (optional)
+    Return:
+        py.path: directory name
+    """
+    d = _app.sirepo_db_dir.join(_USER_ROOT_DIR)
+    if not uid:
+        return d
+    return d.join(uid)
+
+
 def validate_serial(req_data):
     """Verify serial in data validates
 
@@ -977,12 +1005,12 @@ def _user_dir():
         uid = _server.session_user()
     except KeyError:
         uid = _user_dir_create()
-    d = _user_dir_name(uid)
+    d = user_dir_name(uid)
     if d.check():
         return d
     # Beaker session might have been deleted (in dev) so "logout" and "login"
     uid = _user_dir_create()
-    return _user_dir_name(uid)
+    return user_dir_name(uid)
 
 
 def _user_dir_create():
@@ -991,25 +1019,12 @@ def _user_dir_create():
     Returns:
         str: New user id
     """
-    uid = _random_id(_user_dir_name())['id']
+    uid = _random_id(user_dir_name())['id']
     # Must set before calling simulation_dir
     _server.session_user(uid)
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
 
-
-def _user_dir_name(uid=None):
-    """String name for user name
-
-    Args:
-        uid (str): properly formated user name (optional)
-    Return:
-        py.path: directory name
-    """
-    d = _app.sirepo_db_dir.join(_USER_ROOT_DIR)
-    if not uid:
-        return d
-    return d.join(uid)
 
 _init()

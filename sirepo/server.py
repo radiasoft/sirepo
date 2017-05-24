@@ -18,6 +18,7 @@ import flask
 import flask.sessions
 import glob
 import os
+import os.path
 import py.path
 import re
 import sirepo.template
@@ -32,6 +33,9 @@ _BEAKER_DATA_DIR = 'beaker'
 
 #: where users live under db_dir
 _BEAKER_LOCK_DIR = 'lock'
+
+#: Relative to current directory only in test mode
+_DEFAULT_DB_SUBDIR = 'run'
 
 #: What's the key in environ for the session
 _ENVIRON_KEY_BEAKER = 'beaker.session'
@@ -76,7 +80,10 @@ def api_copyNonSessionSimulation():
     sim_type = req['simulationType']
     global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
     if global_path:
-        data = simulation_db.open_json_file(sim_type, os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE))
+        data = simulation_db.open_json_file(
+            sim_type,
+            os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE),
+        )
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(sim_type, data)
@@ -591,6 +598,18 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 app_upload_file = api_uploadFile
 
 
+def all_uids():
+    """List of all users
+
+    Returns:
+        set: set of all uids
+    """
+    if not cfg.oauth_login:
+        return set()
+    from sirepo import oauth
+    return oauth.all_uids(app)
+
+
 def clear_session_user():
     """Remove the current user from the flask session.
     """
@@ -598,15 +617,20 @@ def clear_session_user():
         del flask.session[_SESSION_KEY_USER]
 
 
-def init(db_dir, uwsgi=None):
+def init(db_dir=None, uwsgi=None):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
 
+    if db_dir:
+        cfg.db_dir = py.path.local(db_dir)
+    else:
+        db_dir = cfg.db_dir
     uri_router.init(app, sys.modules[__name__], simulation_db)
     global _wsgi_app
     _wsgi_app = _WSGIApp(app, uwsgi)
-    _BeakerSession().sirepo_init_app(app, py.path.local(db_dir))
+    _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
+    return app
 
 
 def javascript_redirect(redirect_uri):
@@ -720,6 +744,31 @@ def _as_attachment(response, content_type, filename):
     response.mimetype = content_type
     response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
     return response
+
+
+@pkconfig.parse_none
+def _cfg_db_dir(value):
+    """Config value or root package's parent or cwd with _DEFAULT_SUBDIR"""
+    from pykern import pkinspect
+
+    if value:
+        assert os.path.isabs(value), \
+            '{}: SIREPO_SERVER_DB_DIR must be absolute'.format(value)
+        assert os.path.isdir(value), \
+            '{}: SIREPO_SERVER_DB_DIR must be a directory and exist'.format(value)
+        value = py.path.local(value)
+    else:
+        assert pkconfig.channel_in('dev'), \
+            'SIREPO_SERVER_DB_DIR must be configured except in DEV'
+        fn = sys.modules[pkinspect.root_package(_cfg_db_dir)].__file__
+        root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
+        # Check to see if we are in our dev directory. This is a hack,
+        # but should be reliable.
+        if not root.join('requirements.txt').check():
+            # Don't run from an install directory
+            root = py.path.local('.')
+        value = pkio.mkdir_parent(root.join(_DEFAULT_DB_SUBDIR))
+    return value
 
 
 @pkconfig.parse_none
@@ -992,6 +1041,7 @@ cfg = pkconfig.init(
         secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
+    db_dir=(None, _cfg_db_dir, 'where database resides'),
     job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
