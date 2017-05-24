@@ -49,6 +49,16 @@ def flask_client():
     return getattr(server.app, a)
 
 
+def init_user_db():
+    """Force a request that creates a user in db"""
+    fc = flask_client()
+    fc.get('/hellweg')
+    fc.sr_post(
+        'listSimulations',
+        {'simulationType': 'hellweg', 'search': {}},
+    )
+
+
 def test_in_request(op):
     from sirepo import uri_router
 
