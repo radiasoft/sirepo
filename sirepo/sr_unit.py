@@ -5,15 +5,19 @@ u"""Support for unit tests
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog
 from pykern import pkcollections
-from pykern import pkunit, pkio
-from sirepo import server
-from sirepo import simulation_db
+from pykern import pkconfig
+from pykern import pkio
+from pykern import pkunit
+from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog
 import flask
 import flask.testing
 import json
 import re
+
+
+#: import sirepo.server
+server = None
 
 
 def flask_client():
@@ -27,20 +31,27 @@ def flask_client():
     Returns:
         FlaskClient: for local requests to Flask server
     """
+    global server
+
     a = 'sr_unit_flask_client'
-    if not hasattr(server.app, a):
+    if not (server and hasattr(server.app, a)):
         with pkio.save_chdir(pkunit.work_dir()):
-            db = pkio.mkdir_parent('db')
+            pkconfig.reset_state_for_testing(dict(
+                SIREPO_SERVER_DB_DIR=str(pkio.mkdir_parent('db')),
+            ))
+            from sirepo import server as s
+
+            server = s
             server.app.config['TESTING'] = True
             server.app.test_client_class = _TestClient
-            server.init(db)
+            server.init()
             setattr(server.app, a, server.app.test_client())
     return getattr(server.app, a)
 
 
 def test_in_request(op):
-    from sirepo import server
     from sirepo import uri_router
+
     fc = flask_client()
     try:
         setattr(server.app, server.SR_UNIT_TEST_IN_REQUEST, op)
@@ -130,6 +141,8 @@ def _req(route_name, params, op, raw_response):
     Returns:
         object: parsed JSON result
     """
+    from sirepo import simulation_db
+
     uri = None
     resp = None
     try:
@@ -154,6 +167,8 @@ def _uri(route_name, params):
     Returns:
         str: URI
     """
+    from sirepo import simulation_db
+
     route = simulation_db.SCHEMA_COMMON['route'][route_name]
     if params:
         for k, v in params.items():
