@@ -7,6 +7,8 @@ u"""test sirepo.pkcli.admin
 from __future__ import absolute_import, division, print_function
 import pytest
 
+pytest.importorskip('srwl_bl')
+
 def test_purge_users(monkeypatch):
     from pykern.pkunit import pkeq, pkok
     from pykern.pkdebug import pkdp
