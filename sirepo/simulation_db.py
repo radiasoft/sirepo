@@ -46,7 +46,7 @@ STATIC_FOLDER = py.path.local(pkresource.filename('static'))
 _IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
 
 #: How to find examples in resources
-_EXAMPLE_DIR_FORMAT = '{}_examples'
+_EXAMPLE_DIR = 'examples'
 
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
@@ -146,7 +146,7 @@ def delete_simulation(simulation_type, sid):
 
 def examples(app):
     files = pkio.walk_tree(
-        pkresource.filename(_EXAMPLE_DIR_FORMAT.format(app)),
+        template_common.resource_dir(app).join(_EXAMPLE_DIR),
         re.escape(JSON_SUFFIX) + '$',
     )
     #TODO(robnagler) Need to update examples statically before build
@@ -187,7 +187,7 @@ def fixup_old_data(data, force=False):
             if 'sourceIntensityReport' in data['models']:
                 data['simulationType'] = 'srw'
             elif 'fieldAnimation' in data['models']:
-                data['simulationType'] = 'warp'
+                data['simulationType'] = 'warppba'
             elif 'bunchSource' in data['models']:
                 data['simulationType'] = 'elegant'
             else:
@@ -646,7 +646,7 @@ def save_simulation_json(simulation_type, data):
     """Prepare data and save to json db
 
     Args:
-        simulation_type (str): srw, warp, ...
+        simulation_type (str): srw, warppba, ...
         data (dict): what to write (contains simulationId)
     """
     try:
@@ -692,7 +692,7 @@ def simulation_dir(simulation_type, sid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
-        simulation_type (str): srw, warp, ...
+        simulation_type (str): srw, warppba, ...
         sid (str): simulation id (optional)
     """
     d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
