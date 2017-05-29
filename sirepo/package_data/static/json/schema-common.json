@@ -1,5 +1,5 @@
 {
-    "version": "20170520.000001",
+    "version": "20170529.000001",
     "appInfo": {
         "elegant": {
             "longName": "Elegant",
@@ -21,9 +21,9 @@
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
         },
-        "warp": {
-            "longName": "WARP",
-            "shortName": "WARP"
+        "warppba": {
+            "longName": "Warp PBA",
+            "shortName": "Warp PBA"
         }
     },
     "productInfo": {
