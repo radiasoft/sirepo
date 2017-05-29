@@ -160,7 +160,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.panelState = panelState;
             $scope.panelTitle = viewInfo.title;
-            if ($scope.wantButtons === null) {
+            if ($scope.wantButtons === null || $scope.wantButtons === undefined) {
                 $scope.wantButtonsEval = '1';
             }
             else {
