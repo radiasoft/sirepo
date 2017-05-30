@@ -7,15 +7,15 @@ u"""?
 from __future__ import absolute_import, division, print_function
 
 
-def purge_users(days=180, dry_run=True):
+def purge_users(days=180, confirm=False):
     """Remove old users from db which have not registered.
 
     Args:
         days (int): maximum days of untouched files (old is mtime > days)
-        dry_run (bool): delete the directories if false (else don't delete) [True]
+        confirm (bool): delete the directories if True (else don't delete) [False]
 
     Returns:
-        list: directories removed (or to remove if dry_run)
+        list: directories removed (or to remove if confirm)
     """
     from pykern import pkio
     from sirepo import server
@@ -37,6 +37,6 @@ def purge_users(days=180, dry_run=True):
                 break
         else:
             to_remove.append(d)
-    if not dry_run:
+    if confirm:
         pkio.unchecked_remove(*to_remove)
     return to_remove
