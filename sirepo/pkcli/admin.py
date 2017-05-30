@@ -38,6 +38,5 @@ def purge_users(days=180, dry_run=True):
         else:
             to_remove.append(d)
     if not dry_run:
-        for d in to_remove:
-            pkio.unchecked_remove(*to_remove)
+        pkio.unchecked_remove(*to_remove)
     return to_remove
