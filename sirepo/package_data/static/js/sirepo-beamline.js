@@ -70,7 +70,7 @@ SIREPO.app.factory('beamlineService', function(appState) {
     };
 
     self.isTouchscreen = function() {
-        return Modernizr.touch;
+        return Modernizr.pointerevents;
     };
 
     self.removeActiveItem = function() {
