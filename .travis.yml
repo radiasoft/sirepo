@@ -1,5 +1,4 @@
 ---
-# FRC
 sudo: required
 services:
   - docker
