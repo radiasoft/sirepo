@@ -591,6 +591,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 ebeam_position: appState.clone(appState.models.electronBeamPosition),
             },
             function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 var ebeam = appState.models.electronBeam;
                 ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'].forEach(function(f) {
                     ebeam[f] = formatFloat(data[f]);
@@ -643,6 +646,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
             },
             function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 appState.models[reportName].magneticField = data.magneticField;
                 panelState.enableField(reportName, 'magneticField', false);
             }
@@ -696,6 +702,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 undulator_period: appState.models.undulator.period / 1000,
             },
             function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 if (undulatorDefinition === 'K') {
                     appState.models.undulator.verticalAmplitude = formatFloat(data.vertical_amplitude);
                 }
@@ -823,6 +832,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 tabulated_undulator: appState.models.tabulatedUndulator,
             },
             function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 appState.models.tabulatedUndulator.length = data.length;
             }
         );
