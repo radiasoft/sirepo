@@ -9,13 +9,11 @@ from __future__ import absolute_import, division, print_function
 
 def upgrade():
     """Upgrade the database"""
-    import copy
     from pykern import pkio
     from sirepo import simulation_db
+    from sirepo import server
 
+    server.init()
     to_rename = []
-    for d in pkio.walk_tree(simulation_db.user_dir_name()):
-        if d.basename == 'warp' and d.check(dir=True):
-            to_rename.append((d, d.new(basename='warppba')))
-    for s, d in to_rename:
-        s.rename(d)
+    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*/warp')):
+        d.rename(d.new(basename='warppba'))
