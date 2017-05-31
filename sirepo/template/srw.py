@@ -763,11 +763,11 @@ def prepare_for_client(data):
                 model['id'] = _unique_name(user_model_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
                 user_model_list.append(_create_user_model(data, model_name))
                 _save_user_model_list(model_name, user_model_list)
-                simulation_db.save_simulation_json(SIM_TYPE, data)
+                simulation_db.save_simulation_json(data)
 
         if pluralKey in data['models']:
             del data['models'][pluralKey]
-            simulation_db.save_simulation_json(SIM_TYPE, data)
+            simulation_db.save_simulation_json(data)
     return data
 
 

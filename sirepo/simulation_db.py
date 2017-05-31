@@ -193,6 +193,8 @@ def fixup_old_data(data, force=False):
             else:
                 pkdlog('simulationType: not found; data={}', data)
                 raise AssertionError('must have simulationType')
+        elif data['simulationType'] == 'warp':
+            data['simulationType'] = 'warppba'
         if not 'simulationSerial' in data['models']['simulation']:
             data['models']['simulation']['simulationSerial'] = 0
         sirepo.template.import_module(data['simulationType']).fixup_old_data(data)
@@ -284,8 +286,10 @@ def hack_nfs_write_status(status, run_dir):
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
+    sim_dir = simulation_dir(simulation_type)
+    simulation_type = simulation_type_from_dir_name(sim_dir)
     for path in glob.glob(
-        str(simulation_dir(simulation_type).join('*', SIMULATION_DATA_FILE)),
+        str(sim_dir.join('*', SIMULATION_DATA_FILE)),
     ):
         path = py.path.local(path)
         try:
@@ -568,7 +572,7 @@ def read_simulation_json(sim_type, *args, **kwargs):
     data = open_json_file(sim_type, fixup=False, *args, **kwargs)
     new, changed = fixup_old_data(data)
     if changed:
-        return save_simulation_json(sim_type, new)
+        return save_simulation_json(new)
     return data
 
 
@@ -631,22 +635,22 @@ def report_info(data):
     return rep
 
 
-def save_new_example(simulation_type, data):
+def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(simulation_type, data)
+    return save_new_simulation(data)
 
 
-def save_new_simulation(simulation_type, data):
-    sid = _random_id(simulation_dir(data.simulationType), simulation_type).id
+def save_new_simulation(data):
+    d = simulation_dir(data.simulationType)
+    sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(data.simulationType, data)
+    return save_simulation_json(data)
 
 
-def save_simulation_json(simulation_type, data):
+def save_simulation_json(data):
     """Prepare data and save to json db
 
     Args:
-        simulation_type (str): srw, warppba, ...
         data (dict): what to write (contains simulationId)
     """
     try:
@@ -657,7 +661,7 @@ def save_simulation_json(simulation_type, data):
         pass
     data = fixup_old_data(data)[0]
     s = data.models.simulation
-    fn = sim_data_file(simulation_type, s.simulationId)
+    fn = sim_data_file(data.simulationType, s.simulationId)
     with _global_lock:
         need_validate = True
         try:
@@ -731,6 +735,14 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
+def simulation_type_from_dir_name(d):
+    """Extract simulation_type from simulation_dir"""
+    res = d.basename
+    if _ID_RE.search(res) or res == _LIB_DIR:
+        res = py.path.local(d.dirname).basename
+    return sirepo.template.assert_sim_type(res)
+
+
 def tmp_dir():
     """Generates new, temporary directory
 
@@ -780,7 +792,7 @@ def validate_serial(req_data):
         object: None if all ok, or json response (bad)
     """
     with _global_lock:
-        sim_type = req_data['simulationType']
+        sim_type = sirepo.template.assert_sim_type(req_data['simulationType'])
         sid = parse_sid(req_data)
         req_ser = req_data['models']['simulation']['simulationSerial']
         curr = read_simulation_json(sim_type, sid=sid)
@@ -805,7 +817,7 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example_and_lib_files(simulation_type)
+    _create_example_and_lib_files(simulation_type_from_dir_name(d))
 
 
 def write_json(filename, data):
@@ -849,9 +861,10 @@ def write_status(status, run_dir):
 
 def _create_example_and_lib_files(simulation_type):
     d = simulation_dir(simulation_type)
+    simulation_type = simulation_type_from_dir_name(d)
     pkio.mkdir_parent(d)
     for s in examples(simulation_type):
-        save_new_example(simulation_type, s)
+        save_new_example(s)
     d = simulation_lib_dir(simulation_type)
     pkio.mkdir_parent(d)
     for f in sirepo.template.import_module(simulation_type).resource_files():

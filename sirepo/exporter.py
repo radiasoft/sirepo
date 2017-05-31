@@ -89,7 +89,7 @@ def _create_zip(sim_type, sim_id, want_python):
         res = py.path.local(sim_id + '.zip')
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
         files = template_common.lib_files(data)
-        files.insert(0, simulation_db.sim_data_file(sim_type, sim_id))
+        files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
         if want_python:
             files.append(_python(data))
         with zipfile.ZipFile(

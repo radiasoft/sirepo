@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkunit
-from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog
+from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog, pkdpretty
 import flask
 import flask.testing
 import json
@@ -129,7 +129,7 @@ class _TestClient(flask.testing.FlaskClient):
             if d['name'] == sim_name:
                 break
         else:
-            pkfail('{}: not found in ', sim_name, pkdpretty(data))
+            pkunit.pkfail('{}: not found in ', sim_name, pkdpretty(data))
         return self.sr_get(
             'simulationData',
             {

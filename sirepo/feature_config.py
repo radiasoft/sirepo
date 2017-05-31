@@ -12,6 +12,8 @@ import copy
 
 #: All possible codes
 _ALL_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'fete')
+assert [] == [x for x in _ALL_CODES if len(x) >= 8], \
+    'codes must be less than 8 characters (simulation_db._ID_LEN)'
 
 #: Codes on test and prod
 _NON_DEV_CODES = _ALL_CODES
