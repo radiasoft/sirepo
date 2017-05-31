@@ -23,7 +23,7 @@ def test_purge_users(monkeypatch):
     from sirepo import server
     import datetime
 
-    res = admin.purge_users(days=1, dry_run=True)
+    res = admin.purge_users(days=1, confirm=False)
     pkeq([], res, '{}: no old users so empty')
     pkdp(simulation_db.user_dir_name('*'))
     g = simulation_db.user_dir_name('*')
@@ -35,12 +35,12 @@ def test_purge_users(monkeypatch):
     monkeypatch.setattr(server, 'all_uids', lambda: [uid])
     for f in pkio.walk_tree(dirs[0]):
         f.setmtime(f.mtime() - 86400 * 2)
-    res = admin.purge_users(days=1, dry_run=True)
+    res = admin.purge_users(days=1, confirm=False)
     pkeq([], res, '{}: all users registered so no deletes')
     monkeypatch.setattr(server, 'all_uids', lambda: [])
-    res = admin.purge_users(days=1, dry_run=True)
+    res = admin.purge_users(days=1, confirm=False)
     pkeq(dirs, res, '{}: no users registered so one delete', res)
     pkok(dirs[0].check(dir=True), '{}: nothing deleted', res)
-    res = admin.purge_users(days=1, dry_run=False)
+    res = admin.purge_users(days=1, confirm=True)
     pkeq(dirs, res, '{}: no users registered so one delete', res)
     pkok(not dirs[0].check(dir=True), '{}: directory deleted', res)
