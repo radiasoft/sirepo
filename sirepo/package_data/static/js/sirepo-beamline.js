@@ -3,13 +3,17 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState) {
+SIREPO.app.factory('beamlineService', function(appState, $window) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
     // consider moving to "constant" section of schema
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
+
+    // Try to detect mobile/tablet devices using Mozilla recommendation below
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
+    var isTouchscreen = /Mobi|Silk/i.test($window.navigator.userAgent);
 
     self.dismissPopup = function() {
         $('.srw-beamline-element-label').popover('hide');
@@ -70,7 +74,7 @@ SIREPO.app.factory('beamlineService', function(appState) {
     };
 
     self.isTouchscreen = function() {
-        return Modernizr.touch;
+        return isTouchscreen;
     };
 
     self.removeActiveItem = function() {
@@ -138,7 +142,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
               '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ isTouchscreen() ? \'\' : \'srw-hover\' }}" data-ng-class="{\'srw-disabled-item\': item.isDisabled}">',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" data-ng-class="{\'srw-disabled-item\': item.isDisabled}">',
                   '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
                 '</div>',
             '</div>',
@@ -227,9 +231,6 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                         item.position = Math.round(100 * (parseFloat(appState.models.beamline[index - 1].position) + parseFloat(appState.models.beamline[index + 1].position)) / 2) / 100;
                     }
                 }
-            };
-            $scope.isTouchscreen = function() {
-                return beamlineService.isTouchscreen();
             };
             $scope.checkIfDirty = function() {
                 var isDirty = false;
