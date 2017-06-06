@@ -354,7 +354,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             function wantEnumButtons(fieldType, labelSize) {
                 var hasLabelSizeOverride = labelSize ? true : false;
                 var e = SIREPO.APP_SCHEMA.enum[fieldType];
-                if (! e || e.length > 3 || hasLabelSizeOverride) {
+                if (! e || e.length == 1 || e.length > 3 || hasLabelSizeOverride) {
                     return false;
                 }
                 var textSize = 0;
