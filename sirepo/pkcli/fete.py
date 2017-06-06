@@ -10,11 +10,33 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
+import numpy as np
 import sirepo.template.fete as template
 
 
 def run(cfg_dir):
-    raise RuntimeError('not implemented')
+    with pkio.save_chdir(cfg_dir):
+        exec(_script(), locals(), locals())
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+
+        if data['report'] == 'fieldReport':
+            grid = data['models']['simulationGrid']
+            plate_spacing = grid['plate_spacing'] * 1e-6
+            beam = data['models']['beam']
+            radius = beam['x_radius'] * 1e-6
+            values = potential[xl:xu, zl:zu]
+            simulation_db.write_result({
+                'aspect_ratio': 6.0 / 14,
+                'x_range': [0, plate_spacing, len(values[0])],
+                'y_range': [- radius, radius, len(values)],
+                'x_label': 'z [m]',
+                'y_label': 'x [m]',
+                'title': 'ϕ Across Whole Domain',
+                'z_matrix': values.tolist(),
+                'frequency_title': 'Volts',
+            })
+        else:
+            raise RuntimeError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):

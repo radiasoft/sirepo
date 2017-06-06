@@ -60,7 +60,8 @@ def copy_related_files(data, source_path, target_path):
 
 
 def fixup_old_data(data):
-    pass
+    if 'fieldReport' not in data['models']:
+        data['models']['fieldReport'] = {}
 
 
 def get_animation_name(data):
@@ -131,7 +132,9 @@ def models_related_to_report(data):
     Returns:
         list: Named models, model fields or values (dict, list) that affect report
     """
-    return []
+    return [
+        'beam', 'simulationGrid', 'conductors',
+    ]
 
 
 def new_simulation(data, new_simulation_data):
@@ -265,7 +268,8 @@ def _extract_field(field, data, data_file):
         'x_label': 'z [m]',
         'y_label': 'x [m]',
         'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'z_matrix': np.flipud(values).tolist(),
+        'aspect_ratio': 6.0 / 14,
+        'z_matrix': values.tolist(),
     }
 
 
@@ -321,7 +325,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    return pkjinja.render_resource('fete.py', v)
+    if is_parallel:
+        return pkjinja.render_resource('fete-base.py', v) + pkjinja.render_resource('fete-generate-visualization.py', v)
+    return pkjinja.render_resource('fete-base.py', v) + pkjinja.render_resource('fete-generate-source-field.py', v)
+
 
 
 def _h5_file_list(run_dir, model_name):

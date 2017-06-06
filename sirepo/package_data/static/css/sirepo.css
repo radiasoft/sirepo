@@ -241,7 +241,8 @@
     }
     .sr-plot text.z-axis-label,
     .sr-plot text.y-axis-label,
-    .sr-plot text.x-axis-label {
+    .sr-plot text.x-axis-label,
+    .sr-plot text.frequency-label {
       font-size: 14px;
       font-weight: bold;
       text-anchor: middle;

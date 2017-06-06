@@ -58,6 +58,7 @@
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
+        "fieldReport": {},
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
@@ -143,6 +144,10 @@
                 "field",
                 "framesPerSecond"
             ]
+        },
+        "fieldReport": {
+            "title": "Field Report",
+            "advanced": []
         },
         "particleAnimation": {
             "title": "Particle Trace",
