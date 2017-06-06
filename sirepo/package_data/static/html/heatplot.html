@@ -1,16 +1,18 @@
     <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
       <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})"></canvas>
-      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize }}">
+      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize.width }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize.height }}">
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
-          <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
-          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;"></rect>
-          <g class="x axis" ng-attr-transform="translate(0, {{ canvasSize }})">
-            <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" y="40"></text>
+          <text class="main-title" ng-attr-x="{{ (margin.left + canvasSize.width) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
+          <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
+          <g class="x axis" ng-attr-transform="translate(0, {{ canvasSize.height }})">
+            <text class="x-axis-label" ng-attr-x="{{ canvasSize.width / 2 }}" y="40"></text>
           </g>
           <g class="y axis">
-            <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" y="-45" transform="rotate(270)"></text>
+            <text class="y-axis-label" ng-attr-x="{{ - canvasSize.height / 2 }}" y="-45" transform="rotate(270)"></text>
           </g>
-          <g class="colorbar" ng-attr-transform="translate({{ margin.left + canvasSize }}, 0)"></g>
+          <g class="colorbar" ng-attr-transform="translate({{ margin.left + canvasSize.width }}, 0)">
+            <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
+          </g>
         </g>
       </svg></div>
       <div data-animation-buttons=""></div>
