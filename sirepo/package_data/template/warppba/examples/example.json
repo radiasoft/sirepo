@@ -65,7 +65,7 @@
             "zMin": 0
         },
         "simulation": {
-            "name": "WARP example laser simulation",
+            "name": "Laser Pulse",
             "simulationId": "h3a5iMzC",
             "sourceType": "laserPulse"
         },
@@ -98,6 +98,6 @@
         }
     },
     "report": "laserPreviewReport",
-    "simulationType": "warp",
-    "version": "20160406"
+    "simulationType": "warppba",
+    "version": "20000101.000000"
 }

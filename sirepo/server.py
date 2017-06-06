@@ -86,7 +86,7 @@ def api_copyNonSessionSimulation():
         )
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
-        res = _save_new_and_reply(sim_type, data)
+        res = _save_new_and_reply(data)
         sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
@@ -112,7 +112,7 @@ def api_copySimulation():
     data['models']['simulation']['name'] = name
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
-    return _save_new_and_reply(sim_type, data)
+    return _save_new_and_reply(data)
 app_copy_simulation = api_copySimulation
 
 
@@ -125,7 +125,7 @@ app_delete_simulation = api_deleteSimulation
 
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
     data = {
-        'simulationType': simulation_type,
+        'simulationType': sirepo.template.assert_sim_type(simulation_type),
         'simulationId': simulation_id,
         'modelName': model,
     }
@@ -230,7 +230,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     if len(rows) == 0:
         for s in simulation_db.examples(simulation_type):
             if s['models']['simulation']['name'] == simulation_name:
-                simulation_db.save_new_example(simulation_type, s)
+                simulation_db.save_new_example(s)
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': simulation_name,
                 })
@@ -325,7 +325,7 @@ def api_importFile(simulation_type=None):
             )
         #TODO(robnagler) need to validate folder
         data.models.simulation.folder = flask.request.form['folder']
-        return _save_new_and_reply(data.simulationType, data)
+        return _save_new_and_reply(data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = e.message if hasattr(e, 'message') else str(e)
@@ -347,7 +347,7 @@ def api_newSimulation():
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
     sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
-    return _save_new_and_reply(sim_type, data)
+    return _save_new_and_reply(data)
 app_new_simulation = api_newSimulation
 
 
@@ -399,6 +399,8 @@ def api_root(simulation_type):
     try:
         sirepo.template.assert_sim_type(simulation_type)
     except AssertionError:
+        if simulation_type == 'warp':
+            return flask.redirect('/warppba', code=301)
         pkdlog('{}: uri not found', simulation_type)
         werkzeug.exceptions.abort(404)
     if cfg.oauth_login:
@@ -466,7 +468,6 @@ def api_saveSimulationData():
         return res
     simulation_type = data['simulationType']
     data = simulation_db.save_simulation_json(
-        simulation_type,
         sirepo.template.import_module(simulation_type).prepare_for_save(data),
     )
     return app_simulation_data(
@@ -535,7 +536,7 @@ app_simulation_list = api_listSimulations
 
 
 def api_simulationSchema():
-    sim_type = flask.request.form['simulationType']
+    sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
     return _json_response(simulation_db.get_schema(sim_type))
 app_simulation_schema = api_simulationSchema
 
@@ -560,7 +561,7 @@ def api_updateFolder():
         folder = row['models']['simulation']['folder']
         if folder.startswith(old_name):
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
-            simulation_db.save_simulation_json(data['simulationType'], row)
+            simulation_db.save_simulation_json(row)
     return _json_response_ok()
 app_update_folder = api_updateFolder
 
@@ -787,7 +788,7 @@ def _cfg_time_limit(value):
     return v
 
 
-def _json_input():
+def _json_input(assert_sim_type=True):
     req = flask.request
     if req.mimetype != 'application/json':
         pkdlog('{}: req.mimetype is not application/json', req.mimetype)
@@ -799,7 +800,10 @@ def _json_input():
     # and strict in what we send out.
     charset = req.mimetype_params.get('charset')
     data = req.get_data(cache=False)
-    return simulation_db.json_load(data, encoding=charset)
+    res = simulation_db.json_load(data, encoding=charset)
+    if assert_sim_type and 'simulationType' in res:
+        res.simulationType = sirepo.template.assert_sim_type(res.simulationType)
+    return res
 
 
 def _json_response(value, pretty=False):
@@ -847,7 +851,7 @@ def _no_cache(response):
 
 
 def _parse_data_input(validate=False):
-    data = _json_input()
+    data = _json_input(assert_sim_type=False)
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 

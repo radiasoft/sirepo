@@ -11,7 +11,9 @@ from pykern import pkcollections
 import copy
 
 #: All possible codes
-_ALL_CODES = ('srw', 'warp', 'elegant', 'shadow', 'hellweg', 'fete')
+_ALL_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'fete')
+assert [] == [x for x in _ALL_CODES if len(x) >= 8], \
+    'codes must be less than 8 characters (simulation_db._ID_LEN)'
 
 #: Codes on test and prod
 _NON_DEV_CODES = _ALL_CODES
@@ -23,7 +25,7 @@ def for_sim_type(sim_type):
     """Get cfg for simulation type
 
     Args:
-        sim_type (str): srw, warp, etc.
+        sim_type (str): srw, warppba, etc.
 
     Returns:
         dict: application specific config

@@ -98,6 +98,6 @@
         }
     },
     "report": "laserPreviewReport",
-    "simulationType": "warp",
+    "simulationType": "warppba",
     "version": "20160406"
 }
