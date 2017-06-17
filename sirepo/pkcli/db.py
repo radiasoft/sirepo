@@ -15,5 +15,5 @@ def upgrade():
 
     server.init()
     to_rename = []
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*/warp')):
-        d.rename(d.new(basename='warppba'))
+    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*/fete')):
+        d.rename(d.new(basename='warpvnd'))

@@ -195,6 +195,8 @@ def fixup_old_data(data, force=False):
                 raise AssertionError('must have simulationType')
         elif data['simulationType'] == 'warp':
             data['simulationType'] = 'warppba'
+        elif data['simulationType'] == 'fete':
+            data['simulationType'] = 'warpvnd'
         if not 'simulationSerial' in data['models']['simulation']:
             data['models']['simulation']['simulationSerial'] = 0
         sirepo.template.import_module(data['simulationType']).fixup_old_data(data)

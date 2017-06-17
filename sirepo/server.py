@@ -401,6 +401,8 @@ def api_root(simulation_type):
     except AssertionError:
         if simulation_type == 'warp':
             return flask.redirect('/warppba', code=301)
+        if simulation_type == 'fete':
+            return flask.redirect('/warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         werkzeug.exceptions.abort(404)
     if cfg.oauth_login:
