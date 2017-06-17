@@ -75,6 +75,6 @@
             "z_particle_min": 0.00125
         }
     },
-    "simulationType": "fete",
+    "simulationType": "warpvnd",
     "version": "20170515.000000"
 }

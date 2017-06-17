@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FETE/WARP execution template.
+u"""Warp VND/WARP execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +20,7 @@ import numpy as np
 import os.path
 import re
 
-SIM_TYPE = 'fete'
+SIM_TYPE = 'warpvnd'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -319,15 +319,20 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
+    v = None
+
+    def render(bn):
+        b = template_common.resource_dir(SIM_TYPE).join(bn + '.py')
+        return pkjinja.render_file(b + '.jinja', v)
+
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    if is_parallel:
-        return pkjinja.render_resource('fete-base.py', v) + pkjinja.render_resource('fete-generate-visualization.py', v)
-    return pkjinja.render_resource('fete-base.py', v) + pkjinja.render_resource('fete-generate-source-field.py', v)
+    x = 'visualization' if is_parallel else 'source-field'
+    return render('base') + render('generate-' + x)
 
 
 

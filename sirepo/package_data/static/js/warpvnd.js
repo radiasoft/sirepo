@@ -11,16 +11,16 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     var localRoutes = localRoutesProvider.$get();
     $routeProvider
         .when(localRoutes.source, {
-            controller: 'FeteSourceController as source',
-            templateUrl: '/static/html/fete-source.html' + SIREPO.SOURCE_CACHE_KEY,
+            controller: 'WarpVNDSourceController as source',
+            templateUrl: '/static/html/warpvnd-source.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.visualization, {
-            controller: 'FeteVisualizationController as visualization',
-            templateUrl: '/static/html/fete-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
+            controller: 'WarpVNDVisualizationController as visualization',
+            templateUrl: '/static/html/warpvnd-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
-SIREPO.app.factory('feteService', function(appState, panelState) {
+SIREPO.app.factory('warpvndService', function(appState, panelState) {
     var self = {};
 
     function findModelById(name, id) {
@@ -47,7 +47,7 @@ SIREPO.app.factory('feteService', function(appState, panelState) {
     return self;
 });
 
-SIREPO.app.controller('FeteSourceController', function (appState, feteService, frameCache, panelState, $scope) {
+SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, frameCache, panelState, $scope) {
     var self = this;
 
     function updateAllFields() {
@@ -116,8 +116,8 @@ SIREPO.app.controller('FeteSourceController', function (appState, feteService, f
     };
 
     self.deleteConductorPrompt = function(model) {
-        var conductor = feteService.findConductor(model.id);
-        var conductorType = feteService.findConductorType(conductor.conductorTypeId);
+        var conductor = warpvndService.findConductor(model.id);
+        var conductorType = warpvndService.findConductorType(conductor.conductorTypeId);
         self.deleteWarning = {
             conductor: conductor,
             name: conductorType.name + ' Conductor',
@@ -193,7 +193,7 @@ SIREPO.app.controller('FeteSourceController', function (appState, feteService, f
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('FeteVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
     var self = this;
     self.model = 'animation';
     self.simulationErrors = '';
@@ -242,7 +242,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">FETE</a></div>',
+              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">Warp VND</a></div>',
             '</div>',
             '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
@@ -375,7 +375,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             }
 
             function clearDragShadow() {
-                d3.selectAll('.fete-drag-shadow').remove();
+                d3.selectAll('.warpvnd-drag-shadow').remove();
             }
 
             function d3DragEnd(shape) {
@@ -420,21 +420,21 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
             function drawCathodeAndAnode() {
                 var viewport = select('.plot-viewport');
-                viewport.selectAll('.fete-plate').remove();
+                viewport.selectAll('.warpvnd-plate').remove();
                 var grid = appState.models.simulationGrid;
                 var channel = grid.channel_width * 1e-6 / 2;
                 var plateSpacing = grid.plate_spacing * 1e-6;
                 var h = yAxisScale(-channel) - yAxisScale(channel);
                 var w = xAxisScale(0) - xAxisScale(-plateSize);
                 viewport.append('rect')
-                    .attr('class', 'fete-plate')
+                    .attr('class', 'warpvnd-plate')
                     .attr('x', xAxisScale(-plateSize))
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
                     .attr('height', h)
                     .on('dblclick', function() { editPlate('cathode'); });
                 viewport.append('rect')
-                    .attr('class', 'fete-plate fete-plate-voltage')
+                    .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
                     .attr('x', xAxisScale(plateSpacing))
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
@@ -461,13 +461,13 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                         voltage: conductorType.voltage,
                     });
                 });
-                d3.select('.plot-viewport').selectAll('.fete-shape').remove();
-                d3.select('.plot-viewport').selectAll('.fete-shape')
+                d3.select('.plot-viewport').selectAll('.warpvnd-shape').remove();
+                d3.select('.plot-viewport').selectAll('.warpvnd-shape')
                     .data(shapes)
                     .enter().append('rect')
                     .on('dblclick', editPosition)
                     .attr('class', function(d) {
-                        return d.voltage > 0 ? 'fete-shape fete-shape-voltage' : 'fete-shape';
+                        return d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape';
                     })
                     .attr('x', function(d) { return xAxisScale(d.x); })
                     .attr('y', function(d) { return yAxisScale(d.y); })
@@ -609,7 +609,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 alignShapeOnGrid(shape);
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
-                    .append('rect').attr('class', 'fete-shape fete-drag-shadow')
+                    .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
                     .attr('x', function(d) { return xAxisScale(shape.x); })
                     .attr('y', function(d) { return yAxisScale(shape.y); })
                     .attr('width', function(d) {
