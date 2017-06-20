@@ -357,6 +357,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
                 scope.$on('$destroy', function() {
                     scope.destroy();
+                    $(d3.select(scope.element).select('svg').node()).off();
                     scope.element = null;
                     $($window).off('resize', scope.windowResize);
                 });
@@ -378,6 +379,11 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     return panelState.isLoading(scope.modelName);
                 };
                 $($window).resize(scope.windowResize);
+                // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
+                $(d3.select(scope.element).select('svg').node()).on('touchstart', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
                 scope.init();
                 if (appState.isLoaded()) {
                     if (scope.isAnimation && scope.defaultFrame) {
@@ -1254,7 +1260,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 select('.z-axis-label').text(json.z_label);
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
-                
+
                 //TODO(pjm): for now, we always want the lower range to be 0
                 if (zmin > 0) {
                     zmin = 0;
