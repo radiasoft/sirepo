@@ -1,6 +1,6 @@
   <p class="lead text-center"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-    <div><svg class="sr-plot">
+    <div style="-webkit-user-select: none"><svg class="sr-plot">
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
         <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
