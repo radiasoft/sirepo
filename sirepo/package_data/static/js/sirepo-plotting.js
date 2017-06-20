@@ -380,7 +380,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 };
                 $($window).resize(scope.windowResize);
                 // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
-                $(d3.select(scope.element).select('svg').node()).on('touchstart', function(event) {
+                $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
                     event.preventDefault();
                     event.stopPropagation();
                 });
