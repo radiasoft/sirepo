@@ -314,6 +314,11 @@ SIREPO.app.directive('conductorTable', function(appState) {
                 $scope.source.deleteConductorTypePrompt(conductorType);
             };
         },
+        link: function link(scope, element) {
+            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
+            // see discussion here: https://github.com/metafizzy/flickity/issues/457
+            window.addEventListener('touchmove', function() {});
+        },
     };
 });
 

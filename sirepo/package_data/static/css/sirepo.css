@@ -519,6 +519,8 @@ tr:hover .sr-button-bar-parent {
 
 .split-pane-divider {
   -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .sr-split-pane-frame {
   box-sizing: border-box;
@@ -704,9 +706,13 @@ li.sr-model-list-item > a {
   box-shadow: 0 0 25px gray;
   cursor: move;
   -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .elegant-icon {
   -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
   min-width: 4em;
 }
 .elegant-icon span {
@@ -737,6 +743,8 @@ li.sr-model-list-item > a {
 }
 .hellweg-icon {
   -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
   display: inline-block;
 }
 .hellweg-icon span {
