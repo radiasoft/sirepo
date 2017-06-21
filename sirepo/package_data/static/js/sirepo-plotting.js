@@ -496,14 +496,26 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
 
     var defaultCircleSize, focusIndex, formatter, keyListener, lastClickX, ordinateFormatter, points;
 
-    function calculateFWHM(xValues, yValues, yHalfMax) {
-        function isPositive(num) {
-            return true ? num > 0 : false;
+    function isPositive(num) {
+        return true ? num > 0 : false;
+    }
+
+    function normalizeValues(yValues, shift) {
+        var yMin = Math.min.apply(Math, yValues);
+        var yMax = Math.max.apply(Math, yValues);
+        var yRange = yMax - yMin;
+        for (var i = 0; i < yValues.length; i++) {
+            yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
         }
-        var positive = isPositive(yValues[0] - yHalfMax);
+        return yValues;
+    }
+
+    function calculateFWHM(xValues, yValues) {
+        yValues = normalizeValues(yValues, 0.5);
+        var positive = isPositive(yValues[0]);
         var listOfRoots = [];
         for (var i = 0; i < yValues.length; i++) {
-            var currentPositive = isPositive(yValues[i] - yHalfMax);
+            var currentPositive = isPositive(yValues[i]);
             if (currentPositive !== positive) {
                 listOfRoots.push(xValues[i - 1] + (xValues[i] - xValues[i - 1]) / (Math.abs(yValues[i]) + Math.abs(yValues[i - 1])) * Math.abs(yValues[i - 1]));
                 positive = !positive;
@@ -760,12 +772,11 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         if (peakIndex) {
             var localXValues = [];
             var localYValues = [];
-            var localYHalfMax = points[peakIndex][1] / 2.0;
             for (i = leftMinIndex; i <= rightMinIndex; i++) {
                 localXValues.push(points[i][0]);
                 localYValues.push(points[i][1]);
             }
-            fwhm = calculateFWHM(localXValues, localYValues, localYHalfMax);
+            fwhm = calculateFWHM(localXValues, localYValues);
         }
 
         var fwhmText = '';
@@ -794,7 +805,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 fwhmConverted = fwhm * 1e12;
                 units = 'p' + units;
             }
-            fwhmText = ', FWHM=' + fwhmConverted.toFixed(2) + ' ' + units;
+            fwhmText = ', FWHM=' + fwhmConverted.toFixed(3) + ' ' + units;
         }
         if (invertAxis) {
             focus.attr('transform', 'translate(' + yAxisScale(p[1]) + ',' + xAxisScale(p[0]) + ')');
