@@ -474,8 +474,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
             v['wigglerTrajectoryInput'] = 'wiggler-trajFile.{}'.format(data['models']['wiggler']['trajFile'])
-
-    return pkjinja.render_resource('shadow.py', v)
+    b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
+    return pkjinja.render_file(b + '.jinja', v)
 
 
 def _generate_screen(item):
