@@ -315,8 +315,10 @@
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
             "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
             "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
-            "curvatureRadius": ["Curvature Radius [mm]", "Float", 0.3],
             "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 189.0],
+            "lensFinite": ["Lens Finite?", "Boolean", "1"],
+            "lensDiameter": ["Lens Diameter [mm]", "Float", 0.5],
+            "curvatureRadius": ["Curvature Radius [mm]", "Float", 0.3],
             "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625]
         },
         "crystal": {
@@ -694,8 +696,10 @@
                 "numberOfLenses",
                 "numberOfEmptySlots",
                 "pilingThickness",
-                "curvatureRadius",
                 "focalDistance",
+                "lensFinite",
+                "lensDiameter",
+                "curvatureRadius",
                 "lensThickness"
             ]
         },

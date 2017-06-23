@@ -26,7 +26,7 @@ _CENTIMETER_FIELDS = {
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-    'crl': ['position', 'pilingThickness', 'curvatureRadius', 'focalDistance', 'lensThickness'],
+    'crl': ['position', 'pilingThickness', 'curvatureRadius', 'focalDistance', 'lensThickness', 'lensDiameter'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
@@ -324,14 +324,10 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
         defaults = dict(
             dummy=1.0,
             fcyl=1,
-            fhit_c=1,
             fmirr=10,
-            fshape=2,
             fwrite=3,
             f_ext=1,
             f_refrac=1,
-            rlen2=0.03,
-            rwidx2=0.03,
             r_attenuation_ima='24.37099514505769',
             r_ind_ima='0.9999972289735028',
             t_incidence=0.0,
@@ -347,6 +343,16 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
     diameter = item.curvatureRadius * 2.0
+
+    common = {}
+    if item.lensFinite == '1':
+        lens_radius = item.lensDiameter / 2.0
+        common=dict(
+            fhit_c=1,
+            fshape=2,
+            rlen2=lens_radius,
+            rwidx2=lens_radius,
+        )
     return _half(
         count,
         ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -diameter, 0.0],
@@ -354,6 +360,7 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
         t_source=(source if is_first else 0.0) + source_width,
         #f_convex=0,
         rmirr=item.curvatureRadius,
+        **common
     ) + _half(
         count + 1,
         ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, diameter, 0.0],
@@ -361,6 +368,7 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
         t_source=half_lens,
         f_convex=1,
         rmirr=item.curvatureRadius,
+        **common
     )
 
 

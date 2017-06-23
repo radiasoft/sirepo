@@ -52,6 +52,10 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
         panelState.showField(modelName, 'r_lambda', item.f_central == '1' && item.f_phot_cent == '1');
     }
 
+    function updateCrlFields(item) {
+        panelState.showField('crl', 'lensDiameter', item.lensFinite == '1');
+    }
+
     function updateCrystalFields(item) {
         ['mosaic_seed', 'spread_mos'].forEach(function(f) {
             panelState.showField('crystal', f, item.f_mosaic == '1');
@@ -157,6 +161,9 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
             else if (name == 'grating') {
                 updateGratingFields(item);
             }
+            else if (name == 'crl') {
+                updateCrlFields(item);
+            }
         }
     };
 
@@ -171,6 +178,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
     beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
     beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
+    beamlineService.watchBeamlineField($scope, 'crl', ['lensFinite'], updateCrlFields);
 });
 
 SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
