@@ -309,6 +309,11 @@
             "r_magnet": ["Magnet Radius [m]", "Float"],
             "fdistr": ["Calculation Mode", "BendingMagnetMode"]
         },
+        "crl": {
+            "title": ["Element Name", "String", "CRL"],
+            "position": ["Nominal Position [m]", "Float"],
+            "numberOfLenses": ["Number of Lenses", "Integer", 3]
+        },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Nominal Position [m]", "Float"],
@@ -673,6 +678,15 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "crl": {
+            "title": "CRL",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "numberOfLenses"
             ]
         },
         "crystal": {

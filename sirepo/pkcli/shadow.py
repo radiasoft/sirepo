@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -123,7 +123,10 @@ def _label_with_units(column, values):
 def _run_shadow():
     """Run shadow program with isolated locals()
     """
-    exec(_script(), locals(), locals())
+    try:
+        exec(_script(), locals(), locals())
+    except Exception:
+        pkdlog('script={} error={}', _script(), pkdexc())
     return beam
 
 

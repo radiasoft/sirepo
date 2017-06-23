@@ -39,7 +39,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
     //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'crl', 'mirror', 'watch'];
     self.prepareToSave = function() {};
 
     function updateAutoTuningFields(item) {
