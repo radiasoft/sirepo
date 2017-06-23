@@ -214,8 +214,21 @@ def _field_value(name, field, value):
 def _fields(name, item, fields):
     res = ''
     for f in fields:
-        field_name = _FIELD_ALIAS[f] if f in _FIELD_ALIAS else f
+        field_name = _FIELD_ALIAS.get(f, f)
         res += _field_value(name, field_name, item[f])
+    return res
+
+
+def _generate_autotune_element(item):
+    res = _item_field(item, ['f_central'])
+    if item['type'] == 'grating' or item.f_central == '0':
+        res += _item_field(item, ['t_incidence', 't_reflection'])
+    if item.f_central == '1':
+        res += _item_field(item, ['f_phot_cent'])
+        if item.f_phot_cent == '0':
+            res += _item_field(item, ['phot_cent'])
+        elif item.f_phot_cent == '1':
+            res += _item_field(item, ['r_lambda'])
     return res
 
 
@@ -239,36 +252,27 @@ def _generate_beamline_optics(models, last_id):
             image_distance = next_item.position - item.position
             break
         theta_recalc_required = item['type'] in ('crystal', 'grating') and item['f_default'] == '1' and item['f_central'] == '1'
-        res += "\n\n" + 'oe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
-        if item['type'] == 'aperture' or item['type'] == 'obstacle':
-            res += _generate_screen(item)
-        elif item['type'] == 'mirror':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_mirror(item)
-        elif item['type'] == 'crystal':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_crystal(item)
-        elif item['type'] == 'grating':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_grating(item)
-        elif item['type'] == 'watch':
-            res += "\n" + 'oe.set_empty()'
-            if last_id and last_id == int(item['id']):
-                last_element = True
-        elif item['type'] == 'crl':
-            for n in range(item.numberOfLenses):
-                res += _generate_crl_lens(
-                    item,
-                    n == 0,
-                    n == (item.numberOfLenses - 1),
-                    count,
-                    source_distance,
-                )
-                count += 2
-            count -= 1
+        if item['type'] == 'crl':
+            count, res = _generate_crl(item, source_distance, count, res)
         else:
-            raise RuntimeError('unknown item type: {}'.format(item))
-        if item['type'] != 'crl':
+            res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
+            if item['type'] == 'aperture' or item['type'] == 'obstacle':
+                res += _generate_screen(item)
+            elif item['type'] == 'mirror':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_mirror(item)
+            elif item['type'] == 'crystal':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_crystal(item)
+            elif item['type'] == 'grating':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_grating(item)
+            elif item['type'] == 'watch':
+                res += "\n" + 'oe.set_empty()'
+                if last_id and last_id == int(item['id']):
+                    last_element = True
+            else:
+                raise RuntimeError('unknown item type: {}'.format(item))
             if theta_recalc_required:
                 res += '''
 # use shadow to calculate THETA from the default position
@@ -301,60 +305,62 @@ def _generate_bending_magnet(data):
           + _field_value('source', 'r_aladdin', 'source.R_MAGNET * 100')
 
 
-def _generate_autotune_element(item):
-    res = _item_field(item, ['f_central'])
-    if item['type'] == 'grating' or item.f_central == '0':
-        res += _item_field(item, ['t_incidence', 't_reflection'])
-    if item.f_central == '1':
-        res += _item_field(item, ['f_phot_cent'])
-        if item.f_phot_cent == '0':
-            res += _item_field(item, ['phot_cent'])
-        elif item.f_phot_cent == '1':
-            res += _item_field(item, ['r_lambda'])
-    return res
+def _generate_crl(item, source_distance, count, res):
+    for n in range(item.numberOfLenses):
+        res += _generate_crl_lens(
+            item,
+            n == 0,
+            n == (item.numberOfLenses - 1),
+            count,
+            source_distance,
+        )
+        count += 2
+    return count - 1, res
 
 
 def _generate_crl_lens(item, is_first, is_last, count, source):
-    def _half(**kwargs):
-        kwargs['ccc'] = ', '.join(map(str, kwargs['ccc']))
-        return '''
-oe = Shadow.OE()
-oe.CCC = numpy.array([{ccc}])
-oe.DUMMY = 1.0
-oe.FCYL = 1
-oe.FHIT_C = 1
-oe.FMIRR = 10
-oe.FSHAPE = 2
-oe.FWRITE = 3
-oe.F_CONVEX = {convex}
-oe.F_EXT = 1
-oe.F_REFRAC = 1
-oe.RLEN2 = 0.03
-oe.RMIRR = {curvatureRadius}
-oe.RWIDX2 = 0.03
-oe.R_ATTENUATION_IMA = 24.37099514505769
-oe.R_IND_IMA = 0.9999972289735028
-oe.T_IMAGE = {image}
-oe.T_INCIDENCE = 0.0
-oe.T_REFLECTION = 180.0
-oe.T_SOURCE = {source}
-beam.traceOE(oe, {count})
-        '''.format(**kwargs)
 
+    def _half(count, **values):
+        defaults = dict(
+            dummy=1.0,
+            fcyl=1,
+            fhit_c=1,
+            fmirr=10,
+            fshape=2,
+            fwrite=3,
+            f_ext=1,
+            f_refrac=1,
+            rlen2=0.03,
+            rwidx2=0.03,
+            r_attenuation_ima='24.37099514505769',
+            r_ind_ima='0.9999972289735028',
+            t_incidence=0.0,
+            t_reflection=180.0,
+        )
+        values.update(defaults)
+        fields = sorted(values.keys())
+        values['ccc'] = 'numpy.array([' + ', '.join(map(str, values['ccc'])) + '])'
+        return '\n\noe = Shadow.OE()' \
+            + _fields('oe', values, fields) \
+            +  '\nbeam.traceOE(oe, {})'.format(count)
+
+    half_lens = item.lensThickness / 2.0
+    source_width = item.pilingThickness / 2.0 - half_lens
+    diameter = item.curvatureRadius * 2.0
     return _half(
-        ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -item.curvatureRadius * 2.0, 0.0],
-        image=item.lensThickness / 2.0,
-        count=count,
-        source=(source if is_first else 0.0) + (item.pilingThickness / 2.0) - (item.lensThickness / 2.0),
-        convex=0,
-        curvatureRadius=item.curvatureRadius,
+        count,
+        ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -diameter, 0.0],
+        t_image=half_lens,
+        t_source=(source if is_first else 0.0) + source_width,
+        #f_convex=0,
+        rmirr=item.curvatureRadius,
     ) + _half(
-        ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, item.curvatureRadius * 2.0, 0.0],
-        image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + (item.pilingThickness / 2.0) - (item.lensThickness / 2.0),
-        count=count + 1,
-        source=(item.lensThickness / 2.0),
-        convex=1,
-        curvatureRadius=item.curvatureRadius,
+        count + 1,
+        ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, diameter, 0.0],
+        t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
+        t_source=half_lens,
+        f_convex=1,
+        rmirr=item.curvatureRadius,
     )
 
 
