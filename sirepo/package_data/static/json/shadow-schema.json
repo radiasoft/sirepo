@@ -312,7 +312,12 @@
         "crl": {
             "title": ["Element Name", "String", "CRL"],
             "position": ["Nominal Position [m]", "Float"],
-            "numberOfLenses": ["Number of Lenses", "Integer", 3]
+            "numberOfLenses": ["Number of Lenses", "Integer", 3],
+            "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
+            "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
+            "curvatureRadius": ["Curvature Radius [mm]", "Float", 0.3],
+            "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 189.0],
+            "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
@@ -686,7 +691,12 @@
             "advanced": [
                 "title",
                 "position",
-                "numberOfLenses"
+                "numberOfLenses",
+                "numberOfEmptySlots",
+                "pilingThickness",
+                "curvatureRadius",
+                "focalDistance",
+                "lensThickness"
             ]
         },
         "crystal": {

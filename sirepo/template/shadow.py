@@ -26,7 +26,7 @@ _CENTIMETER_FIELDS = {
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-    'crl': ['position'],
+    'crl': ['position', 'pilingThickness', 'curvatureRadius', 'focalDistance', 'lensThickness'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
@@ -315,58 +315,46 @@ def _generate_autotune_element(item):
 
 
 def _generate_crl_lens(item, is_first, is_last, count, source):
-
-    return '''
+    def _half(**kwargs):
+        kwargs['ccc'] = ', '.join(map(str, kwargs['ccc']))
+        return '''
 oe = Shadow.OE()
-oe.CCC = numpy.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.06, 0.0])
+oe.CCC = numpy.array([{ccc}])
 oe.DUMMY = 1.0
 oe.FCYL = 1
 oe.FHIT_C = 1
-oe.FMIRR = 1
+oe.FMIRR = 10
 oe.FSHAPE = 2
 oe.FWRITE = 3
-#oe2.F_CONVEX = 0
+oe.F_CONVEX = {convex}
 oe.F_EXT = 1
 oe.F_REFRAC = 1
 oe.RLEN2 = 0.03
-oe.RMIRR = 0.03
+oe.RMIRR = {curvatureRadius}
 oe.RWIDX2 = 0.03
 oe.R_ATTENUATION_IMA = 24.37099514505769
 oe.R_IND_IMA = 0.9999972289735028
-oe.T_IMAGE = {image1}
+oe.T_IMAGE = {image}
 oe.T_INCIDENCE = 0.0
 oe.T_REFLECTION = 180.0
-oe.T_SOURCE = {source1}
-beam.traceOE(oe, {count1})
+oe.T_SOURCE = {source}
+beam.traceOE(oe, {count})
+        '''.format(**kwargs)
 
-oe2 = Shadow.OE()
-oe2.CCC = numpy.array([1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, 0.06, 0.0])
-oe2.DUMMY = 1.0
-oe2.FCYL = 1
-oe2.FHIT_C = 1
-oe2.FMIRR = 10
-oe2.FSHAPE = 2
-oe2.FWRITE = 3
-oe2.F_CONVEX = 1
-oe2.F_EXT = 1
-oe2.F_REFRAC = 1
-oe2.RLEN2 = 0.03
-oe2.RMIRR = 0.03
-oe2.RWIDX2 = 0.03
-oe2.R_ATTENUATION_OBJ = 24.37099514505769
-oe2.R_IND_OBJ = 0.9999972289735028
-oe2.T_IMAGE = {image2}
-oe2.T_INCIDENCE = 0.0
-oe2.T_REFLECTION = 180.0
-oe2.T_SOURCE = {source2}
-beam.traceOE(oe2, {count2})
-    '''.format(
-        image1=0.00125,
-        image2=(189.9 if is_last else 0.03),
-        count1=count,
-        count2=count + 1,
-        source1=(source if is_first else 0.03),
-        source2=0.00125,
+    return _half(
+        ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -item.curvatureRadius * 2.0, 0.0],
+        image=item.lensThickness / 2.0,
+        count=count,
+        source=(source if is_first else 0.0) + (item.pilingThickness / 2.0) - (item.lensThickness / 2.0),
+        convex=0,
+        curvatureRadius=item.curvatureRadius,
+    ) + _half(
+        ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, item.curvatureRadius * 2.0, 0.0],
+        image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + (item.pilingThickness / 2.0) - (item.lensThickness / 2.0),
+        count=count + 1,
+        source=(item.lensThickness / 2.0),
+        convex=1,
+        curvatureRadius=item.curvatureRadius,
     )
 
 
