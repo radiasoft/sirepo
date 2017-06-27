@@ -316,9 +316,9 @@
             "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
             "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
             "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 189.0],
-            "lensFinite": ["Lens Finite?", "Boolean", "1"],
+            "fhit_c": ["Lens Dimensions", "ElementDimensions", "0"],
             "lensDiameter": ["Lens Diameter [mm]", "Float", 0.5],
-            "curvatureRadius": ["Curvature Radius [mm]", "Float", 0.3],
+            "rmirr": ["Curvature Radius [mm]", "Float", 0.3],
             "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625]
         },
         "crystal": {
@@ -478,8 +478,8 @@
             "fdistr": ["Angular Distribution", "AngularDistribution", "2"],
             "sigdix": ["Horizontal Sigma (X) [mrad]", "Float", 0.0],
             "sigdiz": ["Vertical Sigma (Z) [mrad]", "Float", 0.0],
-            "cone_max": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
-            "cone_min": ["Cone External Half-Aperture [rad]", "Float", 0.0],
+            "cone_min": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
+            "cone_max": ["Cone External Half-Aperture [rad]", "Float", 0.0],
             "fsource_depth": ["Depth", "SourceDepth", "1"],
             "wysou": ["Source Depth (y) [mm]", "Float", 0.0],
             "sigmay": ["Sigma Y [µm]", "Float", 0.0]
@@ -697,9 +697,9 @@
                 "numberOfEmptySlots",
                 "pilingThickness",
                 "focalDistance",
-                "lensFinite",
+                "fhit_c",
                 "lensDiameter",
-                "curvatureRadius",
+                "rmirr",
                 "lensThickness"
             ]
         },
@@ -814,8 +814,8 @@
                             "sigdiz"
                         ]]
                     ],
-                    "cone_max",
                     "cone_min",
+                    "cone_max",
                     "fsource_depth",
                     "wysou",
                     "sigmay"

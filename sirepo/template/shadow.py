@@ -26,7 +26,7 @@ _CENTIMETER_FIELDS = {
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-    'crl': ['position', 'pilingThickness', 'curvatureRadius', 'focalDistance', 'lensThickness', 'lensDiameter'],
+    'crl': ['position', 'pilingThickness', 'rmirr', 'focalDistance', 'lensThickness', 'lensDiameter'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
@@ -320,7 +320,7 @@ def _generate_crl(item, source_distance, count, res):
 
 def _generate_crl_lens(item, is_first, is_last, count, source):
 
-    def _half(count, **values):
+    def _half(is_obj, **values):
         defaults = dict(
             dummy=1.0,
             fcyl=1,
@@ -328,46 +328,53 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
             fwrite=3,
             f_ext=1,
             f_refrac=1,
-            r_attenuation_ima='24.37099514505769',
-            r_ind_ima='0.9999972289735028',
             t_incidence=0.0,
             t_reflection=180.0,
+        )
+        defaults.update(
+            dict(
+                r_attenuation_obj='24.37099514505769',
+                r_ind_obj='0.9999972289735028',
+            ) if is_obj else dict(
+                r_attenuation_ima='24.37099514505769',
+                r_ind_ima='0.9999972289735028',
+            ),
         )
         values.update(defaults)
         fields = sorted(values.keys())
         values['ccc'] = 'numpy.array([' + ', '.join(map(str, values['ccc'])) + '])'
         return '\n\noe = Shadow.OE()' \
             + _fields('oe', values, fields) \
-            +  '\nbeam.traceOE(oe, {})'.format(count)
+            +  '\nbeam.traceOE(oe, {})'.format(count + is_obj)
 
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
-    diameter = item.curvatureRadius * 2.0
+    diameter = item.rmirr * 2.0
 
-    common = {}
-    if item.lensFinite == '1':
+    common = dict(
+        rmirr=item.rmirr,
+    )
+    if item.fhit_c == '1':
         lens_radius = item.lensDiameter / 2.0
-        common=dict(
+        common.update(
             fhit_c=1,
             fshape=2,
             rlen2=lens_radius,
             rwidx2=lens_radius,
         )
     return _half(
-        count,
+        0,
         ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -diameter, 0.0],
         t_image=half_lens,
         t_source=(source if is_first else 0.0) + source_width,
         #f_convex=0,
-        rmirr=item.curvatureRadius,
         **common
     ) + _half(
-        count + 1,
+        1,
         ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, diameter, 0.0],
         t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
         t_source=half_lens,
-        f_convex=1,
-        rmirr=item.curvatureRadius,
+        #f_convex=1,
         **common
     )
 

@@ -53,7 +53,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     }
 
     function updateCrlFields(item) {
-        panelState.showField('crl', 'lensDiameter', item.lensFinite == '1');
+        panelState.showField('crl', 'lensDiameter', item.fhit_c == '1');
     }
 
     function updateCrystalFields(item) {
@@ -142,8 +142,12 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     }
 
     self.handleModalShown = function(name) {
+        srdbg('hello');
         var item = beamlineService.activeItem;
+        srdbg(item);
+        srdbg(' y ', name);
         if (item && item.type == name) {
+            srdbg(' x ', item);
             if (name == 'mirror' || name == 'crystal' || name == 'grating') {
                 updateElementShapeFields(item);
                 updateElementDimensionFields(item);
@@ -162,6 +166,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
                 updateGratingFields(item);
             }
             else if (name == 'crl') {
+                srdbg(item);
                 updateCrlFields(item);
             }
         }
@@ -178,7 +183,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
     beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
     beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
-    beamlineService.watchBeamlineField($scope, 'crl', ['lensFinite'], updateCrlFields);
+    beamlineService.watchBeamlineField($scope, 'crl', ['fhit_c'], updateCrlFields);
 });
 
 SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
