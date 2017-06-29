@@ -199,6 +199,11 @@
             ["2", "Virtual/Real"],
             ["3", "Real/Real"]
         ],
+        "LensShape": [
+            ["1", "Spherical"],
+            ["4", "Paraboloid"],
+            ["5", "Plane"]
+        ],
         "LightPropagation": [
             ["0", "Reflector"],
             ["1", "Refractor"]
@@ -315,11 +320,18 @@
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
             "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
             "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
-            "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 189.0],
+            "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 1.8],
             "fhit_c": ["Lens Dimensions", "ElementDimensions", "0"],
             "lensDiameter": ["Lens Diameter [mm]", "Float", 0.5],
+            "fmirr": ["Surface Shape", "LensShape", "5"],
             "rmirr": ["Curvature Radius [mm]", "Float", 0.3],
-            "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625]
+            "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625],
+            "useCCC": ["Use C.C.C. (conical shape)", "Boolean", "0"],
+            "initialCurvature": ["Initial convexity (1st surface)", "ElementCurvature", "0"],
+            "fcyl": ["Cylindrical", "Boolean", "1"],
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "Float", "0"],
+            "refractionIndex": ["Refraction Index", "Float", 0.9999972289735028],
+            "attenuationCoefficient": ["Attenuation Coeficient [cm-1]", "Float", 24.37099514505769]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
@@ -699,8 +711,15 @@
                 "focalDistance",
                 "fhit_c",
                 "lensDiameter",
+                "fmirr",
                 "rmirr",
-                "lensThickness"
+                "lensThickness",
+                "useCCC",
+                "initialCurvature",
+                "fcyl",
+                "cil_ang",
+                "refractionIndex",
+                "attenuationCoefficient"
             ]
         },
         "crystal": {

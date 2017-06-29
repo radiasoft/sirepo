@@ -18,6 +18,9 @@ import xraylib
 
 #: Simulation type
 SIM_TYPE = 'shadow'
+
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
@@ -207,6 +210,17 @@ def _convert_meters_to_centimeters(models):
                 model[f] *= 100
 
 
+def _eq(item, field, *values):
+    t = _SCHEMA.model[item['type']][field][1]
+    for v, n in _SCHEMA.enum[t]:
+        if item[field] == v:
+            pkdp('t={} v={}', t, v)
+            return n in values
+    raise AssertionError(
+        '{}: value not found for model={} field={} type={}'.format(
+            item[field], item['type'], field, t))
+
+
 def _field_value(name, field, value):
     return "\n{}.{} = {}".format(name, field.upper(), value)
 
@@ -320,63 +334,77 @@ def _generate_crl(item, source_distance, count, res):
 
 def _generate_crl_lens(item, is_first, is_last, count, source):
 
-    def _half(is_obj, **values):
-        defaults = dict(
-            dummy=1.0,
-            fcyl=1,
-            fmirr=10,
-            fwrite=3,
-            f_ext=1,
-            f_refrac=1,
-            t_incidence=0.0,
-            t_reflection=180.0,
-        )
-        defaults.update(
-            dict(
-                r_attenuation_obj='24.37099514505769',
-                r_ind_obj='0.9999972289735028',
-            ) if is_obj else dict(
-                r_attenuation_ima='24.37099514505769',
-                r_ind_ima='0.9999972289735028',
-            ),
-        )
-        values.update(defaults)
-        fields = sorted(values.keys())
-        values['ccc'] = 'numpy.array([' + ', '.join(map(str, values['ccc'])) + '])'
-        return '\n\noe = Shadow.OE()' \
-            + _fields('oe', values, fields) \
-            +  '\nbeam.traceOE(oe, {})'.format(count + is_obj)
-
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
     diameter = item.rmirr * 2.0
 
+    def _half(is_obj, **values):
+        # "10" is "conic", but it's only valid if useCCC, which
+        # are the external coefficients. The "shape" values are still
+        # valid
+        which = 'obj' if is_obj else 'ima'
+        values.update({
+            'r_attenuation_' + which: item.attenuationCoefficient,
+            'r_ind_' + which: item.refractionIndex,
+        })
+        if _eq(item, 'fmirr', 'Spherical', 'Paraboloid'):
+            ccc = [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, diameter, 0.0]
+            if bool(_eq(item, 'initialCurvature', 'Convex')) == bool(is_obj):
+                ccc[8] = -ccc[8]
+            else:
+                values['f_convex'] = 1
+            if _eq(item, 'useCCC', 'Yes'):
+                values['fmirr'] = 10
+                if 'f_convex' in values:
+                    del values['f_convex']
+            if _eq(item, 'fmirr', 'Paraboloid'):
+                ccc[2] = 0.0
+            values['ccc'] = 'numpy.array([{}])'.format(', '.join(map(str, ccc)))
+        if is_obj:
+            values.update(
+                t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
+                t_source=(source if is_first else 0.0) + source_width,
+            )
+        else:
+            values.update(
+                t_image=half_lens,
+                t_source=half_lens,
+            )
+        fields = sorted(values.keys())
+        return '\n\noe = Shadow.OE()' \
+            + _fields('oe', values, fields) \
+            +  '\nbeam.traceOE(oe, {})'.format(count + is_obj)
+
     common = dict(
-        rmirr=item.rmirr,
+        dummy=1.0,
+        fwrite=3,
     )
-    if item.fhit_c == '1':
+    # Same for all lenses (afaict)
+    common.update(
+        f_ext=1,
+        f_refrac=1,
+        t_incidence=0.0,
+        t_reflection=180.0,
+    )
+    if not _eq(item, 'fmirr', 'Plane'):
+        if _eq(item, 'fcyl', 'Yes'):
+            common.update(
+                fcyl=item.fcyl,
+                cil_ang=item.cil_ang,
+            )
+        if _eq(item, 'fmirr', 'Paraboloid'):
+            common['param'] = item.rmirr
+        else:
+            common['rmirr'] = item.rmirr
+    if _eq(item, 'fhit_c', 'Finite'):
         lens_radius = item.lensDiameter / 2.0
         common.update(
-            fhit_c=1,
+            fhit_c=item.fhit_c,
             fshape=2,
             rlen2=lens_radius,
             rwidx2=lens_radius,
         )
-    return _half(
-        0,
-        ccc=[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -diameter, 0.0],
-        t_image=half_lens,
-        t_source=(source if is_first else 0.0) + source_width,
-        #f_convex=0,
-        **common
-    ) + _half(
-        1,
-        ccc=[1.0, 1.0, 1.0, 0.0, -0.0, -0.0, 0.0, 0.0, diameter, 0.0],
-        t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
-        t_source=half_lens,
-        #f_convex=1,
-        **common
-    )
+    return _half(0, **common) + _half(1, **common)
 
 
 def _generate_crystal(item):
