@@ -339,6 +339,8 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
     diameter = item.rmirr * 2.0
 
     def _half(is_obj, **values):
+        is_ima = not is_obj
+        values = pkcollections.Dict(values)
         # "10" is "conic", but it's only valid if useCCC, which
         # are the external coefficients. The "shape" values are still
         # valid
@@ -349,33 +351,34 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
         })
         if _eq(item, 'fmirr', 'Spherical', 'Paraboloid'):
             ccc = [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, diameter, 0.0]
-            if bool(_eq(item, 'initialCurvature', 'Convex')) == bool(is_obj):
-                ccc[8] = -ccc[8]
+            if bool(_eq(item, 'initialCurvature', 'Convex')) == is_ima:
+                values.f_convex = 1
             else:
-                values['f_convex'] = 1
+                # Inverse diameter for concave surface
+                ccc[8] = -ccc[8]
             if _eq(item, 'useCCC', 'Yes'):
-                values['fmirr'] = 10
                 if 'f_convex' in values:
                     del values['f_convex']
             if _eq(item, 'fmirr', 'Paraboloid'):
                 ccc[2] = 0.0
-            values['ccc'] = 'numpy.array([{}])'.format(', '.join(map(str, ccc)))
-        if is_obj:
+            values.ccc = 'numpy.array([{}])'.format(', '.join(map(str, ccc)))
+        if is_ima:
             values.update(
-                t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
+                t_image=half_lens,
                 t_source=(source if is_first else 0.0) + source_width,
             )
         else:
             values.update(
-                t_image=half_lens,
+                t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
                 t_source=half_lens,
             )
         fields = sorted(values.keys())
-        return '\n\noe = Shadow.OE()' \
-            + _fields('oe', values, fields) \
-            +  '\nbeam.traceOE(oe, {})'.format(count + is_obj)
+        return '''
 
-    common = dict(
+oe = Shadow.OE(){}
+beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
+
+    common = pkcollections.Dict(
         dummy=1.0,
         fwrite=3,
     )
@@ -386,16 +389,19 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
         t_incidence=0.0,
         t_reflection=180.0,
     )
+    common['fmirr'] = item.fmirr
     if not _eq(item, 'fmirr', 'Plane'):
+        if _eq(item, 'useCCC', 'Yes'):
+            values['fmirr'] = 10
         if _eq(item, 'fcyl', 'Yes'):
             common.update(
                 fcyl=item.fcyl,
                 cil_ang=item.cil_ang,
             )
         if _eq(item, 'fmirr', 'Paraboloid'):
-            common['param'] = item.rmirr
+            common.param = item.rmirr
         else:
-            common['rmirr'] = item.rmirr
+            common.rmirr = item.rmirr
     if _eq(item, 'fhit_c', 'Finite'):
         lens_radius = item.lensDiameter / 2.0
         common.update(
