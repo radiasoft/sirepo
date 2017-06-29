@@ -214,7 +214,6 @@ def _eq(item, field, *values):
     t = _SCHEMA.model[item['type']][field][1]
     for v, n in _SCHEMA.enum[t]:
         if item[field] == v:
-            pkdp('t={} v={}', t, v)
             return n in values
     raise AssertionError(
         '{}: value not found for model={} field={} type={}'.format(
@@ -389,10 +388,10 @@ beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
         t_incidence=0.0,
         t_reflection=180.0,
     )
-    common['fmirr'] = item.fmirr
+    common.fmirr = item.fmirr
     if not _eq(item, 'fmirr', 'Plane'):
         if _eq(item, 'useCCC', 'Yes'):
-            values['fmirr'] = 10
+            common.fmirr = 10
         if _eq(item, 'fcyl', 'Yes'):
             common.update(
                 fcyl=item.fcyl,
@@ -402,10 +401,10 @@ beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
             common.param = item.rmirr
         else:
             common.rmirr = item.rmirr
+    common.fhit_c = item.fhit_c
     if _eq(item, 'fhit_c', 'Finite'):
         lens_radius = item.lensDiameter / 2.0
         common.update(
-            fhit_c=item.fhit_c,
             fshape=2,
             rlen2=lens_radius,
             rwidx2=lens_radius,
