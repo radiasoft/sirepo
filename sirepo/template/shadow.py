@@ -70,7 +70,14 @@ def copy_related_files(data, source_path, target_path):
 
 
 def fixup_old_data(data):
-    pass
+    if (
+        float(data.fixup_old_version) < 20170703.000001
+        and 'geometricSource' in data.models
+    ):
+        g = data.models.geometricSource
+        x = g.cone_max
+        g.cone_max = g.cone_min
+        g.cone_min = x
 
 
 def get_application_data(data):

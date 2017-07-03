@@ -60,6 +60,9 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
+#: Older than any other version
+_OLDEST_VERSION = '20140101.000001'
+
 #: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
@@ -182,7 +185,11 @@ def fixup_old_data(data, force=False):
     try:
         if not force and 'version' in data and data['version'] == SCHEMA_COMMON['version']:
             return data, False
-        data['version'] = SCHEMA_COMMON['version']
+        try:
+            data.fixup_old_version = data['version']
+        except KeyError:
+            data.fixup_old_version = _OLDEST_VERSION
+        data.version = SCHEMA_COMMON['version']
         if not 'simulationType' in data:
             if 'sourceIntensityReport' in data['models']:
                 data['simulationType'] = 'srw'
@@ -200,10 +207,8 @@ def fixup_old_data(data, force=False):
         if not 'simulationSerial' in data['models']['simulation']:
             data['models']['simulation']['simulationSerial'] = 0
         sirepo.template.import_module(data['simulationType']).fixup_old_data(data)
-        try:
-            del data['models']['simulationStatus']
-        except KeyError:
-            pass
+        pkcollections.unchecked_del(data.models, 'simulationStatus')
+        pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
     except Exception as e:
         pkdlog('{}: error: {}', data, pkdexc())
