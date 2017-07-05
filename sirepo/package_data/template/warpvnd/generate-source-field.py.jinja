@@ -1,0 +1,39 @@
+
+#prevent GIST from starting upon setup
+top.lprntpara = false
+top.lpsplots = false
+
+top.verbosity = 0 # Reduce solver verbosity
+solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+
+#Adjusting the multigrid parameter here improves convergence speed
+omega = 2./(1. + np.sin(np.pi/min(NUM_X+1,NUM_Z+1)))
+solverE.mgparam = omega
+
+solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
+package("w3d")
+generate()
+solverE.mgmaxiters = 100
+
+#------
+
+#Need to compute the potential first
+potential = solverE.getphi()
+
+X_CELLS = NUM_X
+Z_CELLS = NUM_Z
+
+potential = solverE.getphi()
+
+xl = 0
+xu = NUM_X
+zl = 0
+zu = NUM_Z
+
+midpoint = 1 - np.max(potential[xl:xu,zl:zu])/(np.max(potential[xl:xu,zl:zu]) +
+                                               abs(np.min(potential[xl:xu,zl:zu])))
+
+pxmin = ((X_MAX - X_MIN) / X_CELLS * xl + X_MIN) * 1e6
+pxmax = ((X_MAX - X_MIN) / X_CELLS * xu + X_MIN) * 1e6
+pzmin = (Z_MIN + zl / Z_CELLS * Z_MAX) * 1e6
+pzmax = (Z_MAX * zu / Z_CELLS) * 1e6

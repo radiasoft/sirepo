@@ -23,7 +23,7 @@ def test_create_zip():
     for sim_type, sim_name, expect in imported + [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
         ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
-        ('warp', 'WARP example laser simulation', ['run.py', 'sirepo-data.json']),
+        ('warppba', 'Laser Pulse', ['run.py', 'sirepo-data.json']),
     ]:
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         resp = fc.sr_get(

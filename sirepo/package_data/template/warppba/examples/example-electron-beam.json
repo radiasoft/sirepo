@@ -65,7 +65,7 @@
             "zMin": 0
         },
         "simulation": {
-            "name": "WARP example electron beam simulation",
+            "name": "Electron Beam",
             "simulationId": "XH1MO4II",
             "sourceType": "electronBeam"
         },
@@ -98,6 +98,6 @@
         }
     },
     "report": "beamPreviewReport",
-    "simulationType": "warp",
-    "version": "20160406"
+    "simulationType": "warppba",
+    "version": "20000101.000000"
 }

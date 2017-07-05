@@ -25,7 +25,7 @@ import py.path
 import re
 
 #: Simulation type
-SIM_TYPE = 'warp'
+SIM_TYPE = 'warppba'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -243,7 +243,8 @@ def generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['useLaser'] = 1
     if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
         v['electronBeam_transverseEmittance'] = 0
-    return pkjinja.render_resource('warp.py', v)
+    b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
+    return pkjinja.render_file(b + '.jinja', v)
 
 
 def get_animation_name(data):

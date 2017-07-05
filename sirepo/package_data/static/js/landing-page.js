@@ -209,7 +209,7 @@ app.directive('codeSummary', function() {
                 if ($scope.codeName == 'Shadow3') {
                     return '/shadow';
                 }
-                return '/' + $scope.codeName.toLowerCase();
+                return '/' + $scope.codeName.toLowerCase().replace(/\W/g, '');
             };
             $scope.showDetails = function() {
                 $('.' + lpCodeDetailsClass($scope.codeName)).slideDown();
