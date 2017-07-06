@@ -6,6 +6,7 @@ u"""Run jobs
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcli
+from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -330,21 +331,26 @@ def cfg_job_queue(value):
         # Already initialized but may call initializer with original object
         return value
     if value == 'Celery':
-        from sirepo import celery_tasks
-        err = None
-        try:
-            if not celery_tasks.celery.control.ping():
-                err = 'You need to start Celery:\nsirepo service celery'
-        except Exception:
-            err = 'You need to start Rabbit:\nsirepo service rabbitmq'
-        if err:
-            #TODO(robnagler) really should be pkconfig.Error() or something else
-            # but this prints a nice message. Don't call sys.exit, not nice
-            import pykern.pkcli
-            pkcli.command_error(err)
+        if pkconfig.channel_in('dev'):
+            _assert_celery()
         return Celery
     elif value == 'Background':
         signal.signal(signal.SIGCHLD, Background.sigchld_handler)
         return Background
     else:
         pkcli.command_error('{}: unknown job_queue', value)
+
+
+def _assert_celery():
+    """Verify celery & rabbit are running"""
+    from sirepo import celery_tasks
+    err = None
+    try:
+        if not celery_tasks.celery.control.ping():
+            err = 'You need to start Celery:\nsirepo service celery'
+    except Exception:
+        err = 'You need to start Rabbit:\nsirepo service rabbitmq'
+    if err:
+        #TODO(robnagler) really should be pkconfig.Error() or something else
+        # but this prints a nice message. Don't call sys.exit, not nice
+        pkcli.command_error(err)
