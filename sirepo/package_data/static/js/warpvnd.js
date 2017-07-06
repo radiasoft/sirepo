@@ -516,6 +516,15 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 select('.focus-text').text('');
             }
 
+            function isMouseInBounds(evt) {
+                d3.event = evt.event;
+                var p = d3.mouse(d3.select('.plot-viewport').node());
+                d3.event = null;
+                return p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height
+                     ? p
+                     : null;
+            }
+
             function isShapeInBounds(shape) {
                 var bounds = {
                     top: shape.y,
@@ -631,9 +640,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             };
 
             $scope.dragMove = function(conductorType, evt) {
-                d3.event = evt.event;
-                var p = d3.mouse(d3.select('.plot-viewport').node());
-                if (p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height) {
+                var p = isMouseInBounds(evt);
+                if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
                     updateDragShadow(conductorType, p);
                 }
@@ -642,22 +650,21 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone');
                     hideShapeLocation();
                 }
-                d3.event = null;
             };
 
             $scope.dropSuccess = function(conductorType, evt) {
-                d3.event = evt.event;
-                var p = d3.mouse(d3.select('.plot-viewport').node());
-                var shape = shapeFromConductorTypeAndPoint(conductorType, p);
-                alignShapeOnGrid(shape);
-                d3.event = null;
-                appState.models.conductors.push({
-                    id: appState.maxId(appState.models.conductors) + 1,
-                    conductorTypeId: conductorType.id,
-                    zCenter: formatNumber((shape.x + shape.width / 2) * 1e6),
-                    xCenter: formatNumber((shape.y - shape.height / 2) * 1e6),
-                });
-                appState.saveChanges('conductors');
+                var p = isMouseInBounds(evt);
+                if (p) {
+                    var shape = shapeFromConductorTypeAndPoint(conductorType, p);
+                    alignShapeOnGrid(shape);
+                    appState.models.conductors.push({
+                        id: appState.maxId(appState.models.conductors) + 1,
+                        conductorTypeId: conductorType.id,
+                        zCenter: formatNumber((shape.x + shape.width / 2) * 1e6),
+                        xCenter: formatNumber((shape.y - shape.height / 2) * 1e6),
+                    });
+                    appState.saveChanges('conductors');
+                }
             };
 
             $scope.init = function() {
