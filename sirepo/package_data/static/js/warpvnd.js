@@ -337,7 +337,15 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             $scope.source = panelState.findParentAttribute($scope, 'source');
             var drag, dragStart, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
             var plateSize = 0;
+            var plateSpacing = 0;
             var isInitialized = false;
+
+            function adjustConductorLocation(diff) {
+                appState.models.conductors.forEach(function(m) {
+                    m.zCenter = formatNumber(parseFloat(m.zCenter) + diff);
+                });
+                appState.saveChanges('conductors');
+            }
 
             function alignShapeOnGrid(shape) {
                 var n = appState.models.simulationGrid.channel_width / appState.models.simulationGrid.num_x * 1e-6;
@@ -736,6 +744,16 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                         replot();
                     }
                 }
+                if (name == 'simulationGrid') {
+                    var v = appState.models.simulationGrid.plate_spacing;
+                    if (plateSpacing && plateSpacing != v) {
+                        adjustConductorLocation(v - plateSpacing);
+                        plateSpacing = v;
+                    }
+                }
+            });
+            appState.whenModelsLoaded($scope, function() {
+                plateSpacing = appState.models.simulationGrid.plate_spacing;
             });
         },
         link: function link(scope, element) {
