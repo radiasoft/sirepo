@@ -13,6 +13,7 @@ from sirepo.template import template_common
 import numpy as np
 import sirepo.template.warpvnd as template
 
+_INVALID_VOLTAGE = 1e+50
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
@@ -25,16 +26,22 @@ def run(cfg_dir):
             beam = data['models']['beam']
             radius = beam['x_radius'] * 1e-6
             values = potential[xl:xu, zl:zu]
-            simulation_db.write_result({
-                'aspect_ratio': 6.0 / 14,
-                'x_range': [0, plate_spacing, len(values[0])],
-                'y_range': [- radius, radius, len(values)],
-                'x_label': 'z [m]',
-                'y_label': 'x [m]',
-                'title': 'ϕ Across Whole Domain',
-                'z_matrix': values.tolist(),
-                'frequency_title': 'Volts',
-            })
+
+            if _is_invalid_value(values[0][-1]):
+                simulation_db.write_result({
+                    'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
+                });
+            else:
+                simulation_db.write_result({
+                    'aspect_ratio': 6.0 / 14,
+                    'x_range': [0, plate_spacing, len(values[0])],
+                    'y_range': [- radius, radius, len(values)],
+                    'x_label': 'z [m]',
+                    'y_label': 'x [m]',
+                    'title': 'ϕ Across Whole Domain',
+                    'z_matrix': values.tolist(),
+                    'frequency_title': 'Volts',
+                })
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))
 
@@ -48,6 +55,10 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(_script())
         simulation_db.write_result({})
+
+
+def _is_invalid_value(v):
+    return np.isnan(v) or abs(v) > _INVALID_VOLTAGE
 
 
 def _script():

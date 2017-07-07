@@ -198,7 +198,7 @@
       background-color: #777;
     }
     .sr-panel-error .sr-panel-wait {
-      position: absolute;
+      white-space: pre-line;
       color: #fad8de;
       display: block;
     }
