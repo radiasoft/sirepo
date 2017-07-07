@@ -26,7 +26,7 @@ def do_form(form):
         raise uri_router.NotFound('missing zip in form')
     data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
-    return simulation_db.save_new_simulation(data.simulationType, data)
+    return simulation_db.save_new_simulation(data)
 
 
 def read_json(text, template=None):
