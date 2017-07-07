@@ -24,9 +24,9 @@ X_CELLS = NUM_X
 Z_CELLS = NUM_Z
 
 xl = 0
-xu = NUM_X
+xu = NUM_X + 1
 zl = 0
-zu = NUM_Z
+zu = NUM_Z + 1
 
 midpoint = 1 - np.max(potential[xl:xu,zl:zu])/(np.max(potential[xl:xu,zl:zu]) +
                                                abs(np.min(potential[xl:xu,zl:zu])))
