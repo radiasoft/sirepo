@@ -348,13 +348,13 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             }
 
             function alignShapeOnGrid(shape) {
-                var n = appState.models.simulationGrid.channel_width / appState.models.simulationGrid.num_x * 1e-6;
+                var n = toMicron(appState.models.simulationGrid.channel_width / appState.models.simulationGrid.num_x);
                 var yCenter = shape.y - shape.height / 2;
                 shape.y = alignValue(yCenter, n) + shape.height / 2;
                 // iterate shapes (and anode)
                 //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
                 //      set drag-shape right edge to shape left edge
-                var anodeLeft = appState.models.simulationGrid.plate_spacing * 1e-6;
+                var anodeLeft = toMicron(appState.models.simulationGrid.plate_spacing);
                 var shapeCenter = shape.x + shape.width / 2;
                 var shapeRight = shape.x + shape.width;
                 if (shapeRight > anodeLeft && shapeCenter < anodeLeft) {
@@ -367,9 +367,14 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 });
                 appState.models.conductors.forEach(function(m) {
                     if (m.id != shape.id) {
-                        var conductorLeft = (m.zCenter - typeMap[m.conductorTypeId].zLength / 2) * 1e-6;
+                        var conductorLeft = toMicron(m.zCenter - typeMap[m.conductorTypeId].zLength / 2);
                         if (shapeRight > conductorLeft && shapeCenter < conductorLeft) {
                             shape.x = conductorLeft - shape.width;
+                            return;
+                        }
+                        var conductorRight = toMicron(+m.zCenter + typeMap[m.conductorTypeId].zLength / 2);
+                        if (shapeRight > conductorRight && shapeCenter < conductorRight) {
+                            shape.x = conductorRight - shape.width;
                             return;
                         }
                     }
@@ -400,8 +405,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 });
                 $scope.$applyAsync(function() {
                     if (isShapeInBounds(shape)) {
-                        conductorPosition.zCenter = formatNumber((shape.x + shape.width / 2) * 1e6);
-                        conductorPosition.xCenter = formatNumber((shape.y - shape.height / 2) * 1e6);
+                        conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
+                        conductorPosition.xCenter = formatMicron(shape.y - shape.height / 2);
                         appState.saveChanges('conductors');
                     }
                     else {
@@ -435,8 +440,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.warpvnd-plate').remove();
                 var grid = appState.models.simulationGrid;
-                var channel = grid.channel_width * 1e-6 / 2;
-                var plateSpacing = grid.plate_spacing * 1e-6;
+                var channel = toMicron(grid.channel_width / 2.0);
+                var plateSpacing = toMicron(grid.plate_spacing);
                 var h = yAxisScale(-channel) - yAxisScale(channel);
                 var w = xAxisScale(0) - xAxisScale(-plateSize);
                 viewport.append('rect')
@@ -463,11 +468,11 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 var shapes = [];
                 appState.models.conductors.forEach(function(conductorPosition) {
                     var conductorType = typeMap[conductorPosition.conductorTypeId];
-                    var w = conductorType.zLength * 1e-6;
-                    var h = conductorType.xLength * 1e-6;
+                    var w = toMicron(conductorType.zLength);
+                    var h = toMicron(conductorType.xLength);
                     shapes.push({
-                        x: conductorPosition.zCenter * 1e-6 - w / 2,
-                        y: conductorPosition.xCenter * 1e-6 + h / 2,
+                        x: toMicron(conductorPosition.zCenter) - w / 2,
+                        y: toMicron(conductorPosition.xCenter) + h / 2,
                         width: w,
                         height: h,
                         id: conductorPosition.id,
@@ -516,8 +521,16 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 return formatNumber(Number((a - (Math.floor(a / b) * b))));
             }
 
+            function formatMicron(v, decimals) {
+                return formatNumber(v * 1e6, decimals);
+            }
+
             function formatNumber(v, decimals) {
                 return v.toPrecision(decimals || 8);
+            }
+
+            function toMicron(v) {
+                return v * 1e-6;
             }
 
             function hideShapeLocation() {
@@ -580,7 +593,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
             function replot() {
                 var grid = appState.models.simulationGrid;
-                var plateSpacing = grid.plate_spacing * 1e-6;
+                var plateSpacing = toMicron(grid.plate_spacing);
                 plateSize = plateSpacing / 15;
                 var newXDomain = [-plateSize, plateSpacing + plateSize];
                 if (! xDomain || ! appState.deepEquals(xDomain, newXDomain)) {
@@ -588,7 +601,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     xAxisScale.domain(xDomain);
                     $scope.xRange = appState.clone(xDomain);
                 }
-                var channel = grid.channel_width * 1e-6 / 2;
+                var channel = toMicron(grid.channel_width / 2.0);
                 var newYDomain = [- channel, channel];
                 if (! yDomain || ! appState.deepEquals(yDomain, newYDomain)) {
                     yDomain = newYDomain;
@@ -609,8 +622,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             }
 
             function shapeFromConductorTypeAndPoint(conductorType, p) {
-                var w = conductorType.zLength * 1e-6;
-                var h = conductorType.xLength * 1e-6;
+                var w = toMicron(conductorType.zLength);
+                var h = toMicron(conductorType.xLength);
                 return {
                     width: w,
                     height: h,
@@ -621,8 +634,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
             function showShapeLocation(shape) {
                 select('.focus-text').text(
-                    'Center: Z=' + formatNumber((shape.x + shape.width / 2) * 1e6, 4)
-                        + 'µm, X=' + formatNumber((shape.y - shape.height / 2) * 1e6, 4) + 'µm');
+                    'Center: Z=' + formatMicron(shape.x + shape.width / 2, 4)
+                        + 'µm, X=' + formatMicron(shape.y - shape.height / 2, 4) + 'µm');
             }
 
             function updateDragShadow(conductorType, p) {
@@ -668,8 +681,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     appState.models.conductors.push({
                         id: appState.maxId(appState.models.conductors) + 1,
                         conductorTypeId: conductorType.id,
-                        zCenter: formatNumber((shape.x + shape.width / 2) * 1e6),
-                        xCenter: formatNumber((shape.y - shape.height / 2) * 1e6),
+                        zCenter: formatMicron(shape.x + shape.width / 2),
+                        xCenter: formatMicron(shape.y - shape.height / 2),
                     });
                     appState.saveChanges('conductors');
                 }
