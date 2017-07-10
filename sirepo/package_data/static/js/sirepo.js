@@ -1145,7 +1145,13 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 data.state = 'error';
             }
             if (! data.error) {
-                data.error = msg || 'a server error occured: status=' + status;
+                if (msg) {
+                    data.error = msg;
+                }
+                else {
+                    srlog(response);
+                    data.error = 'a server error occurred' + (status ? (': status=' + status) : '');
+                }
             }
             srlog(data.error);
             errorCallback(data, status);
