@@ -735,7 +735,7 @@ def _file_info(filename, run_dir, id, output_index):
             row_counts.append(sdds.sddsdata.RowCount(_SDDS_INDEX))
             page_count += 1
             for i, p in enumerate(parameter_names):
-                parameters[p].append(sdds.sddsdata.GetParameter(_SDDS_INDEX, i))
+                parameters[p].append(_safe_sdds_value(sdds.sddsdata.GetParameter(_SDDS_INDEX, i)))
         return {
             'isAuxFile': False if double_column_count > 1 else True,
             'filename': filename,
@@ -1024,6 +1024,12 @@ def _plot_title(xfield, yfield, page_index):
     if page_index:
         title += ', Plot ' + str(page_index + 1)
     return title
+
+
+def _safe_sdds_value(v):
+    if str(v) == 'nan':
+        return 0
+    return v
 
 
 def _sdds_error(error_text='invalid data file'):
