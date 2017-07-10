@@ -1050,6 +1050,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     y: null,
                     histogramBins: 200,
                     fileId: info.id,
+                    xFileId: info.id,
                     yFileId: info.id,
                     framesPerSecond: 2,
                     startTime: startTime,
