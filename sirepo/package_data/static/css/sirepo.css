@@ -426,6 +426,13 @@ ellipse.srw-fiber-right {
   stroke-width: 1;
   fill: #9498a1;
 }
+ellipse.srw-curvature {
+  stroke: blue;
+  stroke-width: 2;
+  stroke-dasharray: 1px, 5px;
+  stroke-linecap: round;
+  fill: none;
+}
 path.srw-lens {
   stroke: #000;
   fill: #ddee00;
