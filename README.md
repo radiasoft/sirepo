@@ -15,9 +15,7 @@ Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.c
 
 No signup is required and Sirepo is completely free.
 
-## .
-## .
-## .
+# .
 
 ### If you prefer, Sirepo can also be downloaded! :arrow_down:
 1. Curl Installer
