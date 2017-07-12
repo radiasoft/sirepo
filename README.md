@@ -2,13 +2,22 @@
 # ![Sirepo](https://github.com/radiasoft/images/blob/master/sirepo/Sirepo_logo.png)
 
 ## Sirepo brings computational science to the cloud. 
-## Develop, run and share your HPC simulations.
 
-Sirepo brings Clickable Physics(TM) to your desktop and mobile devices. Simply go to [our beta site](https://beta.sirepo.com): beta.sirepo.com. No signup is required and Sirepo is completely free.
+Develop, run and share your HPC simulations.
+
+Sirepo brings Clickable Physics(TM) to your desktop and mobile devices. 
+
+Simply go to [our beta site](https://beta.sirepo.com): beta.sirepo.com. 
+
+No signup is required and Sirepo is completely free.
 
 
-:arrow_down:
-### Sirepo can also be downloaded!
+### Sirepo can also be downloaded! :arrow_down:
+1. Curl Installer
+2. Install with Docker
+3. Install with Vagrant
+
+#### Curl Installer
 You can use our
 [curl installer on your Mac, PC (Cygwin only), or Linux box](https://github.com/radiasoft/download/blob/master/README.md)
 as follows:
