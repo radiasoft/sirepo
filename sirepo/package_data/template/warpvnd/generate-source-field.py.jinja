@@ -6,9 +6,10 @@ top.lpsplots = false
 top.verbosity = 0 # Reduce solver verbosity
 solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
 
-#Adjusting the multigrid parameter here improves convergence speed
-omega = 2./(1. + np.sin(np.pi/min(NUM_X+1,NUM_Z+1)))
-solverE.mgparam = omega
+# removed, issue #798
+# #Adjusting the multigrid parameter here improves convergence speed
+# omega = 2./(1. + np.sin(np.pi/min(NUM_X+1,NUM_Z+1)))
+# solverE.mgparam = omega
 
 solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
 package("w3d")
