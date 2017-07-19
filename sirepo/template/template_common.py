@@ -189,7 +189,7 @@ def report_parameters_hash(data):
                 value = dm[name][field] if field else dm[name]
             else:
                 value = m
-            res.update(json.dumps(value, sort_keys=True))
+            res.update(json.dumps(value, sort_keys=True, allow_nan=False))
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 

@@ -262,8 +262,8 @@ def generate_json(data, pretty=False):
         str: formatted data
     """
     if pretty:
-        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True)
-    return json.dumps(data)
+        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True, allow_nan=False)
+    return json.dumps(data, allow_nan=False)
 
 
 def hack_nfs_write_status(status, run_dir):
