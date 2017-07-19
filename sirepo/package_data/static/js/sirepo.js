@@ -1675,7 +1675,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         return $.grep(
             [
                 self.sectionTitle(),
-                SIREPO.APP_NAME.toUpperCase(),
+                SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
                 'Radiasoft',
             ],
             function(n){ return n; })
