@@ -361,6 +361,11 @@
     .sr-plot-cleared {
       opacity: 0;
     }
+    .sr-plot .cross-hair {
+      stroke-width: 1px;
+      shape-rendering: crispEdges;
+      stroke: steelblue;
+    }
 
     @media (max-width: 767px) {
       div.sr-plot .z-axis-label,
