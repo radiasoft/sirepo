@@ -57,7 +57,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     function initAnimation(scope) {
         scope.prevFrameIndex = -1;
         scope.isPlaying = false;
-        var requestData = function() {
+        var requestData = scope.requestData || function() {
             if (! scope.hasFrames()) {
                 return;
             }
