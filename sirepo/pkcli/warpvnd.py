@@ -13,8 +13,6 @@ from sirepo.template import template_common
 import numpy as np
 import sirepo.template.warpvnd as template
 
-_INVALID_VOLTAGE = 1e+50
-
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         exec(_script(), locals(), locals())
@@ -27,7 +25,7 @@ def run(cfg_dir):
             radius = beam['x_radius'] * 1e-6
             values = potential[xl:xu, zl:zu]
 
-            if _is_invalid_value(values[0][-1]):
+            if np.isnan(values).any():
                 simulation_db.write_result({
                     'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
                 });
@@ -55,10 +53,6 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(_script())
         simulation_db.write_result({})
-
-
-def _is_invalid_value(v):
-    return np.isnan(v) or abs(v) > _INVALID_VOLTAGE
 
 
 def _script():
