@@ -349,7 +349,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
             function alignShapeOnGrid(shape) {
                 var numX = appState.models.simulationGrid.num_x;
-                var n = toMicron(appState.models.simulationGrid.channel_width / (numX + 1));
+                var n = toMicron(appState.models.simulationGrid.channel_width / (numX * 2));
                 var yCenter = shape.y - shape.height / 2;
                 shape.y = alignValue(yCenter, n, numX) + shape.height / 2;
                 // iterate shapes (and anode)
@@ -384,17 +384,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
             function alignValue(p, n, numX) {
                 var pn = fmod(p, n);
-                var v;
-                if (numX % 2) {
-                    v = pn < 0
-                        ? p - pn - n /2
-                        : p + n / 2 - pn;
-                }
-                else {
-                    v = pn < n / 2
-                        ? p - pn
-                        : p + n - pn;
-                }
+                var v = pn < n / 2
+                    ? p - pn
+                    : p + n - pn;
                 if (Math.abs(v) < 1e-16) {
                     return 0;
                 }
@@ -593,9 +585,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
 
                 var grid = appState.models.simulationGrid;
                 var channel = toMicron(grid.channel_width);
-                var half_cell_height = channel / (grid.num_x + 1) / 2;
-                yAxisGrid.tickValues(plotting.linspace(
-                        -channel / 2 + half_cell_height, channel / 2 - half_cell_height, grid.num_x + 1));
+                yAxisGrid.tickValues(plotting.linspace(-channel / 2, channel / 2, grid.num_x + 1));
+                // var plate = toMicron(grid.plate_spacing);
+                // xAxisGrid.tickValues(plotting.linspace(0, plate, grid.num_z + 1));
                 resetZoom();
                 select('.plot-viewport').call(zoom);
                 select('.x.axis').call(xAxis);
