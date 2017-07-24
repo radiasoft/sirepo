@@ -10,7 +10,6 @@ kombu==3.0.35
 numconv
 numpy
 pillow
-psycopg2
 pyIsEmail
 pykern
 pytz==2015.7
