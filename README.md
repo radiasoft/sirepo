@@ -1,17 +1,15 @@
-
-
 # ![Sirepo](https://github.com/radiasoft/images/blob/master/sirepo/Sirepo_logo.png)
 
 <p align="center">
 
-## Sirepo brings computational science to the cloud. 
+## Sirepo brings computational science to the cloud.
 
 Develop, run and share your HPC simulations.
 </p>
 
-Sirepo brings Clickable Physics(TM) to your desktop and mobile devices. 
+Sirepo brings Clickable Physics(TM) to your desktop and mobile devices.
 
-Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.com. 
+Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.com.
 
 No signup is required and Sirepo is completely free.
 
