@@ -790,24 +790,24 @@ p.hellweg-drop-zone {
 }
 
 .warpvnd-plate {
-  fill: rgba(105, 146, 255, 0.3);
-  stroke: rgb(95, 176, 228);
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
   cursor: pointer;
 }
 .warpvnd-plate-voltage {
-  stroke: rgb(228, 176, 95);
-  fill: rgba(255, 146, 105, 0.3);
+  fill: rgba(105, 146, 255, 0.3);
+  stroke: rgb(95, 176, 228);
 }
 .warpvnd-shape {
-  cursor: move;
-  stroke: rgb(95, 176, 228);
-  stroke-width: 2;
-  fill: rgba(105, 146, 255, 0.3);
-}
-.warpvnd-shape-voltage {
   stroke: rgb(228, 176, 95);
   fill: rgba(255, 146, 105, 0.3);
+  cursor: move;
+  stroke-width: 2;
 }
+.warpvnd-shape-voltage {
+  stroke: rgb(95, 176, 228);
+  fill: rgba(105, 146, 255, 0.3);
+ }
 .warpvnd-shape:hover {
   fill: lightgreen;
   filter: drop-shadow(2px 2px 2px #999);
