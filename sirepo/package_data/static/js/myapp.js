@@ -19,6 +19,7 @@ SIREPO.app.controller('MyAppSourceController', function () {
     var self = this;
 });
 
+//TODO: too much boilerplate in the appHeader, move common parts to sirepo-components.js
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
