@@ -13,22 +13,27 @@ import sirepo.template.myapp as template
 
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
+
 def run(cfg_dir):
+    with pkio.save_chdir(cfg_dir):
+        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    dog = data.models.dog
-    report = data['models'][data['report']]
-    res = {
-        'title': 'Dog Height/Weight',
-        'x_range': [0, 1],
-        'y_label': 'y label',
-        'x_label': 'x label',
-        'x_points': [0, 1],
-        'points': [
-            [dog.height, dog.height],
-            [dog.weight, dog.weight],
-        ],
-        'y_range': [0, max(dog.height, dog.weight)],
-        'y1_title': _SCHEMA['model']['dog']['height'][0],
-        'y2_title': _SCHEMA['model']['dog']['weight'][0],
-    }
+    if data['report'] == 'dogReport':
+        dog = data.models.dog
+        res = {
+            'title': 'Dog Height/Weight',
+            'x_range': [0, 1],
+            'y_label': 'y label',
+            'x_label': 'x label',
+            'x_points': [0, 1],
+            'points': [
+                [dog.height, dog.height],
+                [dog.weight, dog.weight],
+            ],
+            'y_range': [0, max(dog.height, dog.weight)],
+            'y1_title': _SCHEMA['model']['dog']['height'][0],
+            'y2_title': _SCHEMA['model']['dog']['weight'][0],
+        }
+    else:
+        raise RuntimeError('unknown report: {}'.format(data['report']))
     simulation_db.write_result(res)
