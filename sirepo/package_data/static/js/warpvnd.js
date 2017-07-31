@@ -228,7 +228,7 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
     persistentSimulation.initProperties(self, $scope, {
         currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'renderCount', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'startTime'],
     });
     appState.whenModelsLoaded($scope, updateAllFields);
 });
