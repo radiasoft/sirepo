@@ -407,15 +407,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     if (isShapeInBounds(shape)) {
                         conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
                         conductorPosition.xCenter = formatMicron(shape.y - shape.height / 2);
-                        /*
-                        var ok = doesShapeCrossGridLine(shape);
-                        if( !ok ) {
-                            console.log("Conductor does not cross grid line!");
-                        }
-                        else {
-                            console.log("Conductor OK");
-                        }
-                        */
                         appState.saveChanges('conductors');
                     }
                     else {
@@ -494,7 +485,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .enter().append('rect')
                     .on('dblclick', editPosition)
                     .attr('class', function(d) {
-                        //return d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape';
                          return !doesShapeCrossGridLine(d) ? 'warpvnd-shape warpvnd-shape-noncrossing' : (d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape');
                     })
                     .attr('x', function(d) { return xAxisScale(d.x); })
@@ -504,35 +494,42 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     })
                     .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); })
                     .call(drag);
-                if( !doAllShapesCrossGridLine(shapes) ) {
-                    console.log("At least one conductor does not cross a grid line!");
-                }
+                d3.select('.plot-viewport').selectAll('.warpvnd-shape')
+                    .append('title').text(function(d) {
+                        return doesShapeCrossGridLine(d) ? '' : '⚠️ Conductor does not cross a warp grid line and will be ignored';
+                    });
             }
 
-            function doAllShapesCrossGridLine(shapes) {
-                var allShapesCrossGridLine = true;
-                shapes.forEach(function(shape) {
-                    allShapesCrossGridLine = allShapesCrossGridLine && doesShapeCrossGridLine(shape);
-                });
-                return allShapesCrossGridLine;
-            }
-            function doesShapeCrossGridLine(shape) {  // TODO(mvk): handle horizontal cells
+            function doesShapeCrossGridLine(shape) {
                 var numX = appState.models.simulationGrid.num_x;  // number of vertical cells
+                var halfChannel = toMicron(appState.models.simulationGrid.channel_width/2.0);
                 var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
-                if( cellHeight == 0 ) {  // pathological?
+                var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
+                var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
+                if( cellHeight == 0 || cellWidth == 0 ) {  // pathological?
                     return true;
                 }
                 else {
-                    if( shape.height >= cellHeight ) {  // shape always crosses grid line if big enough
+                    if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
                         return true;
                     }
                     else {
-                        var offset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
-                        var topInCellUnits = (shape.y + offset)/cellHeight;
-                        var bottomInCellUnits = (shape.y - shape.height + offset)/cellHeight;
+                        var vOffset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
+                        var topInCellUnits = (shape.y + vOffset)/cellHeight;
+                        var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
                         var top = Math.floor(topInCellUnits);  // closest grid line below top
                         var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
-                        return top != bottom;
+
+                        // note that we do not need to translate coordinates here, since the 1st grid line is
+                        // always at 0 in the horizontal direction
+                        var leftInCellUnits = shape.x/cellWidth;
+                        var rightInCellUnits = (shape.x + shape.width)/cellWidth;
+                        var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
+                        var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
+
+                        // if the top of the shape extends above the top of the channel, it
+                        // is ignored.  If the bottom goes below, it is not
+                        return (shape.y < halfChannel && top != bottom) || left != right;
                     }
                 }
             }
