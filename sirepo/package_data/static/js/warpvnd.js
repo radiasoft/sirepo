@@ -147,6 +147,17 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         $('#sr-delete-conductorType-dialog').modal('show');
     };
 
+    self.editConductor = function(id) {
+        var conductor = null;
+        appState.models.conductors.forEach(function(m) {
+            if (m.id == id) {
+                conductor = m;
+            }
+        });
+        appState.models.conductorPosition = conductor;
+        panelState.showModalEditor('conductorPosition');
+    };
+
     self.editConductorType = function(type, model) {
         appState.models[type] = model;
         panelState.showModalEditor(type);
@@ -160,6 +171,10 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         if (name == 'box') {
             appState.removeModel(name);
             appState.cancelChanges('conductorTypes');
+        }
+        else if (name == 'conductorPosition') {
+            appState.removeModel(name);
+            appState.cancelChanges('conductors');
         }
     });
 
@@ -182,6 +197,10 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
                 return a.name.localeCompare(b.name);
             });
             appState.saveChanges('conductorTypes');
+        }
+        else if (name == 'conductorPosition') {
+            appState.removeModel(name);
+            appState.saveChanges('conductors');
         }
     });
 
@@ -227,7 +246,7 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
     persistentSimulation.initProperties(self, $scope, {
         currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'renderCount', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'startTime'],
     });
     appState.whenModelsLoaded($scope, updateAllFields);
 });
@@ -290,28 +309,85 @@ SIREPO.app.directive('conductorTable', function(appState) {
               '<thead>',
                 '<tr>',
                   '<th>Name</th>',
-                  '<th style="white-space: nowrap">Length [µm]</th>',
-                  '<th style="white-space: nowrap">Voltage [eV]</th>',
                 '</tr>',
               '</thead>',
-              '<tbody>',
-                '<tr data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
-                  '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div></td>',
-                  '<td style="text-align: right">{{ conductorType.zLength }}</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+              '<tbody data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
+                '<tr>',
+                  '<td style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
+                  '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
+                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                '</tr>',
+                '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
+                  '<td></td><th>Center Z</th><th>Center X</th>',
+                '</tr>',
+                '<tr data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">',
+                  '<td></td>',
+                  '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
+                  '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            var collapsed = {};
+            var conductorsByType = {};
 
-            $scope.editConductorType = function(conductorType) {
-                $scope.source.editConductorType('box', conductorType);
+            function updateConductors() {
+                conductorsByType = {};
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                appState.models.conductors.forEach(function(c) {
+                    if (! conductorsByType[c.conductorTypeId]) {
+                        conductorsByType[c.conductorTypeId] = [];
+                    }
+                    conductorsByType[c.conductorTypeId].push(c);
+                });
+                Object.keys(conductorsByType).forEach(function(id) {
+                    conductorsByType[id].sort(function(a, b) {
+                        var v = a.zCenter - b.zCenter;
+                        if (v == 0) {
+                            return a.xCenter - b.xCenter;
+                        }
+                        return v;
+                    });
+                });
+            }
+
+            $scope.conductors = function(conductorType) {
+                return conductorsByType[conductorType.id];
+            };
+            $scope.deleteConductor = function(conductor) {
+                $scope.source.deleteConductorPrompt(conductor);
             };
             $scope.deleteConductorType = function(conductorType) {
                 $scope.source.deleteConductorTypePrompt(conductorType);
             };
+            $scope.editConductor = function(conductor) {
+                $scope.source.editConductor(conductor.id);
+            };
+            $scope.editConductorType = function(conductorType) {
+                $scope.source.editConductorType('box', conductorType);
+            };
+            $scope.formatSize = function(v) {
+                if (v) {
+                    return (+v).toFixed(3);
+                }
+                return v;
+            };
+            $scope.hasConductors = function(conductorType) {
+                var conductors = $scope.conductors(conductorType);
+                return conductors ? conductors.length : false;
+            };
+            $scope.isCollapsed = function(conductorType) {
+                return collapsed[conductorType.id];
+            };
+            $scope.toggleConductorType = function(conductorType) {
+                collapsed[conductorType.id] = ! collapsed[conductorType.id];
+            };
+            appState.whenModelsLoaded($scope, updateConductors);
+            $scope.$on('conductors.changed', updateConductors);
         },
         link: function link(scope, element) {
             //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
@@ -544,14 +620,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             function editPosition(shape) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
-                    var conductor = null;
-                    appState.models.conductors.forEach(function(m) {
-                        if (m.id == shape.id) {
-                            conductor = m;
-                        }
-                    });
-                    appState.models.conductorPosition = conductor;
-                    panelState.showModalEditor('conductorPosition');
+                    $scope.source.editConductor(shape.id);
                 });
             }
 
@@ -785,16 +854,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 if (name == 'conductors') {
                     replot();
                 }
-                if (name == 'conductorPosition') {
-                    appState.removeModel(name);
-                    appState.cancelChanges('conductors');
-                }
             });
             $scope.$on('modelChanged', function(e, name) {
-                if (name == 'conductorPosition') {
-                    appState.removeModel(name);
-                    appState.saveChanges('conductors');
-                }
                 if (name == 'conductorGridReport') {
                     if (isInitialized) {
                         replot();

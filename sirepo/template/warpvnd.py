@@ -24,6 +24,8 @@ SIM_TYPE = 'warpvnd'
 
 WANT_BROWSER_FRAME_CACHE = True
 
+_CULL_PARTICLE_SLOPE = 1e-4
+
 _PARTICLE_PERIOD = 100
 
 _PARTICLE_FILE = 'particles.npy'
@@ -114,8 +116,8 @@ def get_simulation_frame(run_dir, data, model_data):
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
     if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
-        return _extract_particle(run_dir, args.renderCount, model_data)
+        args = template_common.parse_animation_args(data, {'': ['startTime']})
+        return _extract_particle(run_dir, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -206,6 +208,36 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
+def _add_particle_paths(electrons, x_points, y_points):
+    # adds paths for the particleAnimation report
+    # culls adjacent path points with similar slope
+    count = 0
+    cull_count = 0
+    for i in range(len(electrons[1])):
+        xres = []
+        yres = []
+        num_points = len(electrons[1][i])
+        prev_x = None
+        prev_y = None
+        for j in range(num_points):
+            x = electrons[1][i][j]
+            y = electrons[0][i][j]
+            if j > 0 and j < num_points - 1:
+                next_x = electrons[1][i][j+1]
+                next_y = electrons[0][i][j+1]
+                if (abs(_slope(x, y, next_x, next_y) - _slope(prev_x, prev_y, x, y)) < _CULL_PARTICLE_SLOPE):
+                    cull_count += 1
+                    continue
+            xres.append(x)
+            yres.append(y)
+            prev_x = x
+            prev_y = y
+        count += len(xres)
+        x_points.append(xres)
+        y_points.append(yres)
+    pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
+
+
 def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -273,10 +305,9 @@ def _extract_field(field, data, data_file):
     }
 
 
-def _extract_particle(run_dir, render_count, data):
+def _extract_particle(run_dir, data):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
-    #TODO(pjm): include lost electrons in list and show on reports
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -284,9 +315,10 @@ def _extract_particle(run_dir, render_count, data):
     radius = beam['x_radius'] * 1e-6
     x_points = []
     y_points = []
-    for i in range(len(kept_electrons[1])):
-        x_points.append(kept_electrons[1][i].tolist())
-        y_points.append(kept_electrons[0][i].tolist())
+    _add_particle_paths(kept_electrons, x_points, y_points)
+    lost_x = []
+    lost_y = []
+    _add_particle_paths(lost_electrons, lost_x, lost_y)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -295,6 +327,8 @@ def _extract_particle(run_dir, render_count, data):
         'points': y_points,
         'x_points': x_points,
         'y_range': [-radius, radius],
+        'lost_x': lost_x,
+        'lost_y': lost_y,
     }
 
 def _generate_lattice(data):
@@ -341,3 +375,10 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
+
+
+def _slope(x1, y1, x2, y2):
+    if x2 - x1 == 0:
+        # treat no slope as flat for comparison
+        return 0
+    return (y2 - y1) / (x2 - x1)

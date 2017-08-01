@@ -642,7 +642,7 @@ def lib_files(data, source_lib, report=None):
     for m in dm.beamline:
         for k, v in _SCHEMA.model[m.type].items():
             t = v[1]
-            if k in m and m[k] and t in ['MirrorFile', 'ImageFile']:
+            if m[k] and t in ['MirrorFile', 'ImageFile']:
                 if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
     return template_common.internal_lib_files(res, source_lib)

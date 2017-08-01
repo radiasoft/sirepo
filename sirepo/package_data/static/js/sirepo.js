@@ -1039,11 +1039,13 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
 
     self.getApplicationData = function(data, callback) {
         // debounce the method so server calls don't go on every keystroke
-        if (getApplicationDataTimeout[data.method]) {
-            $interval.cancel(getApplicationDataTimeout[data.method]);
+        // track method calls by methodSignature (for shared methods) or method name (for unique methods)
+        var signature = data.methodSignature || data.method;
+        if (getApplicationDataTimeout[signature]) {
+            $interval.cancel(getApplicationDataTimeout[signature]);
         }
-        getApplicationDataTimeout[data.method] = $interval(function() {
-            delete getApplicationDataTimeout[data.method];
+        getApplicationDataTimeout[signature] = $interval(function() {
+            delete getApplicationDataTimeout[signature];
             data.simulationType = SIREPO.APP_SCHEMA.simulationType;
             self.sendRequest('getApplicationData', callback, data);
         }, 350, 1);

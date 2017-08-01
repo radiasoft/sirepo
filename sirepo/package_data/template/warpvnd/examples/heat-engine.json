@@ -54,7 +54,6 @@
             "hidden": []
         },
         "particleAnimation": {
-            "renderCount": 150,
             "startTime": 1494882921
         },
         "simulation": {
