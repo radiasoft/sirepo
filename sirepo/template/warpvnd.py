@@ -308,7 +308,6 @@ def _extract_field(field, data, data_file):
 def _extract_particle(run_dir, data):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
-    #TODO(pjm): include lost electrons in list and show on reports
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -317,6 +316,9 @@ def _extract_particle(run_dir, data):
     x_points = []
     y_points = []
     _add_particle_paths(kept_electrons, x_points, y_points)
+    lost_x = []
+    lost_y = []
+    _add_particle_paths(lost_electrons, lost_x, lost_y)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -325,6 +327,8 @@ def _extract_particle(run_dir, data):
         'points': y_points,
         'x_points': x_points,
         'y_range': [-radius, radius],
+        'lost_x': lost_x,
+        'lost_y': lost_y,
     }
 
 def _generate_lattice(data):

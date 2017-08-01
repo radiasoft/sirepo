@@ -1715,9 +1715,6 @@ SIREPO.app.directive('particle', function(plotting) {
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                // xPoints = json.x_points
-                //     ? json.x_points
-                //     : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 xDomain = xdom;
@@ -1727,15 +1724,30 @@ SIREPO.app.directive('particle', function(plotting) {
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 var isFixedX = ! Array.isArray(json.x_points[0]);
-                for (var i = 0; i < json.points.length; i++) {
+                var i;
+                for (i = 0; i < json.points.length; i++) {
                     var p = d3.zip(
                         isFixedX ? json.x_points : json.x_points[i],
                         json.points[i]);
                     viewport.append('path').attr('class', 'line line-7').datum(p);
                 }
-                // json.points.forEach(function(p) {
-                //     viewport.append('path').attr('class', 'line line-7').datum(p);
-                // });
+                if (json.lost_x && json.lost_x.length) {
+                    for (i = 0; i < json.lost_x.length; i++) {
+                        viewport.append('path').attr('class', 'line line-error').datum(
+                            d3.zip(json.lost_x[i], json.lost_y[i]));
+                    }
+                    // absorbed/reflected legend
+                    select('svg')
+                        .append('circle').attr('class', 'line-y1').attr('r', 5).attr('cx', 8).attr('cy', 10);
+                    select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
+                        .text('Absorbed');
+                    select('svg')
+                        .append('circle').attr('class', 'line-error').attr('r', 5).attr('cx', 8).attr('cy', 30);
+                    select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
+                        .text('Reflected');
+                }
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
