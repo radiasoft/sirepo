@@ -1,10 +1,6 @@
 {
     "version": "20170801.000002",
     "appInfo": {
-        "myapp": {
-            "longName": "MyApp",
-            "shortName": "MyApp"
-        },
         "elegant": {
             "longName": "Elegant",
             "shortName": "Elegant"
