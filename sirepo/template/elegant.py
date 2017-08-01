@@ -282,7 +282,7 @@ def get_simulation_frame(run_dir, data, model_data):
         },
     )
     if frame_data.version <= 1:
-        frame_data.yFileId = frame_data.xFileId;
+        frame_data.yFileId = frame_data.xFileId
     xFileId = frame_data.xFileId.split(_FILE_ID_SEP)
     yFileId = frame_data.yFileId.split(_FILE_ID_SEP)
     xFilename = _get_filename_for_element_id(xFileId, model_data)
@@ -568,7 +568,7 @@ def _build_filename_map(data):
                     if model_type == 'elements':
                         filename = '{}.{}.sdds'.format(model['name'], k)
                     else:
-                        suffix = 'lte' if model['_type'] == 'save_lattice' else 'sdds';
+                        suffix = 'lte' if model['_type'] == 'save_lattice' else 'sdds'
                         filename = '{}{}.{}.{}'.format(model['_type'], model_index[model_name] if model_index[model_name] > 1 else '', k, suffix)
                     k = '{}{}{}'.format(model['_id'], _FILE_ID_SEP, field_index)
                     res[k] = filename
@@ -803,6 +803,10 @@ def _is_error_text(text):
     return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
 
 
+def _is_ignore_error_text(text):
+    return re.search(r'^warn.* does not have a parameter', text, re.IGNORECASE)
+
+
 def _iterate_model_fields(data, state, callback):
     for model_type in ['commands', 'elements']:
         for m in data['models'][model_type]:
@@ -955,6 +959,8 @@ def _parse_elegant_log(run_dir):
         if want_next_line:
             res += line + "\n"
             want_next_line = False
+        elif _is_ignore_error_text(line):
+            pass
         elif _is_error_text(line):
             if len(line) < 10:
                 want_next_line = True

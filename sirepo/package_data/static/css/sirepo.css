@@ -761,6 +761,11 @@ li.sr-model-list-item > a {
   /* normal spacing */
   padding-left: 1.7em;
 }
+.elegant-error-box {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 180px;
+}
 .hellweg-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
