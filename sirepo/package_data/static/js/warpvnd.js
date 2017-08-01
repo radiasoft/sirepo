@@ -417,7 +417,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 hideShapeLocation();
             }
 
-             function d3Dragged(shape) {
+            function d3Dragged(shape) {
                 /*jshint validthis: true*/
                 var xdomain = xAxisScale.domain();
                 var xPixelSize = (xdomain[1] - xdomain[0]) / $scope.width;
@@ -485,7 +485,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .enter().append('rect')
                     .on('dblclick', editPosition)
                     .attr('class', function(d) {
-                         return !doesShapeCrossGridLine(d) ? 'warpvnd-shape warpvnd-shape-noncrossing' : (d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape');
+                        return !doesShapeCrossGridLine(d) ? 'warpvnd-shape warpvnd-shape-noncrossing' : (d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape');
                     })
                     .attr('x', function(d) { return xAxisScale(d.x); })
                     .attr('y', function(d) { return yAxisScale(d.y); })
