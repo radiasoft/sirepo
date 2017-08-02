@@ -830,6 +830,10 @@ p.hellweg-drop-zone {
   fill: lightgreen;
   filter: drop-shadow(2px 2px 2px #999);
 }
+.warpvnd-shape-noncrossing:hover {
+  stroke: rgb(255, 0, 0);
+  fill: rgba(255, 0, 0, 0.0);
+}
 .warpvnd-drag-shadow {
   fill: black;
   stroke-width: 0;

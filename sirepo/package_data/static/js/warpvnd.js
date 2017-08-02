@@ -502,7 +502,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 var yPixelSize = (ydomain[1] - ydomain[0]) / $scope.height;
                 shape.y = dragStart.y - yPixelSize * d3.event.y;
                 alignShapeOnGrid(shape);
-                d3.select(this).attr('x', xAxisScale(shape.x)).attr('y', yAxisScale(shape.y));
+                d3.select(this).call(updateShapeAttributes);
                 showShapeLocation(shape);
             }
 
@@ -526,14 +526,16 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
                     .attr('height', h)
-                    .on('dblclick', function() { editPlate('cathode'); });
+                    .on('dblclick', function() { editPlate('cathode'); })
+                    .append('title').text('Cathode');
                 viewport.append('rect')
                     .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
                     .attr('x', xAxisScale(plateSpacing))
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
                     .attr('height', h)
-                    .on('dblclick', function() { editPlate('anode'); });
+                    .on('dblclick', function() { editPlate('anode'); })
+                    .append('title').text('Anode');
             }
 
             function drawShapes() {
@@ -552,7 +554,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                         width: w,
                         height: h,
                         id: conductorPosition.id,
-                        voltage: conductorType.voltage,
+                        conductorType: conductorType,
                     });
                 });
                 d3.select('.plot-viewport').selectAll('.warpvnd-shape').remove();
@@ -560,26 +562,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .data(shapes)
                     .enter().append('rect')
                     .on('dblclick', editPosition)
-                    .attr('class', 'warpvnd-shape')
-                    .classed('warpvnd-shape-noncrossing', function(d) {
-                        return !  doesShapeCrossGridLine(d);
-                    })
-                    .classed('warpvnd-shape-voltage', function(d) {
-                        return d.voltage > 0;
-                    })
-                    .attr('x', function(d) { return xAxisScale(d.x); })
-                    .attr('y', function(d) { return yAxisScale(d.y); })
-                    .attr('width', function(d) {
-                        return xAxisScale(d.x + d.width) - xAxisScale(d.x);
-                    })
-                    .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); })
+                    .call(updateShapeAttributes)
                     .call(drag);
-                d3.select('.plot-viewport').selectAll('.warpvnd-shape')
-                    .append('title').text(function(d) {
-                        return doesShapeCrossGridLine(d) ?
-                        '' :
-                        '⚠️ Conductor does not cross a warp grid line and will be ignored';
-                    });
             }
 
             function doesShapeCrossGridLine(shape) {
@@ -766,6 +750,32 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                         return xAxisScale(shape.x + shape.width) - xAxisScale(shape.x);
                     })
                     .attr('height', function(d) { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
+            }
+
+            function updateShapeAttributes(selection) {
+                selection
+                    .attr('class', 'warpvnd-shape')
+                    .classed('warpvnd-shape-noncrossing', function(d) {
+                        return !  doesShapeCrossGridLine(d);
+                    })
+                    .classed('warpvnd-shape-voltage', function(d) {
+                        return d.conductorType.voltage > 0;
+                    })
+                    .attr('x', function(d) { return xAxisScale(d.x); })
+                    .attr('y', function(d) { return yAxisScale(d.y); })
+                    .attr('width', function(d) {
+                        return xAxisScale(d.x + d.width) - xAxisScale(d.x);
+                    })
+                    .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); });
+                var tooltip = selection.select('title');
+                if (tooltip.empty()) {
+                    tooltip = selection.append('title');
+                }
+                tooltip.text(function(d) {
+                    return doesShapeCrossGridLine(d)
+                        ? d.conductorType.name
+                        : '⚠️ Conductor does not cross a warp grid line and will be ignored';
+                });                
             }
 
             $scope.destroy = function() {
