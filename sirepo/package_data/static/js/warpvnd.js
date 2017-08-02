@@ -560,8 +560,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .data(shapes)
                     .enter().append('rect')
                     .on('dblclick', editPosition)
-                    .attr('class', function(d) {
-                        return !doesShapeCrossGridLine(d) ? 'warpvnd-shape warpvnd-shape-noncrossing' : (d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape');
+                    .attr('class', 'warpvnd-shape')
+                    .classed('warpvnd-shape-noncrossing', function(d) {
+                        return !  doesShapeCrossGridLine(d);
+                    })
+                    .classed('warpvnd-shape-voltage', function(d) {
+                        return d.voltage > 0;
                     })
                     .attr('x', function(d) { return xAxisScale(d.x); })
                     .attr('y', function(d) { return yAxisScale(d.y); })
@@ -572,7 +576,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .call(drag);
                 d3.select('.plot-viewport').selectAll('.warpvnd-shape')
                     .append('title').text(function(d) {
-                        return doesShapeCrossGridLine(d) ? '' : '⚠️ Conductor does not cross a warp grid line and will be ignored';
+                        return doesShapeCrossGridLine(d) ?
+                        '' :
+                        '⚠️ Conductor does not cross a warp grid line and will be ignored';
                     });
             }
 
@@ -585,29 +591,25 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 if( cellHeight == 0 || cellWidth == 0 ) {  // pathological?
                     return true;
                 }
-                else {
-                    if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
-                        return true;
-                    }
-                    else {
-                        var vOffset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
-                        var topInCellUnits = (shape.y + vOffset)/cellHeight;
-                        var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
-                        var top = Math.floor(topInCellUnits);  // closest grid line below top
-                        var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
-
-                        // note that we do not need to translate coordinates here, since the 1st grid line is
-                        // always at 0 in the horizontal direction
-                        var leftInCellUnits = shape.x/cellWidth;
-                        var rightInCellUnits = (shape.x + shape.width)/cellWidth;
-                        var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
-                        var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
-
-                        // if the top of the shape extends above the top of the channel, it
-                        // is ignored.  If the bottom goes below, it is not
-                        return (shape.y < halfChannel && top != bottom) || left != right;
-                    }
+                if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
+                    return true;
                 }
+                var vOffset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
+                var topInCellUnits = (shape.y + vOffset)/cellHeight;
+                var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
+                var top = Math.floor(topInCellUnits);  // closest grid line below top
+                var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
+
+                // note that we do not need to translate coordinates here, since the 1st grid line is
+                // always at 0 in the horizontal direction
+                var leftInCellUnits = shape.x/cellWidth;
+                var rightInCellUnits = (shape.x + shape.width)/cellWidth;
+                var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
+                var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
+
+                // if the top of the shape extends above the top of the channel, it
+                // is ignored.  If the bottom goes below, it is not
+                return (shape.y < halfChannel && top != bottom) || left != right;
             }
 
             function editPlate(name) {
