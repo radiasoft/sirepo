@@ -76,7 +76,6 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         var grid = appState.models.simulationGrid;
         grid.particles_per_step = grid.num_x * 10;
     }
-
     self.createConductorType = function(type) {
         var model = {
             id: appState.maxId(appState.models.conductorTypes) + 1,
@@ -148,6 +147,17 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         $('#sr-delete-conductorType-dialog').modal('show');
     };
 
+    self.editConductor = function(id) {
+        var conductor = null;
+        appState.models.conductors.forEach(function(m) {
+            if (m.id == id) {
+                conductor = m;
+            }
+        });
+        appState.models.conductorPosition = conductor;
+        panelState.showModalEditor('conductorPosition');
+    };
+
     self.editConductorType = function(type, model) {
         appState.models[type] = model;
         panelState.showModalEditor(type);
@@ -161,6 +171,10 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         if (name == 'box') {
             appState.removeModel(name);
             appState.cancelChanges('conductorTypes');
+        }
+        else if (name == 'conductorPosition') {
+            appState.removeModel(name);
+            appState.cancelChanges('conductors');
         }
     });
 
@@ -183,6 +197,10 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
                 return a.name.localeCompare(b.name);
             });
             appState.saveChanges('conductorTypes');
+        }
+        else if (name == 'conductorPosition') {
+            appState.removeModel(name);
+            appState.saveChanges('conductors');
         }
     });
 
@@ -228,7 +246,7 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
     persistentSimulation.initProperties(self, $scope, {
         currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'renderCount', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'startTime'],
     });
     appState.whenModelsLoaded($scope, updateAllFields);
 });
@@ -291,28 +309,85 @@ SIREPO.app.directive('conductorTable', function(appState) {
               '<thead>',
                 '<tr>',
                   '<th>Name</th>',
-                  '<th style="white-space: nowrap">Length [µm]</th>',
-                  '<th style="white-space: nowrap">Voltage [eV]</th>',
                 '</tr>',
               '</thead>',
-              '<tbody>',
-                '<tr data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
-                  '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div></td>',
-                  '<td style="text-align: right">{{ conductorType.zLength }}</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+              '<tbody data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
+                '<tr>',
+                  '<td style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
+                  '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
+                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                '</tr>',
+                '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
+                  '<td></td><th>Center Z</th><th>Center X</th>',
+                '</tr>',
+                '<tr data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">',
+                  '<td></td>',
+                  '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
+                  '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            var collapsed = {};
+            var conductorsByType = {};
 
-            $scope.editConductorType = function(conductorType) {
-                $scope.source.editConductorType('box', conductorType);
+            function updateConductors() {
+                conductorsByType = {};
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                appState.models.conductors.forEach(function(c) {
+                    if (! conductorsByType[c.conductorTypeId]) {
+                        conductorsByType[c.conductorTypeId] = [];
+                    }
+                    conductorsByType[c.conductorTypeId].push(c);
+                });
+                Object.keys(conductorsByType).forEach(function(id) {
+                    conductorsByType[id].sort(function(a, b) {
+                        var v = a.zCenter - b.zCenter;
+                        if (v == 0) {
+                            return a.xCenter - b.xCenter;
+                        }
+                        return v;
+                    });
+                });
+            }
+
+            $scope.conductors = function(conductorType) {
+                return conductorsByType[conductorType.id];
+            };
+            $scope.deleteConductor = function(conductor) {
+                $scope.source.deleteConductorPrompt(conductor);
             };
             $scope.deleteConductorType = function(conductorType) {
                 $scope.source.deleteConductorTypePrompt(conductorType);
             };
+            $scope.editConductor = function(conductor) {
+                $scope.source.editConductor(conductor.id);
+            };
+            $scope.editConductorType = function(conductorType) {
+                $scope.source.editConductorType('box', conductorType);
+            };
+            $scope.formatSize = function(v) {
+                if (v) {
+                    return (+v).toFixed(3);
+                }
+                return v;
+            };
+            $scope.hasConductors = function(conductorType) {
+                var conductors = $scope.conductors(conductorType);
+                return conductors ? conductors.length : false;
+            };
+            $scope.isCollapsed = function(conductorType) {
+                return collapsed[conductorType.id];
+            };
+            $scope.toggleConductorType = function(conductorType) {
+                collapsed[conductorType.id] = ! collapsed[conductorType.id];
+            };
+            appState.whenModelsLoaded($scope, updateConductors);
+            $scope.$on('conductors.changed', updateConductors);
         },
         link: function link(scope, element) {
             //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
@@ -427,7 +502,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 var yPixelSize = (ydomain[1] - ydomain[0]) / $scope.height;
                 shape.y = dragStart.y - yPixelSize * d3.event.y;
                 alignShapeOnGrid(shape);
-                d3.select(this).attr('x', xAxisScale(shape.x)).attr('y', yAxisScale(shape.y));
+                d3.select(this).call(updateShapeAttributes);
                 showShapeLocation(shape);
             }
 
@@ -451,14 +526,16 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
                     .attr('height', h)
-                    .on('dblclick', function() { editPlate('cathode'); });
+                    .on('dblclick', function() { editPlate('cathode'); })
+                    .append('title').text('Cathode');
                 viewport.append('rect')
                     .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
                     .attr('x', xAxisScale(plateSpacing))
                     .attr('y', yAxisScale(channel))
                     .attr('width', w)
                     .attr('height', h)
-                    .on('dblclick', function() { editPlate('anode'); });
+                    .on('dblclick', function() { editPlate('anode'); })
+                    .append('title').text('Anode');
             }
 
             function drawShapes() {
@@ -477,7 +554,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                         width: w,
                         height: h,
                         id: conductorPosition.id,
-                        voltage: conductorType.voltage,
+                        conductorType: conductorType,
                     });
                 });
                 d3.select('.plot-viewport').selectAll('.warpvnd-shape').remove();
@@ -485,16 +562,38 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .data(shapes)
                     .enter().append('rect')
                     .on('dblclick', editPosition)
-                    .attr('class', function(d) {
-                        return d.voltage > 0 ? 'warpvnd-shape warpvnd-shape-voltage' : 'warpvnd-shape';
-                    })
-                    .attr('x', function(d) { return xAxisScale(d.x); })
-                    .attr('y', function(d) { return yAxisScale(d.y); })
-                    .attr('width', function(d) {
-                        return xAxisScale(d.x + d.width) - xAxisScale(d.x);
-                    })
-                    .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); })
+                    .call(updateShapeAttributes)
                     .call(drag);
+            }
+
+            function doesShapeCrossGridLine(shape) {
+                var numX = appState.models.simulationGrid.num_x;  // number of vertical cells
+                var halfChannel = toMicron(appState.models.simulationGrid.channel_width/2.0);
+                var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
+                var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
+                var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
+                if( cellHeight == 0 || cellWidth == 0 ) {  // pathological?
+                    return true;
+                }
+                if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
+                    return true;
+                }
+                var vOffset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
+                var topInCellUnits = (shape.y + vOffset)/cellHeight;
+                var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
+                var top = Math.floor(topInCellUnits);  // closest grid line below top
+                var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
+
+                // note that we do not need to translate coordinates here, since the 1st grid line is
+                // always at 0 in the horizontal direction
+                var leftInCellUnits = shape.x/cellWidth;
+                var rightInCellUnits = (shape.x + shape.width)/cellWidth;
+                var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
+                var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
+
+                // if the top of the shape extends above the top of the channel, it
+                // is ignored.  If the bottom goes below, it is not
+                return (shape.y < halfChannel && top != bottom) || left != right;
             }
 
             function editPlate(name) {
@@ -507,14 +606,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
             function editPosition(shape) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
-                    var conductor = null;
-                    appState.models.conductors.forEach(function(m) {
-                        if (m.id == shape.id) {
-                            conductor = m;
-                        }
-                    });
-                    appState.models.conductorPosition = conductor;
-                    panelState.showModalEditor('conductorPosition');
+                    $scope.source.editConductor(shape.id);
                 });
             }
 
@@ -660,6 +752,32 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     .attr('height', function(d) { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
             }
 
+            function updateShapeAttributes(selection) {
+                selection
+                    .attr('class', 'warpvnd-shape')
+                    .classed('warpvnd-shape-noncrossing', function(d) {
+                        return !  doesShapeCrossGridLine(d);
+                    })
+                    .classed('warpvnd-shape-voltage', function(d) {
+                        return d.conductorType.voltage > 0;
+                    })
+                    .attr('x', function(d) { return xAxisScale(d.x); })
+                    .attr('y', function(d) { return yAxisScale(d.y); })
+                    .attr('width', function(d) {
+                        return xAxisScale(d.x + d.width) - xAxisScale(d.x);
+                    })
+                    .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); });
+                var tooltip = selection.select('title');
+                if (tooltip.empty()) {
+                    tooltip = selection.append('title');
+                }
+                tooltip.text(function(d) {
+                    return doesShapeCrossGridLine(d)
+                        ? d.conductorType.name
+                        : '⚠️ Conductor does not cross a warp grid line and will be ignored';
+                });                
+            }
+
             $scope.destroy = function() {
                 if (zoom) {
                     zoom.on('zoom', null);
@@ -748,16 +866,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 if (name == 'conductors') {
                     replot();
                 }
-                if (name == 'conductorPosition') {
-                    appState.removeModel(name);
-                    appState.cancelChanges('conductors');
-                }
             });
             $scope.$on('modelChanged', function(e, name) {
-                if (name == 'conductorPosition') {
-                    appState.removeModel(name);
-                    appState.saveChanges('conductors');
-                }
                 if (name == 'conductorGridReport') {
                     if (isInitialized) {
                         replot();

@@ -1339,6 +1339,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                     {
                         method: 'model_list',
                         model_name: $scope.modelName,
+                        methodSignature: 'model_list ' + $scope.modelName,
                     },
                     function(data) {
                         $scope.modelList = [];

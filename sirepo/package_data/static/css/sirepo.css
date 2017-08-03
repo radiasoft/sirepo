@@ -311,6 +311,14 @@
       fill: rgb(255, 127, 14);
       stroke: rgb(255, 127, 14);
     }
+    .sr-plot path.line-error {
+      stroke: #e04836;
+      opacity: 0.35;
+    }
+    .sr-plot circle.line-error {
+      stroke: #e04836;
+      fill: #e04836;
+    }
     .sr-plot .overlay {
       fill: none;
       pointer-events: all;
@@ -753,6 +761,11 @@ li.sr-model-list-item > a {
   /* normal spacing */
   padding-left: 1.7em;
 }
+.elegant-error-box {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 180px;
+}
 .hellweg-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
@@ -808,9 +821,18 @@ p.hellweg-drop-zone {
   stroke: rgb(95, 176, 228);
   fill: rgba(105, 146, 255, 0.3);
  }
+.warpvnd-shape-noncrossing {
+  stroke: rgb(255, 0, 0);
+  stroke-dasharray: 1,2;
+  fill: rgba(255, 0, 0, 0.0);
+ }
 .warpvnd-shape:hover {
   fill: lightgreen;
   filter: drop-shadow(2px 2px 2px #999);
+}
+.warpvnd-shape-noncrossing:hover {
+  stroke: rgb(255, 0, 0);
+  fill: rgba(255, 0, 0, 0.0);
 }
 .warpvnd-drag-shadow {
   fill: black;
@@ -819,6 +841,9 @@ p.hellweg-drop-zone {
 }
 .warpvnd-drag-shadow:hover {
   fill: black;
+}
+.table-hover > tbody > tr.warpvnd-conductor-th {
+  background-color: inherit;
 }
 .sr-drag-clone-hidden {
   opacity: 0;
