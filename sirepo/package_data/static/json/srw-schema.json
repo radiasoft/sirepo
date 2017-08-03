@@ -114,9 +114,9 @@
         ],
         "IntensityPlotsScale": [
             ["linear", "Linear"],
+            ["log10", "Base-10 Logarithm"],
             ["log", "Natural Logarithm"],
-            ["log2", "Base-2 Logarithm"],
-            ["log10", "Base-10 Logarithm"]
+            ["log2", "Base-2 Logarithm"]
         ],
         "IntensityPlotsWidth": [
             ["100", "100"],
@@ -476,7 +476,7 @@
         "multiElectronAnimation": {
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "400"],
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0]
         },
@@ -614,7 +614,7 @@
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "400"],
+            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         }
     },
