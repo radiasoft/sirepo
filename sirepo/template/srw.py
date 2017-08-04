@@ -1519,7 +1519,7 @@ def _generate_srw_main(report, run_all, plot_reports):
     if run_all or report == 'trajectoryReport':
         content.append('v.tr = True')
         if plot_reports:
-            content.append("v.tr_pl = 'xxpyypz'")
+            content.append("v.tr_pl = 'xz'")
     if run_all or template_common.is_watchpoint(report):
         content.append('v.ws = True')
         if plot_reports:
