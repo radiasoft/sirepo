@@ -1409,7 +1409,7 @@ SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, s
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {
@@ -1460,6 +1460,29 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             '</form>',
         ].join(''),
         controller: function($scope) {
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale'];
+            var multiElectronAnimation = null;
+
+            function copyMultiElectronModel() {
+                multiElectronAnimation = appState.cloneModel('multiElectronAnimation');
+                plotFields.forEach(function(f) {
+                    delete multiElectronAnimation[f];
+                });
+            }
+            
+            function hasReportParameterChanged() {
+                if ($scope.model == 'multiElectronAnimation') {
+                    // for the multiElectronAnimation, changes to the intensityPlots* fields don't require
+                    // the simulation to be restarted
+                    var oldModel = multiElectronAnimation;
+                    copyMultiElectronModel();
+                    if (appState.deepEquals(oldModel, multiElectronAnimation)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
             $scope.handleStatus = function(data) {
                 if (data.percentComplete) {
                     $scope.particleNumber = data.particleNumber;
@@ -1474,11 +1497,11 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
             };
 
             persistentSimulation.initProperties($scope, $scope, {
-                multiElectronAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
-                fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'fluxType'],
+                multiElectronAnimation: $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields),
+                fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
             });
             $scope.$on($scope.model + '.changed', function() {
-                if ($scope.isReadyForModelChanges) {
+                if ($scope.isReadyForModelChanges && hasReportParameterChanged()) {
                     $scope.cancelSimulation();
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
@@ -1486,6 +1509,7 @@ SIREPO.app.directive('simulationStatusPanel', function(frameCache, persistentSim
                     $scope.particleNumber = 0;
                 }
             });
+            appState.whenModelsLoaded($scope, copyMultiElectronModel);
         },
     };
 });
