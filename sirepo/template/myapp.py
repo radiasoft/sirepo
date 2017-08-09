@@ -14,9 +14,6 @@ from sirepo.template import template_common
 
 SIM_TYPE = 'myapp'
 
-def copy_related_files(data, source_path, target_path):
-    pass
-
 
 def fixup_old_data(data):
     pass
@@ -34,28 +31,8 @@ def models_related_to_report(data):
     ]
 
 
-def new_simulation(data, new_simulation_data):
-    pass
-
-
-def prepare_aux_files(run_dir, data):
-    pass
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
-
-
 def python_source_for_model(data, model):
     return ''
-
-
-def resource_files():
-    return []
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
