@@ -684,6 +684,13 @@ li.sr-model-list-item > a {
   color: #d9534f;
 }
 
+.sr-input-warning {
+  font-style: italic;
+  font-size: 95%;
+  color: #ff0000;
+  align-self: center;
+}
+
 .elegant-beamline-element {
   float: left;
   min-width: 4em;
