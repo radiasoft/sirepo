@@ -28,7 +28,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
-              '<div data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+              '<div class="col-sm-6 pull-right" data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
             '</form>',
         ].join(''),
         controller: function($scope) {
@@ -180,7 +180,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
             modelData: '=',
         },
         template: [
-            '<div class="col-sm-6 pull-right sr-buttons" data-ng-show="isFormDirty()">',
+            '<div data-ng-show="isFormDirty()">',
               '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',

@@ -1788,8 +1788,9 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             resize_factor = float(width_pixels) / float(x_range[2])
             pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             ar2d = zoom(ar2d, resize_factor)
-            if scale == 'linear':
-                ar2d[np.where(ar2d < 0.)] = 0.0
+            # Remove for #670, this may be required for certain reports?
+            # if scale == 'linear':
+            #     ar2d[np.where(ar2d < 0.)] = 0.0
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
