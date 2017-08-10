@@ -57,10 +57,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
-def copy_related_files(data, source_path, target_path):
-    pass
-
-
 def fixup_old_data(data):
     if 'fieldReport' not in data['models']:
         data['models']['fieldReport'] = {}
@@ -68,6 +64,20 @@ def fixup_old_data(data):
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_application_data(data):
+    if data['method'] == 'compute_simulation_steps':
+        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
+        if run_dir.exists():
+            res = simulation_db.read_result(run_dir)[0]
+            if 'tof_expected' in res:
+                return {
+                    'timeOfFlight': res['tof_expected'],
+                    'steps': res['steps_expected'],
+                }
+        return {}
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
@@ -139,10 +149,6 @@ def models_related_to_report(data):
     ]
 
 
-def new_simulation(data, new_simulation_data):
-    pass
-
-
 def open_data_file(run_dir, model_name, file_index=None):
     """Opens data file_index'th in run_dir
 
@@ -166,14 +172,6 @@ def prepare_aux_files(run_dir, data):
     template_common.copy_lib_files(data, None, run_dir)
 
 
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
-
-
 def python_source_for_model(data, model):
     return _generate_parameters_file(data, is_parallel=True)
 
@@ -183,10 +181,6 @@ def remove_last_frame(run_dir):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
-
-
-def resource_files():
-    return []
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -352,7 +346,7 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
     return res
 
 
-def _generate_parameters_file(data, run_dir=None, is_parallel=False):
+def _generate_parameters_file(data, run_dir=None, is_parallel=False, jinja_template=None):
     v = None
 
     def render(bn):
@@ -365,9 +359,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    x = 'visualization' if is_parallel else 'source-field'
-    return render('base') + render('generate-' + x)
-
+    if not jinja_template:
+        jinja_template = 'generate-{}'.format(
+            'visualization' if is_parallel else 'source-field')
+    return render('base') + render(jinja_template)
 
 
 def _h5_file_list(run_dir, model_name):

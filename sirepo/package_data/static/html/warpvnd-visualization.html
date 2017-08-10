@@ -43,7 +43,14 @@
                 {{ visualization.stateAsText() }}
               </div>
             </div>
-            <div class="col-sm-6 pull-right">
+            <div class="col-sm-12">
+              <div class="well" data-ng-show="visualization.estimates.timeOfFlight">
+                  Expected time of flight is {{ visualization.estimates.timeOfFlight }}s<br/>
+                  This corresponds to {{ visualization.estimates.steps }} steps
+              </div>
+            </div>
+            <div data-model-field="'num_steps'" data-model-name="'simulationGrid'" data-label-size="4"></div>
+            <div class="col-sm-5 pull-right">
               <button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>
             </div>
           </form>
