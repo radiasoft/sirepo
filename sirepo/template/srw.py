@@ -80,6 +80,8 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale']
+
 _RUN_ALL_MODEL = 'simulation'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
@@ -593,6 +595,11 @@ def get_predefined_beams():
 
 
 def get_simulation_frame(run_dir, data, model_data):
+    if data['report'] == 'multiElectronAnimation':
+        args = template_common.parse_animation_args(data, {'': ['intensityPlotsWidth', 'intensityPlotsScale']})
+        m = model_data.models[data['report']]
+        m.intensityPlotsWidth = args.intensityPlotsWidth
+        m.intensityPlotsScale = args.intensityPlotsScale
     return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), model_data)
 
 
@@ -648,6 +655,22 @@ def lib_files(data, source_lib, report=None):
     return template_common.internal_lib_files(res, source_lib)
 
 
+def _report_fields(data, report_name):
+    # if the model has "style" fields, then return the full list of non-style fields
+    # otherwise returns the report name (which implies all model fields)
+    m = data.models[report_name]
+    for style_field in _REPORT_STYLE_FIELDS:
+        if style_field not in m:
+            continue
+        res = []
+        for f in m:
+            if f in _REPORT_STYLE_FIELDS:
+                continue
+            res.append('{}.{}'.format(report_name, f))
+        return res
+    return [report_name]
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -665,8 +688,8 @@ def models_related_to_report(data):
             'mirrorReport.grazingAngle',
             'mirrorReport.heightAmplification',
         ]
-    res = [
-        r, 'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
+    res = _report_fields(data, r) + [
+        'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
     watchpoint = template_common.is_watchpoint(r)
@@ -791,6 +814,19 @@ def prepare_for_save(data):
                         _save_user_model_list(model_name, user_model_list)
                         break
     return data
+
+
+def prepare_output_file(report_info, data):
+    if data['report'] == 'mirrorReport':
+        return
+    #TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
+    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+    if fn.exists():
+        fn.remove()
+        res = extract_report_data(
+            str(report_info.run_dir.join(get_filename_for_model(data['report']))),
+            data)
+        simulation_db.write_result(res, run_dir=report_info.run_dir)
 
 
 def python_source_for_model(data, model):
@@ -1519,7 +1555,7 @@ def _generate_srw_main(report, run_all, plot_reports):
     if run_all or report == 'trajectoryReport':
         content.append('v.tr = True')
         if plot_reports:
-            content.append("v.tr_pl = 'xxpyypz'")
+            content.append("v.tr_pl = 'xz'")
     if run_all or template_common.is_watchpoint(report):
         content.append('v.ws = True')
         if plot_reports:
@@ -1788,8 +1824,9 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             resize_factor = float(width_pixels) / float(x_range[2])
             pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             ar2d = zoom(ar2d, resize_factor)
-            if scale == 'linear':
-                ar2d[np.where(ar2d < 0.)] = 0.0
+            # Remove for #670, this may be required for certain reports?
+            # if scale == 'linear':
+            #     ar2d[np.where(ar2d < 0.)] = 0.0
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]

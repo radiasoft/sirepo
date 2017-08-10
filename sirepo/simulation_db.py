@@ -475,7 +475,8 @@ def prepare_simulation(data):
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    template.prepare_aux_files(run_dir, data)
+    if hasattr(template, 'prepare_aux_files'):
+        template.prepare_aux_files(run_dir, data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -869,8 +870,10 @@ def _create_example_and_lib_files(simulation_type):
         save_new_example(s)
     d = simulation_lib_dir(simulation_type)
     pkio.mkdir_parent(d)
-    for f in sirepo.template.import_module(simulation_type).resource_files():
-        f.copy(d)
+    template = sirepo.template.import_module(simulation_type)
+    if hasattr(template, 'resource_files'):
+        for f in template.resource_files():
+            f.copy(d)
 
 
 def _find_user_simulation_copy(simulation_type, sid):
