@@ -333,7 +333,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 '<input data-ng-model="model[field]" class="form-control" required />',
               '</div>',
               '<div data-ng-switch-when="SafePath" data-ng-class="fieldClass">',
-                '<input data-safe-path="" data-ng-keypress="acceptChar($event)" data-ng-model="model[field]" class="form-control" required />',
+                '<input data-safe-path="" data-ng-model="model[field]" class="form-control" required />',
                 '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
@@ -906,19 +906,12 @@ SIREPO.app.directive('safePath', function() {
     return {
         restrict: 'A',
         require: 'ngModel',
-        link: function(scope, element, attrs, ngModel) {
+        link: function(scope, element, attrs, ngModel, $sce) {
 
+            scope.showWarning = false;
             scope.warningText = scope.info[0] + ' must not include any of the following: ' +
                 SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS.join(' ').replace(/\\\\/, '\\');
 
-            scope.acceptChar = function(event) {
-
-                var isInvalidChar = SIREPO.SAFE_PATH_REGEXP_EXCLUDE.test(String.fromCharCode(event.keyCode));
-                if(isInvalidChar) {
-                    event.preventDefault();  // don't display the character in the text box
-                }
-                scope.showWarning = isInvalidChar;
-            }
             ngModel.$validators.safe = function(value) {
                 var hasInvalidChars = SIREPO.SAFE_PATH_REGEXP_EXCLUDE.test(value);
                 scope.showWarning = hasInvalidChars;
@@ -927,9 +920,9 @@ SIREPO.app.directive('safePath', function() {
 
             scope.$on('cancelChanges', function(e, data) {  // broadcast by root scope
                 scope.showWarning = false;
-                scope.warningText = "";
+                ngModel.$setViewValue('');
+                ngModel.$render();  // appears that invalid text will not be cleared unless we do this
             });
-
         },
     };
 });
