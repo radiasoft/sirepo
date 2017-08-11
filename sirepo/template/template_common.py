@@ -40,7 +40,6 @@ _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
-
 def copy_lib_files(data, source, target):
     """Copy auxiliary files to target
 
@@ -226,15 +225,8 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
-        elif field_type in (
-                'BeamList', 'MirrorFile', 'ImageFile', 'String', 'OptionalString', 'MagneticZipFile',
-                'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
-                'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
-                'RPNBoolean', 'UndulatorList', 'ReflectivityMaterial', 'SafePath',
-        ):
-            model_data[k] = _escape(value)
         else:
-            raise Exception('unknown field type: {} for {}'.format(field_type, k))
+            model_data[k] = _escape(value)
 
 
 def validate_models(model_data, model_schema):
