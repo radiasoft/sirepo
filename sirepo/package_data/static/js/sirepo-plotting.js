@@ -1280,7 +1280,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.modelChanged = function() {
                 // clear lineOuts
                 $scope.clearData();
-            }
+            };
 
             $scope.resize = function() {
                 if (select().empty()) {

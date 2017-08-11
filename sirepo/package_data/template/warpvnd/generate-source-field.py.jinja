@@ -36,3 +36,18 @@ pxmin = ((X_MAX - X_MIN) / X_CELLS * xl + X_MIN) * 1e6
 pxmax = ((X_MAX - X_MIN) / X_CELLS * xu + X_MIN) * 1e6
 pzmin = (Z_MIN + zl / Z_CELLS * Z_MAX) * 1e6
 pzmax = (Z_MAX * zu / Z_CELLS) * 1e6
+
+#------
+
+from scipy.interpolate import interp1d as scipy_interp1d
+
+#Grab Ez from the solver and average over the transverse (x) plane
+Ez = solverE.getez()
+flat_Ez = np.mean(Ez,0)
+
+#Generate an interpolating function for smooth particle integration
+Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
+
+#Integrate the particle motion subject to initial conditions specified by the simulation
+tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, top.dt)
+steps_expected = tof_expected/top.dt

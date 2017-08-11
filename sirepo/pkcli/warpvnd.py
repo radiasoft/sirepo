@@ -39,6 +39,8 @@ def run(cfg_dir):
                     'title': 'ϕ Across Whole Domain',
                     'z_matrix': values.tolist(),
                     'frequency_title': 'Volts',
+                    'tof_expected': tof_expected,
+                    'steps_expected': steps_expected,
                 })
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))
