@@ -211,17 +211,28 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     var self = this;
     self.model = 'animation';
     self.simulationErrors = '';
 
-    function updateAllFields() {
-        panelState.enableField('simulationGrid', 'particles_per_step', false);
+    function computeSimulationSteps() {
+        self.estimates = {};
+        requestSender.getApplicationData(
+            {
+                method: 'compute_simulation_steps',
+                simulationId: appState.models.simulation.simulationId,
+            },
+            function(data) {
+                if (data.timeOfFlight) {
+                    self.estimates.timeOfFlight = (+data.timeOfFlight).toExponential(4);
+                    self.estimates.steps = Math.round(data.steps);
+                }
+            });
     }
 
     self.handleModalShown = function(name) {
-        updateAllFields();
+        panelState.enableField('simulationGrid', 'particles_per_step', false);
     };
 
     self.handleStatus = function(data) {
@@ -248,7 +259,7 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'startTime'],
     });
-    appState.whenModelsLoaded($scope, updateAllFields);
+    appState.whenModelsLoaded($scope, computeSimulationSteps);
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
@@ -775,7 +786,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                     return doesShapeCrossGridLine(d)
                         ? d.conductorType.name
                         : '⚠️ Conductor does not cross a warp grid line and will be ignored';
-                });                
+                });
             }
 
             $scope.destroy = function() {
