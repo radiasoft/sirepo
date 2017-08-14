@@ -24,6 +24,12 @@ SIREPO.appFieldEditors = [
       '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
     '</div>',
 ].join('');
+SIREPO.appDownloadLinks = [
+    '<li data-lineout-csv-link="x"></li>',
+    '<li data-lineout-csv-link="y"></li>',
+    '<li data-export-python-link=""></li>',
+].join('');
+
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -1082,6 +1088,23 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     };
 });
 
+SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<a href data-ng-click="exportPython()">Export Python Code</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.exportPython = function() {
+                panelState.pythonSource(
+                    appState.models.simulation.simulationId,
+                    panelState.findParentAttribute($scope, 'modelKey'));
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
     return {
         restrict: 'A',
@@ -1469,7 +1492,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                     delete multiElectronAnimation[f];
                 });
             }
-            
+
             function hasReportParameterChanged() {
                 if ($scope.model == 'multiElectronAnimation') {
                     // for the multiElectronAnimation, changes to the intensityPlots* fields don't require
@@ -1482,7 +1505,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                 }
                 return true;
             }
-            
+
             $scope.handleStatus = function(data) {
                 if (data.percentComplete) {
                     $scope.particleNumber = data.particleNumber;

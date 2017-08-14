@@ -43,6 +43,9 @@ SIREPO.appFieldEditors = [
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
 ].join('');
+SIREPO.appDownloadLinks = [
+    '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {

@@ -757,6 +757,38 @@ SIREPO.app.directive('helpButton', function($window) {
     };
 });
 
+SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            axis: '@lineoutCsvLink',
+        },
+        template: [
+            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }} Cut</a>',
+        ].join(''),
+        controller: function($scope) {
+
+            function findReportPanelScope() {
+                var s = $scope.$parent;
+                while (s && ! s.reportPanel) {
+                    s = s.$parent;
+                }
+                return s;
+            }
+
+            $scope.axisName = $scope.axis == 'x' ? 'Horizontal' : 'Vertical';
+
+            $scope.exportLineout = function() {
+                findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
+            };
+
+            $scope.is3dPlot = function() {
+                return panelState.findParentAttribute($scope, 'reportPanel') == '3d';
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
     return {
         restrict: 'A',
@@ -916,7 +948,7 @@ SIREPO.app.directive('safePath', function() {
                 var hasInvalidChars = SIREPO.SAFE_PATH_REGEXP_EXCLUDE.test(value);
                 scope.showWarning = hasInvalidChars;
                 return !hasInvalidChars;
-            }
+            };
 
             scope.$on('cancelChanges', function(e, data) {  // broadcast by root scope
                 scope.showWarning = false;
@@ -947,7 +979,7 @@ SIREPO.app.directive('numberToString', function() {
         }
     };
 });
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, $window) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -967,13 +999,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
                   '<li role="separator" class="divider"></li>',
-                  '<li><a data-ng-href="{{ dataFileURL(\'\') }}" target="_blank">Raw Data File</a></li>',
-                  SIREPO.APP_NAME == 'elegant'
-                      ? '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>'
-                      : '',
-                  SIREPO.APP_NAME == 'srw'
-                      ? '<li><a href data-ng-click="srwExportPython()">Export Python Code</a></li>'
-                      : '',
+                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
               //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="sr-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
@@ -1005,23 +1032,19 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return '';
             };
             $scope.downloadImage = function(height) {
-                var svg = $scope.reportPanel.find('svg')[0];
+                var svg = $scope.panel.find('svg')[0];
                 if (! svg) {
                     return;
                 }
                 var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
-                var plot3dCanvas = $scope.reportPanel.find('canvas')[0];
+                var plot3dCanvas = $scope.panel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
-            };
-            $scope.srwExportPython = function() {
-                $window.open(requestSender.formatUrl('pythonSource', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': $scope.modelKey,
-                }), '_blank');
             };
             $scope.hasData = function() {
                 if (appState.isLoaded()) {
+                    if (panelState.isHidden($scope.modelKey)) {
+                        return false;
+                    }
                     if (appState.isAnimationModelName($scope.modelKey)) {
                         return frameCache.getFrameCount() > 0;
                     }
@@ -1034,7 +1057,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
         },
         link: function(scope, element) {
-            scope.reportPanel = element.next();
+            scope.panel = element.next();
         },
     };
 });

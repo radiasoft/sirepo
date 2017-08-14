@@ -2,6 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
+SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
 
@@ -257,6 +258,18 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     }
                     return value;
                 });
+        },
+
+        exportCSV: function(fileName, heading, points) {
+            fileName = fileName.replace(/\s+$/, '').replace(/(\_|\W|\s)+/g, '-') + '.csv';
+            // format csv heading values within quotes
+            var res = '"' + heading.map(function(v) {
+                return v.replace(/"/g, '');
+            }).join('","') + '"' + "\n";
+            points.forEach(function(row) {
+                res += row[0].toExponential(9) + ',' + row[1].toExponential(9) + "\n";
+            });
+            saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
 
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
@@ -1308,6 +1321,16 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 mainYAxis.tickSize(- canvasSize - $scope.rightPanelWidth + $scope.rightPanelMargin.right); // tickLine == gridline
                 refresh();
             };
+
+            $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
+                var keys = Object.keys(lineOuts[axisName]);
+                var points = lineOuts[axisName][keys[0]][0];
+                var xHeading = select('.' + axisName + '-axis-label').text();
+                plotting.exportCSV(
+                    xHeading,
+                    [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
+                    points);
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);

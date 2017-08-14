@@ -245,6 +245,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
         );
     };
+
     self.cancelChanges = function(name) {
         // cancel changes on a model by name, or by an array of names
         if (typeof(name) == 'string') {
@@ -679,7 +680,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -847,6 +848,17 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.isRunning = function(name) {
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
+    };
+
+    self.pythonSource = function(simulationId, modelName) {
+        var args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        $window.open(requestSender.formatUrl('pythonSource', args), '_blank');
     };
 
     self.requestData = function(name, callback, forceRun) {
@@ -2041,10 +2053,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     };
 
     self.pythonSource = function(item) {
-        $window.open(requestSender.formatUrl('pythonSource', {
-            '<simulation_id>': item.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType
-        }), '_blank');
+        panelState.pythonSource(item.simulationId);
     };
 
     self.exportArchive = function(item, extension) {

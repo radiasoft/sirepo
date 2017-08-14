@@ -10,6 +10,10 @@ SIREPO.appFieldEditors = [
       '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
     '</div>',
 ].join('');
+SIREPO.appDownloadLinks = [
+    '<li data-lineout-csv-link="x"></li>',
+    '<li data-lineout-csv-link="y"></li>',
+].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
