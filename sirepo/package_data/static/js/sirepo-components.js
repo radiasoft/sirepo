@@ -4,6 +4,20 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
+SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS = [   // array of illegal filename characters
+    '\\\\',  // doubly escaped
+    '\/',
+    '\&',
+    ':',
+    '+',
+    '\?',
+    '\"',
+    '\'',
+    '<',
+    '>',
+    '\|'
+];
+SIREPO.SAFE_PATH_REGEXP_EXCLUDE = new RegExp("["+SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS.join('')+"]+", "");  // regex
 
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
@@ -317,6 +331,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '</div>',
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required />',
+              '</div>',
+              '<div data-ng-switch-when="SafePath" data-ng-class="fieldClass">',
+                '<input data-safe-path="" data-ng-model="model[field]" class="form-control" required />',
+                '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
@@ -884,6 +902,31 @@ SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interva
     };
 });
 
+SIREPO.app.directive('safePath', function() {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel, $sce) {
+
+            scope.showWarning = false;
+            scope.warningText = scope.info[0] + ' must not include any of the following: ' +
+                SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS.join(' ').replace(/\\\\/, '\\');
+
+            ngModel.$validators.safe = function(value) {
+                var hasInvalidChars = SIREPO.SAFE_PATH_REGEXP_EXCLUDE.test(value);
+                scope.showWarning = hasInvalidChars;
+                return !hasInvalidChars;
+            }
+
+            scope.$on('cancelChanges', function(e, data) {  // broadcast by root scope
+                scope.showWarning = false;
+                ngModel.$setViewValue('');
+                ngModel.$render();  // appears that invalid text will not be cleared unless we do this
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('numberToString', function() {
     return {
         restrict: 'A',
@@ -904,7 +947,6 @@ SIREPO.app.directive('numberToString', function() {
         }
     };
 });
-
 SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, $window) {
     return {
         restrict: 'A',

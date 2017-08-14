@@ -54,10 +54,10 @@
         "fieldReport": {},
         "particleAnimation": {},
         "simulation": {
-            "name": ["Name", "String"]
+            "name": ["Name", "SafePath"]
         },
         "simulationFolder": {
-            "name": ["Folder Name", "String"]
+            "name": ["Folder Name", "SafePath"]
         },
         "simulationGrid": {
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
