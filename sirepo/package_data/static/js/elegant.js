@@ -2484,7 +2484,7 @@ SIREPO.app.directive('distributionType', function() {
         },
         template: [
             '<div data-ng-repeat="defaultSelection in field.split(\',\') track by $index" style="display: inline-block" >',
-                '<span style="font-weight: 500">{{distLabels[$index] || $index}}: </span>',
+                '<span style="font-weight: 500">{{distLabels[$index] || \'Plane \' + $index}}: </span>',
                 '<select ',
                     'style="width: 10em; margin-right: 1em; margin-bottom: 4px; ',
                     'class="form-control" data-ng-model="distributions[$index]" data-ng-change="didChange(distributions[$index])"',
