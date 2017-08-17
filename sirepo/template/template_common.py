@@ -194,6 +194,7 @@ def report_parameters_hash(data):
 
 
 def validate_model(model_data, model_schema, enum_info):
+
     """Ensure the value is valid for the field type. Scales values as needed."""
     for k in model_schema:
         label = model_schema[k][0]
@@ -206,7 +207,10 @@ def validate_model(model_data, model_schema, enum_info):
             raise Exception('no value for field "{}" and no default value in schema'.format(k))
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
-                raise Exception('invalid enum value: {} for {}'.format(value, k))
+                # Check a comma-delimited string against the enumeration
+                for item in re.split(",\s*", str(value)):
+                    if item not in enum_info[field_type]:
+                        raise Exception('invalid enum value: {} for {}'.format(value, k))
         elif field_type == 'Float':
             if not value:
                 value = 0
