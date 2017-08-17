@@ -162,6 +162,15 @@
             ["sigmaz", "Sigmaz"],
             ["peak-to-peak", "Peak To Peak"]
         ],
+        "DistributionType": [
+            ["gaussian", "Gaussian"],
+            ["hard-edge", "Hard Edge"],
+            ["uniform-ellipse", "Uniform Ellipse"],
+            ["shell", "Shell"],
+            ["dynamic-aperture", "Dynamic Aperture"],
+            ["line", "Line"],
+            ["halo(gaussian)", "Halo (Gaussian)"]
+        ],
         "DscatterPlane": [
             ["", ""],
             ["xp", "xp"],
@@ -475,7 +484,7 @@
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
             "enforce_rms_values": ["Enforce RMS Values", "StringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties."],
             "distribution_cutoff": ["Distribution Cutoff", "StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question."],
-            "distribution_type": ["Distribution Type", "StringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff."],
+            "distribution_type": ["Distribution Type", "DistributionType", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
             "centroid": ["Centroid", "StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates."],
             "first_is_fiducial": ["First Is Fiducial", "RPNBoolean", "0", "Specifies that the first beam generated shall be a single particle beam, which is suitable for fiducialization. See the section on \"Fiducialization in elegant\" for more discussion."],
             "save_initial_coordinates": ["Save Initial Coordinates", "RPNBoolean", "1", "A flag that, if set, results in saving initial coordinates of tracked particles in memory. This is the default behavior. If unset, the initial coordinates are not saved, but are regenerated each time they are needed. This is more memory efficient and is useful for tracking very large numbers of particles."]
