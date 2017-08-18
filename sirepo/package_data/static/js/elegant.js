@@ -42,6 +42,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
+    '<div data-ng-switch-when="DistributionType" data-ng-class="fieldClass">',
+        '<div data-distribution-type="" data-model="model" data-field="model[field]" data-info="info" data-type-list="enum[info[1]]"></div>',
+    '</div>',
 ].join('');
 SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
@@ -2469,6 +2472,34 @@ SIREPO.app.directive('inputFileXY', function() {
             $scope.fieldY = function() {
                 return $scope.field + 'Y';
             };
+        },
+    };
+});
+
+SIREPO.app.directive('distributionType', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '<',
+            field: '=',
+            info: '<',
+            typeList: '<',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in field.split(\',\') track by $index" style="display: inline-block" >',
+                '<span class="elegant-dropdown-label">{{distLabels[$index] || \'Plane \' + $index}}: </span>',
+                '<select ',
+                    'class="form-control elegant-dropdown-select" data-ng-model="distributions[$index]" data-ng-change="didChange(distributions[$index])"',
+                    'data-ng-options="item[0] as item[1] for item in typeList">',
+                '</select>',
+            '</div>'
+        ].join(''),
+        controller: function($scope) {
+            $scope.distributions = $scope.field.split(/\s*,\s*/);
+            $scope.distLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function(item) {
+                $scope.field = $scope.distributions.join(', ');
+            }
         },
     };
 });

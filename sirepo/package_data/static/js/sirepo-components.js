@@ -4,20 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
-SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS = [   // array of illegal filename characters
-    '\\\\',  // doubly escaped
-    '\/',
-    '\&',
-    ':',
-    '+',
-    '\?',
-    '\"',
-    '\'',
-    '<',
-    '>',
-    '\|'
-];
-SIREPO.SAFE_PATH_REGEXP_EXCLUDE = new RegExp("["+SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS.join('')+"]+", "");  // regex
 
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
@@ -401,6 +387,12 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 }
                 return false;
             };
+
+            $scope.clearViewValue = function(model) {
+                model.$setViewValue('');
+                model.$render();
+            }
+
         },
     };
 });
@@ -935,25 +927,33 @@ SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interva
 });
 
 SIREPO.app.directive('safePath', function() {
+
+    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
+    var unsafe_path_warn = ' must not include any of the following: ' +
+        unsafe_path_chars.join(' ');
+    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
+
     return {
         restrict: 'A',
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel, $sce) {
 
             scope.showWarning = false;
-            scope.warningText = scope.info[0] + ' must not include any of the following: ' +
-                SIREPO.SAFE_PATH_REGEXP_EXCLUDE_CHARS.join(' ').replace(/\\\\/, '\\');
+            scope.warningText = '';
 
             ngModel.$validators.safe = function(value) {
-                var hasInvalidChars = SIREPO.SAFE_PATH_REGEXP_EXCLUDE.test(value);
-                scope.showWarning = hasInvalidChars;
-                return !hasInvalidChars;
-            };
+                scope.showWarning = unsafe_path_regexp.test(value);
+                if( scope.showWarning ) {
+                    scope.warningText = scope.info[0] + unsafe_path_warn;
+                }
+                return !scope.showWarning;
+            }
 
-            scope.$on('cancelChanges', function(e, data) {  // broadcast by root scope
+            // broadcast by root scope
+            scope.$on('cancelChanges', function(e, data) {
                 scope.showWarning = false;
-                ngModel.$setViewValue('');
-                ngModel.$render();  // appears that invalid text will not be cleared unless we do this
+                // appears that invalid text will not be cleared unless we do this
+                scope.clearViewValue(ngModel);
             });
         },
     };
