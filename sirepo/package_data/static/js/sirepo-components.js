@@ -928,10 +928,10 @@ SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interva
 
 SIREPO.app.directive('safePath', function() {
 
-    var UNSAFE_PATH_CHARS = '\\/|&:+?\'"<>'.split('');
-    var UNSAFE_PATH_WARN = ' must not include any of the following: ' +
-        UNSAFE_PATH_CHARS.join(' ');
-    var UNSAFE_PATH_REGEXP = new RegExp('[\\' + UNSAFE_PATH_CHARS.join('\\') + ']');
+    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
+    var unsafe_path_warn = ' must not include any of the following: ' +
+        unsafe_path_chars.join(' ');
+    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
 
     return {
         restrict: 'A',
@@ -942,9 +942,9 @@ SIREPO.app.directive('safePath', function() {
             scope.warningText = '';
 
             ngModel.$validators.safe = function(value) {
-                scope.showWarning = UNSAFE_PATH_REGEXP.test(value);
+                scope.showWarning = unsafe_path_regexp.test(value);
                 if( scope.showWarning ) {
-                    scope.warningText = scope.info[0] + UNSAFE_PATH_WARN;
+                    scope.warningText = scope.info[0] + unsafe_path_warn;
                 }
                 return !scope.showWarning;
             }

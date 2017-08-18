@@ -208,9 +208,10 @@ def validate_model(model_data, model_schema, enum_info):
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
                 # Check a comma-delimited string against the enumeration
-                for item in re.split(",\s*", str(value)):
+                for item in re.split(r'\s*,\s*', str(value)):
                     if item not in enum_info[field_type]:
-                        raise Exception('invalid enum value: {} for {}'.format(value, k))
+                        assert item in enum_info[field_type], \
+                            '{}: invalid enum "{}" value for field "{}"'.format(item, field_type, k)
         elif field_type == 'Float':
             if not value:
                 value = 0
