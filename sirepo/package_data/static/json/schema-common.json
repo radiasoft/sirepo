@@ -1,5 +1,5 @@
 {
-    "version": "20170824.000000",
+    "version": "20170828.000000",
     "appInfo": {
         "elegant": {
             "longName": "Elegant",
@@ -33,6 +33,7 @@
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
+        "deleteFile": "/delete-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",

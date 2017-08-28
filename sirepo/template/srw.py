@@ -858,6 +858,29 @@ def resource_files():
     return res
 
 
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    dm = data.models
+    if file_type == 'undulatorTable':
+        if _is_tabulated_undulator_source(dm.simulation):
+            return dm.tabulatedUndulator.magneticFile == filename
+        return False
+    field = None
+    if file_type == 'mirror':
+        field = 'MirrorFile'
+    elif file_type == 'sample':
+        field = 'ImageFile'
+    if not field:
+        return False
+    for m in dm.beamline:
+        for k, v in _SCHEMA.model[m.type].items():
+            t = v[1]
+            if m[k] and t == field:
+                if m[k] == filename:
+                    return True;
+    return False
+
+
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
     match = re.search(r'\.(\w+)$', str(path))

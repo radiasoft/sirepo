@@ -118,6 +118,32 @@ def api_copySimulation():
 app_copy_simulation = api_copySimulation
 
 
+def api_deleteFile():
+    req = _json_input()
+    filename = werkzeug.secure_filename(req['fileName'])
+    search_name = _lib_filename(req['simulationType'], filename, req['fileType'])
+    template = sirepo.template.import_module(req['simulationType'])
+    if hasattr(template, 'validate_delete_file'):
+        err = []
+        for row in simulation_db.iterate_simulation_datafiles(req['simulationType'], _simulation_data):
+            if template.validate_delete_file(row, search_name, req['fileType']):
+                sim = row['models']['simulation']
+                if sim['folder'] == '/':
+                    err.append('/{}'.format(sim['name']))
+                else:
+                    err.append('{}/{}'.format(sim['folder'], sim['name']))
+        if len(err):
+            return _json_response({
+                'error': 'File is in use in other simulations.',
+                'fileList': err,
+                'fileName': filename,
+            })
+    p = _lib_filepath(req['simulationType'], filename, req['fileType'])
+    pkio.unchecked_remove(p)
+    return _json_response({})
+app_delete_file = api_deleteFile
+
+
 def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
@@ -578,22 +604,19 @@ app_update_folder = api_updateFolder
 
 def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    template = sirepo.template.import_module(simulation_type)
     filename = werkzeug.secure_filename(f.filename)
-    if simulation_type == 'srw':
-        p = lib.join(filename)
-    else:
-        p = lib.join(werkzeug.secure_filename('{}.{}'.format(file_type, filename)))
+    p = _lib_filepath(simulation_type, filename, file_type)
     err = None
     if p.check():
         err = 'file exists: {}'.format(filename)
     if not err:
         pkio.mkdir_parent_only(p)
         f.save(str(p))
-        err = template.validate_file(file_type, str(p))
-        if err:
-            pkio.unchecked_remove(p)
+        template = sirepo.template.import_module(simulation_type)
+        if hasattr(template, 'validate_file'):
+            err = template.validate_file(file_type, str(p))
+            if err:
+                pkio.unchecked_remove(p)
     if err:
         return _json_response({
             'error': err,
@@ -853,6 +876,17 @@ def _mtime_or_now(path):
         int: modification time
     """
     return int(path.mtime() if path.exists() else time.time())
+
+
+def _lib_filename(simulation_type, filename, file_type):
+    if simulation_type == 'srw':
+        return filename
+    return werkzeug.secure_filename('{}.{}'.format(file_type, filename))
+
+
+def _lib_filepath(simulation_type, filename, file_type):
+    lib = simulation_db.simulation_lib_dir(simulation_type)
+    return lib.join(_lib_filename(simulation_type, filename, file_type))
 
 
 def _no_cache(response):

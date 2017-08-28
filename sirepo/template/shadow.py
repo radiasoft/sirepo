@@ -102,12 +102,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
 
 
 def lib_files(data, source_lib):
-    res = []
-    if data['models']['simulation']['sourceType'] == 'wiggler':
-        if data['models']['wiggler']['b_from'] in ('1', '2'):
-            #TODO(pjm): need a general way to format lib file names, share with elegant.py
-            res.append('wiggler-trajFile.{}'.format(data['models']['wiggler']['trajFile']))
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.internal_lib_files(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -139,20 +134,8 @@ def models_related_to_report(data):
     return res
 
 
-def new_simulation(data, new_simulation_data):
-    pass
-
-
 def prepare_aux_files(run_dir, data):
     template_common.copy_lib_files(data, None, run_dir)
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
 
 
 def python_source_for_model(data, model):
@@ -179,6 +162,11 @@ def remove_last_frame(run_dir):
 
 def resource_files():
     return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
+
+
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -591,7 +579,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryFilename'] = _WIGGLER_TRAJECTOR_FILENAME
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
-            v['wigglerTrajectoryInput'] = 'wiggler-trajFile.{}'.format(data['models']['wiggler']['trajFile'])
+            v['wigglerTrajectoryInput'] = _wiggler_file(data['models']['wiggler']['trajFile'])
     b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
     return pkjinja.render_file(b + '.jinja', v)
 
@@ -627,9 +615,21 @@ def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
 
 
+def _simulation_files(data):
+    res = []
+    if data['models']['simulation']['sourceType'] == 'wiggler':
+        if data['models']['wiggler']['b_from'] in ('1', '2'):
+            res.append(_wiggler_file(data['models']['wiggler']['trajFile']))
+    return res
+
+
 def _source_field(model, fields):
     return _fields('source', model, fields)
 
 
 def _validate_data(data, schema):
     template_common.validate_models(data, schema)
+
+
+def _wiggler_file(value):
+    return template_common.lib_file_name('wiggler', 'trajFile', value)

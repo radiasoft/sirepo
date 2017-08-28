@@ -438,7 +438,7 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
     self.createElement = function(name) {
-        $('#sr-newCommand-editor').modal('hide');
+        $('#' + panelState.modalId('newCommand')).modal('hide');
         var model = {
             _id: elegantService.nextId(),
             _type: name,
@@ -775,7 +775,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.createElement = function(type) {
-        $('#sr-newBeamlineElement-editor').modal('hide');
+        $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = {
             _id: elegantService.nextId(),
             type: type,
@@ -862,7 +862,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newElement = function() {
-        $('#sr-newBeamlineElement-editor').modal('show');
+        $('#' + panelState.modalId('newBeamlineElement')).modal('show');
     };
 
     //TODO(pjm): use library for this
@@ -1779,7 +1779,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.newCommand = function() {
-                $('#sr-newCommand-editor').modal('show');
+                $('#' + panelState.modalId('newCommand')).modal('show');
             };
 
             $scope.selectItem = function(cmd) {

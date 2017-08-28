@@ -78,10 +78,7 @@ def histogram_bins(nbins):
 
 
 def internal_lib_files(files, source_lib):
-    """Return list of files used by the simulation
-
-    Args:
-        data (dict): sim db
+    """Returns full, unique paths of simulation files
 
     Returns:
         list: py.path.local to files

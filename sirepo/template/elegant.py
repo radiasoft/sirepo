@@ -362,11 +362,7 @@ def lib_files(data, source_lib):
     Returns:
         list: py.path.local of source files
     """
-    res = []
-    _iterate_model_fields(data, res, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.internal_lib_files(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -440,6 +436,11 @@ def resource_files():
         list: py.path.local objects
     """
     return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
+
+
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -839,7 +840,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                     if element_schema[1] == 'OutputFile':
                         value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                     elif element_schema[1].startswith('InputFile'):
-                        value = 'command_{}-{}.{}'.format(model['_type'], field_name, value)
+                        value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif element_schema[1] == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
                     elif element_schema[1] == 'ElegantBeamlineList':
@@ -862,7 +863,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
 def _iterator_input_files(state, model, element_schema=None, field_name=None):
     if element_schema:
         if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append('{}-{}.{}'.format(_model_name_for_data(model), field_name, model[field_name]))
+            state.append(template_common.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
 
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
@@ -878,7 +879,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
                 if element_schema[1].startswith('InputFile'):
-                    value = '{}-{}.{}'.format(model['type'], field_name, value)
+                    value = template_common.lib_file_name(model['type'], field_name, value)
                     if element_schema[1] == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif element_schema[1] == 'OutputFile':
@@ -1043,6 +1044,14 @@ def _sdds_error(error_text='invalid data file'):
     return {
         'error': error_text,
     }
+
+
+def _simulation_files(data):
+    res = []
+    _iterate_model_fields(data, res, _iterator_input_files)
+    if data['models']['bunchFile']['sourceFile']:
+        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    return res
 
 
 def _validate_data(data, schema):

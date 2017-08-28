@@ -251,7 +251,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       '</div>',
                       '<div class="row">',
                         '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
-                          '<button data-ng-if="okText" data-dismiss="modal" data-ng-click="okClicked()" class="btn btn-default">{{ okText }}</button>',
+                          '<button data-ng-if="okText" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
                           ' <button data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
@@ -261,6 +261,13 @@ SIREPO.app.directive('confirmationModal', function() {
               '</div>',
             '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.clicked = function() {
+                if ($scope.okClicked() !== false) {
+                    $('#' + $scope.id).modal('hide');
+                }
+            };
+        },
     };
 });
 
@@ -450,7 +457,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
           '<div class="btn-group" role="group">',
             '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>',
             '<ul class="dropdown-menu">',
-              '<li data-ng-repeat="item in itemList()"><a href data-ng-click="selectItem(item)">{{ item }}</a></li>',
+              '<li data-ng-repeat="item in itemList()" class="sr-model-list-item"><a href data-ng-click="selectItem(item)">{{ item }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="confirmDeleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a></li>',
               '<li class="divider"></li>',
               '<li data-ng-hide="selectionRequired"><a href data-ng-click="selectItem(null)">{{ emptySelectionText }}</a></li>',
               '<li data-ng-hide="selectionRequired" class="divider"></li>',
@@ -464,6 +471,65 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
           '</div>',
         ].join(''),
         controller: function($scope) {
+            var modalId = null;
+            $scope.isDeletingFile = false;
+
+            function sortList(list) {
+                if (list) {
+                    list.sort(function(a, b) {
+                        return a.localeCompare(b);
+                    });
+                }
+            }
+
+            $scope.confirmDeleteItem = function(item, $event) {
+                $scope.deleteFileError = '';
+                $scope.isDeletingFile = false;
+                $event.stopPropagation();
+                $event.preventDefault();
+                $scope.deleteItem = item;
+                var modelKey = 'fileDelete' + $scope.fileType;
+                modalId = panelState.modalId(modelKey);
+                panelState.showModalEditor(
+                    modelKey,
+                    '<div data-confirmation-modal="" data-id="' + modalId + '" data-title="Delete File?" data-ok-text="Delete" data-ok-clicked="deleteSelected()"><div style="white-space: pre-line"><span data-ng-if="isDeletingFile" class="glyphicon glyphicon-hourglass"></span> {{ confirmDeleteText() }}</div></div>', $scope);
+            };
+
+            $scope.confirmDeleteText = function() {
+                if ($scope.deleteFileError) {
+                    return $scope.deleteFileError;
+                }
+                return $scope.isDeletingFile
+                    ? ('Deleting file "' + $scope.deleteItem + '". Please wait.')
+                    : ('Delete file "' + $scope.deleteItem + '"?');
+            };
+
+            $scope.deleteSelected = function() {
+                if (! $scope.isDeletingFile) {
+                    $scope.isDeletingFile = true;
+                    requestSender.sendRequest(
+                        'deleteFile',
+                        function(data) {
+                            $scope.isDeletingFile = false;
+                            if (data.error) {
+                                $scope.deleteFileError = data.error + "\n\n"
+                                    + data.fileList.join("\n");
+                            }
+                            else {
+                                var list = requestSender.getAuxiliaryData($scope.fileType);
+                                list.splice(list.indexOf($scope.deleteItem), 1);
+                                $('#' + modalId).modal('hide');
+                            }
+                        },
+                        {
+                            simulationId: appState.models.simulation.simulationId,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                            fileType: $scope.fileType,
+                            fileName: $scope.deleteItem,
+                        });
+                }
+                return false;
+            };
 
             $scope.downloadFileUrl = function() {
                 if ($scope.model) {
@@ -525,6 +591,12 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                 }
                 return false;
             };
+            $scope.isSelectedItem = function(item) {
+                if ($scope.model) {
+                    return item == $scope.model[$scope.fileField];
+                }
+                return false;
+            };
             $scope.itemList = function() {
                 if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
@@ -541,7 +613,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
-                    }));
+                    }), sortList);
                 return null;
             };
             $scope.selectItem = function(item) {
@@ -556,6 +628,12 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                 //TODO(pjm): uncouple from beamline controller
                 panelState.findParentAttribute($scope, 'beamline').showFileReport($scope.fileType, $scope.model);
             };
+
+            $scope.$on('$destroy', function() {
+                if (modalId) {
+                    $('#' + modalId).remove();
+                }
+            });
         },
     };
 });
@@ -645,7 +723,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -711,7 +789,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, requestS
                         }
                         requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
                         $scope.model[$scope.field] = data.filename;
-                        $('#sr-fileUpload' + $scope.fileType + '-editor').modal('hide');
+                        $('#' + panelState.modalId('fileUpload' + $scope.fileType)).modal('hide');
                     });
             };
         },
@@ -825,10 +903,10 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelName;
-            $scope.editorId = 'sr-' + $scope.viewName + '-editor';
+            $scope.editorId = panelState.modalId($scope.viewName);
             if ($scope.modelData) {
                 $scope.modelKey = $scope.modelData.modelKey;
-                $scope.editorId = 'sr-' + $scope.modelKey + '-editor';
+                $scope.editorId = panelState.modalId($scope.modelKey);
             }
             if (! $scope.modalTitle) {
                 $scope.modalTitle = viewInfo.title;
