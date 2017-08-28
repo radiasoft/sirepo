@@ -1,4 +1,6 @@
+# -*- python -*-
 import math
+import numpy
 import Shadow
 from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
 from srxraylib.sources import srfunc
