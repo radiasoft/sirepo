@@ -13,7 +13,6 @@ from sirepo.template import template_common
 import numpy as np
 import sirepo.template.warpvnd as template
 
-
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         exec(_script(), locals(), locals())
@@ -25,16 +24,24 @@ def run(cfg_dir):
             beam = data['models']['beam']
             radius = beam['x_radius'] * 1e-6
             values = potential[xl:xu, zl:zu]
-            simulation_db.write_result({
-                'aspect_ratio': 6.0 / 14,
-                'x_range': [0, plate_spacing, len(values[0])],
-                'y_range': [- radius, radius, len(values)],
-                'x_label': 'z [m]',
-                'y_label': 'x [m]',
-                'title': 'ϕ Across Whole Domain',
-                'z_matrix': values.tolist(),
-                'frequency_title': 'Volts',
-            })
+
+            if np.isnan(values).any():
+                simulation_db.write_result({
+                    'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
+                });
+            else:
+                simulation_db.write_result({
+                    'aspect_ratio': 6.0 / 14,
+                    'x_range': [0, plate_spacing, len(values[0])],
+                    'y_range': [- radius, radius, len(values)],
+                    'x_label': 'z [m]',
+                    'y_label': 'x [m]',
+                    'title': 'ϕ Across Whole Domain',
+                    'z_matrix': values.tolist(),
+                    'frequency_title': 'Volts',
+                    'tof_expected': tof_expected,
+                    'steps_expected': steps_expected,
+                })
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))
 

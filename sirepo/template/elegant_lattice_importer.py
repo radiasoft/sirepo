@@ -286,7 +286,7 @@ def _validate_enum(el, field, field_type):
     elif close_match:
         el[field] = close_match
     else:
-        raise IOError('{} {} unknown value: "{}"'.format(model_name, field, search))
+        raise IOError('{} unknown value: "{}"'.format(field, search))
 
 
 def _validate_field(el, field, rpn_cache, rpn_variables):
@@ -306,7 +306,10 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
     elif field_type == 'StringArray':
         _validate_string_array_field(el, field)
     elif field_type in _SCHEMA['enum']:
-        _validate_enum(el, field, field_type)
+        #TODO(pjm): special case for DistributionType - not really an enum
+        # but a collection of enum values
+        if field_type != 'DistributionType':
+            _validate_enum(el, field, field_type)
 
 
 def _validate_input_file(el, field):

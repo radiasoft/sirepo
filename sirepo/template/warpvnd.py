@@ -24,6 +24,8 @@ SIM_TYPE = 'warpvnd'
 
 WANT_BROWSER_FRAME_CACHE = True
 
+_CULL_PARTICLE_SLOPE = 1e-4
+
 _PARTICLE_PERIOD = 100
 
 _PARTICLE_FILE = 'particles.npy'
@@ -55,10 +57,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
-def copy_related_files(data, source_path, target_path):
-    pass
-
-
 def fixup_old_data(data):
     if 'fieldReport' not in data['models']:
         data['models']['fieldReport'] = {}
@@ -66,6 +64,20 @@ def fixup_old_data(data):
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_application_data(data):
+    if data['method'] == 'compute_simulation_steps':
+        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
+        if run_dir.exists():
+            res = simulation_db.read_result(run_dir)[0]
+            if 'tof_expected' in res:
+                return {
+                    'timeOfFlight': res['tof_expected'],
+                    'steps': res['steps_expected'],
+                }
+        return {}
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
@@ -114,8 +126,8 @@ def get_simulation_frame(run_dir, data, model_data):
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
     if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
-        return _extract_particle(run_dir, args.renderCount, model_data)
+        args = template_common.parse_animation_args(data, {'': ['startTime']})
+        return _extract_particle(run_dir, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -135,10 +147,6 @@ def models_related_to_report(data):
     return [
         'beam', 'simulationGrid', 'conductors',
     ]
-
-
-def new_simulation(data, new_simulation_data):
-    pass
 
 
 def open_data_file(run_dir, model_name, file_index=None):
@@ -164,14 +172,6 @@ def prepare_aux_files(run_dir, data):
     template_common.copy_lib_files(data, None, run_dir)
 
 
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
-
-
 def python_source_for_model(data, model):
     return _generate_parameters_file(data, is_parallel=True)
 
@@ -181,10 +181,6 @@ def remove_last_frame(run_dir):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
-
-
-def resource_files():
-    return []
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -204,6 +200,36 @@ def write_parameters(data, schema, run_dir, is_parallel):
             is_parallel,
         ),
     )
+
+
+def _add_particle_paths(electrons, x_points, y_points):
+    # adds paths for the particleAnimation report
+    # culls adjacent path points with similar slope
+    count = 0
+    cull_count = 0
+    for i in range(len(electrons[1])):
+        xres = []
+        yres = []
+        num_points = len(electrons[1][i])
+        prev_x = None
+        prev_y = None
+        for j in range(num_points):
+            x = electrons[1][i][j]
+            y = electrons[0][i][j]
+            if j > 0 and j < num_points - 1:
+                next_x = electrons[1][i][j+1]
+                next_y = electrons[0][i][j+1]
+                if (abs(_slope(x, y, next_x, next_y) - _slope(prev_x, prev_y, x, y)) < _CULL_PARTICLE_SLOPE):
+                    cull_count += 1
+                    continue
+            xres.append(x)
+            yres.append(y)
+            prev_x = x
+            prev_y = y
+        count += len(xres)
+        x_points.append(xres)
+        y_points.append(yres)
+    pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
 def _extract_current(data, data_file):
@@ -273,10 +299,9 @@ def _extract_field(field, data, data_file):
     }
 
 
-def _extract_particle(run_dir, render_count, data):
+def _extract_particle(run_dir, data):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
-    #TODO(pjm): include lost electrons in list and show on reports
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -284,9 +309,10 @@ def _extract_particle(run_dir, render_count, data):
     radius = beam['x_radius'] * 1e-6
     x_points = []
     y_points = []
-    for i in range(len(kept_electrons[1])):
-        x_points.append(kept_electrons[1][i].tolist())
-        y_points.append(kept_electrons[0][i].tolist())
+    _add_particle_paths(kept_electrons, x_points, y_points)
+    lost_x = []
+    lost_y = []
+    _add_particle_paths(lost_electrons, lost_x, lost_y)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -295,6 +321,8 @@ def _extract_particle(run_dir, render_count, data):
         'points': y_points,
         'x_points': x_points,
         'y_range': [-radius, radius],
+        'lost_x': lost_x,
+        'lost_y': lost_y,
     }
 
 def _generate_lattice(data):
@@ -318,7 +346,7 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
     return res
 
 
-def _generate_parameters_file(data, run_dir=None, is_parallel=False):
+def _generate_parameters_file(data, run_dir=None, is_parallel=False, jinja_template=None):
     v = None
 
     def render(bn):
@@ -331,9 +359,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    x = 'visualization' if is_parallel else 'source-field'
-    return render('base') + render('generate-' + x)
-
+    if not jinja_template:
+        jinja_template = 'generate-{}'.format(
+            'visualization' if is_parallel else 'source-field')
+    return render('base') + render(jinja_template)
 
 
 def _h5_file_list(run_dir, model_name):
@@ -341,3 +370,10 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
+
+
+def _slope(x1, y1, x2, y2):
+    if x2 - x1 == 0:
+        # treat no slope as flat for comparison
+        return 0
+    return (y2 - y1) / (x2 - x1)

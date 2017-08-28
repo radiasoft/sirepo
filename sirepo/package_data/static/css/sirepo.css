@@ -198,7 +198,7 @@
       background-color: #777;
     }
     .sr-panel-error .sr-panel-wait {
-      position: absolute;
+      white-space: pre-line;
       color: #fad8de;
       display: block;
     }
@@ -311,6 +311,14 @@
       fill: rgb(255, 127, 14);
       stroke: rgb(255, 127, 14);
     }
+    .sr-plot path.line-error {
+      stroke: #e04836;
+      opacity: 0.35;
+    }
+    .sr-plot circle.line-error {
+      stroke: #e04836;
+      fill: #e04836;
+    }
     .sr-plot .overlay {
       fill: none;
       pointer-events: all;
@@ -360,6 +368,11 @@
     }
     .sr-plot-cleared {
       opacity: 0;
+    }
+    .sr-plot .cross-hair {
+      stroke-width: 1px;
+      shape-rendering: crispEdges;
+      stroke: steelblue;
     }
 
     @media (max-width: 767px) {
@@ -425,6 +438,13 @@ ellipse.srw-fiber-right {
   stroke: #000;
   stroke-width: 1;
   fill: #9498a1;
+}
+ellipse.srw-curvature {
+  stroke: blue;
+  stroke-width: 2;
+  stroke-dasharray: 1px, 5px;
+  stroke-linecap: round;
+  fill: none;
 }
 path.srw-lens {
   stroke: #000;
@@ -664,6 +684,13 @@ li.sr-model-list-item > a {
   color: #d9534f;
 }
 
+.sr-input-warning {
+  font-style: italic;
+  font-size: 95%;
+  color: #ff0000;
+  align-self: center;
+}
+
 .elegant-beamline-element {
   float: left;
   min-width: 4em;
@@ -741,6 +768,21 @@ li.sr-model-list-item > a {
   /* normal spacing */
   padding-left: 1.7em;
 }
+.elegant-error-box {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 180px;
+}
+.elegant-dropdown-select {
+    display: inline-block;
+    width: 10em;
+    margin-right: 1em;
+    margin-bottom: 4px;
+}
+.elegant-dropdown-label {
+    font-weight: 500;
+}
+
 .hellweg-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
@@ -778,27 +820,36 @@ p.hellweg-drop-zone {
 }
 
 .warpvnd-plate {
-  fill: rgba(105, 146, 255, 0.3);
-  stroke: rgb(95, 176, 228);
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
   cursor: pointer;
 }
 .warpvnd-plate-voltage {
-  stroke: rgb(228, 176, 95);
-  fill: rgba(255, 146, 105, 0.3);
+  fill: rgba(105, 146, 255, 0.3);
+  stroke: rgb(95, 176, 228);
 }
 .warpvnd-shape {
-  cursor: move;
-  stroke: rgb(95, 176, 228);
-  stroke-width: 2;
-  fill: rgba(105, 146, 255, 0.3);
-}
-.warpvnd-shape-voltage {
   stroke: rgb(228, 176, 95);
   fill: rgba(255, 146, 105, 0.3);
+  cursor: move;
+  stroke-width: 2;
 }
+.warpvnd-shape-voltage {
+  stroke: rgb(95, 176, 228);
+  fill: rgba(105, 146, 255, 0.3);
+ }
+.warpvnd-shape-noncrossing {
+  stroke: rgb(255, 0, 0);
+  stroke-dasharray: 1,2;
+  fill: rgba(255, 0, 0, 0.0);
+ }
 .warpvnd-shape:hover {
   fill: lightgreen;
   filter: drop-shadow(2px 2px 2px #999);
+}
+.warpvnd-shape-noncrossing:hover {
+  stroke: rgb(255, 0, 0);
+  fill: rgba(255, 0, 0, 0.0);
 }
 .warpvnd-drag-shadow {
   fill: black;
@@ -807,6 +858,9 @@ p.hellweg-drop-zone {
 }
 .warpvnd-drag-shadow:hover {
   fill: black;
+}
+.table-hover > tbody > tr.warpvnd-conductor-th {
+  background-color: inherit;
 }
 .sr-drag-clone-hidden {
   opacity: 0;

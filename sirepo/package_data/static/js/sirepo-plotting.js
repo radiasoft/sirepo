@@ -2,6 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
+SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
 
@@ -57,7 +58,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     function initAnimation(scope) {
         scope.prevFrameIndex = -1;
         scope.isPlaying = false;
-        var requestData = function() {
+        var requestData = scope.requestData || function() {
             if (! scope.hasFrames()) {
                 return;
             }
@@ -259,21 +260,34 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 });
         },
 
-        drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, ctx, imageObj, alignOnPixel) {
+        exportCSV: function(fileName, heading, points) {
+            fileName = fileName.replace(/\s+$/, '').replace(/(\_|\W|\s)+/g, '-') + '.csv';
+            // format csv heading values within quotes
+            var res = '"' + heading.map(function(v) {
+                return v.replace(/"/g, '');
+            }).join('","') + '"' + "\n";
+            points.forEach(function(row) {
+                res += row[0].toExponential(9) + ',' + row[1].toExponential(9) + "\n";
+            });
+            saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
+        },
+
+        drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
             var xZoomDomain = xAxisScale.domain();
             var xDomain = [xValues[0], xValues[xValues.length - 1]];
             var yZoomDomain = yAxisScale.domain();
             var yDomain = [yValues[0], yValues[yValues.length - 1]];
             var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
             var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
-            canvas.attr('width', width)
-                .attr('height', height);
+            canvas.width = width;
+            canvas.height = height;
             var xPixelSize = alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length) : 0;
             var yPixelSize = alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length) : 0;
+            var ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             ctx.msImageSmoothingEnabled = false;
             ctx.drawImage(
-                imageObj,
+                cacheCanvas,
                 -(xZoomDomain[0] - xDomain[0]) / zoomWidth * width - xPixelSize / 2,
                 -(yDomain[1] - yZoomDomain[1]) / zoomHeight * height - yPixelSize / 2,
                 (xDomain[1] - xDomain[0]) / zoomWidth * width + xPixelSize,
@@ -313,14 +327,14 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        initImage: function(zMin, zMax, heatmap, ctx) {
+        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData) {
             var colorRange = COLOR_MAP[SIREPO.PLOTTING_COLOR_MAP || 'viridis'];
             var colorScale = d3.scale.linear()
                 .domain(linspace(zMin, zMax, colorRange.length))
                 .range(colorRange);
             var xSize = heatmap[0].length;
             var ySize = heatmap.length;
-            var img = ctx.createImageData(xSize, ySize);
+            var img = imageData;
 
             for (var yi = 0, p = -1; yi < ySize; ++yi) {
                 for (var xi = 0; xi < xSize; ++xi) {
@@ -331,7 +345,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     img.data[++p] = 255;
                 }
             }
-            ctx.putImageData(img, 0, 0);
+            cacheCanvas.getContext('2d').putImageData(img, 0, 0);
             return colorScale;
         },
 
@@ -972,7 +986,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             $scope.dataCleared = true;
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
 
-            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, imageObj, lineOuts, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
+            var bottomPanelCutLine, bottomPanelXAxis, bottomPanelYAxis, bottomPanelYScale, canvas, ctx, focusPointX, focusPointY, fullDomain, heatmap, lineOuts, mainXAxis, mainYAxis, prevDomain, rightPanelCutLine, rightPanelXAxis, rightPanelYAxis, rightPanelXScale, xAxisScale, xIndexScale, xValues, xyZoom, xZoom, yAxisScale, yIndexScale, yValues, yZoom;
+            var cacheCanvas, imageData;
 
             var cursorShape = {
                 '11': 'mouse-move-ew',
@@ -1128,11 +1143,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 return pixels < MIN_PIXEL_RESOLUTION;
             }
 
-            function initDraw(zmin, zmax) {
-                plotting.initImage(zmin, zmax, heatmap, ctx);
-                imageObj.src = canvas.node().toDataURL();
-            }
-
             function refresh() {
                 if (! fullDomain) {
                     return;
@@ -1147,7 +1157,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 else {
                     select('rect.mouse-rect-xy').attr('class', 'mouse-rect-xy mouse-zoom');
                 }
-                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize, $scope.canvasSize, xValues, yValues, canvas, ctx, imageObj, true);
+                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize, $scope.canvasSize, xValues, yValues, canvas, cacheCanvas, true);
                 drawBottomPanelCut();
                 drawRightPanelCut();
                 resetZoom();
@@ -1203,7 +1213,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 xyZoom.on('zoom', null);
                 xZoom.on('zoom', null);
                 yZoom.on('zoom', null);
-                imageObj.onload = null;
             };
 
             $scope.init = function() {
@@ -1223,11 +1232,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 rightPanelYAxis = plotting.createAxis(yAxisScale, 'right');
                 rightPanelYAxis.tickFormat(plotting.fixFormat($scope, 'y'));
                 resetZoom();
-                canvas = select('canvas');
-                ctx = canvas.node().getContext('2d');
-                imageObj = new Image();
-                // important - the image may not be ready initially
-                imageObj.onload = refresh;
+                canvas = select('canvas').node();
+                ctx = canvas.getContext('2d');
+                cacheCanvas = document.createElement('canvas');
                 bottomPanelCutLine = d3.svg.line()
                     .x(function(d) {return xAxisScale(d[0]);})
                     .y(function(d) {return bottomPanelYScale(d[1]);});
@@ -1263,8 +1270,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 var ymax = yValues.length - 1;
                 xIndexScale.range([0, xmax]);
                 yIndexScale.range([0, ymax]);
-                canvas.attr('width', xValues.length)
-                    .attr('height', yValues.length);
+                cacheCanvas.width = xValues.length;
+                cacheCanvas.height = yValues.length;
+                imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
@@ -1278,8 +1286,13 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 }
                 bottomPanelYScale.domain([zmin, zmax]).nice();
                 rightPanelXScale.domain([zmax, zmin]).nice();
-                initDraw(zmin, zmax);
+                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
                 $scope.resize();
+            };
+
+            $scope.modelChanged = function() {
+                // clear lineOuts
+                $scope.clearData();
             };
 
             $scope.resize = function() {
@@ -1308,6 +1321,16 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 mainYAxis.tickSize(- canvasSize - $scope.rightPanelWidth + $scope.rightPanelMargin.right); // tickLine == gridline
                 refresh();
             };
+
+            $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
+                var keys = Object.keys(lineOuts[axisName]);
+                var points = lineOuts[axisName][keys[0]][0];
+                var xHeading = select('.' + axisName + '-axis-label').text();
+                plotting.exportCSV(
+                    xHeading,
+                    [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
+                    points);
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1333,7 +1356,8 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
             $scope.dataCleared = true;
 
             var aspectRatio = 1.0;
-            var canvas, colorbar, ctx, heatmap, imageObj, pointer, xAxis, xAxisScale, xValues, yAxis, yAxisScale, yValues, zoom;
+            var canvas, colorbar, ctx, heatmap, pointer, xAxis, xAxisScale, xValues, yAxis, yAxisScale, yValues, zoom;
+            var cacheCanvas, imageData;
 
             var EMA = function() {
                 var avg = null;
@@ -1354,8 +1378,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
             }
 
             function initDraw(zmin, zmax) {
-                var colorScale = plotting.initImage(zmin, zmax, heatmap, ctx);
-                imageObj.src = canvas.node().toDataURL();
+                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
                 colorbar = Colorbar()
                     .scale(colorScale)
                     .thickness(30)
@@ -1387,7 +1410,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
                 else {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-move');
                 }
-                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize.width, $scope.canvasSize.height, xValues, yValues, canvas, ctx, imageObj, false);
+                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize.width, $scope.canvasSize.height, xValues, yValues, canvas, cacheCanvas, false);
                 resetZoom();
                 select('.mouse-rect').call(zoom);
                 select('.x.axis').call(xAxis);
@@ -1414,9 +1437,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
             $scope.destroy = function() {
                 $('.mouse-rect').off();
                 zoom.on('zoom', null);
-                if (imageObj) {
-                    imageObj.onload = null;
-                }
             };
 
             $scope.init = function() {
@@ -1428,11 +1448,10 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
                 yAxis = plotting.createAxis(yAxisScale, 'left');
                 yAxis.tickFormat(plotting.fixFormat($scope, 'y', 5));
                 resetZoom();
-                canvas = select('canvas');
+                canvas = select('canvas').node();
                 select('.mouse-rect').on('mousemove', mouseMove);
-                ctx = canvas.node().getContext('2d');
-                imageObj = new Image();
-                imageObj.onload = refresh;
+                ctx = canvas.getContext('2d');
+                cacheCanvas = document.createElement('canvas');
             };
 
             $scope.load = function(json) {
@@ -1441,8 +1460,9 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
                 heatmap = appState.clone(json.z_matrix).reverse();
                 xValues = plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2]);
                 yValues = plotting.linspace(json.y_range[0], json.y_range[1], json.y_range[2]);
-                canvas.attr('width', xValues.length)
-                    .attr('height', yValues.length);
+                cacheCanvas.width = xValues.length;
+                cacheCanvas.height = yValues.length;
+                imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
@@ -1723,9 +1743,6 @@ SIREPO.app.directive('particle', function(plotting) {
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                // xPoints = json.x_points
-                //     ? json.x_points
-                //     : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 xDomain = xdom;
@@ -1735,15 +1752,30 @@ SIREPO.app.directive('particle', function(plotting) {
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 var isFixedX = ! Array.isArray(json.x_points[0]);
-                for (var i = 0; i < json.points.length; i++) {
+                var i;
+                for (i = 0; i < json.points.length; i++) {
                     var p = d3.zip(
                         isFixedX ? json.x_points : json.x_points[i],
                         json.points[i]);
                     viewport.append('path').attr('class', 'line line-7').datum(p);
                 }
-                // json.points.forEach(function(p) {
-                //     viewport.append('path').attr('class', 'line line-7').datum(p);
-                // });
+                if (json.lost_x && json.lost_x.length) {
+                    for (i = 0; i < json.lost_x.length; i++) {
+                        viewport.append('path').attr('class', 'line line-error').datum(
+                            d3.zip(json.lost_x[i], json.lost_y[i]));
+                    }
+                    // absorbed/reflected legend
+                    select('svg')
+                        .append('circle').attr('class', 'line-y1').attr('r', 5).attr('cx', 8).attr('cy', 10);
+                    select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
+                        .text('Absorbed');
+                    select('svg')
+                        .append('circle').attr('class', 'line-error').attr('r', 5).attr('cx', 8).attr('cy', 30);
+                    select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
+                        .text('Reflected');
+                }
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);

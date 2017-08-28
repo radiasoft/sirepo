@@ -26,7 +26,7 @@ def do_form(form):
         raise uri_router.NotFound('missing zip in form')
     data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
-    return simulation_db.save_new_simulation(data.simulationType, data)
+    return simulation_db.save_new_simulation(data)
 
 
 def read_json(text, template=None):
@@ -42,7 +42,8 @@ def read_json(text, template=None):
     from sirepo import simulation_db
 
     # attempt to decode the input as json first, if invalid try python
-    data = simulation_db.json_load(text)
+    # fixup data in case new structures are need for lib_files() below
+    data = simulation_db.fixup_old_data(simulation_db.json_load(text))[0]
     if template:
         assert data.simulationType == template.SIM_TYPE, \
             'simulationType {} invalid, expecting {}'.format(

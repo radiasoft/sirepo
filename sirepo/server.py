@@ -87,7 +87,9 @@ def api_copyNonSessionSimulation():
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(data)
-        sirepo.template.import_module(data).copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
+        template = sirepo.template.import_module(data)
+        if hasattr(template, 'copy_related_files'):
+            template.copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
         return res
     werkzeug.exceptions.abort(404)
 app_copy_nonsession_simulation = api_copyNonSessionSimulation
@@ -346,7 +348,9 @@ def api_newSimulation():
     data = simulation_db.default_data(sim_type)
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    sirepo.template.import_module(sim_type).new_simulation(data, new_simulation_data)
+    template = sirepo.template.import_module(sim_type)
+    if hasattr(template, 'new_simulation'):
+        template.new_simulation(data, new_simulation_data)
     return _save_new_and_reply(data)
 app_new_simulation = api_newSimulation
 
@@ -469,9 +473,10 @@ def api_saveSimulationData():
     if res:
         return res
     simulation_type = data['simulationType']
-    data = simulation_db.save_simulation_json(
-        sirepo.template.import_module(simulation_type).prepare_for_save(data),
-    )
+    template = sirepo.template.import_module(simulation_type)
+    if hasattr(template, 'prepare_for_save'):
+        data = template.prepare_for_save(data)
+    data = simulation_db.save_simulation_json(data)
     return app_simulation_data(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
@@ -485,8 +490,11 @@ def api_simulationData(simulation_type, simulation_id, pretty):
     pretty = bool(int(pretty))
     try:
         data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+        template = sirepo.template.import_module(simulation_type)
+        if hasattr(template, 'prepare_for_client'):
+            data = template.prepare_for_client(data)
         response = _json_response(
-            sirepo.template.import_module(simulation_type).prepare_for_client(data),
+            data,
             pretty=pretty,
         )
         if pretty:
@@ -938,6 +946,7 @@ def _simulation_run_status(data, quiet=False):
             cfg.job_queue.race_condition_reap(rep.job_id)
             pkdc('{}: is_processing and not is_running', rep.job_id)
             is_processing = False
+        template = sirepo.template.import_module(data)
         if is_processing:
             if not rep.cached_data:
                 return _simulation_error(
@@ -947,6 +956,8 @@ def _simulation_run_status(data, quiet=False):
         else:
             is_running = False
             if rep.run_dir.exists():
+                if hasattr(template, 'prepare_output_file') and 'models' in data:
+                    template.prepare_output_file(rep, data)
                 res2, err = simulation_db.read_result(rep.run_dir)
                 if err:
                     if simulation_db.is_parallel(data):
@@ -957,7 +968,6 @@ def _simulation_run_status(data, quiet=False):
                 else:
                     res = res2
         if simulation_db.is_parallel(data):
-            template = sirepo.template.import_module(data)
             new = template.background_percent_complete(
                 rep.model_name,
                 rep.run_dir,
