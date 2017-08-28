@@ -151,12 +151,8 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
     }
 
     self.handleModalShown = function(name) {
-        srdbg('hello');
         var item = beamlineService.activeItem;
-        srdbg(item);
-        srdbg(' y ', name);
         if (item && item.type == name) {
-            srdbg(' x ', item);
             if (name == 'mirror' || name == 'crystal' || name == 'grating') {
                 updateElementShapeFields(item);
                 updateElementDimensionFields(item);
@@ -175,7 +171,6 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
                 updateGratingFields(item);
             }
             else if (name == 'crl') {
-                srdbg(item);
                 updateCrlFields(item);
             }
         }

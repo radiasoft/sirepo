@@ -358,7 +358,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
                 Object.keys(conductorsByType).forEach(function(id) {
                     conductorsByType[id].sort(function(a, b) {
                         var v = a.zCenter - b.zCenter;
-                        if (v == 0) {
+                        if (v === 0) {
                             return a.xCenter - b.xCenter;
                         }
                         return v;
@@ -583,13 +583,13 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
                 var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
                 var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
                 var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
-                if( cellHeight == 0 || cellWidth == 0 ) {  // pathological?
+                if( cellHeight === 0 || cellWidth === 0 ) {  // pathological?
                     return true;
                 }
                 if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
                     return true;
                 }
-                var vOffset = numX % 2 == 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
+                var vOffset = numX % 2 === 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
                 var topInCellUnits = (shape.y + vOffset)/cellHeight;
                 var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
                 var top = Math.floor(topInCellUnits);  // closest grid line below top
