@@ -498,6 +498,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
             '<div>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" novalidate>',
+                '<div class="sr-beamline-element-title">{{ title }}</div>',
                 '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',

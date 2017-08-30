@@ -97,6 +97,14 @@
       margin-bottom: 5px;
       vertical-align: top;
     }
+    .sr-beamline-element-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      color: #337ab7;
+      padding: 4px 0;
+      margin-left: 2px;
+    }
     .srw-beamline-element.dragging {
       opacity: 0.7;
     }
@@ -501,6 +509,7 @@ a:focus, a.srw-tab:focus {
   margin-right: 15px;
   color: #337ab7;
   opacity: 1;
+  margin-right: 10px;
 }
 .sr-help-icon:hover {
   color: #286090;
