@@ -3070,7 +3070,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
-                      '<form name="form" class="form-horizontal">',
+                      '<form name="form" class="form-horizontal" autocomplete="off">',
                         '<div class="row">',
                           '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Name</h5></div>',
                           '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
@@ -3092,7 +3092,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
 
                       '<div data-ng-show="showAddNewFields" class="row">',
                         '<br />',
-                        '<form name="addNewForm" class="form-horizontal">',
+                        '<form name="addNewForm" class="form-horizontal" autocomplete="off">',
                           '<div class="form-group-sm">',
                             '<div class="col-sm-2">',
                               '<input class="form-control" required data-ng-model="newRpn.name" />',
@@ -3275,7 +3275,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         template: [
             '<div data-ng-if="outputInfo">',
               '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
-                '<form name="form" class="form-horizontal">',
+                '<form name="form" class="form-horizontal" autocomplete="off">',
                   '<div data-ng-repeat="item in parameterRows">',
                     '<div class="elegant-parameter-table-row form-group form-group-sm">',
                       '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',

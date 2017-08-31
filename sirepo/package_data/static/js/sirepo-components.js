@@ -19,7 +19,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
         },
         template: [
             '<h5 data-ng-if="description">{{ description }}</h5>',
-            '<form name="form" class="form-horizontal" novalidate>',
+            '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',

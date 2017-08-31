@@ -1440,7 +1440,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
             title: '@',
         },
         template: [
-            '<form name="form" class="form-horizontal" novalidate>',
+            '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="progress" data-ng-if="isStateProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
               '</div>',
