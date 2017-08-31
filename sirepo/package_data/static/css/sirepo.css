@@ -874,3 +874,99 @@ p.hellweg-drop-zone {
 .sr-drag-clone-hidden {
   opacity: 0;
 }
+
+.sr-plot .bar rect {
+  shape-rendering: crispEdges;
+  fill: steelblue;
+}
+.sr-plot .resize path {
+  fill: #666;
+  fill-opacity: .8;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+.sr-plot .brush .extent {
+  stroke: #fff;
+  stroke-opacity: .6;
+  stroke-width: 2px;
+  fill-opacity: .1;
+  shape-rendering: crispEdges;
+}
+.sr-flip-glyph {
+  transform: scaleX(-1);
+  filter: FlipH;
+  -ms-filter: "FlipH";
+}
+.sr-rotate-glyph {
+  transform: rotate(-45deg);
+}
+.sr-circle-glyph {
+  font-size: 24px;
+  line-height: 13px;
+  position: relative;
+  top: 3px;
+}
+
+.sr-plot .dicom-roi {
+  fill: none;
+  stroke-width: 4px;
+  stroke-dasharray: 5,5;
+  stroke-width: 2px;
+  fill-rule: evenodd;
+  pointer-events: none;
+}
+.sr-plot .dicom-roi-selected {
+  stroke-dasharray: 1,0;
+}
+.sr-plot .dicom-roi-drawing {
+  stroke-width: 2px;
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-dragpath {
+  stroke: #fff;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+  pointer-events: none;
+}
+.sr-plot .dicom-dragpath:hover {
+  stroke-opacity: 0.1;
+}
+.sr-plot .plane-dragline {
+  stroke: red;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+  pointer-events: none;
+}
+.sr-plot .selectable-path {
+  pointer-events: visibleStroke;
+}
+.sr-plot .plane-dragline:hover {
+  stroke-opacity: 0.3;
+  stroke: steelblue;
+}
+.sr-plot .plane-dragline-x {
+  cursor: ew-resize;
+}
+.sr-plot .plane-dragline-y {
+  cursor: ns-resize;
+}
+.sr-plot .dicom-dragpath-move {
+  cursor: move;
+}
+.sr-plot .dicom-dragpath-select {
+  cursor: auto;
+}
+.sr-plot .dicom-roimode-draw {
+  cursor: crosshair;
+}
+.sr-plot .dicom-draw-start {
+  stroke: rgb(0,230,0);
+  stroke-width: 1px;
+  fill: none;
+}
+.dicom-button-panel {
+  margin-bottom: 1ex;
+}
