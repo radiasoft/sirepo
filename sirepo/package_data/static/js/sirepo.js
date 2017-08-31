@@ -2110,11 +2110,11 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             item.isOpen = true;
             setActiveFolder(item);
             var current = item;
-            while ( !self.isRootFolder(current) ) {
+            while (current != rootFolder()) {
                 current = current.parent;
                 current.isOpen = true;
             }
-       }
+        }
         else {
             requestSender.localRedirect('source', {
                 ':simulationId': item.simulationId,
@@ -2127,7 +2127,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             return '/';
         }
         var path = '/' + folder.name;
-        while ( !self.isRootFolder(folder.parent) ) {
+        while (folder.parent != rootFolder()) {
             folder = folder.parent;
             path = '/' + folder.name + path;
         }
