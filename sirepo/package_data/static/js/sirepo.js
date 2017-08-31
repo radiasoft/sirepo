@@ -2260,7 +2260,10 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                 if( lPath === folderPath ) {
                     return item;
                 }
-                return folderForPathInList(folderPath, item.children);
+                var childFolder = folderForPathInList(folderPath, item.children);
+                if( childFolder ) {
+                    return childFolder;
+                }
             }
         }
         return null;
