@@ -119,7 +119,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 
     $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
-           appState.loadModels($route.current.params.simulationId);
+            appState.loadModels($route.current.params.simulationId);
         }
     });
 
@@ -1015,7 +1015,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         var routeName = routeOrParams;
         if (angular.isObject(routeOrParams)) {
             routeName = routeOrParams.routeName;
-            if (!routeName) {
+            if (! routeName) {
                 throw routeOrParams + ': routeName must be supplied';
             }
             if (angular.isDefined(params)) {
@@ -1025,7 +1025,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             params = angular.copy(routeOrParams);
             delete params.routeName;
         }
-        if (!map[routeName]) {
+        if (! map[routeName]) {
             throw routeName + ': routeName not found';
         }
         var url = map[routeName];
