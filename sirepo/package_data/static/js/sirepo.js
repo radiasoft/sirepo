@@ -1793,7 +1793,6 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.copyButton = function() {
-        srdbg('copyButton');
         requestSender.sendRequest(
             'copyNonSessionSimulation',
             function(data) {
@@ -1812,7 +1811,6 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.openButton = function() {
-        srdbg('openButton');
         requestSender.localRedirect('source', {
             ':simulationId': self.userCopySimulationId,
         });
@@ -1899,7 +1897,6 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             searchFolder = rootFolder();
             res = [searchFolder];
         }
-        srdbg('listing ex', excludeFolder, 'res', res, 'search', searchFolder);
         for (var i = 0; i < searchFolder.children.length; i++) {
             var child = searchFolder.children[i];
             if (child.isFolder && child != excludeFolder) {

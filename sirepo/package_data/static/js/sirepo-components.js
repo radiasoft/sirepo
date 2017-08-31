@@ -398,7 +398,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             $scope.clearViewValue = function(model) {
                 model.$setViewValue('');
                 model.$render();
-            }
+            };
 
         },
     };
@@ -1025,7 +1025,7 @@ SIREPO.app.directive('safePath', function() {
                     scope.warningText = scope.info[0] + unsafe_path_warn;
                 }
                 return !scope.showWarning;
-            }
+            };
 
             // broadcast by root scope
             scope.$on('cancelChanges', function(e, data) {
