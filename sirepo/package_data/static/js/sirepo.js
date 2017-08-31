@@ -2123,7 +2123,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     };
 
     self.pathName = function(folder) {
-        if (self.isRootFolder(folder) || !folder.parent ) {
+        if (self.isRootFolder(folder)) {
             return '/';
         }
         var path = '/' + folder.name;
@@ -2202,8 +2202,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             self.sortField = field;
         }
     };
-
-
+    
     clearModels();
     $scope.$on('simulation.changed', function() {
         appState.models.simulation.folder = self.pathName(self.activeFolder);
