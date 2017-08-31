@@ -2499,7 +2499,7 @@ SIREPO.app.directive('distributionType', function() {
             $scope.distLabels = ($scope.info[4] || '').split(/\s*,\s*/);
             $scope.didChange = function(item) {
                 $scope.field = $scope.distributions.join(', ');
-            };
+            }
         },
     };
 });
