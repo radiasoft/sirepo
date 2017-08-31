@@ -47,7 +47,6 @@ _ZIP_FILE_NAME = 'input.zip'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    pkdp('report: {}', report)
     data_path = run_dir.join(template_common.INPUT_BASE_NAME)
     if not os.path.exists(str(simulation_db.json_filename(data_path))):
         return {
