@@ -117,7 +117,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
             : null;
     };
 
-    $rootScope.$on('$routeChangeSuccess', function(evt,current,prev) {
+    $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
            appState.loadModels($route.current.params.simulationId);
         }
@@ -137,7 +137,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var savedModelValues = {};
     var activeFolderPath = null;
 
-    // NEW
     var appActiveFolder = null;
     var appFileTree = [
         {
@@ -348,7 +347,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return activeFolderPath;
     };
 
-    // NEW
     self.getActiveFolder = function() {
         return appActiveFolder;
     };
@@ -516,7 +514,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         activeFolderPath = path;
     };
 
-    // NEW
     self.setActiveFolder = function(item) {
         appActiveFolder = item;
     };
@@ -999,7 +996,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _, $route) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1035,15 +1032,14 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
 
         if (params) {
             for (var k in params) {
-                var kIndex = url.indexOf(k);
-                if (kIndex < 0) {
+                if (url.indexOf(k) < 0) {
                     throw k + ': param not found in route: ' + map[routeName];
                 }
-                var encodedVal = encodeURIComponent(serializeValue(params[k], k));
-                    url = url.replace(k, encodedVal);
+                url = url.replace(
+                    k,
+                    encodeURIComponent(serializeValue(params[k], k)));
             }
         }
-
         // remove optional params missed and then that were replaced
         url = url.replace(/\/\?<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
@@ -1051,7 +1047,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         if (missing) {
             throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         }
-
         return url;
     }
 
@@ -1787,9 +1782,6 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 
     self.cancelButton = function() {
         requestSender.localRedirect('simulations');
-        //requestSender.localRedirect('simulations', {
-        //    ':folderPath?' : ''
-        //});  // to current folder?
     };
 
     self.copyButton = function() {
@@ -1823,7 +1815,7 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, activeSection, $location, $scope, $window, $route) {
+SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, activeSection, $location, $scope, $window) {
 
     var self = this;
 
