@@ -30,13 +30,13 @@ angular.element(document).ready(function() {
 });
 
 SIREPO.appLocalRoutes = {
-    simulations: '/simulations/:folderPath?',
+    simulations: '/simulations',
+    simulationsFolder: '/simulations/:folderPath?',
     source: '/source/:simulationId',
     loggedOut: '/logged-out',
     notFound: '/not-found',
     notFoundCopy: '/copy-session/:simulationIds',
 };
-SIREPO.appRouteParams = {};
 
 SIREPO.appDefaultSimulationValues = {
     simulation: {},
@@ -88,7 +88,11 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
         })
-        .when(localRoutes.notFound, {
+        .when(localRoutes.simulationsFolder, {
+            controller: 'SimulationsController as simulations',
+            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
+        })
+       .when(localRoutes.notFound, {
             templateUrl: '/static/html/not-found.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.notFoundCopy, {
@@ -100,7 +104,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         });
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, $routeParams) {
+SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -113,49 +117,10 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
             : null;
     };
 
-    $rootScope.$on('$routeChangeStart', function(evt,next,current) {
-        srdbg('SIREPO Route Start to', next, 'from', current, 'with route params', $routeParams);
-        //alert('route start');
-    });
-    $rootScope.$on('$routeUpdate', function(evt,current) {
-        srdbg('SIREPO Route Update to', current, 'with route params', $routeParams);
-    });
     $rootScope.$on('$routeChangeSuccess', function(evt,current,prev) {
-       srdbg('SIREPO Route Success to', current, 'from', prev);
-       srdbg('SIREPO Route Success: New route params:', $routeParams);
-       srdbg('SIREPO Route Success: Existing stored params:',  SIREPO.appRouteParams);
-
-       for( var p in $routeParams ) {
-           srdbg('SIREPO Route Success: Checking route param for', p);
-           for( var rp in SIREPO.appRouteParams ) {
-               srdbg('SIREPO Route Success: Checking stored params for', rp);
-               var rv = SIREPO.appRouteParams[rp];  // parameters
-               if( rv[p] ) {
-                   srdbg('SIREPO Route Success: Setting param', p, 'to', rv[p]);
-                   $route.updateParams(rv);
-               }
-           }
-       }
-
-       //if ($route.current.params.simulationId) {
-
-       if ($routeParams.simulationId) {
-           // KLUGE - why leading :?
-           var newSimID =  $routeParams.simulationId.replace(/^:/,'');
-           srdbg('SIREPO Route Success: Will load models for', newSimID);
-           //appState.loadModels($route.current.params.simulationId);
-           appState.loadModels(newSimID);
+        if ($route.current.params.simulationId) {
+           appState.loadModels($route.current.params.simulationId);
         }
-    });
-    $rootScope.$on('$routeChangeError', function(a,b) {
-        srdbg('routeChangeError', b);
-    });
-
-    $rootScope.$on('$locationChangeStart', function(evt, newurl, oldurl) {
-        srdbg('SIREPO Location Start to', newurl, 'from', oldurl);
-    });
-    $rootScope.$on('$locationChangeSuccess', function(evt, newurl, oldurl) {
-       srdbg('SIREPO Location Success to', newurl, 'from', oldurl);
     });
 
     return self;
@@ -171,6 +136,17 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var autoSaveTimer = null;
     var savedModelValues = {};
     var activeFolderPath = null;
+
+    // NEW
+    var appActiveFolder = null;
+    var appFileTree = [
+        {
+            name: '/',
+            isFolder: true,
+            children: [],
+        },
+    ];
+    var appFlatFileArray = [];
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -372,6 +348,17 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return activeFolderPath;
     };
 
+    // NEW
+    self.getActiveFolder = function() {
+        return appActiveFolder;
+    };
+    self.getAppFileTree = function () {
+        return appFileTree;
+    };
+    self.getAppFlatFileArray = function () {
+        return appFlatFileArray;
+    };
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -396,7 +383,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.loadModels = function(simulationId, callback) {
-        srdbg('Loading models for', simulationId);
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
@@ -412,7 +398,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
                         ':simulationIds': data.redirect.simulationId
-                        //'simulationIds': data.redirect.simulationId
                             + (data.redirect.userCopySimulationId
                                ? ('-' + data.redirect.userCopySimulationId)
                                : ''),
@@ -529,6 +514,17 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 
     self.setActiveFolderPath = function(path) {
         activeFolderPath = path;
+    };
+
+    // NEW
+    self.setActiveFolder = function(item) {
+        appActiveFolder = item;
+    };
+    self.setAppFileTree = function (tree) {
+        appFileTree = tree;
+    };
+    self.setFlatAppFileArray = function (arr) {
+        appFlatFileArray = arr;
     };
 
     self.setModelDefaults = function(model, modelName) {
@@ -999,7 +995,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _, $route, $routeParams) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _, $route) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1031,36 +1027,20 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         if (!map[routeName]) {
             throw routeName + ': routeName not found';
         }
-
         var url = map[routeName];
-        srdbg('Formatting URL', url, 'for', routeName, 'with params', params);
-
 
         if (params) {
-            srdbg('Formatting', Object.keys(params).length, 'params', params);
             for (var k in params) {
                 var kIndex = url.indexOf(k);
                 if (kIndex < 0) {
                     throw k + ': param not found in route: ' + map[routeName];
                 }
-                // if params are in <angle_bracket_stye>, replace it here...
-                if( url.substr(kIndex-1, 1) != ':' ) {
-                    var encodedVal = encodeURIComponent(serializeValue(params[k], k));
-                    url = url.replace(
-                        k,
-                        encodedVal
-                    );
-                }
-                // ...otherwise wait for $routeChangeSuccess to replace the parameters
-                else {
-                    srdbg('Will use updateParams to sub', k, 'with', params[k]);
-                }
+                var encodedVal = encodeURIComponent(serializeValue(params[k], k));
+                    url = url.replace(k, encodedVal);
             }
         }
-        srdbg('Intermediate URL', url, 'route params', $routeParams );
 
         // remove optional params missed and then that were replaced
-
         url = url.replace(/\/\?<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
         var missing = url.match(/<[^>]+>/g);
@@ -1068,7 +1048,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         }
 
-        if( $route.current ) { srdbg('Final URL', url, 'route params', $routeParams ); }
         return url;
     }
 
@@ -1097,7 +1076,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     }
 
     self.formatAuthUrl = function(oauthType) {
-        srdbg('Formatting URL auth for', oauthType);
         return self.formatUrl('oauthLogin', {
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<oauth_type>': oauthType,
@@ -1105,12 +1083,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     };
 
     self.formatUrlLocal = function(routeName, params) {
-        srdbg('Formatting URL Local for', routeName);
         return formatUrl(localRoutes, routeName, params);
     };
 
     self.formatUrl = function(routeName, params) {
-        srdbg('Formatting URL from global schema for', routeName);
         return formatUrl(SIREPO.APP_SCHEMA.route, routeName, params);
     };
 
@@ -1160,8 +1136,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     };
 
     self.localRedirect = function(routeName, params) {
-        srdbg('Redirecting for', routeName);
-        SIREPO.appRouteParams[routeName] = params;
         $location.path(self.formatUrlLocal(routeName, params));
     };
 
@@ -1189,7 +1163,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 1
             );
         }
-        srdbg('Sending req to', url, 'with data', data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
@@ -1725,30 +1698,19 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
 SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
-    srdbg('***** NavController');
     function openSection(name) {
-        srdbg('opening section ', name);
         requestSender.localRedirect(name, sectionParams(name));
     }
 
     function sectionParams(name) {
-        //srdbg('getting params for section ', name);
-        if( name === 'simulations' ) {
-            //srdbg('getting params for section ', name);
+        if( name === 'simulationsFolder' ) {
             return {
-                'folderPath': ''
+                ':folderPath?': ''
             };
         }
-        /*
         if (requestSender.isRouteParameter(name, ':simulationId') && appState.isLoaded()) {
             return {
                 ':simulationId': appState.models.simulation.simulationId,
-            };
-        }
-        */
-        if (requestSender.isRouteParameter(name, 'simulationId') && appState.isLoaded()) {
-            return {
-                'simulationId': appState.models.simulation.simulationId,
             };
         }
         return {};
@@ -1814,7 +1776,6 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
 });
 
 SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
-    srdbg('***** NotFoundCopyController');
     var self = this;
     var ids = $route.current.params.simulationIds.split('-');
     self.simulationId = ids[0];
@@ -1824,7 +1785,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
         requestSender.localRedirect('simulations');
         //requestSender.localRedirect('simulations', {
         //    ':folderPath?' : ''
-        //});
+        //});  // to current folder?
     };
 
     self.copyButton = function() {
@@ -1833,8 +1794,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
             'copyNonSessionSimulation',
             function(data) {
                 requestSender.localRedirect('source', {
-                    //':simulationId': data.models.simulation.simulationId,
-                    'simulationId': data.models.simulation.simulationId,
+                    ':simulationId': data.models.simulation.simulationId,
                 });
             },
             {
@@ -1850,24 +1810,24 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     self.openButton = function() {
         srdbg('openButton');
         requestSender.localRedirect('source', {
-            //':simulationId': self.userCopySimulationId,
-            'simulationId': self.userCopySimulationId,
+            ':simulationId': self.userCopySimulationId,
         });
     };
 });
 
 SIREPO.app.controller('LoggedOutController', function (requestSender) {
-    srdbg('***** LoggedOutController');
     var self = this;
     self.anonymousUrl = requestSender.formatAuthUrl('anonymous');
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window, $route, $routeParams) {
-    srdbg('***** SimulationsController');
+SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, activeSection, $location, $scope, $window, $route) {
+
     var self = this;
+
+    self.fileTree = appState.getAppFileTree();
     var SORT_DESCENDING = '-';
-    self.activeFolder = null;
+    self.activeFolder = appState.getActiveFolder();
     self.activeFolderPath = [];
     self.listColumns = [
         {
@@ -1880,10 +1840,8 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         }];
     //TODO(pjm): store view state in db preference or client cookie
     self.isIconView = true;
-    self.fileTree = [];
     self.selectedItem = null;
     self.sortField = 'name';
-
 
     function addToTree(item) {
         var path = item.folder == '/'
@@ -1917,6 +1875,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             }
             currentFolder = folder;
         }
+
         var newItem = {
             parent: currentFolder,
             name: item.name,
@@ -1936,6 +1895,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             searchFolder = rootFolder();
             res = [searchFolder];
         }
+        srdbg('listing ex', excludeFolder, 'res', res, 'search', searchFolder);
         for (var i = 0; i < searchFolder.children.length; i++) {
             var child = searchFolder.children[i];
             if (child.isFolder && child != excludeFolder) {
@@ -1947,34 +1907,46 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     }
 
     function loadList() {
-        var showItem = null;
-        var activeFolder = appState.getActiveFolderPath();
         appState.listSimulations(
             $location.search(),
             function(data) {
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
-                self.fileTree = [
-                    {
-                        name: '/',
-                        isFolder: true,
-                        children: [],
-                    },
-                ];
+                // persist the file tree
+                if( !self.fileTree || self.fileTree.length == 0 ) {
+                    self.fileTree = [
+                        {
+                            name: '/',
+                            isFolder: true,
+                            children: [],
+                        },
+                    ];
+                    appState.setAppFileTree(self.fileTree);
+                }
+                var flatArray = appState.getAppFlatFileArray();
                 for (var i = 0; i < data.length; i++) {
-                    var item = addToTree(data[i]);
-                    if (activeFolder && data[i].folder == activeFolder) {
-                        showItem = item;
+                    if( !isSimInArray(data[i], flatArray) ) {
+                        flatArray.push(data[i]);
+                        var item = addToTree(data[i]);
                     }
                 }
-                if (showItem) {
-                    self.openItem(showItem.parent);
-                }
-                else {
-                    self.openItem(rootFolder());
-                }
+                checkURLForFolder();
             });
+    }
+    // compares simulationID only
+    function isSimInArray(sim, arr) {
+        return indexOfSimInArray(sim, arr) >= 0;
+    }
+    function indexOfSimInArray(sim, arr) {
+        for( var i = 0; i < arr.length; ++i ) {
+            if( sim.simulationId && arr[i].simulationId ) {
+                if( sim.simulationId === arr[i].simulationId  ) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     function removeItemFromFolder(item) {
@@ -2006,14 +1978,27 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             item = item.parent;
         }
         appState.setActiveFolderPath(self.pathName(self.activeFolder));
+        appState.setActiveFolder(self.activeFolder);
         if( prevPath !== self.pathName(self.activeFolder) ) {
-            var params = {
-                        'folderPath': self.pathName(self.activeFolder).replace(/^\//,'').replace(/\//g, '_'),
-                    };
-            srdbg('setActiveFolder: Updating params', $routeParams, 'to', params);
-            // don't redirect, just update params directly ($location.path does not change)
-            $route.updateParams(params);
+            var compoundPath = pathToCompoundPath(self.pathName(self.activeFolder));
+            if( compoundPath == '' ) {
+                requestSender.localRedirect('simulations');
+            }
+            else {
+                var params = {
+                    ':folderPath?': compoundPath,
+                };
+                requestSender.localRedirect('simulationsFolder', params);
+            }
         }
+    }
+
+    function pathToCompoundPath(path) {
+        return path.replace(/^\//,'').replace(/\//g, '_');
+    }
+    function compoundPathToPath(compoundPath) {
+        var cp = compoundPath.replace(/_/g, '\/');
+        return cp === '' ? '/' : cp;
     }
 
     function updateSelectedFolder(oldPath) {
@@ -2132,26 +2117,24 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             item.isOpen = true;
             setActiveFolder(item);
             var current = item;
-            while (current != rootFolder()) {
+            while ( !self.isRootFolder(current) ) {
                 current = current.parent;
                 current.isOpen = true;
             }
        }
         else {
-            srdbg('openItem ', item.simulationId);
             requestSender.localRedirect('source', {
-                //':simulationId': item.simulationId,
-                'simulationId': item.simulationId,
+                ':simulationId': item.simulationId,
             });
         }
     };
 
     self.pathName = function(folder) {
-        if (self.isRootFolder(folder)) {
+        if (self.isRootFolder(folder) || !folder.parent ) {
             return '/';
         }
         var path = '/' + folder.name;
-        while (folder.parent != rootFolder()) {
+        while ( !self.isRootFolder(folder.parent) ) {
             folder = folder.parent;
             path = '/' + folder.name + path;
         }
@@ -2250,4 +2233,44 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         appState.saveQuietly('simulationFolder');
     });
     loadList();
+
+    // invoked in loadList() callback
+    function checkURLForFolder() {
+
+        var pathNoSectionRE = new RegExp('^\/' + activeSection.getActiveSection());
+        var decodedPath = decodeURI($location.path());
+        var canonicalPath = compoundPathToPath(decodedPath.replace(pathNoSectionRE, ''));
+
+        if( canonicalPath !== (appState.getActiveFolderPath() || '/') ) {
+            var fList = [rootFolder()];
+            var newFolder = folderForPathInList(canonicalPath, fList);
+            if( newFolder ) {
+                appState.setActiveFolderPath(canonicalPath);
+                appState.setActiveFolder(newFolder);
+                self.openItem(newFolder);
+            }
+            else {
+                requestSender.localRedirect('notFound');
+            }
+        }
+        else {
+            if( !appState.getActiveFolder() ) {
+                self.openItem(rootFolder());
+            }
+        }
+    }
+    function folderForPathInList (folderPath, folderList) {
+        for( var i = 0; i < folderList.length; ++i ) {
+            var item = folderList[i];
+            if( item.isFolder ) {
+                var lPath = self.pathName(item);
+                if( lPath === folderPath ) {
+                    return item;
+                }
+                return folderForPathInList(folderPath, item.children);
+            }
+        }
+        return null;
+    }
+
 });
