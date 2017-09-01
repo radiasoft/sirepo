@@ -1333,6 +1333,8 @@ SIREPO.app.service('plotToPNG', function($http) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');
                     css.type = 'text/css';
+                    // work-around bug fix #857, canvg.js doesn't handle non-standard css
+                    response.data = response.data.replace('input::-ms-clear', 'ms-clear');
                     css.appendChild(document.createTextNode(response.data));
                     svg.insertBefore(css, svg.firstChild);
                 }
