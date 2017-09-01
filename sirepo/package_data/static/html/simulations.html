@@ -67,7 +67,7 @@
 <div data-confirmation-modal="" data-id="sr-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()">Delete simulation &quot;{{ simulations.selectedItem.name }}&quot;?</div>
 
 <div data-confirmation-modal="" data-id="sr-rename-confirmation" data-title="Rename {{ simulations.selectedItemType() }}" data-ok-text="Rename" data-ok-clicked="simulations.renameSelected()">
-  <form class="form-horizontal">
+  <form class="form-horizontal" autocomplete="off">
     <label class="col-sm-3 control-label">New Name</label>
     <div class="col-sm-9">
       <input class="form-control" data-ng-model="simulations.renameName" />
@@ -76,7 +76,7 @@
 </div>
 
 <div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ simulations.selectedItemType() }}" data-ok-text="Create Copy" data-ok-clicked="simulations.copySelected()">
-  <form class="form-horizontal">
+  <form class="form-horizontal"autocomplete="off">
     <label class="col-sm-3 control-label">New Name</label>
     <div class="col-sm-9">
       <input class="form-control" data-ng-model="simulations.copyName" />
@@ -85,7 +85,7 @@
 </div>
 
 <div data-confirmation-modal="" data-id="sr-move-confirmation" data-title="Move {{ simulations.selectedItemType() }}" data-ok-text="Move" data-ok-clicked="simulations.moveSelected()">
-  <form class="form-horizontal">
+  <form class="form-horizontal" autocomplete="off">
     <label class="col-sm-3 control-label">New Folder</label>
     <div class="col-sm-9">
       <select class="form-control" data-ng-model="simulations.targetFolder" data-ng-options="folder as simulations.pathName(folder) for folder in simulations.moveFolderList"></select>

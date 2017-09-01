@@ -1,0 +1,31 @@
+{
+    "models": {
+        "dicomAnimation": {
+            "dicomPlane": "t"
+        },
+        "dicomAnimation2": {
+            "dicomPlane": "s"
+        },
+        "dicomAnimation3": {
+            "dicomPlane": "c"
+        },
+        "dicomSeries": {},
+        "dicomWindow": {
+            "center": 0,
+            "width": 400
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "test",
+            "outOfSessionSimulationId": "",
+            "simulationId": "bEx5S3NV",
+            "simulationSerial": 1494020123970251
+        }
+    },
+    "simulationType": "rs4pi",
+    "version": "20170515.000000"
+}

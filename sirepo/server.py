@@ -341,7 +341,9 @@ def api_importFile(simulation_type=None):
             ValueError('must supply a file')
         if pkio.has_file_extension(f.filename, 'json'):
             data = sirepo.importer.read_json(f.read(), template)
-        elif pkio.has_file_extension(f.filename, 'zip'):
+        #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
+        # (dicom input is normally a zip file)
+        elif pkio.has_file_extension(f.filename, 'zip') and simulation_type != 'rs4pi':
             data = sirepo.importer.read_zip(f.stream, template)
         else:
             assert simulation_type, \

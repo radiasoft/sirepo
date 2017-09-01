@@ -268,6 +268,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         if (autoSaveTimer) {
             $interval.cancel(autoSaveTimer);
         }
+        $rootScope.$broadcast('modelsUnloaded');
     };
 
     self.clone = function(obj) {
@@ -532,7 +533,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             // elegant uses '-' in modelKey
             f = propertyToIndexForm(f);
             $scope.$watch('appState.models' + f, function (newValue, oldValue) {
-                if (self.isLoaded() && newValue !== null && newValue !== oldValue) {
+                if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1);
                 }
@@ -676,6 +677,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             masterFrameCount = frameCount;
         }
     };
+
+    $rootScope.$on('modelsUnloaded', function() {
+        masterFrameCount = 0;
+        frameCountByModelKey = {};
+        self.animationInfo = {};
+    });
 
     return self;
 });
@@ -1458,6 +1465,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
         }
 
         function persistentSimulationInit($scope) {
+            if (! controller.model) {
+                throw 'missing persistentSimulation model';
+            }
             setSimulationStatus({state: 'stopped'});
             frameCache.setFrameCount(0);
             $scope.$on('$destroy', controller.clearSimulation);

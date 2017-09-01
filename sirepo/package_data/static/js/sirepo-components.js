@@ -19,7 +19,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
         },
         template: [
             '<h5 data-ng-if="description">{{ description }}</h5>',
-            '<form name="form" class="form-horizontal" novalidate>',
+            '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
@@ -1161,6 +1161,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
               '</div>',
               '<div data-ng-transclude=""></div>',
             '</div>',
@@ -1332,6 +1333,8 @@ SIREPO.app.service('plotToPNG', function($http) {
                 if (svg.firstChild.nodeName != 'STYLE') {
                     var css = document.createElement('style');
                     css.type = 'text/css';
+                    // work-around bug fix #857, canvg.js doesn't handle non-standard css
+                    response.data = response.data.replace('input::-ms-clear', 'ms-clear');
                     css.appendChild(document.createTextNode(response.data));
                     svg.insertBefore(css, svg.firstChild);
                 }
