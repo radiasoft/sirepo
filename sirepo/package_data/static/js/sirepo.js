@@ -1665,7 +1665,8 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
-SIREPO.app.factory('fileManager', function() {
+SIREPO.app.factory('fileManager', function(requestSender) {
+    var COMPOUND_PATH_SEPARATOR = ':';
     var self = {};
 
     var activeFolderPath = null;
@@ -1679,6 +1680,19 @@ SIREPO.app.factory('fileManager', function() {
         },
     ];
     var simList = [];
+
+    function compoundPathToPath(compoundPath) {
+        var p = compoundPath.replace(new RegExp(COMPOUND_PATH_SEPARATOR, 'g'), '\/');
+        return p === '' ? '/' : p;
+    }
+
+    function pathToCompoundPath(path) {
+        return path.replace(/^\//,'').replace(/\//g, COMPOUND_PATH_SEPARATOR);
+    }
+
+    self.decodePath = function(path) {
+        return compoundPathToPath(decodeURIComponent(path));
+    };
 
     self.getActiveFolderPath = function() {
         return activeFolderPath;
@@ -1700,22 +1714,29 @@ SIREPO.app.factory('fileManager', function() {
         return fileTree;
     };
 
-    self.setFileTree = function (tree) {
-        fileTree = tree;
-    };
-
     self.getSimList = function () {
         return simList;
     };
 
-    self.setSimList = function (arr) {
-        simList = arr;
+    self.redirectToPath = function(path) {
+        var compoundPath = pathToCompoundPath(path);
+        if (compoundPath == '') {
+            requestSender.localRedirect('simulations');
+        }
+        else {
+            requestSender.localRedirect(
+                'simulationsFolder',
+                {
+                    ':folderPath?': compoundPath,
+                }
+            );
+        }
     };
 
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $window) {
     var self = this;
 
     function openSection(name) {
@@ -1742,8 +1763,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
 
     self.openSection = function(name) {
         if (name == 'simulations' && appState.isLoaded()) {
+            var path = appState.models.simulation.folder;
             appState.autoSave(function() {
-                openSection(name);
+                // return to the simulation's folder
+                fileManager.redirectToPath(path);
             });
         }
         else {
@@ -1841,7 +1864,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
 
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
-    var compound_path_separator = ':';
     self.activeFolder = fileManager.getActiveFolder();
     self.activeFolderPath = [];
     self.listColumns = [
@@ -1972,27 +1994,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         if (prevPath === self.pathName(self.activeFolder)) {
             return;
         }
-        var compoundPath = pathToCompoundPath(self.pathName(self.activeFolder));
-        if (compoundPath == '') {
-            requestSender.localRedirect('simulations');
-        }
-        else {
-            requestSender.localRedirect(
-                'simulationsFolder',
-                {
-                    ':folderPath?': compoundPath,
-                }
-            );
-        }
-    }
-
-    function pathToCompoundPath(path) {
-        return path.replace(/^\//,'').replace(/\//g, compound_path_separator);
-    }
-    function compoundPathToPath(compoundPath) {
-        var p = compoundPath.replace(new RegExp(compound_path_separator, 'g'), '\/');
-        p = p === '' ? '/' : p;
-        return p;
+        fileManager.redirectToPath(self.pathName(self.activeFolder));
     }
 
     function updateSelectedFolder(oldPath) {
@@ -2203,7 +2205,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             self.sortField = field;
         }
     };
-    
+
     clearModels();
     $scope.$on('simulation.changed', function() {
         appState.models.simulation.folder = self.pathName(self.activeFolder);
@@ -2234,11 +2236,11 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             self.openItem(rootFolder());
         }
         else {
-            var canonicalPath = compoundPathToPath(decodeURIComponent($location.path()).replace('/simulations', ''));
+            var canonicalPath = fileManager.decodePath($location.path()).replace('/simulations', '');
             if (canonicalPath === fileManager.getActiveFolderPath()) {
                 return;
             }
-            
+
             var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
             if (newFolder) {
                 fileManager.setActiveFolderPath(canonicalPath);
@@ -2269,4 +2271,3 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     }
 
 });
-
