@@ -92,7 +92,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
         })
-       .when(localRoutes.notFound, {
+        .when(localRoutes.notFound, {
             templateUrl: '/static/html/not-found.html' + SIREPO.SOURCE_CACHE_KEY,
         })
         .when(localRoutes.notFoundCopy, {
@@ -135,17 +135,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
-    var activeFolderPath = null;
-
-    var appActiveFolder = null;
-    var appFileTree = [
-        {
-            name: '/',
-            isFolder: true,
-            children: [],
-        },
-    ];
-    var appFlatFileArray = [];
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -344,20 +333,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
-    self.getActiveFolderPath = function() {
-        return activeFolderPath;
-    };
-
-    self.getActiveFolder = function() {
-        return appActiveFolder;
-    };
-    self.getAppFileTree = function () {
-        return appFileTree;
-    };
-    self.getAppFlatFileArray = function () {
-        return appFlatFileArray;
-    };
-
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -509,20 +484,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 callback();
             }
         });
-    };
-
-    self.setActiveFolderPath = function(path) {
-        activeFolderPath = path;
-    };
-
-    self.setActiveFolder = function(item) {
-        appActiveFolder = item;
-    };
-    self.setAppFileTree = function (tree) {
-        appFileTree = tree;
-    };
-    self.setFlatAppFileArray = function (arr) {
-        appFlatFileArray = arr;
     };
 
     self.setModelDefaults = function(model, modelName) {
@@ -1704,6 +1665,56 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
+SIREPO.app.factory('folderManager', function() {
+    var self = {};
+
+    var activeFolderPath = null;
+
+    var activeFolder = null;
+    var fileTree = [
+        {
+            name: '/',
+            isFolder: true,
+            children: [],
+        },
+    ];
+    var simList = [];
+
+    self.getActiveFolderPath = function() {
+        return activeFolderPath;
+    };
+
+    self.setActiveFolderPath = function(path) {
+        activeFolderPath = path;
+    };
+
+    self.getActiveFolder = function() {
+        return activeFolder;
+    };
+
+    self.setActiveFolder = function(item) {
+        activeFolder = item;
+    };
+
+    self.getFileTree = function () {
+        return fileTree;
+    };
+
+    self.setFileTree = function (tree) {
+        fileTree = tree;
+    };
+
+    self.getSimList = function () {
+        return simList;
+    };
+
+    self.setSimList = function (arr) {
+        simList = arr;
+    };
+
+    return self;
+});
+
 SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
     var self = this;
 
@@ -1712,7 +1723,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     }
 
     function sectionParams(name) {
-        if( name === 'simulationsFolder' ) {
+        if (name === 'simulationsFolder') {
             return {
                 ':folderPath?': ''
             };
@@ -1825,13 +1836,13 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, activeSection, $location, $scope, $window) {
-
+SIREPO.app.controller('SimulationsController', function (appState, folderManager, panelState, requestSender, activeSection, $location, $scope, $window) {
     var self = this;
 
-    self.fileTree = appState.getAppFileTree();
+    self.fileTree = folderManager.getFileTree();
     var SORT_DESCENDING = '-';
-    self.activeFolder = appState.getActiveFolder();
+    var compound_path_separator = ':';
+    self.activeFolder = folderManager.getActiveFolder();
     self.activeFolderPath = [];
     self.listColumns = [
         {
@@ -1916,45 +1927,21 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
-                // persist the file tree
-                if( !self.fileTree || self.fileTree.length == 0 ) {
-                    self.fileTree = [
-                        {
-                            name: '/',
-                            isFolder: true,
-                            children: [],
-                        },
-                    ];
-                    appState.setAppFileTree(self.fileTree);
-                }
-                var flatArray = appState.getAppFlatFileArray();
+                var simList = folderManager.getSimList();
                 for (var i = 0; i < data.length; i++) {
-                    if( !isSimInArray(data[i], flatArray) ) {
-                        flatArray.push(data[i]);
+                    if (! simList.includes(data[i].simulationId)) {
+                        simList.push(data[i].simulationId);
                         var item = addToTree(data[i]);
                     }
                 }
                 checkURLForFolder();
             });
     }
-    // compares simulationID only
-    function isSimInArray(sim, arr) {
-        return indexOfSimInArray(sim, arr) >= 0;
-    }
-    function indexOfSimInArray(sim, arr) {
-        for( var i = 0; i < arr.length; ++i ) {
-            if( sim.simulationId && arr[i].simulationId ) {
-                if( sim.simulationId === arr[i].simulationId  ) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
 
     function removeItemFromFolder(item) {
         var parent = item.parent;
         parent.children.splice(parent.children.indexOf(item), 1);
+        folderManager.getSimList().splice(folderManager.getSimList().indexOf(item.simulationId), 1);
     }
 
     function renameSelectedItem() {
@@ -1980,28 +1967,32 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             self.activeFolderPath.unshift(item);
             item = item.parent;
         }
-        appState.setActiveFolderPath(self.pathName(self.activeFolder));
-        appState.setActiveFolder(self.activeFolder);
-        if( prevPath !== self.pathName(self.activeFolder) ) {
-            var compoundPath = pathToCompoundPath(self.pathName(self.activeFolder));
-            if( compoundPath == '' ) {
-                requestSender.localRedirect('simulations');
-            }
-            else {
-                var params = {
+        folderManager.setActiveFolderPath(self.pathName(self.activeFolder));
+        folderManager.setActiveFolder(self.activeFolder);
+        if (prevPath === self.pathName(self.activeFolder)) {
+            return;
+        }
+        var compoundPath = pathToCompoundPath(self.pathName(self.activeFolder));
+        if (compoundPath == '') {
+            requestSender.localRedirect('simulations');
+        }
+        else {
+            requestSender.localRedirect(
+                'simulationsFolder',
+                {
                     ':folderPath?': compoundPath,
-                };
-                requestSender.localRedirect('simulationsFolder', params);
-            }
+                }
+            );
         }
     }
 
     function pathToCompoundPath(path) {
-        return path.replace(/^\//,'').replace(/\//g, '_');
+        return path.replace(/^\//,'').replace(/\//g, compound_path_separator);
     }
     function compoundPathToPath(compoundPath) {
-        var cp = compoundPath.replace(/_/g, '\/');
-        return cp === '' ? '/' : cp;
+        var p = compoundPath.replace(new RegExp(compound_path_separator, 'g'), '\/');
+        p = p === '' ? '/' : p;
+        return p;
     }
 
     function updateSelectedFolder(oldPath) {
@@ -2239,43 +2230,43 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     // invoked in loadList() callback
     function checkURLForFolder() {
 
-        var pathNoSectionRE = new RegExp('^\/' + activeSection.getActiveSection());
-        var decodedPath = decodeURI($location.path());
-        var canonicalPath = compoundPathToPath(decodedPath.replace(pathNoSectionRE, ''));
-
-        if( canonicalPath !== (appState.getActiveFolderPath() || '/') ) {
-            var fList = [rootFolder()];
-            var newFolder = folderForPathInList(canonicalPath, fList);
-            if( newFolder ) {
-                appState.setActiveFolderPath(canonicalPath);
-                appState.setActiveFolder(newFolder);
+        if (! folderManager.getActiveFolder() ) {
+            self.openItem(rootFolder());
+        }
+        else {
+            var canonicalPath = compoundPathToPath(decodeURIComponent($location.path()).replace('/simulations', ''));
+            if (canonicalPath === folderManager.getActiveFolderPath()) {
+                return;
+            }
+            
+            var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
+            if (newFolder) {
+                folderManager.setActiveFolderPath(canonicalPath);
+                folderManager.setActiveFolder(newFolder);
                 self.openItem(newFolder);
             }
             else {
                 requestSender.localRedirect('notFound');
             }
         }
-        else {
-            if( !appState.getActiveFolder() ) {
-                self.openItem(rootFolder());
-            }
-        }
     }
     function folderForPathInList (folderPath, folderList) {
-        for( var i = 0; i < folderList.length; ++i ) {
+        for (var i = 0; i < folderList.length; ++i) {
             var item = folderList[i];
-            if( item.isFolder ) {
-                var lPath = self.pathName(item);
-                if( lPath === folderPath ) {
-                    return item;
-                }
-                var childFolder = folderForPathInList(folderPath, item.children);
-                if( childFolder ) {
-                    return childFolder;
-                }
+            if (! item.isFolder) {
+                continue;
+            }
+            var lPath = self.pathName(item);
+            if (lPath === folderPath) {
+                return item;
+            }
+            var childFolder = folderForPathInList(folderPath, item.children);
+            if (childFolder) {
+                return childFolder;
             }
         }
         return null;
     }
 
 });
+
