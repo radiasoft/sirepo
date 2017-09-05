@@ -2236,7 +2236,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             self.openItem(rootFolder());
         }
         else {
-            var canonicalPath = fileManager.decodePath($location.path()).replace('/simulations', '');
+            var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
             if (canonicalPath === fileManager.getActiveFolderPath()) {
                 return;
             }
