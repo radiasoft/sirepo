@@ -1665,7 +1665,7 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
-SIREPO.app.factory('folderManager', function() {
+SIREPO.app.factory('fileManager', function() {
     var self = {};
 
     var activeFolderPath = null;
@@ -1836,13 +1836,13 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, folderManager, panelState, requestSender, activeSection, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, $location, $scope, $window) {
     var self = this;
 
-    self.fileTree = folderManager.getFileTree();
+    self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
     var compound_path_separator = ':';
-    self.activeFolder = folderManager.getActiveFolder();
+    self.activeFolder = fileManager.getActiveFolder();
     self.activeFolderPath = [];
     self.listColumns = [
         {
@@ -1927,7 +1927,7 @@ SIREPO.app.controller('SimulationsController', function (appState, folderManager
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
-                var simList = folderManager.getSimList();
+                var simList = fileManager.getSimList();
                 for (var i = 0; i < data.length; i++) {
                     if (! simList.includes(data[i].simulationId)) {
                         simList.push(data[i].simulationId);
@@ -1941,7 +1941,7 @@ SIREPO.app.controller('SimulationsController', function (appState, folderManager
     function removeItemFromFolder(item) {
         var parent = item.parent;
         parent.children.splice(parent.children.indexOf(item), 1);
-        folderManager.getSimList().splice(folderManager.getSimList().indexOf(item.simulationId), 1);
+        fileManager.getSimList().splice(fileManager.getSimList().indexOf(item.simulationId), 1);
     }
 
     function renameSelectedItem() {
@@ -1967,8 +1967,8 @@ SIREPO.app.controller('SimulationsController', function (appState, folderManager
             self.activeFolderPath.unshift(item);
             item = item.parent;
         }
-        folderManager.setActiveFolderPath(self.pathName(self.activeFolder));
-        folderManager.setActiveFolder(self.activeFolder);
+        fileManager.setActiveFolderPath(self.pathName(self.activeFolder));
+        fileManager.setActiveFolder(self.activeFolder);
         if (prevPath === self.pathName(self.activeFolder)) {
             return;
         }
@@ -2230,19 +2230,19 @@ SIREPO.app.controller('SimulationsController', function (appState, folderManager
     // invoked in loadList() callback
     function checkURLForFolder() {
 
-        if (! folderManager.getActiveFolder() ) {
+        if (! fileManager.getActiveFolder() ) {
             self.openItem(rootFolder());
         }
         else {
             var canonicalPath = compoundPathToPath(decodeURIComponent($location.path()).replace('/simulations', ''));
-            if (canonicalPath === folderManager.getActiveFolderPath()) {
+            if (canonicalPath === fileManager.getActiveFolderPath()) {
                 return;
             }
             
             var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
             if (newFolder) {
-                folderManager.setActiveFolderPath(canonicalPath);
-                folderManager.setActiveFolder(newFolder);
+                fileManager.setActiveFolderPath(canonicalPath);
+                fileManager.setActiveFolder(newFolder);
                 self.openItem(newFolder);
             }
             else {
