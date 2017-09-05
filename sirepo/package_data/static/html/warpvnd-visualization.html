@@ -6,7 +6,7 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateProcessing()">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.isStateProcessing()">
             <div data-ng-show="visualization.isStatePending()">
               <div class="col-sm-12">
                  {{ visualization.stateAsText() }} {{ visualization.dots }}
@@ -30,7 +30,7 @@
               <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
             </div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateStopped()">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.isStateStopped()">
             <div class="col-sm-12" data-ng-show="visualization.getFrameCount() >= 1">
               Simulation
               <span>{{ visualization.stateAsText() }}</span><span>:

@@ -11,7 +11,7 @@ from pykern import pkcollections
 import copy
 
 #: All possible codes
-_ALL_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd')
+_ALL_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi')
 assert [] == [x for x in _ALL_CODES if len(x) >= 8], \
     'codes must be less than 8 characters (simulation_db._ID_LEN)'
 

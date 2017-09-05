@@ -335,7 +335,7 @@
             "fcyl": ["Cylindrical", "Boolean", "1"],
             "cil_ang": ["Cylinder Angle from X Axis [deg]", "CylindricalAngle", "0.0"],
             "refractionIndex": ["Refraction Index", "Float", 0.9999972289735028],
-            "attenuationCoefficient": ["Attenuation Coeficient [cm-1]", "Float", 24.37099514505769]
+            "attenuationCoefficient": ["Attenuation Coefficient [cm-1]", "Float", 24.37099514505769]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],

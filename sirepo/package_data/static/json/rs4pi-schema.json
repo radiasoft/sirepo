@@ -1,0 +1,93 @@
+{
+    "enum": {
+        "DicomPlane": [
+            ["c", "Coronal"],
+            ["t", "Transverse"],
+            ["s", "Sagittal"]
+        ]
+    },
+    "model": {
+        "dicomAnimation": {
+            "dicomPlane": ["Plane", "DicomPlane"],
+            "frameIndex": ["Frame Index", "Integer"]
+        },
+        "dicomAnimation2": {
+            "dicomPlane": ["Plane", "DicomPlane"],
+            "frameIndex": ["Frame Index", "Integer"]
+        },
+        "dicomAnimation3": {
+            "dicomPlane": ["Plane", "DicomPlane"],
+            "frameIndex": ["Frame Index", "Integer"]
+        },
+        "dicomEditorState": {
+            "editCounter": ["Edit Count", "Integer"],
+            "selectedPTV": ["PTV", "String"]
+        },
+        "dicomROI": {
+            "name": ["Name", "String"],
+            "color": ["Color", "String", "#ff0000"]
+        },
+        "dicomSeries": {
+            "description": ["Series Description", "String"]
+        },
+        "dicomWindow": {
+            "center": ["Window Center", "Float"],
+            "width": ["Window Width", "Float"]
+        },
+        "doseCalculation": {
+        },
+        "instance": {
+            "filePath": ["File Path", "String"]
+        },
+        "simulation": {
+            "name": ["Name", "String"]
+        },
+        "simulationFolder": {
+            "name": ["Folder Name", "String"]
+        },
+        "study": {
+            "description": ["Study Description", "String"]
+        }
+    },
+    "view": {
+        "dicomAnimation": {
+            "title": "DICOM Viewer",
+            "advanced": [
+                "dicomPlane",
+                "dicomWindow.center",
+                "dicomWindow.width"
+            ]
+        },
+        "dicomEditorState": {
+            "title": "DICOM Editor",
+            "advanced": []
+        },
+        "dicomROI": {
+            "title": "Region of Interest",
+            "advanced": [
+                "name",
+                "color"
+            ]
+        },
+        "dicomWindow": {
+            "title": "Dicom Window Aperture",
+            "basic": [
+                "center",
+                "width"
+            ],
+            "advanced": []
+        },
+        "simulation": {
+            "title": "DICOM Session",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    }
+}
