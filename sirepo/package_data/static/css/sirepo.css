@@ -786,14 +786,11 @@ li.sr-model-list-item > a {
   overflow: auto;
   max-height: 180px;
 }
-.elegant-dropdown-select {
+.elegant-list-value {
     display: inline-block;
     width: 10em;
     margin-right: 1em;
     margin-bottom: 4px;
-}
-.elegant-dropdown-label {
-    font-weight: 500;
 }
 
 .hellweg-icon {
