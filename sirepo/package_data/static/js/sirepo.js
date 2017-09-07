@@ -1736,7 +1736,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+
     var self = this;
 
     function openSection(name) {
@@ -1816,6 +1817,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+
+    $scope.$on('$locationChangeStart', function (event) {
+        $window.showPageLoader();
+    });
+    $scope.$on('$viewContentLoaded', function (event) {
+        $window.hidePageLoader();
+    });
+
+
 });
 
 SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {

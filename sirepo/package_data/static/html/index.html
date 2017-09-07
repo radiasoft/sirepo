@@ -16,8 +16,15 @@
       <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ source_cache_key }}"></script>
       <script src="/static/js/ext/msie/respond-1.4.2.min.js{{ source_cache_key }}"></script>
     <![endif]-->
+    <script src="/static/js/sirepo-pageLoad.js{{ source_cache_key }}"></script>
   </head>
   <body>
+    <div class="sr-page-load">
+      <img class="sr-page-load-image" src="/static/img/radtrack_animated.gif" />
+    </div>
+    <script type="text/javascript">
+      showPageLoader();
+    </script>
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div data-app-header="nav"></div>
