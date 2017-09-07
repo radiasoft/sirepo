@@ -13,9 +13,10 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import template_common
-from sirepo.template.elegant import extract_report_data, ELEGANT_LOG_FILE
+from sirepo.template.elegant import extract_report_data, parse_elegant_log, BUNCH_OUTPUT_FILE, ELEGANT_LOG_FILE
 import copy
 import os
+import py.path
 import re
 
 
@@ -28,7 +29,15 @@ def run(cfg_dir):
         cfg_dir (str): directory to run elegant in
     """
     with pkio.save_chdir(cfg_dir):
-        _run_elegant(bunch_report=True)
+        try:
+            _run_elegant(bunch_report=True)
+        except Exception as e:
+            err = parse_elegant_log(py.path.local(cfg_dir))
+            if not err:
+                err = ['A server error occurred']
+            simulation_db.write_result({
+                'error': err[0],
+            })
         _extract_bunch_report()
 
 
@@ -65,7 +74,7 @@ def _extract_bunch_report():
     if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
         fn = 'bunchFile-sourceFile.{}'.format(data['models']['bunchFile']['sourceFile'])
     else:
-        fn = 'elegant.bun'
+        fn = BUNCH_OUTPUT_FILE
     info = extract_report_data(
         fn,
         fn,
