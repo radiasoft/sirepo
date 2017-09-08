@@ -179,8 +179,10 @@ def fixup_old_data(data):
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
         for f in ('emit_x', 'emit_y', 'emit_z'):
-            bunch[f] /= 1e9
-        bunch['sigma_s'] /= 1e6
+            if bunch[f] and not isinstance(bunch[f], basestring):
+                bunch[f] /= 1e9
+        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
+            bunch['sigma_s'] /= 1e6
         first_bunch_command = None
         for m in data['models']['commands']:
             if m['_type'] == 'bunched_beam':
