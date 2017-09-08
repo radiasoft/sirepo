@@ -49,7 +49,10 @@ Simulation parameters:
 # ---------------------------------------------------------------------------------------
 
 # Import warp-specific packages
-from warp_init_tools import *
+try:
+    from warp.init_tools import *
+except ImportError:
+    from warp_init_tools import *
 
 # Basic imports
 import math
