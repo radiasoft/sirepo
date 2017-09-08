@@ -2082,7 +2082,7 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileUpload, requestSender) {
+SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -2308,7 +2308,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                     return;
                 }
                 var args = {
-                    folder: appState.getActiveFolderPath(),
+                    folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
                     args.simulationId = $scope.id;

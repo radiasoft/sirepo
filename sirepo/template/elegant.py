@@ -1021,8 +1021,6 @@ def _parameter_definitions(parameters):
 
 def _parse_expr(expr, variables):
     """If not infix, default to rpn"""
-    # for v in variables:
-    #     v['value'] = _infix_to_postfix(v['value'])
     return elegant_lattice_importer.parse_rpn_value(_infix_to_postfix(expr), variables)
 
 
