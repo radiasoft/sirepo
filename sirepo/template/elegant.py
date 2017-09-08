@@ -178,21 +178,22 @@ def fixup_old_data(data):
             m['mode'] = 'coordinate'
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
-        bunch['emit_x'] /= 1e9
-        bunch['emit_y'] /= 1e9
-        bunch['emit_z'] /= 1e9
+        for f in ('emit_x', 'emit_y', 'emit_z'):
+            bunch[f] /= 1e9
         bunch['sigma_s'] /= 1e6
         first_bunch_command = None
         for m in data['models']['commands']:
             if m['_type'] == 'bunched_beam':
                 first_bunch_command = m
                 break
+        # first_bunch_command may not exist if the elegant sim has no bunched_beam command
         if first_bunch_command:
             first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
             for f in _SCHEMA['model']['bunch']:
                 if f not in bunch and f in first_bunch_command:
                     bunch[f] = first_bunch_command[f]
-        assert 'centroid' in bunch
+        else:
+            bunch['centroid'] = '0,0,0,0,0,0'
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
