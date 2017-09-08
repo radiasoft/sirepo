@@ -314,7 +314,7 @@ SIREPO.app.directive('computeDoseForm', function(appState, persistentSimulation,
 });
 
 
-SIREPO.app.directive('dicomImportDialog', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -382,7 +382,7 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileUpload, request
                 fileUpload.uploadFileToUrl(
                     dicomFile,
                     {
-                        folder: appState.getActiveFolderPath(),
+                        folder: fileManager.getActiveFolderPath(),
                     },
                     requestSender.formatUrl(
                         'importFile',

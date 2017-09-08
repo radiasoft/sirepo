@@ -899,6 +899,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showField = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        // try show/hide immediately, followed by timeout if UI hasn't finished layout yet
+        showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         });
@@ -906,6 +908,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         });

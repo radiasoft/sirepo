@@ -32,7 +32,8 @@ SIREPO.appFieldEditors = [
       '<div data-ng-class="fieldClass">',
         '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
       '</div>',
-      '<div class="col-sm-2">',
+      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
+      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
         '<div data-rpn-static="" data-model="model" data-field="field"></div>',
       '</div>',
     '</div>',
@@ -42,8 +43,23 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
-    '<div data-ng-switch-when="DistributionType" data-ng-class="fieldClass">',
-        '<div data-distribution-type="" data-model="model" data-field="model[field]" data-info="info" data-type-list="enum[info[1]]"></div>',
+    '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="BooleanStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Boolean\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="RandomizeStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Randomize\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Integer3StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="3"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Integer6StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="6"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
     '</div>',
 ].join('');
 SIREPO.appDownloadLinks = [
@@ -179,40 +195,25 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
     }
 
     function updateBunchFromCommand(bunch, cmd) {
-        bunch.n_particles_per_bunch = cmd.n_particles_per_bunch;
-        bunch.emit_x = cmd.emit_x * 1e9;
-        bunch.beta_x = cmd.beta_x;
-        bunch.alpha_x = cmd.alpha_x;
-        bunch.emit_y = cmd.emit_y * 1e9;
-        bunch.beta_y = cmd.beta_y;
-        bunch.alpha_y = cmd.alpha_y;
+        Object.keys(cmd).forEach(function(f) {
+            if (f in bunch) {
+                bunch[f] = cmd[f];
+            }
+        });
         bunch.longitudinalMethod = cmd.dp_s_coupling !== 0
             ? 1 // sigma s, sigma dp, dp s coupling
             : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
                ? 3 // emit z, beta z, alpha z
                : 2); // sigma s, sigma dp, alpha z
-        bunch.sigma_s = cmd.sigma_s * 1e6;
-        bunch.sigma_dp = cmd.sigma_dp;
-        bunch.dp_s_coupling = cmd.dp_s_coupling;
-        bunch.emit_z = cmd.emit_z * 1e9;
-        bunch.beta_z = cmd.beta_z;
-        bunch.alpha_z = cmd.alpha_z;
     }
 
     function updateCommandFromBunch(cmd, bunch) {
-        cmd.n_particles_per_bunch = bunch.n_particles_per_bunch;
-        cmd.emit_x = bunch.emit_x / 1e9;
-        cmd.beta_x = bunch.beta_x;
-        cmd.alpha_x = bunch.alpha_x;
-        cmd.emit_y = bunch.emit_y / 1e9;
-        cmd.beta_y = bunch.beta_y;
-        cmd.alpha_y = bunch.alpha_y;
-        cmd.sigma_s = bunch.sigma_s / 1e6;
-        cmd.sigma_dp = bunch.sigma_dp;
-        cmd.dp_s_coupling = bunch.dp_s_coupling;
-        cmd.emit_z = bunch.emit_z / 1e9;
-        cmd.beta_z = bunch.beta_z;
-        cmd.alpha_z = bunch.alpha_z;
+        Object.keys(bunch).forEach(function(f) {
+            if (f in cmd) {
+                cmd[f] = bunch[f];
+            }
+        });
+
         if (bunch.longitudinalMethod == 1) {
             cmd.emit_z = 0;
             cmd.beta_z = 0;
@@ -454,9 +455,8 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     };
 });
 
-SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, $scope, $timeout) {
+SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, panelState, $scope) {
     var self = this;
-    var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
     var plotTitle = {
         'x-xp': 'Horizontal',
@@ -464,6 +464,12 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         'x-y': 'Cross-section',
         't-p': 'Longitudinal',
     };
+    self.bunchReports = [
+        {id: 1},
+        {id: 2},
+        {id: 3},
+        {id: 4},
+    ];
 
     function validateSaving() {
         if (! appState.isLoaded()) {
@@ -489,10 +495,21 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         }
     }
 
+    function updateHalton() {
+        panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
+    }
+
+    function updateLongitudinalFields() {
+        var method = parseInt(appState.models.bunch.longitudinalMethod);
+        panelState.showField('bunch', 'sigma_s', method == 1 || method == 2);
+        panelState.showField('bunch', 'sigma_dp', method == 1 || method == 2);
+        panelState.showField('bunch', 'dp_s_coupling', method == 1);
+        panelState.showField('bunch', 'alpha_z', method == 2 || method == 3);
+        panelState.showField('bunch', 'emit_z', method == 3);
+        panelState.showField('bunch', 'beta_z', method == 3);
+    }
+
     function validateTyping() {
-        if (! appState.isLoaded()) {
-            return;
-        }
         var bunch = appState.models.bunch;
         // dp_s_coupling valid only between -1 and 1
         var v = parseFloat(bunch.dp_s_coupling);
@@ -508,42 +525,6 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         validateGreaterOrEqualToZero(bunch, 'beta_z');
     }
 
-    function showFields(fields, delay) {
-        for (var i = 0; i < longitudinalFields.length; i++) {
-            var f = longitudinalFields[i];
-            var selector = '.model-bunch-' + f;
-            if (fields.indexOf(f) >= 0) {
-                $(selector).closest('.form-group').show(delay);
-            }
-            else {
-                $(selector).closest('.form-group').hide(delay);
-            }
-        }
-    }
-
-    function updateLongitudinalFields(delay) {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        var method = appState.models.bunch.longitudinalMethod;
-        if (parseInt(method) == 1) {
-            showFields(['sigma_s', 'sigma_dp', 'dp_s_coupling'], delay);
-        }
-        else if (parseInt(method) == 2) {
-            showFields(['sigma_s', 'sigma_dp', 'alpha_z'], delay);
-        }
-        else {
-            showFields(['emit_z', 'beta_z', 'alpha_z'], delay);
-        }
-    }
-
-    self.bunchReports = [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-    ];
-
     self.bunchReportHeading = function(item) {
         if (! appState.isLoaded()) {
             return;
@@ -554,7 +535,8 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     };
 
     self.handleModalShown = function() {
-        updateLongitudinalFields(0);
+        updateHalton();
+        updateLongitudinalFields();
     };
 
     self.isBunchSource = function(name) {
@@ -580,13 +562,12 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         return modelAccessByItemId[itemId];
     };
 
-    // watch path depends on appState as an attribute of $scope
-    $scope.appState = appState;
-    $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
-        updateLongitudinalFields(400);
-    });
-    $scope.$watchCollection('appState.models.bunch', validateTyping);
     $scope.$on('bunch.changed', validateSaving);
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+        appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
+        appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
+    });
 });
 
 SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
@@ -2101,7 +2082,7 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileUpload, requestSender) {
+SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -2327,7 +2308,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                     return;
                 }
                 var args = {
-                    folder: appState.getActiveFolderPath(),
+                    folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
                     args.simulationId = $scope.id;
@@ -2476,29 +2457,34 @@ SIREPO.app.directive('inputFileXY', function() {
     };
 });
 
-SIREPO.app.directive('distributionType', function() {
+SIREPO.app.directive('enumList', function() {
     return {
         restrict: 'A',
         scope: {
-            model: '<',
             field: '=',
             info: '<',
             typeList: '<',
         },
         template: [
-            '<div data-ng-repeat="defaultSelection in field.split(\',\') track by $index" style="display: inline-block" >',
-                '<span class="elegant-dropdown-label">{{distLabels[$index] || \'Plane \' + $index}}: </span>',
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+                '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
                 '<select ',
-                    'class="form-control elegant-dropdown-select" data-ng-model="distributions[$index]" data-ng-change="didChange(distributions[$index])"',
+                    'class="form-control elegant-list-value" data-ng-model="values[$index]" data-ng-change="didChange()"',
                     'data-ng-options="item[0] as item[1] for item in typeList">',
                 '</select>',
             '</div>'
         ].join(''),
         controller: function($scope) {
-            $scope.distributions = $scope.field.split(/\s*,\s*/);
-            $scope.distLabels = ($scope.info[4] || '').split(/\s*,\s*/);
-            $scope.didChange = function(item) {
-                $scope.field = $scope.distributions.join(', ');
+            $scope.values = null;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
             };
         },
     };
@@ -2912,6 +2898,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             };
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width'));
                 if (isNaN(width))
                     return;
@@ -2985,6 +2974,39 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('numberList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+            '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
+            '<input class="form-control elegant-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>'
+        ].join(''),
+        controller: function($scope) {
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            //TODO(pjm): share implementation with enumList
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
         },
     };
 });
@@ -3220,6 +3242,8 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
         link: function(scope, element, attrs, ngModel) {
             var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
             ngModel.$parsers.push(function(value) {
+                requestIndex++;
+                var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value))
                     return null;
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
@@ -3229,8 +3253,6 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     return v;
                 }
-                requestIndex++;
-                var currentRequestIndex = requestIndex;
                 rpnService.computeRpnValue(value, function(v, err) {
                     // check for a stale request
                     if (requestIndex != currentRequestIndex)
