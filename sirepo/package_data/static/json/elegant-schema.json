@@ -98,6 +98,11 @@
             ["hybridsimplex", "Hybridsimplex"],
             ["swarm", "Swarm"]
         ],
+        "Randomize": [
+            ["0", "None"],
+            ["1", "Independently"],
+            ["2", "Pairwise"]
+        ],
         "SddsBeamInputType": [
             ["elegant", "Elegant"],
             ["spiffe", "Spiffe"]
@@ -337,21 +342,39 @@
             "inputSource": ["Bunch Source", "BunchInputSource"]
         },
         "bunch": {
-            "p_central_mev": ["Central momentum [MeV]", "Float", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
-            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "", "Number of particles in each bunch"],
-            "emit_x": ["Horizontal Geometric Emittance [nm]", "Float"],
-            "beta_x": ["Horizontal Beta [m]", "Float"],
-            "alpha_x": ["Horizontal Alpha", "Float"],
-            "emit_y": ["Vertical Geometric Emittance [nm]", "Float"],
-            "beta_y": ["Vertical Beta [m]", "Float"],
-            "alpha_y": ["Vertical Alpha", "Float"],
+            "p_central_mev": ["Central momentum [MeV]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
+            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "1", "Number of particles in each bunch."],
+            "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
+            "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
+            "time_start": ["Time Start", "RPNValue", "0.0", "The central value of the time coordinate for the bunch."],
+            "momentum_chirp": ["Momentum Chirp", "RPNValue", "0.0", "Permits imparting an additional momentum chirp to the beam, in units of 1/m. E.g., a value of 1 indicates that a 1mm long bunch has a linear variation in momentum of 0.1% from end-to-end. A positive chirp is needed to provide compression of a bunch with an ordinary R₅₆<0 four-dipole chicane."],
+
+            "distribution_type": ["Distribution Type", "DistributionTypeStringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
+            "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
+            "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
+            "limit_invariants": ["Limit Invariants", "RPNBoolean", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
+            "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
+            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", ""],
+            "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", ""],
+            "alpha_x": ["Horizontal Alpha", "RPNValue", "0.0", ""],
+            "eta_x": ["Horizontal Eta", "RPNValue", "0.0", ""],
+            "etap_x": ["Horizontal Etap", "RPNValue", "0.0", ""],
+            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", ""],
+            "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", ""],
+            "alpha_y": ["Vertical Alpha", "RPNValue", "0.0", ""],
+            "eta_y": ["Vertical Eta", "RPNValue", "0.0", ""],
+            "etap_y": ["Vertical Etap", "RPNValue", "0.0", ""],
             "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
-            "sigma_s": ["Sigma s [µm]", "Float", "", "Fractional momentum spread, δ, and bunch length"],
-            "sigma_dp": ["Sigma dp", "Float"],
-            "dp_s_coupling": ["dp s Coupling", "Float", "", "Specifies the coupling between s and δ"],
-            "emit_z": ["Longitudinal Geometric Emittance [nm]", "Float", "", "RMS emittance for the Z plane"],
-            "beta_z": ["Longitudinal Beta [m]", "Float"],
-            "alpha_z": ["Longitudinal Alpha", "Float"]
+            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", "0.0", "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0."],
+            "beta_z": ["Longitudinal Beta [m]", "RPNValue", "0.0", ""],
+            "alpha_z": ["Longitudinal Alpha", "RPNValue", "0.0", ""],
+            "sigma_s": ["Sigma s [m]", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
+            "sigma_dp": ["Sigma dp", "RPNValue", "0.0"],
+            "dp_s_coupling": ["dp s Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ)."],
+            "halton_sequence": ["Halton Sequence", "BooleanStringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only.", "X, Y, Z"],
+            "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
+            "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
+            "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
         },
         "bunchFile": {
             "sourceFile": ["Beam File", "InputFile"]
@@ -476,16 +499,16 @@
             "momentum_chirp": ["Momentum Chirp", "RPNValue", "0.0", "Permits imparting an additional momentum chirp to the beam, in units of 1/m. E.g., a value of 1 indicates that a 1mm long bunch has a linear variation in momentum of 0.1% from end-to-end. A positive chirp is needed to provide compression of a bunch with an ordinary R₅₆<0 four-dipole chicane."],
             "one_random_bunch": ["One Random Bunch", "RPNBoolean", "1", "If non-zero, then only one random particle distribution is generated. Otherwise, a new distribution will be generated for every simulation step."],
             "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
-            "halton_sequence": ["Halton Sequence", "StringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only. halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values. optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
-            "halton_radix": ["Halton Radix", "StringArray", "0, 0, 0, 0, 0, 0", ""],
-            "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", ""],
-            "randomize_order": ["Randomize Order", "StringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used."],
+            "halton_sequence": ["Halton Sequence", "BooleanStringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only.", "X, Y, Z"],
+            "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
+            "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
+            "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"],
             "limit_invariants": ["Limit Invariants", "RPNBoolean", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
-            "enforce_rms_values": ["Enforce RMS Values", "StringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties."],
-            "distribution_cutoff": ["Distribution Cutoff", "StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question."],
-            "distribution_type": ["Distribution Type", "DistributionType", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
-            "centroid": ["Centroid", "StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates."],
+            "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
+            "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
+            "distribution_type": ["Distribution Type", "DistributionTypeStringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
+            "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
             "first_is_fiducial": ["First Is Fiducial", "RPNBoolean", "0", "Specifies that the first beam generated shall be a single particle beam, which is suitable for fiducialization. See the section on \"Fiducialization in elegant\" for more discussion."],
             "save_initial_coordinates": ["Save Initial Coordinates", "RPNBoolean", "1", "A flag that, if set, results in saving initial coordinates of tracked particles in memory. This is the default behavior. If unset, the initial coordinates are not saved, but are regenerated each time they are needed. This is more memory efficient and is useful for tracking very large numbers of particles."]
         },
@@ -3495,27 +3518,54 @@
                 "p_central_mev"
             ],
             "advanced": [
-                "p_central_mev",
-                "n_particles_per_bunch",
-                [
-                    ["Horizontal", [
-                        "emit_x",
-                        "beta_x",
-                        "alpha_x"
-                    ]],
-                    ["Vertical", [
-                        "emit_y",
-                        "beta_y",
-                        "alpha_y"
-                    ]]
-                ],
-                "longitudinalMethod",
-                "sigma_s",
-                "sigma_dp",
-                "dp_s_coupling",
-                "emit_z",
-                "beta_z",
-                "alpha_z"
+                ["Main", [
+                    "p_central_mev",
+                    "n_particles_per_bunch",
+                    "momentum_chirp"
+                ]],
+                ["Distribution", [
+                    "distribution_type",
+                    "distribution_cutoff",
+                    "enforce_rms_values",
+                    "limit_invariants",
+                    "limit_in_4d"
+                ]],
+                ["Emittance", [
+                    [
+                        ["Horizontal", [
+                            "emit_x",
+                            "beta_x",
+                            "alpha_x",
+                            "eta_x",
+                            "etap_x"
+                        ]],
+                        ["Vertical", [
+                            "emit_y",
+                            "beta_y",
+                            "alpha_y",
+                            "eta_y",
+                            "etap_y"
+                        ]]
+                    ],
+                    "longitudinalMethod",
+                    "sigma_s",
+                    "sigma_dp",
+                    "dp_s_coupling",
+                    "emit_z",
+                    "beta_z",
+                    "alpha_z"
+                ]],
+                ["Halton Sequence", [
+                    "halton_sequence",
+                    "optimized_halton",
+                    "halton_radix",
+                    "randomize_order"
+                ]],
+                ["Position", [
+                    "symmetrize",
+                    "centroid",
+                    "time_start"
+                ]]
             ]
         },
         "bunchFile": {

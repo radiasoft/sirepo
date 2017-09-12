@@ -1131,7 +1131,7 @@ SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
 });
 
 //TODO(pjm): refactor and generalize with mirrorUpload
-SIREPO.app.directive('importPython', function(appState, fileUpload, requestSender) {
+SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -1196,7 +1196,7 @@ SIREPO.app.directive('importPython', function(appState, fileUpload, requestSende
                 fileUpload.uploadFileToUrl(
                     pythonFile,
                     {
-                        folder: appState.getActiveFolderPath(),
+                        folder: fileManager.getActiveFolderPath(),
                         arguments: importArgs,
                     },
                     requestSender.formatUrl(
