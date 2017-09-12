@@ -24,6 +24,8 @@ import re
 import sdds
 import werkzeug
 
+BUNCH_OUTPUT_FILE = 'elegant.bun'
+
 #: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
 
@@ -78,7 +80,7 @@ _INFIX_TO_RPN = {
 
 def background_percent_complete(report, run_dir, is_running, schema):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    errors, last_element = _parse_elegant_log(run_dir)
+    errors, last_element = parse_elegant_log(run_dir)
     res = {
         'percentComplete': 100,
         'frameCount': 0,
@@ -174,6 +176,26 @@ def fixup_old_data(data):
     for m in data['models']['elements']:
         if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
             m['mode'] = 'coordinate'
+    if 'centroid' not in data['models']['bunch']:
+        bunch = data['models']['bunch']
+        for f in ('emit_x', 'emit_y', 'emit_z'):
+            if bunch[f] and not isinstance(bunch[f], basestring):
+                bunch[f] /= 1e9
+        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
+            bunch['sigma_s'] /= 1e6
+        first_bunch_command = None
+        for m in data['models']['commands']:
+            if m['_type'] == 'bunched_beam':
+                first_bunch_command = m
+                break
+        # first_bunch_command may not exist if the elegant sim has no bunched_beam command
+        if first_bunch_command:
+            first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
+            for f in _SCHEMA['model']['bunch']:
+                if f not in bunch and f in first_bunch_command:
+                    bunch[f] = first_bunch_command[f]
+        else:
+            bunch['centroid'] = '0,0,0,0,0,0'
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -216,8 +238,23 @@ def generate_lattice(data, filename_map, beamline_map, v):
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
-    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
+    v['rpn_variables'] = _generate_variables(data)
 
+    if is_parallel:
+        filename_map = _build_filename_map(data)
+        beamline_map = _build_beamline_map(data)
+        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+        v['simulationMode'] = data['models']['simulation']['simulationMode']
+        return pkjinja.render_resource('elegant.py', v)
+
+    for f in _SCHEMA['model']['bunch']:
+        info = _SCHEMA['model']['bunch'][f]
+        if info[1] == 'RPNValue':
+            field = 'bunch_{}'.format(f)
+            v[field] = _format_rpn_value(v[field], is_command=True)
+
+    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
     # sigma s, sigma dp, dp s coupling
     if longitudinal_method == 1:
         v['bunch_emit_z'] = 0
@@ -238,16 +275,7 @@ def generate_parameters_file(data, is_parallel=False):
         v['bunch_beta_y'] = 5
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
-    v['rpn_variables'] = _generate_variables(data)
-
-    if is_parallel:
-        filename_map = _build_filename_map(data)
-        beamline_map = _build_beamline_map(data)
-        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
-        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
-        v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return pkjinja.render_resource('elegant.py', v)
-
+    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
     return pkjinja.render_resource('elegant_bunch.py', v)
 
 
@@ -257,15 +285,16 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'rpn_value':
-        value, error = _parse_expr(data['value'], data['variables'])
+        value, error = _parse_expr(data['value'], _variables_to_postfix(data['variables']))
         if error:
             data['error'] = error
         else:
             data['result'] = value
         return data
     if data['method'] == 'recompute_rpn_cache_values':
+        variables = _variables_to_postfix(data['variables'])
         for k in data['cache']:
-            value, error = _parse_expr(k, data['variables'])
+            value, error = _parse_expr(k, variables)
             if not error:
                 data['cache'][k] = value
         return data
@@ -327,7 +356,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    return _sdds('elegant.bun')
+    return _sdds(BUNCH_OUTPUT_FILE)
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
@@ -383,6 +412,33 @@ def new_simulation(data, new_simulation_data):
     pass
 
 
+def parse_elegant_log(run_dir):
+    path = run_dir.join(ELEGANT_LOG_FILE)
+    if not path.exists():
+        return '', 0
+    res = ''
+    last_element = None
+    text = pkio.read_text(str(path))
+    want_next_line = False
+    for line in text.split("\n"):
+        match = re.search('^Starting (\S+) at s\=', line)
+        if match:
+            name = match.group(1)
+            if not re.search('^M\d+\#', name):
+                last_element = name
+        if want_next_line:
+            res += line + "\n"
+            want_next_line = False
+        elif _is_ignore_error_text(line):
+            pass
+        elif _is_error_text(line):
+            if len(line) < 10:
+                want_next_line = True
+            else:
+                res += line + "\n"
+    return res, last_element
+
+
 def prepare_aux_files(run_dir, data):
     template_common.copy_lib_files(data, None, run_dir)
 
@@ -393,22 +449,19 @@ def prepare_for_client(data):
     # evaluate rpn values into model.rpnCache
     cache = {}
     data['models']['rpnCache'] = cache
+    variables = _variables_to_postfix(data['models']['rpnVariables'])
     state = {
         'cache': cache,
-        'rpnVariables': data['models']['rpnVariables'],
+        'rpnVariables': variables,
     }
     _iterate_model_fields(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
-        v, err = elegant_lattice_importer.parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
+        v, err = _parse_expr(rpn_var['value'], variables)
         if not err:
             cache[rpn_var['name']] = v
             if elegant_lattice_importer.is_rpn_value(rpn_var['value']):
                 cache[rpn_var['value']] = v
-    return data
-
-
-def prepare_for_save(data):
     return data
 
 
@@ -596,6 +649,12 @@ def _compute_percent_complete(data, last_element):
     return res
 
 
+def _correct_halo_gaussian_distribution_type(m):
+    # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
+    if 'distribution_type' in m and 'halogaussian' in m['distribution_type']:
+        m['distribution_type'] = m['distribution_type'].replace("halogaussian", 'halo(gaussian)')
+
+
 def _create_command(model_name, data):
     model_schema = _SCHEMA['model'][model_name]
     for k in model_schema:
@@ -656,7 +715,7 @@ def _create_default_commands(data):
             "one_random_bunch": '0',
             "sigma_dp": bunch['sigma_dp'],
             "sigma_s": bunch['sigma_s'] / 1e06,
-            "symmetrize": 1,
+            "symmetrize": '1',
         }),
         _create_command('command_track', {
             "_id": max_id + 5,
@@ -756,6 +815,14 @@ def _file_info(filename, run_dir, id, output_index):
             pass
 
 
+def _format_rpn_value(value, is_command=False):
+    if elegant_lattice_importer.is_rpn_value(value):
+        value = _infix_to_postfix(value)
+        if is_command:
+            return '({})'.format(value)
+    return value
+
+
 def _generate_commands(data, filename_map, beamline_map, v):
     state = {
         'commands': '',
@@ -770,7 +837,7 @@ def _generate_commands(data, filename_map, beamline_map, v):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += "% " + '{} sto {}'.format(variables[name], name) + "\n"
+        res += "% " + '{} sto {}'.format(_format_rpn_value(variables[name]), name) + "\n"
         visited[name] = True
     return res
 
@@ -791,6 +858,16 @@ def _get_filename_for_element_id(id, data):
     return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
 
 
+def _infix_to_postfix(expr):
+    try:
+        rpn = _parse_expr_infix(expr)
+        pkdc('{} => {}', expr, rpn)
+        expr = rpn
+    except Exception as e:
+        pkdc('{}: not infix: {}', expr, e)
+    return expr
+
+
 #TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
 def _is_2d_plot(columns):
     if ('x' in columns and 'xp' in columns) \
@@ -801,7 +878,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
@@ -831,9 +908,9 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(value):
-                    state['commands'] += '  {} = "({})",'.format(field_name, value) + "\n"
-                elif element_schema[1] == 'StringArray':
+                if element_schema[1] == 'RPNValue':
+                    state['commands'] += '  {} = "{}",'.format(field_name, _format_rpn_value(value, is_command=True)) + "\n"
+                elif element_schema[1].endswith('StringArray'):
                     state['commands'] += '  {}[0] = {},'.format(field_name, value) + "\n"
                 else:
                     #TODO(pjm): combine with lattice file input formatting below
@@ -878,6 +955,8 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
+                if element_schema[1] == 'RPNValue':
+                    value = _format_rpn_value(value)
                 if element_schema[1].startswith('InputFile'):
                     value = template_common.lib_file_name(model['type'], field_name, value)
                     if element_schema[1] == 'InputFileXY':
@@ -897,7 +976,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
     if element_schema:
         if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field_name]):
-            v, err = elegant_lattice_importer.parse_rpn_value(model[field_name], state['rpnVariables'])
+            v, err = _parse_expr(model[field_name], state['rpnVariables'])
             if not err:
                 state['cache'][model[field_name]] = v
 
@@ -943,42 +1022,9 @@ def _parameter_definitions(parameters):
     return res
 
 
-def _parse_elegant_log(run_dir):
-    path = run_dir.join(ELEGANT_LOG_FILE)
-    if not path.exists():
-        return '', 0
-    res = ''
-    last_element = None
-    text = pkio.read_text(str(path))
-    want_next_line = False
-    for line in text.split("\n"):
-        match = re.search('^Starting (\S+) at s\=', line)
-        if match:
-            name = match.group(1)
-            if not re.search('^M\d+\#', name):
-                last_element = name
-        if want_next_line:
-            res += line + "\n"
-            want_next_line = False
-        elif _is_ignore_error_text(line):
-            pass
-        elif _is_error_text(line):
-            if len(line) < 10:
-                want_next_line = True
-            else:
-                res += line + "\n"
-    return res, last_element
-
-
 def _parse_expr(expr, variables):
     """If not infix, default to rpn"""
-    try:
-        rpn = _parse_expr_infix(expr)
-        pkdc('{} => {}', expr, rpn)
-        expr = rpn
-    except Exception as e:
-        pkdc('{}: not infix: {}', expr, e)
-    return elegant_lattice_importer.parse_rpn_value(expr, variables)
+    return elegant_lattice_importer.parse_rpn_value(_infix_to_postfix(expr), variables)
 
 
 def _parse_expr_infix(expr):
@@ -1057,9 +1103,21 @@ def _simulation_files(data):
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
     enum_info = template_common.validate_models(data, schema)
+    _correct_halo_gaussian_distribution_type(data['models']['bunch'])
     for model_type in ['elements', 'commands']:
         for m in data['models'][model_type]:
             template_common.validate_model(m, schema['model'][_model_name_for_data(m)], enum_info)
+            _correct_halo_gaussian_distribution_type(m)
+
+
+def _variables_to_postfix(rpn_variables):
+    res = []
+    for v in rpn_variables:
+        res.append({
+            'name': v['name'],
+            'value': _infix_to_postfix(v['value']),
+        })
+    return res
 
 
 def _walk_beamline(beamline, index, elements, beamlines, beamline_map):

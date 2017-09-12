@@ -295,6 +295,8 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
     if '_type' not in el and field == 'type':
         return
     field_type = _field_type_for_field(el, field)
+    if not field_type:
+        return
     if field_type == 'OutputFile':
         el[field] = '1'
     elif field_type == 'InputFile':
@@ -303,13 +305,10 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
         _validate_input_file(el, field)
     elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and is_rpn_value(el[field]):
         _validate_rpn_field(el, field, rpn_cache, rpn_variables)
-    elif field_type == 'StringArray':
+    elif field_type.endswith('StringArray'):
         _validate_string_array_field(el, field)
     elif field_type in _SCHEMA['enum']:
-        #TODO(pjm): special case for DistributionType - not really an enum
-        # but a collection of enum values
-        if field_type != 'DistributionType':
-            _validate_enum(el, field, field_type)
+        _validate_enum(el, field, field_type)
 
 
 def _validate_input_file(el, field):
