@@ -16,14 +16,47 @@
       <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ source_cache_key }}"></script>
       <script src="/static/js/ext/msie/respond-1.4.2.min.js{{ source_cache_key }}"></script>
     <![endif]-->
-    <script src="/static/js/sirepo-pageLoad.js{{ source_cache_key }}"></script>
+    <script>
+      var SIREPO = {
+        APP_NAME:  '{{ app_name }}',
+        APP_VERSION: '{{ app_version }}',
+        SOURCE_CACHE_KEY: '{{ source_cache_key }}',
+        {%- if oauth_login %}
+          userState: {
+            loginState: '{{ login_state }}',
+            userName: '{{ user_name }}',
+          },
+        {%- endif %}
+      };
+      SIREPO.pageLoaderTimeout = null;
+      SIREPO.setPageLoaderVisible = function (doShow) {
+              var pageLoader = document.getElementsByClassName('sr-page-load')[0];
+              if (doShow) {
+                  if (self.pageLoaderTimeout) {
+                    return;
+                  }
+                  self.pageLoaderTimeout = setTimeout(
+                    function () {
+                      pageLoader.style.display = 'block';
+                    },
+                    1000
+                  );
+              }
+              else {
+                clearTimeout(self.pageLoaderTimeout);
+                self.pageLoaderTimeout = null;
+                pageLoader.style.display = 'none';
+              }
+          };
+    </script>
   </head>
   <body>
     <div class="sr-page-load">
       <img class="sr-page-load-image" src="/static/img/radtrack_animated.gif" />
+        <div class="sr-page-load-text">Loading</div>
     </div>
     <script type="text/javascript">
-      showPageLoader();
+      SIREPO.setPageLoaderVisible(true);
     </script>
     <nav class="navbar navbar-default navbar-static-top">
       <div class="container">
@@ -56,19 +89,6 @@
     <script src="/static/js/ext/angular-split-pane-1.2.0.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/underscore-1.8.3.min.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/angular-underscore.js{{ source_cache_key }}"></script>
-    <script>
-        var SIREPO = {
-            APP_NAME:  '{{ app_name }}',
-            APP_VERSION: '{{ app_version }}',
-            SOURCE_CACHE_KEY: '{{ source_cache_key }}',
-            {%- if oauth_login %}
-            userState: {
-                loginState: '{{ login_state }}',
-                userName: '{{ user_name }}',
-            },
-            {%- endif %}
-        };
-    </script>
     <script src="/static/js/sirepo.js{{ source_cache_key }}"></script>
     <script src="/static/js/sirepo-components.js{{ source_cache_key }}"></script>
     <script src="/static/js/sirepo-plotting.js{{ source_cache_key }}"></script>
