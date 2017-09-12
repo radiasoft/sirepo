@@ -671,6 +671,10 @@ def _report_fields(data, report_name):
     return [report_name]
 
 
+def _lib_file_datetime(filename):
+    return simulation_db.simulation_lib_dir(SIM_TYPE).join(filename).mtime()
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -682,8 +686,8 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'mirrorReport':
         return [
-            #TODO(pjm): will need to add file modified datetime value if file replacement is implemented
             'mirrorReport.heightProfileFile',
+            _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
             'mirrorReport.orientation',
             'mirrorReport.grazingAngle',
             'mirrorReport.heightAmplification',
@@ -691,6 +695,7 @@ def models_related_to_report(data):
     res = _report_fields(data, r) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
+        _lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']),
     ]
     watchpoint = template_common.is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
@@ -717,7 +722,11 @@ def models_related_to_report(data):
             del item_copy['title']
             res.append(item_copy)
             res.append(propagation[str(item['id'])])
-            if item['type'] == 'watch' and item['id'] == wid:
+            if item['type'] == 'mirror':
+                res.append(_lib_file_datetime(item['heightProfileFile']))
+            elif item['type'] == 'sample':
+                res.append(_lib_file_datetime(item['imageFile']))
+            elif item['type'] == 'watch' and item['id'] == wid:
                 break
         if beamline[-1]['id'] == wid:
             res.append('postPropagation')

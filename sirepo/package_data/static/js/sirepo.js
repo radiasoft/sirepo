@@ -160,18 +160,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         self.models.simulationStatus = {};
         savedModelValues = self.cloneModel();
         lastAutoSaveData = self.clone(data);
-        updateReports();
+        self.updateReports();
         broadcastLoaded();
         self.resetAutoSaveTimer();
-    }
-
-    function updateReports() {
-        broadcastClear();
-        for (var key in self.models) {
-            if (self.isReportModelName(key)) {
-                broadcastChanged(key);
-            }
-        }
     }
 
     self.applicationState = function() {
@@ -478,7 +469,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
         self.autoSave(function() {
             if (requireReportUpdate) {
-                updateReports();
+                self.updateReports();
             }
             if (callback) {
                 callback();
@@ -515,6 +506,15 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
             else {
                 return id;
+            }
+        }
+    };
+
+    self.updateReports = function() {
+        broadcastClear();
+        for (var key in self.models) {
+            if (self.isReportModelName(key)) {
+                broadcastChanged(key);
             }
         }
     };

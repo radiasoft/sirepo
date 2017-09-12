@@ -131,6 +131,8 @@ def models_related_to_report(data):
     #TODO(pjm): only include items up to the current watchpoint
     if template_common.is_watchpoint(r):
         res.append('beamline')
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
     return res
 
 

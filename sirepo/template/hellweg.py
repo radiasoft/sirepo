@@ -217,7 +217,7 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    return [
+    res = [
         r,
         'beam',
         'ellipticalDistribution',
@@ -226,6 +226,9 @@ def models_related_to_report(data):
         'sphericalDistribution',
         'twissDistribution',
     ]
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
+    return res
 
 
 def python_source_for_model(data, model):
