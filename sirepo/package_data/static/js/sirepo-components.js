@@ -799,7 +799,10 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         if ($scope.model[$scope.field] != data.filename) {
                             $scope.model[$scope.field] = data.filename;
-                            requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
+                            var list = requestSender.getAuxiliaryData($scope.fileType);
+                            if (list.indexOf(data.filename) < 0) {
+                                list.push(data.filename);
+                            }
                         }
                         else {
                             // force the reports to update, the model fields are unchanged
