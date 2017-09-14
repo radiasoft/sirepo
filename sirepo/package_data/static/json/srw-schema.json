@@ -381,6 +381,7 @@
             "waistZ": ["Longitudinal Waist Position [µm]", "Float"],
             "waistAngleX": ["Horizontal Beam Angle [mrad]", "Float"],
             "waistAngleY": ["Vertical Beam Angle [mrad]", "Float"],
+            "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
             "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition"],
@@ -894,7 +895,7 @@
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
             "basic": [
-                "simulation.photonEnergy",
+                "photonEnergy",
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",

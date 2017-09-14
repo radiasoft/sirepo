@@ -618,7 +618,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     }
 
     function processGaussianBeamSize() {
-        var energy = appState.models.simulation.photonEnergy;
+        var energy = appState.models.gaussianBeam.photonEnergy;
         var isWaist = appState.models.gaussianBeam.sizeDefinition == 1;
         panelState.enableField('gaussianBeam', 'rmsSizeX', isWaist);
         panelState.enableField('gaussianBeam', 'rmsSizeY', isWaist);
@@ -747,10 +747,14 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'simulation') {
             processUndulator();
-        }
-        else if (name == 'undulator' || name == 'tabulatedUndulator') {
+        } else if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
             appState.saveQuietly('electronBeamPosition');
+        } else if (name == 'gaussianBeam') {
+            appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
+            appState.models.simulation.photonEnergy = appState.models.gaussianBeam.photonEnergy;
+            appState.saveQuietly('sourceIntensityReport');
+            appState.saveQuietly('simulation');
         }
     });
 
@@ -807,7 +811,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
         appState.watchModelFields($scope, ['fluxAnimation.method'], processFluxAnimation);
 
-        appState.watchModelFields($scope, ['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'simulation.photonEnergy'], function() {
+        appState.watchModelFields($scope, ['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'gaussianBeam.photonEnergy'], function() {
             if (srwService.isGaussianBeam()) {
                 processGaussianBeamSize();
             }

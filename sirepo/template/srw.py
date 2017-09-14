@@ -494,6 +494,9 @@ def fixup_old_data(data):
         if k not in data['models']['sourceIntensityReport']:
             data['models']['sourceIntensityReport'][k] = data['models']['simulation'][k]
 
+    if 'photonEnergy' not in data['models']['gaussianBeam']:
+        data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
+
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
             if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
