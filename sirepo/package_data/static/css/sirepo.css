@@ -704,6 +704,36 @@ li.sr-model-list-item > a {
   align-self: center;
 }
 
+.sr-page-load {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(192, 192, 192, 0.5);
+    text-align: center;
+}
+.sr-page-load-image {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin: -23px 0 0 -24px;
+    display: block;
+}
+.sr-page-load-text {
+    display: inline-block;
+    font-size: 16pt;
+    font-weight: bold;
+    color: rgb(1, 80 , 147);
+    position: absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    margin-top: calc(23px + 0.75em);
+}
+
 .elegant-beamline-element {
   float: left;
   min-width: 4em;

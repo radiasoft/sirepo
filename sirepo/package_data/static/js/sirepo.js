@@ -920,7 +920,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#' + self.modalId(modelKey);
-
         if ($(editorId).length) {
             $(editorId).modal('show');
         }
@@ -1739,7 +1738,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+
     var self = this;
 
     function openSection(name) {
@@ -1819,6 +1819,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+
+    $scope.$on('$locationChangeStart', function (event) {
+        SIREPO.setPageLoaderVisible(true);
+    });
+    $scope.$on('$viewContentLoaded', function (event) {
+        SIREPO.setPageLoaderVisible(false);
+    });
+
+
 });
 
 SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
@@ -2232,18 +2241,24 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     });
     loadList();
 
+    var scopeOK = true;
     // invoked in loadList() callback
     function checkURLForFolder() {
 
+        if (! scopeOK ) {
+            return;
+        }
         if (! fileManager.getActiveFolder() ) {
             self.openItem(rootFolder());
         }
         else {
+            if ($location.path().indexOf('/simulations') < 0) {
+                return;
+            }
             var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
             if (canonicalPath === fileManager.getActiveFolderPath()) {
                 return;
             }
-
             var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
             if (newFolder) {
                 fileManager.setActiveFolderPath(canonicalPath);
@@ -2272,5 +2287,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
         return null;
     }
-
+    $scope.$on('$destroy', function() {
+        scopeOK = false;
+    });
 });
