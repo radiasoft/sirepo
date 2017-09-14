@@ -28,26 +28,29 @@
           },
         {%- endif %}
       };
-      SIREPO.pageLoaderTimeout = null;
-      SIREPO.setPageLoaderVisible = function (doShow) {
-              var pageLoader = document.getElementsByClassName('sr-page-load')[0];
-              if (doShow) {
-                  if (self.pageLoaderTimeout) {
-                    return;
-                  }
-                  self.pageLoaderTimeout = setTimeout(
-                    function () {
-                      pageLoader.style.display = 'block';
-                    },
-                    1000
-                  );
-              }
-              else {
-                clearTimeout(self.pageLoaderTimeout);
-                self.pageLoaderTimeout = null;
-                pageLoader.style.display = 'none';
-              }
-          };
+
+      SIREPO.setPageLoaderVisible = function() {
+        var pageLoaderTimeout = null;
+        return function (doShow) {
+          var pageLoader = document.getElementsByClassName('sr-page-load')[0];
+          if (doShow) {
+            if (pageLoaderTimeout) {
+              return;
+            }
+            pageLoaderTimeout = setTimeout(
+              function () {
+                pageLoader.style.display = 'block';
+              },
+              1000
+            );
+          }
+          else {
+            clearTimeout(pageLoaderTimeout);
+            pageLoaderTimeout = null;
+            pageLoader.style.display = 'none';
+          }
+        };
+      }();
     </script>
   </head>
   <body>
