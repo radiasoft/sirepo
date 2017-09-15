@@ -367,7 +367,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             if (firstElementPosition !== distanceFromSource) {
                 var diff = firstElementPosition - distanceFromSource;
                 for (var i = 0; i < appState.models.beamline.length; i++) {
-                    appState.models.beamline[i].position = appState.models.beamline[i].position - diff
+                    appState.models.beamline[i].position = appState.models.beamline[i].position - diff;
                 }
                 appState.saveChanges('beamline');
             }
