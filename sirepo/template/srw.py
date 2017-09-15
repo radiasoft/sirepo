@@ -678,7 +678,9 @@ def _report_fields(data, report_name):
 
 
 def _lib_file_datetime(filename):
-    return simulation_db.simulation_lib_dir(SIM_TYPE).join(filename).mtime()
+    if simulation_db.simulation_lib_dir(SIM_TYPE).join(filename).exists():
+        return simulation_db.simulation_lib_dir(SIM_TYPE).join(filename).mtime()
+    return None
 
 
 def models_related_to_report(data):
