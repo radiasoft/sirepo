@@ -523,6 +523,7 @@
         },
         "simulation": {
             "documentationUrl": ["Documentation URL", "OptionalString"],
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
             "facility": ["Facility", "String"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
@@ -1184,6 +1185,7 @@
             "title": "Initial Wavefront Simulation Grid",
             "advanced": [
                 "photonEnergy",
+                "distanceFromSource",
                 "samplingMethod",
                 "sampleFactor",
                 [

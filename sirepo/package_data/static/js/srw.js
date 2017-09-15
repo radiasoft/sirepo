@@ -118,6 +118,7 @@ SIREPO.app.factory('srwService', function(appState, beamlineService, panelState,
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
             panelState.showField(f, 'verticalPointCount', ! isAutomatic);
         });
+        panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {

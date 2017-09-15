@@ -519,6 +519,9 @@ def fixup_old_data(data):
         und['name'] = und['undulatorSelector'] = 'Undulator'
         und['id'] = '1'
 
+    if 'distanceFromSource' not in data['models']['simulation']:
+        data['models']['simulation']['distanceFromSource'] = template_common.DEFAULT_INTENSITY_DISTANCE
+
 
 def get_animation_name(data):
     return data['modelName']
@@ -712,6 +715,7 @@ def models_related_to_report(data):
             'simulation.verticalPointCount',
             'simulation.verticalPosition',
             'simulation.verticalRange',
+            'simulation.distanceFromSource',
         ])
     if r == 'initialIntensityReport':
         beamline = data['models']['beamline']
@@ -1604,6 +1608,8 @@ def _get_first_element_position(data):
     beamline = data['models']['beamline']
     if len(beamline):
         return beamline[0]['position']
+    if 'distanceFromSource' in data['models']['simulation']:
+        return data['models']['simulation']['distanceFromSource']
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
