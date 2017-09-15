@@ -169,7 +169,11 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                     newItem.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
                 }
                 else {
-                    newItem.position = 20;
+                    if ('distanceFromSource' in appState.models.simulation) {
+                        newItem.position = appState.models.simulation.distanceFromSource;
+                    } else {
+                        newItem.position = 20;
+                    }
                 }
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;

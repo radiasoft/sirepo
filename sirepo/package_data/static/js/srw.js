@@ -118,7 +118,8 @@ SIREPO.app.factory('srwService', function(appState, beamlineService, panelState,
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
             panelState.showField(f, 'verticalPointCount', ! isAutomatic);
         });
-        panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
+        // Always show the distance, so commenting it out:
+        // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
@@ -356,7 +357,30 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     }
 
     appState.whenModelsLoaded($scope, updatePhotonEnergyHelpText);
-    $scope.$on('simulation.changed', updatePhotonEnergyHelpText);
+    $scope.$on('simulation.changed', function() {
+        updatePhotonEnergyHelpText();
+
+        // Synchronize distance from source -> first element position:
+        if (appState.models.beamline.length > 0) {
+            var firstElementPosition = appState.models.beamline[0].position;
+            var distanceFromSource = appState.models.simulation.distanceFromSource;
+            if (firstElementPosition !== distanceFromSource) {
+                var diff = firstElementPosition - distanceFromSource;
+                for (var i = 0; i < appState.models.beamline.length; i++) {
+                    appState.models.beamline[i].position = appState.models.beamline[i].position - diff
+                }
+                appState.saveChanges('beamline');
+            }
+        }
+    });
+
+    $scope.$on('beamline.changed', function() {
+        // Synchronize first element position -> distance from source:
+        if (appState.models.beamline.length > 0) {
+            appState.models.simulation.distanceFromSource = appState.models.beamline[0].position;
+            appState.saveChanges('simulation');
+        }
+    });
 
     var CRLFields = [
         'material',
