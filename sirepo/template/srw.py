@@ -678,7 +678,11 @@ def _report_fields(data, report_name):
 
 
 def _lib_file_datetime(filename):
-    return simulation_db.simulation_lib_dir(SIM_TYPE).join(filename).mtime()
+    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
+    if path.exists():
+        return path.mtime()
+    pkdlog('error, missing lib file: {}', path)
+    return 0
 
 
 def models_related_to_report(data):
@@ -701,8 +705,10 @@ def models_related_to_report(data):
     res = _report_fields(data, r) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
-        _lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']),
     ]
+    if _is_tabulated_undulator_source(data['models']['simulation']):
+        res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
+
     watchpoint = template_common.is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
         res.extend([
