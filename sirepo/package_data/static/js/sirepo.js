@@ -1722,7 +1722,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
     self.redirectToPath = function(path) {
         var compoundPath = pathToCompoundPath(path);
-        if (compoundPath == '') {
+        if (compoundPath === '') {
             requestSender.localRedirect('simulations');
         }
         else {
