@@ -356,10 +356,15 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return '[' + fieldsList.toString() + ']';
     }
 
-    appState.whenModelsLoaded($scope, updatePhotonEnergyHelpText);
-    $scope.$on('simulation.changed', function() {
-        updatePhotonEnergyHelpText();
+    function syncFirstElementPositionToDistanceFromSource() {
+        // Synchronize first element position -> distance from source:
+        if (appState.models.beamline.length > 0) {
+            appState.models.simulation.distanceFromSource = appState.models.beamline[0].position;
+            appState.saveChanges('simulation');
+        }
+    }
 
+    function syncDistanceFromSourceToFirstElementPosition() {
         // Synchronize distance from source -> first element position:
         if (appState.models.beamline.length > 0) {
             var firstElementPosition = appState.models.beamline[0].position;
@@ -372,14 +377,20 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 appState.saveChanges('beamline');
             }
         }
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        updatePhotonEnergyHelpText();
+        syncFirstElementPositionToDistanceFromSource();
     });
 
     $scope.$on('beamline.changed', function() {
-        // Synchronize first element position -> distance from source:
-        if (appState.models.beamline.length > 0) {
-            appState.models.simulation.distanceFromSource = appState.models.beamline[0].position;
-            appState.saveChanges('simulation');
-        }
+        syncFirstElementPositionToDistanceFromSource();
+    });
+
+    $scope.$on('simulation.changed', function() {
+        updatePhotonEnergyHelpText();
+        syncDistanceFromSourceToFirstElementPosition();
     });
 
     var CRLFields = [
