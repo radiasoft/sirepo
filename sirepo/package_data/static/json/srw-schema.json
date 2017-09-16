@@ -1309,9 +1309,6 @@
                     "finalTimeMoment",
                     "numberOfPoints",
                     "plotAxis"
-                ]],
-                ["Accuracy", [
-                    "magneticField"
                 ]]
             ]
         },

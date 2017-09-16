@@ -675,6 +675,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         panelState.showField(reportName, 'fieldUnits', srwService.isGaussianBeam());
         updatePrecisionLabel();
         panelState.enableField(reportName, 'magneticField', false);
+        if (reportName === 'intensityReport') {
+            panelState.showField(reportName, 'magneticField', false);
+        }
         requestSender.getApplicationData(
             {
                 method: 'process_intensity_reports',
