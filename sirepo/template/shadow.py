@@ -294,7 +294,7 @@ calc_oe.T_SOURCE = calc_oe.SSOUR
 calc_oe.T_IMAGE = calc_oe.SIMAG
 calc_beam.traceOE(calc_oe, 1)
 oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
-            '''
+'''
             res += _field_value('oe', 'fwrite', '3') \
                    + _field_value('oe', 't_image', 0.0) \
                    + _field_value('oe', 't_source', source_distance) \
