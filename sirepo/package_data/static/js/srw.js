@@ -1501,11 +1501,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                     '<div data-ng-show="! isStatePending() && particleNumber">',
                       'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                     '</div>',
-                    '<div data-simulation-status-timer="timeData"></div>',
+                    '<div data-simulation-status-timer="timeData" data-ng-show="!isApproximateMethod()"></div>',
                   '</div>',
                 '</div>',
-                '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
+                '<div class="col-sm-6 pull-right" data-ng-show="!isApproximateMethod()">',
+                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">End Simulation</button>',
                 '</div>',
               '</div>',
               '<div data-ng-show="isStateStopped()">',
@@ -1515,17 +1515,19 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                   '<div data-ng-show="! isStatePending() && ! isInitializing() && particleNumber">',
                     'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                   '</div>',
-                  '<div>',
+                  '<div data-ng-show="!isApproximateMethod()">',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
+                  '<div class="small"> {{ methodName() }}</div>',
                 '</div>',
-                '<div class="col-sm-6 pull-right">',
+                '<div class="col-sm-6 pull-right" data-ng-show="!isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
                 '</div>',
               '</div>',
             '</form>',
         ].join(''),
         controller: function($scope) {
+
             var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale'];
             var multiElectronAnimation = null;
 
@@ -1568,15 +1570,46 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
             });
             $scope.$on($scope.model + '.changed', function() {
                 if ($scope.isReadyForModelChanges && hasReportParameterChanged()) {
-                    $scope.cancelSimulation();
+                    $scope.cancelPersistentSimulation();
                     frameCache.setFrameCount(0);
                     frameCache.clearFrames($scope.model);
                     $scope.percentComplete = 0;
                     $scope.particleNumber = 0;
                 }
             });
-            appState.whenModelsLoaded($scope, copyMultiElectronModel);
-        },
+            appState.whenModelsLoaded($scope, function () {
+                copyMultiElectronModel();
+                if( $scope.isApproximateMethod() ) {
+                    $scope.cancelPersistentSimulation();
+                }
+            });
+            $scope.isApproximateMethod = function () {
+                return appState.models.fluxAnimation.method == -1;
+            };
+            function methodForMethodNum(methodNum) {
+                return SIREPO.APP_SCHEMA.enum.FluxMethod.filter(function (fm) {
+                    return fm[0] == methodNum;
+                })[0];
+            }
+            $scope.methodName = function () {
+                var m = methodForMethodNum(appState.models.fluxAnimation.method);
+                return m ? m[1]  : '';
+            };
+
+            $scope.cancelPersistentSimulation = function () {
+                $scope.cancelSimulation(cancelSuccess, cancelError);
+            };
+            var cancelSuccess = function (data, status) {
+                if( $scope.isApproximateMethod() ) {
+                    $scope.runSimulation();
+                }
+            };
+            var cancelError = function (data, status) {
+                // ignore error
+                cancelSuccess(data, status);
+            };
+
+       },
     };
 });
 
