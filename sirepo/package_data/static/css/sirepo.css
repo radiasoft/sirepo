@@ -705,7 +705,6 @@ li.sr-model-list-item > a {
 }
 
 .sr-page-load {
-    /* display will toggle to block */
     display: none;
     position: absolute;
     top: 0;
@@ -722,6 +721,17 @@ li.sr-model-list-item > a {
     top: 50%;
     margin: -23px 0 0 -24px;
     display: block;
+}
+.sr-page-load-text {
+    display: inline-block;
+    font-size: 16pt;
+    font-weight: bold;
+    color: rgb(1, 80 , 147);
+    position: absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    margin-top: calc(23px + 0.75em);
 }
 
 .elegant-beamline-element {

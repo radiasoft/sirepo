@@ -131,6 +131,8 @@ def models_related_to_report(data):
     #TODO(pjm): only include items up to the current watchpoint
     if template_common.is_watchpoint(r):
         res.append('beamline')
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
     return res
 
 
@@ -292,9 +294,9 @@ calc_oe.T_SOURCE = calc_oe.SSOUR
 calc_oe.T_IMAGE = calc_oe.SIMAG
 calc_beam.traceOE(calc_oe, 1)
 oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
-           '''
+'''
             res += _field_value('oe', 'fwrite', '3') \
-                   + _field_value('oe', 't_image', '0.0') \
+                   + _field_value('oe', 't_image', 0.0) \
                    + _field_value('oe', 't_source', source_distance) \
                    + "\n" + 'beam.traceOE(oe, {})'.format(count)
         if last_element:
@@ -363,7 +365,7 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
             )
         else:
             values.update(
-                t_image=(item.focalDistance + item.pilingThickness * item.numberOfEmptySlots if is_last else 0.0) + source_width,
+                t_image=source_width,
                 t_source=half_lens,
             )
         fields = sorted(values.keys())

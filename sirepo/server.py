@@ -122,22 +122,13 @@ def api_deleteFile():
     req = _json_input()
     filename = werkzeug.secure_filename(req['fileName'])
     search_name = _lib_filename(req['simulationType'], filename, req['fileType'])
-    template = sirepo.template.import_module(req['simulationType'])
-    if hasattr(template, 'validate_delete_file'):
-        err = []
-        for row in simulation_db.iterate_simulation_datafiles(req['simulationType'], _simulation_data):
-            if template.validate_delete_file(row, search_name, req['fileType']):
-                sim = row['models']['simulation']
-                if sim['folder'] == '/':
-                    err.append('/{}'.format(sim['name']))
-                else:
-                    err.append('{}/{}'.format(sim['folder'], sim['name']))
-        if len(err):
-            return _json_response({
-                'error': 'File is in use in other simulations.',
-                'fileList': err,
-                'fileName': filename,
-            })
+    err = _simulations_using_file(req['simulationType'], req['fileType'], search_name)
+    if len(err):
+        return _json_response({
+            'error': 'File is in use in other simulations.',
+            'fileList': err,
+            'fileName': filename,
+        })
     p = _lib_filepath(req['simulationType'], filename, req['fileType'])
     pkio.unchecked_remove(p)
     return _json_response({})
@@ -262,6 +253,8 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': simulation_name,
                 })
+                if len(rows):
+                    _reset_example_simulation_lib_files(simulation_db.open_json_file(simulation_type, sid=rows[0]['simulationId']))
                 break
     if len(rows):
         if application_mode == 'default':
@@ -609,8 +602,14 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     filename = werkzeug.secure_filename(f.filename)
     p = _lib_filepath(simulation_type, filename, file_type)
     err = None
+    file_list = None
     if p.check():
-        err = 'file exists: {}'.format(filename)
+        confirm = flask.request.form['confirm'] if 'confirm' in flask.request.form else None
+        if not confirm:
+            search_name = _lib_filename(simulation_type, filename, file_type)
+            file_list = _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=simulation_id)
+            if file_list:
+                err = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
     if not err:
         pkio.mkdir_parent_only(p)
         f.save(str(p))
@@ -623,6 +622,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         return _json_response({
             'error': err,
             'filename': filename,
+            'fileList': file_list,
             'fileType': file_type,
             'simulationId': simulation_id,
         })
@@ -910,6 +910,17 @@ def _render_root_page(page, values):
     )
 
 
+def _reset_example_simulation_lib_files(data):
+    template = sirepo.template.import_module(data['simulationType'])
+    if hasattr(template, 'resource_files'):
+        resource_files = {}
+        for f in template.resource_files():
+            resource_files[f.basename] = f
+        for f in template_common.lib_files(data):
+            if f.basename in resource_files:
+                resource_files[f.basename].copy(f)
+
+
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return app_simulation_data(
@@ -1044,6 +1055,23 @@ def _simulation_run_status(data, quiet=False):
         )
     except Exception:
         return _simulation_error(pkdexc(), quiet=quiet)
+    return res
+
+
+def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
+    res = []
+    template = sirepo.template.import_module(simulation_type)
+    if not hasattr(template, 'validate_delete_file'):
+        return res
+    for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
+        if template.validate_delete_file(row, search_name, file_type):
+            sim = row['models']['simulation']
+            if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
+                continue
+            if sim['folder'] == '/':
+                res.append('/{}'.format(sim['name']))
+            else:
+                res.append('{}/{}'.format(sim['folder'], sim['name']))
     return res
 
 

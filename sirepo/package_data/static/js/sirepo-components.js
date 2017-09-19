@@ -747,12 +747,13 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         '<div class="form-group">',
                           '<label>Select File</label>',
                           '<input type="file" data-file-model="inputFile" />',
-                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                          '<div class="text-warning" style="white-space: pre-line"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
                         '<div class="clearfix"></div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isUploading}">Save Changes</button>',
+                          '<button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile, true)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>',
+                          '<button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-disabled="isUploading">Save Changes</button>',
                           ' <button data-dismiss="modal" class="btn btn-default" data-ng-class="{\'disabled\': isUploading}">Cancel</button>',
                         '</div>',
                       '</form>',
@@ -765,15 +766,20 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
+            $scope.isConfirming = false;
 
-            $scope.uploadFile = function(inputFile) {
+            $scope.uploadFile = function(inputFile, isConfirmed) {
                 if (! inputFile) {
                     return;
                 }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
                     inputFile,
-                    null,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
                     requestSender.formatUrl(
                         'uploadFile',
                         {
@@ -785,16 +791,31 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         $scope.isUploading = false;
                         if (data.error) {
                             $scope.fileUploadError = data.error;
+                            if (data.fileList) {
+                                $scope.fileUploadError += "\n\n" + data.fileList.join("\n");
+                                $scope.isConfirming = true;
+                            }
                             return;
                         }
-                        requestSender.getAuxiliaryData($scope.fileType).push(data.filename);
-                        $scope.model[$scope.field] = data.filename;
+                        if ($scope.model[$scope.field] != data.filename) {
+                            $scope.model[$scope.field] = data.filename;
+                            var list = requestSender.getAuxiliaryData($scope.fileType);
+                            if (list.indexOf(data.filename) < 0) {
+                                list.push(data.filename);
+                            }
+                        }
+                        else {
+                            // force the reports to update, the model fields are unchanged
+                            appState.updateReports();
+                        }
                         $('#' + panelState.modalId('fileUpload' + $scope.fileType)).modal('hide');
                     });
             };
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
+                scope.isConfirming = false;
+                scope.isUploading = false;
                 scope.fileUploadError = '';
                 scope.inputFile = null;
                 $(element).find("input[type='file']").val(null);
@@ -1202,7 +1223,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender) {
+SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1212,7 +1233,10 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
             '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
-            '<div data-ng-if="showTitle()" class="navbar-text"><a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> <a href="{{ nav.sectionURL() }}" class="glyphicon glyphicon-link"></a></div>',
+            '<div data-ng-if="showTitle()" class="navbar-text">',
+                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>',
+                '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.showMenu = function() {
@@ -1224,6 +1248,22 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
             $scope.showTitle = function() {
                 return ! $scope.nav.isActive('simulations');
             };
+            $scope.showSimulationLink = function() {
+                panelState.showModalEditor(
+                    'simulationLink',
+                    [
+                        '<div data-confirmation-modal="" data-id="sr-simulationLink-editor" data-title="Share link for {{ nav.sectionTitle() }}" data-cancel-text="OK">',
+                            '<input id="sr-simulation-link-input" type="text" readonly="true"',
+                                'value="',
+                                    $window.location.href,
+                                '"',
+                                'class="form-control input-lg" onfocus="this.select();" autofocus="true"/>',
+                        '</div>',
+                    ].join(''),
+                    $scope
+                );
+            };
+
         },
     };
 });

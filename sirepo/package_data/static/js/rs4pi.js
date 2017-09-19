@@ -641,7 +641,7 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
                 clearContours();
                 var rois = rs4piService.getROIPoints();
                 var yMax = yValues[yValues.length - 1] + yValues[0];
-                if (! roiContours && Object.keys(rois).length == 0) {
+                if (! roiContours && Object.keys(rois).length === 0) {
                     return;
                 }
                 Object.keys(rois).forEach(function(roiNumber) {

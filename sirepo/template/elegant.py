@@ -405,7 +405,10 @@ def models_related_to_report(data):
     r = data['report']
     if 'bunchReport' not in r:
         return []
-    return [r, 'bunch', 'bunchSource', 'bunchFile']
+    res = [r, 'bunch', 'bunchSource', 'bunchFile']
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
+    return res
 
 
 def new_simulation(data, new_simulation_data):
