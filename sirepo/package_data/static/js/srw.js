@@ -1551,7 +1551,29 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                 return true;
             }
 
+            function methodForMethodNum(methodNum) {
+                return SIREPO.APP_SCHEMA.enum.FluxMethod.filter(function (fm) {
+                    return fm[0] == methodNum;
+                })[0];
+            }
+
+            $scope.cancelPersistentSimulation = function () {
+                var cancelSuccess = function (data, status) {
+                    if( $scope.isApproximateMethod() ) {
+                        $scope.runSimulation();
+                    }
+                };
+                // ignore error case
+                $scope.cancelSimulation(cancelSuccess, cancelSuccess);
+            };
+
             $scope.handleStatus = function(data) {
+                if (data.method && data.method != appState.models.fluxAnimation.method) {
+                    // the output file on the server was generated with a different flux method
+                    $scope.timeData = {};
+                    frameCache.setFrameCount(0);
+                    return;
+                }
                 if (data.percentComplete) {
                     $scope.particleNumber = data.particleNumber;
                     $scope.particleCount = data.particleCount;
@@ -1562,6 +1584,15 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                     frameCache.setFrameCount($scope.frameCount);
                     frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
                 }
+            };
+
+            $scope.isApproximateMethod = function () {
+                return appState.models.fluxAnimation.method == -1;
+            };
+
+            $scope.methodName = function () {
+                var m = methodForMethodNum(appState.models.fluxAnimation.method);
+                return m ? m[1]  : '';
             };
 
             persistentSimulation.initProperties($scope, $scope, {
@@ -1577,38 +1608,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                     $scope.particleNumber = 0;
                 }
             });
-            appState.whenModelsLoaded($scope, function () {
-                copyMultiElectronModel();
-                if( $scope.isApproximateMethod() ) {
-                    $scope.cancelPersistentSimulation();
-                }
-            });
-            $scope.isApproximateMethod = function () {
-                return appState.models.fluxAnimation.method == -1;
-            };
-            function methodForMethodNum(methodNum) {
-                return SIREPO.APP_SCHEMA.enum.FluxMethod.filter(function (fm) {
-                    return fm[0] == methodNum;
-                })[0];
-            }
-            $scope.methodName = function () {
-                var m = methodForMethodNum(appState.models.fluxAnimation.method);
-                return m ? m[1]  : '';
-            };
-
-            $scope.cancelPersistentSimulation = function () {
-                $scope.cancelSimulation(cancelSuccess, cancelError);
-            };
-            var cancelSuccess = function (data, status) {
-                if( $scope.isApproximateMethod() ) {
-                    $scope.runSimulation();
-                }
-            };
-            var cancelError = function (data, status) {
-                // ignore error
-                cancelSuccess(data, status);
-            };
-
+            appState.whenModelsLoaded($scope, copyMultiElectronModel);
        },
     };
 });
