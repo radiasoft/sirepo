@@ -1315,20 +1315,22 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
-    self.cancelItem = function (qi) {
+    // TODO(mvk): handle possible queue state conflicts
+    self.cancelItem = function (qi, successCallback, errorCallback) {
         if (! qi) {
-            return;
+            return false;
         }
         qi.qMode = 'transient';
         var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
         if (qi.qState == 'processing') {
-            requestSender.sendRequest('runCancel', null, qi.request);
+            requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
             qi.qState = 'canceled';
         }
         self.removeItem(qi);
         if (isProcessingTransient) {
             runFirstTransientItem();
         }
+        return true;
     };
 
     self.removeItem = function(qi) {
@@ -1494,10 +1496,16 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             }
         }
 
-        controller.cancelSimulation = function() {
+        controller.cancelSimulation = function(successCallback, errorCallback) {
             setSimulationStatus({state: 'canceled'});
-            simulationQueue.cancelItem(controller.simulationQueueItem);
+            var queueHadItem = simulationQueue.cancelItem(controller.simulationQueueItem, successCallback, errorCallback);
             controller.simulationQueueItem = null;
+            if (! queueHadItem && successCallback) {
+                successCallback(
+                    { 'state': 'queue empty' },
+                    200
+                );
+            }
         };
 
         controller.clearSimulation = function() {
