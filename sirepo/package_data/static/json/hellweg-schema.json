@@ -227,10 +227,10 @@
         "twissDistribution": {
             "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float"],
             "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float"],
-            "horizontalAlpha": ["Horizontal Alpha [cm/rad]", "Float"],
+            "horizontalAlpha": ["Horizontal Alpha", "Float"],
             "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float"],
             "verticalBeta": ["Vertical Beta [cm/rad]", "Float"],
-            "verticalAlpha": ["Vertical Alpha [cm/rad]", "Float"]
+            "verticalAlpha": ["Vertical Alpha", "Float"]
         }
     },
     "view": {
