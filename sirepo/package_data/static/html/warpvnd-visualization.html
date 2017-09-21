@@ -2,70 +2,43 @@
   <div class="row">
     <div class="col-md-6 col-xl-4">
       <div class="row">
-      <div class="col-sm-12">
-      <div class="panel panel-info">
-        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.isStateProcessing()">
-            <div data-ng-show="visualization.isStatePending()">
-              <div class="col-sm-12">
-                 {{ visualization.stateAsText() }} {{ visualization.dots }}
-              </div>
-            </div>
-            <div data-ng-show="visualization.isStateRunning()">
-              <div class="col-sm-12">
-                <div data-ng-show="visualization.isInitializing()">
-                   Running Simulation {{ visualization.dots }}
-                </div>
-                <div data-ng-show="visualization.getFrameCount() > 0">
-                  Completed frame: {{ visualization.getFrameCount() }}
-                </div>
-                <div class="progress">
-                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.displayPercentComplete() }}%">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.isStateStopped()">
-            <div class="col-sm-12" data-ng-show="visualization.getFrameCount() >= 1">
+        <div class="col-sm-12">
+          <div data-simulation-status-panel="simulationStatus">
+            <div class="col-sm-12" data-ng-show="$parent.getFrameCount() >= 1">
               Simulation
-              <span>{{ visualization.stateAsText() }}</span><span>:
-                {{ visualization.getFrameCount() }} animation frames
+              <span>{{ $parent.stateAsText() }}</span><span>:
+                {{ $parent.getFrameCount() }} animation frames
               </span>
               <br><br>
             </div>
-            <div data-ng-show="visualization.simulationState() =='error'">
-              <div class="col-sm-12">
-                {{ visualization.stateAsText() }}
-              </div>
+            <div data-ng-show="$parent.simulationState() =='error'">
+              <div class="col-sm-12">{{ $parent.stateAsText() }}</div>
             </div>
-            <div class="col-sm-12">
+            <div class="form-group">
+              <div data-model-field="'egun_mode'" data-model-name="'simulation'" data-label-size="4"></div>
+            </div>
+            <div class="col-sm-12" data-ng-if="! visualization.warpvndService.isEGunMode()">
               <div class="well" data-ng-show="visualization.estimates.timeOfFlight">
-                  Expected time of flight is {{ visualization.estimates.timeOfFlight }}s<br/>
-                  This corresponds to {{ visualization.estimates.steps }} steps
+                Expected time of flight is {{ visualization.estimates.timeOfFlight }}s<br/>
+                This corresponds to {{ visualization.estimates.steps }} steps
               </div>
             </div>
-            <div data-model-field="'num_steps'" data-model-name="'simulationGrid'" data-label-size="4"></div>
-            <div class="col-sm-5 pull-right">
-              <button class="btn btn-default" data-ng-click="visualization.runSimulation()">Start New Simulation</button>
+            <div class="form-group">
+              <div data-ng-if="! visualization.warpvndService.isEGunMode()" data-model-field="'num_steps'" data-model-name="'simulationGrid'" data-label-size="4"></div>
+              <div class="col-sm-5 pull-right">
+                <button class="btn btn-default" data-ng-click="$parent.startSimulation()">Start New Simulation</button>
+              </div>
             </div>
-          </form>
-          <div class="clearfix"></div>
-          <div data-summary-table="animation"></div>
+          </div>
         </div>
-      </div>
-      </div>
-    <div class="col-sm-12">
-      <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
-    </div>
+        <div class="col-sm-12">
+          <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
+        </div>
       </div>
     </div>
     <div class="col-md-6 col-xl-4">
-      <div data-report-panel="parameter" data-model-name="currentAnimation"></div>
+      <div data-ng-if="! visualization.warpvndService.isEGunMode(true)" data-report-panel="parameter" data-model-name="currentAnimation"></div>
+      <div data-ng-if="visualization.warpvndService.isEGunMode(true)" data-report-panel="2d" data-model-name="currentAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-report-panel="particle" data-model-name="particleAnimation"></div>

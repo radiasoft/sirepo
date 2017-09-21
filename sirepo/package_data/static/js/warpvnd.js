@@ -44,6 +44,14 @@ SIREPO.app.factory('warpvndService', function(appState, panelState) {
         return findModelById('conductors', id);
     };
 
+    self.isEGunMode = function(isSavedValues) {
+        if (appState.isLoaded()) {
+            var models = isSavedValues ? appState.applicationState() : appState.models;
+            return models.simulation.egun_mode == '1';
+        }
+        return false;
+    };
+
     return self;
 });
 
@@ -211,10 +219,9 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, warpvndService, $scope) {
     var self = this;
-    self.model = 'animation';
-    self.simulationErrors = '';
+    self.warpvndService = warpvndService;
 
     function computeSimulationSteps() {
         self.estimates = {};
@@ -235,30 +242,6 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
         panelState.enableField('simulationGrid', 'particles_per_step', false);
     };
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
-        frameCache.setFrameCount(0, 'particleAnimation');
-        if (data.startTime && ! data.error) {
-            ['currentAnimation', 'fieldAnimation', 'particleAnimation'].forEach(function(modelName) {
-                appState.models[modelName].startTime = data.startTime;
-                appState.saveQuietly(modelName);
-            });
-            if (data.percentComplete === 100 && ! data.isStateProcessing) {
-                frameCache.setFrameCount(1, 'particleAnimation');
-            }
-        }
-        frameCache.setFrameCount(data.frameCount);
-    };
-
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
-    };
-
-    persistentSimulation.initProperties(self, $scope, {
-        currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-        fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'startTime'],
-    });
     appState.whenModelsLoaded($scope, computeSimulationSteps);
 });
 
@@ -311,7 +294,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
             source: '=controller',
         },
         template: [
-            '<table style="width: 100%;  table-layout: fixed" class="table table-hover">',
+            '<table data-ng-show="appState.models.conductorTypes.length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
               '<colgroup>',
                 '<col>',
                 '<col style="width: 12ex">',
@@ -898,6 +881,81 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            modelName: '@simulationStatusPanel',
+        },
+        template: [
+            '<div class="panel panel-info">',
+              '<div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="modelName"></div>',
+              '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
+                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="isStateProcessing()">',
+                  '<div data-ng-show="isStatePending()">',
+                    '<div class="col-sm-12">{{ stateAsText() }} {{ dots }}</div>',
+                  '</div>',
+                  '<div data-ng-show="isStateRunning()">',
+                    '<div class="col-sm-12">',
+                      '<div data-ng-show="isInitializing()">',
+                        'Running Simulation {{ dots }}',
+                      '</div>',
+                      '<div data-ng-show="getFrameCount() > 0">',
+                        'Completed frame: {{ getFrameCount() }}',
+                      '</div>',
+                      '<div class="progress">',
+                        '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                  '<div class="col-sm-6 pull-right">',
+                    '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
+                  '</div>',
+                '</form>',
+                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="isStateStopped()">',
+                  '<div data-ng-transclude=""></div>',
+                '</form>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.panelState = panelState;
+            $scope.model = 'animation';
+
+            $scope.getFrameCount = function() {
+                return frameCache.getFrameCount();
+            };
+
+            $scope.handleStatus = function(data) {
+                frameCache.setFrameCount(0, 'particleAnimation');
+                if (data.startTime && ! data.error) {
+                    ['currentAnimation', 'fieldAnimation', 'particleAnimation'].forEach(function(modelName) {
+                        appState.models[modelName].startTime = data.startTime;
+                        appState.saveQuietly(modelName);
+                    });
+                    if (data.percentComplete === 100 && ! data.isStateProcessing) {
+                        frameCache.setFrameCount(1, 'particleAnimation');
+                    }
+                }
+                frameCache.setFrameCount(data.frameCount);
+            };
+
+            $scope.startSimulation = function() {
+                frameCache.setFrameCount(0);
+                appState.saveChanges(['simulation', 'simulationGrid'], $scope.runSimulation);
+            };
+
+            persistentSimulation.initProperties($scope, $scope, {
+                currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
+                fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
+                particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],
+                impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
+            });
         },
     };
 });

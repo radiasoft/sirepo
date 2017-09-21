@@ -1559,6 +1559,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             setSimulationStatus({state: 'pending'});
             controller.simulationQueueItem = simulationQueue.addPersistentItem(
                 controller.model,
+                //TODO(pjm): this should be appstate.savedModelValues
+                // other values haven't been saved yet
                 appState.models,
                 handleStatus
             );
