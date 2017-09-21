@@ -175,6 +175,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
             if progress_file.exists():
                 status = simulation_db.read_json(progress_file)
         t = int(filename.mtime())
+        if not is_running and report == 'fluxAnimation':
+            # let the client know which flux method was used for the output
+            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            res['method'] = data['models']['fluxAnimation']['method']
         res.update({
             'frameCount': 1,
             'frameId': t,
@@ -845,10 +849,10 @@ def prepare_output_file(report_info, data):
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
     if fn.exists():
         fn.remove()
-        res = extract_report_data(
-            str(report_info.run_dir.join(get_filename_for_model(data['report']))),
-            data)
-        simulation_db.write_result(res, run_dir=report_info.run_dir)
+        output_file = report_info.run_dir.join(get_filename_for_model(data['report']))
+        if output_file.exists():
+            res = extract_report_data(str(output_file), data)
+            simulation_db.write_result(res, run_dir=report_info.run_dir)
 
 
 def python_source_for_model(data, model):

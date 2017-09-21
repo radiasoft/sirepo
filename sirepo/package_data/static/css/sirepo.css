@@ -143,6 +143,11 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
+    .srw-beamline-invalid {
+      border-radius: 5px;
+      border: 1.5px dashed #ff0000;
+      fill: rgba(255, 0, 0, 1.0);
+    }
     .srw-hover:hover .srw-beamline-close-icon {
       visibility: visible;
     }
