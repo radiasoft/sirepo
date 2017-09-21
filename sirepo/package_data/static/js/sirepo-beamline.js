@@ -184,7 +184,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
             '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
               '<div class="row">',
                 '<form>',
-                  '<div class="col-md-6 col-sm-8 pull-right" data-item="item" data-ng-show="checkIfDirty()">',
+                  '<div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">',
                     '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button>',
                     '<button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>',
                   '</div>',
@@ -416,7 +416,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             item: '=',
         },
         template: [
-            '<span class="srw-beamline-badge badge">{{ item.position ? item.position : \'⚠ \' }}m</span>',
+            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : \'⚠ \' }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
             '<div class="srw-beamline-image">',

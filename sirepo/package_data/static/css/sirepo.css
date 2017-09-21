@@ -148,7 +148,7 @@
       border: 1.5px dashed #ff0000;
       fill: rgba(255, 0, 0, 1.0);
     }
-   .srw-hover:hover .srw-beamline-close-icon {
+    .srw-hover:hover .srw-beamline-close-icon {
       visibility: visible;
     }
     .srw-hover .srw-beamline-close-icon:hover {
