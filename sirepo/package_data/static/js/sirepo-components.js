@@ -1405,3 +1405,29 @@ SIREPO.app.service('fileUpload', function($http) {
             });
     };
 });
+
+SIREPO.app.service('utilities', function() {
+
+    this.validateFieldOfType = function(value, type) {
+
+        if (value == undefined || value == null || value === '')  {
+            return false;
+        }
+        if (type === 'Float' || type === 'Integer') {
+            if (SIREPO.NUMBER_REGEXP.test(value)) {
+                var v;
+                if (type.toUpperCase() == 'INTEGER') {
+                    v = parseInt(value);
+                    return v == value;
+                }
+                return isFinite(parseFloat(value));
+            }
+        }
+        if( type === 'String' ) {
+            return true;
+        }
+        // TODO(mvk): other types here, for now just accept everything
+        return true;
+    };
+
+});
