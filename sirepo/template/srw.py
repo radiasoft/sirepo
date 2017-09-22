@@ -175,6 +175,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
             if progress_file.exists():
                 status = simulation_db.read_json(progress_file)
         t = int(filename.mtime())
+        if not is_running and report == 'fluxAnimation':
+            # let the client know which flux method was used for the output
+            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            res['method'] = data['models']['fluxAnimation']['method']
         res.update({
             'frameCount': 1,
             'frameId': t,
@@ -494,6 +498,9 @@ def fixup_old_data(data):
         if k not in data['models']['sourceIntensityReport']:
             data['models']['sourceIntensityReport'][k] = data['models']['simulation'][k]
 
+    if 'photonEnergy' not in data['models']['gaussianBeam']:
+        data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
+
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
             if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
@@ -515,6 +522,9 @@ def fixup_old_data(data):
         und = data['models']['tabulatedUndulator']
         und['name'] = und['undulatorSelector'] = 'Undulator'
         und['id'] = '1'
+
+    if 'distanceFromSource' not in data['models']['simulation']:
+        data['models']['simulation']['distanceFromSource'] = template_common.DEFAULT_INTENSITY_DISTANCE
 
 
 def get_animation_name(data):
@@ -671,6 +681,14 @@ def _report_fields(data, report_name):
     return [report_name]
 
 
+def _lib_file_datetime(filename):
+    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
+    if path.exists():
+        return path.mtime()
+    pkdlog('error, missing lib file: {}', path)
+    return 0
+
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -682,8 +700,8 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'mirrorReport':
         return [
-            #TODO(pjm): will need to add file modified datetime value if file replacement is implemented
             'mirrorReport.heightProfileFile',
+            _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
             'mirrorReport.orientation',
             'mirrorReport.grazingAngle',
             'mirrorReport.heightAmplification',
@@ -692,6 +710,9 @@ def models_related_to_report(data):
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
+    if _is_tabulated_undulator_source(data['models']['simulation']):
+        res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
+
     watchpoint = template_common.is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
         res.extend([
@@ -704,6 +725,7 @@ def models_related_to_report(data):
             'simulation.verticalPointCount',
             'simulation.verticalPosition',
             'simulation.verticalRange',
+            'simulation.distanceFromSource',
         ])
     if r == 'initialIntensityReport':
         beamline = data['models']['beamline']
@@ -717,7 +739,11 @@ def models_related_to_report(data):
             del item_copy['title']
             res.append(item_copy)
             res.append(propagation[str(item['id'])])
-            if item['type'] == 'watch' and item['id'] == wid:
+            if item['type'] == 'mirror':
+                res.append(_lib_file_datetime(item['heightProfileFile']))
+            elif item['type'] == 'sample':
+                res.append(_lib_file_datetime(item['imageFile']))
+            elif item['type'] == 'watch' and item['id'] == wid:
                 break
         if beamline[-1]['id'] == wid:
             res.append('postPropagation')
@@ -823,10 +849,10 @@ def prepare_output_file(report_info, data):
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
     if fn.exists():
         fn.remove()
-        res = extract_report_data(
-            str(report_info.run_dir.join(get_filename_for_model(data['report']))),
-            data)
-        simulation_db.write_result(res, run_dir=report_info.run_dir)
+        output_file = report_info.run_dir.join(get_filename_for_model(data['report']))
+        if output_file.exists():
+            res = extract_report_data(str(output_file), data)
+            simulation_db.write_result(res, run_dir=report_info.run_dir)
 
 
 def python_source_for_model(data, model):
@@ -1592,6 +1618,8 @@ def _get_first_element_position(data):
     beamline = data['models']['beamline']
     if len(beamline):
         return beamline[0]['position']
+    if 'distanceFromSource' in data['models']['simulation']:
+        return data['models']['simulation']['distanceFromSource']
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 

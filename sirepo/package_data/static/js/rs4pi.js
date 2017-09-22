@@ -740,7 +740,7 @@ function dicomROIFeature($scope, rs4piService) {
         clearContours();
         var rois = rs4piService.getROIPoints();
         var yMax = $scope.yMax();
-        if (! roiContours && Object.keys(rois).length == 0) {
+        if (! roiContours && Object.keys(rois).length === 0) {
             return;
         }
         Object.keys(rois).forEach(function(roiNumber) {
@@ -1084,7 +1084,7 @@ function imageFeature() {
     function isValidHeatmap() {
         return heatmap && heatmap.length;
     }
-    
+
     return {
         clearColorScale: function() {
             colorScale = null;

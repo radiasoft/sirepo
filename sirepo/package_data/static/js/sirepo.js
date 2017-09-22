@@ -160,18 +160,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         self.models.simulationStatus = {};
         savedModelValues = self.cloneModel();
         lastAutoSaveData = self.clone(data);
-        updateReports();
+        self.updateReports();
         broadcastLoaded();
         self.resetAutoSaveTimer();
-    }
-
-    function updateReports() {
-        broadcastClear();
-        for (var key in self.models) {
-            if (self.isReportModelName(key)) {
-                broadcastChanged(key);
-            }
-        }
     }
 
     self.applicationState = function() {
@@ -478,7 +469,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
         self.autoSave(function() {
             if (requireReportUpdate) {
-                updateReports();
+                self.updateReports();
             }
             if (callback) {
                 callback();
@@ -515,6 +506,15 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
             else {
                 return id;
+            }
+        }
+    };
+
+    self.updateReports = function() {
+        broadcastClear();
+        for (var key in self.models) {
+            if (self.isReportModelName(key)) {
+                broadcastChanged(key);
             }
         }
     };
@@ -920,7 +920,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#' + self.modalId(modelKey);
-
         if ($(editorId).length) {
             $(editorId).modal('show');
         }
@@ -1316,20 +1315,22 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
-    self.cancelItem = function (qi) {
+    // TODO(mvk): handle possible queue state conflicts
+    self.cancelItem = function (qi, successCallback, errorCallback) {
         if (! qi) {
-            return;
+            return false;
         }
         qi.qMode = 'transient';
         var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
         if (qi.qState == 'processing') {
-            requestSender.sendRequest('runCancel', null, qi.request);
+            requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
             qi.qState = 'canceled';
         }
         self.removeItem(qi);
         if (isProcessingTransient) {
             runFirstTransientItem();
         }
+        return true;
     };
 
     self.removeItem = function(qi) {
@@ -1495,10 +1496,16 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             }
         }
 
-        controller.cancelSimulation = function() {
+        controller.cancelSimulation = function(successCallback, errorCallback) {
             setSimulationStatus({state: 'canceled'});
-            simulationQueue.cancelItem(controller.simulationQueueItem);
+            var queueHadItem = simulationQueue.cancelItem(controller.simulationQueueItem, successCallback, errorCallback);
             controller.simulationQueueItem = null;
+            if (! queueHadItem && successCallback) {
+                successCallback(
+                    { 'state': 'queue empty' },
+                    200
+                );
+            }
         };
 
         controller.clearSimulation = function() {
@@ -1552,6 +1559,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             setSimulationStatus({state: 'pending'});
             controller.simulationQueueItem = simulationQueue.addPersistentItem(
                 controller.model,
+                //TODO(pjm): this should be appstate.savedModelValues
+                // other values haven't been saved yet
                 appState.models,
                 handleStatus
             );
@@ -1723,7 +1732,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
     self.redirectToPath = function(path) {
         var compoundPath = pathToCompoundPath(path);
-        if (compoundPath == '') {
+        if (compoundPath === '') {
             requestSender.localRedirect('simulations');
         }
         else {
@@ -1739,7 +1748,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+
     var self = this;
 
     function openSection(name) {
@@ -1819,6 +1829,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+
+    $scope.$on('$locationChangeStart', function (event) {
+        SIREPO.setPageLoaderVisible(true);
+    });
+    $scope.$on('$viewContentLoaded', function (event) {
+        SIREPO.setPageLoaderVisible(false);
+    });
+
+
 });
 
 SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
@@ -2232,18 +2251,24 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     });
     loadList();
 
+    var scopeOK = true;
     // invoked in loadList() callback
     function checkURLForFolder() {
 
+        if (! scopeOK ) {
+            return;
+        }
         if (! fileManager.getActiveFolder() ) {
             self.openItem(rootFolder());
         }
         else {
+            if ($location.path().indexOf('/simulations') < 0) {
+                return;
+            }
             var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
             if (canonicalPath === fileManager.getActiveFolderPath()) {
                 return;
             }
-
             var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
             if (newFolder) {
                 fileManager.setActiveFolderPath(canonicalPath);
@@ -2272,5 +2297,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
         return null;
     }
-
+    $scope.$on('$destroy', function() {
+        scopeOK = false;
+    });
 });
