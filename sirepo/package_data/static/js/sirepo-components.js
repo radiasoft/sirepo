@@ -1409,21 +1409,24 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('utilities', function() {
 
     this.validateFieldOfType = function(value, type) {
-
         if (value == undefined || value == null || value === '')  {
+            // null files OK, at least sometimes
+            if (type === 'MirrorFile') {
+                return true;
+            }
             return false;
         }
         if (type === 'Float' || type === 'Integer') {
             if (SIREPO.NUMBER_REGEXP.test(value)) {
                 var v;
-                if (type.toUpperCase() == 'INTEGER') {
+                if (type  === 'Integer') {
                     v = parseInt(value);
                     return v == value;
                 }
                 return isFinite(parseFloat(value));
             }
         }
-        if( type === 'String' ) {
+        if (type === 'String') {
             return true;
         }
         // TODO(mvk): other types here, for now just accept everything
