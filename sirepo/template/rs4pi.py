@@ -40,7 +40,8 @@ _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
 _DOSE_FILE = 'dose3d.dat'
 _EXPECTED_ORIENTATION = np.array([1, 0, 0, 0, 1, 0])
-_INT_SIZE = ctypes.sizeof(ctypes.c_int)
+# using np.float32 for pixel storage
+_FLOAT_SIZE = 4
 _PIXEL_FILE = 'pixels3d.dat'
 _RADIASOFT_ID = 'RadiaSoft'
 _ROI_FILE_NAME = 'rs4pi-roi-data.json'
@@ -286,7 +287,7 @@ def _extract_series_frames(simulation, dicom_dir):
             if selected_series != plan.SeriesInstanceUID:
                 continue
             info = {
-                'pixels': np.int32(plan.pixel_array),
+                'pixels': np.float32(plan.pixel_array),
                 'shape': plan.pixel_array.shape,
                 'ImagePositionPatient': _string_list(plan.ImagePositionPatient),
                 'ImageOrientationPatient': _float_list(plan.ImageOrientationPatient),
@@ -447,12 +448,12 @@ def _read_dose_frame(idx, data):
         return res
     shape = dose_info['shape']
     with open (_dose_filename(data['models']['simulation']), 'rb') as f:
-        f.seek(idx * _INT_SIZE * shape[0] * shape[1], 1)
+        f.seek(idx * _FLOAT_SIZE * shape[0] * shape[1], 1)
         for r in range(shape[0]):
             row = []
             res.append(row)
             for c in range(shape[1]):
-                row.append(struct.unpack('i', f.read(_INT_SIZE))[0])
+                row.append(struct.unpack('f', f.read(_FLOAT_SIZE))[0])
     return res
 
 
@@ -465,31 +466,31 @@ def _read_pixel_plane(plane, idx, data):
     with open (_pixel_filename(data['models']['simulation']), 'rb') as f:
         if plane == 't':
             if idx > 0:
-                f.seek(idx * _INT_SIZE * size[0] * size[1], 1)
+                f.seek(idx * _FLOAT_SIZE * size[0] * size[1], 1)
             for r in range(size[1]):
                 row = []
                 frame.append(row)
                 for v in range(size[0]):
-                    row.append(struct.unpack('i', f.read(_INT_SIZE))[0])
+                    row.append(struct.unpack('f', f.read(_FLOAT_SIZE))[0])
         elif plane == 'c':
             if idx > 0:
-                f.seek(idx * _INT_SIZE * size[0], 1)
+                f.seek(idx * _FLOAT_SIZE * size[0], 1)
             for r in range(size[2]):
                 row = []
                 frame.append(row)
                 for v in range(size[0]):
-                    row.append(struct.unpack('i', f.read(_INT_SIZE))[0])
-                f.seek(_INT_SIZE * (size[0] - 1) * size[1], 1)
+                    row.append(struct.unpack('f', f.read(_FLOAT_SIZE))[0])
+                f.seek(_FLOAT_SIZE * (size[0] - 1) * size[1], 1)
             frame = np.flipud(frame).tolist()
         elif plane == 's':
             if idx > 0:
-                f.seek(idx * _INT_SIZE, 1)
+                f.seek(idx * _FLOAT_SIZE, 1)
             for r in range(size[2]):
                 row = []
                 frame.append(row)
                 for v in range(size[1]):
-                    row.append(struct.unpack('i', f.read(_INT_SIZE))[0])
-                    f.seek(_INT_SIZE * (size[0] - 1), 1)
+                    row.append(struct.unpack('f', f.read(_FLOAT_SIZE))[0])
+                    f.seek(_FLOAT_SIZE * (size[0] - 1), 1)
             frame = np.flipud(frame).tolist()
         else:
             raise RuntimeError('plane not supported: {}'.format(plane))
@@ -515,9 +516,8 @@ def _scale_pixel_data(plan, pixels):
         offset = plan.RescaleIntercept
         scale_required = True
     if scale_required:
-        #TODO(pjm): need to test with float slope/offset
-        pixels = np.multiply(pixels, slope, out=pixels, casting='unsafe')
-        pixels = np.add(pixels, offset, out=pixels, casting='unsafe')
+        pixels *= float(slope)
+        pixels += float(offset)
 
 
 def _sim_file(sim_id, filename):
@@ -625,15 +625,17 @@ def _summarize_frames(frames):
 
 
 def _summarize_rt_dose(simulation, plan):
-    pixels =  np.int32(plan.pixel_array)
+    pixels =  np.float32(plan.pixel_array)
+    if plan.DoseGridScaling:
+        pixels *= float(plan.DoseGridScaling)
     with open (_dose_filename(simulation), 'wb') as f:
         pixels.tofile(f)
     #TODO(pjm): assuming frame start matches dicom frame start
     res = {
         'frameCount': int(plan.NumberofFrames),
         'units': plan.DoseUnits,
-        'min': int(np.min(pixels)),
-        'max': int(np.max(pixels)),
+        'min': float(np.min(pixels)),
+        'max': float(np.max(pixels)),
         'shape': [plan.Rows, plan.Columns],
         'ImagePositionPatient': _string_list(plan.ImagePositionPatient),
         'PixelSpacing': _float_list(plan.PixelSpacing),
