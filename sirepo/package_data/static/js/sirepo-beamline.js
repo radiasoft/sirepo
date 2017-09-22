@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, $window) {
+SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -125,6 +125,37 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
         });
     };
 
+    self.isBeamlineValid = function() {
+        var models = appState.models;
+        if (! models.beamline ) {
+            return true;
+        }
+        for (var i = 0; i < models.beamline.length; ++i) {
+            var item = models.beamline[i];
+            if (! self.isItemValid(item)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    self.isActiveItemValid = function() {
+        return self.isItemValid(self.activeItem);
+    };
+    self.isItemValid = function(item) {
+        if (! item) {
+            return false;
+        }
+        var type = item.type;
+        var fields = SIREPO.APP_SCHEMA.model[type];
+        for (var field in fields) {
+            var fieldType = fields[field][1];
+            if (! utilities.validateFieldOfType(item[field], fieldType)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     return self;
 });
 
@@ -143,7 +174,10 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
               '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" data-ng-class="{\'srw-disabled-item\': item.isDisabled}">',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
+                  '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
+                    'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
+                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
                   '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
                 '</div>',
             '</div>',
@@ -151,7 +185,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
               '<div class="row">',
                 '<form>',
                   '<div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">',
-                    '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary">Save Changes</button>',
+                    '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button>',
                     '<button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>',
                   '</div>',
                 '</form>',
@@ -250,6 +284,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 }
                 return isDirty;
             };
+
             $scope.saveBeamlineChanges = function() {
                 // sort beamline based on position
                 appState.models.beamline.sort(function(a, b) {
@@ -381,13 +416,13 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             item: '=',
         },
         template: [
-            '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
+            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : \'⚠ \' }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
-            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>',
+            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
@@ -507,7 +542,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
                 '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
+                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-disabled="! form.$valid">Close</button>',
                   '</div>',
                 '</div>',
                 '<div class="form-group" data-ng-show="beamlineService.isTouchscreen() && beamlineService.isEditable()">',
