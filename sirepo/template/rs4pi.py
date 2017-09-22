@@ -21,6 +21,7 @@ import os
 import os.path
 import py.path
 import struct
+import time
 import werkzeug
 import zipfile
 
@@ -30,12 +31,14 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _DICOM_CLASS = {
     'CT_IMAGE': '1.2.840.10008.5.1.4.1.1.2',
+    'RT_DOSE': '1.2.840.10008.5.1.4.1.1.481.2',
     'RT_STRUCT': '1.2.840.10008.5.1.4.1.1.481.3',
     'DETATCHED_STUDY': '1.2.840.10008.3.1.2.3.1',
 }
 _DICOM_DIR = 'dicom'
 _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
+_DOSE_FILE = 'dose3d.dat'
 _EXPECTED_ORIENTATION = np.array([1, 0, 0, 0, 1, 0])
 _INT_SIZE = ctypes.sizeof(ctypes.c_int)
 _PIXEL_FILE = 'pixels3d.dat'
@@ -74,6 +77,10 @@ def copy_related_files(data, source_path, target_path):
 def fixup_old_data(data):
     if 'dicomEditorState' not in data['models']:
         data['models']['dicomEditorState'] = {}
+    if 'dicomDose' not in data['models']:
+        data['models']['dicomDose'] = {
+            'frameCount': 0,
+        }
 
 
 def generate_rtstruct_file(sim_dir, target_dir):
@@ -89,7 +96,7 @@ def generate_rtstruct_file(sim_dir, target_dir):
 
 
 def get_animation_name(data):
-    if data['modelName'].startswith('dicomAnimation'):
+    if data['modelName'].startswith('dicomAnimation') or data['modelName'] == 'dicomDose':
         return 'dicomAnimation'
     return data['modelName']
 
@@ -120,6 +127,10 @@ def get_simulation_frame(run_dir, data, model_data):
         res = simulation_db.read_json(_dicom_path(model_data['models']['simulation'], plane, frame_index))
         res['pixel_array'] = _read_pixel_plane(plane, frame_index, model_data)
         return res
+    if data['modelName'] == 'dicomDose':
+        return {
+            'dose_array': _read_dose_frame(frame_index, model_data)
+        }
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -245,17 +256,24 @@ def _dicom_path(simulation, plane, idx):
     return str(py.path.local(_sim_file(simulation['simulationId'], _DICOM_DIR)).join(_frame_file_name(plane, idx)))
 
 
+def _dose_filename(simulation):
+    return _sim_file(simulation['simulationId'], _DOSE_FILE)
+
+
 def _extract_series_frames(simulation, dicom_dir):
     #TODO(pjm): give user a choice between multiple study/series if present
     selected_series = None
     series_description = ''
     frames = {}
+    dose_info = None
     rt_struct_path = None
     for path in pkio.walk_tree(dicom_dir):
         if pkio.has_file_extension(str(path), 'dcm'):
             plan = dicom.read_file(str(path))
             if plan.SOPClassUID == _DICOM_CLASS['RT_STRUCT']:
                 rt_struct_path = str(path)
+            elif plan.SOPClassUID == _DICOM_CLASS['RT_DOSE']:
+                dose_info = _summarize_rt_dose(simulation, plan)
             if plan.SOPClassUID != _DICOM_CLASS['CT_IMAGE']:
                 continue
             orientation = _float_list(plan.ImageOrientationPatient)
@@ -289,7 +307,7 @@ def _extract_series_frames(simulation, dicom_dir):
     res = []
     for z in sorted(_float_list(frames.keys())):
         res.append(frames[_frame_id(z)])
-    return series_description, res
+    return series_description, res, dose_info
 
 
 def _frame_id(v):
@@ -386,7 +404,7 @@ def _histogram_from_pixels(pixels):
         np.floor(extent[1] / step) * step + step * .5,
         step,
     ]
-    bins = np.ceil((e[1] - e[0]) / e[2])
+    bins = int(np.ceil((e[1] - e[0]) / e[2]))
     hist, edges = np.histogram(pixels, bins=bins, range=[e[0], e[0] + (bins - 1) * step])
     if hist[0] == hist.max():
         v = hist[0]
@@ -418,6 +436,24 @@ def _move_import_file(data):
 
 def _pixel_filename(simulation):
     return _sim_file(simulation['simulationId'], _PIXEL_FILE)
+
+
+def _read_dose_frame(idx, data):
+    res = []
+    if 'dicomDose' not in data['models']:
+        return res
+    dose_info = data['models']['dicomDose']
+    if idx >= dose_info['frameCount']:
+        return res
+    shape = dose_info['shape']
+    with open (_dose_filename(data['models']['simulation']), 'rb') as f:
+        f.seek(idx * _INT_SIZE * shape[0] * shape[1], 1)
+        for r in range(shape[0]):
+            row = []
+            res.append(row)
+            for c in range(shape[1]):
+                row.append(struct.unpack('i', f.read(_INT_SIZE))[0])
+    return res
 
 
 def _read_pixel_plane(plane, idx, data):
@@ -479,8 +515,9 @@ def _scale_pixel_data(plan, pixels):
         offset = plan.RescaleIntercept
         scale_required = True
     if scale_required:
-        pixels *= slope
-        pixels += offset
+        #TODO(pjm): need to test with float slope/offset
+        pixels = np.multiply(pixels, slope, out=pixels, casting='unsafe')
+        pixels = np.add(pixels, offset, out=pixels, casting='unsafe')
 
 
 def _sim_file(sim_id, filename):
@@ -493,7 +530,7 @@ def _string_list(ar):
 
 def _summarize_dicom_files(data, dicom_dir):
     simulation = data['models']['simulation']
-    series_description, frames = _extract_series_frames(simulation, dicom_dir)
+    series_description, frames, dose_info = _extract_series_frames(simulation, dicom_dir)
     _summarize_dicom_series(simulation, frames)
     with open (_pixel_filename(simulation), 'wb') as f:
         for frame in frames:
@@ -506,6 +543,11 @@ def _summarize_dicom_files(data, dicom_dir):
             'c': _frame_info(len(frames[0]['pixels'][0])),
         }
     }
+    time_stamp = int(time.time())
+    for m in ('dicomAnimation', 'dicomAnimation2', 'dicomAnimation3'):
+        data['models'][m]['startTime'] = time_stamp
+    if dose_info:
+        data['models']['dicomDose'] = dose_info
     _compute_histogram(simulation, frames)
 
 
@@ -581,6 +623,24 @@ def _summarize_frames(frames):
         res['SOPInstanceUID'].append(frame['SOPInstanceUID'])
     return res
 
+
+def _summarize_rt_dose(simulation, plan):
+    pixels =  np.int32(plan.pixel_array)
+    with open (_dose_filename(simulation), 'wb') as f:
+        pixels.tofile(f)
+    #TODO(pjm): assuming frame start matches dicom frame start
+    res = {
+        'frameCount': int(plan.NumberofFrames),
+        'units': plan.DoseUnits,
+        'min': int(np.min(pixels)),
+        'max': int(np.max(pixels)),
+        'shape': [plan.Rows, plan.Columns],
+        'ImagePositionPatient': _string_list(plan.ImagePositionPatient),
+        'PixelSpacing': _float_list(plan.PixelSpacing),
+        'startTime': int(time.time()),
+    }
+    res['domain'] = _calculate_domain(res)
+    return res
 
 def _summarize_rt_structure(simulation, plan, frame_ids):
     data = {

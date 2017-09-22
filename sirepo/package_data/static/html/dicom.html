@@ -1,8 +1,8 @@
     <div data-ng-hide="isSubFrame">
       <div class="dicom-button-panel">
       <div class="btn-group">
-        <button class="btn btn-default" data-ng-click="rs4piService.setZoomMode('advanceFrame')" data-ng-class="{active: rs4piService.isZoomMode('advanceFrame')}" type="button" title="Scroll through frames"><span class="glyphicon glyphicon-transfer"></span></button>
-        <button class="btn btn-default" data-ng-click="rs4piService.setZoomMode('zoom')" data-ng-class="{active: rs4piService.isZoomMode('zoom')}" type="button" title="Zoom and pan"><span class="glyphicon glyphicon-zoom-in"></span></button>
+        <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('advanceFrame')" data-ng-class="{active: rs4piService.isMouseWheelMode('advanceFrame')}" type="button" title="Scroll through frames"><span class="glyphicon glyphicon-transfer"></span></button>
+        <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('zoom')" data-ng-class="{active: rs4piService.isMouseWheelMode('zoom')}" type="button" title="Zoom and pan"><span class="glyphicon glyphicon-zoom-in"></span></button>
       </div>
       <button class="btn btn-default" data-ng-show="isTransversePlane()" data-ng-click="rs4piService.toggleEditing()" data-ng-class="{active: rs4piService.isEditing}" type="button" title="Edit ROI"><span class="glyphicon glyphicon-edit"></span></button>
       <div class="btn-group" data-ng-show="isTransversePlane() &&rs4piService.isEditing">
@@ -22,14 +22,14 @@
     </div>
     <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
       <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>
-      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasSize }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight }}">
+      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight }}">
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
           <text x="0" y="-6">{{ dicomTitle() }}</text>
-          <svg class="plot-viewport" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasHeight }}">
-          <rect class="overlay mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasHeight }}"></rect>
+          <svg class="plot-viewport" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}">
+          <rect class="overlay mouse-zoom" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
           <defs>
             <clippath id="{{ modelName }}-clip">
-              <rect ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasHeight }}"></rect>
+              <rect ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
             </clippath>
           </defs>
           <g class="draw-area" ng-attr-clip-path="url(#{{ modelName }}-clip)"></g>
