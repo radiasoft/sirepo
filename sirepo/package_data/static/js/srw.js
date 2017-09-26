@@ -153,7 +153,13 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     self.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
     self.singleElectron = true;
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'mask', 'fiber', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'sphericalMirror', 'ellipsoidMirror', 'watch', 'sample'];
+    self.toolbarItemNames = [
+        ['Simple transmission optics', ['aperture', 'obstacle', 'mask', 'sample']],
+        ['Refractive optics', ['lens', 'crl', 'fiber']],
+        ['Reflective optics', ['mirror', 'sphericalMirror', 'ellipsoidMirror']],
+        ['Monochromator optics', ['crystal', 'grating']],
+        'watch',
+    ];
 
     function defaultItemPropagationParams() {
         return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];

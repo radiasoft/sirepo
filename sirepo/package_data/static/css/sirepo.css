@@ -79,6 +79,26 @@
         -ms-user-select: none;
         user-select: none;
     }
+    .sr-toolbar-holder {
+      padding: 0 -12px;
+      margin-bottom: 10px;
+    }
+    .sr-toolbar-section {
+      display: inline-block;
+      border: 1px dashed #31708f;
+      border-radius: 6px;
+      margin: 5px;
+    }
+    .sr-toolbar-section-header {
+      margin-top: -10px;
+      color: #31708f;
+    }
+    .sr-toolbar-section-title {
+      border: 1px solid #31708f;
+      border-radius: 3px;
+      padding: 0 3px;
+      background-color: white;
+    }
     .srw-beamline {
       border-radius: 6px;
       padding: 10px;
