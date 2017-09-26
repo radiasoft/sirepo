@@ -407,6 +407,8 @@ def fixup_old_data(data):
             for field in key_value_pairs.keys():
                 if field not in item:
                     item[field] = key_value_pairs[field]
+            if not item['focalDistance']:
+                item = _compute_crl_focus(item)
     for item in data['models']['beamline']:
         if item['type'] == 'sample':
             if 'horizontalCenterCoordinate' not in item:
