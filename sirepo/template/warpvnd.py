@@ -82,6 +82,9 @@ def fixup_old_data(data):
         data['models']['simulation']['egun_mode'] = '0'
     if 'renderCount' not in data['models']['particleAnimation']:
         data['models']['particleAnimation']['renderCount'] = '100'
+    # fixup for old, now invalid, default data
+    if data['models']['particleAnimation']['renderCount'] == 150:
+        data['models']['particleAnimation']['renderCount'] = '100'
 
 
 def get_animation_name(data):
