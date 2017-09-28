@@ -31,7 +31,7 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
         if (itemId && savedModelValues.beamline) {
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
                 if (savedModelValues.beamline[i].id == itemId) {
-                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                    return 'Intensity ' + savedModelValues.beamline[i].title + ' Report, '
                         + savedModelValues.beamline[i].position + 'm';
                 }
             }
