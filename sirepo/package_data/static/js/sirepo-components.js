@@ -1409,7 +1409,7 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('utilities', function() {
 
     this.validateFieldOfType = function(value, type) {
-        if (value == undefined || value == null || value === '')  {
+        if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
             if (type === 'MirrorFile') {
                 return true;
