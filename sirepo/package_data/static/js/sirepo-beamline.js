@@ -405,6 +405,13 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<circle cx="26" cy="35" r="6" class="srw-sample-white" />',
                 '<circle cx="26" cy="35" r="4" class="srw-sample-black" />',
               '</g>',
+              '<g data-ng-switch-when="toroidalMirror">',
+                '<path d="M17.5 3.5 C27.5 11.5 27.5 46.5 17.5 54.5" class="srw-dash-stroke"></path>',
+                '<path d="M12.5 27.5 C27.5 28.5 32.5 29.5 37.5 32.5" class="srw-dash-stroke"></path>',
+                '<path d="M30 7 C40 15 40 50 30 58 L43 58 L43 7 L30 7" class="srw-mirror"></path>',
+                '<path d="M5 2 C20 3 25 4 30 7 L43 7 L18 2 L5 2" class="srw-mirror"></path>',
+                '<path d="M5 2 C15 10 15 45 5 53 C20 54 25 55 30 58" class="srw-no-fill"></path>',
+              '</g>',
             '</svg>',
         ].join(''),
     };

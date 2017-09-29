@@ -514,6 +514,15 @@ circle.srw-sample-black {
   stroke: #000;
   fill: #000;
 }
+path.srw-no-fill {
+  stroke: #000;
+  fill: none;
+}
+path.srw-dash-stroke {
+  stroke: #999;
+  stroke-dasharray: 1,1;
+  fill: none;
+}
 svg.srw-beamline-item-icon {
   width: 50px;
   height: 60px;
