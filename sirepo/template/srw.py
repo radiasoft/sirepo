@@ -386,7 +386,7 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
-        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
+        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror']:
             if 'grazingAngle' not in item:
                 angle = 0
                 if item['normalVectorX']:
@@ -1474,6 +1474,25 @@ def _generate_beamline_optics(models, last_id):
                 propagation,
                 overwrite_propagation=True,
                 height_profile_el_name='SphMirror{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
+        elif item['type'] == 'toroidalMirror':
+            el, pp = _beamline_element(
+                'srwlib.SRWLOptMirTor(_rt={}, _rs={}, _size_tang={}, _size_sag={}, _x={}, _y={}, _ap_shape="{}", _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+                item,
+                ['tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+                propagation)
+            res_el += el
+            res_pp += pp
+
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                overwrite_propagation=True,
+                height_profile_el_name='TorMirror{}'.format(height_profile_counter)
             )
             if pp:
                 height_profile_counter += 1

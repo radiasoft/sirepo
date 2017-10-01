@@ -156,7 +156,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     self.toolbarItemNames = [
         ['Simple transmission objects', ['aperture', 'obstacle', 'mask', 'sample']],
         ['Refractive optics', ['lens', 'crl', 'fiber']],
-        ['Reflective optics', ['mirror', 'sphericalMirror', 'ellipsoidMirror']],
+        ['Reflective optics', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
         ['Monochromator optics', ['crystal', 'grating']],
         'watch',
     ];
@@ -319,7 +319,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     $scope.$watch('beamlineService.activeItem.grazingAngle', function (newValue, oldValue) {
         if (newValue !== null && angular.isDefined(newValue) && angular.isDefined(oldValue)) {
             var item = beamlineService.activeItem;
-            if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror') {
+            if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror' || item.type === 'toroidalMirror') {
                 requestSender.getApplicationData(
                     {
                         method: 'compute_grazing_angle',

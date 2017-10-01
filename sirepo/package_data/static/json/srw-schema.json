@@ -11,6 +11,10 @@
             ["r", "Rectangular"],
             ["c", "Circular"]
         ],
+        "ApertureShapeToroidalMirror": [
+            ["r", "Rectangular"],
+            ["e", "Elliptical"]
+        ],
         "ApplicationMode": [
             ["default", "Expert"],
             ["calculator", "SR Calculator"],
@@ -587,6 +591,26 @@
             "phase": ["Magnet Arrays Shift [mm]", "Float"],
             "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
             "indexFileName": ["Magnetic Zip Index File", "String"]
+        },
+        "toroidalMirror": {
+            "title": ["Element Name", "String", "Toroidal Mirror"],
+            "position": ["Nominal Position [m]", "Float"],
+            "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
+            "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
+            "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.08],
+            "horizontalPosition": ["Horizontal Position of Mirror Center [m]", "Float", 0],
+            "verticalPosition": ["Vertical Position of Mirror Center [m]", "Float", 0],
+            "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
+            "normalVectorX": ["Horizontal", "Float", 0],
+            "normalVectorY": ["Vertical", "Float", 0.9999755001000415],
+            "normalVectorZ": ["Longitudinal", "Float", -0.006999942833473391],
+            "tangentialVectorX": ["Horizontal", "Float", 0],
+            "tangentialVectorY": ["Vertical", "Float", 0.006999942833473391],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "trajectoryReport": {
             "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters"],
@@ -1298,6 +1322,52 @@
                 ]
             ],
             "advanced": []
+        },
+        "toroidalMirror": {
+            "title": "Toroidal Mirror",
+            "basic": [],
+            "advanced": [
+                ["Geometry", [
+                    "title",
+                    "position",
+                    [
+                        ["Tangential", [
+                            "tangentialRadius",
+                            "tangentialSize"
+                        ]],
+                        ["Sagittal", [
+                            "sagittalRadius",
+                            "sagittalSize"
+                        ]]
+                    ],
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ],
+                    "apertureShape",
+                    "grazingAngle",
+                    [
+                        ["Coordinates of Central Normal Vector", [
+                            "normalVectorX",
+                            "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Mirror Error", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
+            ]
         },
         "trajectoryReport": {
             "title": "Electron Trajectory Report",
