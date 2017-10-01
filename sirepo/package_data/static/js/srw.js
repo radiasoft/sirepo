@@ -1523,7 +1523,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                   '<div data-ng-show="!isApproximateMethod()">',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
-                  '<div class="small"> {{ methodName() }}</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="!isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
