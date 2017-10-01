@@ -631,6 +631,9 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
                     }
                 }
                 var item = appState.setModelDefaults({type: name}, name);
+                if (item.type === 'sphericalMirror' || item.type === 'ellipsoidMirror') {
+                    item.title = item.title.replace(' Mirror', '');
+                }
                 items.push(item);
                 $scope.allItems.push(item);
             }

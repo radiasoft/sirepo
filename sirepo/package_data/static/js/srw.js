@@ -154,10 +154,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     self.singleElectron = true;
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
     self.toolbarItemNames = [
-        ['Simple transmission objects', ['aperture', 'obstacle', 'mask', 'sample']],
-        ['Refractive optics', ['lens', 'crl', 'fiber']],
+        ['Refractive optics and transmission objects', ['lens', 'crl', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
         ['Reflective optics', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
-        ['Monochromator optics', ['crystal', 'grating']],
+        ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
 

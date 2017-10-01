@@ -311,7 +311,7 @@
             "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
-            "title": ["Element Name", "String", "Elliptical Mirror"],
+            "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
             "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
@@ -568,7 +568,7 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
-            "title": ["Element Name", "String", "Spherical Mirror"],
+            "title": ["Element Name", "String", "Circular Cylinder Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
@@ -797,7 +797,7 @@
             ]
         },
         "ellipsoidMirror": {
-            "title": "Elliptical Mirror",
+            "title": "Elliptical Cylinder Mirror",
             "basic": [],
             "advanced": [
                 ["Dimensions", [
@@ -1266,7 +1266,7 @@
             ]
         },
         "sphericalMirror": {
-            "title": "Spherical Mirror",
+            "title": "Circular Cylinder Mirror",
             "basic": [],
             "advanced": [
                 ["Main Parameters", [
