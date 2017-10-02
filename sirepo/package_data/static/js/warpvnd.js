@@ -934,13 +934,19 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             $scope.handleStatus = function(data) {
                 frameCache.setFrameCount(0, 'particleAnimation');
                 if (data.startTime && ! data.error) {
-                    ['currentAnimation', 'fieldAnimation', 'particleAnimation'].forEach(function(modelName) {
+                    ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
                         appState.models[modelName].startTime = data.startTime;
                         appState.saveQuietly(modelName);
                     });
                     if (data.percentComplete === 100 && ! data.isStateProcessing) {
                         frameCache.setFrameCount(1, 'particleAnimation');
                     }
+                }
+                if (data.egunCurrentFrameCount) {
+                    frameCache.setFrameCount(data.egunCurrentFrameCount, 'egunCurrentAnimation');
+                }
+                else {
+                    frameCache.setFrameCount(0, 'egunCurrentAnimation');
                 }
                 frameCache.setFrameCount(data.frameCount);
             };
@@ -955,6 +961,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
                 particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],
                 impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
+                egunCurrentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
             });
         },
     };
