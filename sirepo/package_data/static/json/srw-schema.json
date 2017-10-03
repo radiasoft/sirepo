@@ -947,11 +947,12 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     "tangentialSize",
                     "sagittalSize",
+                    "diffractionOrder",
                     "grazingAngle",
                     [
                         ["Coordinates of Central Normal Vector", [
@@ -965,8 +966,8 @@
                         ]]
                     ]
                 ]],
-                ["Additional Parameters", [
-                    "diffractionOrder",
+                ["Groove Parameters", [
+                    "*a0 + a1*y + a2*y² + a3*y³ + a4*y⁴",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
