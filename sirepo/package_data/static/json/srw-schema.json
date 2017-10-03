@@ -407,11 +407,11 @@
             "tangentialVectorX": ["Horizontal", "Float", 0],
             "tangentialVectorY": ["Vertical", "Float", 0.0129552166147],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
-            "grooveDensity0": ["Groove Density a0", "Float", 1800],
-            "grooveDensity1": ["Groove Density a1y", "Float", 0.08997],
-            "grooveDensity2": ["Groove Density a2y²", "Float", 3.004e-6],
-            "grooveDensity3": ["Groove Density a3y³", "Float", 9.7e-11],
-            "grooveDensity4": ["Groove Density a4y⁴", "Float", 0]
+            "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
+            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
+            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 3.004e-6],
+            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 9.7e-11],
+            "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -967,7 +967,7 @@
                     ]
                 ]],
                 ["Groove Parameters", [
-                    "*a0 + a1*y + a2*y² + a3*y³ + a4*y⁴",
+                    "*Coefficients in Groove Density Polynome:\na₀ + a₁y + a₂y² + a₃y³ + a₄y⁴",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
