@@ -25,6 +25,10 @@
             ["t", "Twiss"],
             ["m", "Moments"]
         ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
             ["1", "Multi-Electron Intensity (disregarding energy spread)"],
@@ -511,6 +515,22 @@
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+        },
+        "propagationParameters": {
+            "0": ["Auto-resize before propagation", "Boolean", "0"],
+            "1": ["Auto-resize after propagation", "Boolean", "0"],
+            "2": ["Relative precision for propagation with auto-resizing", "Float", 1, "1. is nominal"],
+            "3": ["Propagator", "AnalyticalTreatment", "0", "<div style='text-align: left'><strong>Standard</strong> - Fresnel (it uses two FFTs) <br/> <strong>Quadratic Term</strong> - with semi-analytical treatment of the quadratic (leading) phase terms (it uses two FFTs) <br/> <strong>From Waist</strong> - good for propagation from &quot;waist&quot over a large distance (it uses one FFT) <br/> <strong>To Waist</strong> - good for propagation to a &quot;waist&quot; (e.g. some 2D focus of an optical system) over some distance (it uses one FFT)</div>"],
+            "4": ["Do any resizing on fourier side, using FFT", "Boolean", "0"],
+            "5": ["Horizontal range modification factor at resizing", "Float", 1, "1. means no modification"],
+            "6": ["Horizontal resolution modification factor at resizing", "Float", 1],
+            "7": ["Vertical range modification factor at resizing", "Float", 1],
+            "8": ["Vertical resolution modification factor at resizing", "Float", 1],
+            "12": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
+            "13": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
+            "14": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nLongitudinal Coordinate", "Float", 0],
+            "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
+            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],

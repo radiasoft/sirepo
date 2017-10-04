@@ -32,71 +32,7 @@
 <div data-modal-editor="" view-name="multiElectronAnimation"></div>
 <div data-watchpoint-modal-editor="" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
 
-<div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-info">
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <div data-help-button="Propagation Parameters"></div>
-        <span class="lead modal-title text-info">Propagation Parameters</span>
-      </div>
-      <div class="modal-body">
-        <div class="container-fluid">
-          <div class="row">
-            <table class="table table-striped table-condensed ">
-              <thead>
-                <tr>
-                  <th>Element</th>
-                  <th class="srw-tiny-heading">Auto-resize before propagation</th>
-                  <th class="srw-tiny-heading">Auto-resize after propagation</th>
-                  <th class="srw-tiny-heading">Relative precision for propagation with auto-resizing <span data-toggle="tooltip" title="1. is nominal" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></th>
-                  <th class="srw-tiny-heading">Propagator <span data-toggle="tooltip" title="<div style='text-align: left'><strong>Standard</strong> - Fresnel (it uses two FFTs) <br> <strong>Quadratic Term</strong> - with semi-analytical treatment of the quadratic (leading) phase terms (it uses two FFTs) <br> <strong>From Waist</strong> - good for propagation from &quot;waist&quot over a large distance (it uses one FFT) <br> <strong>To Waist</strong> - good for propagation to a &quot;waist&quot; (e.g. some 2D focus of an optical system) over some distance (it uses one FFT)</div>" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></th>
-                  <th class="srw-tiny-heading">Do any resizing on fourier side, using FFT</th>
-                  <th class="srw-tiny-heading">Horizontal range modification factor at resizing <span data-toggle="tooltip" title="1. means no modification" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></th>
-                  <th class="srw-tiny-heading">Horizontal resolution modification factor at resizing</th>
-                  <th class="srw-tiny-heading">Vertical range modification factor at resizing</th>
-                  <th class="srw-tiny-heading">Vertical resolution modification factor at resizing</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr data-ng-repeat="prop in beamline.propagations track by $index" data-ng-class="{'srw-disabled-item': beamline.isDisabledPropagation(prop)}">
-                  <td>{{ prop.title }}</td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="prop.params[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="prop.params[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="prop.params[2]"></td>
-                  <td><select data-ng-disabled="beamline.isPropagationReadOnly()" number-to-string class="srw-small-enum" data-ng-model="prop.params[3]" data-ng-options="item[0] as item[1] for item in beamline.analyticalTreatmentEnum"></select></td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="prop.params[4]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="prop.params[5]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="prop.params[6]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="prop.params[7]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="prop.params[8]"></td>
-                </tr>
-                <tr class="warning">
-                  <td>Final post-propagation (resize)</td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="beamline.postPropagation[0]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="beamline.postPropagation[1]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[2]"></td>
-                  <td><select data-ng-disabled="beamline.isPropagationReadOnly()" number-to-string class="srw-small-enum" data-ng-model="beamline.postPropagation[3]" data-ng-options="item[0] as item[1] for item in beamline.analyticalTreatmentEnum"></select></td>
-                  <td class="sr-center"><input data-ng-disabled="beamline.isPropagationReadOnly()" type="checkbox" data-ng-model="beamline.postPropagation[4]" data-ng-true-value="1", data-ng-false-value="0"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[5]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[6]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[7]"></td>
-                  <td><input data-ng-disabled="beamline.isPropagationReadOnly()" type="text" class="srw-small-float" data-ng-model="beamline.postPropagation[8]"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="row">
-            <div class="col-sm-offset-6 col-sm-3">
-              <button data-dismiss="modal" class="btn btn-primary"style="width: 100%" >Close</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
+<div data-propagation-parameters-modal="" data-propagations="beamline.propagations" data-post-propagation="beamline.postPropagation"></div>
 
 <!-- Mirror Plot Modal -->
 <div class="modal fade" id="srw-mirror-plot" tabindex="-1" role="dialog">
@@ -124,5 +60,3 @@
     </div>
   </div>
 </div>
-
-<div data-tooltip-enabler=""></div>

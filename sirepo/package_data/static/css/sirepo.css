@@ -440,6 +440,7 @@ th.srw-tiny-heading {
   font-size: 12px;
   font-weight: normal;
   text-align: center;
+  white-space: pre-wrap;
 }
 .sr-info-pointer {
   cursor: default;
