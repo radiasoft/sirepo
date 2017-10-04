@@ -688,7 +688,7 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     [
@@ -800,7 +800,7 @@
             "title": "Elliptical Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Dimensions", [
+                ["Geometry", [
                     "title",
                     "position",
                     "firstFocusLength",
@@ -820,7 +820,7 @@
                         ]]
                     ]
                 ]],
-                ["Mirror Error", [
+                ["Height Profile", [
                     "heightProfileFile",
                     "orientation",
                     "heightAmplification"
@@ -1270,7 +1270,7 @@
             "title": "Circular Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     "radius",
@@ -1289,7 +1289,7 @@
                         ]]
                     ]
                 ]],
-                ["Mirror Error", [
+                ["Height Profile", [
                     "heightProfileFile",
                     "orientation",
                     "heightAmplification"
@@ -1363,7 +1363,7 @@
                         ]]
                     ]
                 ]],
-                ["Mirror Error", [
+                ["Height Profile", [
                     "heightProfileFile",
                     "orientation",
                     "heightAmplification"
