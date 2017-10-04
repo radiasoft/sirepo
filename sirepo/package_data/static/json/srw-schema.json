@@ -469,7 +469,7 @@
             "verticalMaskCoordinate": ["Vertical Coordinate of the Mask", "Float", 0]
         },
         "mirror": {
-            "title": ["Element Name", "String", "Flat Mirror"],
+            "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
@@ -613,7 +613,7 @@
             "indexFileName": ["Magnetic Zip Index File", "String"]
         },
         "toroidalMirror": {
-            "title": ["Element Name", "String", "Toroidal Mirror"],
+            "title": ["Element Name", "String", "Toroid Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
@@ -987,7 +987,7 @@
                     ]
                 ]],
                 ["Groove Parameters", [
-                    "*Coefficients in Groove Density Polynome:\na₀ + a₁y + a₂y² + a₃y³ + a₄y⁴",
+                    "*Groove Density Polynomial:\na₀ + a₁y + a₂y² + a₃y³ + a₄y⁴",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
@@ -1091,7 +1091,7 @@
             ]
         },
         "mirror": {
-            "title": "Flat Mirror",
+            "title": "Planar Mirror",
             "basic": [],
             "advanced": [
                 "title",
@@ -1345,7 +1345,7 @@
             "advanced": []
         },
         "toroidalMirror": {
-            "title": "Toroidal Mirror",
+            "title": "Toroid Mirror",
             "basic": [],
             "advanced": [
                 ["Geometry", [
