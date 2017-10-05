@@ -1263,7 +1263,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
-                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
+                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>',
                 '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
             '</div>',
         ].join(''),
@@ -1321,6 +1321,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
         link: function (scope) {
            scope.nav.isLoaded = scope.isLoaded;
            scope.nav.simulationName = scope.simulationName;
+           scope.nav.hasDocumentationUrl = scope.hasDocumentationUrl;
+           scope.nav.openDocumentation = scope.openDocumentation;
         },
         controller: function($scope) {
 

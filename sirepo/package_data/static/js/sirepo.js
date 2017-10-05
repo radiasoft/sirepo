@@ -156,6 +156,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             return "['" + x + "']";
         }).join('');
     }
+
     function refreshSimulationData(data) {
         self.models = data.models;
         self.models.simulationStatus = {};

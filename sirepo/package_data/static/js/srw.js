@@ -980,7 +980,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
                 '<li data-settings-menu="nav"></li>',
               '</ul>',
               '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isLoaded()">',
-                '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
+                '<li data-ng-if="nav.hasDocumentationUrl()"><a href data-ng-click="nav.openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
               '</ul>',
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
@@ -1000,17 +1000,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         controller: function($scope) {
 
             $scope.srwService = srwService;
-
-            $scope.hasDocumentationUrl = function() {
-                if (appState.isLoaded()) {
-                    return appState.models.simulation.documentationUrl;
-                }
-                return false;
-            };
-
-            $scope.openDocumentation = function() {
-                $window.open(appState.models.simulation.documentationUrl, '_blank');
-            };
 
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
