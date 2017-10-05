@@ -40,6 +40,7 @@
             "filePath": ["File Path", "String"]
         },
         "simulation": {
+            "documentationUrl": ["Documentation URL", "OptionalString"],
             "name": ["Name", "String"]
         },
         "simulationFolder": {

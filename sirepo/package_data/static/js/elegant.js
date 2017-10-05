@@ -1168,6 +1168,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: [
+            '<div data-common-footer="nav"></div>',
             '<div data-elegant-import-dialog=""></div>',
         ].join(''),
     };
@@ -1180,27 +1181,32 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">elegant</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-              '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-              '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-            '</ul>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+                '<ul class="nav navbar-nav navbar-right">',
+                  '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
+                  '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</ul>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+                //'<ul>',
+                //  '<li>App-specific setting item</li>',
+                //'</ul>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav navbar-right">',
+                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
+              '</app-header-right-sim-list>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.hasBeamlines = function() {
-                if (! $scope.isLoaded()) {
+                if (! $scope.nav.isLoaded()) {
                     return false;
                 }
                 for (var i = 0; i < appState.models.beamlines.length; i++) {
@@ -1218,7 +1224,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 return appState.models.commands.length > 0;
             };
             $scope.hasSourceCommand = function() {
-                if (! $scope.isLoaded()) {
+                if (! $scope.nav.isLoaded()) {
                     return false;
                 }
                 for (var i = 0; i < appState.models.commands.length; i++) {
@@ -1229,20 +1235,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 }
                 return false;
             };
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
-                return appState.isLoaded();
-            };
+
             $scope.showImportModal = function() {
                 $('#elegant-import').modal('show');
-            };
-            $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
-            };
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
             };
         },
     };

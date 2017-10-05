@@ -402,13 +402,8 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
-            "name": ["Name", "String"],
             "visualizationBeamlineId": ["Beamline", "ElegantBeamlineList", ""],
-            "folder": ["Folder", "String"],
             "simulationMode": ["Execution", "SimulationMode", "serial"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "simulationStatus": {},
         "command_alter_elements": {
@@ -3611,12 +3606,6 @@
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]

@@ -1050,7 +1050,7 @@ SIREPO.app.directive('safePath', function() {
             ngModel.$validators.safe = function(value) {
                 scope.showWarning = unsafe_path_regexp.test(value);
                 if( scope.showWarning ) {
-                    scope.warningText = scope.info[0] + unsafe_path_warn;
+                    scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
                 }
                 return !scope.showWarning;
             };
@@ -1230,6 +1230,28 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
+SIREPO.app.directive('appHeaderBrand', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appHeaderBrand',
+        },
+        transclude: {
+            appBrandSlot: '?appBrand',
+        },
+        template: [
+            '<div class="navbar-header">',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
+              '<div class="navbar-brand">',
+                '<a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">',
+                  SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+                '</a>',
+              '</div>',
+            '</div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender, $window) {
     return {
         restrict: 'A',
@@ -1241,16 +1263,14 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
-                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>',
+                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
                 '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
+
             $scope.showMenu = function() {
                 return ! SIREPO.IS_LOGGED_OUT;
-            };
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
             };
             $scope.showTitle = function() {
                 return ! $scope.nav.isActive('simulations');
@@ -1270,8 +1290,270 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                     $scope
                 );
             };
+        },
+    };
+});
+
+SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
+    return {
+        restrict: 'A',
+        transclude: {
+            appHeaderRightSimLoadedSlot: '?appHeaderRightSimLoaded',
+            appHeaderRightSimListSlot: '?appHeaderRightSimList',
+            appSettingsSlot: '?appSettings',
+        },
+        scope: {
+            nav: '=appHeaderRight',
+        },
+        template: [
+            '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
+            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
+              '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+              '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
+              '<li data-settings-menu="nav"><app-settings data-ng-transclude="appSettingsSlot"></app-settings></li>',
+            '</ul>',
+            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
+              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+              '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
+            '</ul>',
+        ].join(''),
+        link: function (scope) {
+           scope.nav.isLoaded = scope.isLoaded;
+           scope.nav.simulationName = scope.simulationName;
+        },
+        controller: function($scope) {
+
+            $scope.modeIsDefault = function () {
+                return appDataService.isApplicationMode('default');
+            };
+            $scope.isLoaded = function() {
+                if ($scope.nav.isActive('simulations')) {
+                    return false;
+                }
+                return appState.isLoaded();
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.name;
+                }
+                return '';
+            };
+            $scope.showNewFolderModal = function() {
+                panelState.showModalEditor('simFolder');
+            };
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
+            };
+
+            $scope.hasDocumentationUrl = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.documentationUrl;
+                }
+                return false;
+            };
+            $scope.openDocumentation = function() {
+                $window.open(appState.models.simulation.documentationUrl, '_blank');
+            };
 
         },
+    };
+});
+
+SIREPO.app.directive('settingsMenu', function(appState, panelState, requestSender, $location, $window) {
+
+    return {
+        restrict: 'A',
+        transclude: {
+            appSettingsSlot: '?appSettings',
+        },
+        scope: {
+            nav: '=settingsMenu',
+        },
+        template: [
+              '<ul class="nav navbar-nav navbar-right">',
+                '<li class="dropdown"><a href class="dropdown-toggle hidden-xs" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <span class="caret"></span></a>',
+                  '<ul class="dropdown-menu">',
+                    //  App-specific settings are transcluded here
+                    '<div class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></div>',
+                    '<li><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
+                    '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
+                    '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
+                    '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
+                    '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
+                    '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
+                    '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
+                      '<a href><span class="glyphicon glyphicon-chevron-left"></span> Related Simulations</a>',
+                      '<ul class="dropdown-menu">',
+                        '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
+                      '</ul>',
+                    '</li>',
+                  '</ul>',
+                '</li>',
+              '</ul>',
+        ].join(''),
+        controller: function($scope) {
+            var self = this;
+            var currentSimulationId = null;
+
+            function simulationId() {
+                return appState.models.simulation.simulationId;
+            }
+            function simulationName() {
+                return appState.models.simulation.name;
+            }
+
+            $scope.showDocumentationUrl = function() {
+                panelState.showModalEditor('simDoc');
+            };
+
+            $scope.relatedSimulations = [];
+
+            $scope.canCopy = function() {
+                return true;
+            };
+            $scope.copy = function() {
+                appState.copySimulation(
+                    simulationId(),
+                    function(data) {
+                        requestSender.localRedirect('source', {
+                            ':simulationId': data.models.simulation.simulationId,
+                        });
+                    });
+            };
+
+            $scope.hasRelatedSimulations = function() {
+                if (appState.isLoaded()) {
+                    if (currentSimulationId == appState.models.simulation.simulationId) {
+                        return $scope.relatedSimulations.length > 0;
+                    }
+                    currentSimulationId = appState.models.simulation.simulationId;
+                    requestSender.sendRequest(
+                        'listSimulations',
+                        function(data) {
+                            for (var i = 0; i < data.length; i++) {
+                                var item = data[i];
+                                if (item.simulationId == currentSimulationId) {
+                                    data.splice(i, 1);
+                                    break;
+                                }
+                            }
+                            $scope.relatedSimulations = data;
+                        },
+                        {
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                            search: {
+                                'simulation.folder': appState.models.simulation.folder,
+                            },
+                        });
+                }
+                return false;
+            };
+
+            $scope.isExample = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.isExample;
+                }
+                return false;
+            };
+
+            $scope.openRelatedSimulation = function(item) {
+                if ($scope.nav.isActive('beamline')) {
+                    requestSender.localRedirect('beamline', {
+                        ':simulationId': item.simulationId,
+                    });
+                    return;
+                }
+                requestSender.localRedirect('source', {
+                    ':simulationId': item.simulationId,
+                });
+            };
+
+            $scope.exportArchive = function(extension) {
+                $window.open(requestSender.formatUrl('exportArchive', {
+                    '<simulation_id>': simulationId(),
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<filename>':  $scope.nav.simulationName() + '.' + extension,
+                }), '_blank');
+            };
+        },
+    };
+});
+
+
+SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=deleteSimulationModal',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="deleteSimulation()">Delete simulation &quot;{{ simulationName() }}&quot;?</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.deleteSimulation = function() {
+                appState.deleteSimulation(
+                    appState.models.simulation.simulationId,
+                    function() {
+                        $location.path('/simulations');
+                    });
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.name;
+                }
+                return '';
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, appDataService) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=resetSimulationModal',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>',
+        ].join(''),
+        controller: function($scope) {
+            function revertSimulation() {
+                $scope.nav.revertToOriginal(
+                    appDataService.getApplicationMode(),
+                    appState.models.simulation.name);
+            }
+
+            $scope.revertToOriginal = function() {
+                var resetData = appDataService.appDataForReset();
+                if (resetData) {
+                    requestSender.getApplicationData(resetData, revertSimulation);
+                }
+                else {
+                    revertSimulation();
+                }
+            };
+            $scope.simulationName = function() {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.name;
+                }
+                return '';
+            };
+        },
+    };
+});
+
+
+SIREPO.app.directive('commonFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=commonFooter',
+        },
+        template: [
+            '<div data-delete-simulation-modal="nav"></div>',
+            '<div data-reset-simulation-modal="nav"></div>',
+        ].join(''),
     };
 });
 

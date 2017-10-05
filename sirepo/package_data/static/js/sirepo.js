@@ -40,7 +40,7 @@ SIREPO.appLocalRoutes = {
 
 SIREPO.appDefaultSimulationValues = {
     simulation: {},
-    simulationFolder: {},
+    simFolder: {},
 };
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
@@ -136,6 +136,8 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var autoSaveTimer = null;
     var savedModelValues = {};
 
+    copyCommonModels();
+
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
     }
@@ -154,7 +156,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             return "['" + x + "']";
         }).join('');
     }
-
     function refreshSimulationData(data) {
         self.models = data.models;
         self.models.simulationStatus = {};
@@ -376,7 +377,18 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
         );
     };
-
+    function copyCommonModels() {
+        for( var modelName in SIREPO.APP_SCHEMA.commonModels ) {
+            if (! SIREPO.APP_SCHEMA.model[modelName]) {
+                SIREPO.APP_SCHEMA.model[modelName] = SIREPO.APP_SCHEMA.commonModels[modelName];
+            }
+            for (var modelFieldName in SIREPO.APP_SCHEMA.commonModels[modelName]) {
+                if (! SIREPO.APP_SCHEMA.model[modelName][modelFieldName] ) {
+                    SIREPO.APP_SCHEMA.model[modelName][modelFieldName] = SIREPO.APP_SCHEMA.commonModels[modelName][modelFieldName];
+                }
+            }
+        }
+   }
     self.maxId = function(items, idField) {
         var max = 1;
         if (! idField) {
@@ -520,7 +532,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.viewInfo = function(name) {
-        return SIREPO.APP_SCHEMA.view[name];
+        return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.commonViews[name];
     };
 
     self.watchModelFields = function($scope, modelFields, callback) {
@@ -549,6 +561,23 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
     };
 
+    return self;
+});
+
+SIREPO.app.factory('appDataService', function() {
+    var self = {};
+
+    self.isApplicationMode = function(name) {
+        return name == self.getApplicationMode();
+    };
+
+    // override these methods in app's service
+    self.getApplicationMode = function() {
+        return 'default';
+    };
+    self.appDataForReset = function() {
+        return null;
+    };
     return self;
 });
 
@@ -2237,8 +2266,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
                 self.openItem(data.models.simulation);
             });
     });
-    $scope.$on('simulationFolder.changed', function() {
-        var name = appState.models.simulationFolder.name;
+    $scope.$on('simFolder.changed', function() {
+        var name = appState.models.simFolder.name;
         name = name.replace(/[\/]/g, '');
         self.activeFolder.children.push({
             name: name,
@@ -2246,8 +2275,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             isFolder: true,
             children: [],
         });
-        appState.models.simulationFolder.name = '';
-        appState.saveQuietly('simulationFolder');
+        appState.models.simFolder.name = '';
+        appState.saveQuietly('simFolder');
     });
     loadList();
 

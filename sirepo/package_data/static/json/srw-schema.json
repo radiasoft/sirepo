@@ -526,14 +526,12 @@
             "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0]
         },
         "simulation": {
-            "documentationUrl": ["Documentation URL", "OptionalString"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "facility": ["Facility", "String"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "isExample": ["Is Example Simulation", "String"],
-            "name": ["Name", "String"],
             "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
@@ -542,9 +540,6 @@
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "simulationStatus": {
         },
@@ -1190,19 +1185,6 @@
             "advanced": [
                 "name",
                 "sourceType"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationDocumentation": {
-            "model": "simulation",
-            "title": "Simulation Documentation",
-            "advanced": [
-                "documentationUrl"
             ]
         },
         "simulationGrid": {

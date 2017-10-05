@@ -48,11 +48,24 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('srwService', function(appState, beamlineService, panelState, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
+
+    // override appDataService functions
+    appDataService.getApplicationMode = function () {
+        return self.applicationMode;
+    };
+    appDataService.appDataForReset = function() {
+        // delete the user-defined models first
+         return {
+             method: 'delete_user_models',
+             electron_beam: appState.models.electronBeam,
+             tabulated_undulator: appState.models.tabulatedUndulator,
+         };
+    };
 
     function initCharacteristic() {
         if (self.originalCharacteristicEnum) {
@@ -907,10 +920,9 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
             nav: '=appFooter',
         },
         template: [
-            '<div data-delete-simulation-modal="nav"></div>',
-            '<div data-reset-simulation-modal="nav"></div>',
+            '<div data-common-footer="nav"></div>',
             '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
-            '<div data-modal-editor="" view-name="simulationDocumentation"></div>',
+            '<div data-modal-editor="" view-name="simDoc"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
         controller: function($scope) {
@@ -925,39 +937,25 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
 
 SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
 
-    var settingsIcon = [
-        '<li class="dropdown"><a href class="dropdown-toggle hidden-xs" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <span class="caret"></span></a>',
-          '<ul class="dropdown-menu">',
-            '<li data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
-            '<li data-ng-if="srwService.isApplicationMode(\'default\')"><a href data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
-            '<li><a href data-ng-click="jsonDataFile()"><span class="glyphicon glyphicon-cloud-download"></span> Export JSON Data File</a></li>',
-            '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
-            '<li data-ng-if="isExample()"><a href data-target="#srw-reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
-            '<li data-ng-if="! isExample()"><a href data-target="#srw-delete-confirmation" data-toggle="modal""><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
-            '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
-            '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
-              '<a href><span class="glyphicon glyphicon-chevron-left"></span> Related Simulations</a>',
-        '<ul class="dropdown-menu">',
-        '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
-        '</ul>',
-            '</li>',
-          '</ul>',
-        '</li>',
-    ].join('');
-
     var rightNav = [
-        '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="srwService.isApplicationMode(\'default\')"></ul>',
-        '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\') && ! srwService.isApplicationMode(\'light-sources\')">',
-          '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-          '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-          '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-        '</ul>',
-        '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-          '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-          '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-          '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
-          settingsIcon,
-        '</ul>',
+        '<div data-app-header-right="nav">',
+          '<app-header-right-sim-loaded>',
+            '<ul class="nav navbar-nav navbar-right">',
+              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+            '</ul>',
+          '</app-header-right-sim-loaded>',
+          '<app-settings>',
+            '<ul>',
+              '<li data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></li>',
+            '</ul>',
+          '</app-settings>',
+          '<app-header-right-sim-list>',
+            '<ul class="nav navbar-nav navbar-right">',
+              '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+            '</ul>',
+          '</app-header-right-sim-list>',
+        '</div>',
     ].join('');
 
     function navHeader(mode, modeTitle, $window) {
@@ -978,6 +976,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
                     '</ul>',
                 ].join('')
                 : '',
+
         ].join('');
     }
 
@@ -989,10 +988,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         template: [
             '<div data-ng-if="srwService.isApplicationMode(\'calculator\')">',
               navHeader('calculator', 'SR Calculator'),
-              '<ul data-ng-if="isLoaded()" class="nav navbar-nav navbar-right">',
-                settingsIcon,
+              '<ul data-ng-if="nav.isLoaded()" class="nav navbar-nav navbar-right">',
+                '<li data-settings-menu="nav"></li>',
               '</ul>',
-              '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
+              '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isLoaded()">',
                 '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
               '</ul>',
             '</div>',
@@ -1005,48 +1004,14 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div class="navbar-header">',
-                '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-                '<div class="navbar-brand"><a href="/light">Synchrotron Radiation Workshop</a></div>',
-              '</div>',
+              '<div data-app-header-brand="nav"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var currentSimulationId = null;
-
-            function simulationId() {
-                return appState.models.simulation.simulationId;
-            }
 
             $scope.srwService = srwService;
-            $scope.relatedSimulations = [];
-
-            $scope.canCopy = function() {
-                if (srwService.applicationMode == 'calculator' || srwService.applicationMode == 'wavefront') {
-                    return false;
-                }
-                return true;
-            };
-
-            $scope.copy = function() {
-                appState.copySimulation(
-                    simulationId(),
-                    function(data) {
-                        requestSender.localRedirect('source', {
-                            ':simulationId': data.models.simulation.simulationId,
-                        });
-                    });
-            };
-
-            $scope.jsonDataFile = function(item) {
-                $window.open(requestSender.formatUrl('simulationData', {
-                    '<simulation_id>': simulationId(),
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<pretty>': true,
-                }), '_blank');
-            };
 
             $scope.hasDocumentationUrl = function() {
                 if (appState.isLoaded()) {
@@ -1055,78 +1020,12 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
                 return false;
             };
 
-            $scope.hasRelatedSimulations = function() {
-                if (appState.isLoaded()) {
-                    if (currentSimulationId == appState.models.simulation.simulationId) {
-                        return $scope.relatedSimulations.length > 0;
-                    }
-                    currentSimulationId = appState.models.simulation.simulationId;
-                    requestSender.sendRequest(
-                        'listSimulations',
-                        function(data) {
-                            for (var i = 0; i < data.length; i++) {
-                                var item = data[i];
-                                if (item.simulationId == currentSimulationId) {
-                                    data.splice(i, 1);
-                                    break;
-                                }
-                            }
-                            $scope.relatedSimulations = data;
-                        },
-                        {
-                            simulationType: SIREPO.APP_SCHEMA.simulationType,
-                            search: {
-                                'simulation.folder': appState.models.simulation.folder,
-                            },
-                        });
-                }
-                return false;
-            };
-
-            $scope.isExample = function() {
-                if (appState.isLoaded()) {
-                    return appState.models.simulation.isExample;
-                }
-                return false;
-            };
-
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
-                return appState.isLoaded();
-            };
-
             $scope.openDocumentation = function() {
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
 
-            $scope.openRelatedSimulation = function(item) {
-                if ($scope.nav.isActive('beamline')) {
-                    requestSender.localRedirect('beamline', {
-                        ':simulationId': item.simulationId,
-                    });
-                    return;
-                }
-                requestSender.localRedirect('source', {
-                    ':simulationId': item.simulationId,
-                });
-            };
-
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
-            };
-
-            $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
-            };
-
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
-            };
-
-            $scope.showDocumentationUrl = function() {
-                panelState.showModalEditor('simulationDocumentation');
             };
 
             $scope.showSimulationGrid = function() {
@@ -1148,31 +1047,6 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
                 panelState.pythonSource(
                     appState.models.simulation.simulationId,
                     panelState.findParentAttribute($scope, 'modelKey'));
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: [
-            '<div data-confirmation-modal="" data-id="srw-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="deleteSimulation()">Delete simulation &quot;{{ simulationName() }}&quot;?</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.deleteSimulation = function() {
-                appState.deleteSimulation(
-                    appState.models.simulation.simulationId,
-                    function() {
-                        $location.path('/simulations');
-                    });
-            };
-            $scope.simulationName = function() {
-                if (appState.isLoaded()) {
-                    return appState.models.simulation.name;
-                }
-                return '';
             };
         },
     };
@@ -1444,42 +1318,6 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, srwService) {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=resetSimulationModal',
-        },
-        template: [
-            '<div data-confirmation-modal="" data-id="srw-reset-confirmation" data-title="Reset Simulation?" data-ok-text="Discard Changes" data-ok-clicked="revertToOriginal()">Discard changes to &quot;{{ simulationName() }}&quot;?</div>',
-        ].join(''),
-        controller: function($scope) {
-            function revertSimulation() {
-                $scope.nav.revertToOriginal(
-                    srwService.applicationMode,
-                    appState.models.simulation.name);
-            }
-
-            $scope.revertToOriginal = function() {
-                // delete the user-defined models first
-                requestSender.getApplicationData(
-                    {
-                        method: 'delete_user_models',
-                        electron_beam: appState.models.electronBeam,
-                        tabulated_undulator: appState.models.tabulatedUndulator,
-                    },
-                    revertSimulation);
-            };
-            $scope.simulationName = function() {
-                if (appState.isLoaded()) {
-                    return appState.models.simulation.name;
-                }
-                return '';
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
@@ -1506,10 +1344,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                     '<div data-ng-show="! isStatePending() && particleNumber">',
                       'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                     '</div>',
-                    '<div data-simulation-status-timer="timeData" data-ng-show="!isApproximateMethod()"></div>',
+                    '<div data-simulation-status-timer="timeData" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()"></div>',
                   '</div>',
                 '</div>',
-                '<div class="col-sm-6 pull-right" data-ng-show="!isApproximateMethod()">',
+                '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">End Simulation</button>',
                 '</div>',
               '</div>',
@@ -1520,11 +1358,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                   '<div data-ng-show="! isStatePending() && ! isInitializing() && particleNumber">',
                     'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                   '</div>',
-                  '<div data-ng-show="!isApproximateMethod()">',
+                  '<div data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
+                  '<div data-ng-show="hasFluxCompMethod()" class="small"> {{ methodName() }}</div>',
                 '</div>',
-                '<div class="col-sm-6 pull-right" data-ng-show="!isApproximateMethod()">',
+                '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
                 '</div>',
               '</div>',
@@ -1563,7 +1402,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
 
             $scope.cancelPersistentSimulation = function () {
                 var cancelSuccess = function (data, status) {
-                    if( $scope.isApproximateMethod() ) {
+                    if( $scope.hasFluxCompMethod() && $scope.isApproximateMethod() ) {
                         $scope.runSimulation();
                     }
                 };
@@ -1592,6 +1431,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
 
             $scope.isApproximateMethod = function () {
                 return appState.models.fluxAnimation.method == -1;
+            };
+            $scope.hasFluxCompMethod = function () {
+                return $scope.model === 'fluxAnimation';
             };
 
             $scope.methodName = function () {

@@ -590,13 +590,9 @@
             "z2": ["Z Maximum [mm]", "Float", 1e16]
         },
         "simulation": {
-            "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType", "geometric"],
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
@@ -1079,12 +1075,6 @@
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]
