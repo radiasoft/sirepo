@@ -66,6 +66,12 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
              tabulated_undulator: appState.models.tabulatedUndulator,
          };
     };
+    appDataService.canCopy = function() {
+        if (self.applicationMode == 'calculator' || self.applicationMode == 'wavefront') {
+            return false;
+        }
+        return true;
+    };
 
     function initCharacteristic() {
         if (self.originalCharacteristicEnum) {

@@ -565,7 +565,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     return self;
 });
 
-SIREPO.app.factory('appDataService', function() {
+SIREPO.app.factory('appDataService', function(requestSender) {
     var self = {};
 
     self.isApplicationMode = function(name) {
@@ -578,6 +578,9 @@ SIREPO.app.factory('appDataService', function() {
     };
     self.appDataForReset = function() {
         return null;
+    };
+    self.canCopy = function() {
+        return true;
     };
     return self;
 });
