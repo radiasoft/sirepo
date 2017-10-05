@@ -1,0 +1,89 @@
+
+from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
+
+#prevent GIST from starting upon setup
+top.lprntpara = false
+top.lpsplots = false
+
+top.verbosity = 0 # Reduce solver verbosity
+solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+
+#Adjusting the multigrid parameter here improves convergence speed
+#omega = 2./(1. + np.sin(np.pi/min(NUM_X+1,NUM_Z+1)))
+#solverE.mgparam = omega
+
+init_iters = 20000
+regular_iters = 1000
+
+init_tol = 1e-6
+regular_tol = 1e-6
+
+solverE.mgmaxiters = init_iters
+solverE.mgtol = init_tol
+package("w3d")
+generate()
+solverE.mgtol = regular_tol
+solverE.mgmaxiters = regular_iters
+
+#----
+
+from scipy.interpolate import interp1d as scipy_interp1d
+
+#Grab Ez from the solver and average over the transverse (x) plane
+Ez = solverE.getez()
+flat_Ez = numpy.mean(Ez,0)
+
+#Generate an interpolating function for smooth particle integration
+Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
+
+#Integrate the particle motion subject to initial conditions specified by the simulation
+tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, top.dt)
+
+# print "Expected time of flight is {}s".format(tof_expected)
+# print "This corresponds to {} steps".format(tof_expected/top.dt)
+
+#---
+
+ITERATIONS = 5 #number of iterations to run for steady state solver - Default to 5
+
+def update_status_file(num, save_current=False):
+    status_file = '{{ egunStatusFile }}'
+    tmp_file = status_file + '.tmp'
+    with open(tmp_file, 'w') as f:
+        f.write('{} / {}'.format(num, ITERATIONS + 1))
+    os.rename(tmp_file, status_file)
+
+    if save_current:
+        # save current state, h5 files don't seem to capture the state
+        current_file = '{{ egunCurrentFile }}'
+        curr = np.append([top.time], -1 * top.curr).flatten()
+        if (num <= 1):
+            v = [curr]
+        else:
+            v = np.load(current_file)
+            v = np.append(v, [curr], axis=0)
+        np.save(tmp_file, v)
+        os.rename(tmp_file + '.npy', current_file)
+
+update_status_file(0.25)
+
+for num in range(ITERATIONS):
+    gun(1, ipstep=1, lvariabletimestep=1) #, maxtime=0.25*tof_expected)
+    update_status_file(num + 1, save_current=True)
+
+#---
+# particle trajectories
+
+#Grab the list of valid IDs
+pids = np.unique(top.pgroup.pid)
+MAX_TRAJECTORIES = 100 #number of particle trajectories to plot
+#get the positions for a select number of particles to be plotted
+particles = [[[], []], [[], []]]
+for ID in pids[:MAX_TRAJECTORIES]:
+    xvals = getx()[selectparticles(ssn=int(ID))]
+    zvals = getz()[selectparticles(ssn=int(ID))]
+    particles[0][0].append(xvals)
+    particles[0][1].append(zvals)
+
+update_status_file(ITERATIONS + 1)
+np.save('{{ particleFile }}', particles)

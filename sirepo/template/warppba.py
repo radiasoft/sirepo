@@ -68,7 +68,7 @@ def extract_field_report(field, coordinate, mode, data_file):
         vmin=None,
         m=mode,
         coord=coordinate,
-        iteration=data_file.iteration,
+        iteration=numpy.array([data_file.iteration]),
         slicing=0.0,
         field=field,
         theta=0.0,
@@ -101,7 +101,7 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
     data_list = opmd.get_particle(
         var_list=[xarg, yarg],
         species=particle_type,
-        iteration=data_file.iteration,
+        iteration=numpy.array([data_file.iteration]),
         select=None,
         output=True,
         plot=False,

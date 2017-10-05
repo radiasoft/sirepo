@@ -25,41 +25,74 @@ SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 
 _CULL_PARTICLE_SLOPE = 1e-4
-
+_EGUN_CURRENT_FILE = 'egun-current.npy'
+_EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
-
 _PARTICLE_FILE = 'particles.npy'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir, 'currentAnimation')
-    if len(files) < 2:
+    if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
             'percentComplete': 0,
             'frameCount': 0,
         }
+    if len(files) == 0:
+        return {
+            'percentComplete': 100,
+            'frameCount': 0,
+            'error': 'simulation produced no frames',
+            'state': 'error',
+        }
     file_index = len(files) - 1
-    last_update_time = int(os.path.getmtime(str(files[file_index])))
+    res = {
+        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
+    }
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
+    percent_complete = 0
+    if data.models.simulation.egun_mode == '1':
+        status_file = run_dir.join(_EGUN_STATUS_FILE)
+        if status_file.exists():
+            with open(str(status_file), 'r') as f:
+                m = re.search('([\d\.]+)\s*/\s*(\d+)', f.read())
+            if m:
+                percent_complete = float(m.group(1)) / int(m.group(2))
+        egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
+        if egun_current_file.exists():
+            v = np.load(str(egun_current_file))
+            res['egunCurrentFrameCount'] = len(v)
+    else:
+        percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
 
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
-    return {
-        'lastUpdateTime': last_update_time,
-        'percentComplete': percent_complete * 100,
-        'frameCount': file_index + 1,
-    }
+    res['percentComplete'] = percent_complete * 100
+    res['frameCount'] = file_index + 1
+    return res
 
 
 def fixup_old_data(data):
     if 'fieldReport' not in data['models']:
         data['models']['fieldReport'] = {}
+    if 'egun_mode' not in data['models']['simulation']:
+        data['models']['simulation']['egun_mode'] = '0'
+    if 'renderCount' not in data['models']['particleAnimation']:
+        data['models']['particleAnimation']['renderCount'] = '100'
+    # fixup for old, now invalid, default data
+    if data['models']['particleAnimation']['renderCount'] == 150:
+        data['models']['particleAnimation']['renderCount'] = '100'
+    if 'egunCurrentAnimation' not in data['models']:
+        data['models']['egunCurrentAnimation'] = {
+            'framesPerSecond': '2',
+        }
+    if 'impactDensityAnimation' not in data['models']:
+        data['models']['impactDensityAnimation'] = {}
 
 
 def get_animation_name(data):
@@ -81,8 +114,8 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    if model == 'particleAnimation':
-        filename = str(run_dir.join(_PARTICLE_FILE))
+    if model == 'particleAnimation' or model == 'egunCurrentAnimation':
+        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
     #TODO(pjm): consolidate with template/warp.py
@@ -118,7 +151,6 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     if data['modelName'] == 'currentAnimation':
-        args = template_common.parse_animation_args(data, {'': ['startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_current(model_data, data_file)
     if data['modelName'] == 'fieldAnimation':
@@ -126,8 +158,10 @@ def get_simulation_frame(run_dir, data, model_data):
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
     if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(data, {'': ['startTime']})
-        return _extract_particle(run_dir, model_data)
+        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
+        return _extract_particle(run_dir, model_data, int(args.renderCount))
+    if data['modelName'] == 'egunCurrentAnimation':
+        return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -202,12 +236,12 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
-def _add_particle_paths(electrons, x_points, y_points):
+def _add_particle_paths(electrons, x_points, y_points, limit):
     # adds paths for the particleAnimation report
     # culls adjacent path points with similar slope
     count = 0
     cull_count = 0
-    for i in range(len(electrons[1])):
+    for i in range(min(len(electrons[1]), limit)):
         xres = []
         yres = []
         num_points = len(electrons[1][i])
@@ -241,8 +275,14 @@ def _extract_current(data, data_file):
     data_time = report_data['time']
     with h5py.File(data_file.filename, 'r') as f:
         weights = np.array(f['data/{}/particles/beam/weighting'.format(data_file.iteration)])
-
     curr = get_zcurrent_new(report_data['beam'][:,4], report_data['beam'][:,5], zmesh, weights, dz)
+    return _extract_current_results(data, curr, data_time)
+
+
+def _extract_current_results(data, curr, data_time):
+    grid = data['models']['simulationGrid']
+    plate_spacing = grid['plate_spacing'] * 1e-6
+    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
     cathode_area = 2. * beam['x_radius'] * 1e-6
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
@@ -268,6 +308,14 @@ def _extract_current(data, data_file):
         'y1_title': 'Current',
         'y2_title': y2_title,
     }
+
+
+def _extract_egun_current(data, data_file, frame_index):
+    v = np.load(str(data_file))
+    if frame_index >= len(v):
+        frame_index = -1;
+    # the first element in the array is the time, the rest are the current measurements
+    return _extract_current_results(data, v[frame_index][1:], v[frame_index][0])
 
 
 def _extract_field(field, data, data_file):
@@ -299,7 +347,7 @@ def _extract_field(field, data, data_file):
     }
 
 
-def _extract_particle(run_dir, data):
+def _extract_particle(run_dir, data, limit):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
     lost_electrons = v[1]
@@ -309,10 +357,10 @@ def _extract_particle(run_dir, data):
     radius = beam['x_radius'] * 1e-6
     x_points = []
     y_points = []
-    _add_particle_paths(kept_electrons, x_points, y_points)
+    _add_particle_paths(kept_electrons, x_points, y_points, limit)
     lost_x = []
     lost_y = []
-    _add_particle_paths(lost_electrons, lost_x, lost_y)
+    _add_particle_paths(lost_electrons, lost_x, lost_y, limit)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -346,7 +394,7 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
     return res
 
 
-def _generate_parameters_file(data, run_dir=None, is_parallel=False, jinja_template=None):
+def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v = None
 
     def render(bn):
@@ -358,11 +406,18 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False, jinja_templ
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
+    v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    if not jinja_template:
-        jinja_template = 'generate-{}'.format(
-            'visualization' if is_parallel else 'source-field')
-    return render('base') + render(jinja_template)
+    template_name = ''
+    if data['report'] == 'animation':
+        if data['models']['simulation']['egun_mode'] == '1':
+            v['egunStatusFile'] = _EGUN_STATUS_FILE
+            template_name = 'egun'
+        else:
+            template_name = 'visualization'
+    else:
+        template_name = 'source-field'
+    return render('base') + render('generate-{}'.format(template_name))
 
 
 def _h5_file_list(run_dir, model_name):

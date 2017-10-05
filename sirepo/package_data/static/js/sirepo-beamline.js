@@ -31,7 +31,7 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
         if (itemId && savedModelValues.beamline) {
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
                 if (savedModelValues.beamline[i].id == itemId) {
-                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                    return 'Intensity ' + savedModelValues.beamline[i].title + ' Report, '
                         + savedModelValues.beamline[i].position + 'm';
                 }
             }
@@ -177,7 +177,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                   '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
                   '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
-                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': !beamlineService.isItemValid(item)}">',
+                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
                   '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
                 '</div>',
             '</div>',
@@ -405,6 +405,13 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<circle cx="26" cy="35" r="6" class="srw-sample-white" />',
                 '<circle cx="26" cy="35" r="4" class="srw-sample-black" />',
               '</g>',
+              '<g data-ng-switch-when="toroidalMirror">',
+                '<path d="M17.5 3.5 C27.5 11.5 27.5 46.5 17.5 54.5" class="srw-dash-stroke"></path>',
+                '<path d="M12.5 27.5 C27.5 28.5 32.5 29.5 37.5 32.5" class="srw-dash-stroke"></path>',
+                '<path d="M30 7 C40 15 40 50 30 58 L43 58 L43 7 L30 7" class="srw-mirror"></path>',
+                '<path d="M5 2 C20 3 25 4 30 7 L43 7 L18 2 L5 2" class="srw-mirror"></path>',
+                '<path d="M5 2 C15 10 15 45 5 53 C20 54 25 55 30 58" class="srw-no-fill"></path>',
+              '</g>',
             '</svg>',
         ].join(''),
     };
@@ -542,7 +549,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
                 '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
+                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-disabled="! form.$valid">Close</button>',
                   '</div>',
                 '</div>',
                 '<div class="form-group" data-ng-show="beamlineService.isTouchscreen() && beamlineService.isEditable()">',
@@ -594,34 +601,69 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
         template: [
             '<div class="row">',
               '<div class="col-sm-12">',
-                '<p class="text-center bg-info">',
-                  '<span data-ng-repeat="item in ::toolbarItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                '<div class="text-center bg-info sr-toolbar-holder">',
+                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>',
+                    '<span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                      '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                    '</span>',
+                  '</div>',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
                     '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
                   '</span>',
-                '</p>',
+                '</div>',
               '</div>',
             '</div>',
             '<div class="srw-editor-holder" style="display:none">',
-              '<div data-ng-repeat="item in ::toolbarItems">',
+              '<div data-ng-repeat="item in ::allItems">',
                 '<div id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            function initToolbarItems() {
-                var items = [];
-                $scope.toolbarItemNames.forEach(function(name) {
-                    var featureName = name + '_in_toolbar';
-                    if (featureName in SIREPO.APP_SCHEMA.feature_config) {
-                        if (! SIREPO.APP_SCHEMA.feature_config[featureName]) {
-                            return;
-                        }
+            $scope.allItems = [];
+
+            function addItem(name, items) {
+                var featureName = name + '_in_toolbar';
+                if (featureName in SIREPO.APP_SCHEMA.feature_config) {
+                    if (! SIREPO.APP_SCHEMA.feature_config[featureName]) {
+                        return;
                     }
-                    items.push(appState.setModelDefaults({type: name}, name));
-                });
-                return items;
+                }
+                var item = appState.setModelDefaults({type: name}, name);
+                var MIRROR_TYPES = ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror'];
+                if (MIRROR_TYPES.indexOf(item.type) >= 0) {
+                    item.title = item.title.replace(' Mirror', '');
+                }
+                items.push(item);
+                $scope.allItems.push(item);
             }
-            $scope.toolbarItems = initToolbarItems();
+
+            function initToolbarItems() {
+                var sections = [];
+                var standalone = [];
+                $scope.toolbarItemNames.forEach(function(section) {
+                    var items = [];
+                    if (angular.isArray(section)) {
+                        section[1].forEach(function(name) {
+                            addItem(name, items);
+                        });
+                        sections.push([section[0], items]);
+                    }
+                    else {
+                        addItem(section, standalone);
+                    }
+                });
+                $scope.sectionItems = sections;
+                $scope.standaloneItems = standalone;
+            }
+
+            initToolbarItems();
+        },
+        link: function link(scope, element) {
+            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
+            // see discussion here: https://github.com/metafizzy/flickity/issues/457
+            window.addEventListener('touchmove', function() {});
         },
     };
 });

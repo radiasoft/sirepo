@@ -386,7 +386,7 @@ def fixup_old_data(data):
         if item['type'] == 'ellipsoidMirror':
             if 'firstFocusLength' not in item:
                 item['firstFocusLength'] = item['position']
-        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror']:
+        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror']:
             if 'grazingAngle' not in item:
                 angle = 0
                 if item['normalVectorX']:
@@ -407,6 +407,8 @@ def fixup_old_data(data):
             for field in key_value_pairs.keys():
                 if field not in item:
                     item[field] = key_value_pairs[field]
+            if not item['focalDistance']:
+                item = _compute_crl_focus(item)
     for item in data['models']['beamline']:
         if item['type'] == 'sample':
             if 'horizontalCenterCoordinate' not in item:
@@ -525,6 +527,12 @@ def fixup_old_data(data):
 
     if 'distanceFromSource' not in data['models']['simulation']:
         data['models']['simulation']['distanceFromSource'] = template_common.DEFAULT_INTENSITY_DISTANCE
+
+    if len(data['models']['postPropagation']) == 9:
+        data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
+        for item_id in data['models']['propagation']:
+            for row in data['models']['propagation'][item_id]:
+                row += [0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def get_animation_name(data):
@@ -1472,6 +1480,25 @@ def _generate_beamline_optics(models, last_id):
                 propagation,
                 overwrite_propagation=True,
                 height_profile_el_name='SphMirror{}'.format(height_profile_counter)
+            )
+            if pp:
+                height_profile_counter += 1
+            res_el += el
+            res_pp += pp
+        elif item['type'] == 'toroidalMirror':
+            el, pp = _beamline_element(
+                'srwlib.SRWLOptMirTor(_rt={}, _rs={}, _size_tang={}, _size_sag={}, _x={}, _y={}, _ap_shape="{}", _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+                item,
+                ['tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+                propagation)
+            res_el += el
+            res_pp += pp
+
+            el, pp = _height_profile_element(
+                item,
+                propagation,
+                overwrite_propagation=True,
+                height_profile_el_name='TorMirror{}'.format(height_profile_counter)
             )
             if pp:
                 height_profile_counter += 1

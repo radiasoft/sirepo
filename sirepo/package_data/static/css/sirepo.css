@@ -79,6 +79,26 @@
         -ms-user-select: none;
         user-select: none;
     }
+    .sr-toolbar-holder {
+      padding: 0 -12px;
+      margin-bottom: 10px;
+    }
+    .sr-toolbar-section {
+      display: inline-block;
+      border: 1px dashed #31708f;
+      border-radius: 6px;
+      margin: 5px;
+    }
+    .sr-toolbar-section-header {
+      margin-top: -10px;
+      color: #31708f;
+    }
+    .sr-toolbar-section-title {
+      border: 1px solid #31708f;
+      border-radius: 3px;
+      padding: 0 3px;
+      background-color: white;
+    }
     .srw-beamline {
       border-radius: 6px;
       padding: 10px;
@@ -420,6 +440,7 @@ th.srw-tiny-heading {
   font-size: 12px;
   font-weight: normal;
   text-align: center;
+  white-space: pre-wrap;
 }
 .sr-info-pointer {
   cursor: default;
@@ -493,6 +514,15 @@ circle.srw-sample-white {
 circle.srw-sample-black {
   stroke: #000;
   fill: #000;
+}
+path.srw-no-fill {
+  stroke: #000;
+  fill: none;
+}
+path.srw-dash-stroke {
+  stroke: #999;
+  stroke-dasharray: 1,1;
+  fill: none;
 }
 svg.srw-beamline-item-icon {
   width: 50px;

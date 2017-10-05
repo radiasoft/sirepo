@@ -29,8 +29,6 @@ def test_calc_bragg_angle():
 
 def test_get_crystal_parameters():
     from sirepo import crystal
-    #TODO(pjm): re-enable this test when remote server is available
-    return
     expected = (
         (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704),
         (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -6.0335e-06, 5.7615e-08, 3.1821e-06, 4.0182e-08, 8.9561),

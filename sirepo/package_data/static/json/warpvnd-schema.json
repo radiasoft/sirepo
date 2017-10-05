@@ -3,6 +3,10 @@
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
         "CurrentMode": [
             ["1", "User Specified"],
             ["2", "Child-Langmuir Emission"],
@@ -20,6 +24,12 @@
             ["10", "10"],
             ["15", "15"],
             ["20", "20"]
+        ],
+        "ParticleRenderCount": [
+            ["100", "100"],
+            ["80", "80"],
+            ["50", "50"],
+            ["10", "10"]
         ]
     },
     "model": {
@@ -47,14 +57,21 @@
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
+        "egunCurrentAnimation": {
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
         "fieldReport": {},
-        "particleAnimation": {},
+        "impactDensityAnimation": {},
+        "particleAnimation": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+        },
         "simulation": {
-            "name": ["Name", "SafePath"]
+            "name": ["Name", "SafePath"],
+            "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
         "simulationFolder": {
             "name": ["Folder Name", "SafePath"]
@@ -129,6 +146,12 @@
                 "framesPerSecond"
             ]
         },
+        "egunCurrentAnimation": {
+            "title": "Current Report",
+            "advanced": [
+                "framesPerSecond"
+            ]
+        },
         "fieldAnimation": {
             "title": "Field Animation",
             "advanced": [
@@ -140,9 +163,15 @@
             "title": "Field Report",
             "advanced": []
         },
+        "impactDensityAnimation": {
+            "title": "Impact Density",
+            "advanced": []
+        },
         "particleAnimation": {
             "title": "Particle Trace",
-            "advanced": []
+            "advanced": [
+                "renderCount"
+            ]
         },
         "simulationGrid": {
             "title": "Simulation Grid",
@@ -173,6 +202,7 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": [
+                "simulation.egun_mode",
                 "simulationGrid.num_steps",
                 "simulationGrid.particles_per_step"
             ]
