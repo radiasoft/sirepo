@@ -61,7 +61,6 @@ def _codes(want_all=pkconfig.channel_in('dev')):
 cfg = pkconfig.init(
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the mask element in toolbar'),
-        sample_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the sample element in toolbar'),
     ),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
 )

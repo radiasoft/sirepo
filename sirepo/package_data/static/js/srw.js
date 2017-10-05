@@ -163,22 +163,21 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     self.srwService = srwService;
     self.postPropagation = [];
     self.propagations = [];
-    self.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
     self.singleElectron = true;
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
     self.toolbarItemNames = [
         ['Refractive optics and transmission objects', ['lens', 'crl', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
-        ['Reflective optics', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
+        ['Mirrors', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
 
     function defaultItemPropagationParams() {
-        return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0];
+        return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
 
     function defaultDriftPropagationParams() {
-        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
+        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
 
     function formatFloat(v) {
@@ -213,17 +212,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
             panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
         }
-    };
-
-    self.isDisabledPropagation = function(prop) {
-        if (prop.item) {
-            return prop.item.isDisabled;
-        }
-        return false;
-    };
-
-    self.isPropagationReadOnly = function() {
-        return false;
     };
 
     self.isSingleElectron = function() {
@@ -1052,6 +1040,28 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('headerTooltip', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            tipText: '=headerTooltip',
+        },
+        template: [
+            '<span class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
+        ],
+        link: function link(scope, element) {
+            $(element).tooltip({
+                title: scope.tipText,
+                html: true,
+                placement: 'bottom',
+            });
+            scope.$on('$destroy', function() {
+                $(element).tooltip('destroy');
+            });
+        },
+    };
+});
+
 //TODO(pjm): refactor and generalize with mirrorUpload
 SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender) {
     return {
@@ -1318,6 +1328,151 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
     };
 });
 
+SIREPO.app.directive('propagationParameterFieldEditor', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            param: '=',
+            paramInfo: '=',
+        },
+        template: [
+            '<div data-ng-switch="::paramInfo.fieldType">',
+              '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
+              '<input data-ng-switch-when="Float" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
+              '<input data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
+        },
+    };
+});
+
+SIREPO.app.directive('propagationParametersModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            propagations: '=',
+            postPropagation: '=',
+        },
+        template: [
+            '<div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="Propagation Parameters"></div>',
+                    '<span class="lead modal-title text-info">Propagation Parameters</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<ul class="nav nav-tabs">',
+                          '<li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">',
+                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }}</a>',
+                          '</li>',
+                        '</ul>',
+                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
+                      '</div>',
+                      '<div class="row">',
+                        '<div class="col-sm-offset-6 col-sm-3">',
+                          '<button data-dismiss="modal" class="btn btn-primary"style="width: 100%" >Close</button>',
+                        '</div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var activePropagationSection = 0;
+            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
+
+            $scope.isPropagationSectionActive = function(index) {
+                return index == activePropagationSection;
+            };
+
+            $scope.setPropagationSection = function(index) {
+                activePropagationSection = index;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('propagationParametersTable', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            sectionIndex: '@',
+            propagations: '=',
+            postPropagation: '=',
+        },
+        template: [
+            '<div data-ng-class="::classForSection(sectionIndex)" data-ng-show="$parent.isPropagationSectionActive(sectionIndex)">',
+              '<table class="table table-striped table-condensed">',
+                '<thead>',
+                  '<tr>',
+                    '<th>Element</th>',
+                    '<th class="srw-tiny-heading" data-ng-repeat="item in ::parameterInfo track by $index">{{:: item.headingText }} <span data-ng-if="::item.headingTooltip" data-header-tooltip="::item.headingTooltip"</span></th>',
+                  '</tr>',
+                '</thead>',
+                '<tbody>',
+                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop)}">',
+                    '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
+                    '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
+                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo"></div>',
+                    '</td>',
+                  '</tr>',
+                  '<tr class="warning">',
+                    '<td class="input-sm">Final post-propagation (resize)</td>',
+                    '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
+                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo"></div>',
+                    '</td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            function initParameters() {
+                var info = appState.modelInfo('propagationParameters');
+                var parametersBySection = [
+                    [3, 4, 5, 6, 7, 8],
+                    [0, 1, 2],
+                    [12, 13, 14, 15, 16],
+                ];
+                $scope.parameterInfo = [];
+                parametersBySection[$scope.sectionIndex].forEach(function(i) {
+                    var field = i.toString();
+                    $scope.parameterInfo.push({
+                        headingText: info[field][0],
+                        headingTooltip: info[field][3],
+                        fieldType: info[field][1],
+                        fieldIndex: i,
+                    });
+                });
+            }
+
+            $scope.classForSection = function(sectionIndex) {
+                return sectionIndex == 1
+                    ? 'col-md-8 col-md-offset-2'
+                    : 'col-sm-12';
+            };
+
+            $scope.isDisabledPropagation = function(prop) {
+                if (prop.item) {
+                    return prop.item.isDisabled;
+                }
+                return false;
+            };
+
+            initParameters();
+        },
+    };
+});
+
 SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
@@ -1456,19 +1611,5 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
             });
             appState.whenModelsLoaded($scope, copyMultiElectronModel);
        },
-    };
-});
-
-SIREPO.app.directive('tooltipEnabler', function() {
-    return {
-        link: function(scope, element) {
-            $('[data-toggle="tooltip"]').tooltip({
-                html: true,
-                placement: 'bottom',
-            });
-            scope.$on('$destroy', function() {
-                $('[data-toggle="tooltip"]').tooltip('destroy');
-            });
-        },
     };
 });

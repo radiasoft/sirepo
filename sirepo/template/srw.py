@@ -528,6 +528,12 @@ def fixup_old_data(data):
     if 'distanceFromSource' not in data['models']['simulation']:
         data['models']['simulation']['distanceFromSource'] = template_common.DEFAULT_INTENSITY_DISTANCE
 
+    if len(data['models']['postPropagation']) == 9:
+        data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
+        for item_id in data['models']['propagation']:
+            for row in data['models']['propagation'][item_id]:
+                row += [0, 0, 0, 0, 0, 0, 0, 0]
+
 
 def get_animation_name(data):
     return data['modelName']
