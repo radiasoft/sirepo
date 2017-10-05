@@ -105,7 +105,6 @@ Then visit the following link:
 
 [http://localhost:8000/light](http://localhost:8000/light)
 
-
 ##### Sharing Folder with Vagrant VM
 
 Note that if you want to transfer files to the virtual machine,
@@ -117,144 +116,37 @@ and remove the following line from the `Vagrantfile`:
 config.vm.synced_folder ".", "/vagrant", disabled: true
 ```
 
-#### Angular Testing
+## Development
 
-In order to test, you need to install Xvfb, nodejs (v4+), and google-chrome.
+To start developing on vagrant, you should do the following:
 
-[Extensive tutorial on Angular Testing from 2013, which gives advice on jasmine testing, but uses obsolete scenario runner.](http://www.yearofmoo.com/2013/01/full-spectrum-testing-with-angularjs-and-karma.html)
-
-[Advice on how to test better](http://www.yearofmoo.com/2013/09/advanced-testing-and-debugging-in-angularjs.html#writing-efficient-tests)
-
-Install node globally as root:
-
-```bash
-curl -s -S -L https://rpm.nodesource.com/setup_4.x | bash
-yum install -y nodejs
+```sh
+$ curl radia.run | bash -s vagrant-centos7
+$ vagrant ssh
+$ curl radia.run | sudo bash -s redhat-base
+$ curl radia.run | sudo bash -s home-env
+$ . ~/.bashrc
+$ bivio_pyenv_2
+$ . ~/.bashrc
+$ curl radia.run | bash -s code common elegant shadow3 warp srw rslinac rsbeams
+$ cd src/radiasoft
+$ pip uninstall -y pykern
+$ gcl pykern
+$ cd pykern
+$ pip install -e .
+$ cd ..
+$ gcl sirepo
+$ cd sirepo
+$ pip install -e .
 ```
 
-Install Xvfb globally as root. It runs as vagrant:
+Not yet supported, but to install Opal:
 
-```bash
-yum install -y xorg-x11-server-Xvfb xorg-x11-server-utils
-cat > /etc/systemd/system/Xvfb.service <<'EOF'
-[Unit]
-Description=Xvfb
-After=network.target
-
-[Service]
-User=vagrant
-SyslogIdentifier=%p
-# -noreset fixes memory leak issue with other flags described here:
-# http://blog.jeffterrace.com/2012/07/xvfb-memory-leak-workaround.html
-# Start with screen 10, because we use visible X11 apps on VMs.
-# Small screen size to save memory
-# RANDR needed for chrome
-ExecStart=/usr/bin/Xvfb -ac -extension RANDR -noreset -screen 0 1024x768x8
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable Xvfb
-systemctl start Xvfb
+```sh
+$ curl radia.run | bash -s code pyOPALTools trilinos opal
 ```
 
-Install Chrome globally as root:
-
-```bash
-cat << 'EOF' > /etc/yum.repos.d/google-chrome.repo
-[google-chrome]
-name=google-chrome - $basearch
-baseurl=http://dl.google.com/linux/chrome/rpm/stable/$basearch
-enabled=1
-gpgcheck=1
-gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
-EOF
-yum install -y google-chrome-stable
-```
-
-##### Karma (Angular unit testing)
-
-The tests are located in `tests/karma`.
-[Tutorial on karma and jasmine.](https://daveceddia.com/testing-angular-part-1-karma-setup/)
-
-As user install node modules:
-
-```bash
-cd ~/src/radiasoft/sirepo
-npm install --save-dev karma
-npm install --save-dev karma-jasmine
-npm install --save-dev karma-phantomjs-launcher
-```
-
-To run tests:
-
-```bash
-cd ~/src/radiasoft/sirepo
-./node_modules/karma/bin/karma start karma-conf.js
-```
-
-##### Protractor (Angular end-to-end testing)
-
-The tests are located in `tests/protractor`.
-[Tutorial on protractor and jasmine.](http://www.protractortest.org/#/tutorial)
-
-As user install node modules and Chrome:
-
-```bash
-cd ~/src/radiasoft/sirepo
-npm install --save-dev protractor
-npm install --save-dev protractor-snapshot
-npm install --save-dev protractor-console
-npm install --save-dev protractor-console-plugin
-./node_modules/protractor/bin/webdriver-manager update
-yum update -y google-chrome-stable
-```
-
-Verify the X11 server is running:
-
-```bash
-DISPLAY=:0 xset q > /dev/null && echo OK
-```
-
-To run tests:
-
-```bash
-cd ~/src/radiasoft/sirepo
-# Starts server on http://localhost:4444/wd/hub
-DISPLAY=:0 ./node_modules/protractor/bin/webdriver-manager start --chrome_logs="$PWD/chrome.log" >& webdriver.log &
-# Default is 8000
-SIREPO_PKCLI_SERVICE_PORT=8000 sirepo service http >& http.log &
-# You don't need to pass uri as it is set to 8000 by default, but clearer
-./node_modules/protractor/bin/protractor --params.uri=http://localhost:8000 protractor-conf.js
-```
-
-Output will look like:
-
-```bash
-./node_modules/protractor/bin/protractor protractor-conf.js
-[16:20:30] I/hosted - Using the selenium server at http://localhost:4444/wd/hub
-[16:20:30] I/launcher - Running 1 instances of WebDriver
-Started
-.
-
-
-1 spec, 0 failures
-Finished in 6.88 seconds
-[16:20:40] I/launcher - 0 instance(s) of WebDriver still running
-[16:20:40] I/launcher - chrome #01 passed
-```
-
-If you would like to see what the browser (webdriver) is doing, you
-must have X11 running, and start the webdriver this way:
-
-```bash
-./node_modules/protractor/bin/webdriver-manager start >& webdriver.log &
-```
-
-This will use the `$DISPLAY` forwarded through your ssh session via
-Vagrant.
-
-#### Full Stack Development
+### Full Stack Development
 
 The `sirepo service http` setup is used for basic application development.
 However, if you want to test the full stack workflow, you'll need to start
