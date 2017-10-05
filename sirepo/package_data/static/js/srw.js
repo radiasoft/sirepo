@@ -1464,7 +1464,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
-              '<input data-ng-switch-when="Float" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
+              '<input data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),
