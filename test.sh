@@ -21,7 +21,6 @@ assert_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
 if [[ -x ./node_modules/jshint/bin/jshint ]]; then
     ./node_modules/jshint/bin/jshint --config=etc/jshint.conf "${jsfiles[@]}"
 fi
-pip show pluggy
 python setup.py test
 if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
     python setup.py pkdeploy
