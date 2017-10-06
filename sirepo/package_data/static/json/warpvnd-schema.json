@@ -57,6 +57,9 @@
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
+        "egunCurrentAnimation": {
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+        },
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
@@ -139,6 +142,12 @@
         },
         "currentAnimation": {
             "title": "Current Animation",
+            "advanced": [
+                "framesPerSecond"
+            ]
+        },
+        "egunCurrentAnimation": {
+            "title": "Current Report",
             "advanced": [
                 "framesPerSecond"
             ]

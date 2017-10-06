@@ -46,18 +46,30 @@ tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MI
 
 ITERATIONS = 5 #number of iterations to run for steady state solver - Default to 5
 
-def update_status_file(num):
+def update_status_file(num, save_current=False):
     status_file = '{{ egunStatusFile }}'
     tmp_file = status_file + '.tmp'
     with open(tmp_file, 'w') as f:
         f.write('{} / {}'.format(num, ITERATIONS + 1))
     os.rename(tmp_file, status_file)
 
-update_status_file(0.25)    
+    if save_current:
+        # save current state, h5 files don't seem to capture the state
+        current_file = '{{ egunCurrentFile }}'
+        curr = np.append([top.time], -1 * top.curr).flatten()
+        if (num <= 1):
+            v = [curr]
+        else:
+            v = np.load(current_file)
+            v = np.append(v, [curr], axis=0)
+        np.save(tmp_file, v)
+        os.rename(tmp_file + '.npy', current_file)
+
+update_status_file(0.25)
 
 for num in range(ITERATIONS):
     gun(1, ipstep=1, lvariabletimestep=1) #, maxtime=0.25*tof_expected)
-    update_status_file(num + 1)
+    update_status_file(num + 1, save_current=True)
 
 #---
 # particle trajectories

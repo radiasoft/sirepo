@@ -24,6 +24,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
               '<br data-ng-if="pages" />',
+              '<div class="lead text-center" style="white-space: pre-wrap;" data-ng-if="activePage.pageDescription">{{ activePage.pageDescription }}</div>',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
                 '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
@@ -69,7 +70,13 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                     $scope.pages.push(page);
                     var fields = $scope.advancedFields[i][1];
                     for (var j = 0; j < fields.length; j++) {
-                        page.items.push(fields[j]);
+                        // tab page headings are indicated with a leading '*' character
+                        if (fields[j].indexOf('*') === 0) {
+                            page.pageDescription = fields[j].substring(1);
+                        }
+                        else {
+                            page.items.push(fields[j]);
+                        }
                     }
                 }
             }
@@ -1409,7 +1416,7 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('utilities', function() {
 
     this.validateFieldOfType = function(value, type) {
-        if (value == undefined || value == null || value === '')  {
+        if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
             if (type === 'MirrorFile') {
                 return true;

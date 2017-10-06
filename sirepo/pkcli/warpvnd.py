@@ -53,7 +53,9 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     with pkio.save_chdir(cfg_dir):
-        mpi.run_script(_script())
+        #TODO(pjm): disable running with MPI for now
+        # mpi.run_script(_script())
+        exec(_script(), locals(), locals())
         simulation_db.write_result({})
 
 

@@ -1973,7 +1973,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
                 });
                 var simList = fileManager.getSimList();
                 for (var i = 0; i < data.length; i++) {
-                    if (! simList.includes(data[i].simulationId)) {
+                    if (simList.indexOf(data[i].simulationId) < 0) {
                         simList.push(data[i].simulationId);
                         var item = addToTree(data[i]);
                     }
