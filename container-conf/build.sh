@@ -21,6 +21,7 @@ build_as_root() {
 }
 
 build_as_run_user() {
+    . ~/.bashrc
     cd "$build_guest_conf"
 
     sirepo_boot_init
@@ -31,9 +32,11 @@ build_as_run_user() {
     # Trim .pyc to .py (if there)
     perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
 
+    pip show pluggy
     # reinstall pykern always
     build_curl radia.run | bash -s code pykern
 
+    pip show pluggy
     # sirepo
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
         https://github.com/radiasoft/sirepo
@@ -43,6 +46,7 @@ build_as_run_user() {
     fi
     pip install -r requirements.txt
     python setup.py install
+    pip show pluggy
 
     # test & deploy
     # npm gets ECONNRESET due to a node error, which shouldn't happen
