@@ -58,6 +58,10 @@
                 "dicomWindow.width"
             ]
         },
+        "dicomAnimation4": {
+            "title": "DICOM Dose",
+            "advanced": []
+        },
         "dicomEditorState": {
             "title": "DICOM Editor",
             "advanced": []

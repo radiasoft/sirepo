@@ -82,6 +82,12 @@ def fixup_old_data(data):
         data['models']['dicomDose'] = {
             'frameCount': 0,
         }
+    if 'dicomAnimation4' not in data['models']:
+        anim = data['models']['dicomAnimation']
+        data['models']['dicomAnimation4'] = {
+            'dicomPlane': 't',
+            'startTime': anim['startTime'] if 'startTime' in anim else 0,
+        }
 
 
 def generate_rtstruct_file(sim_dir, target_dir):
@@ -648,17 +654,19 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
     data = {
         'models': {},
     }
-    res = data['models']['regionsOfInterest'] = {}
+    rois = {}
     for roi in plan.StructureSetROISequence:
-        res[roi.ROINumber] = {
+        rois[roi.ROINumber] = {
             'name': roi.ROIName,
         }
+    res = data['models']['regionsOfInterest'] = {}
     for roi_contour in plan.ROIContourSequence:
-        roi = res[roi_contour.ReferencedROINumber]
+        roi = rois[roi_contour.ReferencedROINumber]
         if 'contour' in roi:
             raise RuntimeError('duplicate contour sequence for roi')
         if not hasattr(roi_contour, 'ContourSequence'):
             continue
+        res[roi_contour.ReferencedROINumber] = roi
         roi['color'] = roi_contour.ROIDisplayColor
         roi['contour'] = {}
         for contour in roi_contour.ContourSequence:

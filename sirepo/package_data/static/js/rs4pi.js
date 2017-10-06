@@ -170,11 +170,33 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     return self;
 });
 
-SIREPO.app.controller('Rs4piDoseController', function (appState, rs4piService, $scope) {
+SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, persistentSimulation, rs4piService, $scope) {
     var self = this;
+    self.model = 'dicomAnimation';
+
+    self.handleStatus = function(data) {
+        if (data.report == 'dicomDose') {
+            //TODO(pjm): handle dose computation results here
+            // need to set/save dicomDose.startTime for frame cache key
+        }
+        else if (data.report == 'dicomAnimation') {
+            frameCache.setFrameCount(data.frameCount);
+        }
+    };
+
+    self.runDoseSimulation = function() {
+        self.model = 'doseCalculation';
+        self.runSimulation();
+    };
 
     appState.whenModelsLoaded($scope, function() {
         rs4piService.loadROIPoints();
+    });
+
+    persistentSimulation.initProperties(self, $scope, {
+        dicomAnimation4: ['dicomPlane', 'startTime'],
+        doseCalculation: [],
+        dicomDose: ['startTime'],
     });
 });
 
@@ -271,23 +293,24 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('computeDoseForm', function(appState, persistentSimulation, rs4piService) {
+SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piService) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div style="margin-top: 1ex; margin-bottom: 0;" class="panel panel-default" novalidate>',
+            '<div style="margin-top: 1ex;" class="panel panel-default" novalidate>',
               '<div class="panel-body">',
                 '<div><p><b>Compute Dose for PTV</b></p></div>',
-                '<select class="form-control" data-ng-model="selectedPTV" data-ng-options="item.roiNumber as item.name for item in roiList"></select>',
-                '<button style="margin-top: 1ex" class="btn btn-default pull-right" data-ng-disabled="! selectedPTV" data-ng-click="updatePTV()">Update</button>',
-
+                '<div class="col-sm-6">',
+                  '<select class="form-control" data-ng-model="selectedPTV" data-ng-options="item.roiNumber as item.name for item in roiList"></select>',
+                '</div>',
+                '<button class="btn btn-default" data-ng-disabled="! selectedPTV" data-ng-click="updatePTV()">Update</button>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.selectedPTV = null;
-            $scope.model = 'doseCalculation';
+            $scope.doseController = panelState.findParentAttribute($scope, 'dose');
 
             function loadROIPoints() {
                 $scope.roiList = [];
@@ -304,24 +327,16 @@ SIREPO.app.directive('computeDoseForm', function(appState, persistentSimulation,
                 });
             }
 
-            $scope.handleStatus = function(data) {
-                //TODO(pjm): handle dose computation results here
-                // need to set/save dicomDose.startTime for frame cache key
-            };
-
             $scope.updatePTV = function() {
                 appState.models.dicomEditorState.selectedPTV = $scope.selectedPTV;
                 appState.saveChanges('dicomEditorState', function() {
-                    $scope.runSimulation();
+                    $scope.doseController.runDoseSimulation();
                 });
             };
 
             $scope.$on('roiPointsLoaded', loadROIPoints);
             appState.whenModelsLoaded($scope, function() {
                 $scope.selectedPTV = appState.models.dicomEditorState.selectedPTV;
-            });
-            persistentSimulation.initProperties($scope, $scope, {
-                doseCalculation: [],
             });
         },
     };
@@ -1129,12 +1144,18 @@ function imageFeature() {
             for (var yi = 0, p = -1; yi < height; ++yi) {
                 for (var xi = 0; xi < width; ++xi) {
                     var c = colorScale(heatmap[yi][xi]);
-                    imageData.data[++p] = c;
-                    imageData.data[++p] = c;
-                    imageData.data[++p] = isOverlay ? 0 : c;
-                    imageData.data[++p] = isOverlay
-                        ? (c == 0 ? 0 : 0x99)
-                        : 0xff;
+                    if (isOverlay) {
+                        imageData.data[++p] = 0xff;
+                        imageData.data[++p] = 0xff;
+                        imageData.data[++p] = 0;
+                        imageData.data[++p] = c;
+                    }
+                    else {
+                        imageData.data[++p] = c;
+                        imageData.data[++p] = c;
+                        imageData.data[++p] = c;
+                        imageData.data[++p] = 0xff;
+                    }
                 }
             }
             cacheCanvas.getContext('2d').putImageData(imageData, 0, 0);
@@ -1142,7 +1163,7 @@ function imageFeature() {
     };
 }
 
-SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plotting, rs4piService, $interval, $rootScope) {
+SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, panelState, plotting, rs4piService, $interval, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1162,9 +1183,9 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
             var inRequest = false;
             var oldDicomWindow = null;
             var selectedDicomPlane = '';
-            var planeLinesFeature = dicomPlaneLinesFeature($scope, rs4piService);
+            var planeLinesFeature = activeSection.getActiveSection() == 'source' ? dicomPlaneLinesFeature($scope, rs4piService) : null;
             var roiFeature = dicomROIFeature($scope, rs4piService);
-            var doseFeature = imageFeature();
+            var doseFeature = activeSection.getActiveSection() == 'source' ? null : imageFeature();
             var dicomFeature = imageFeature();
 
             function advanceFrame() {
@@ -1227,7 +1248,9 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
             function redrawIfChanged(newValue, oldValue) {
                 if ($scope.isTransversePlane() && newValue != oldValue) {
                     roiFeature.draw();
-                    planeLinesFeature.draw();
+                    if (planeLinesFeature) {
+                        planeLinesFeature.draw();
+                    }
                     resetZoom();
                     updateCursor();
                 }
@@ -1246,11 +1269,13 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
                 if ($scope.isTransversePlane()) {
                     roiFeature.draw();
                     var doseDomain = appState.models.dicomDose.domain;
-                    if (doseDomain) {
+                    if (doseDomain && doseFeature) {
                         doseFeature.draw(canvas, [doseDomain[0][0], doseDomain[1][0]], [$scope.flipud(doseDomain[0][1]), $scope.flipud(doseDomain[1][1])]);
                     }
                 }
-                planeLinesFeature.draw();
+                if (planeLinesFeature) {
+                    planeLinesFeature.draw();
+                }
                 resetZoom();
             }
 
@@ -1317,6 +1342,10 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
             }
             $scope.updateTargetPlane = updateTargetPlane;
 
+            $scope.canEditROI = function() {
+                return activeSection.getActiveSection() == 'source';
+            };
+
             $scope.destroy = function() {
                 zoom.on('zoom', null);
             };
@@ -1344,11 +1373,15 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
                 yAxisScale = d3.scale.linear();
                 frameScale = d3.scale.linear();
                 roiFeature.init(xAxisScale, yAxisScale);
-                planeLinesFeature.init(xAxisScale, yAxisScale);
+                if (planeLinesFeature) {
+                    planeLinesFeature.init(xAxisScale, yAxisScale);
+                }
                 resetZoom();
                 canvas = select('canvas').node();
                 dicomFeature.init(xAxisScale, yAxisScale);
-                doseFeature.init(xAxisScale, yAxisScale);
+                if (doseFeature) {
+                    doseFeature.init(xAxisScale, yAxisScale);
+                }
             };
 
             $scope.isTransversePlane = function() {
@@ -1362,17 +1395,19 @@ SIREPO.app.directive('dicomPlot', function(appState, frameCache, panelState, plo
                 updateCurrentFrame();
                 if ($scope.isTransversePlane()) {
                     roiFeature.load(json.frameId);
-                    frameCache.getFrame('dicomDose', frameCache.getCurrentFrame($scope.modelName), false, function(index, data) {
-                        if (frameCache.getCurrentFrame($scope.modelName) == index) {
-                            doseFeature.load(data.dose_array);
-                            doseFeature.prepareImage({
-                                //TODO(pjm): allow adjusting dose colormap and ranges
-                                center: appState.models.dicomDose.max / 8,
-                                width: appState.models.dicomDose.max / 4,
-                            }, true);
-                            refresh();
-                        }
-                    });
+                    if (doseFeature) {
+                        frameCache.getFrame('dicomDose', frameCache.getCurrentFrame($scope.modelName), false, function(index, data) {
+                            if (frameCache.getCurrentFrame($scope.modelName) == index) {
+                                doseFeature.load(data.dose_array);
+                                doseFeature.prepareImage({
+                                    //TODO(pjm): allow adjusting dose colormap and ranges
+                                    center: appState.models.dicomDose.max / 8,
+                                    width: appState.models.dicomDose.max / 4,
+                                }, true);
+                                refresh();
+                            }
+                        });
+                    }
                 }
                 var preserveZoom = xValues ? true : false;
                 dicomDomain = appState.clone(json.domain);

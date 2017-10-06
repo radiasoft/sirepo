@@ -4,8 +4,8 @@
         <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('advanceFrame')" data-ng-class="{active: rs4piService.isMouseWheelMode('advanceFrame')}" type="button" title="Scroll through frames"><span class="glyphicon glyphicon-transfer"></span></button>
         <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('zoom')" data-ng-class="{active: rs4piService.isMouseWheelMode('zoom')}" type="button" title="Zoom and pan"><span class="glyphicon glyphicon-zoom-in"></span></button>
       </div>
-      <button class="btn btn-default" data-ng-show="isTransversePlane()" data-ng-click="rs4piService.toggleEditing()" data-ng-class="{active: rs4piService.isEditing}" type="button" title="Edit ROI"><span class="glyphicon glyphicon-edit"></span></button>
-      <div class="btn-group" data-ng-show="isTransversePlane() &&rs4piService.isEditing">
+      <button class="btn btn-default" data-ng-show="isTransversePlane() && canEditROI()" data-ng-click="rs4piService.toggleEditing()" data-ng-class="{active: rs4piService.isEditing}" type="button" title="Edit ROI"><span class="glyphicon glyphicon-edit"></span></button>
+      <div class="btn-group" data-ng-show="isTransversePlane() && canEditROI() && rs4piService.isEditing">
           <button id='select-mode' class="btn btn-default" data-ng-class="{active: rs4piService.isEditMode('select')}" title="Select" type="button" data-ng-click="rs4piService.setEditMode('select')"><span class="glyphicon glyphicon-arrow-up sr-rotate-glyph"> </span></button>
           <button id='draw-mode' class="btn btn-default" data-ng-class="{active: rs4piService.isEditMode('draw')}" title="Draw" type="button" data-ng-click="rs4piService.setEditMode('draw')"><span class="glyphicon glyphicon-pencil"> </span></button>
       </div>
