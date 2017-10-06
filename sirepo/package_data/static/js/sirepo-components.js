@@ -1236,9 +1236,6 @@ SIREPO.app.directive('appHeaderBrand', function(appState, panelState) {
         scope: {
             nav: '=appHeaderBrand',
         },
-        transclude: {
-            appBrandSlot: '?appBrand',
-        },
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
@@ -1268,7 +1265,6 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.showMenu = function() {
                 return ! SIREPO.IS_LOGGED_OUT;
             };
@@ -1318,7 +1314,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
               '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
             '</ul>',
         ].join(''),
-        link: function (scope) {
+        link: function(scope) {
            scope.nav.isLoaded = scope.isLoaded;
            scope.nav.simulationName = scope.simulationName;
            scope.nav.hasDocumentationUrl = scope.hasDocumentationUrl;
@@ -1461,7 +1457,6 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
             };
 
             $scope.openRelatedSimulation = function(item) {
-
                 if ($scope.nav.isActive('beamline')) {
                     requestSender.localRedirect('beamline', {
                         ':simulationId': item.simulationId,

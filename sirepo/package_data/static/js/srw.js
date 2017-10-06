@@ -916,7 +916,6 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
-            '<div data-modal-editor="" view-name="simDoc"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
         controller: function($scope) {
