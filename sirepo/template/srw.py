@@ -394,6 +394,8 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
+        if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
+            item['autocomputeVectors'] = '1'
     for item in data['models']['beamline']:
         if item['type'] == 'crl':
             key_value_pairs = pkcollections.Dict({

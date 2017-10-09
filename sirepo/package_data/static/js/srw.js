@@ -302,11 +302,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return true;
     };
 
-    $scope.beamlineService = beamlineService;
-    $scope.$watch('beamlineService.activeItem.grazingAngle', function (newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && angular.isDefined(oldValue)) {
+    function updateVectors(newValue, oldValue) {
+        if (appState.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
             var item = beamlineService.activeItem;
-            if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror' || item.type === 'toroidalMirror') {
+            if (item.autocomputeVectors === '1') {
                 requestSender.getApplicationData(
                     {
                         method: 'compute_grazing_angle',
@@ -321,7 +320,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 );
             }
         }
-    });
+    }
+
+    $scope.beamlineService = beamlineService;
+    $scope.$watch('beamlineService.activeItem.grazingAngle', updateVectors);
+    $scope.$watch('beamlineService.activeItem.autocomputeVectors', updateVectors);
 
     function checkChanged(newValues, oldValues) {
         for (var i = 0; i < newValues.length; i++) {

@@ -322,6 +322,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.01],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.6],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999935200069984],
             "normalVectorZ": ["Longitudinal", "Float", -0.0035999922240050387],
@@ -405,6 +406,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.99991607766],
             "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
@@ -594,6 +596,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999025244842406],
             "normalVectorZ": ["Longitudinal", "Float", -0.013962146326506367],
@@ -623,6 +626,7 @@
             "verticalPosition": ["Vertical Position of Mirror Center [m]", "Float", 0],
             "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999755001000415],
             "normalVectorZ": ["Longitudinal", "Float", -0.006999942833473391],
@@ -826,8 +830,11 @@
                     "firstFocusLength",
                     "focalLength",
                     "tangentialSize",
-                    "sagittalSize",
+                    "sagittalSize"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -972,8 +979,11 @@
                     "position",
                     "tangentialSize",
                     "sagittalSize",
-                    "diffractionOrder",
+                    "diffractionOrder"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1295,8 +1305,11 @@
                     "position",
                     "radius",
                     "tangentialSize",
-                    "sagittalSize",
+                    "sagittalSize"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1369,8 +1382,11 @@
                            "verticalPosition"
                        ]]
                     ],
-                    "apertureShape",
+                    "apertureShape"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
