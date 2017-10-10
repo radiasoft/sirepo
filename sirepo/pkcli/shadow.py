@@ -10,9 +10,11 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
+import numpy as np
 import py.path
 import sirepo.template.shadow as template
 
+_MM_TO_CM = 0.1
 _CM_TO_M = 0.01
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
@@ -58,7 +60,18 @@ def run(cfg_dir):
         column_values = _SCHEMA['enum']['ColumnValue']
 
         if 'y' in model:
-            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0)
+            x_range = None
+            y_range = None
+            if model['overrideSize'] == '1':
+                x_range = (np.array([
+                    model['horizontalOffset'] - model['horizontalSize'] / 2,
+                    model['horizontalOffset'] + model['horizontalSize'] / 2,
+                ]) * _MM_TO_CM).tolist()
+                y_range = (np.array([
+                    model['verticalOffset'] - model['verticalSize'] / 2,
+                    model['verticalOffset'] + model['verticalSize'] / 2,
+                ]) * _MM_TO_CM).tolist()
+            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0, xrange=x_range, yrange=y_range)
             _scale_ticket(ticket)
             res = {
                 'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],

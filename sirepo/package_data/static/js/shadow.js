@@ -31,14 +31,33 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('shadowService', function(beamlineService) {
+SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
+    // ColumnValue enum values which are in mm
+    var MM_COLUMN_VALUES = ['1', '2', '3'];
     var self = {};
     self.getReportTitle = beamlineService.getReportTitle;
+
+    self.updatePlotSizeFields = function(modelKey, modelName) {
+        var m = appState.models[modelKey];
+        var showOverride = MM_COLUMN_VALUES.indexOf(m.x) >= 0 && MM_COLUMN_VALUES.indexOf(m.y) >= 0;
+        panelState.showField(modelName || modelKey, 'overrideSize', showOverride);
+        if (! showOverride) {
+            m.overrideSize = '0';
+        }
+        panelState.showRow(modelName || modelKey, 'horizontalSize', m.overrideSize === '1');
+    };
+
+    self.watchPlotSize = function($scope, modelKey, modelName) {
+        appState.watchModelFields($scope, [modelKey + '.overrideSize', modelKey + '.x', modelKey + '.y'], function() {
+            self.updatePlotSizeFields(modelKey, modelName);
+        });
+    };
     return self;
 });
 
-SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineService, panelState, $scope) {
+SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineService, panelState, shadowService, $scope) {
     var self = this;
+    var watchpointNames = [];
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
@@ -150,7 +169,7 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
         panelState.showRow('mirror', 'mlayerSubstrateMaterial', (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
     }
 
-    self.handleModalShown = function(name) {
+    self.handleModalShown = function(name, modelKey) {
         var item = beamlineService.activeItem;
         if (item && item.type == name) {
             if (name == 'mirror' || name == 'crystal' || name == 'grating') {
@@ -174,20 +193,33 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
                 updateCrlFields(item);
             }
         }
+        if (name == 'initialIntensityReport') {
+            shadowService.updatePlotSizeFields(name);
+        }
+        else if (modelKey && beamlineService.isWatchpointReportModelName(modelKey)) {
+            shadowService.updatePlotSizeFields(modelKey, 'watchpointReport');
+            if (watchpointNames.indexOf(modelKey) < 0) {
+                watchpointNames.push(modelKey);
+                shadowService.watchPlotSize($scope, modelKey, 'watchpointReport');
+            }
+        }
     };
 
-    ['mirror', 'crystal', 'grating'].forEach(function(m) {
-        beamlineService.watchBeamlineField($scope, m, ['fmirr'], updateElementShapeFields);
-        beamlineService.watchBeamlineField($scope, m, ['f_ext', 'f_default', 'fcyl'], updateElementSurfaceFields);
-        beamlineService.watchBeamlineField($scope, m, ['fhit_c', 'fshape'], updateElementDimensionFields);
+    appState.whenModelsLoaded($scope, function() {
+        ['mirror', 'crystal', 'grating'].forEach(function(m) {
+            beamlineService.watchBeamlineField($scope, m, ['fmirr'], updateElementShapeFields);
+            beamlineService.watchBeamlineField($scope, m, ['f_ext', 'f_default', 'fcyl'], updateElementSurfaceFields);
+            beamlineService.watchBeamlineField($scope, m, ['fhit_c', 'fshape'], updateElementDimensionFields);
+        });
+        ['crystal', 'grating'].forEach(function(m) {
+            beamlineService.watchBeamlineField($scope, m, ['f_central', 'f_phot_cent'], updateAutoTuningFields);
+        });
+        beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
+        beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
+        beamlineService.watchBeamlineField($scope, 'crl', ['fhit_c', 'fmirr', 'fcyl'], updateCrlFields);
+        shadowService.watchPlotSize($scope, 'initialIntensityReport');
     });
-    ['crystal', 'grating'].forEach(function(m) {
-        beamlineService.watchBeamlineField($scope, m, ['f_central', 'f_phot_cent'], updateAutoTuningFields);
-    });
-    beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
-    beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
-    beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
-    beamlineService.watchBeamlineField($scope, 'crl', ['fhit_c', 'fmirr', 'fcyl'], updateCrlFields);
 });
 
 SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
@@ -248,18 +280,21 @@ SIREPO.app.controller('ShadowSourceController', function(appState, panelState, s
         else if (name == 'wiggler') {
             updateWigglerSettings();
         }
+        else if (name == 'plotXYReport') {
+            shadowService.updatePlotSizeFields('plotXYReport');
+        }
     };
 
     self.isSource = function(name) {
         return appState.isLoaded() && appState.models.simulation.sourceType == name;
     };
 
-    appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
-    appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdistr', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
-    appState.watchModelFields($scope, ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings);
-
     appState.whenModelsLoaded($scope, function() {
         updateGeometricSettings();
+        appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
+        appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdistr', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
+        appState.watchModelFields($scope, ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings);
+        shadowService.watchPlotSize($scope, 'plotXYReport');
     });
 });
 

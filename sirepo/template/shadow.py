@@ -78,6 +78,13 @@ def fixup_old_data(data):
         x = g.cone_max
         g.cone_max = g.cone_min
         g.cone_min = x
+    if 'verticalOffset' not in data.models.initialIntensityReport:
+        for name in data['models']:
+            if name == 'initialIntensityReport' or name == 'plotXYReport' or template_common.is_watchpoint(name):
+                m = data.models[name]
+                m.overrideSize = '0'
+                m.horizontalSize = m.verticalSize = 10
+                m.horizontalOffset = m.verticalOffset = 0
 
 
 def get_application_data(data):

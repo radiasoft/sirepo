@@ -70,12 +70,49 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
         return [];
     };
 
+    self.isActiveItemValid = function() {
+        return self.isItemValid(self.activeItem);
+    };
+
+    self.isBeamlineValid = function() {
+        var models = appState.models;
+        if (! models.beamline ) {
+            return true;
+        }
+        for (var i = 0; i < models.beamline.length; ++i) {
+            var item = models.beamline[i];
+            if (! self.isItemValid(item)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     self.isEditable = function() {
         return canEdit;
     };
 
+    self.isItemValid = function(item) {
+        if (! item) {
+            return false;
+        }
+        var type = item.type;
+        var fields = SIREPO.APP_SCHEMA.model[type];
+        for (var field in fields) {
+            var fieldType = fields[field][1];
+            if (! utilities.validateFieldOfType(item[field], fieldType)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     self.isTouchscreen = function() {
         return isTouchscreen;
+    };
+
+    self.isWatchpointReportModelName = function(name) {
+        return name.indexOf('watchpointReport') >= 0;
     };
 
     self.removeActiveItem = function() {
@@ -98,7 +135,7 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
     };
 
     self.setupWatchpointDirective = function($scope) {
-        var modelKey = 'watchpointReport' + $scope.itemId;
+        var modelKey = self.watchpointReportName($scope.itemId);
         $scope.modelAccess = {
             modelKey: modelKey,
             getData: function() {
@@ -125,35 +162,8 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
         });
     };
 
-    self.isBeamlineValid = function() {
-        var models = appState.models;
-        if (! models.beamline ) {
-            return true;
-        }
-        for (var i = 0; i < models.beamline.length; ++i) {
-            var item = models.beamline[i];
-            if (! self.isItemValid(item)) {
-                return false;
-            }
-        }
-        return true;
-    };
-    self.isActiveItemValid = function() {
-        return self.isItemValid(self.activeItem);
-    };
-    self.isItemValid = function(item) {
-        if (! item) {
-            return false;
-        }
-        var type = item.type;
-        var fields = SIREPO.APP_SCHEMA.model[type];
-        for (var field in fields) {
-            var fieldType = fields[field][1];
-            if (! utilities.validateFieldOfType(item[field], fieldType)) {
-                return false;
-            }
-        }
-        return true;
+    self.watchpointReportName = function(id) {
+        return 'watchpointReport' + id;
     };
 
     return self;
@@ -213,19 +223,11 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                     newItem.firstFocusLength = newItem.position;
                 }
                 if (newItem.type == 'watch') {
-                    appState.models[watchpointReportName(newItem.id)] = appState.setModelDefaults(
+                    appState.models[beamlineService.watchpointReportName(newItem.id)] = appState.setModelDefaults(
                         appState.cloneModel('initialIntensityReport'), 'watchpointReport');
                 }
                 appState.models.beamline.push(newItem);
                 beamlineService.dismissPopup();
-            }
-
-            function isWatchpointReportModelName(name) {
-                return name.indexOf('watchpointReport') >= 0;
-            }
-
-            function watchpointReportName(id) {
-                return 'watchpointReport' + id;
             }
 
             $scope.cancelBeamlineChanges = function() {
@@ -297,18 +299,18 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
                     if (item.type == 'watch') {
-                        watchpoints[watchpointReportName(item.id)] = true;
+                        watchpoints[beamlineService.watchpointReportName(item.id)] = true;
                     }
                 }
                 var savedModelValues = appState.applicationState();
                 for (var modelName in appState.models) {
-                    if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                    if (beamlineService.isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
                         // deleted watchpoint, remove the report model
                         delete appState.models[modelName];
                         delete savedModelValues[modelName];
                         continue;
                     }
-                    if (isWatchpointReportModelName(modelName)) {
+                    if (beamlineService.isWatchpointReportModelName(modelName)) {
                         savedModelValues[modelName] = appState.cloneModel(modelName);
                     }
                 }
