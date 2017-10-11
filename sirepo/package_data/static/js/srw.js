@@ -321,11 +321,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return true;
     };
 
-    $scope.beamlineService = beamlineService;
-    $scope.$watch('beamlineService.activeItem.grazingAngle', function (newValue, oldValue) {
-        if (newValue !== null && angular.isDefined(newValue) && angular.isDefined(oldValue)) {
+    function updateVectors(newValue, oldValue) {
+        if (appState.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
             var item = beamlineService.activeItem;
-            if (item.type === 'grating' || item.type === 'ellipsoidMirror' || item.type === 'sphericalMirror' || item.type === 'toroidalMirror') {
+            if (item.autocomputeVectors === '1') {
                 requestSender.getApplicationData(
                     {
                         method: 'compute_grazing_angle',
@@ -340,7 +339,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 );
             }
         }
-    });
+    }
+
+    $scope.beamlineService = beamlineService;
+    $scope.$watch('beamlineService.activeItem.grazingAngle', updateVectors);
+    $scope.$watch('beamlineService.activeItem.autocomputeVectors', updateVectors);
 
     function checkChanged(newValues, oldValues) {
         for (var i = 0; i < newValues.length; i++) {
@@ -1330,7 +1333,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
-              '<input data-ng-switch-when="Float" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
+              '<input data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),

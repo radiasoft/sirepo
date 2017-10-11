@@ -510,7 +510,12 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"]
         },
         "mirror": {
             "title": ["Element Name", "String", "Mirror"],
@@ -579,7 +584,12 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"]
         },
         "rayFilter": {
             "f_bound_sour": ["Optimize Source", "BoundSource", "0"],
@@ -602,7 +612,12 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"]
         },
         "wiggler": {
             "ph1": ["Minimum Energy [eV]", "Float", 20000.0],
@@ -969,7 +984,18 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "mirror": {
@@ -1070,7 +1096,18 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "simulation": {
@@ -1094,7 +1131,18 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ]
             ]
         },
         "wiggler": {

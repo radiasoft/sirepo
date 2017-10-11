@@ -21,6 +21,7 @@ build_as_root() {
 }
 
 build_as_run_user() {
+    . ~/.bashrc
     cd "$build_guest_conf"
 
     sirepo_boot_init
