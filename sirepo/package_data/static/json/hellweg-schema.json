@@ -197,12 +197,7 @@
             "particleEnd": ["Particle End", "Integer", 1000],
             "format": ["File Format", "SaveFileFormat", "PID"]
         },
-        "simulation": {
-            "name": ["Name", "String"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
-        },
+        "simulation": {},
         "simulationSettings": {
             "allowBackwardWaves": ["Allow Backward Travelling Waves", "Boolean", "0"],
             "meshPoints": ["Number of Mesh Points", "Integer", 20],
@@ -387,12 +382,6 @@
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]

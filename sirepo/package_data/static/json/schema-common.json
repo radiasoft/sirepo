@@ -2,7 +2,7 @@
     "version": "20171010.000000",
     "appInfo": {
         "elegant": {
-            "longName": "Elegant",
+            "longName": "elegant",
             "shortName": "Elegant"
         },
         "warpvnd": {
@@ -69,5 +69,30 @@
         "srUnit": "/ sr_unit",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+    },
+    "commonViews": {
+        "simDoc": {
+            "model": "simulation",
+            "title": "Simulation Documentation",
+            "advanced": [
+                "documentationUrl"
+            ]
+        },
+        "simFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    },
+    "commonModels": {
+        "simFolder": {
+            "name": ["Folder Name", "SafePath"]
+        },
+        "simulation": {
+            "name": ["Name", "SafePath"],
+            "folder": ["Folder", "String"],
+            "documentationUrl": ["Documentation URL", "OptionalString", ""]
+        }
     }
 }
