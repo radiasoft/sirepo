@@ -92,7 +92,7 @@
         "simulation": {
             "name": ["Name", "SafePath"],
             "folder": ["Folder", "String"],
-            "documentationUrl": ["Documentation URL", "OptionalString"]
+            "documentationUrl": ["Documentation URL", "OptionalString", ""]
         }
     }
 }

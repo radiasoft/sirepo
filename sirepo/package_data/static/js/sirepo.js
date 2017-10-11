@@ -136,8 +136,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var autoSaveTimer = null;
     var savedModelValues = {};
 
-    copyCommonModels();
-
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
     }
@@ -378,18 +376,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
         );
     };
-    function copyCommonModels() {
-        for( var modelName in SIREPO.APP_SCHEMA.commonModels ) {
-            if (! SIREPO.APP_SCHEMA.model[modelName]) {
-                SIREPO.APP_SCHEMA.model[modelName] = SIREPO.APP_SCHEMA.commonModels[modelName];
-            }
-            for (var modelFieldName in SIREPO.APP_SCHEMA.commonModels[modelName]) {
-                if (! SIREPO.APP_SCHEMA.model[modelName][modelFieldName] ) {
-                    SIREPO.APP_SCHEMA.model[modelName][modelFieldName] = SIREPO.APP_SCHEMA.commonModels[modelName][modelFieldName];
-                }
-            }
-        }
-   }
+
     self.maxId = function(items, idField) {
         var max = 1;
         if (! idField) {
