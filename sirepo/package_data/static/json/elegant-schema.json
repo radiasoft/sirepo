@@ -342,7 +342,8 @@
             "inputSource": ["Bunch Source", "BunchInputSource"]
         },
         "bunch": {
-            "p_central_mev": ["Central momentum [MeV]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
+            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done"],
+            "Po": ["Central momentum of the bunch (βγ)", "RPNValue", "", "Central momentum of the bunch."],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", "1", "Number of particles in each bunch."],
             "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
             "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
@@ -3510,11 +3511,13 @@
             "basic": [
                 "bunchSource.inputSource",
                 "n_particles_per_bunch",
-                "p_central_mev"
+                "p_central_mev",
+                "Po"
             ],
             "advanced": [
                 ["Main", [
                     "p_central_mev",
+                    "Po",
                     "n_particles_per_bunch",
                     "momentum_chirp"
                 ]],

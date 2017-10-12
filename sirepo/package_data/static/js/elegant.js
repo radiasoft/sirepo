@@ -143,6 +143,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
                 }
             }
             cmd._type = type;
+            appState.setModelDefaults(cmd, 'command_sdds_beam');
             cmd.input = appState.models.bunchFile.sourceFile;
         }
         appState.saveQuietly('commands');
