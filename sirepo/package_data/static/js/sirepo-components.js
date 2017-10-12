@@ -1056,10 +1056,15 @@ SIREPO.app.directive('safePath', function() {
             };
 
             // broadcast by root scope
-            scope.$on('cancelChanges', function(e, data) {
-                scope.showWarning = false;
-                // appears that invalid text will not be cleared unless we do this
-                scope.clearViewValue(ngModel);
+            scope.$on('cancelChanges', function(e, name) {
+                //TODO(pjm): need something other than clearViewValue()
+                // otherwise cancelChanges event could cause appState.models.simulation.name to get
+                // cleared unexpectantly, for now guarding with cancel on simulation or simFolder models
+                if (name == 'simulation' || name == 'simFolder') {
+                    scope.showWarning = false;
+                    // appears that invalid text will not be cleared unless we do this
+                    scope.clearViewValue(ngModel);
+                }
             });
         },
     };
@@ -1285,6 +1290,9 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                     ].join(''),
                     $scope
                 );
+            };
+            $scope.showSimulationModal = function() {
+                panelState.showModalEditor('simulation');
             };
         },
     };
