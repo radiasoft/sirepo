@@ -1020,7 +1020,7 @@
             "wrap_around": ["Wrap Around", "RPNBoolean", "1", "A flag indicating whether the s coordinate should wrap-around or increase monotonically in multipass simulations. If zero, then the centroid and sigma data is computed for each turn with the s coordinate increasing continuously."],
             "final_pass": ["Final Pass", "RPNBoolean", "0", "A flag indicating whether the centroid and sigma output should be computed only from the data from the final pass. By default, the statistics include data from all passes."],
             "default_order": ["Default Order", "Integer", "2", "The default order of transfer matrices used for elements having matrices."],
-            "concat_order": ["Concat Order", "RPNBoolean", "0", "If non-zero, the order of matrix concatenation used."],
+            "concat_order": ["Concat Order", "Integer", "0", "If non-zero, the order of matrix concatenation used."],
             "print_statistics": ["Print Statistics", "RPNBoolean", "0", "A flag indicating whether to print information as each element is tracked. If greater than 0, information is printed after each element from the beginning of tracking. If equal to n with n<0, information is printed only after pass |n|."],
             "show_element_timing": ["Show Element Timing", "RPNBoolean", "0", "A flag indicating whether to collect and report execution time statistics binned by element type."],
             "monitor_memory_usage": ["Monitor Memory Usage", "RPNBoolean", "0", "A flag indicating whether to monitor memory usage during tracking to detect memory leaks."],
