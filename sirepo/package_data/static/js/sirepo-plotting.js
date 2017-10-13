@@ -18,6 +18,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
+        v = v.replace(/(\.0+)$/, '');
         return v;
     }
 
@@ -250,8 +251,8 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             //.tickFormat(d3.format('e'))
                 .tickFormat(function (value) {
                     if (value) {
-                        if (Math.abs(value) < 1e3 & Math.abs(value) > 1e-3) {
-                            return cleanNumber(value.toString());
+                        if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
+                            return cleanNumber(value.toFixed(3));
                         } else {
                             return cleanNumber(value.toExponential(2));
                         }
