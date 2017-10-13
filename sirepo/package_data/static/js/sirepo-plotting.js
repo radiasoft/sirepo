@@ -312,7 +312,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return function(n) {
                 var units = scope[axis + 'units'];
                 if (! units) {
-                    return format2(n);
+                    return cleanNumber(format2(n));
                 }
                 var v = format(n);
                 //TODO(pjm): use a regexp

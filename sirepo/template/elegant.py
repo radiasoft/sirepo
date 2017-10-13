@@ -192,12 +192,6 @@ def fixup_old_data(data):
                     bunch[f] = first_bunch_command[f]
         else:
             bunch['centroid'] = '0,0,0,0,0,0'
-    if 'Po' not in data['models']['bunch']:
-        bunch = data['models']['bunch']
-        first_bunch_command = _find_first_bunch_command(data)
-        if 'Po' not in first_bunch_command:
-            first_bunch_command['Po'] = 0.0
-        bunch['Po'] = first_bunch_command['Po']
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
