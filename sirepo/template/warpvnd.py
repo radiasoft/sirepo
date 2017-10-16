@@ -105,7 +105,7 @@ def get_application_data(data):
         run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
         if run_dir.exists():
             res = simulation_db.read_result(run_dir)[0]
-            if 'tof_expected' in res:
+            if res and 'tof_expected' in res:
                 return {
                     'timeOfFlight': res['tof_expected'],
                     'steps': res['steps_expected'],
