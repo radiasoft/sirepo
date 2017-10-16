@@ -391,13 +391,13 @@
       font-size: 14px;
       fill: steelblue;
     }
-    .sr-plot rect.mouse-zoom {
+    .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
     }
-    .sr-plot rect.mouse-move {
+    .sr-plot rect.mouse-move, .sr-plot svg.mouse-move {
       cursor: move;
     }
-    .sr-plot rect.mouse-move-ew {
+    .sr-plot rect.mouse-move-ew, .sr-plot svg.mouse-move-ew {
       cursor: ew-resize;
     }
     .sr-plot rect.mouse-move-e {
