@@ -649,7 +649,10 @@
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
             "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
             "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
-            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"]
+            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
+            "effectiveDeflectingParameter": ["Effective Deflecting Parameter", "Float"],
+            "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
+            "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
@@ -1319,19 +1322,21 @@
                 "undulatorType",
                 "gap",
                 "phase",
-                "undulator.undulatorParameter",
                 "undulator.period",
                 "undulator.length",
                 "undulator.longitudinalPosition",
                 "magneticFile",
+                "undulator.effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "undulator.horizontalAmplitude",
+                        "undulator.horizontalDeflectingParameter",
                         "undulator.horizontalInitialPhase",
                         "undulator.horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "undulator.verticalAmplitude",
+                        "undulator.verticalDeflectingParameter",
                         "undulator.verticalInitialPhase",
                         "undulator.verticalSymmetry"
                     ]]
@@ -1404,18 +1409,20 @@
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
-                "undulatorParameter",
                 "period",
                 "length",
                 "longitudinalPosition",
+                "effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
+                        "horizontalDeflectingParameter",
                         "horizontalInitialPhase",
                         "horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "verticalAmplitude",
+                        "verticalDeflectingParameter",
                         "verticalInitialPhase",
                         "verticalSymmetry"
                     ]]
