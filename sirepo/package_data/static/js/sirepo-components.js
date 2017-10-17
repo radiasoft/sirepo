@@ -5,6 +5,13 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
 
+SIREPO.INFO_INDEX_LABEL = 0;
+SIREPO.INFO_INDEX_TYPE = 1;
+SIREPO.INFO_INDEX_DEFAULT_VALUE = 2;
+
+SIREPO.ENUM_INDEX_VALUE = 0;
+SIREPO.ENUM_INDEX_LABEL = 1;
+
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         restrict: 'A',
@@ -339,6 +346,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
+              '<div data-ng-switch-when="Boolean" class="col-sm-7">',
+                '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -406,7 +416,6 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 model.$setViewValue('');
                 model.$render();
             };
-
         },
     };
 });
@@ -1266,7 +1275,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
-                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>',
+                '<a href data-ng-click="nav.showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
                 '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
             '</div>',
         ].join(''),
@@ -1331,6 +1340,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
            scope.nav.hasDocumentationUrl = scope.hasDocumentationUrl;
            scope.nav.openDocumentation = scope.openDocumentation;
            scope.nav.modeIsDefault = scope.modeIsDefault;
+           scope.nav.showSimulationModal = scope.showSimulationModal;
         },
         controller: function($scope) {
 
@@ -1635,6 +1645,29 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
         }
     };
 }]);
+
+SIREPO.app.directive('bootstrapToggle', function($timeout) {
+    return {
+        restrict: 'A',
+        link: function(scope) {
+            $timeout(function() {
+                var thisToggle = $('#bs-toggle-id-' + scope.$id);
+                thisToggle.bootstrapToggle();
+                thisToggle.change(function() {
+                    scope.model[scope.field] = thisToggle.prop('checked') ? '1' : '0';
+                    scope.$apply();
+                });
+            });
+        },
+        controller: function($scope) {
+            $scope.onValue = toggleValueAlias(1);
+            $scope.offValue = toggleValueAlias(0);
+            function toggleValueAlias(on) {
+                return $scope.enum[$scope.info[SIREPO.INFO_INDEX_TYPE]][on][SIREPO.ENUM_INDEX_LABEL];
+            }
+        },
+    };
+});
 
 SIREPO.app.service('plotToPNG', function($http) {
 
