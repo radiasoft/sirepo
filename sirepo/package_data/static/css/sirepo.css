@@ -43,6 +43,10 @@
       display: none;
     }
 
+    .dropdown-menu {
+      white-space: nowrap;
+    }
+
     html, body {
       height: 100%;
       min-height: 100%;
