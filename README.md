@@ -124,6 +124,7 @@ To start developing on vagrant, you should do the following:
 curl radia.run | bash -s vagrant-centos7
 vagrant ssh
 curl radia.run | bash -s sirepo-dev
+source ~/.bashrc
 ```
 
 Not yet supported, but to install Opal:
