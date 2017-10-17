@@ -1534,7 +1534,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                   '<div data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                     '<div data-simulation-status-timer="timeData"></div>',
                   '</div>',
-                  '<div data-ng-show="hasFluxCompMethod()" class="small"> {{ methodName() }}</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
@@ -1607,11 +1606,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
             };
             $scope.hasFluxCompMethod = function () {
                 return $scope.model === 'fluxAnimation';
-            };
-
-            $scope.methodName = function () {
-                var m = methodForMethodNum(appState.models.fluxAnimation.method);
-                return m ? m[1]  : '';
             };
 
             persistentSimulation.initProperties($scope, $scope, {

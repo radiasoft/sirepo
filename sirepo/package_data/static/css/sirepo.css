@@ -239,6 +239,12 @@
         }
     }
 
+    .toggle-group label.btn-default.toggle-off {
+        color: black;
+        background-color: white;
+        box-shadow: none;
+    }
+
     .sr-panel-heading {
       font-weight: 300;
       line-height: 1.4;
