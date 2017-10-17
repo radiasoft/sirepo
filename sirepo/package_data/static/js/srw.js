@@ -769,16 +769,12 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                     } else {
                         appState.models.undulator.verticalAmplitude = formatFloat(data.amplitude);
                     }
-                }
-                else if (undulatorDefinition === 'B') {
+                } else if (undulatorDefinition === 'B') {
                     if (amplitude === 'horizontalAmplitude') {
                         appState.models.undulator.horizontalDeflectingParameter = formatFloat(data.undulator_parameter);
                     } else {
                         appState.models.undulator.verticalDeflectingParameter = formatFloat(data.undulator_parameter);
                     }
-                }
-                else {
-                    srdbg('Unknown definition type of undulator');
                 }
                 appState.models.undulator.effectiveDeflectingParameter = formatFloat(Math.sqrt(
                     Math.pow(appState.models.undulator.horizontalDeflectingParameter, 2) +
