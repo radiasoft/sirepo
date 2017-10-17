@@ -1647,16 +1647,24 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
 }]);
 
 SIREPO.app.directive('bootstrapToggle', function($timeout) {
+    var thisToggle;
     return {
         restrict: 'A',
         link: function(scope) {
             $timeout(function() {
-                var thisToggle = $('#bs-toggle-id-' + scope.$id);
+                thisToggle = $('#bs-toggle-id-' + scope.$id);
                 thisToggle.bootstrapToggle();
                 thisToggle.change(function() {
                     scope.model[scope.field] = thisToggle.prop('checked') ? '1' : '0';
                     scope.$apply();
                 });
+            });
+            scope.$on('$destroy', function() {
+                if (thisToggle) {
+                    //TODO(pjm): off() needed before destory or memory is not released?
+                    thisToggle.off();
+                    thisToggle.bootstrapToggle('destroy');
+                }
             });
         },
         controller: function($scope) {
