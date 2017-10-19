@@ -9,6 +9,10 @@
         "dicomAnimation3": {
             "dicomPlane": "c"
         },
+        "dicomAnimation4": {
+            "dicomPlane": "t"
+        },
+        "dicomEditorState": {},
         "dicomSeries": {},
         "dicomWindow": {
             "center": 0,

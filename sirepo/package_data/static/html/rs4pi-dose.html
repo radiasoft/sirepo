@@ -1,8 +1,35 @@
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-7">
-      <div data-compute-dose-form=""></div>
-      <div data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
+    <div class="col-md-7 col-sm-6">
+
+      <div class="panel panel-info">
+        <div class="panel-heading clearfix">
+          <span class="sr-panel-heading">Dose Computation</span>
+          <div class="sr-panel-options pull-right">
+            <a href data-ng-click="dose.panelState.toggleHidden('simulationStatus')" data-ng-hide="dose.panelState.isHidden('simulationStatus')" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-triangle-top"></span></a>
+            <a href data-ng-click="dose.panelState.toggleHidden('simulationStatus')" data-ng-show="dose.panelState.isHidden('simulationStatus')" title="Show"><span class="sr-panel-heading glyphicon glyphicon-triangle-bottom"></span></a>
+          </div>
+        </div>
+        <div class="panel-body" data-ng-hide="dose.panelState.isHidden('simulationStatus')">
+          <div class="col-sm-10 col-sm-offset-1" data-ng-if="dose.isBusy()">
+            <div class="progress" data-ng-if="dose.isBusy()">
+              <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dose.isBusy() }" role="progressbar" aria-valuenow="{{ dose.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dose.displayPercentComplete() }}%"></div>
+            </div>
+          </div>
+          <div class="col-sm-7 col-sm-offset-3" data-ng-if="dose.isBusy()">
+            {{ dose.stateAsText() }} {{ dose.dots }}
+            <div class="pull-right">
+              <button class="btn btn-default" data-ng-click="dose.cancelSimulation()">Cancel Computation</button>
+            </div>
+          </div>
+            
+          <div data-ng-hide="dose.isBusy()" data-compute-dose-form=""></div>
+        </div>
+      </div>
+      <div data-ng-if="dose.hasDoseFrames()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
+    </div>
+    <div class="col-md-5 col-sm-6">
+      <div data-ng-if="dose.hasDoseFrames()" data-report-panel="2d" data-model-name="dvhReport"></div>
     </div>
   </div>
 </div>

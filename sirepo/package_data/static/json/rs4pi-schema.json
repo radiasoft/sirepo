@@ -19,9 +19,10 @@
             "dicomPlane": ["Plane", "DicomPlane"],
             "frameIndex": ["Frame Index", "Integer"]
         },
+        "dicomAnimation4": {
+        },
         "dicomEditorState": {
-            "editCounter": ["Edit Count", "Integer"],
-            "selectedPTV": ["PTV", "String"]
+            "editCounter": ["Edit Count", "Integer"]
         },
         "dicomROI": {
             "name": ["Name", "String"],
@@ -35,6 +36,11 @@
             "width": ["Window Width", "Float"]
         },
         "doseCalculation": {
+            "selectedPTV": ["PTV", "ROI"],
+            "selectedOARs": ["OAR", "ROIArray"]
+        },
+        "dvhReport": {
+            "roiNumber": ["ROI", "ROI"]
         },
         "instance": {
             "filePath": ["File Path", "String"]
@@ -80,6 +86,16 @@
                 "width"
             ],
             "advanced": []
+        },
+        "doseCalculation": {
+            "title": "Dose Calculation",
+            "advanced": []
+        },
+        "dvhReport": {
+            "title": "DVH",
+            "advanced": [
+                "roiNumber"
+            ]
         },
         "simulation": {
             "title": "DICOM Session",

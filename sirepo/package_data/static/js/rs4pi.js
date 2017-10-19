@@ -5,6 +5,14 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.dose = '/dose/:simulationId';
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="ROI" class="col-sm-7">',
+        '<div data-roi-selector="" data-field="model[field]"></div>',
+    '</div>',
+    '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
+        '<div data-roi-selection-list="" data-field="model[field]"></div>',
+    '</div>',
+].join('');
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
@@ -80,6 +88,21 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 
     self.getROIPoints = function() {
         return roiPoints;
+    };
+
+    self.getSortedList = function() {
+        var res = [];
+        Object.keys(roiPoints).forEach(function(roiNumber) {
+            var roi = roiPoints[roiNumber];
+            roi.roiNumber = roiNumber;
+            if (roi.color && roi.contour && ! $.isEmptyObject(roi.contour)) {
+                res.push(roi);
+            }
+        });
+        res.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+        return res;
     };
 
     self.hasROIContours = function() {
@@ -170,9 +193,10 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     return self;
 });
 
-SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, persistentSimulation, rs4piService, $scope) {
+SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, panelState, persistentSimulation, rs4piService, $scope) {
     var self = this;
     self.model = 'dicomAnimation';
+    self.panelState = panelState;
 
     self.handleStatus = function(data) {
         if (data.report == 'dicomDose') {
@@ -182,6 +206,17 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, per
         else if (data.report == 'dicomAnimation') {
             frameCache.setFrameCount(data.frameCount);
         }
+    };
+
+    self.hasDoseFrames = function() {
+        if (appState.isLoaded()) {
+            return appState.models.dicomDose.frameCount > 0;
+        }
+        return false;
+    };
+
+    self.isBusy = function() {
+        return self.isStatePending() || self.isStateProcessing();
     };
 
     self.runDoseSimulation = function() {
@@ -293,51 +328,107 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
+SIREPO.app.directive('roiSelector', function(appState, rs4piService) {
+    return {
+        scope: {
+            field: '=',
+        },
+        restrict: 'A',
+        template: [
+            '<select class="form-control" data-ng-model="field" data-ng-options="item.roiNumber as item.name for item in roiList"></select>',
+        ].join(''),
+        controller: function($scope) {
+            function loadROIPoints() {
+                $scope.roiList = rs4piService.getSortedList();
+            }
+            if (rs4piService.getROIPoints()) {
+                loadROIPoints();
+            }
+            $scope.$on('roiPointsLoaded', loadROIPoints);
+        },
+    };
+});
+
+SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
+    return {
+        scope: {
+            field: '=',
+        },
+        restrict: 'A',
+        template: [
+            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
+              '<table class="table table-striped table-condensed" style="margin:0">',
+                '<tbody>',
+                  '<tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index">',
+                    '<td>{{ roi.name }}</td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(roi)" data-ng-click="toggleROI(roi)"></td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function loadROIPoints() {
+                $scope.roiList = rs4piService.getSortedList();
+            }
+            $scope.canSelectROI = function(roi) {
+                if (appState.isLoaded()) {
+                    return roi.roiNumber != appState.models.doseCalculation.selectedPTV;
+                }
+                return true;
+            };
+            $scope.isSelected = function(roi) {
+                if ($scope.field) {
+                    return $scope.field.indexOf(roi.roiNumber) >= 0;
+                }
+                return false;
+            };
+            $scope.toggleROI = function(roi) {
+                if ($scope.field) {
+                    if ($scope.isSelected(roi)) {
+                        $scope.field.splice($scope.field.indexOf(roi.roiNumber), 1);
+                    }
+                    else {
+                        $scope.field.push(roi.roiNumber);
+                    }
+                }
+            };
+            if (rs4piService.getROIPoints()) {
+                loadROIPoints();
+            }
+            $scope.$on('roiPointsLoaded', loadROIPoints);
+        },
+    };
+});
+
 SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piService) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div style="margin-top: 1ex;" class="panel panel-default" novalidate>',
-              '<div class="panel-body">',
-                '<div><p><b>Compute Dose for PTV</b></p></div>',
-                '<div class="col-sm-6">',
-                  '<select class="form-control" data-ng-model="selectedPTV" data-ng-options="item.roiNumber as item.name for item in roiList"></select>',
-                '</div>',
-                '<button class="btn btn-default" data-ng-disabled="! selectedPTV" data-ng-click="updatePTV()">Update</button>',
+            '<form class="form-horizontal">',
+            '<div data-model-field="\'selectedPTV\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>',
+            '<div data-model-field="\'selectedOARs\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>',
+            '<div class="col-sm-10">',
+              '<div class="pull-right">',
+                '<button class="btn btn-default" data-ng-disabled="! appState.models.doseCalculation.selectedPTV" data-ng-click="updatePTV()">Compute Dose</button>',
               '</div>',
             '</div>',
+            '</form>',
         ].join(''),
         controller: function($scope) {
-            $scope.selectedPTV = null;
+            $scope.appState = appState;
             $scope.doseController = panelState.findParentAttribute($scope, 'dose');
 
             function loadROIPoints() {
-                $scope.roiList = [];
-                var rois = rs4piService.getROIPoints();
-                Object.keys(rois).forEach(function(roiNumber) {
-                    var roi = rois[roiNumber];
-                    roi.roiNumber = roiNumber;
-                    if (roi.color && roi.contour && ! $.isEmptyObject(roi.contour)) {
-                        $scope.roiList.push(roi);
-                    }
-                });
-                $scope.roiList.sort(function(a, b) {
-                    return a.name.localeCompare(b.name);
-                });
+                $scope.roiList = rs4piService.getSortedList();
             }
 
             $scope.updatePTV = function() {
-                appState.models.dicomEditorState.selectedPTV = $scope.selectedPTV;
-                appState.saveChanges('dicomEditorState', function() {
+                appState.saveChanges('doseCalculation', function() {
                     $scope.doseController.runDoseSimulation();
                 });
             };
-
-            $scope.$on('roiPointsLoaded', loadROIPoints);
-            appState.whenModelsLoaded($scope, function() {
-                $scope.selectedPTV = appState.models.dicomEditorState.selectedPTV;
-            });
         },
     };
 });
