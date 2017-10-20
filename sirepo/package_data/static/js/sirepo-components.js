@@ -12,8 +12,6 @@ SIREPO.INFO_INDEX_DEFAULT_VALUE = 2;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-SIREPO.LOGIN_NOTIFY_TIMEOUT_COOKIE = 'net.sirepo.login_notify_timeout';
-
 SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
     return {
         restrict: 'A',
