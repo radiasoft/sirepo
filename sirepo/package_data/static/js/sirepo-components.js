@@ -1699,23 +1699,26 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
 }]);
 
 SIREPO.app.directive('bootstrapToggle', function($timeout) {
-    var thisToggle;
+    function getToggle(scope) {
+        return $('#bs-toggle-id-' + scope.$id);
+    }
     return {
         restrict: 'A',
         link: function(scope) {
             $timeout(function() {
-                thisToggle = $('#bs-toggle-id-' + scope.$id);
-                thisToggle.bootstrapToggle();
-                thisToggle.change(function() {
-                    scope.model[scope.field] = thisToggle.prop('checked') ? '1' : '0';
+                var toggle = getToggle(scope);
+                toggle.bootstrapToggle();
+                toggle.change(function() {
+                    scope.model[scope.field] = toggle.prop('checked') ? '1' : '0';
                     scope.$apply();
                 });
             });
             scope.$on('$destroy', function() {
-                if (thisToggle) {
+                var toggle = getToggle(scope);
+                if (toggle) {
                     //TODO(pjm): off() needed before destory or memory is not released?
-                    thisToggle.off();
-                    thisToggle.bootstrapToggle('destroy');
+                    toggle.off();
+                    toggle.bootstrapToggle('destroy');
                 }
             });
         },
