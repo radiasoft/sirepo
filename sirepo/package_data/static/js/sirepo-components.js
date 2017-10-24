@@ -369,9 +369,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
-              '<div data-ng-switch-when="Boolean" class="col-sm-7">',
-                '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
-              '</div>',
+              // '<div data-ng-switch-when="Boolean" class="col-sm-7">',
+              //   '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+              // '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
