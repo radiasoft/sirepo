@@ -206,6 +206,10 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
         else if (data.report == 'dicomAnimation') {
             frameCache.setFrameCount(data.frameCount);
         }
+        else if (data.report == 'doseCalculation' && data.state == 'completed') {
+            //TODO(pjm): need a better solution than this
+            frameCache.setFrameCount(appState.models.dicomSeries.planes.t.frameCount, 'dicomAnimation4');
+        }
     };
 
     self.hasDoseFrames = function() {

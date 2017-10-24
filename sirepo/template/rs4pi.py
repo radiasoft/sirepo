@@ -100,6 +100,10 @@ def fixup_old_data(data):
         data['models']['dvhReport'] = {
             'roiNumber': '',
         }
+    if 'dvhType' not in data['models']['dvhReport']:
+        dvhReport = data['models']['dvhReport']
+        dvhReport['dvhType'] = 'cumulative'
+        dvhReport['dvhVolume'] = 'relative'
 
 
 def get_animation_name(data):
