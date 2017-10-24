@@ -123,21 +123,8 @@ To start developing on vagrant, you should do the following:
 ```sh
 curl radia.run | bash -s vagrant-centos7
 vagrant ssh
-curl radia.run | sudo bash -s redhat-base
-curl radia.run | sudo bash -s home-env
-. ~/.bashrc
-bivio_pyenv_2
-. ~/.bashrc
-curl radia.run | bash -s code common elegant shadow3 warp srw rslinac rsbeams
-cd src/radiasoft
-pip uninstall -y pykern
-gcl pykern
-cd pykern
-pip install -e .
-cd ..
-gcl sirepo
-cd sirepo
-pip install -e .
+curl radia.run | bash -s sirepo-dev
+source ~/.bashrc
 ```
 
 Not yet supported, but to install Opal:

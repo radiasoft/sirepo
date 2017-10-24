@@ -36,14 +36,6 @@ def for_sim_type(sim_type):
 
 
 @pkconfig.parse_none
-def _cfg_bool(value):
-    """Convert str to integer and then bool"""
-    if isinstance(value, str):
-        value = int(value)
-    return bool(value)
-
-
-@pkconfig.parse_none
 def _cfg_sim_types(value):
     if not value:
         return _codes()
@@ -60,7 +52,7 @@ def _codes(want_all=pkconfig.channel_in('dev')):
 
 cfg = pkconfig.init(
     srw=dict(
-        mask_in_toolbar=(pkconfig.channel_in_internal_test(), _cfg_bool, 'Show the mask element in toolbar'),
+        mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
     ),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
 )

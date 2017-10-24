@@ -183,11 +183,7 @@ def fixup_old_data(data):
                 bunch[f] /= 1e9
         if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
             bunch['sigma_s'] /= 1e6
-        first_bunch_command = None
-        for m in data['models']['commands']:
-            if m['_type'] == 'bunched_beam':
-                first_bunch_command = m
-                break
+        first_bunch_command = _find_first_bunch_command(data)
         # first_bunch_command may not exist if the elegant sim has no bunched_beam command
         if first_bunch_command:
             first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
@@ -680,7 +676,7 @@ def _create_default_commands(data):
             "output": "1",
             "p_central_mev": bunch['p_central_mev'],
             "parameters": "1",
-            "print_statistics": 1,
+            "print_statistics": "1",
             "sigma": "1",
             "use_beamline": simulation['visualizationBeamlineId'] if 'visualizationBeamlineId' in simulation else '',
         }),
@@ -698,7 +694,7 @@ def _create_default_commands(data):
             "filename": "1",
             "matched": "0",
             "output_at_each_step": "1",
-            "statistics": 1
+            "statistics": "1"
         }),
         _create_command('command_bunched_beam', {
             "_id": max_id + 4,
@@ -719,6 +715,7 @@ def _create_default_commands(data):
             "sigma_dp": bunch['sigma_dp'],
             "sigma_s": bunch['sigma_s'] / 1e06,
             "symmetrize": '1',
+            "Po": 0.0,
         }),
         _create_command('command_track', {
             "_id": max_id + 5,
@@ -816,6 +813,13 @@ def _file_info(filename, run_dir, id, output_index):
             sdds.sddsdata.Terminate(_SDDS_INDEX)
         except Exception:
             pass
+
+
+def _find_first_bunch_command(data):
+    for m in data['models']['commands']:
+        if m['_type'] == 'bunched_beam':
+            return m
+    return None
 
 
 def _format_rpn_value(value, is_command=False):

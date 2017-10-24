@@ -40,7 +40,7 @@ SIREPO.appLocalRoutes = {
 
 SIREPO.appDefaultSimulationValues = {
     simulation: {},
-    simulationFolder: {},
+    simFolder: {},
 };
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
@@ -520,7 +520,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.viewInfo = function(name) {
-        return SIREPO.APP_SCHEMA.view[name];
+        return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.commonViews[name];
     };
 
     self.watchModelFields = function($scope, modelFields, callback) {
@@ -549,6 +549,26 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
     };
 
+    return self;
+});
+
+SIREPO.app.factory('appDataService', function(requestSender) {
+    var self = {};
+
+    self.isApplicationMode = function(name) {
+        return name == self.getApplicationMode();
+    };
+
+    // override these methods in app's service
+    self.getApplicationMode = function() {
+        return 'default';
+    };
+    self.appDataForReset = function() {
+        return null;
+    };
+    self.canCopy = function() {
+        return true;
+    };
     return self;
 });
 
@@ -2237,8 +2257,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
                 self.openItem(data.models.simulation);
             });
     });
-    $scope.$on('simulationFolder.changed', function() {
-        var name = appState.models.simulationFolder.name;
+    $scope.$on('simFolder.changed', function() {
+        var name = appState.models.simFolder.name;
         name = name.replace(/[\/]/g, '');
         self.activeFolder.children.push({
             name: name,
@@ -2246,8 +2266,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             isFolder: true,
             children: [],
         });
-        appState.models.simulationFolder.name = '';
-        appState.saveQuietly('simulationFolder');
+        appState.models.simFolder.name = '';
+        appState.saveQuietly('simFolder');
     });
     loadList();
 

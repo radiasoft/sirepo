@@ -394,6 +394,8 @@ def fixup_old_data(data):
                 elif item['normalVectorY']:
                     angle = math.acos(abs(float(item['normalVectorY']))) * 1000
                 item['grazingAngle'] = angle
+        if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
+            item['autocomputeVectors'] = '1'
     for item in data['models']['beamline']:
         if item['type'] == 'crl':
             key_value_pairs = pkcollections.Dict({
@@ -463,14 +465,24 @@ def fixup_old_data(data):
         data['models']['fluxReport']['numberOfMacroElectrons'] = 1
     if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:  # added 08/09/2016 for ticket #188
         data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
+
+    # Deflecting parameters of undulator:
     if 'undulatorParameter' not in data['models']['undulator']:
+        data['models']['undulator']['undulatorParameter'] = 0.0
+    for component in ['horizontal', 'vertical']:
+        if '{}DeflectingParameter'.format(component) not in data['models']['undulator']:
+            undulator = data['models']['undulator']
+            undulator['{}DeflectingParameter'.format(component)] = round(_process_undulator_definition(pkcollections.Dict({
+                'undulator_definition': 'B',
+                'undulator_parameter': None,
+                'amplitude': float(undulator['{}Amplitude'.format(component)]),
+                'undulator_period': float(undulator['period']) / 1000.0
+            }))['undulator_parameter'], 8)
+    if 'effectiveDeflectingParameter' not in  data['models']['undulator']:
         undulator = data['models']['undulator']
-        undulator['undulatorParameter'] = round(_process_undulator_definition(pkcollections.Dict({
-            'undulator_definition': 'B',
-            'undulator_parameter': None,
-            'vertical_amplitude': float(undulator['verticalAmplitude']),
-            'undulator_period': float(undulator['period']) / 1000.0
-        }))['undulator_parameter'], 8)
+        undulator['effectiveDeflectingParameter'] = math.sqrt(undulator['horizontalDeflectingParameter']**2 + \
+                                                              undulator['verticalDeflectingParameter']**2)
+
     if 'folder' not in data['models']['simulation']:
         if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
             data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
@@ -1861,12 +1873,12 @@ def _process_undulator_definition(model):
     try:
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
-            und = SRWLMagFldU([SRWLMagFldH(1, 'v', float(model['vertical_amplitude']), 0, 1)], float(model['undulator_period']))
+            und = SRWLMagFldU([SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
             model['undulator_parameter'] = und.get_K()
         elif model['undulator_definition'] == 'K':
             # Convert K to B:
             und = SRWLMagFldU([], float(model['undulator_period']))
-            model['vertical_amplitude'] = und.K_2_B(float(model['undulator_parameter']))
+            model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
         return model
     except:
         return model

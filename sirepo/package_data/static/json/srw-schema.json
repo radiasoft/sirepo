@@ -322,6 +322,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.01],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.6],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999935200069984],
             "normalVectorZ": ["Longitudinal", "Float", -0.0035999922240050387],
@@ -405,6 +406,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.99991607766],
             "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
@@ -546,14 +548,12 @@
             "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0]
         },
         "simulation": {
-            "documentationUrl": ["Documentation URL", "OptionalString"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "facility": ["Facility", "String"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "isExample": ["Is Example Simulation", "String"],
-            "name": ["Name", "String"],
             "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
@@ -562,9 +562,6 @@
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "simulationStatus": {
         },
@@ -594,6 +591,7 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999025244842406],
             "normalVectorZ": ["Longitudinal", "Float", -0.013962146326506367],
@@ -623,6 +621,7 @@
             "verticalPosition": ["Vertical Position of Mirror Center [m]", "Float", 0],
             "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
+            "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999755001000415],
             "normalVectorZ": ["Longitudinal", "Float", -0.006999942833473391],
@@ -650,7 +649,10 @@
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
             "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
             "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
-            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"]
+            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
+            "effectiveDeflectingParameter": ["Effective Deflecting Parameter", "Float"],
+            "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
+            "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
@@ -826,8 +828,11 @@
                     "firstFocusLength",
                     "focalLength",
                     "tangentialSize",
-                    "sagittalSize",
+                    "sagittalSize"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -972,8 +977,11 @@
                     "position",
                     "tangentialSize",
                     "sagittalSize",
-                    "diffractionOrder",
+                    "diffractionOrder"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1212,19 +1220,6 @@
                 "sourceType"
             ]
         },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationDocumentation": {
-            "model": "simulation",
-            "title": "Simulation Documentation",
-            "advanced": [
-                "documentationUrl"
-            ]
-        },
         "simulationGrid": {
             "model": "simulation",
             "title": "Initial Wavefront Simulation Grid",
@@ -1295,8 +1290,11 @@
                     "position",
                     "radius",
                     "tangentialSize",
-                    "sagittalSize",
+                    "sagittalSize"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1324,19 +1322,21 @@
                 "undulatorType",
                 "gap",
                 "phase",
-                "undulator.undulatorParameter",
                 "undulator.period",
                 "undulator.length",
                 "undulator.longitudinalPosition",
                 "magneticFile",
+                "undulator.effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "undulator.horizontalAmplitude",
+                        "undulator.horizontalDeflectingParameter",
                         "undulator.horizontalInitialPhase",
                         "undulator.horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "undulator.verticalAmplitude",
+                        "undulator.verticalDeflectingParameter",
                         "undulator.verticalInitialPhase",
                         "undulator.verticalSymmetry"
                     ]]
@@ -1369,8 +1369,11 @@
                            "verticalPosition"
                        ]]
                     ],
-                    "apertureShape",
+                    "apertureShape"
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1406,18 +1409,20 @@
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
-                "undulatorParameter",
                 "period",
                 "length",
                 "longitudinalPosition",
+                "effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
+                        "horizontalDeflectingParameter",
                         "horizontalInitialPhase",
                         "horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "verticalAmplitude",
+                        "verticalDeflectingParameter",
                         "verticalInitialPhase",
                         "verticalSymmetry"
                     ]]

@@ -43,6 +43,10 @@
       display: none;
     }
 
+    .dropdown-menu {
+      white-space: nowrap;
+    }
+
     html, body {
       height: 100%;
       min-height: 100%;
@@ -221,6 +225,30 @@
       transition: all 0.5s ease 0s;
     }
 
+
+    .sr-settings-submenu > app-settings > app-settings a {
+        padding: 3px 5px 3px 20px;
+        color: #333333;
+    }
+    .sr-settings-submenu > app-settings > app-settings a:hover,
+    .sr-settings-submenu > app-settings > app-settings a:focus {
+        color: #262626;
+        text-decoration: none;
+        background-color: #f5f5f5;
+    }
+
+    @media (min-width: 768px) {
+        .sr-navbar-right {
+            float: right !important;
+        }
+    }
+
+    .toggle-group label.btn-default.toggle-off {
+        color: black;
+        background-color: white;
+        box-shadow: none;
+    }
+
     .sr-panel-heading {
       font-weight: 300;
       line-height: 1.4;
@@ -373,13 +401,13 @@
       font-size: 14px;
       fill: steelblue;
     }
-    .sr-plot rect.mouse-zoom {
+    .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
     }
-    .sr-plot rect.mouse-move {
+    .sr-plot rect.mouse-move, .sr-plot svg.mouse-move {
       cursor: move;
     }
-    .sr-plot rect.mouse-move-ew {
+    .sr-plot rect.mouse-move-ew, .sr-plot svg.mouse-move-ew {
       cursor: ew-resize;
     }
     .sr-plot rect.mouse-move-e {

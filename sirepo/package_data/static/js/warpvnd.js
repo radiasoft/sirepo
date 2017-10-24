@@ -245,6 +245,18 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, fram
     appState.whenModelsLoaded($scope, computeSimulationSteps);
 });
 
+SIREPO.app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -252,38 +264,25 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">Warp VND</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-            '</ul>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.hasLattice = function() {
-                return appState.isLoaded();
-            };
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
-                return appState.isLoaded();
-            };
-            $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
-            };
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
-            };
-        },
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</ul>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+                //  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+                //'<ul class="nav navbar-nav navbar-right">',
+                //  '<li>App-specific items</li>',
+                //'</ul>',
+              '</app-header-right-sim-list>',
+            '</div>',
+         ].join(''),
     };
 });
 
@@ -924,6 +923,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             '</div>',
         ].join(''),
         controller: function($scope) {
+            var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation'];
             $scope.panelState = panelState;
             $scope.model = 'animation';
 
@@ -932,14 +932,18 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             };
 
             $scope.handleStatus = function(data) {
-                frameCache.setFrameCount(0, 'particleAnimation');
+                SINGLE_PLOTS.forEach(function(name) {
+                    frameCache.setFrameCount(0, name);
+                });
                 if (data.startTime && ! data.error) {
                     ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
                         appState.models[modelName].startTime = data.startTime;
                         appState.saveQuietly(modelName);
                     });
                     if (data.percentComplete === 100 && ! data.isStateProcessing) {
-                        frameCache.setFrameCount(1, 'particleAnimation');
+                        SINGLE_PLOTS.forEach(function(name) {
+                            frameCache.setFrameCount(1, name);
+                        });
                     }
                 }
                 if (data.egunCurrentFrameCount) {
@@ -963,6 +967,193 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
                 egunCurrentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
             });
+        },
+    };
+});
+
+SIREPO.app.directive('impactDensityPlot', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            var ASPECT_RATIO = 4.0 / 7;
+            $scope.margin = {top: 50, right: 80, bottom: 50, left: 70};
+            $scope.width = $scope.height = 0;
+            $scope.dataCleared = true;
+            $scope.wantColorbar = true;
+            var colorbar, graphLine, pointer, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
+
+            function mouseOver() {
+                /*jshint validthis: true*/
+                var path = d3.select(this);
+                if (! path.empty()) {
+                    var density = path.datum()[2];
+                    pointer.pointTo(density);
+                }
+            }
+
+            function refresh() {
+                if (! xDomain) {
+                    return;
+                }
+                var xdom = xAxisScale.domain();
+                var zoomWidth = xdom[1] - xdom[0];
+
+                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                    select('.plot-viewport').attr('class', 'plot-viewport mouse-zoom');
+                    xAxisScale.domain(xDomain);
+                    yAxisScale.domain(yDomain).nice();
+                }
+                else {
+                    select('.plot-viewport').attr('class', 'plot-viewport mouse-move-ew');
+                    if (xdom[0] < xDomain[0]) {
+                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
+                    }
+                    if (xdom[1] > xDomain[1]) {
+                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
+                    }
+                }
+                resetZoom();
+                select('.plot-viewport').call(zoom);
+                select('.x.axis').call(xAxis);
+                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
+                select('.y.axis').call(yAxis);
+                select('.y.axis.grid').call(yAxisGrid);
+                select('.plot-viewport').selectAll('.line').attr('d', graphLine);
+            }
+
+            function resetZoom() {
+                zoom = d3.behavior.zoom()
+                    .x(xAxisScale)
+                    .on('zoom', refresh);
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+                xDomain = null;
+            };
+
+            $scope.destroy = function() {
+                zoom.on('zoom', null);
+                $('.plot-viewport').off();
+            };
+
+            $scope.init = function() {
+                select('svg').attr('height', plotting.initialHeight($scope));
+                select('svg').selectAll('.overlay').remove();
+                xAxisScale = d3.scale.linear();
+                yAxisScale = d3.scale.linear();
+                xAxis = plotting.createAxis(xAxisScale, 'bottom');
+                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
+                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
+                yAxis = plotting.createAxis(yAxisScale, 'left');
+                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
+                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                graphLine = d3.svg.line()
+                    .x(function(d) {
+                        return xAxisScale(d[0]);
+                    })
+                    .y(function(d) {
+                        return yAxisScale(d[1]);
+                    });
+                resetZoom();
+            };
+
+            $scope.load = function(json) {
+                $scope.dataCleared = false;
+                $scope.xRange = json.x_range;
+                var xdom = [json.x_range[0], json.x_range[1]];
+                var smallDiff = (xdom[1] - xdom[0]) / 200.0;
+                xdom[0] -= smallDiff;
+                xdom[1] += smallDiff;
+                xDomain = xdom;
+                xAxisScale.domain(xdom);
+                yDomain = [json.y_range[0], json.y_range[1]];
+                yAxisScale.domain(yDomain).nice();
+                var viewport = select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
+                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.main-title').text(json.title);
+
+                var colorRange = plotting.COLOR_MAP.coolwarm;
+                var colorScale = d3.scale.linear()
+                    .domain(plotting.linspace(json.v_min, json.v_max, colorRange.length))
+                    .range(colorRange);
+                colorbar = Colorbar()
+                    .scale(colorScale)
+                    .thickness(30)
+                    .margin({top: 0, right: 60, bottom: 20, left: 10})
+                    .orient("vertical");
+
+                var i;
+                for (i = 0; i < json.density_lines.length; i++) {
+                    var lineInfo = json.density_lines[i];
+                    var p = lineInfo.points;
+                    if (! lineInfo.density.length) {
+                        lineInfo.density = [0];
+                    }
+                    var lineSegments = plotting.linspace(p[0], p[1], lineInfo.density.length + 1);
+                    var j;
+                    for (j = 0; j < lineSegments.length - 1; j++) {
+                        var v;
+                        var density = lineInfo.density[j];
+                        var p0 = lineSegments[j];
+                        var p1 = lineSegments[j + 1];
+                        if (lineInfo.align == 'horizontal') {
+                            v = [[p0, p[2]], [p1, p[2]], density];
+                        }
+                        else {
+                            v = [[p[2], p0], [p[2], p1], density];
+                        }
+                        var path = viewport.append('path')
+                            .attr('class', 'line')
+                            .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
+                                  + (density > 0 ? colorScale(density) : 'black'))
+                            .datum(v);
+                        path.on('mouseover', mouseOver);
+                    }
+                }
+                $scope.resize();
+            };
+
+            $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
+                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (! xDomain || isNaN(width)) {
+                    return;
+                }
+                $scope.width = width;
+                $scope.height = ASPECT_RATIO * $scope.width;
+                select('svg')
+                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                plotting.ticks(xAxis, $scope.width, true);
+                plotting.ticks(xAxisGrid, $scope.width, true);
+                plotting.ticks(yAxis, $scope.height, false);
+                plotting.ticks(yAxisGrid, $scope.height, false);
+                xAxisScale.range([0, $scope.width]);
+                yAxisScale.range([$scope.height, 0]);
+                xAxisGrid.tickSize(-$scope.height);
+                yAxisGrid.tickSize(-$scope.width);
+                colorbar.barlength($scope.height)
+                    .origin([0, 0]);
+                pointer = select('.colorbar').call(colorbar);
+                refresh();
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });

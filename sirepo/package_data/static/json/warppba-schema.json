@@ -168,11 +168,7 @@
             "zCellResolution": ["Z Cell per Plasma Wavelength", "Range20to80"]
         },
         "simulation": {
-            "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "particleAnimation": {
             "x": ["X Value", "XValue"],
@@ -311,12 +307,6 @@
             "advanced": [
                 "name",
                 "sourceType"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
             ]
         },
         "simulationStatus": {

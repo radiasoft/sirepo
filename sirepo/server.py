@@ -196,6 +196,9 @@ def api_exportArchive(simulation_type, simulation_id, filename):
         as_attachment=True,
         attachment_filename=filename,
         mimetype=mt,
+        #TODO(pjm): the browser caches HTML files, may need to add explicit times
+        # to other calls to send_file()
+        cache_timeout=1,
     )
 
 

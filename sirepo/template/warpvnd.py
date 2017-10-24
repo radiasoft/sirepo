@@ -25,6 +25,7 @@ SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 
 _CULL_PARTICLE_SLOPE = 1e-4
+_DENSITY_FILE = 'density.npy'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
@@ -104,7 +105,7 @@ def get_application_data(data):
         run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
         if run_dir.exists():
             res = simulation_db.read_result(run_dir)[0]
-            if 'tof_expected' in res:
+            if res and 'tof_expected' in res:
                 return {
                     'timeOfFlight': res['tof_expected'],
                     'steps': res['steps_expected'],
@@ -162,6 +163,8 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_particle(run_dir, model_data, int(args.renderCount))
     if data['modelName'] == 'egunCurrentAnimation':
         return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
+    if data['modelName'] == 'impactDensityAnimation':
+        return _extract_impact_density(run_dir, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -347,6 +350,46 @@ def _extract_field(field, data, data_file):
     }
 
 
+def _extract_impact_density(run_dir, data):
+    plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
+    grid = data['models']['simulationGrid']
+    plate_spacing = grid['plate_spacing'] * 1e-6
+    beam = data['models']['beam']
+    radius = beam['x_radius'] * 1e-6
+
+    dx = plot_info['dx']
+    dz = plot_info['dz']
+    gated_ids = plot_info['gated_ids']
+    lines = []
+
+    for i in gated_ids:
+        v = gated_ids[i]
+        for pos in ('bottom', 'left', 'right', 'top'):
+            if pos in v:
+                zmin, zmax, xmin, xmax = v[pos]['limits']
+                row = {
+                    'density': v[pos]['density'].tolist(),
+                }
+                if pos in ('bottom', 'top'):
+                    row['align'] = 'horizontal'
+                    row['points'] = [zmin, zmax, xmin + dx / 2.]
+                else:
+                    row['align'] = 'vertical'
+                    row['points'] = [xmin, xmax, zmin + dz / 2.]
+                lines.append(row)
+
+    return {
+        'title': 'Impact Density',
+        'x_range': [0, plate_spacing],
+        'y_range': [-radius, radius],
+        'y_label': 'x [m]',
+        'x_label': 'z [m]',
+        'density_lines': lines,
+        'v_min': plot_info['min'],
+        'v_max': plot_info['max'],
+    }
+
+
 def _extract_particle(run_dir, data, limit):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
@@ -372,6 +415,28 @@ def _extract_particle(run_dir, data, limit):
         'lost_x': lost_x,
         'lost_y': lost_y,
     }
+
+
+def _generate_impact_density():
+    return '''
+from rswarp.diagnostics import ImpactDensity
+plot_density = ImpactDensity.PlotDensity(None, None, scraper, top, w3d)
+plot_density.gate_scraped_particles()
+plot_density.map_density()
+for gid in plot_density.gated_ids:
+    for side in plot_density.gated_ids[gid]:
+        del plot_density.gated_ids[gid][side]['interpolation']
+density_results = {
+    'gated_ids': plot_density.gated_ids,
+    'dx': plot_density.dx,
+    'dz': plot_density.dz,
+    'min': plot_density.cmap_normalization.vmin,
+    'max': plot_density.cmap_normalization.vmax,
+}
+    ''' + '''
+np.save('{}', density_results)
+    '''.format(_DENSITY_FILE)
+
 
 def _generate_lattice(data):
     conductorTypeMap = {}
@@ -406,10 +471,13 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
+    v['impactDensityCalculation'] = _generate_impact_density()
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
     template_name = ''
-    if data['report'] == 'animation':
+    if 'report' not in data:
+        template_name = 'visualization'
+    elif data['report'] == 'animation':
         if data['models']['simulation']['egun_mode'] == '1':
             v['egunStatusFile'] = _EGUN_STATUS_FILE
             template_name = 'egun'

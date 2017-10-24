@@ -228,6 +228,17 @@ def get_schema(sim_type):
     )
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
+
+    # merge common models into app models
+    common_models = schema['commonModels']
+    app_models = schema['model']
+    for model_Name in common_models:
+        if model_Name not in app_models:
+            app_models[model_Name] = common_models[model_Name]
+        for model_field_name in common_models[model_Name]:
+            if model_field_name not in app_models[model_Name]:
+                app_models[model_Name][model_field_name] = common_models[model_Name][model_field_name]
+
     return schema
 
 

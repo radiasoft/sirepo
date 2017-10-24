@@ -49,5 +49,9 @@ flat_Ez = np.mean(Ez,0)
 Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
 
 #Integrate the particle motion subject to initial conditions specified by the simulation
-tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, top.dt)
-steps_expected = tof_expected/top.dt
+tof_expected = steps_expected = None
+try:
+    tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, top.dt)
+    steps_expected = tof_expected/top.dt
+except ValueError as e:
+    pass

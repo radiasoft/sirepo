@@ -37,11 +37,30 @@ margin-right: 5px;
 </style>
 <script type="text/javascript">
 var SIREPO=(function() {
-return {
-onSubmit: function (form) {
-form.action = form.elements['server'].value + "{{ uri }}";
-return true;
+function validateServerName(serverName) {
+    serverName = serverName.toLowerCase();
+    serverName = serverName.replace(/\/$/, '');
+    if (serverName == 'sirepo') {
+        serverName = 'sirepo.com';
+    }
+    if (! (/^http(s)?:/).test(serverName)) {
+        serverName = 'https://' + serverName;
+    }
+    var m = serverName.match(/^http:\/\/(\w+\.)?sirepo\.com/);
+    if (m) {
+        serverName = 'https://' + (m[1] || '') + 'sirepo.com';
+    }
+    if (serverName == 'https://sirepo.com') {
+        serverName = 'https://beta.sirepo.com';
+    }
+    return serverName;
 }
+return {
+    onSubmit: function (form) {
+        form.elements['server'].value = validateServerName(form.elements['server'].value);
+        form.action = form.elements['server'].value + "{{ uri }}";
+        return true;
+    },
 };
 })();
 </script>

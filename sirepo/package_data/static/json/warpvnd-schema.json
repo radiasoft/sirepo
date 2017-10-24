@@ -70,11 +70,7 @@
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
         "simulation": {
-            "name": ["Name", "SafePath"],
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "SafePath"]
         },
         "simulationGrid": {
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
@@ -189,12 +185,6 @@
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]
