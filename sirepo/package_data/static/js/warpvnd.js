@@ -219,21 +219,26 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, warpvndService, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
     function computeSimulationSteps() {
-        self.estimates = {};
         requestSender.getApplicationData(
             {
                 method: 'compute_simulation_steps',
                 simulationId: appState.models.simulation.simulationId,
             },
             function(data) {
-                if (data.timeOfFlight) {
-                    self.estimates.timeOfFlight = (+data.timeOfFlight).toExponential(4);
-                    self.estimates.steps = Math.round(data.steps);
+                if (data.timeOfFlight || data.electronFraction) {
+                    self.estimates = {
+                        timeOfFlight: data.timeOfFlight ? (+data.timeOfFlight).toExponential(4) : null,
+                        steps: Math.round(data.steps),
+                        electronFraction: Math.round(data.electronFraction),
+                    };
+                }
+                else {
+                    self.estimates = null;
                 }
             });
     }

@@ -55,3 +55,16 @@ try:
     steps_expected = tof_expected/top.dt
 except ValueError as e:
     pass
+except AssertionError as e:
+    pass
+
+#------
+
+#Grab Phi from the solver and average over the transverse (x) plane
+Phi = solverE.getphi()
+flat_Phi = -1.*numpy.mean(Phi,0) #Needs to be made negative
+
+#Generate an interpolating function for smooth particle integration
+Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
+
+e_cross = sources.compute_crossing_fraction(CATHODE_TEMP, Phi_approx, zmesh)
