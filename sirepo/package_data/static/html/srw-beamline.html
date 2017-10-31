@@ -21,7 +21,7 @@
   </div>
   <div data-ng-if="beamline.isMultiElectron()" class="row">
     <div class="col-md-6 col-xl-4">
-      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title=" {{beamlineService.getReportTitle('multiElectronAnimation') }}"><div data-simulation-status-panel="multiElectronAnimation"></div></div>
+      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title="{{ beamline.srwService.getReportTitle('multiElectronAnimation') }}"><div data-simulation-status-panel="multiElectronAnimation"></div></div>
     </div>
   </div>
   <div class="clearfix"></div>
