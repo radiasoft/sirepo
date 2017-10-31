@@ -202,7 +202,9 @@ def extensions_for_file_type(file_type):
     if file_type == 'mirror':
         return ['*.dat', '*.txt']
     if file_type == 'sample':
-        return ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+        exts = ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg']
+        exts += [x.upper() for x in exts]
+        return ['*.{}'.format(x) for x in exts]
     if file_type == 'undulatorTable':
         return ['*.zip']
     raise RuntimeError('unknown file_type: ', file_type)
@@ -416,7 +418,11 @@ def fixup_old_data(data):
             if 'horizontalCenterCoordinate' not in item:
                 item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
                 item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
-
+            if 'cropArea' not in item:
+                for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
+                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
+                          'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
+                    item[f] = _SCHEMA['model']['sample'][f][2]
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
@@ -963,7 +969,7 @@ def validate_file(file_type, path):
                 break
         if not is_valid:
             return 'zip file missing txt index file'
-    elif extension.lower() in ['tif', 'tiff', 'npy']:
+    elif extension.lower() in ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
@@ -1460,6 +1466,10 @@ def _generate_beamline_optics(models, last_id):
             res_pp += pp
         elif item['type'] == 'sample':
             file_name = 'op_sample{}'.format(sample_counter)
+            area = '{}'.format(None if not bool(int(item['cropArea'])) else (item['areaXStart'], item['areaXEnd'], item['areaYStart'], item['areaYEnd']))
+            tile = '{}'.format(None if not bool(int(item['tileImage'])) else (item['tileRows'], item['tileColumns']))
+            rotate_reshape = '{}'.format(bool(int(item['rotateReshape'])))
+            invert = '{}'.format(bool(int(item['invert'])))
             sample_counter += 1
             el, pp = _beamline_element(
                 """srwl_uti_smp.srwl_opt_setup_transm_from_file(
@@ -1468,13 +1478,27 @@ def _generate_beamline_optics(models, last_id):
                     thickness={},
                     delta={},
                     atten_len={},
-                    xc={},
-                    yc={},
+                    xc={}, yc={},
+                    area=""" + area + """,
+                    rotate_angle={}, rotate_reshape=""" + rotate_reshape + """,
+                    cutoff_background_noise={},
+                    background_color={},
+                    tile=""" + tile + """,
+                    shift_x={}, shift_y={},
+                    invert=""" + invert + """,
                     is_save_images=True,
-                    prefix='""" + file_name + """')""",
+                    prefix='""" + file_name + """',
+                    output_image_format='{}',
+                    )""",
                 item,
                 ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
-                 'horizontalCenterCoordinate', 'verticalCenterCoordinate'],
+                 'horizontalCenterCoordinate', 'verticalCenterCoordinate',
+                 'rotateAngle',
+                 'cutoffBackgroundNoise',
+                 'backgroundColor',
+                 'shiftX', 'shiftY',
+                 'outputImageFormat',
+                 ],
                 propagation)
             res_el += el
             res_pp += pp
@@ -1849,14 +1873,25 @@ def _process_image(data):
     # This should just be a basename, but this ensures it.
     b = werkzeug.secure_filename(data.baseImage)
     fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
+    m = data['model']
     with pkio.save_chdir(simulation_db.tmp_dir()) as d:
         res = py.path.local(fn.purebasename)
-        srwl_uti_smp.SRWLUtiSmp(
+        s = srwl_uti_smp.SRWLUtiSmp(
             file_path=str(fn),
+            area=None if not bool(int(m['cropArea'])) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
+            rotate_angle=float(m['rotateAngle']),
+            rotate_reshape=bool(int(m['rotateReshape'])),
+            cutoff_background_noise=float(m['cutoffBackgroundNoise']),
+            background_color=int(m['backgroundColor']),
+            invert=bool(int(m['invert'])),
+            tile=None if not bool(int(m['tileImage'])) else (m['tileRows'], m['tileColumns']),
+            shift_x=m['shiftX'],
+            shift_y=m['shiftY'],
             is_save_images=True,
             prefix=str(res),
+            output_image_format=m['outputImageFormat'],
         )
-        res += '_processed.tif'
+        res += '_processed.{}'.format(m['outputImageFormat'])
         res.check()
     return res
 

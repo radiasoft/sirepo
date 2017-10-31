@@ -620,7 +620,7 @@ SIREPO.app.factory('notificationService', function($cookies) {
 
     self.hasNext = function() {
         self.nextNotification();
-        return self.currentNotification != null;
+        return self.currentNotification !== null;
     };
 
     self.currentContent = function() {

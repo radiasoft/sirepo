@@ -572,6 +572,23 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             }
         }
     });
+
+    // Process fields of the Sample element (image manipulation tab):
+    $scope.$watchCollection(wrapActiveItem(['cropArea']), function (newValues, oldValues) {
+        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
+            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        });
+    });
+    $scope.$watchCollection(wrapActiveItem(['tileImage']), function (newValues, oldValues) {
+        ['tileRows', 'tileColumns'].forEach(function(f) {
+            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        });
+    });
+    $scope.$watchCollection(wrapActiveItem(['rotateAngle']), function (newValues, oldValues) {
+        ['rotateReshape'].forEach(function(f) {
+            panelState.showField('sample', f, (newValues[0] !== 0 && (typeof(newValues[0]) !== 'undefined')));
+        });
+    });
 });
 
 SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $scope) {
