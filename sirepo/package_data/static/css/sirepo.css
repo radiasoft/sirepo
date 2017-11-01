@@ -17,6 +17,9 @@
       .modal-lg {
         width: 945px;
       }
+      .sr-pull-right-sm {
+        float: right !important;
+      }
     }
     @media(max-width: 480px) {
       div.navbar-brand {
