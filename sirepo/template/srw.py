@@ -229,7 +229,7 @@ def extract_report_data(filename, model_data):
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = pkcollections.Dict({
-        'res_trj.dat': [['Longitudinal Position', 'Position', 'Electron Trajectory'], ['m', 'm']],
+        'res_trj.dat': [['', '', 'Electron Trajectory'], ['', '']],
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
@@ -240,21 +240,31 @@ def extract_report_data(filename, model_data):
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
 
-    if model_data['report'] == 'trajectoryReport':
-        assert model_data['models']['trajectoryReport']['plotAxis'] in ['x', 'y']
-        if model_data['models']['trajectoryReport']['plotAxis'] == 'x':
-            axis_name = 'Horizontal'
-        else:
-            axis_name = 'Vertical'
-        file_info['res_trj.dat'][0][1] = '{} {}'.format(axis_name, file_info['res_trj.dat'][0][1])
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(
-            filename,
-            traj_report=True,
-            traj_axis=model_data['models']['trajectoryReport']['plotAxis'],
-        )
-    else:
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
+    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True if model_data['report'] == 'trajectoryReport' else False)
     filename = os.path.basename(filename)
+
+    if model_data['report'] == 'trajectoryReport':
+        # Check all available axes:
+        model = model_data['models']['trajectoryReport']
+        available_axes = {}
+        for s in _SCHEMA['enum']['PlotAxis']:
+            available_axes[s[0]] = s[1]
+        assert model['plotAxisX'] in available_axes.keys()
+        assert model['plotAxisY'] in available_axes.keys()
+
+        # Prepare the data:
+        all_data = copy.deepcopy(data)
+        x_points = all_data[model['plotAxisX']]['data']
+        data = all_data[model['plotAxisY']]['data']
+        allrange = [min(x_points), max(x_points)]
+
+        # Dynamically set the axis label:
+        file_info[filename][0][0] = available_axes[model['plotAxisX']]
+        file_info[filename][0][1] = available_axes[model['plotAxisY']]
+        file_info[filename][1] = [
+            all_data[model['plotAxisX']]['units'],
+            all_data[model['plotAxisY']]['units'],
+        ]
 
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
@@ -270,6 +280,11 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
+
+    # Add x_points for the Trajectory report:
+    if model_data['report'] == 'trajectoryReport':
+        info['x_points'] = x_points
+
     orig_rep_name = model_data['report']
     rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(orig_rep_name) else orig_rep_name
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
@@ -502,9 +517,14 @@ def fixup_old_data(data):
             'initialTimeMoment': 0.0,
             'finalTimeMoment': 0.0,
             'numberOfPoints': 10000,
-            'plotAxis': 'x',
+            'plotAxisX': 'Z',
+            'plotAxisY': 'X',
             'magneticField': 2,
         })
+    if 'plotAxisX' not in data['models']['trajectoryReport']:
+        data['models']['trajectoryReport']['plotAxisX'] = 'Z'
+        data['models']['trajectoryReport']['plotAxisY'] = 'X'
+
     # Update tabulated undulator length:
     _compute_undulator_length(data['models']['tabulatedUndulator'])
 

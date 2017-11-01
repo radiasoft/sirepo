@@ -183,8 +183,16 @@
             ["jpeg", "JPEG"]
         ],
         "PlotAxis": [
-            ["x", "Horizontal"],
-            ["y", "Vertical"]
+            ["ct", "c × t"],
+            ["X", "Horizontal Position"],
+            ["Y", "Vertical Position"],
+            ["Z", "Longitudinal Position"],
+            ["Bx", "Horizontal Magnetic Field"],
+            ["By", "Vertical Magnetic Field"],
+            ["Bz", "Longitudinal Magnetic Field"],
+            ["BetaX", "Horizontal Beta"],
+            ["BetaY", "Vertical Beta"],
+            ["BetaZ", "Longitudinal Beta"]
         ],
         "Polarization": [
             ["0", "Linear Horizontal"],
@@ -661,7 +669,8 @@
             "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
             "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
             "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer"],
-            "plotAxis": ["Axis to plot", "PlotAxis"],
+            "plotAxisX": ["Horizontal Axis to Plot", "PlotAxis", "Z"],
+            "plotAxisY": ["Vertical Axis to Plot", "PlotAxis", "X"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"]
         },
         "undulator": {
@@ -1453,7 +1462,14 @@
                     "initialTimeMoment",
                     "finalTimeMoment",
                     "numberOfPoints",
-                    "plotAxis"
+                    [
+                        ["Horizontal", [
+                            "plotAxisX"
+                        ]],
+                        ["Vertical", [
+                            "plotAxisY"
+                        ]]
+                    ]
                 ]]
             ]
         },
