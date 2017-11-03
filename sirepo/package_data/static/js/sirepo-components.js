@@ -324,6 +324,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
                     title: function() {
                         return scope.tooltip;
                     },
+                    html: scope.tooltip.indexOf('</') >= 0,
                     placement: 'bottom',
                 });
                 scope.$on('$destroy', function() {
