@@ -94,5 +94,14 @@
             "folder": ["Folder", "String"],
             "documentationUrl": ["Documentation URL", "OptionalString", ""]
         }
+    },
+    "commonEnums": {
+        "ColorMap": [
+            ["grayscale", "grayscale"],
+            ["viridis", "viridis"],
+            ["afmhot", "afmhot"],
+            ["coolwarm", "coolwarm"],
+            ["jet", "jet"]
+        ]
     }
 }

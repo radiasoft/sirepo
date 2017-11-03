@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
 
@@ -330,8 +331,34 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData) {
-            var colorRange = COLOR_MAP[SIREPO.PLOTTING_COLOR_MAP || 'viridis'];
+
+        colorMapNameOrDefault: function (mapName, defaultMapName) {
+            /*
+            srdbg('finding map', mapName, 'default', defaultMapName);
+            if(mapName) {
+                srdbg('found map', mapName);
+                return mapName;
+            }
+            if( defaultMapName ) {
+                srdbg('found report default', defaultMapName);
+                return defaultMapName;
+            }
+            if( SIREPO.PLOTTING_COLOR_MAP ) {
+                srdbg('found app default', SIREPO.PLOTTING_COLOR_MAP);
+                return SIREPO.PLOTTING_COLOR_MAP;
+            }
+            srdbg('found global default', SIREPO.DEFAULT_COLOR_MAP);
+            */
+            return mapName || defaultMapName || SIREPO.PLOTTING_COLOR_MAP || SIREPO.DEFAULT_COLOR_MAP;
+        },
+        colorMapOrDefault: function (mapName, defaultMapName) {
+            return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
+        },
+
+        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData, colorMapName, defaultColorMapName) {
+            //var colorRange = COLOR_MAP[SIREPO.PLOTTING_COLOR_MAP || 'viridis'];
+            //srdbg('plotting.init image with map', colorMapName, 'default', defaultColorMapName);
+            var colorRange = this.colorMapOrDefault(colorMapName, defaultColorMapName);
             var colorScale = d3.scale.linear()
                 .domain(linspace(zMin, zMax, colorRange.length))
                 .range(colorRange);
@@ -1289,7 +1316,10 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 }
                 bottomPanelYScale.domain([zmin, zmax]).nice();
                 rightPanelXScale.domain([zmax, zmin]).nice();
-                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
+                var modelColorMapName = appState.models[$scope.modelName].colorMap;
+                var mapModel = appState.modelInfo($scope.modelName).colorMap;
+                var reportDefaultColorMapName = mapModel ? mapModel[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
+                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, modelColorMapName, reportDefaultColorMapName);
                 $scope.resize();
             };
 
@@ -1381,7 +1411,11 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
             }
 
             function initDraw(zmin, zmax) {
-                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
+                var modelColorMapName = appState.models[$scope.modelName].colorMap;
+                var mapModel = appState.modelInfo($scope.modelName).colorMap;
+                var reportDefaultColorMapName = mapModel ? mapModel[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
+
+                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, modelColorMapName, reportDefaultColorMapName);
                 colorbar = Colorbar()
                     .scale(colorScale)
                     .thickness(30)
