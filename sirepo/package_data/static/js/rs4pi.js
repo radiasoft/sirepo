@@ -474,7 +474,7 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUp
                           '<div data-ng-show="isState(\'import\')" class="col-sm-12">',
                             '<div class="text-center">',
                               '<span class="glyphicon glyphicon-hourglass"> </span> ',
-                              'Importing file - please wait. This may take several minutes.',
+                              'Importing file - please wait.',
                               '<br /><br />',
                             '</div>',
                           '</div>',
