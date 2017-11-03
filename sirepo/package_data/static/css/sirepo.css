@@ -17,6 +17,9 @@
       .modal-lg {
         width: 945px;
       }
+      .sr-pull-right-sm {
+        float: right !important;
+      }
     }
     @media(max-width: 480px) {
       div.navbar-brand {
@@ -247,6 +250,10 @@
         color: black;
         background-color: white;
         box-shadow: none;
+    }
+
+    .sr-notify {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, .5);
     }
 
     .sr-panel-heading {

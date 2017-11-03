@@ -157,7 +157,16 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
             : self.originalCharacteristicEnum;
     });
 
-    self.getReportTitle = beamlineService.getReportTitle;
+    self.getReportTitle = function(modelName, itemId) {
+        if (modelName == 'multiElectronAnimation') {
+            // multiElectronAnimation title is cached on the simulation model
+            var title = appState.models.simulation.multiElectronAnimationTitle;
+            if (title) {
+                return title;
+            }
+        }
+        return beamlineService.getReportTitle(modelName, itemId);
+    };
     return self;
 });
 
@@ -571,6 +580,23 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 );
             }
         }
+    });
+
+    // Process fields of the Sample element (image manipulation tab):
+    $scope.$watchCollection(wrapActiveItem(['cropArea']), function (newValues, oldValues) {
+        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
+            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        });
+    });
+    $scope.$watchCollection(wrapActiveItem(['tileImage']), function (newValues, oldValues) {
+        ['tileRows', 'tileColumns'].forEach(function(f) {
+            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        });
+    });
+    $scope.$watchCollection(wrapActiveItem(['rotateAngle']), function (newValues, oldValues) {
+        ['rotateReshape'].forEach(function(f) {
+            panelState.showField('sample', f, (newValues[0] !== 0 && (typeof(newValues[0]) !== 'undefined')));
+        });
     });
 });
 
@@ -1491,7 +1517,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {
@@ -1536,7 +1562,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
-                  '<button class="btn btn-default" data-ng-click="runSimulation()">Start New Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="saveAndRunSimulation()">Start New Simulation</button>',
                 '</div>',
               '</div>',
             '</form>',
@@ -1575,7 +1601,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
             $scope.cancelPersistentSimulation = function () {
                 var cancelSuccess = function (data, status) {
                     if( $scope.hasFluxCompMethod() && $scope.isApproximateMethod() ) {
-                        $scope.runSimulation();
+                        $scope.saveAndRunSimulation();
                     }
                 };
                 // ignore error case
@@ -1601,27 +1627,38 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, per
                 }
             };
 
-            $scope.isApproximateMethod = function () {
-                return appState.models.fluxAnimation.method == -1;
-            };
             $scope.hasFluxCompMethod = function () {
                 return $scope.model === 'fluxAnimation';
             };
+
+            $scope.isApproximateMethod = function () {
+                return appState.models.fluxAnimation.method == -1;
+            };
+
+            $scope.saveAndRunSimulation = function() {
+                if ($scope.model == 'multiElectronAnimation') {
+                    appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
+                }
+                appState.saveChanges('simulation', $scope.runSimulation);
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on($scope.model + '.changed', function() {
+                    if ($scope.isReadyForModelChanges && hasReportParameterChanged()) {
+                        $scope.cancelPersistentSimulation();
+                        frameCache.setFrameCount(0);
+                        frameCache.clearFrames($scope.model);
+                        $scope.percentComplete = 0;
+                        $scope.particleNumber = 0;
+                    }
+                });
+                copyMultiElectronModel();
+            });
 
             persistentSimulation.initProperties($scope, $scope, {
                 multiElectronAnimation: $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields),
                 fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
             });
-            $scope.$on($scope.model + '.changed', function() {
-                if ($scope.isReadyForModelChanges && hasReportParameterChanged()) {
-                    $scope.cancelPersistentSimulation();
-                    frameCache.setFrameCount(0);
-                    frameCache.clearFrames($scope.model);
-                    $scope.percentComplete = 0;
-                    $scope.particleNumber = 0;
-                }
-            });
-            appState.whenModelsLoaded($scope, copyMultiElectronModel);
        },
     };
 });

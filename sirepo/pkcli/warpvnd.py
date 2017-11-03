@@ -41,6 +41,7 @@ def run(cfg_dir):
                     'frequency_title': 'Volts',
                     'tof_expected': tof_expected,
                     'steps_expected': steps_expected,
+                    'e_cross': e_cross,
                 })
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))

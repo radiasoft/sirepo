@@ -47,7 +47,8 @@
             "name": ["Name", "String"],
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
-            "zLength": ["Length (Z) [µm]", "Float"]
+            "zLength": ["Length (Z) [µm]", "Float"],
+            "permittivity": ["Permittivity of Free Space", "Float"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -115,7 +116,8 @@
                 "name",
                 "voltage",
                 "zLength",
-                "xLength"
+                "xLength",
+                "permittivity"
             ]
         },
         "cathode": {

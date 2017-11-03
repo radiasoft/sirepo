@@ -18,9 +18,16 @@
               <div data-model-field="'egun_mode'" data-model-name="'simulation'" data-label-size="4"></div>
             </div>
             <div class="col-sm-12" data-ng-if="! visualization.warpvndService.isEGunMode()">
-              <div class="well" data-ng-show="visualization.estimates.timeOfFlight">
-                Expected time of flight is {{ visualization.estimates.timeOfFlight }}s<br/>
-                This corresponds to {{ visualization.estimates.steps }} steps
+              <div class="well" data-ng-show="visualization.estimates">
+                <div data-ng-if="visualization.estimates.timeOfFlight">
+                  Expected time of flight is {{ visualization.estimates.timeOfFlight }}s
+                </div>
+                <div data-ng-if="visualization.estimates.steps">
+                  This corresponds to {{ visualization.estimates.steps }} steps
+                </div>
+                <div data-ng-if="visualization.estimates.electronFraction">
+                  Expected fraction of electrons that cross is {{ visualization.estimates.electronFraction }}%.
+                </div>
               </div>
             </div>
             <div class="form-group">

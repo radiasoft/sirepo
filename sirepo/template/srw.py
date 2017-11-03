@@ -202,7 +202,9 @@ def extensions_for_file_type(file_type):
     if file_type == 'mirror':
         return ['*.dat', '*.txt']
     if file_type == 'sample':
-        return ['*.tif', '*.tiff', '*.TIF', '*.TIFF', '*.npy', '*.NPY']
+        exts = ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg']
+        exts += [x.upper() for x in exts]
+        return ['*.{}'.format(x) for x in exts]
     if file_type == 'undulatorTable':
         return ['*.zip']
     raise RuntimeError('unknown file_type: ', file_type)
@@ -227,7 +229,7 @@ def extract_report_data(filename, model_data):
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = pkcollections.Dict({
-        'res_trj.dat': [['Longitudinal Position', 'Position', 'Electron Trajectory'], ['m', 'm']],
+        'res_trj.dat': [['', '', 'Electron Trajectory'], ['', '']],
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
@@ -238,21 +240,31 @@ def extract_report_data(filename, model_data):
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
 
-    if model_data['report'] == 'trajectoryReport':
-        assert model_data['models']['trajectoryReport']['plotAxis'] in ['x', 'y']
-        if model_data['models']['trajectoryReport']['plotAxis'] == 'x':
-            axis_name = 'Horizontal'
-        else:
-            axis_name = 'Vertical'
-        file_info['res_trj.dat'][0][1] = '{} {}'.format(axis_name, file_info['res_trj.dat'][0][1])
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(
-            filename,
-            traj_report=True,
-            traj_axis=model_data['models']['trajectoryReport']['plotAxis'],
-        )
-    else:
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(filename)
+    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True if model_data['report'] == 'trajectoryReport' else False)
     filename = os.path.basename(filename)
+
+    if model_data['report'] == 'trajectoryReport':
+        # Check all available axes:
+        model = model_data['models']['trajectoryReport']
+        available_axes = {}
+        for s in _SCHEMA['enum']['PlotAxis']:
+            available_axes[s[0]] = s[1]
+        assert model['plotAxisX'] in available_axes.keys()
+        assert model['plotAxisY'] in available_axes.keys()
+
+        # Prepare the data:
+        all_data = copy.deepcopy(data)
+        x_points = all_data[model['plotAxisX']]['data']
+        data = all_data[model['plotAxisY']]['data']
+        allrange = [min(x_points), max(x_points)]
+
+        # Dynamically set the axis label:
+        file_info[filename][0][0] = available_axes[model['plotAxisX']]
+        file_info[filename][0][1] = available_axes[model['plotAxisY']]
+        file_info[filename][1] = [
+            all_data[model['plotAxisX']]['units'],
+            all_data[model['plotAxisY']]['units'],
+        ]
 
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
@@ -268,6 +280,11 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
+
+    # Add x_points for the Trajectory report:
+    if model_data['report'] == 'trajectoryReport':
+        info['x_points'] = x_points
+
     orig_rep_name = model_data['report']
     rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(orig_rep_name) else orig_rep_name
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
@@ -416,7 +433,11 @@ def fixup_old_data(data):
             if 'horizontalCenterCoordinate' not in item:
                 item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
                 item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
-
+            if 'cropArea' not in item:
+                for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
+                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
+                          'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
+                    item[f] = _SCHEMA['model']['sample'][f][2]
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
@@ -496,9 +517,14 @@ def fixup_old_data(data):
             'initialTimeMoment': 0.0,
             'finalTimeMoment': 0.0,
             'numberOfPoints': 10000,
-            'plotAxis': 'x',
+            'plotAxisX': 'Z',
+            'plotAxisY': 'X',
             'magneticField': 2,
         })
+    if 'plotAxisX' not in data['models']['trajectoryReport']:
+        data['models']['trajectoryReport']['plotAxisX'] = 'Z'
+        data['models']['trajectoryReport']['plotAxisY'] = 'X'
+
     # Update tabulated undulator length:
     _compute_undulator_length(data['models']['tabulatedUndulator'])
 
@@ -963,7 +989,7 @@ def validate_file(file_type, path):
                 break
         if not is_valid:
             return 'zip file missing txt index file'
-    elif extension.lower() in ['tif', 'tiff', 'npy']:
+    elif extension.lower() in ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
@@ -1460,6 +1486,10 @@ def _generate_beamline_optics(models, last_id):
             res_pp += pp
         elif item['type'] == 'sample':
             file_name = 'op_sample{}'.format(sample_counter)
+            area = '{}'.format(None if not bool(int(item['cropArea'])) else (item['areaXStart'], item['areaXEnd'], item['areaYStart'], item['areaYEnd']))
+            tile = '{}'.format(None if not bool(int(item['tileImage'])) else (item['tileRows'], item['tileColumns']))
+            rotate_reshape = '{}'.format(bool(int(item['rotateReshape'])))
+            invert = '{}'.format(bool(int(item['invert'])))
             sample_counter += 1
             el, pp = _beamline_element(
                 """srwl_uti_smp.srwl_opt_setup_transm_from_file(
@@ -1468,13 +1498,27 @@ def _generate_beamline_optics(models, last_id):
                     thickness={},
                     delta={},
                     atten_len={},
-                    xc={},
-                    yc={},
+                    xc={}, yc={},
+                    area=""" + area + """,
+                    rotate_angle={}, rotate_reshape=""" + rotate_reshape + """,
+                    cutoff_background_noise={},
+                    background_color={},
+                    tile=""" + tile + """,
+                    shift_x={}, shift_y={},
+                    invert=""" + invert + """,
                     is_save_images=True,
-                    prefix='""" + file_name + """')""",
+                    prefix='""" + file_name + """',
+                    output_image_format='{}',
+                    )""",
                 item,
                 ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
-                 'horizontalCenterCoordinate', 'verticalCenterCoordinate'],
+                 'horizontalCenterCoordinate', 'verticalCenterCoordinate',
+                 'rotateAngle',
+                 'cutoffBackgroundNoise',
+                 'backgroundColor',
+                 'shiftX', 'shiftY',
+                 'outputImageFormat',
+                 ],
                 propagation)
             res_el += el
             res_pp += pp
@@ -1849,14 +1893,25 @@ def _process_image(data):
     # This should just be a basename, but this ensures it.
     b = werkzeug.secure_filename(data.baseImage)
     fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
+    m = data['model']
     with pkio.save_chdir(simulation_db.tmp_dir()) as d:
         res = py.path.local(fn.purebasename)
-        srwl_uti_smp.SRWLUtiSmp(
+        s = srwl_uti_smp.SRWLUtiSmp(
             file_path=str(fn),
+            area=None if not bool(int(m['cropArea'])) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
+            rotate_angle=float(m['rotateAngle']),
+            rotate_reshape=bool(int(m['rotateReshape'])),
+            cutoff_background_noise=float(m['cutoffBackgroundNoise']),
+            background_color=int(m['backgroundColor']),
+            invert=bool(int(m['invert'])),
+            tile=None if not bool(int(m['tileImage'])) else (m['tileRows'], m['tileColumns']),
+            shift_x=m['shiftX'],
+            shift_y=m['shiftY'],
             is_save_images=True,
             prefix=str(res),
+            output_image_format=m['outputImageFormat'],
         )
-        res += '_processed.tif'
+        res += '_processed.{}'.format(m['outputImageFormat'])
         res.check()
     return res
 

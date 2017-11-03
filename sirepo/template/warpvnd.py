@@ -26,6 +26,7 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
+_DEFAULT_PERMITTIVITY = 7.0
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
@@ -94,6 +95,9 @@ def fixup_old_data(data):
         }
     if 'impactDensityAnimation' not in data['models']:
         data['models']['impactDensityAnimation'] = {}
+    for c in data['models']['conductorTypes']:
+        if 'permittivity' not in c:
+            c['permittivity'] = _DEFAULT_PERMITTIVITY
 
 
 def get_animation_name(data):
@@ -109,6 +113,7 @@ def get_application_data(data):
                 return {
                     'timeOfFlight': res['tof_expected'],
                     'steps': res['steps_expected'],
+                    'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
         return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -182,7 +187,7 @@ def models_related_to_report(data):
         list: Named models, model fields or values (dict, list) that affect report
     """
     return [
-        'beam', 'simulationGrid', 'conductors',
+        'beam', 'simulationGrid', 'conductors', 'conductorTypes',
     ]
 
 
@@ -446,8 +451,8 @@ def _generate_lattice(data):
     res = 'conductors = ['
     for c in data.models.conductors:
         ct = conductorTypeMap[c.conductorTypeId]
-        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}),'.format(
-            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6)
+        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}, permittivity={}),'.format(
+            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, float(ct.permittivity))
     res += '''
 ]
 for c in conductors:

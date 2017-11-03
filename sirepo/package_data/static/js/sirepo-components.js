@@ -150,6 +150,29 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
+SIREPO.app.directive('srNotify', function(notificationService) {
+
+    return {
+        restrict: 'A',
+        template: [
+                '<div data-ng-show="notificationService.hasNext()" class="alert alert-success alert-dismissible sr-notify" role="alert">',
+                '<button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss()">',
+                    '<span aria-hidden="true">&times;</span>',
+                '</button>',
+                '<span data-ng-show="setContent()" id="notification-content"></span>',
+                '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.notificationService = notificationService;
+            $scope.setContent = function() {
+                $('#notification-content').html(notificationService.currentContent());
+                return true;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -301,6 +324,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
                     title: function() {
                         return scope.tooltip;
                     },
+                    html: scope.tooltip.indexOf('</') >= 0,
                     placement: 'bottom',
                 });
                 scope.$on('$destroy', function() {
@@ -346,9 +370,9 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
-              '<div data-ng-switch-when="Boolean" class="col-sm-7">',
-                '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
-              '</div>',
+              // '<div data-ng-switch-when="Boolean" class="col-sm-7">',
+              //   '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+              // '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -420,7 +444,12 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
     };
 });
 
-SIREPO.app.directive('loginMenu', function(requestSender) {
+SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
+
+    var sr_login_notify_cookie = 'net.sirepo.login_notify_timeout';
+    var sr_login_notify_timeout = 1*24*60*60*1000;
+    var sr_login_notify_content = '<strong>Log in to persist your workspace</strong> <span class="glyphicon glyphicon-hand-up"></span>';
+
     return {
         restrict: 'A',
         scope: {},
@@ -429,17 +458,20 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
                 '<ul class="dropdown-menu">',
                   '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
                   '<li class="divider"></li>',
-                  '<li><a data-ng-href="{{ logoutURL }}">Sign out</a></li>',
+                  '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
                 '</ul>',
               '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.currentNotification == loginNotification}">',
+                '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
-                  '<li><a data-ng-href="{{ githubLoginURL() }}">Sign In with <strong>GitHub</strong></a></li>',
+                  '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
                 '</ul>',
               '</li>',
         ].join(''),
         controller: function($scope) {
+
             $scope.userState = SIREPO.userState;
+
             $scope.githubLoginURL = function() {
                 return requestSender.formatAuthUrl('github');
             };
@@ -452,6 +484,26 @@ SIREPO.app.directive('loginMenu', function(requestSender) {
             $scope.isLoggedOut = function() {
                 return $scope.userState && ! $scope.isLoggedIn();
             };
+            $scope.doLogoutTasks = function() {
+                $scope.loginNotification.active = true;
+                notificationService.sleepNotification($scope.loginNotification);
+            };
+            $scope.doLoginTasks = function() {
+                $scope.loginNotification.active = false;
+                notificationService.dismissNotification($scope.loginNotification);
+            };
+
+            $scope.notificationService = notificationService;
+            $scope.sr_login_notify_cookie = sr_login_notify_cookie;
+            $scope.loginNotification = {
+                name: sr_login_notify_cookie,
+                timeout: sr_login_notify_timeout,
+                content: sr_login_notify_content,
+                active: $scope.isLoggedOut(),
+                recurs: true,
+            };
+            notificationService.addNotification($scope.loginNotification);
+
         },
     };
 });
@@ -568,7 +620,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                 if (!m) {
                     throw $scope.model.imageFile + ': invalid imageFile name';
                 }
-                var fn = m[2] + '_processed.tif';
+                var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
                 var url = requestSender.formatUrl({
                     routeName: 'getApplicationData',
                     '<filename>': fn
@@ -583,7 +635,8 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                         'simulationId': appState.models.simulation.simulationId,
                         'simulationType': SIREPO.APP_SCHEMA.simulationType,
                         'method': 'processedImage',
-                        'baseImage': m[1]
+                        'baseImage': m[1],
+                        'model': $scope.model,
                     },
                     {responseType: 'blob'}
                 ).then(
@@ -1648,23 +1701,26 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
 }]);
 
 SIREPO.app.directive('bootstrapToggle', function($timeout) {
-    var thisToggle;
+    function getToggle(scope) {
+        return $('#bs-toggle-id-' + scope.$id);
+    }
     return {
         restrict: 'A',
         link: function(scope) {
             $timeout(function() {
-                thisToggle = $('#bs-toggle-id-' + scope.$id);
-                thisToggle.bootstrapToggle();
-                thisToggle.change(function() {
-                    scope.model[scope.field] = thisToggle.prop('checked') ? '1' : '0';
+                var toggle = getToggle(scope);
+                toggle.bootstrapToggle();
+                toggle.change(function() {
+                    scope.model[scope.field] = toggle.prop('checked') ? '1' : '0';
                     scope.$apply();
                 });
             });
             scope.$on('$destroy', function() {
-                if (thisToggle) {
+                var toggle = getToggle(scope);
+                if (toggle) {
                     //TODO(pjm): off() needed before destory or memory is not released?
-                    thisToggle.off();
-                    thisToggle.bootstrapToggle('destroy');
+                    toggle.off();
+                    toggle.bootstrapToggle('destroy');
                 }
             });
         },

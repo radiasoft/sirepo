@@ -68,7 +68,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'underscore']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'underscore', 'ngCookies']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -552,7 +552,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     return self;
 });
 
-SIREPO.app.factory('appDataService', function(requestSender) {
+SIREPO.app.factory('appDataService', function() {
     var self = {};
 
     self.isApplicationMode = function(name) {
@@ -569,6 +569,88 @@ SIREPO.app.factory('appDataService', function(requestSender) {
     self.canCopy = function() {
         return true;
     };
+    return self;
+});
+
+SIREPO.app.factory('notificationService', function($cookies) {
+
+    var recurrent_notification_timeout = 1*24*60*60*1000;
+    var self = {};
+
+    self.notifications = {};
+    self.currentNotification = null;
+
+    self.addNotification = function(notification) {
+        if(! notification.name || ! notification.content) {
+            return;
+        }
+        if(notification.recurs && ! notification.timeout) {
+            notification.timeout = recurrent_notification_timeout;
+        }
+        self.notifications[notification.name] = notification;
+    };
+
+    self.getNotification = function(name) {
+        return self.notifications[name];
+    };
+
+    self.removeNotification = function(notification) {
+        $cookies.remove(notification.name);
+        delete self.notifications[notification.name];
+    };
+
+    self.nextNotification = function() {
+        for(var name in self.notifications) {
+            var notification = self.notifications[name];
+            if(! notification.active) {
+                continue;
+            }
+            if(! notification.recurs) {
+                self.currentNotification = notification;
+                return;
+            }
+            var c = $cookies.get(name);
+            if( !c || c === undefined ) {
+                self.currentNotification = notification;
+                return;
+            }
+        }
+        self.currentNotification = null;
+    };
+
+    self.hasNext = function() {
+        self.nextNotification();
+        return self.currentNotification !== null;
+    };
+
+    self.currentContent = function() {
+        if(self.currentNotification) {
+            return self.currentNotification.content;
+        }
+        return ' ';
+    };
+
+    self.sleepNotification = function(notification) {
+        var now = new Date();
+        $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
+    };
+
+    self.dismiss = function() {
+        self.dismissNotification(self.currentNotification);
+    };
+
+    self.dismissNotification = function(notification) {
+        if(notification) {
+            if(notification.recurs) {
+                self.sleepNotification(notification);
+            }
+            else {
+                self.removeNotification(notification);
+            }
+        }
+        self.nextNotification();
+    };
+
     return self;
 });
 
