@@ -1494,10 +1494,6 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
             $scope.openDocumentation = function() {
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
-
-            function updateGlobals() {
-                srdbg('updating globals');
-            }
         },
     };
 });

@@ -331,28 +331,31 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
+        colorRangeFromModel: function(modelName) {
+
+            var model = appState.models[modelName];
+            var modelMap = model ? model.colorMap : null;
+
+            var modelDefaultMap;
+            var info = SIREPO.APP_SCHEMA.model[modelName];
+            if(info) {
+                var mapInfo = info.colorMap;
+                modelDefaultMap = mapInfo ? mapInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
+            }
+
+            return this.colorMapOrDefault(modelMap, modelDefaultMap);
+        },
 
         colorMapNameOrDefault: function (mapName, defaultMapName) {
             return mapName || defaultMapName || SIREPO.PLOTTING_COLOR_MAP || SIREPO.DEFAULT_COLOR_MAP;
         },
+
         colorMapOrDefault: function (mapName, defaultMapName) {
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
         initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData, modelName) {
-
-            var model = appState.models[modelName];
-            var modelColorMapName = model ? model.colorMap : null;
-            var info = SIREPO.APP_SCHEMA.model[modelName];
-            var infoColorMapName;
-            if(info) {
-                var mapInfo = info.colorMap;
-                infoColorMapName = mapInfo ? mapInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
-            }
-
-            srdbg('plotting.init image with map', modelColorMapName, 'default', infoColorMapName);
-
-            var colorRange = this.colorMapOrDefault(modelColorMapName, infoColorMapName);
+            var colorRange = this.colorRangeFromModel(modelName);
             var colorScale = d3.scale.linear()
                 .domain(linspace(zMin, zMax, colorRange.length))
                 .range(colorRange);
