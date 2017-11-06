@@ -335,7 +335,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender, plotting) {
+SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -374,7 +374,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               //   '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
               // '</div>',
               '<div data-ng-switch-when="ColorMap" class="col-sm-7">',
-                '<div data-color-map="" class="dropdown"></div>',
+                '<div data-color-map-menu="" class="dropdown"></div>',
               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
@@ -1135,7 +1135,7 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
-SIREPO.app.directive('colorMap', function(appState, plotting) {
+SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
 
     return {
         restrict: 'A',
