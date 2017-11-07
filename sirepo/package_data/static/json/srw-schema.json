@@ -535,7 +535,8 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "propagationParameters": {
             "0": ["Auto-resize before propagation", "Boolean", "0"],
@@ -1231,6 +1232,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
