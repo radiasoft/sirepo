@@ -441,7 +441,8 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -454,7 +455,8 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
@@ -615,7 +617,8 @@
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
@@ -697,7 +700,8 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         }
     },
     "view": {
@@ -1051,6 +1055,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1078,6 +1085,9 @@
                     "magneticField",
                     "method",
                     "precision"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1338,6 +1348,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1518,6 +1531,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         }

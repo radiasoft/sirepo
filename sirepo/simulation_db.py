@@ -239,6 +239,13 @@ def get_schema(sim_type):
             if model_field_name not in app_models[model_Name]:
                 app_models[model_Name][model_field_name] = common_models[model_Name][model_field_name]
 
+    # merge common enums into app models
+    common_enums = schema['commonEnums']
+    app_enums = schema['enum']
+    for enum_Name in common_enums:
+        if enum_Name not in app_enums:
+            app_enums[enum_Name] = common_enums[enum_Name]
+
     return schema
 
 

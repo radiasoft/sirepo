@@ -256,6 +256,49 @@
         box-shadow: 0 5px 15px rgba(0, 0, 0, .5);
     }
 
+    ul.sr-button-menu {
+        list-style: none;
+    }
+    li.sr-button-menu {
+        padding: 3px;
+    }
+
+    li.sr-button-menu > button.sr-button-menu-selected {
+        border-width: 1px;
+        border-style: solid;
+        border-color: #888888;
+        text-align: left;
+        color: white;
+        background-color: #337ab7;
+    }
+    li.sr-button-menu > button.sr-button-menu-selected:hover {
+        color: white;
+        background-color: #286090;
+    }
+
+    li.sr-button-menu > button.sr-button-menu-unselected {
+        border-width: 1px;
+        border-style: solid;
+        border-color: #888888;
+        text-align: left;
+        color: black;
+        background-color: #f5f5f5;
+    }
+    li.sr-button-menu > button.sr-button-menu-unselected:hover {
+        color: white;
+        background-color: #4897da;
+    }
+
+    .sr-color-map-indicator {
+        width: 64px;
+        height: 24px;
+        border-radius: 4px;
+        border-style: solid;
+        border-width: 1px;
+        vertical-align: middle;
+        display: inline-block;
+    }
+
     .sr-panel-heading {
       font-weight: 300;
       line-height: 1.4;

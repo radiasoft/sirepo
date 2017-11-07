@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
 SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
 
@@ -330,8 +331,31 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData) {
-            var colorRange = COLOR_MAP[SIREPO.PLOTTING_COLOR_MAP || 'viridis'];
+        colorRangeFromModel: function(modelName) {
+
+            var model = appState.models[modelName];
+            var modelMap = model ? model.colorMap : null;
+
+            var modelDefaultMap;
+            var info = SIREPO.APP_SCHEMA.model[modelName];
+            if(info) {
+                var mapInfo = info.colorMap;
+                modelDefaultMap = mapInfo ? mapInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
+            }
+
+            return this.colorMapOrDefault(modelMap, modelDefaultMap);
+        },
+
+        colorMapNameOrDefault: function (mapName, defaultMapName) {
+            return mapName || defaultMapName || SIREPO.PLOTTING_COLOR_MAP || SIREPO.DEFAULT_COLOR_MAP;
+        },
+
+        colorMapOrDefault: function (mapName, defaultMapName) {
+            return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
+        },
+
+        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData, modelName) {
+            var colorRange = this.colorRangeFromModel(modelName);
             var colorScale = d3.scale.linear()
                 .domain(linspace(zMin, zMax, colorRange.length))
                 .range(colorRange);
@@ -1289,7 +1313,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 }
                 bottomPanelYScale.domain([zmin, zmax]).nice();
                 rightPanelXScale.domain([zmax, zmin]).nice();
-                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
+                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, $scope.modelName);
                 $scope.resize();
             };
 
@@ -1381,7 +1405,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
             }
 
             function initDraw(zmin, zmax) {
-                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData);
+                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar = Colorbar()
                     .scale(colorScale)
                     .thickness(30)
