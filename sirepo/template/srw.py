@@ -986,7 +986,7 @@ def validate_delete_file(data, filename, file_type):
             t = v[1]
             if m[k] and t == field:
                 if m[k] == filename:
-                    return True;
+                    return True
     return False
 
 
@@ -1394,7 +1394,11 @@ def _generate_beamline_optics(models, last_id):
     want_final_propagation = True
 
     for item in models['beamline']:
+        is_disabled = 'isDisabled' in item and item['isDisabled']
         if last_element:
+            if is_disabled:
+                continue
+            # active element is past the selected watchpoint, don't include postPropagation
             want_final_propagation = False
             break
         if prev:
@@ -1403,7 +1407,7 @@ def _generate_beamline_optics(models, last_id):
             if size != 0:
                 res['el'] += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
                 res['pp'] += _propagation_params(res['propagation'][str(prev['id'])][1])
-        if 'isDisabled' in item and item['isDisabled']:
+        if is_disabled:
             pass
         elif item['type'] == 'sample':
             _generate_sample(res, item)
