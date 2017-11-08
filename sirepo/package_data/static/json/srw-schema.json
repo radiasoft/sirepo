@@ -508,7 +508,8 @@
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0]
+            "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -1184,6 +1185,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },

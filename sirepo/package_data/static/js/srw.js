@@ -1569,7 +1569,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         ].join(''),
         controller: function($scope) {
 
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale'];
+            //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap'];
             var multiElectronAnimation = null;
 
             function copyMultiElectronModel() {
