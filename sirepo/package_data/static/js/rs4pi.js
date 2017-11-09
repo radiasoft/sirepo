@@ -289,7 +289,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
               '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">RS4PI</a></div>',
             '</div>',
-            '<div data-app-header-left="nav"></div>',
+            '<div data-app-header-left="nav" data-simulations-link-text="Studies"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',
@@ -1496,8 +1496,10 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                                 doseFeature.load(data.dose_array);
                                 doseFeature.prepareImage({
                                     //TODO(pjm): allow adjusting dose colormap and ranges
-                                    center: appState.models.dicomDose.max / 8,
-                                    width: appState.models.dicomDose.max / 4,
+                                    // center: appState.models.dicomDose.max / 8,
+                                    // width: appState.models.dicomDose.max / 4,
+                                    center: appState.models.dicomDose.max / 4,
+                                    width: appState.models.dicomDose.max / 2,
                                 }, true);
                                 refresh();
                             }

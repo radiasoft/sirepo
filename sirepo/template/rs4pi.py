@@ -10,12 +10,14 @@ from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
+from scipy.ndimage.interpolation import zoom
 from sirepo import simulation_db
 from sirepo.template import template_common
 import ctypes
 import datetime
 import dicom
 import glob
+import h5py
 import numpy as np
 import os
 import os.path
@@ -104,6 +106,49 @@ def fixup_old_data(data):
         dvhReport = data['models']['dvhReport']
         dvhReport['dvhType'] = 'cumulative'
         dvhReport['dvhVolume'] = 'relative'
+
+
+def generate_rtdose_file(frame, dose_hd5):
+    with h5py.File(dose_hd5, 'r') as f:
+        start = f['/dose'].attrs['dicom_start_cm'] * 10
+        #TODO(pjm): assumes the size closely matches original dicom when scaled
+        # size = f['/dose'].attrs['voxel_size_cm'] * 10
+        ds = _create_dicom_dataset(frame['StudyInstanceUID'], 'RT_DOSE', 'RTDOSE')
+        pixels = np.array(f['/dose'])
+        shape = pixels.shape
+        # reshape the pixels in place: z is actually first
+        pixels.shape = (shape[2], shape[0], shape[1])
+        shape = pixels.shape
+        pixels = zoom(pixels, zoom=frame['shape']/shape, order=1)
+        shape = pixels.shape
+
+        ds.ImagePositionPatient = _string_list(start)
+        ds.PixelSpacing = _string_list([frame['spacing'][0], frame['spacing'][1]])
+        ds.Rows = shape[1]
+        ds.Columns = shape[2]
+        ds.NumberofFrames = shape[0]
+        ds.DoseUnits = 'GY'
+
+        pixels = pixels.flatten()
+        v = pixels.max()
+        max_int = np.iinfo(np.uint32).max - 1
+        scale = v / max_int
+        ds.DoseGridScaling = scale
+        pixels /= scale
+        ds.BitsAllocated = 32
+        ds.BitsStore = 32
+        ds.HightBit = 31
+        ds.PixelRepresentation = 0
+        ds.SamplesPerPixel = 1
+        ds.PixelData = pixels.astype(np.uint32)
+
+        # for pydicom
+        ds.PhotometricInterpretation = 'MONOCHROME2'
+        ds.DoseType = 'PHYSICAL'
+        ds.DoseSummationType = 'PLAN'
+        ds.ImageOrientationPatient = ['1.0', '0.0', '0.0', '0.0', '1.0', '0.0']
+        ds.GridFrameOffsetVector = np.linspace(0.0, frame['spacing'][2] * (shape[0] - 1), shape[0]).tolist()
+        return ds
 
 
 def get_animation_name(data):
@@ -248,11 +293,11 @@ def _compute_histogram(simulation, frames):
     simulation_db.write_json(filename, roi_data)
 
 
-def _create_dicom_dataset(frame_data):
+def _create_dicom_dataset(study_uid, dicom_class, modality):
     sop_uid = dicom.UID.generate_uid()
 
     file_meta = dicom.dataset.Dataset()
-    file_meta.MediaStorageSOPClassUID = _DICOM_CLASS['RT_STRUCT']
+    file_meta.MediaStorageSOPClassUID = _DICOM_CLASS[dicom_class]
     file_meta.MediaStorageSOPInstanceUID = sop_uid
     #TODO(pjm): need proper implementation uid
     file_meta.ImplementationClassUID = "1.2.3.4"
@@ -262,12 +307,12 @@ def _create_dicom_dataset(frame_data):
     now = datetime.datetime.now()
     ds.InstanceCreationDate = now.strftime('%Y%m%d')
     ds.InstanceCreationTime = now.strftime('%H%M%S.%f')
-    ds.SOPClassUID = _DICOM_CLASS['RT_STRUCT']
+    ds.SOPClassUID = _DICOM_CLASS[dicom_class]
     ds.SOPInstanceUID = sop_uid
     ds.StudyDate = ''
     ds.StudyTime = ''
     ds.AccessionNumber = ''
-    ds.Modality = 'RTSTRUCT'
+    ds.Modality = modality
     ds.Manufacturer = _RADIASOFT_ID
     ds.ReferringPhysiciansName = ''
     ds.ManufacturersModelName = _RADIASOFT_ID
@@ -275,13 +320,10 @@ def _create_dicom_dataset(frame_data):
     ds.PatientID = _RADIASOFT_ID
     ds.PatientsBirthDate = ''
     ds.PatientsSex = ''
-    ds.StudyInstanceUID = frame_data['StudyInstanceUID']
+    ds.StudyInstanceUID = study_uid
     ds.SeriesInstanceUID = dicom.UID.generate_uid()
     ds.StudyID = ''
     ds.SeriesNumber = ''
-    ds.StructureSetLabel = '{} Exported'.format(_RADIASOFT_ID)
-    ds.StructureSetDate = ds.InstanceCreationDate
-    ds.StructureSetTime = ds.InstanceCreationTime
     return ds
 
 
@@ -428,7 +470,10 @@ def _generate_rtstruct_file(sim_dir, target_dir):
     models = simulation_db.read_json(sim_dir.join(_ROI_FILE_NAME))['models']
     frame_data = models['dicomFrames']
     roi_data = models['regionsOfInterest']
-    plan = _create_dicom_dataset(frame_data)
+    plan = _create_dicom_dataset(frame_data['StudyInstanceUID'], 'RT_STRUCT', 'RTSTRUCT')
+    plan.StructureSetLabel = '{} Exported'.format(_RADIASOFT_ID)
+    plan.StructureSetDate = plan.InstanceCreationDate
+    plan.StructureSetTime = plan.InstanceCreationTime
     _generate_dicom_reference_frame_info(plan, frame_data)
     _generate_dicom_roi_info(plan, frame_data, roi_data)
     filename = str(target_dir.join(RTSTRUCT_EXPORT_FILENAME))
@@ -680,7 +725,7 @@ def _summarize_frames(frames):
 
 
 def _summarize_rt_dose(simulation, plan):
-    pixels =  np.float32(plan.pixel_array)
+    pixels = np.float32(plan.pixel_array)
     if plan.DoseGridScaling:
         pixels *= float(plan.DoseGridScaling)
     with open (_dose_filename(simulation), 'wb') as f:
