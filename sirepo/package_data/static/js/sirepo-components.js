@@ -1284,7 +1284,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                         return false;
                     }
                     if (appState.isAnimationModelName($scope.modelKey)) {
-                        return frameCache.getFrameCount() > 0;
+                        return frameCache.getFrameCount($scope.modelKey) > 0;
                     }
                     return ! panelState.isLoading($scope.modelKey);
                 }
