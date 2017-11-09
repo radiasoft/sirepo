@@ -127,7 +127,8 @@
         "beamAnimation": {
             "reportType": ["Report", "BeamReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "beamHistogramAnimation": {
             "reportType": ["Report", "BeamHistogramReportType"],
@@ -140,7 +141,8 @@
         },
         "beamReport": {
             "reportType": ["Report", "BeamReportType"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "cellElement": {
             "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
@@ -295,7 +297,8 @@
             "advanced": [
                 "reportType",
                 "histogramBins",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "beamHistogramAnimation": {
@@ -316,7 +319,8 @@
             "title": "Beam Report",
             "advanced": [
                 "reportType",
-                "histogramBins"
+                "histogramBins",
+                "colorMap"
             ]
         },
         "cellElement": {

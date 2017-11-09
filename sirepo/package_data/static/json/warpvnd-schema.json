@@ -63,10 +63,15 @@
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
-        "fieldReport": {},
-        "impactDensityAnimation": {},
+        "fieldReport": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "impactDensityAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"]
+        },
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
@@ -154,16 +159,21 @@
             "title": "Field Animation",
             "advanced": [
                 "field",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "fieldReport": {
             "title": "Field Report",
-            "advanced": []
+            "advanced": [
+                "colorMap"
+            ]
         },
         "impactDensityAnimation": {
             "title": "Impact Density",
-            "advanced": []
+            "advanced": [
+                "colorMap"
+            ]
         },
         "particleAnimation": {
             "title": "Particle Trace",

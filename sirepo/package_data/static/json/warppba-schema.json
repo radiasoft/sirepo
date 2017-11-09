@@ -186,18 +186,21 @@
             "uyMin": ["Minimum UY [mc]", "Float"],
             "uyMax": ["Maximum UY [mc]", "Float"],
             "uzMin": ["Minimum UZ [mc]", "Float"],
-            "uzMax": ["Maximum UZ [mc]", "Float"]
+            "uzMax": ["Maximum UZ [mc]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "laserPreviewReport": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
-            "mode": ["Mode", "FieldMode"]
+            "mode": ["Mode", "FieldMode"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "simulationStatus": {}
     },
@@ -337,7 +340,8 @@
                         "uyMax",
                         "uzMax"
                     ]]
-                ]
+                ],
+                "colorMap"
             ]
         },
         "fieldAnimation": {
@@ -346,7 +350,8 @@
                 "field",
                 "coordinate",
                 "mode",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "laserPreviewReport": {
@@ -354,7 +359,8 @@
             "advanced": [
                 "field",
                 "coordinate",
-                "mode"
+                "mode",
+                "colorMap"
             ]
         }
     }

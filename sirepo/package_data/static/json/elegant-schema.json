@@ -382,7 +382,8 @@
         "bunchReport": {
             "x": ["X Value", "PhaseSpaceCoordinate"],
             "y": ["Y Value", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"]
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "elementAnimation": {
             "x": ["X Value", "ValueList", ""],
@@ -391,7 +392,8 @@
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "fileId": ["File ID", "String", ""],
-            "values": ["Values", "Array", []]
+            "values": ["Values", "Array", []],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "parameterTable": {
             "file": ["File", "ValueList", ""],
@@ -3577,7 +3579,8 @@
             "advanced": [
                 "x",
                 "y",
-                "histogramBins"
+                "histogramBins",
+                "colorMap"
             ]
         },
         "beamline": {
@@ -3593,7 +3596,8 @@
                 "yFile",
                 "y",
                 "histogramBins",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "parameterTable": {

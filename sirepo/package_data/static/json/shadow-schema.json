@@ -515,7 +515,8 @@
             "horizontalSize": ["Horizontal Size [mm]", "Float"],
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"]
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "mirror": {
             "title": ["Element Name", "String", "Mirror"],
@@ -589,7 +590,8 @@
             "horizontalSize": ["Horizontal Size [mm]", "Float"],
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"]
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "rayFilter": {
             "f_bound_sour": ["Optimize Source", "BoundSource", "0"],
@@ -617,7 +619,8 @@
             "horizontalSize": ["Horizontal Size [mm]", "Float"],
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"]
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "wiggler": {
             "ph1": ["Minimum Energy [eV]", "Float", 20000.0],
@@ -995,7 +998,8 @@
                         "verticalSize",
                         "verticalOffset"
                     ]]
-                ]
+                ],
+                "colorMap"
             ]
         },
         "mirror": {
@@ -1107,7 +1111,8 @@
                         "verticalSize",
                         "verticalOffset"
                     ]]
-                ]
+                ],
+                "colorMap"
             ]
         },
         "simulation": {
@@ -1142,7 +1147,8 @@
                         "verticalSize",
                         "verticalOffset"
                     ]]
-                ]
+                ],
+                "colorMap"
             ]
         },
         "wiggler": {

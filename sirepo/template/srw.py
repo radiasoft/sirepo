@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
-from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from scipy.ndimage import zoom
 from sirepo import crystal
@@ -20,7 +19,6 @@ from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
 import glob
-import json
 import math
 import numpy as np
 import os
@@ -75,12 +73,74 @@ _EXAMPLE_FOLDERS = pkcollections.Dict({
     'Young\'s Double Slit Experiment': '/Wavefront Propagation',
 })
 
+# beamline element [template, fields, height profile name, height profile overwrite propagation]
+_ITEM_DEF = {
+    'aperture': [
+        'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
+        ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    ],
+    'crl': [
+        'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
+        ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness'],
+    ],
+    'crystal': [
+        'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
+        ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
+        'Cryst',
+        True,
+    ],
+    'ellipsoidMirror': [
+        'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+        ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+        'ElMirror',
+        True,
+    ],
+    'fiber': [
+        'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane={}, _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
+        ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
+    ],
+    'grating': [
+        'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
+        ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
+    ],
+    'lens': [
+        'srwlib.SRWLOptL({}, {}, {}, {})',
+        ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
+    ],
+    'mask': [
+        'srwlib.srwl_opt_setup_mask(_delta={}, _atten_len={}, _thick={}, _grid_sh={}, _grid_dx={}, _grid_dy={}, _pitch_x={}, _pitch_y={}, _grid_nx={}, _grid_ny={}, _mask_Nx={}, _mask_Ny={}, _grid_angle={}, _hx={}, _hy={}, _mask_x0={}, _mask_y0={})',
+        ['refractiveIndex', 'attenuationLength', 'maskThickness', 'gridShape', 'horizontalGridDimension', 'verticalGridDimension', 'horizontalGridPitch', 'verticalGridPitch', 'horizontalGridsNumber', 'verticalGridsNumber', 'horizontalPixelsNumber', 'verticalPixelsNumber', 'gridTiltAngle', 'horizontalSamplingInterval', 'verticalSamplingInterval', 'horizontalMaskCoordinate', 'verticalMaskCoordinate'],
+    ],
+    'mirror': [
+        '',
+        '',
+        'Mirror',
+        False,
+    ],
+    'obstacle': [
+        'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
+        ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    ],
+    'sphericalMirror': [
+        'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+        ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+        'SphMirror',
+        True,
+    ],
+    'toroidalMirror': [
+        'srwlib.SRWLOptMirTor(_rt={}, _rs={}, _size_tang={}, _size_sag={}, _x={}, _y={}, _ap_shape="{}", _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
+        ['tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+        'TorMirror',
+        True,
+    ],
+}
+
 #: Where server files and static files are found
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -646,6 +706,15 @@ def get_filename_for_model(model):
     return _DATA_FILE_FOR_MODEL[model]['filename']
 
 
+def get_mirror_profile_name_list():
+    mirror_names = []
+    for k in _ITEM_DEF:
+        item_def = _ITEM_DEF[k]
+        if len(item_def) > 2:
+            mirror_names.append(item_def[2])
+    return mirror_names
+
+
 def get_predefined_beams():
     return _PREDEFINED['beams']
 
@@ -709,30 +778,6 @@ def lib_files(data, source_lib, report=None):
                 if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
                     res.append(m[k])
     return template_common.internal_lib_files(res, source_lib)
-
-
-def _report_fields(data, report_name):
-    # if the model has "style" fields, then return the full list of non-style fields
-    # otherwise returns the report name (which implies all model fields)
-    m = data.models[report_name]
-    for style_field in _REPORT_STYLE_FIELDS:
-        if style_field not in m:
-            continue
-        res = []
-        for f in m:
-            if f in _REPORT_STYLE_FIELDS:
-                continue
-            res.append('{}.{}'.format(report_name, f))
-        return res
-    return [report_name]
-
-
-def _lib_file_datetime(filename):
-    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
-    if path.exists():
-        return path.mtime()
-    pkdlog('error, missing lib file: {}', path)
-    return 0
 
 
 def models_related_to_report(data):
@@ -824,14 +869,6 @@ def prepare_aux_files(run_dir, data):
         m.save_file(str(run_dir), f, content)
     data['models']['tabulatedUndulator']['magnMeasFolder'] = m.index_dir if m.index_dir else './'
     data['models']['tabulatedUndulator']['indexFileName'] = m.index_file
-
-
-def _create_user_model(data, model_name):
-    model = data['models'][model_name]
-    if model_name == 'tabulatedUndulator':
-        model = model.copy()
-        model['undulator'] = data['models']['undulator']
-    return model
 
 
 def prepare_for_client(data):
@@ -949,7 +986,7 @@ def validate_delete_file(data, filename, file_type):
             t = v[1]
             if m[k] and t == field:
                 if m[k] == filename:
-                    return True;
+                    return True
     return False
 
 
@@ -1019,10 +1056,21 @@ def _add_report_filenames(v):
 
 
 def _beamline_element(template, item, fields, propagation, shift=''):
-    return '{}    el.append({})'.format(
-        shift,
-        template.format(*map(lambda x: item[x], fields))
-    ), _propagation_params(propagation[str(item['id'])][0], shift)
+    el = template.format(*map(lambda x: item[x], fields))
+    pp = _propagation_params(propagation[str(item['id'])][0], shift)
+    # special case for crystal elements
+    if item['type'] == 'crystal':
+        el = '''
+    opCr = {}
+    # Set crystal orientation:
+    opCr.set_orient({}, {}, {}, {}, {})
+    el.append(opCr)\n'''.format(
+        el,
+        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
+    )
+    else:
+        el = '{}    el.append({})'.format(shift, el)
+    return el, pp
 
 
 def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
@@ -1033,6 +1081,7 @@ def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator
             return -0.5 * float(undulator_length) - 2 * float(undulator_period)
         return 0
     return ebeam_position['drift']
+
 
 def _compute_crl_characteristics(model, photon_energy, prefix=''):
     fields_with_prefix = pkcollections.Dict({
@@ -1245,28 +1294,12 @@ def _copy_lib_files(data, source_lib, target, report=None):
             f.copy(path)
 
 
-def _crystal_element(template, item, fields, propagation):
-    """The function prepares the code for processing of the crystal element.
-
-    Args:
-        template: template for SRWLOptCryst().
-        item: dictionary with parameters of the crystal.
-        fields: fields of the crystal.
-        propagation: propagation list for the crystal.
-
-    Returns:
-        res: the resulted block of text.
-    """
-
-    res = '''
-    opCr = {}
-    # Set crystal orientation:
-    opCr.set_orient({}, {}, {}, {}, {})
-    el.append(opCr)\n'''.format(
-        template.format(*map(lambda x: item[x], fields)),
-        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
-    )
-    return res, _propagation_params(propagation[str(item['id'])][0])
+def _create_user_model(data, model_name):
+    model = data['models'][model_name]
+    if model_name == 'tabulatedUndulator':
+        model = model.copy()
+        model['undulator'] = data['models']['undulator']
+    return model
 
 
 def _delete_user_models(electron_beam, tabulated_undulator):
@@ -1348,233 +1381,73 @@ def _find_index_file(zip_object):
 
 
 def _generate_beamline_optics(models, last_id):
-    beamline = models['beamline']
-    propagation = models['propagation']
-    res_el = '    el = []\n'
-    res_pp = '    pp = []\n'
-
+    res = {
+        'el': '    el = []\n',
+        'pp': '    pp = []\n',
+        'propagation': models['propagation'],
+        'height_profile_counter': 1,
+        'sample_counter': 1,
+    }
     prev = None
     has_item = False
     last_element = False
     want_final_propagation = True
 
-    height_profile_counter = 1
-    sample_counter = 1
-    for item in beamline:
+    for item in models['beamline']:
+        is_disabled = 'isDisabled' in item and item['isDisabled']
         if last_element:
+            if is_disabled:
+                continue
+            # active element is past the selected watchpoint, don't include postPropagation
             want_final_propagation = False
             break
         if prev:
             has_item = True
             size = item['position'] - prev['position']
             if size != 0:
-                res_el += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
-                res_pp += _propagation_params(propagation[str(prev['id'])][1])
-        if 'isDisabled' in item and item['isDisabled']:
+                res['el'] += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
+                res['pp'] += _propagation_params(res['propagation'][str(prev['id'])][1])
+        if is_disabled:
             pass
-        elif item['type'] == 'aperture':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
-                item,
-                ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'crl':
-            el, pp = _beamline_element(
-                'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
-                item,
-                ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'crystal':
-            el, pp = _crystal_element(
-                'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
-                item,
-                ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
-                propagation)
-            res_el += el
-            res_pp += pp
-
-            el, pp = _height_profile_element(
-                item,
-                propagation,
-                overwrite_propagation=True,
-                height_profile_el_name='Cryst{}'.format(height_profile_counter)
-            )
-            if pp:
-                height_profile_counter += 1
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'ellipsoidMirror':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-                item,
-                ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
-                propagation)
-            res_el += el
-            res_pp += pp
-
-            el, pp = _height_profile_element(
-                item,
-                propagation,
-                overwrite_propagation=True,
-                height_profile_el_name='ElMirror{}'.format(height_profile_counter)
-            )
-            if pp:
-                height_profile_counter += 1
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'fiber':
-            el, pp = _beamline_element(
-                'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane={}, _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
-                item,
-                ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'grating':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
-                item,
-                ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'lens':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptL({}, {}, {}, {})',
-                item,
-                ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'mask':
-            el, pp = _beamline_element(
-                '''srwlib.srwl_opt_setup_mask(_delta={}, _atten_len={}, _thick={}, _grid_sh={},
-                                         _grid_dx={}, _grid_dy={}, _pitch_x={}, _pitch_y={},
-                                         _grid_nx={}, _grid_ny={}, _mask_Nx={}, _mask_Ny={},
-                                         _grid_angle={}, _hx={}, _hy={},
-                                         _mask_x0={}, _mask_y0={})''',
-                item,
-                ['refractiveIndex', 'attenuationLength', 'maskThickness', 'gridShape',
-                 'horizontalGridDimension', 'verticalGridDimension', 'horizontalGridPitch', 'verticalGridPitch',
-                 'horizontalGridsNumber', 'verticalGridsNumber', 'horizontalPixelsNumber', 'verticalPixelsNumber',
-                 'gridTiltAngle', 'horizontalSamplingInterval', 'verticalSamplingInterval',
-                 'horizontalMaskCoordinate', 'verticalMaskCoordinate'],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'mirror':
-            el, pp = _height_profile_element(
-                item,
-                propagation,
-                height_profile_el_name='Mirror{}'.format(height_profile_counter)
-            )
-            if pp:
-                height_profile_counter += 1
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'obstacle':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
-                item,
-                ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-                propagation)
-            res_el += el
-            res_pp += pp
         elif item['type'] == 'sample':
-            file_name = 'op_sample{}'.format(sample_counter)
-            area = '{}'.format(None if not bool(int(item['cropArea'])) else (item['areaXStart'], item['areaXEnd'], item['areaYStart'], item['areaYEnd']))
-            tile = '{}'.format(None if not bool(int(item['tileImage'])) else (item['tileRows'], item['tileColumns']))
-            rotate_reshape = '{}'.format(bool(int(item['rotateReshape'])))
-            invert = '{}'.format(bool(int(item['invert'])))
-            sample_counter += 1
-            el, pp = _beamline_element(
-                """srwl_uti_smp.srwl_opt_setup_transm_from_file(
-                    file_path=v.""" + file_name + """,
-                    resolution={},
-                    thickness={},
-                    delta={},
-                    atten_len={},
-                    xc={}, yc={},
-                    area=""" + area + """,
-                    rotate_angle={}, rotate_reshape=""" + rotate_reshape + """,
-                    cutoff_background_noise={},
-                    background_color={},
-                    tile=""" + tile + """,
-                    shift_x={}, shift_y={},
-                    invert=""" + invert + """,
-                    is_save_images=True,
-                    prefix='""" + file_name + """',
-                    output_image_format='{}',
-                    )""",
-                item,
-                ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
-                 'horizontalCenterCoordinate', 'verticalCenterCoordinate',
-                 'rotateAngle',
-                 'cutoffBackgroundNoise',
-                 'backgroundColor',
-                 'shiftX', 'shiftY',
-                 'outputImageFormat',
-                 ],
-                propagation)
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'sphericalMirror':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-                item,
-                ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
-                propagation)
-            res_el += el
-            res_pp += pp
-
-            el, pp = _height_profile_element(
-                item,
-                propagation,
-                overwrite_propagation=True,
-                height_profile_el_name='SphMirror{}'.format(height_profile_counter)
-            )
-            if pp:
-                height_profile_counter += 1
-            res_el += el
-            res_pp += pp
-        elif item['type'] == 'toroidalMirror':
-            el, pp = _beamline_element(
-                'srwlib.SRWLOptMirTor(_rt={}, _rs={}, _size_tang={}, _size_sag={}, _x={}, _y={}, _ap_shape="{}", _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-                item,
-                ['tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
-                propagation)
-            res_el += el
-            res_pp += pp
-
-            el, pp = _height_profile_element(
-                item,
-                propagation,
-                overwrite_propagation=True,
-                height_profile_el_name='TorMirror{}'.format(height_profile_counter)
-            )
-            if pp:
-                height_profile_counter += 1
-            res_el += el
-            res_pp += pp
+            _generate_sample(res, item)
         elif item['type'] == 'watch':
             if not has_item:
-                res_el += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
-                res_pp += _propagation_params(propagation[str(item['id'])][0])
+                res['el'] += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
+                res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
             if last_id and last_id == int(item['id']):
                 last_element = True
+        else:
+            _generate_item(res, item)
         prev = item
-        res_el += '\n'
-        res_pp += '\n'
+        res['el'] += '\n'
+        res['pp'] += '\n'
 
     # final propagation parameters
     if want_final_propagation:
-        res_pp += _propagation_params(models['postPropagation'])
+        res['pp'] += _propagation_params(models['postPropagation'])
 
-    return res_el + res_pp + '    return srwlib.SRWLOptC(el, pp)'
+    return res['el'] + res['pp'] + '    return srwlib.SRWLOptC(el, pp)'
+
+
+def _generate_item(res, item):
+    item_def = _ITEM_DEF[item['type']]
+    if item_def[0]:
+        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'])
+        res['el'] += el
+        res['pp'] += pp
+
+    if len(item_def) >= 3:
+        el, pp = _height_profile_element(
+            item,
+            res['propagation'],
+            '{}{}'.format(item_def[2], res['height_profile_counter']),
+            item_def[3],
+        )
+        if pp:
+            res['height_profile_counter'] += 1
+        res['el'] += el
+        res['pp'] += pp
 
 
 def _generate_parameters_file(data, plot_reports=False):
@@ -1658,6 +1531,46 @@ def _generate_parameters_file(data, plot_reports=False):
     return pkjinja.render_resource('srw.py', v)
 
 
+def _generate_sample(res, item):
+    file_name = 'op_sample{}'.format(res['sample_counter'])
+    area = '{}'.format(None if not bool(int(item['cropArea'])) else (item['areaXStart'], item['areaXEnd'], item['areaYStart'], item['areaYEnd']))
+    tile = '{}'.format(None if not bool(int(item['tileImage'])) else (item['tileRows'], item['tileColumns']))
+    rotate_reshape = '{}'.format(bool(int(item['rotateReshape'])))
+    invert = '{}'.format(bool(int(item['invert'])))
+    res['sample_counter'] += 1
+    el, pp = _beamline_element(
+        """srwl_uti_smp.srwl_opt_setup_transm_from_file(
+                    file_path=v.""" + file_name + """,
+                    resolution={},
+                    thickness={},
+                    delta={},
+                    atten_len={},
+                    xc={}, yc={},
+                    area=""" + area + """,
+                    rotate_angle={}, rotate_reshape=""" + rotate_reshape + """,
+                    cutoff_background_noise={},
+                    background_color={},
+                    tile=""" + tile + """,
+                    shift_x={}, shift_y={},
+                    invert=""" + invert + """,
+                    is_save_images=True,
+                    prefix='""" + file_name + """',
+                    output_image_format='{}',
+                    )""",
+        item,
+        ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
+         'horizontalCenterCoordinate', 'verticalCenterCoordinate',
+         'rotateAngle',
+         'cutoffBackgroundNoise',
+         'backgroundColor',
+         'shiftX', 'shiftY',
+         'outputImageFormat',
+        ],
+        res['propagation'])
+    res['el'] += el
+    res['pp'] += pp
+
+
 def _generate_srw_main(report, run_all, plot_reports):
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
@@ -1706,7 +1619,7 @@ def _get_first_element_position(data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
-def _height_profile_element(item, propagation, overwrite_propagation=False, height_profile_el_name='Mirror'):
+def _height_profile_element(item, propagation, height_profile_el_name, overwrite_propagation):
     shift = '    '
     if overwrite_propagation:
         if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
@@ -1811,6 +1724,14 @@ def _is_user_defined_model(ebeam):
     if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
         return False
     return True
+
+
+def _lib_file_datetime(filename):
+    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
+    if path.exists():
+        return path.mtime()
+    pkdlog('error, missing lib file: {}', path)
+    return 0
 
 
 def _load_user_model_list(model_name):
@@ -1988,6 +1909,22 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         'title': info['title'],
         'z_matrix': ar2d.tolist(),
     })
+
+
+def _report_fields(data, report_name):
+    # if the model has "style" fields, then return the full list of non-style fields
+    # otherwise returns the report name (which implies all model fields)
+    m = data.models[report_name]
+    for style_field in _REPORT_STYLE_FIELDS:
+        if style_field not in m:
+            continue
+        res = []
+        for f in m:
+            if f in _REPORT_STYLE_FIELDS:
+                continue
+            res.append('{}.{}'.format(report_name, f))
+        return res
+    return [report_name]
 
 
 def _save_user_model_list(model_name, beam_list):
