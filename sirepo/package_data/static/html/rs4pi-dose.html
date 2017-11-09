@@ -22,14 +22,14 @@
               <button class="btn btn-default" data-ng-click="dose.cancelSimulation()">Cancel Computation</button>
             </div>
           </div>
-            
+
           <div data-ng-hide="dose.isBusy()" data-compute-dose-form=""></div>
         </div>
       </div>
-      <div data-ng-if="dose.hasDoseFrames()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.isBusy()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
     </div>
     <div class="col-md-5 col-sm-6">
-      <div data-ng-if="dose.hasDoseFrames()" data-report-panel="2d" data-model-name="dvhReport"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.isBusy()" data-report-panel="2d" data-model-name="dvhReport"></div>
     </div>
   </div>
 </div>

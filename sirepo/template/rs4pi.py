@@ -29,6 +29,7 @@ import werkzeug
 import zipfile
 
 RTSTRUCT_EXPORT_FILENAME = 'rtstruct.dcm'
+RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
 SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
@@ -42,7 +43,7 @@ _DICOM_CLASS = {
 _DICOM_DIR = 'dicom'
 _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
-_DOSE_DICOM_FILE = 'dose.dcm'
+_DOSE_DICOM_FILE = RTDOSE_EXPORT_FILENAME
 _DOSE_FILE = 'dose3d.dat'
 _EXPECTED_ORIENTATION = np.array([1, 0, 0, 0, 1, 0])
 # using np.float32 for pixel storage
@@ -167,8 +168,11 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
+    if model == 'dicomAnimation4':
+        with open(str(run_dir.join('..', _DOSE_DICOM_FILE))) as f:
+            return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
     tmp_dir = simulation_db.tmp_dir()
-    filename = _generate_rtstruct_file(run_dir.join('..'), tmp_dir)
+    filename, _ = _generate_rtstruct_file(run_dir.join('..'), tmp_dir)
     with open (filename, 'rb') as f:
         dicom_data = f.read()
     pkio.unchecked_remove(tmp_dir)
@@ -385,7 +389,7 @@ def _extract_series_frames(simulation, dicom_dir):
     if not selected_series:
         raise RuntimeError('No series found with {} orientation'.format(_EXPECTED_ORIENTATION))
     if rt_struct_path:
-        res['selectedPTV'] = _summarize_rt_structure(simulation, dicom.read_file(rt_struct_path), frames.keys())
+        res['regionsOfInterest'] = _summarize_rt_structure(simulation, dicom.read_file(rt_struct_path), frames.keys())
     sorted_frames = []
     res['frames'] = sorted_frames
     for z in sorted(_float_list(frames.keys())):
@@ -644,8 +648,18 @@ def _summarize_dicom_files(data, dicom_dir):
     time_stamp = int(time.time())
     for m in ('dicomAnimation', 'dicomAnimation2', 'dicomAnimation3', 'dicomAnimation4'):
         data['models'][m]['startTime'] = time_stamp
-    if 'selectedPTV' in info and info['selectedPTV']:
-        data['models']['doseCalculation']['selectedPTV'] = info['selectedPTV']
+    if 'regionsOfInterest' in info:
+        dose_calc = data['models']['doseCalculation']
+        selectedPTV = None
+        dose_calc['selectedOARs'] = []
+        for roi_number in sorted(info['regionsOfInterest']):
+            roi = info['regionsOfInterest'][roi_number]
+            if not selectedPTV or re.search(r'\bptv\b', roi['name'], re.IGNORECASE):
+                selectedPTV = str(roi_number)
+            dose_calc['selectedOARs'].append(str(roi_number))
+        if selectedPTV:
+            dose_calc['selectedPTV'] = selectedPTV
+            data['models']['dvhReport']['roiNumber'] = selectedPTV
     if 'dose_info' in info:
         data['models']['dicomDose'] = info['dose_info']
     _compute_histogram(simulation, frames)
@@ -746,26 +760,18 @@ def _summarize_rt_dose(simulation, plan):
 
 
 def _summarize_rt_structure(simulation, plan, frame_ids):
-    data = {
-        'models': {},
-    }
-    selectedPTV = None
     rois = {}
     for roi in plan.StructureSetROISequence:
         rois[roi.ROINumber] = {
             'name': roi.ROIName,
         }
-    res = data['models']['regionsOfInterest'] = {}
+    res = {}
     for roi_contour in plan.ROIContourSequence:
         roi = rois[roi_contour.ReferencedROINumber]
         if 'contour' in roi:
             raise RuntimeError('duplicate contour sequence for roi')
         if not hasattr(roi_contour, 'ContourSequence'):
             continue
-        res[roi_contour.ReferencedROINumber] = roi
-        roi['color'] = roi_contour.ROIDisplayColor
-        if re.search(r'\bptv\b', roi['name'], re.IGNORECASE):
-            selectedPTV = str(roi_contour.ReferencedROINumber)
         roi['contour'] = {}
         for contour in roi_contour.ContourSequence:
             if contour.ContourGeometricType != 'CLOSED_PLANAR':
@@ -782,8 +788,16 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
                 if ct_id not in roi['contour']:
                     roi['contour'][ct_id] = []
                 roi['contour'][ct_id].append(contour_data)
-    simulation_db.write_json(_roi_file(simulation['simulationId']), data)
-    return selectedPTV
+        if roi['contour']:
+            roi['color'] = roi_contour.ROIDisplayColor
+            res[roi_contour.ReferencedROINumber] = roi
+
+    simulation_db.write_json(_roi_file(simulation['simulationId']), {
+        'models': {
+            'regionsOfInterest': res,
+        },
+    })
+    return res
 
 
 def _update_roi_file(sim_id, contours):

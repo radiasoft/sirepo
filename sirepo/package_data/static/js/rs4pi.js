@@ -361,9 +361,9 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
         restrict: 'A',
         template: [
             '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
-              '<table class="table table-striped table-condensed" style="margin:0">',
+              '<table class="table table-condensed table-hover" style="margin:0">',
                 '<tbody>',
-                  '<tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index">',
+                  '<tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index" data-ng-click="toggleROI(roi)">',
                     '<td>{{ roi.name }}</td>',
                     '<td><input type="checkbox" data-ng-checked="isSelected(roi)" data-ng-click="toggleROI(roi)"></td>',
                   '</tr>',
