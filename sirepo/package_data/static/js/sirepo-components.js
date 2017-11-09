@@ -1323,10 +1323,11 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
         restrict: 'A',
         scope: {
             nav: '=appHeaderLeft',
+            simulationsLinkText: '@',
         },
         template: [
             '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
-              '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> Simulations</a></li>',
+              '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
                 '<a href data-ng-click="nav.showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
@@ -1334,6 +1335,9 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
             '</div>',
         ].join(''),
         controller: function($scope) {
+            if (! $scope.simulationsLinkText) {
+                $scope.simulationsLinkText = 'Simulations';
+            }
             $scope.showMenu = function() {
                 return ! SIREPO.IS_LOGGED_OUT;
             };
