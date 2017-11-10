@@ -1197,7 +1197,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav navbar-right">',
+                '<ul class="nav navbar-nav sr-navbar-right">',
                   '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
                 '</ul>',
               '</app-header-right-sim-list>',
