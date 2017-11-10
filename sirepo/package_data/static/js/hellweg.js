@@ -328,7 +328,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
-                //'<ul class="nav navbar-nav navbar-right">',
+                //'<ul class="nav navbar-nav sr-navbar-right">',
                 //  '<li>App-specific items</li>',
                 //'</ul>',
               '</app-header-right-sim-list>',

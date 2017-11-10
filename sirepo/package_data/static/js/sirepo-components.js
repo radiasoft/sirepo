@@ -451,7 +451,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
 
     var sr_login_notify_cookie = 'net.sirepo.login_notify_timeout';
     var sr_login_notify_timeout = 1*24*60*60*1000;
-    var sr_login_notify_content = '<strong>Log in to persist your workspace</strong> <span class="glyphicon glyphicon-hand-up"></span>';
+    var sr_login_notify_content = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
 
     return {
         restrict: 'A',
@@ -1443,19 +1443,21 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
             nav: '=appHeaderRight',
         },
         template: [
-            '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
-              '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
-              '<li data-settings-menu="nav">',
-                '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
-              '</li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-              '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
-            '</ul>',
+            '<div class="nav sr-navbar-right-flex">',
+                '<ul class="nav navbar-nav" data-ng-show="isLoaded()">',
+                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+                    '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
+                    '<li data-settings-menu="nav">',
+                        '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
+                    '</li>',
+                '</ul>',
+                '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
+                    '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+                    '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
+                    '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
+                '</ul>',
+                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
+            '</div>',
         ].join(''),
         link: function(scope) {
            scope.nav.isLoaded = scope.isLoaded;
