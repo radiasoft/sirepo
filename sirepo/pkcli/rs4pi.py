@@ -44,12 +44,8 @@ def _run_dose_calculation(data, cfg_dir):
 
 
 def _run_dvh(data, cfg_dir):
-    roi_number = data['models']['dvhReport']['roiNumber']
-    #TODO(pjm): remove this check
-    if not roi_number:
-        roi_number = '14'
-    roi_number = int(roi_number)
-
+    #TODO(pjm): graph group, also handle no-selection
+    roi_number = int(data['models']['dvhReport']['roiNumbers'][0])
     dp = dicomparser.DicomParser(_parent_file(cfg_dir, template.RTSTRUCT_EXPORT_FILENAME))
     for roi in dp.ds.ROIContourSequence:
         if (roi.ReferencedROINumber == roi_number):
@@ -62,14 +58,13 @@ def _run_dvh(data, cfg_dir):
 
     rtdose = dicomparser.DicomParser(_parent_file(cfg_dir, template._DOSE_DICOM_FILE))
     calcdvh = dvhcalc.calculate_dvh(s, rtdose, None, True, None)
-    counts=calcdvh.histogram
+    counts = calcdvh.histogram
     # cumulative
     counts = counts[::-1].cumsum()[::-1]
     # relative volume
     if len(counts) and counts.max() > 0:
         counts = 100 * counts / counts.max()
     bins = np.arange(0, calcdvh.histogram.size + 1.0) / 100.0
-    bincenters = 0.5 * (bins[1:] + bins[:-1])
     res = {
         'title': s['name'],
         'x_range': [bins[0], bins[-1], 100],

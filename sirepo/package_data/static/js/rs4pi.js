@@ -10,7 +10,7 @@ SIREPO.appFieldEditors = [
         '<div data-roi-selector="" data-field="model[field]"></div>',
     '</div>',
     '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
-        '<div data-roi-selection-list="" data-field="model[field]"></div>',
+        '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
     '</div>',
 ].join('');
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -357,6 +357,7 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
     return {
         scope: {
             field: '=',
+            modelName: '=',
         },
         restrict: 'A',
         template: [
@@ -365,7 +366,7 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
                 '<tbody>',
                   '<tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index" data-ng-click="toggleROI(roi)">',
                     '<td>{{ roi.name }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(roi)" data-ng-click="toggleROI(roi)"></td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(roi)"></td>',
                   '</tr>',
                 '</tbody>',
               '</table>',
@@ -377,9 +378,12 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
             }
             $scope.canSelectROI = function(roi) {
                 if (appState.isLoaded()) {
-                    return roi.roiNumber != appState.models.doseCalculation.selectedPTV;
+                    if ($scope.modelName == 'doseCalculation') {
+                        return roi.roiNumber != appState.models.doseCalculation.selectedPTV;
+                    }
+                    return true;
                 }
-                return true;
+                return false;
             };
             $scope.isSelected = function(roi) {
                 if ($scope.field) {

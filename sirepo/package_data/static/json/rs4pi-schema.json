@@ -48,7 +48,7 @@
             "selectedOARs": ["OAR", "ROIArray"]
         },
         "dvhReport": {
-            "roiNumber": ["ROI", "ROI"],
+            "roiNumbers": ["ROIs to Plot", "ROIArray"],
             "dvhType": ["DVH Type", "DVHType"],
             "dvhVolume": ["DVH Volume", "DVHVolume"]
         },
@@ -104,7 +104,7 @@
         "dvhReport": {
             "title": "DVH",
             "advanced": [
-                "roiNumber",
+                "roiNumbers",
                 "dvhType",
                 "dvhVolume"
             ]

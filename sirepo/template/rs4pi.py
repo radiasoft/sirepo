@@ -107,6 +107,11 @@ def fixup_old_data(data):
         dvhReport = data['models']['dvhReport']
         dvhReport['dvhType'] = 'cumulative'
         dvhReport['dvhVolume'] = 'relative'
+    if 'roiNumbers' not in data['models']['dvhReport']:
+        dvhReport = data['models']['dvhReport']
+        if dvhReport['roiNumber']:
+            dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
+        del dvhReport['roiNumber']
 
 
 def generate_rtdose_file(frame, dose_hd5):
@@ -245,18 +250,18 @@ def write_parameters(data, schema, run_dir, is_parallel):
         if data['report'] == 'doseCalculation':
             dose_info = data.models.doseCalculation
             roi_data = roi_models['regionsOfInterest']
-            ptvName = ''
-            oarNames = []
-            for roiNumber in roi_data:
-                if roiNumber == dose_info.selectedPTV:
-                    ptvName = roi_data[roiNumber]['name']
-                elif roiNumber in dose_info.selectedOARs:
-                    oarNames.append(roi_data[roiNumber]['name'])
+            ptv_name = ''
+            oar_names = []
+            for roi_number in roi_data:
+                if roi_number == dose_info.selectedPTV:
+                    ptv_name = roi_data[roi_number]['name']
+                elif roi_number in dose_info.selectedOARs:
+                    oar_names.append(roi_data[roi_number]['name'])
             simulation_db.write_json(
                 run_dir.join(PRESCRIPTION_FILENAME),
                 {
-                    'ptv': ptvName,
-                    'oar': oarNames,
+                    'ptv': ptv_name,
+                    'oar': oar_names,
                 })
 
 
@@ -659,7 +664,7 @@ def _summarize_dicom_files(data, dicom_dir):
             dose_calc['selectedOARs'].append(str(roi_number))
         if selectedPTV:
             dose_calc['selectedPTV'] = selectedPTV
-            data['models']['dvhReport']['roiNumber'] = selectedPTV
+            data['models']['dvhReport']['roiNumbers'] = [selectedPTV]
     if 'dose_info' in info:
         data['models']['dicomDose'] = info['dose_info']
     _compute_histogram(simulation, frames)
