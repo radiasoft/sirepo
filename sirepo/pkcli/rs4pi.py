@@ -5,17 +5,20 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from dicompylercore import dicomparser, dvhcalc
 from pykern import pkio
+from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc
+from sirepo import feature_config
 from sirepo import simulation_db
 from sirepo.template import template_common
-from dicompylercore import dicomparser, dvhcalc
 import numpy as np
 import py.path
 import sirepo.template.rs4pi as template
 
 
 def run(cfg_dir):
+    cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data['report'] == 'doseCalculation':
         _run_dose_calculation(data, cfg_dir)
@@ -31,10 +34,18 @@ def run_background(cfg_dir):
 
 
 def _parent_file(cfg_dir, filename):
-    return str(py.path.local(cfg_dir).join('..').join(filename))
+    return str(pkio.py_path(cfg_dir.dirname).join(filename))
 
 
 def _run_dose_calculation(data, cfg_dir):
+    if not feature_config.cfg.rs4pi_dose_calc:
+        return _run_dose_calculation_fake(data, cfg_dir)
+    with pkio.save_chdir(cfg_dir):
+        pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
+        template.generate_rtdose_file(None, cfg_dir.join('Full_Dose.h5'))
+
+
+def _run_dose_calculation_fake(data, cfg_dir):
     roiNumber = data['models']['doseCalculation']['selectedPTV']
     #TODO(pjm): rtstruct dicom file is available at template.RTSTRUCT_EXPORT_FILENAME
     # run dose calculation for the selected roiNumber

@@ -1,0 +1,42 @@
+#!/bin/bash
+set -eu -o pipefail
+set -x
+beamlist='{{ beamlist }}'
+prescription='{{ prescription }}'
+dicom_zip='{{ dicom_zip }}'
+
+# hardwired for now
+rs4pi_d=$HOME/src/radiasoft/rs4pi
+dosecalc_d=$rs4pi_d/dosecalc_gpu/build
+fmo=( python $rs4pi_d/treatmentPlanning/pythonCode/treatmentPlanning.py )
+precomp=$dosecalc_d/mgcs-omni-precomp/mgcs_omni_precomp
+omnidose=$dosecalc_d/mgcs-omnidose/mgcs_omnidose
+omnidose_full=$dosecalc_d/mgcs-omnidose-full/mgcs_omnidose_full
+
+for f in dsa spectra; do
+    if [[ ! -d $f ]]; then
+        cp -a "$dosecalc_d/../data/$f" .
+    fi
+done
+mkdir -p temp
+for f in data results; do
+    test -L "$f" || ln -s . "$f"
+done
+if [[ ! -d dicom_d ]]; then
+    mkdir dicom_d
+    cd dicom_d
+    unzip -q -j "$dicom_zip"
+    cd ..
+fi
+# TODO(robnagler) if $prescription doesn't change, then just return Full_Dose.h5
+"$precomp" --dicom=dicom_d \
+    --beamlist="$beamlist" \
+    --structures="$prescription"
+"$omnidose" --beamlist="$beamlist" \
+    --out=coefficients
+"${fmo[@]}" \
+    --overwrite --out=fmo.h5 \
+    coefficients.h5
+"$precomp" --dicom=dicom_d --fmaps=fmo.h5
+# output is hardwired to data/results/Full_Dose.h5 (see template/rs4pi.py)
+"$omnidose_full"/mgcs_omnidose_full
