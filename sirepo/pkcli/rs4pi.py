@@ -42,7 +42,7 @@ def _run_dose_calculation(data, cfg_dir):
         return _run_dose_calculation_fake(data, cfg_dir)
     with pkio.save_chdir(cfg_dir):
         pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
-        template.generate_rtdose_file(None, cfg_dir.join('Full_Dose.h5'))
+        template.generate_rtdose_file(cfg_dir)
 
 
 def _run_dose_calculation_fake(data, cfg_dir):

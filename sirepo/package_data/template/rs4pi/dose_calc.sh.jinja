@@ -39,4 +39,5 @@ fi
     coefficients.h5
 "$precomp" --dicom=dicom_d --fmaps=fmo.h5
 # output is hardwired to data/results/Full_Dose.h5 (see template/rs4pi.py)
-"$omnidose_full"/mgcs_omnidose_full
+"$omnidose_full"
+cp Full_Dose.h5 ..

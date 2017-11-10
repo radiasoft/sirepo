@@ -35,7 +35,7 @@ SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
 RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 DOSE_CALC_SH = 'dose_calc.sh'
-
+DOSE_CALC_OUTPUT = 'Full_Dose.h5'
 _DICOM_CLASS = {
     'CT_IMAGE': '1.2.840.10008.5.1.4.1.1.2',
     'RT_DOSE': '1.2.840.10008.5.1.4.1.1.481.2',
@@ -113,12 +113,13 @@ def fixup_old_data(data):
 
 
 def generate_rtdose_file(run_dir):
-    dose_hd5 = str(run_dir.join('Full_Dose.h5'))
-    frame = simulation_db.read_json(run_dir.join(_ROI_FILE_NAME)).models.dicomFrames
+    dose_hd5 = str(run_dir.join(DOSE_CALC_OUTPUT))
+    frame = simulation_db.read_json(run_dir.join('..', _ROI_FILE_NAME)).models.dicomFrames
     frame = pkcollections.Dict(
         StudyInstanceUID=frame.StudyInstanceUID,
-        spacing=[1.171875, 1.171875, 1.171875],
-        shape=[512, 512],
+        #TODO(robnagler) hack
+        shape=np.array([208, 512, 512]),
+        spacing=np.array([1.171875, 1.171875, 1.5]),
     )
     with h5py.File(dose_hd5, 'r') as f:
         start = f['/dose'].attrs['dicom_start_cm'] * 10
@@ -159,7 +160,9 @@ def generate_rtdose_file(run_dir):
         ds.DoseSummationType = 'PLAN'
         ds.ImageOrientationPatient = ['1.0', '0.0', '0.0', '0.0', '1.0', '0.0']
         ds.GridFrameOffsetVector = np.linspace(0.0, frame['spacing'][2] * (shape[0] - 1), shape[0]).tolist()
-        ds.save_as(str(run_dir.join(_DOSE_DICOM_FILE)))
+        #TODO(robnagler) hack
+        ds.save_as(str(run_dir.join('..', _DOSE_DICOM_FILE)))
+        simulation_db.write_result({'dicomDose': _summarize_rt_dose(None, ds, run_dir=run_dir)}, run_dir=run_dir)
 
 
 def get_animation_name(data):
@@ -247,7 +250,13 @@ def resource_files():
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
-    rtfile = run_dir.join('..').join(RTSTRUCT_EXPORT_FILENAME)
+    rtfile = run_dir.join('..', RTSTRUCT_EXPORT_FILENAME)
+    if data['report'] == 'doseCalculation':
+        cache = run_dir.join('..', DOSE_CALC_OUTPUT)
+        if cache.check():
+            cache.copy(run_dir.join(DOSE_CALC_OUTPUT))
+            pkio.write_text(run_dir.join(DOSE_CALC_SH), 'exit')
+            return
     if data['report'] == 'dvhReport' and rtfile.exists():
         return
     if data['report'] in ('doseCalculation', 'dvhReport'):
@@ -760,11 +769,12 @@ def _summarize_frames(frames):
     return res
 
 
-def _summarize_rt_dose(simulation, plan):
+def _summarize_rt_dose(simulation, plan, run_dir=None):
     pixels = np.float32(plan.pixel_array)
     if plan.DoseGridScaling:
         pixels *= float(plan.DoseGridScaling)
-    with open (_dose_filename(simulation), 'wb') as f:
+    fn = run_dir.join('..', _DOSE_FILE) if run_dir else _dose_filename(simulation)
+    with open (str(fn), 'wb') as f:
         pixels.tofile(f)
     #TODO(pjm): assuming frame start matches dicom frame start
     res = {
