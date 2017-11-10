@@ -323,7 +323,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
                     $scope.runSimulation();
                     return;
                 }
-                self.simulationErrors = data.errors || '';
+                $scope.simulationErrors = data.errors || '';
                 // actual frame counts are stored in dicomSeries metadata
                 frameCache.setFrameCount(1);
             };
