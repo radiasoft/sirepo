@@ -46,6 +46,15 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     // select or draw
     self.editMode = 'select';
 
+    self.animationArgs = {
+        dicomAnimation: ['dicomPlane', 'startTime'],
+        dicomAnimation2: ['dicomPlane', 'startTime'],
+        dicomAnimation3: ['dicomPlane', 'startTime'],
+        dicomAnimation4: ['dicomPlane', 'startTime'],
+        doseCalculation: [],
+        dicomDose: ['startTime'],
+    };
+
     self.dicomTitle = function(modelName) {
         if (! appState.isLoaded()) {
             return;
@@ -195,24 +204,17 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 
 SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, panelState, persistentSimulation, rs4piService, $scope) {
     var self = this;
-    self.model = 'dicomAnimation';
+    self.model = 'doseCalculation';
     self.panelState = panelState;
 
     self.handleStatus = function(data) {
-        srdbg(data);
-        if (data.report == 'dicomDose') {
-        }
-        else if (data.report == 'dicomAnimation') {
-            frameCache.setFrameCount(data.frameCount);
-        }
-        else if (data.report == 'doseCalculation' && data.state == 'completed') {
-            if (data.dicomDose) {
+        if (data.report == 'doseCalculation' && data.state == 'completed') {
+            if (data.dicomDose && ! appState.deepEquals(appState.models.dicomDose, data.dicomDose)) {
                 appState.models.dicomDose = data.dicomDose;
-                srdbg(appState.models);
                 appState.saveChanges('dicomDose');
             }
-            //TODO(pjm): need a better solution than this
-            frameCache.setFrameCount(appState.models.dicomSeries.planes.t.frameCount, 'dicomAnimation4');
+            // actual frame count is stored on dicomDose metadata
+            frameCache.setFrameCount(1);
         }
     };
 
@@ -227,25 +229,15 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
         return self.isStatePending() || self.isStateProcessing();
     };
 
-    self.runDoseSimulation = function() {
-        self.model = 'doseCalculation';
-        self.runSimulation();
-    };
-
     appState.whenModelsLoaded($scope, function() {
         rs4piService.loadROIPoints();
     });
 
-    persistentSimulation.initProperties(self, $scope, {
-        dicomAnimation4: ['dicomPlane', 'startTime'],
-        doseCalculation: [],
-        dicomDose: ['startTime'],
-    });
+    persistentSimulation.initProperties(self, $scope, rs4piService.animationArgs);
 });
 
-SIREPO.app.controller('Rs4piSourceController', function (appState, frameCache, persistentSimulation, rs4piService, $rootScope, $scope) {
+SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService, $rootScope, $scope) {
     var self = this;
-    self.model = 'dicomAnimation';
 
     self.dicomTitle = function() {
         if (! appState.isLoaded()) {
@@ -253,22 +245,6 @@ SIREPO.app.controller('Rs4piSourceController', function (appState, frameCache, p
         }
         return appState.models.dicomSeries.description;
     };
-
-    self.handleStatus = function(data) {
-        if (data.state == 'stopped' && data.percentComplete === 0) {
-            self.runSimulation();
-            return;
-        }
-        self.simulationErrors = data.errors || '';
-        frameCache.setFrameCount(data.frameCount);
-    };
-
-    persistentSimulation.initProperties(self, $scope, {
-        dicomAnimation: ['dicomPlane', 'startTime'],
-        dicomAnimation2: ['dicomPlane', 'startTime'],
-        dicomAnimation3: ['dicomPlane', 'startTime'],
-        dicomDose: ['startTime'],
-    });
 
     $scope.$on('cancelChanges', function(e, name) {
         if (name == 'dicomEditorState') {
@@ -279,7 +255,6 @@ SIREPO.app.controller('Rs4piSourceController', function (appState, frameCache, p
     appState.whenModelsLoaded($scope, function() {
         rs4piService.loadROIPoints();
     });
-
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
@@ -333,6 +308,28 @@ SIREPO.app.directive('appFooter', function() {
         template: [
             '<div data-dicom-import-dialog=""></div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, rs4piService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '@dicomFrames',
+        },
+        controller: function($scope) {
+            $scope.handleStatus = function(data) {
+                if ($scope.model == 'dicomAnimation' && data.state == 'stopped' && data.percentComplete === 0) {
+                    $scope.runSimulation();
+                    return;
+                }
+                self.simulationErrors = data.errors || '';
+                // actual frame counts are stored in dicomSeries metadata
+                frameCache.setFrameCount(1);
+            };
+
+            persistentSimulation.initProperties($scope, $scope, rs4piService.animationArgs);
+        },
     };
 });
 
@@ -438,7 +435,7 @@ SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piServ
 
             $scope.updatePTV = function() {
                 appState.saveChanges('doseCalculation', function() {
-                    $scope.doseController.runDoseSimulation();
+                    $scope.doseController.runSimulation();
                 });
             };
         },

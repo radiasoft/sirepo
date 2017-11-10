@@ -167,11 +167,17 @@ def generate_rtdose_file(run_dir):
         ds.GridFrameOffsetVector = np.linspace(0.0, frame['spacing'][2] * (shape[0] - 1), shape[0]).tolist()
         #TODO(robnagler) hack
         ds.save_as(str(run_dir.join('..', _DOSE_DICOM_FILE)))
-        simulation_db.write_result({'dicomDose': _summarize_rt_dose(None, ds, run_dir=run_dir)}, run_dir=run_dir)
+        return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
 def get_animation_name(data):
-    if data['modelName'].startswith('dicomAnimation') or data['modelName'] == 'dicomDose':
+    if data['modelName'].startswith('dicomAnimation'):
+        return 'dicomAnimation'
+    if data['modelName'] == 'dicomDose':
+        # if the doseCalculation has been run, use that directory for work
+        # otherwise, it is an imported dose file
+        if simulation_db.simulation_dir(SIM_TYPE, simulation_db.parse_sid(data)).join('doseCalculation').exists():
+            return 'doseCalculation'
         return 'dicomAnimation'
     return data['modelName']
 
@@ -187,7 +193,7 @@ def get_application_data(data):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
-        with open(str(run_dir.join(_DOSE_DICOM_FILE))) as f:
+        with open(str(run_dir.join('..', _DOSE_DICOM_FILE))) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
     tmp_dir = simulation_db.tmp_dir()
     filename, _ = _generate_rtstruct_file(run_dir.join('..'), tmp_dir)
@@ -267,14 +273,14 @@ def write_parameters(data, schema, run_dir, is_parallel):
     if data['report'] in ('doseCalculation', 'dvhReport'):
         _, roi_models = _generate_rtstruct_file(run_dir.join('..'), run_dir.join('..'))
         if data['report'] == 'doseCalculation':
-            dose_info = data.models.doseCalculation
+            dose_calc = data.models.doseCalculation
             roi_data = roi_models['regionsOfInterest']
             ptv_name = ''
             oar_names = []
             for roi_number in roi_data:
-                if roi_number == dose_info.selectedPTV:
+                if roi_number == dose_calc.selectedPTV:
                     ptv_name = roi_data[roi_number]['name']
-                elif roi_number in dose_info.selectedOARs:
+                elif roi_number in dose_calc.selectedOARs:
                     oar_names.append(roi_data[roi_number]['name'])
             prescription = run_dir.join(PRESCRIPTION_FILENAME)
             simulation_db.write_json(
@@ -383,7 +389,7 @@ def _extract_series_frames(simulation, dicom_dir):
     #TODO(pjm): give user a choice between multiple study/series if present
     selected_series = None
     frames = {}
-    dose_info = None
+    dicom_dose = None
     rt_struct_path = None
     res = {
         'description': '',
@@ -394,7 +400,7 @@ def _extract_series_frames(simulation, dicom_dir):
             if plan.SOPClassUID == _DICOM_CLASS['RT_STRUCT']:
                 rt_struct_path = str(path)
             elif plan.SOPClassUID == _DICOM_CLASS['RT_DOSE']:
-                res['dose_info'] = _summarize_rt_dose(simulation, plan)
+                res['dicom_dose'] = _summarize_rt_dose(simulation, plan)
                 plan.save_as(_dose_dicom_filename(simulation))
             if plan.SOPClassUID != _DICOM_CLASS['CT_IMAGE']:
                 continue
@@ -580,10 +586,10 @@ def _read_dose_frame(idx, data):
     res = []
     if 'dicomDose' not in data['models']:
         return res
-    dose_info = data['models']['dicomDose']
-    if idx >= dose_info['frameCount']:
+    dicom_dose = data['models']['dicomDose']
+    if idx >= dicom_dose['frameCount']:
         return res
-    shape = dose_info['shape']
+    shape = dicom_dose['shape']
     with open (_dose_filename(data['models']['simulation']), 'rb') as f:
         f.seek(idx * _FLOAT_SIZE * shape[0] * shape[1], 1)
         for r in range(shape[0]):
@@ -696,8 +702,8 @@ def _summarize_dicom_files(data, dicom_dir):
         if selectedPTV:
             dose_calc['selectedPTV'] = selectedPTV
             data['models']['dvhReport']['roiNumbers'] = [selectedPTV]
-    if 'dose_info' in info:
-        data['models']['dicomDose'] = info['dose_info']
+    if 'dicom_dose' in info:
+        data['models']['dicomDose'] = info['dicom_dose']
     _compute_histogram(simulation, frames)
 
 

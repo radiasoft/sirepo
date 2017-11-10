@@ -15,6 +15,7 @@ from sirepo.template import template_common
 import numpy as np
 import py.path
 import sirepo.template.rs4pi as template
+import time
 
 
 def run(cfg_dir):
@@ -42,14 +43,16 @@ def _run_dose_calculation(data, cfg_dir):
         return _run_dose_calculation_fake(data, cfg_dir)
     with pkio.save_chdir(cfg_dir):
         pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
-        template.generate_rtdose_file(cfg_dir)
+        dicom_dose = template.generate_rtdose_file(cfg_dir)
+        data['models']['dicomDose'] = dicom_dose
+        # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
+        simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
+        simulation_db.write_result({
+            'dicomDose': dicom_dose,
+        })
 
 
 def _run_dose_calculation_fake(data, cfg_dir):
-    roiNumber = data['models']['doseCalculation']['selectedPTV']
-    #TODO(pjm): rtstruct dicom file is available at template.RTSTRUCT_EXPORT_FILENAME
-    # run dose calculation for the selected roiNumber
-    import time
     time.sleep(5)
     simulation_db.write_result({})
 
