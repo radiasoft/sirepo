@@ -117,14 +117,17 @@ def fixup_old_data(data):
         del dvhReport['roiNumber']
 
 
-def generate_rtdose_file(run_dir):
+def generate_rtdose_file(data, run_dir):
     dose_hd5 = str(run_dir.join(DOSE_CALC_OUTPUT))
-    frame = simulation_db.read_json(run_dir.join('..', _ROI_FILE_NAME)).models.dicomFrames
+    dicom_series = data['models']['dicomSeries']
     frame = pkcollections.Dict(
-        StudyInstanceUID=frame.StudyInstanceUID,
-        #TODO(robnagler) hack
-        shape=np.array([208, 512, 512]),
-        spacing=np.array([1.171875, 1.171875, 1.5]),
+        StudyInstanceUID=dicom_series['studyInstanceUID'],
+        shape=np.array([
+            dicom_series['planes']['t']['frameCount'],
+            dicom_series['planes']['c']['frameCount'],
+            dicom_series['planes']['s']['frameCount'],
+        ]),
+        spacing=np.array(_float_list(dicom_series['pixelSpacing'])),
     )
     with h5py.File(dose_hd5, 'r') as f:
         start = f['/dose'].attrs['dicom_start_cm'] * 10
@@ -159,14 +162,13 @@ def generate_rtdose_file(run_dir):
         ds.SamplesPerPixel = 1
         ds.PixelData = pixels.astype(np.uint32)
 
-        # for pydicom
+        # for dicompyler
         ds.PhotometricInterpretation = 'MONOCHROME2'
         ds.DoseType = 'PHYSICAL'
         ds.DoseSummationType = 'PLAN'
-        ds.ImageOrientationPatient = ['1.0', '0.0', '0.0', '0.0', '1.0', '0.0']
+        ds.ImageOrientationPatient = _string_list(_EXPECTED_ORIENTATION)
         ds.GridFrameOffsetVector = np.linspace(0.0, frame['spacing'][2] * (shape[0] - 1), shape[0]).tolist()
-        #TODO(robnagler) hack
-        ds.save_as(str(run_dir.join('..', _DOSE_DICOM_FILE)))
+        ds.save_as(_parent_file(run_dir, _DOSE_DICOM_FILE))
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
@@ -193,10 +195,10 @@ def get_application_data(data):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
-        with open(str(run_dir.join('..', _DOSE_DICOM_FILE))) as f:
+        with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
     tmp_dir = simulation_db.tmp_dir()
-    filename, _ = _generate_rtstruct_file(run_dir.join('..'), tmp_dir)
+    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
     with open (filename, 'rb') as f:
         dicom_data = f.read()
     pkio.unchecked_remove(tmp_dir)
@@ -239,6 +241,8 @@ def lib_files(data, source_lib):
 def models_related_to_report(data):
     if data['report'] == 'doseCalculation':
         return []
+    if data['report'] == 'dvhReport':
+        return [data['report'], 'dicomDose']
     return [data['report']]
 
 
@@ -261,9 +265,9 @@ def resource_files():
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
-    rtfile = run_dir.join('..', RTSTRUCT_EXPORT_FILENAME)
+    rtfile = py.path.local(_parent_file(run_dir, RTSTRUCT_EXPORT_FILENAME))
     if data['report'] == 'doseCalculation':
-        cache = run_dir.join('..', DOSE_CALC_OUTPUT)
+        cache = py.path.local(_parent_file(run_dir, DOSE_CALC_OUTPUT))
         if cache.check():
             cache.copy(run_dir.join(DOSE_CALC_OUTPUT))
             pkio.write_text(run_dir.join(DOSE_CALC_SH), 'exit')
@@ -271,7 +275,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
     if data['report'] == 'dvhReport' and rtfile.exists():
         return
     if data['report'] in ('doseCalculation', 'dvhReport'):
-        _, roi_models = _generate_rtstruct_file(run_dir.join('..'), run_dir.join('..'))
+        _, roi_models = _generate_rtstruct_file(_parent_dir(run_dir), _parent_dir(run_dir))
         if data['report'] == 'doseCalculation':
             dose_calc = data.models.doseCalculation
             roi_data = roi_models['regionsOfInterest']
@@ -409,6 +413,8 @@ def _extract_series_frames(simulation, dicom_dir):
                 continue
             if not selected_series:
                 selected_series = plan.SeriesInstanceUID
+                res['StudyInstanceUID'] = plan.StudyInstanceUID
+                res['PixelSpacing'] = plan.PixelSpacing
                 if hasattr(plan, 'SeriesDescription'):
                     res['description'] = plan.SeriesDescription
             if selected_series != plan.SeriesInstanceUID:
@@ -578,6 +584,14 @@ def _move_import_file(data):
         simulation_db.save_simulation_json(data)
 
 
+def _parent_dir(child_dir):
+    return child_dir.join('..')
+
+
+def _parent_file(child_dir, filename):
+    return str(_parent_dir(child_dir).join(filename))
+
+
 def _pixel_filename(simulation):
     return _sim_file(simulation['simulationId'], _PIXEL_FILE)
 
@@ -675,12 +689,14 @@ def _summarize_dicom_files(data, dicom_dir):
     simulation = data['models']['simulation']
     info = _extract_series_frames(simulation, dicom_dir)
     frames = info['frames']
-    _summarize_dicom_series(simulation, frames)
+    info['pixelSpacing'] = _summarize_dicom_series(simulation, frames)
     with open (_pixel_filename(simulation), 'wb') as f:
         for frame in frames:
             frame['pixels'].tofile(f)
     data['models']['dicomSeries'] = {
         'description': info['description'],
+        'pixelSpacing': info['pixelSpacing'],
+        'studyInstanceUID': info['StudyInstanceUID'],
         'planes': {
             't': _frame_info(len(frames)),
             's': _frame_info(len(frames[0]['pixels'])),
@@ -767,6 +783,8 @@ def _summarize_dicom_series(simulation, frames):
         res['domain'] = _calculate_domain(res)
         filename = _dicom_path(simulation, 's', idx)
         simulation_db.write_json(filename, res)
+    spacing = frame0['PixelSpacing']
+    return _string_list([spacing[0], spacing[1], z_space])
 
 
 def _summarize_frames(frames):
@@ -784,8 +802,8 @@ def _summarize_rt_dose(simulation, plan, run_dir=None):
     pixels = np.float32(plan.pixel_array)
     if plan.DoseGridScaling:
         pixels *= float(plan.DoseGridScaling)
-    fn = run_dir.join('..', _DOSE_FILE) if run_dir else _dose_filename(simulation)
-    with open (str(fn), 'wb') as f:
+    fn = _parent_file(run_dir, _DOSE_FILE) if run_dir else _dose_filename(simulation)
+    with open (fn, 'wb') as f:
         pixels.tofile(f)
     #TODO(pjm): assuming frame start matches dicom frame start
     res = {

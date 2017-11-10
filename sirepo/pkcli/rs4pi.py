@@ -43,7 +43,7 @@ def _run_dose_calculation(data, cfg_dir):
         return _run_dose_calculation_fake(data, cfg_dir)
     with pkio.save_chdir(cfg_dir):
         pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
-        dicom_dose = template.generate_rtdose_file(cfg_dir)
+        dicom_dose = template.generate_rtdose_file(data, cfg_dir)
         data['models']['dicomDose'] = dicom_dose
         # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
         simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
