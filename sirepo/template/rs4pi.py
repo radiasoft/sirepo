@@ -33,6 +33,8 @@ RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
 SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
+RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
+DOSE_CALC_SH = 'dose_calc.sh'
 
 _DICOM_CLASS = {
     'CT_IMAGE': '1.2.840.10008.5.1.4.1.1.2',
@@ -40,6 +42,7 @@ _DICOM_CLASS = {
     'RT_STRUCT': '1.2.840.10008.5.1.4.1.1.481.3',
     'DETATCHED_STUDY': '1.2.840.10008.3.1.2.3.1',
 }
+_BEAMLIST_FILENAME = 'beamlist_72deg.txt'
 _DICOM_DIR = 'dicom'
 _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
@@ -109,7 +112,14 @@ def fixup_old_data(data):
         dvhReport['dvhVolume'] = 'relative'
 
 
-def generate_rtdose_file(frame, dose_hd5):
+def generate_rtdose_file(run_dir):
+    dose_hd5 = str(run_dir.join('Full_Dose.h5'))
+    frame = simulation_db.read_json(run_dir.join(_ROI_FILE_NAME)).models.dicomFrames
+    frame = pkcollections.Dict(
+        StudyInstanceUID=frame.StudyInstanceUID,
+        spacing=[1.171875, 1.171875, 1.171875],
+        shape=[512, 512],
+    )
     with h5py.File(dose_hd5, 'r') as f:
         start = f['/dose'].attrs['dicom_start_cm'] * 10
         #TODO(pjm): assumes the size closely matches original dicom when scaled
@@ -149,7 +159,7 @@ def generate_rtdose_file(frame, dose_hd5):
         ds.DoseSummationType = 'PLAN'
         ds.ImageOrientationPatient = ['1.0', '0.0', '0.0', '0.0', '1.0', '0.0']
         ds.GridFrameOffsetVector = np.linspace(0.0, frame['spacing'][2] * (shape[0] - 1), shape[0]).tolist()
-        return ds
+        ds.save_as(str(run_dir.join(_DOSE_DICOM_FILE)))
 
 
 def get_animation_name(data):
@@ -169,7 +179,7 @@ def get_application_data(data):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
-        with open(str(run_dir.join('..', _DOSE_DICOM_FILE))) as f:
+        with open(str(run_dir.join(_DOSE_DICOM_FILE))) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
     tmp_dir = simulation_db.tmp_dir()
     filename, _ = _generate_rtstruct_file(run_dir.join('..'), tmp_dir)
@@ -209,7 +219,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
 
 
 def lib_files(data, source_lib):
-    return template_common.internal_lib_files([], source_lib)
+    return template_common.internal_lib_files([_BEAMLIST_FILENAME], source_lib)
 
 
 def models_related_to_report(data):
@@ -233,7 +243,7 @@ def remove_last_frame(run_dir):
 
 
 def resource_files():
-    return []
+    return pkio.sorted_glob(RESOURCE_DIR.join('beamlist*.txt'))
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -252,12 +262,24 @@ def write_parameters(data, schema, run_dir, is_parallel):
                     ptvName = roi_data[roiNumber]['name']
                 elif roiNumber in dose_info.selectedOARs:
                     oarNames.append(roi_data[roiNumber]['name'])
+            prescription = run_dir.join(PRESCRIPTION_FILENAME)
             simulation_db.write_json(
-                run_dir.join(PRESCRIPTION_FILENAME),
+                prescription,
                 {
                     'ptv': ptvName,
                     'oar': oarNames,
                 })
+            pkjinja.render_file(
+                RESOURCE_DIR.join(DOSE_CALC_SH + '.jinja'),
+                {
+                    'prescription': prescription,
+                    'beamlist': run_dir.join(_BEAMLIST_FILENAME),
+                    'dicom_zip': _sim_file(data['simulationId'], _ZIP_FILE_NAME),
+                },
+                output=run_dir.join(DOSE_CALC_SH),
+                strict_undefined=True,
+            ),
+
 
 
 def _calculate_domain(frame):

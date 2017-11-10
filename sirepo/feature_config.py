@@ -55,4 +55,5 @@ cfg = pkconfig.init(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
     ),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
+    rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
 )
