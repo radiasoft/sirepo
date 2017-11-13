@@ -357,6 +357,8 @@ def _extract_field(field, data, data_file):
 
 def _extract_impact_density(run_dir, data):
     plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
+    if 'error' in plot_info:
+        return plot_info
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
@@ -425,19 +427,24 @@ def _extract_particle(run_dir, data, limit):
 def _generate_impact_density():
     return '''
 from rswarp.diagnostics import ImpactDensity
-plot_density = ImpactDensity.PlotDensity(None, None, scraper, top, w3d)
-plot_density.gate_scraped_particles()
-plot_density.map_density()
-for gid in plot_density.gated_ids:
-    for side in plot_density.gated_ids[gid]:
-        del plot_density.gated_ids[gid][side]['interpolation']
-density_results = {
-    'gated_ids': plot_density.gated_ids,
-    'dx': plot_density.dx,
-    'dz': plot_density.dz,
-    'min': plot_density.cmap_normalization.vmin,
-    'max': plot_density.cmap_normalization.vmax,
-}
+try:
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, top, w3d)
+    plot_density.gate_scraped_particles()
+    plot_density.map_density()
+    for gid in plot_density.gated_ids:
+        for side in plot_density.gated_ids[gid]:
+            del plot_density.gated_ids[gid][side]['interpolation']
+    density_results = {
+        'gated_ids': plot_density.gated_ids,
+        'dx': plot_density.dx,
+        'dz': plot_density.dz,
+        'min': plot_density.cmap_normalization.vmin,
+        'max': plot_density.cmap_normalization.vmax,
+    }
+except AssertionError as e:
+    density_results = {
+        'error': e.message,
+    }
     ''' + '''
 np.save('{}', density_results)
     '''.format(_DENSITY_FILE)
