@@ -1395,7 +1395,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
-                '<a href data-ng-click="nav.showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
+                '<a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> ',
                 '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
             '</div>',
         ].join(''),
