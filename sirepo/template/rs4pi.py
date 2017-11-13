@@ -112,9 +112,10 @@ def fixup_old_data(data):
         dvhReport['dvhVolume'] = 'relative'
     if 'roiNumbers' not in data['models']['dvhReport']:
         dvhReport = data['models']['dvhReport']
-        if dvhReport['roiNumber']:
-            dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
-        del dvhReport['roiNumber']
+        if 'roiNumber' in dvhReport:
+            if dvhReport['roiNumber']:
+                dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
+            del dvhReport['roiNumber']
 
 
 def generate_rtdose_file(data, run_dir):
@@ -156,8 +157,8 @@ def generate_rtdose_file(data, run_dir):
         ds.DoseGridScaling = scale
         pixels /= scale
         ds.BitsAllocated = 32
-        ds.BitsStore = 32
-        ds.HightBit = 31
+        ds.BitsStored = 32
+        ds.HighBit = 31
         ds.PixelRepresentation = 0
         ds.SamplesPerPixel = 1
         ds.PixelData = pixels.astype(np.uint32)
@@ -247,7 +248,8 @@ def models_related_to_report(data):
 
 
 def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
+    for f in resource_files():
+        f.copy(run_dir)
 
 
 def prepare_for_client(data):

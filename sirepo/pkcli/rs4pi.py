@@ -15,6 +15,7 @@ from sirepo.template import template_common
 import numpy as np
 import py.path
 import sirepo.template.rs4pi as template
+import struct
 import time
 
 
@@ -58,32 +59,53 @@ def _run_dose_calculation_fake(data, cfg_dir):
 
 
 def _run_dvh(data, cfg_dir):
-    #TODO(pjm): graph group, also handle no-selection
-    roi_number = int(data['models']['dvhReport']['roiNumbers'][0])
-    dp = dicomparser.DicomParser(_parent_file(cfg_dir, template.RTSTRUCT_EXPORT_FILENAME))
-    for roi in dp.ds.ROIContourSequence:
-        if (roi.ReferencedROINumber == roi_number):
-            for c in roi.ContourSequence:
-                if 'ContourImageSequence' not in c:
-                    c.ContourImageSequence = []
-    s = dp.GetStructures()[roi_number]
-    s['planes'] = dp.GetStructureCoordinates(roi_number)
-    s['thickness'] = dp.CalculatePlaneThickness(s['planes'])
+    if not len(data['models']['dvhReport']['roiNumbers']):
+        simulation_db.write_result({
+            'error': 'No selection',
+        })
+    y_range = None
+    plots = []
+    for roi_number in data['models']['dvhReport']['roiNumbers']:
+        roi_number = int(roi_number)
+        dp = dicomparser.DicomParser(_parent_file(cfg_dir, template.RTSTRUCT_EXPORT_FILENAME))
+        for roi in dp.ds.ROIContourSequence:
+            if roi.ReferencedROINumber == roi_number:
+                for c in roi.ContourSequence:
+                    if 'ContourImageSequence' not in c:
+                        c.ContourImageSequence = []
+        s = dp.GetStructures()[roi_number]
+        s['planes'] = dp.GetStructureCoordinates(roi_number)
+        s['thickness'] = dp.CalculatePlaneThickness(s['planes'])
 
-    rtdose = dicomparser.DicomParser(_parent_file(cfg_dir, template._DOSE_DICOM_FILE))
-    calcdvh = dvhcalc.calculate_dvh(s, rtdose, None, True, None)
-    counts = calcdvh.histogram
-    # cumulative
-    counts = counts[::-1].cumsum()[::-1]
-    # relative volume
-    if len(counts) and counts.max() > 0:
-        counts = 100 * counts / counts.max()
-    bins = np.arange(0, calcdvh.histogram.size + 1.0) / 100.0
+        rtdose = dicomparser.DicomParser(_parent_file(cfg_dir, template._DOSE_DICOM_FILE))
+        calcdvh = dvhcalc.calculate_dvh(s, rtdose, None, True, None)
+        counts = calcdvh.histogram
+        # cumulative
+        counts = counts[::-1].cumsum()[::-1]
+        # relative volume
+        if len(counts) and counts.max() > 0:
+            counts = 100 * counts / counts.max()
+        bins = np.arange(0, calcdvh.histogram.size + 1.0) / 100.0
+        min_y = np.min(counts)
+        max_y = np.max(counts)
+        if y_range:
+            if min_y < y_range[0]:
+                y_range[0] = min_y
+            if max_y > y_range[1]:
+                y_range[1] = max_y
+        else:
+            y_range = [min_y, max_y]
+        plots.append({
+            'points': counts.tolist(),
+            'color': '#{}'.format(struct.pack('BBB', *s['color']).encode('hex')),
+            'label': s['name'],
+        })
     res = {
-        'title': s['name'],
+        'title': '',
         'x_range': [bins[0], bins[-1], 100],
         'y_label': 'Volume [%]',
         'x_label': 'Dose [gy]',
-        'points': counts.tolist()
+        'y_range': y_range,
+        'plots': sorted(plots, key=lambda v: v['label'].lower()),
     }
     simulation_db.write_result(res)
