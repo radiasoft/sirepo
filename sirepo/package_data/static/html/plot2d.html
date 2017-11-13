@@ -32,6 +32,8 @@
         </svg>
         <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
       </g>
+      <g data-ng-if="wantLegend" class="sr-plot-legend" ng-attr-transform="translate(0, {{ margin.top + height+ 40 }})">
+      </g>
     </svg></div>
     <div data-animation-buttons=""></div>
   </div>

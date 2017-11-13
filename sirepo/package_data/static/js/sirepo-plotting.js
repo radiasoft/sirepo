@@ -1545,9 +1545,10 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
             $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
+            $scope.wantLegend = true;
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
-            var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, y1Label, y2Label, zoom, xPoints;
+            var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom, xPoints;
 
             function refresh() {
                 if (! xDomain) {
@@ -1618,38 +1619,64 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
                         return yAxisScale(d);
                     });
                 resetZoom();
-                // y1/y2 legend
-                select('svg')
-                    .append('circle').attr('class', 'line-y1').attr('r', 5).attr('cx', 8).attr('cy', 10);
-                y1Label = select('svg')
-                    .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16);
-                select('svg')
-                    .append('circle').attr('class', 'line-y2').attr('r', 5).attr('cx', 8).attr('cy', 30);
-                y2Label = select('svg')
-                    .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36);
             };
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
+                var pointCount = json.points ? json.points.length : json.plots[0].points.length;
                 xPoints = json.x_points
                     ? json.x_points
-                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
+                    : plotting.linspace(json.x_range[0], json.x_range[1], pointCount);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 xDomain = xdom;
                 xAxisScale.domain(xdom);
                 yDomain = [json.y_range[0], json.y_range[1]];
                 yAxisScale.domain(yDomain).nice();
-                var viewport = select('.plot-viewport');
-                viewport.selectAll('.line').remove();
-                viewport.append('path').attr('class', 'line line-y1').datum(json.points[0]);
-                viewport.append('path').attr('class', 'line line-y2').datum(json.points[1]);
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+
+                // data may contain 2 plots (y1, y2) or multiple plots (plots)
+                var plots = json.plots || [
+                    {
+                        points: json.points[0],
+                        label: json.y1_title,
+                        color: '#1f77b4',
+                    },
+                    {
+                        points: json.points[1],
+                        label: json.y2_title,
+                        color: '#ff7f0e',
+                    },
+                ];
+
+                var viewport = select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                var legend = select('.sr-plot-legend');
+                legend.selectAll('.sr-plot-legend-item').remove();
+                for (var i = 0; i < plots.length; i++) {
+                    var plot = plots[i];
+                    viewport.append('path')
+                        .attr('class', 'line line-color')
+                        .style('stroke', plot.color)
+                        .datum(plot.points);
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    item.append('circle')
+                        .attr('r', 5)
+                        .attr('cx', 8)
+                        .attr('cy', 10 + i * 20)
+                        .style('stroke', plot.color)
+                        .style('fill', plot.color);
+                    item.append('text')
+                        .attr('class', 'focus-text')
+                        .attr('x', 16)
+                        .attr('y', 16 + i * 20)
+                        .text(plot.label);
+                }
+                $scope.margin.top = json.title ? 50 : 10;
+                $scope.margin.bottom = 50 + 20 * plots.length;
                 $scope.resize();
-                y1Label.text(json.y1_title);
-                y2Label.text(json.y2_title);
             };
 
             $scope.resize = function() {
@@ -1788,17 +1815,17 @@ SIREPO.app.directive('particle', function(plotting) {
                 }
                 if (json.lost_x && json.lost_x.length) {
                     for (i = 0; i < json.lost_x.length; i++) {
-                        viewport.append('path').attr('class', 'line line-error').datum(
+                        viewport.append('path').attr('class', 'line line-reflected').datum(
                             d3.zip(json.lost_x[i], json.lost_y[i]));
                     }
                     // absorbed/reflected legend
                     select('svg')
-                        .append('circle').attr('class', 'line-y1').attr('r', 5).attr('cx', 8).attr('cy', 10);
+                        .append('circle').attr('class', 'line-absorbed').attr('r', 5).attr('cx', 8).attr('cy', 10);
                     select('svg')
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
                         .text('Absorbed');
                     select('svg')
-                        .append('circle').attr('class', 'line-error').attr('r', 5).attr('cx', 8).attr('cy', 30);
+                        .append('circle').attr('class', 'line-reflected').attr('r', 5).attr('cx', 8).attr('cy', 30);
                     select('svg')
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
                         .text('Reflected');
