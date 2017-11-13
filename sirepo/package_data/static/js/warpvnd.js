@@ -995,7 +995,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                 /*jshint validthis: true*/
                 var path = d3.select(this);
                 if (! path.empty()) {
-                    var density = path.datum()[2];
+                    var density = path.datum().srDensity;
                     pointer.pointTo(density);
                 }
             }
@@ -1114,11 +1114,12 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                         var p0 = lineSegments[j];
                         var p1 = lineSegments[j + 1];
                         if (lineInfo.align == 'horizontal') {
-                            v = [[p0, p[2]], [p1, p[2]], density];
+                            v = [[p0, p[2]], [p1, p[2]]];
                         }
                         else {
-                            v = [[p[2], p0], [p[2], p1], density];
+                            v = [[p[2], p0], [p[2], p1]];
                         }
+                        v.srDensity = density;
                         var path = viewport.append('path')
                             .attr('class', 'line')
                             .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
