@@ -491,7 +491,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         },
 
         ticks: function(axis, width, isHorizontalAxis) {
-            var spacing = isHorizontalAxis ? 60 : 40;
+            var spacing = isHorizontalAxis ? 100 : 60;
             var n = Math.max(Math.round(width / spacing), 2);
             axis.ticks(n);
         },
@@ -868,7 +868,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
+            $scope.margin = {top: 50, right: 20, bottom: 50, left: 80};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
             var focusPoint, graphLine, points, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
@@ -1005,7 +1005,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             var MIN_PIXEL_RESOLUTION = 10;
             $scope.margin = 50;
             $scope.bottomPanelMargin = {top: 10, bottom: 30};
-            $scope.rightPanelMargin = {left: 10, right: 40};
+            $scope.rightPanelMargin = {left: 10, right: 50};
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.titleCenter = 0;
@@ -1374,7 +1374,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
         templateUrl: '/static/html/heatplot.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
 
-            $scope.margin = {top: 40, left: 60, right: 100, bottom: 50};
+            $scope.margin = {top: 40, left: 80, right: 100, bottom: 50};
             // will be set to the correct size in resize()
             $scope.canvasSize = {
                 width: 0,
@@ -1544,7 +1544,7 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
+            $scope.margin = {top: 50, right: 25, bottom: 50, left: 80};
             $scope.wantLegend = true;
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
@@ -1717,7 +1717,7 @@ SIREPO.app.directive('particle', function(plotting) {
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 20, bottom: 50, left: 70};
+            $scope.margin = {top: 50, right: 25, bottom: 50, left: 80};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
             var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
