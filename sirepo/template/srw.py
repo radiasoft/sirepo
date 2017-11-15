@@ -80,8 +80,8 @@ _ITEM_DEF = {
         ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     ],
     'crl': [
-        'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0)',
-        ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness'],
+        'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})',
+        ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness', 'horizontalOffset', 'verticalOffset'],
     ],
     'crystal': [
         'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
@@ -90,8 +90,8 @@ _ITEM_DEF = {
         True,
     ],
     'ellipsoidMirror': [
-        'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-        ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+        'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={})',
+        ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset'],
         'ElMirror',
         True,
     ],
@@ -100,8 +100,8 @@ _ITEM_DEF = {
         ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
     ],
     'grating': [
-        'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
-        ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
+        'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
+        ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
     ],
     'lens': [
         'srwlib.SRWLOptL({}, {}, {}, {})',
@@ -122,8 +122,8 @@ _ITEM_DEF = {
         ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     ],
     'sphericalMirror': [
-        'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-        ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
+        'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={})',
+        ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset'],
         'SphMirror',
         True,
     ],
@@ -473,7 +473,6 @@ def fixup_old_data(data):
                 item['grazingAngle'] = angle
         if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
             item['autocomputeVectors'] = '1'
-    for item in data['models']['beamline']:
         if item['type'] == 'crl':
             key_value_pairs = pkcollections.Dict({
                 'material': 'User-defined',
@@ -488,7 +487,6 @@ def fixup_old_data(data):
                     item[field] = key_value_pairs[field]
             if not item['focalDistance']:
                 item = _compute_crl_focus(item)
-    for item in data['models']['beamline']:
         if item['type'] == 'sample':
             if 'horizontalCenterCoordinate' not in item:
                 item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
@@ -498,6 +496,9 @@ def fixup_old_data(data):
                           'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
                           'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
                     item[f] = _SCHEMA['model']['sample'][f][2]
+        if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
+            item['horizontalOffset'] = 0
+            item['verticalOffset'] = 0
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:

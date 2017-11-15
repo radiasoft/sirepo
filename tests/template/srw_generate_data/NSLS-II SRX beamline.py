@@ -17,7 +17,7 @@ def set_optics(v=None):
     el = []
     el.append(srwlib.SRWLOptA("r", "a", 0.002, 0.001, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(1.081))
-    el.append(srwlib.SRWLOptMirSph(_r=8871.45, _size_tang=0.95, _size_sag=0.005, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=0.00249999739583, _tvy=0.0))
+    el.append(srwlib.SRWLOptMirSph(_r=8871.45, _size_tang=0.95, _size_sag=0.005, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
     el.append(srwlib.SRWLOptD(1.407))
     el.append(srwlib.SRWLOptA("r", "a", 0.0024, 0.0015, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(0.781))
@@ -41,9 +41,9 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptD(11.8308))
     el.append(srwlib.SRWLOptA("r", "a", 0.003, 0.000875, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(0.175))
-    el.append(srwlib.SRWLOptMirEl(_p=63.913, _q=0.637, _ang_graz=0.0025, _size_tang=0.35, _size_sag=0.003, _nvx=0.0, _nvy=0.999996875002, _nvz=-0.00249999739583, _tvx=0.0, _tvy=-0.00249999739583))
+    el.append(srwlib.SRWLOptMirEl(_p=63.913, _q=0.637, _ang_graz=0.0025, _size_tang=0.35, _size_sag=0.003, _nvx=0.0, _nvy=0.999996875002, _nvz=-0.00249999739583, _tvx=0.0, _tvy=-0.00249999739583, _x=0.0, _y=0.0))
     el.append(srwlib.SRWLOptD(0.337))
-    el.append(srwlib.SRWLOptMirEl(_p=12.3428, _q=0.3, _ang_graz=0.0025, _size_tang=0.3, _size_sag=0.003, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=-0.00249999739583, _tvy=0.0))
+    el.append(srwlib.SRWLOptMirEl(_p=12.3428, _q=0.3, _ang_graz=0.0025, _size_tang=0.3, _size_sag=0.003, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=-0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
     el.append(srwlib.SRWLOptD(0.3))
 
     pp = []
