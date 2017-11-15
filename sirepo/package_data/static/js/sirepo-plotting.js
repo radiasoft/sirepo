@@ -1623,10 +1623,8 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                var pointCount = json.points ? json.points.length : json.plots[0].points.length;
                 xPoints = json.x_points
-                    ? json.x_points
-                    : plotting.linspace(json.x_range[0], json.x_range[1], pointCount);
+                    || plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 xDomain = xdom;
