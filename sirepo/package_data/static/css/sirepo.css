@@ -65,6 +65,7 @@
     /* use body font size, override 12px which changed in 3.3.7 */
     .form-horizontal .form-group-sm .control-label {
       font-size: inherit;
+      padding-top: 4px;
     }
 
     /* app styles */
