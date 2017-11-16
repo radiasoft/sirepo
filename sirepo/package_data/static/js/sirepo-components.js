@@ -1155,7 +1155,6 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             $scope.reportDefaultMap = $scope.info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
-            //srdbg('report default is', $scope.reportDefaultMap);
             if (!$scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
