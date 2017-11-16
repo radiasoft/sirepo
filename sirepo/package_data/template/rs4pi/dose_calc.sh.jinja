@@ -25,7 +25,8 @@ done
 if [[ ! -d dicom_d ]]; then
     mkdir dicom_d
     cd dicom_d
-    unzip -q -j "$dicom_zip"
+    # flatten and overwrite files in directory
+    unzip -o -q -j "$dicom_zip"
     cd ..
 fi
 # TODO(robnagler) if $prescription doesn't change, then just return Full_Dose.h5
