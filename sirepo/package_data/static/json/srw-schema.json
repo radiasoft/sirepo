@@ -456,8 +456,7 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
@@ -1128,9 +1127,6 @@
                     "magneticField",
                     "method",
                     "precision"
-                ]],
-                ["Other", [
-                    "colorMap"
                 ]]
             ]
         },
