@@ -116,6 +116,8 @@ def fixup_old_data(data):
             if dvhReport['roiNumber']:
                 dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
             del dvhReport['roiNumber']
+    if 'doseTransparency' not in data['models']['dicomAnimation4']:
+        data['models']['dicomAnimation4']['doseTransparency'] = 56
 
 
 def generate_rtdose_file(data, run_dir):

@@ -28,6 +28,8 @@
             "frameIndex": ["Frame Index", "Integer"]
         },
         "dicomAnimation4": {
+            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "doseTransparency": ["Dose Transparency (%)", "Integer"]
         },
         "dicomEditorState": {
             "editCounter": ["Edit Count", "Integer"]
@@ -76,7 +78,10 @@
         },
         "dicomAnimation4": {
             "title": "DICOM Dose",
-            "advanced": []
+            "advanced": [
+                "colorMap",
+                "doseTransparency"
+            ]
         },
         "dicomEditorState": {
             "title": "DICOM Editor",
