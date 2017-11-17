@@ -255,12 +255,21 @@
             justify-content: flex-end;
             float: right;
         }
+        .sr-navbar-right .dropdown-menu {
+            right: 0;
+            left: auto;
+        }
     }
 
     .toggle-group label.btn-default.toggle-off {
         color: black;
         background-color: white;
         box-shadow: none;
+    }
+
+    .sr-bs-toggle + .toggle-group {
+        transition: left 0.1s;
+        -webkit-transition: left 0.1s;
     }
 
     .sr-notify {

@@ -425,7 +425,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             item: '=',
         },
         template: [
-            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : \'⚠ \' }}</span>',
+            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
             '<div class="srw-beamline-image">',
@@ -545,6 +545,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
         },
         template: [
             '<div>',
+              '<button type="button" class="close" ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
                 '<div class="sr-beamline-element-title">{{ title }}</div>',
