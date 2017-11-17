@@ -367,7 +367,7 @@
 
     /* plot styles */
     .sr-plot .axis text {
-      font-size: 14px;
+      font-size: 12px;
     }
     .sr-plot .axis path,
     .sr-plot .axis line {
