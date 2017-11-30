@@ -34,7 +34,7 @@ build_as_run_user() {
     perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
 
     # reinstall pykern always
-    build_curl radia.run | bash -s code pykern
+    install_repo_eval code pykern
 
     # sirepo
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
