@@ -338,7 +338,7 @@
 
     /* plot styles */
     .sr-plot .axis text {
-      font-size: 10px;
+      font-size: 14px;
     }
     .sr-plot .axis path,
     .sr-plot .axis line {
@@ -444,7 +444,7 @@
       stroke-width: 2px;
     }
     .sr-plot .focus-hint {
-      font-size: 10px;
+      font-size: 12px;
       fill: steelblue;
     }
     .sr-plot .focus-text {

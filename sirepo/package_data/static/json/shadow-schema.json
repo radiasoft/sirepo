@@ -828,11 +828,9 @@
                 "sigmaz"
             ],
             "advanced": [
-                ["Basic Settings", [
-                    "simulation.npoint",
-                    "simulation.istar1"
-                ]],
                 ["Geometry Settings", [
+                    "simulation.npoint",
+                    "simulation.istar1",
                     "fsour",
                     "wxsou",
                     "wzsou",
