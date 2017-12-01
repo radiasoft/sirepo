@@ -92,6 +92,7 @@ def _parse_element(parser, name, type):
 
 
 def _parse_line(parser, line, models):
+    line = line.lstrip()
     parser.set_line(line)
     name = parser.parse_value(r'[:\s,=)*]')
     if name == '%':
