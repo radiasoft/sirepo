@@ -83,7 +83,6 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         updateBeamRadius();
         updateParticleZMin();
         updateParticlesPerStep();
-        updateFieldComparison();
     }
 
     function updateBeamCurrent() {
@@ -113,6 +112,11 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         var grid = appState.models.simulationGrid;
         grid.particles_per_step = grid.num_x * 10;
     }
+
+    function updatePermittivity() {
+        panelState.showField('box', 'permittivity', appState.models.box.isConductor == '0');
+    }
+
     self.createConductorType = function(type) {
         var model = {
             id: appState.maxId(appState.models.conductorTypes) + 1,
@@ -246,6 +250,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
     appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
     appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
+    appState.watchModelFields($scope, ['box.isConductor'], updatePermittivity);
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 

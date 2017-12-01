@@ -96,6 +96,8 @@ def fixup_old_data(data):
     if 'impactDensityAnimation' not in data['models']:
         data['models']['impactDensityAnimation'] = {}
     for c in data['models']['conductorTypes']:
+        if 'isConductor' not in c:
+            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
         if 'permittivity' not in c:
             c['permittivity'] = _DEFAULT_PERMITTIVITY
     if 'fieldComparisonReport' not in data['models']:
@@ -471,8 +473,11 @@ def _generate_lattice(data):
     res = 'conductors = ['
     for c in data.models.conductors:
         ct = conductorTypeMap[c.conductorTypeId]
-        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}, permittivity={}),'.format(
-            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, float(ct.permittivity))
+        permittivity = ''
+        if ct.isConductor == '0':
+            permittivity = ', permittivity={}'.format(float(ct.permittivity))
+        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
+            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, permittivity)
     res += '''
 ]
 for c in conductors:
