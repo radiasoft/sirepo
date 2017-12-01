@@ -25,7 +25,8 @@ done
 if [[ ! -d dicom_d ]]; then
     mkdir dicom_d
     cd dicom_d
-    unzip -q -j "$dicom_zip"
+    # flatten and overwrite files in directory
+    unzip -o -q -j "$dicom_zip"
     cd ..
 fi
 # TODO(robnagler) if $prescription doesn't change, then just return Full_Dose.h5
@@ -37,7 +38,6 @@ fi
 "${fmo[@]}" \
     --overwrite --out=fmo.h5 \
     coefficients.h5
-"$precomp" --dicom=dicom_d --fmaps=fmo.h5
+"$precomp" --dicom=dicom_d --fmaps=fmo.h5 --structures="$prescription"
 # output is hardwired to data/results/Full_Dose.h5 (see template/rs4pi.py)
 "$omnidose_full"
-cp Full_Dose.h5 ..

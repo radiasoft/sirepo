@@ -15,6 +15,7 @@
             {
                 "id": 2,
                 "name": "Column",
+                "permittivity": 7,
                 "voltage": 0,
                 "xLength": 0.012,
                 "zLength": 0.09
@@ -22,6 +23,7 @@
             {
                 "id": 3,
                 "name": "Grid",
+                "permittivity": 7,
                 "voltage": 20,
                 "xLength": 0.012,
                 "zLength": 0.01
@@ -43,30 +45,49 @@
         ],
         "currentAnimation": {
             "framesPerSecond": "2",
-            "startTime": 1494882921
+            "startTime": 1512001236
+        },
+        "egunCurrentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1512001236
         },
         "fieldAnimation": {
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1494882921
+            "startTime": 1512001236
+        },
+        "fieldComparisonReport": {
+            "dimension": "x",
+            "xCell1": 4,
+            "xCell2": 6,
+            "xCell3": 10,
+            "zCell1": 990,
+            "zCell2": 991,
+            "zCell3": 992
+        },
+        "fieldReport": {},
+        "impactDensityAnimation": {
+            "startTime": 1512001236
         },
         "panelState": {
             "hidden": []
         },
         "particleAnimation": {
-            "startTime": 1494882921
+            "renderCount": "100",
+            "startTime": 1512001236
         },
         "simulation": {
+            "egun_mode": "0",
             "folder": "/",
-            "isExample": false,
+            "isExample": true,
             "name": "Heat Engine",
             "outOfSessionSimulationId": "",
-            "simulationId": "DNkLnmgP",
-            "simulationSerial": 1494882978841550
+            "simulationId": "D8AmU5tc",
+            "simulationSerial": 1512001356559512
         },
         "simulationGrid": {
             "channel_width": 0.12,
-            "num_steps": 8000,
+            "num_steps": 2000,
             "num_x": 12,
             "num_z": 1000,
             "particles_per_step": 120,
@@ -75,5 +96,5 @@
         }
     },
     "simulationType": "warpvnd",
-    "version": "20170515.000000"
+    "version": "20171117.000002"
 }

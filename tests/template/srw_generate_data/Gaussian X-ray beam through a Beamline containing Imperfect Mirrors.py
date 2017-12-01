@@ -24,13 +24,13 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptD(658.3))
 
     el.append(srwlib.SRWLOptA("r", "a", 0.0018, 0.0018, 0.0, 0.0))
-    el.append(srwlib.SRWLOptMirEl(_p=928.3, _q=1.7, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.0, _nvy=0.999993520007, _nvz=-0.00359999222401, _tvx=0.0, _tvy=-0.00359999222401))
+    el.append(srwlib.SRWLOptMirEl(_p=928.3, _q=1.7, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.0, _nvy=0.999993520007, _nvz=-0.00359999222401, _tvx=0.0, _tvy=-0.00359999222401, _x=0.0, _y=0.0))
     ifnElMirror2 = "mirror2_1d.dat"
     if ifnElMirror2:
         hProfDataElMirror2 = srwlib.srwl_uti_read_data_cols(ifnElMirror2, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataElMirror2, _dim="y", _ang=0.0036, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.6))
-    el.append(srwlib.SRWLOptMirEl(_p=928.9, _q=1.1, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.999993520007, _nvy=0.0, _nvz=-0.00359999222401, _tvx=-0.00359999222401, _tvy=0.0))
+    el.append(srwlib.SRWLOptMirEl(_p=928.9, _q=1.1, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.999993520007, _nvy=0.0, _nvz=-0.00359999222401, _tvx=-0.00359999222401, _tvy=0.0, _x=0.0, _y=0.0))
     ifnElMirror3 = "mirror2_1d.dat"
     if ifnElMirror3:
         hProfDataElMirror3 = srwlib.srwl_uti_read_data_cols(ifnElMirror3, "\t", 0, 1)

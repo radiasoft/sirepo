@@ -842,7 +842,7 @@ function dicomPlaneLinesFeature($scope, rs4piService) {
     };
 }
 
-function dicomROIFeature($scope, rs4piService) {
+function dicomROIFeature($scope, rs4piService, isDoseDicom) {
     var drag, roiLine, xAxisScale, yAxisScale;
     var drawPath = null;
     var drawPoints = null;
@@ -1053,7 +1053,7 @@ function dicomROIFeature($scope, rs4piService) {
     function roiStyle(roi, roiNumber) {
         var color = roi.color;
         var res = 'stroke: rgb(' + color.join(',') + ')';
-        if (! rs4piService.isEditing && rs4piService.getActiveROI() == roiNumber) {
+        if (! rs4piService.isEditing && ! isDoseDicom  && rs4piService.getActiveROI() == roiNumber) {
             res += '; fill: rgb(' + color.join(',') + '); fill-opacity: 0.5';
         }
         return res;
@@ -1182,7 +1182,7 @@ function dicomROIFeature($scope, rs4piService) {
 }
 
 function imageFeature() {
-    var cacheCanvas, colorScale, heatmap, imageData, xAxisScale, yAxisScale;
+    var cacheCanvas, colorScale, heatmap, imageData, transparency, xAxisScale, yAxisScale;
 
     function initColormap(dicomWindow) {
         if (! colorScale) {
@@ -1237,18 +1237,30 @@ function imageFeature() {
             if (! isValidHeatmap()) {
                 return;
             }
-            initColormap(dicomWindow);
+            if (! isOverlay) {
+                initColormap(dicomWindow);
+            }
             var width = imageData.width;
             var height = imageData.height;
+            var doseTransparency = isOverlay ? parseInt(transparency / 100.0 * 0xff) : 0;
 
             for (var yi = 0, p = -1; yi < height; ++yi) {
                 for (var xi = 0; xi < width; ++xi) {
-                    var c = colorScale(heatmap[yi][xi]);
-                    if (isOverlay) {
-                        imageData.data[++p] = 0xff;
-                        imageData.data[++p] = 0xff;
+                    var v = heatmap[yi][xi];
+                    if (! v) {
                         imageData.data[++p] = 0;
-                        imageData.data[++p] = c;
+                        imageData.data[++p] = 0;
+                        imageData.data[++p] = 0;
+                        imageData.data[++p] = isOverlay ? 0 : 0xff;
+                        continue;
+                    }
+                    var c = colorScale(v);
+                    if (isOverlay) {
+                        c = d3.rgb(c);
+                        imageData.data[++p] = c.r;
+                        imageData.data[++p] = c.g;
+                        imageData.data[++p] = c.b;
+                        imageData.data[++p] = doseTransparency;
                     }
                     else {
                         imageData.data[++p] = c;
@@ -1259,6 +1271,16 @@ function imageFeature() {
                 }
             }
             cacheCanvas.getContext('2d').putImageData(imageData, 0, 0);
+        },
+        setColorScale: function(c, doseTransparency) {
+            colorScale = c;
+            if (doseTransparency < 0) {
+                doseTransparency = 0;
+            }
+            else if (doseTransparency > 100) {
+                doseTransparency = 100;
+            }
+            transparency = doseTransparency;
         },
     };
 }
@@ -1284,9 +1306,9 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
             var oldDicomWindow = null;
             var selectedDicomPlane = '';
             var planeLinesFeature = activeSection.getActiveSection() == 'source' ? dicomPlaneLinesFeature($scope, rs4piService) : null;
-            var roiFeature = dicomROIFeature($scope, rs4piService);
             var doseFeature = activeSection.getActiveSection() == 'source' ? null : imageFeature();
             var dicomFeature = imageFeature();
+            var roiFeature = dicomROIFeature($scope, rs4piService, doseFeature ? true : false);
 
             function advanceFrame() {
                 if (! d3.event || ! d3.event.sourceEvent || d3.event.sourceEvent.type == 'mousemove') {
@@ -1370,6 +1392,12 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                     roiFeature.draw();
                     var doseDomain = appState.models.dicomDose.domain;
                     if (doseDomain && doseFeature) {
+                        var colorRange = plotting.colorRangeFromModel($scope.modelName);
+                        var colorScale = d3.scale.linear()
+                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.6, colorRange.length))
+                            .range(colorRange)
+                            .clamp(true);
+                        doseFeature.setColorScale(colorScale, appState.models[$scope.modelName].doseTransparency);
                         doseFeature.draw(canvas, [doseDomain[0][0], doseDomain[1][0]], [$scope.flipud(doseDomain[0][1]), $scope.flipud(doseDomain[1][1])]);
                     }
                 }
@@ -1499,13 +1527,7 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                         frameCache.getFrame('dicomDose', frameCache.getCurrentFrame($scope.modelName), false, function(index, data) {
                             if (frameCache.getCurrentFrame($scope.modelName) == index) {
                                 doseFeature.load(data.dose_array);
-                                doseFeature.prepareImage({
-                                    //TODO(pjm): allow adjusting dose colormap and ranges
-                                    // center: appState.models.dicomDose.max / 8,
-                                    // width: appState.models.dicomDose.max / 4,
-                                    center: appState.models.dicomDose.max / 4,
-                                    width: appState.models.dicomDose.max / 2,
-                                }, true);
+                                doseFeature.prepareImage({}, true);
                                 refresh();
                             }
                         });

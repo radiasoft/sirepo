@@ -24,6 +24,7 @@
     </div>
     <div class="col-md-8">
       <div class="row">
+        <div class="col-sm-12" data-report-panel="parameter" data-model-name="fieldComparisonReport"></div>
         <div class="col-sm-12" data-report-panel="heatmap" data-model-name="fieldReport"></div>
       </div>
     </div>
@@ -31,6 +32,8 @@
 </div>
 <div data-modal-editor="" view-name="beam" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="simulationGrid" data-parent-controller="source"></div>
+<div data-modal-editor="" view-name="fieldComparisonReport" data-parent-controller="source"></div>
+<div data-modal-editor="" view-name="box" data-parent-controller="source"></div>
 
 <div data-confirmation-modal="" data-id="sr-delete-conductorType-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductorType()">Delete <strong>{{ source.deleteWarning.name }}</strong>? {{ source.deleteWarning.message }}</div>
 <div data-confirmation-modal="" data-id="sr-delete-conductor-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductor()">Delete <strong>{{ source.deleteWarning.name }}</strong>?</div>

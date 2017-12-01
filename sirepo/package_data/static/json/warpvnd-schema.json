@@ -12,6 +12,10 @@
             ["2", "Child-Langmuir Emission"],
             ["3", "Thermionic Emission"]
         ],
+        "Dimension": [
+            ["x", "X"],
+            ["z", "Z"]
+        ],
         "Field": [
             ["x", "E x"],
             ["z", "E z"],
@@ -48,7 +52,8 @@
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
             "zLength": ["Length (Z) [µm]", "Float"],
-            "permittivity": ["Permittivity of Free Space", "Float"]
+            "permittivity": ["Permittivity of Free Space", "Float", 7.0],
+            "isConductor": ["Conductor", "Boolean", "1"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -65,6 +70,15 @@
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "fieldComparisonReport": {
+            "dimension": ["Dimension", "Dimension"],
+            "xCell1": ["X Position 1", "XCell"],
+            "xCell2": ["X Position 2", "XCell"],
+            "xCell3": ["X Position 3", "XCell"],
+            "zCell1": ["Z Position 1", "ZCell"],
+            "zCell2": ["Z Position 2", "ZCell"],
+            "zCell3": ["Z Position 3", "ZCell"]
         },
         "fieldReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"]
@@ -122,6 +136,7 @@
                 "voltage",
                 "zLength",
                 "xLength",
+                "isConductor",
                 "permittivity"
             ]
         },
@@ -161,6 +176,18 @@
                 "field",
                 "framesPerSecond",
                 "colorMap"
+            ]
+        },
+        "fieldComparisonReport": {
+            "title": "Field Comparison Report",
+            "advanced": [
+                "dimension",
+                "xCell1",
+                "xCell2",
+                "xCell3",
+                "zCell1",
+                "zCell2",
+                "zCell3"
             ]
         },
         "fieldReport": {

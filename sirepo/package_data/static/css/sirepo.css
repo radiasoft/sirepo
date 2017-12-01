@@ -65,6 +65,7 @@
     /* use body font size, override 12px which changed in 3.3.7 */
     .form-horizontal .form-group-sm .control-label {
       font-size: inherit;
+      padding-top: 4px;
     }
 
     /* app styles */
@@ -254,12 +255,21 @@
             justify-content: flex-end;
             float: right;
         }
+        .sr-navbar-right .dropdown-menu {
+            right: 0;
+            left: auto;
+        }
     }
 
     .toggle-group label.btn-default.toggle-off {
         color: black;
         background-color: white;
         box-shadow: none;
+    }
+
+    .sr-bs-toggle + .toggle-group {
+        transition: left 0.1s;
+        -webkit-transition: left 0.1s;
     }
 
     .sr-notify {
@@ -366,7 +376,7 @@
 
     /* plot styles */
     .sr-plot .axis text {
-      font-size: 14px;
+      font-size: 12px;
     }
     .sr-plot .axis path,
     .sr-plot .axis line {

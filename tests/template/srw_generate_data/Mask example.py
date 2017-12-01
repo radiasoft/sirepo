@@ -15,9 +15,9 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
-    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.4, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.0, _nvy=0.999995500003, _nvz=-0.0029999955, _tvx=0.0, _tvy=-0.0029999955))
+    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.4, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.0, _nvy=0.999995500003, _nvz=-0.0029999955, _tvx=0.0, _tvy=-0.0029999955, _x=0.0, _y=0.0))
     el.append(srwlib.SRWLOptD(0.2))
-    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.2, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.999995500003, _nvy=0.0, _nvz=-0.0029999955, _tvx=-0.0029999955, _tvy=0.0))
+    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.2, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.999995500003, _nvy=0.0, _nvz=-0.0029999955, _tvx=-0.0029999955, _tvy=0.0, _x=0.0, _y=0.0))
     el.append(srwlib.SRWLOptD(0.2))
 
     el.append(srwlib.SRWLOptD(0.2))

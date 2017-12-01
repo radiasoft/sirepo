@@ -93,11 +93,6 @@
             ["2", "Vertical"],
             ["3", "Both"]
         ],
-        "FiberFocalPlane": [
-            ["1", "Horizontal (fiber is parallel to vertical axis)"],
-            ["2", "Vertical (fiber is parallel to horizontal axis)"],
-            ["3", "Both"]
-        ],
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
             ["2", "Linear Vertical"],
@@ -248,8 +243,8 @@
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
             "verticalSize": ["Vertical Size [mm]", "Float", 1],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -268,7 +263,9 @@
             "tipRadius": ["Radius on Tip of Parabola [µm]", "Float", 1.5e3],
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
             "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float", 80e-6],
-            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float", 80]
+            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float", 80],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
@@ -347,12 +344,14 @@
             "tangentialVectorY": ["Vertical", "Float", -0.0035999922240050387],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
             "position": ["Nominal Position [m]", "Float"],
-            "focalPlane": ["Plane of Focusing", "FiberFocalPlane", "1"],
+            "focalPlane": ["Focal Plane", "FocalPlane", "1", "Horizontal (fiber is parallel to vertical axis), Vertical (fiber is parallel to horizontal axis)"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "externalMaterial": ["External Material", "CRLMaterial", "User-defined"],
             "externalRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "Tooltip"],
@@ -434,7 +433,9 @@
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
             "grooveDensity2": ["a₂ [lines/mm³]", "Float", 3.004e-6],
             "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 9.7e-11],
-            "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0]
+            "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -455,16 +456,15 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "fieldUnits": ["Intensity Units", "FieldUnits"]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
             "position": ["Nominal Position [m]", "Float"],
             "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
@@ -486,8 +486,8 @@
             "verticalGridsNumber": ["Vertical Number of Grids", "Integer", 21],
             "horizontalGridDimension": ["Horizontal Grid Dimension [µm]", "Float", 5, "Width and height for rectangular or elliptical grids"],
             "verticalGridDimension": ["Vertical Grid Dimension [µm]", "Float", 5],
-            "horizontalMaskCoordinate": ["Horizontal Coordinate of the Mask", "Float", 0],
-            "verticalMaskCoordinate": ["Vertical Coordinate of the Mask", "Float", 0]
+            "horizontalMaskCoordinate": ["Horizontal Center Position", "Float", 0],
+            "verticalMaskCoordinate": ["Vertical Center Position", "Float", 0]
         },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
@@ -522,8 +522,8 @@
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5],
             "verticalSize": ["Vertical Size [mm]", "Float", 0.5],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "powerDensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -637,7 +637,9 @@
             "tangentialVectorY": ["Vertical", "Float", 0.013962146326506367],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "tabulatedUndulator": {
             "undulatorSelector": ["Select Undulator", "UndulatorList"],
@@ -655,8 +657,8 @@
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.08],
-            "horizontalPosition": ["Horizontal Position of Mirror Center [m]", "Float", 0],
-            "verticalPosition": ["Vertical Position of Mirror Center [m]", "Float", 0],
+            "horizontalPosition": ["Horizontal Center Position [m]", "Float", 0],
+            "verticalPosition": ["Vertical Center Position [m]", "Float", 0],
             "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
             "autocomputeVectors": ["Auto-compute Vectors", "Boolean", "1"],
@@ -730,20 +732,32 @@
             "title": "CRL",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "focalPlane",
-                "material",
-                "method",
-                "refractiveIndex",
-                "attenuationLength",
-                "focalDistance",
-                "shape",
-                "horizontalApertureSize",
-                "verticalApertureSize",
-                "tipRadius",
-                "numberOfLenses",
-                "tipWallThickness"
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "focalPlane",
+                    "shape",
+                    "horizontalApertureSize",
+                    "verticalApertureSize",
+                    "tipRadius",
+                    "numberOfLenses",
+                    "tipWallThickness",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength",
+                    "focalDistance"
+                ]]
             ]
         },
         "crystal": {
@@ -868,7 +882,15 @@
                     "firstFocusLength",
                     "focalLength",
                     "tangentialSize",
-                    "sagittalSize"
+                    "sagittalSize",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
                 ]],
                 ["Grazing Angle", [
                     "grazingAngle",
@@ -896,26 +918,36 @@
             "title": "Fiber",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "focalPlane",
-                "horizontalCenterPosition",
-                "verticalCenterPosition",
-                "method",
-                [
-                    ["External", [
-                        "externalMaterial",
-                        "externalRefractiveIndex",
-                        "externalAttenuationLength",
-                        "externalDiameter"
-                    ]],
-                    ["Core", [
-                        "coreMaterial",
-                        "coreRefractiveIndex",
-                        "coreAttenuationLength",
-                        "coreDiameter"
-                    ]]
-                ]
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "focalPlane",
+                    [
+                        ["Horizontal", [
+                            "horizontalCenterPosition"
+                        ]],
+                        ["Vertical", [
+                            "verticalCenterPosition"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "method",
+                    [
+                        ["External", [
+                            "externalMaterial",
+                            "externalRefractiveIndex",
+                            "externalAttenuationLength",
+                            "externalDiameter"
+                        ]],
+                        ["Core", [
+                            "coreMaterial",
+                            "coreRefractiveIndex",
+                            "coreAttenuationLength",
+                            "coreDiameter"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "fluxAnimation": {
@@ -1017,7 +1049,15 @@
                     "position",
                     "tangentialSize",
                     "sagittalSize",
-                    "diffractionOrder"
+                    "diffractionOrder",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
                 ]],
                 ["Grazing Angle", [
                     "grazingAngle",
@@ -1087,9 +1127,6 @@
                     "magneticField",
                     "method",
                     "precision"
-                ]],
-                ["Other", [
-                    "colorMap"
                 ]]
             ]
         },
@@ -1371,7 +1408,15 @@
                     "position",
                     "radius",
                     "tangentialSize",
-                    "sagittalSize"
+                    "sagittalSize",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
                 ]],
                 ["Grazing Angle", [
                     "grazingAngle",

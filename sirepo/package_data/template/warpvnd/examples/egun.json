@@ -15,6 +15,7 @@
             {
                 "id": 2,
                 "name": "Box",
+                "permittivity": 7,
                 "voltage": 40,
                 "xLength": 0.01,
                 "zLength": 0.01
@@ -22,6 +23,7 @@
             {
                 "id": 3,
                 "name": "Box2",
+                "permittivity": 7,
                 "voltage": -1,
                 "xLength": 0.01,
                 "zLength": 0.01
@@ -55,30 +57,46 @@
         ],
         "currentAnimation": {
             "framesPerSecond": "2",
-            "startTime": 1506027490
+            "startTime": 1512001962
+        },
+        "egunCurrentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1512001962
         },
         "fieldAnimation": {
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1506027490
+            "startTime": 1512001962
+        },
+        "fieldComparisonReport": {
+            "dimension": "x",
+            "xCell1": 19,
+            "xCell2": 50,
+            "xCell3": 66,
+            "zCell1": 699,
+            "zCell2": 709,
+            "zCell3": 900
         },
         "fieldReport": {},
+        "impactDensityAnimation": {
+            "startTime": 1512001962
+        },
         "panelState": {
             "hidden": []
         },
         "particleAnimation": {
             "particleLimit": "100",
             "renderCount": "10",
-            "startTime": 1506027490
+            "startTime": 1512001962
         },
         "simulation": {
             "egun_mode": "1",
             "folder": "/",
-            "isExample": false,
+            "isExample": true,
             "name": "EGun Example",
             "outOfSessionSimulationId": "",
-            "simulationId": "uLVBY2d4",
-            "simulationSerial": 1506028368297033
+            "simulationId": "80Le0bt3",
+            "simulationSerial": 1512002082734273
         },
         "simulationGrid": {
             "channel_width": 0.1,
@@ -91,5 +109,5 @@
         }
     },
     "simulationType": "warpvnd",
-    "version": "20170921.000000"
+    "version": "20171117.000002"
 }

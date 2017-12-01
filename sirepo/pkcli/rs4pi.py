@@ -41,30 +41,35 @@ def _parent_file(cfg_dir, filename):
 
 def _run_dose_calculation(data, cfg_dir):
     if not feature_config.cfg.rs4pi_dose_calc:
-        return _run_dose_calculation_fake(data, cfg_dir)
-    with pkio.save_chdir(cfg_dir):
-        pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
-        dicom_dose = template.generate_rtdose_file(data, cfg_dir)
-        data['models']['dicomDose'] = dicom_dose
-        # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
-        simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
-        simulation_db.write_result({
-            'dicomDose': dicom_dose,
-        })
+        dicom_dose = _run_dose_calculation_fake(data, cfg_dir)
+    else:
+        with pkio.save_chdir(cfg_dir):
+            pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
+            dicom_dose = template.generate_rtdose_file(data, cfg_dir)
+    data['models']['dicomDose'] = dicom_dose
+    # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
+    simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
+    simulation_db.write_result({
+        'dicomDose': dicom_dose,
+    })
 
 
 def _run_dose_calculation_fake(data, cfg_dir):
+    dicom_dose = data['models']['dicomDose']
+    dicom_dose['startTime'] = int(time.time())
     time.sleep(5)
-    simulation_db.write_result({})
+    return dicom_dose
 
 
 def _run_dvh(data, cfg_dir):
-    if not len(data['models']['dvhReport']['roiNumbers']):
+    dvh_report = data['models']['dvhReport']
+    if not len(dvh_report['roiNumbers']):
         simulation_db.write_result({
             'error': 'No selection',
         })
     y_range = None
     plots = []
+    max_x = 0
     for roi_number in data['models']['dvhReport']['roiNumbers']:
         roi_number = int(roi_number)
         dp = dicomparser.DicomParser(_parent_file(cfg_dir, template.RTSTRUCT_EXPORT_FILENAME))
@@ -79,13 +84,21 @@ def _run_dvh(data, cfg_dir):
 
         rtdose = dicomparser.DicomParser(_parent_file(cfg_dir, template._DOSE_DICOM_FILE))
         calcdvh = dvhcalc.calculate_dvh(s, rtdose, None, True, None)
-        counts = calcdvh.histogram
-        # cumulative
-        counts = counts[::-1].cumsum()[::-1]
-        # relative volume
-        if len(counts) and counts.max() > 0:
-            counts = 100 * counts / counts.max()
-        bins = np.arange(0, calcdvh.histogram.size + 1.0) / 100.0
+        counts = np.append(calcdvh.histogram, 0.0)
+        if dvh_report['dvhType'] == 'cumulative':
+            counts = counts[::-1].cumsum()[::-1]
+        else:
+            counts = np.append(abs(np.diff(counts) * -1), [0])
+        if dvh_report['dvhVolume'] == 'relative':
+            if dvh_report['dvhType'] == 'differential':
+                counts = counts[::-1].cumsum()[::-1]
+            if len(counts) and counts.max() > 0:
+                counts = 100 * counts / counts.max()
+            if dvh_report['dvhType'] == 'differential':
+                counts = np.append(abs(np.diff(counts) * -1), [0])
+        else:
+            counts /= 10
+        max_x = max(max_x, counts.size)
         min_y = np.min(counts)
         max_y = np.max(counts)
         if y_range:
@@ -102,8 +115,8 @@ def _run_dvh(data, cfg_dir):
         })
     res = {
         'title': '',
-        'x_range': [bins[0], bins[-1], 100],
-        'y_label': 'Volume [%]',
+        'x_range': [0, max_x / 100.0, max_x],
+        'y_label': 'Volume [{}]'.format('%' if dvh_report['dvhVolume'] == 'relative' else 'm³'),
         'x_label': 'Dose [gy]',
         'y_range': y_range,
         'plots': sorted(plots, key=lambda v: v['label'].lower()),

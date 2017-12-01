@@ -96,8 +96,21 @@ def fixup_old_data(data):
     if 'impactDensityAnimation' not in data['models']:
         data['models']['impactDensityAnimation'] = {}
     for c in data['models']['conductorTypes']:
+        if 'isConductor' not in c:
+            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
         if 'permittivity' not in c:
             c['permittivity'] = _DEFAULT_PERMITTIVITY
+    if 'fieldComparisonReport' not in data['models']:
+        grid = data['models']['simulationGrid']
+        data['models']['fieldComparisonReport'] = {
+            'dimension': 'x',
+            'xCell1': int(grid['num_x'] / 3.),
+            'xCell2': int(grid['num_x'] / 2.),
+            'xCell3': int(grid['num_x'] * 2. / 3),
+            'zCell1': int(grid['num_z'] / 2.),
+            'zCell2': int(grid['num_z'] * 2. / 3),
+            'zCell3': int(grid['num_z'] * 4. / 5),
+        }
 
 
 def get_animation_name(data):
@@ -186,8 +199,10 @@ def models_related_to_report(data):
     Returns:
         list: Named models, model fields or values (dict, list) that affect report
     """
+    if data['report'] == 'animation':
+        return []
     return [
-        'beam', 'simulationGrid', 'conductors', 'conductorTypes',
+        data['report'], 'beam', 'simulationGrid', 'conductors', 'conductorTypes',
     ]
 
 
@@ -292,7 +307,7 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = grid['plate_spacing'] * 1e-6
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    cathode_area = 2. * beam['x_radius'] * 1e-6
+    cathode_area = grid['channel_width'] * 1e-6
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
     JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
@@ -330,7 +345,7 @@ def _extract_field(field, data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
-    radius = beam['x_radius'] * 1e-6
+    radius = grid['channel_width'] / 2. * 1e-6
     selector = field
     if not field == 'phi':
         selector = 'E/{}'.format(field)
@@ -362,7 +377,7 @@ def _extract_impact_density(run_dir, data):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
-    radius = beam['x_radius'] * 1e-6
+    radius = grid['channel_width'] / 2. * 1e-6
 
     dx = plot_info['dx']
     dz = plot_info['dz']
@@ -404,7 +419,7 @@ def _extract_particle(run_dir, data, limit):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
-    radius = beam['x_radius'] * 1e-6
+    radius = grid['channel_width'] / 2. * 1e-6
     x_points = []
     y_points = []
     _add_particle_paths(kept_electrons, x_points, y_points, limit)
@@ -458,8 +473,11 @@ def _generate_lattice(data):
     res = 'conductors = ['
     for c in data.models.conductors:
         ct = conductorTypeMap[c.conductorTypeId]
-        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}, permittivity={}),'.format(
-            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, float(ct.permittivity))
+        permittivity = ''
+        if ct.isConductor == '0':
+            permittivity = ', permittivity={}'.format(float(ct.permittivity))
+        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
+            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, permittivity)
     res += '''
 ]
 for c in conductors:

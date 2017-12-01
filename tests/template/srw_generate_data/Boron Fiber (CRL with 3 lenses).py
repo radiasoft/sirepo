@@ -15,7 +15,7 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.716943e-06, 0.00625735, 1, 0.001, 0.001, 0.0005, 3, 8e-05, 0, 0))
+    el.append(srwlib.srwl_opt_setup_CRL(2, 4.716943e-06, 0.00625735, 1, 0.001, 0.001, 0.0005, 3, 8e-05, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(34.1915))
 
     el.append(srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=2, _delta_ext=6.228746e-06, _delta_core=4.129923e-05, _atten_len_ext=0.00241229, _atten_len_core=3.63751e-06, _diam_ext=0.0001, _diam_core=1e-05, _xc=0.0, _yc=0.0))

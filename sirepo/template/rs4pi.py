@@ -116,6 +116,8 @@ def fixup_old_data(data):
             if dvhReport['roiNumber']:
                 dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
             del dvhReport['roiNumber']
+    if 'doseTransparency' not in data['models']['dicomAnimation4']:
+        data['models']['dicomAnimation4']['doseTransparency'] = 56
 
 
 def generate_rtdose_file(data, run_dir):
@@ -268,12 +270,6 @@ def resource_files():
 
 def write_parameters(data, schema, run_dir, is_parallel):
     rtfile = py.path.local(_parent_file(run_dir, RTSTRUCT_EXPORT_FILENAME))
-    if data['report'] == 'doseCalculation':
-        cache = py.path.local(_parent_file(run_dir, DOSE_CALC_OUTPUT))
-        if cache.check():
-            cache.copy(run_dir.join(DOSE_CALC_OUTPUT))
-            pkio.write_text(run_dir.join(DOSE_CALC_SH), 'exit')
-            return
     if data['report'] == 'dvhReport' and rtfile.exists():
         return
     if data['report'] in ('doseCalculation', 'dvhReport'):

@@ -371,7 +371,8 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
               // '<div data-ng-switch-when="Boolean" class="col-sm-7">',
-              //   '<input data-bootstrap-toggle="" data-ng-checked="{{model[field]}}" type="checkbox" id="bs-toggle-id-{{$id}}" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+              //   // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
+              //   '<input class="sr-bs-toggle" data-ng-open="! model[field] || fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
               // '</div>',
               '<div data-ng-switch-when="ColorMap" class="col-sm-7">',
                 '<div data-color-map-menu="" class="dropdown"></div>',
@@ -428,6 +429,7 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
+            $scope.fieldDelegate = {};
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
             $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
             $scope.fieldClass = fieldClass($scope.info[1], $scope.fieldSize, $scope.wantEnumButtons);
@@ -1154,7 +1156,6 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             $scope.reportDefaultMap = $scope.info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
-            //srdbg('report default is', $scope.reportDefaultMap);
             if (!$scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
@@ -1770,25 +1771,52 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
     };
 }]);
 
-SIREPO.app.directive('bootstrapToggle', function($timeout) {
-    function getToggle(scope) {
-        return $('#bs-toggle-id-' + scope.$id);
-    }
+SIREPO.app.directive('bootstrapToggle', function() {
+
     return {
         restrict: 'A',
-        link: function(scope) {
-            $timeout(function() {
-                var toggle = getToggle(scope);
-                toggle.bootstrapToggle();
-                toggle.change(function() {
+        scope: {
+            model: '=',
+            field: '<',
+            fieldDelegate: '=',
+            info: '<',
+        },
+        link: function(scope, element) {
+
+            var toggle = $(element);
+            scope.isRefreshing = false;
+
+            toggle.bootstrapToggle({
+                on: scope.onValue,
+                off: scope.offValue,
+            });
+
+            toggle.change(function() {
+                // do not change the model if this was called from refreshChecked()
+                if(! scope.isRefreshing) {
                     scope.model[scope.field] = toggle.prop('checked') ? '1' : '0';
                     scope.$apply();
-                });
+                }
+                scope.isRefreshing = false;
             });
+
+            // called by ngOpen in template - checkbox will not initialize properly otherwise.
+            // must live in an object to invoke with isolated scope
+            scope.fieldDelegate.refreshChecked = function() {
+                if(scope.model && scope.field) {
+                    var val = scope.model[scope.field];
+                    // don't refresh the toggle state if it did not change
+                    if(toggle.prop('checked') != val) {
+                        scope.isRefreshing = true;
+                        toggle.bootstrapToggle(val ? 'on' : 'off');
+                    }
+                }
+                return true;
+            };
+
             scope.$on('$destroy', function() {
-                var toggle = getToggle(scope);
                 if (toggle) {
-                    //TODO(pjm): off() needed before destory or memory is not released?
+                    //TODO(pjm): off() needed before destroy or memory is not released?
                     toggle.off();
                     toggle.bootstrapToggle('destroy');
                 }
@@ -1798,11 +1826,12 @@ SIREPO.app.directive('bootstrapToggle', function($timeout) {
             $scope.onValue = toggleValueAlias(1);
             $scope.offValue = toggleValueAlias(0);
             function toggleValueAlias(on) {
-                return $scope.enum[$scope.info[SIREPO.INFO_INDEX_TYPE]][on][SIREPO.ENUM_INDEX_LABEL];
+                return SIREPO.APP_SCHEMA.enum[$scope.info[SIREPO.INFO_INDEX_TYPE]][on][SIREPO.ENUM_INDEX_LABEL];
             }
         },
     };
 });
+
 
 SIREPO.app.service('plotToPNG', function($http) {
 
