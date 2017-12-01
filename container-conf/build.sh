@@ -7,6 +7,7 @@ build_vars() {
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_tini_file=$boot_dir/tini
     sirepo_boot=$boot_dir/start
+    build_is_public=1
     build_docker_cmd='["'"$sirepo_tini_file"'", "--", "'"$sirepo_boot"'"]'
     #TODO(robnagler) don't set build user
     #build_dockerfile_aux="USER $build_run_user"
