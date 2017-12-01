@@ -271,6 +271,9 @@ def generate_parameters_file(data, is_parallel=False):
         v['bunch_beta_y'] = 5
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
+        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
+            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
     v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
     return pkjinja.render_resource('elegant_bunch.py', v)
 
@@ -280,6 +283,10 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
+    if data['method'] == 'get_beam_input_type':
+        if data['input_file']:
+            data['input_type'] = _sdds_beam_type_from_file(data['input_file'])
+        return data
     if data['method'] == 'rpn_value':
         value, error = _parse_expr(data['value'], _variables_to_postfix(data['variables']))
         if error:
@@ -498,17 +505,12 @@ def validate_delete_file(data, filename, file_type):
 def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
-        err = 'expecting sdds file with x, xp, y, yp, t and p columns'
+        err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
-            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-            has_columns = True
-            for col in ['x', 'xp', 'y', 'yp', 't', 'p']:
-                if col not in column_names:
-                    has_columns = False
-                    break
-            if has_columns:
+            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+            if beam_type in ('elegant', 'spiffe'):
                 sdds.sddsdata.ReadPage(_SDDS_INDEX)
-                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index('x'))) > 0:
+                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
                     err = None
                 else:
                     err = 'sdds file contains no rows'
@@ -646,6 +648,13 @@ def _compute_percent_complete(data, last_element):
     if res > 100:
         return 100
     return res
+
+
+def _contains_columns(column_names, search):
+    for col in search:
+        if col not in column_names:
+            return False
+    return True
 
 
 def _correct_halo_gaussian_distribution_type(m):
@@ -1090,6 +1099,23 @@ def _safe_sdds_value(v):
     if str(v) == 'nan':
         return 0
     return v
+
+
+def _sdds_beam_type(column_names):
+    if _contains_columns(column_names, ['x', 'xp', 'y', 'yp', 't', 'p']):
+        return 'elegant'
+    if _contains_columns(column_names, ['r', 'pr', 'pz', 't', 'pphi']):
+        return 'spiffe'
+    return ''
+
+
+def _sdds_beam_type_from_file(filename):
+    res = ''
+    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+        res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
+    return res
 
 
 def _sdds_error(error_text='invalid data file'):

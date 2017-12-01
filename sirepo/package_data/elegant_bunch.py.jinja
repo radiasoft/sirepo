@@ -3,8 +3,8 @@ execution_mode = 'serial'
 
 lattice_file = """
 {{rpn_variables}}
-d: drift,l=0
-bl: line=(d)
+w1: WATCH,filename="{{bunchOutputFile}}"
+bl: LINE=(w1)
 """
 
 elegant_file = """
@@ -12,7 +12,6 @@ elegant_file = """
 &run_setup
   concat_order = "2",
   lattice = "elegant.lte",
-  output = "run_setup.output.sdds",
   p_central_mev = "{{bunch_p_central_mev}}",
   use_beamline = "bl",
 &end
@@ -53,13 +52,16 @@ elegant_file = """
   centroid[0] = {{bunch_centroid}},
   time_start = "{{bunch_time_start}}",
   one_random_bunch = "0",
-  bunch = "{{bunchOutputFile}}"
 &end
 {% endif %}
 
 {% if bunchSource_inputSource == 'sdds_beam' %}
 &sdds_beam
-  input = "bunchFile-sourceFile.{{bunchFile_sourceFile}}",
+{% if bunchFileType %}
+  input = "{{bunchInputFile}}",
+  input_type = "{{bunchFileType}}",
+  n_particles_per_ring = 1
+{% endif %}
 &end
 {% endif %}
 

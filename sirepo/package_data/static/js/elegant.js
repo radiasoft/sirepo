@@ -90,7 +90,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) {
+SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
 
     function bunchChanged() {
@@ -117,6 +117,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         if (cmd) {
             cmd.input = appState.models.bunchFile.sourceFile;
             appState.saveQuietly('commands');
+            updateBeamInputType(cmd);
         }
     }
 
@@ -145,6 +146,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
             cmd._type = type;
             appState.setModelDefaults(cmd, 'command_sdds_beam');
             cmd.input = appState.models.bunchFile.sourceFile;
+            updateBeamInputType(cmd);
         }
         appState.saveQuietly('commands');
     }
@@ -193,6 +195,25 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         }
         cmd.use_beamline = appState.models.simulation.visualizationBeamlineId;
         appState.saveQuietly('commands');
+    }
+
+    function updateBeamInputType(cmd) {
+        // detemine the input file type (elegant or spiffe)
+        requestSender.getApplicationData(
+            {
+                method: 'get_beam_input_type',
+                input_file: 'bunchFile-sourceFile.' + cmd.input,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.input_type) {
+                    cmd.input_type = data.input_type;
+                    // spiffe beams require n_particles_per_ring
+                    if (cmd.input_type == 'spiffe' && cmd.n_particles_per_ring == 0) {
+                        cmd.n_particles_per_ring = 1;
+                    }
+                    appState.saveQuietly('commands');
+                }
+            });
     }
 
     function updateBunchFromCommand(bunch, cmd) {
@@ -3380,10 +3401,15 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
 
             function unitsAsHtml(units) {
                 //TODO(robnagler) Needs to be generalized. Don't know all the cases though
+                //TODO(pjm): could generalize, see "special characters" section
+                // http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/SDDStoolkit/SDDStoolkitsu66.html
                 if (units == 'm$be$nc') {
                     return $sce.trustAsHtml(' m<sub>e</sub>c');
                 }
-                if (/^\w+$/.exec(units)) {
+                if (units == 'm$a2$n') {
+                    return $sce.trustAsHtml(' m<sup>2</sup>');
+                }
+                if (/^[\w/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);
                 }
                 if (units) {

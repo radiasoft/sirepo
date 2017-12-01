@@ -54,8 +54,6 @@ def run_background(cfg_dir):
 
 def _run_elegant(bunch_report=False, with_mpi=False):
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    if bunch_report and re.search('\&sdds_beam\s', elegant_file):
-        return
     pkio.write_text('elegant.lte', lattice_file)
     ele = 'elegant.ele'
     pkio.write_text(ele, elegant_file)
@@ -71,13 +69,9 @@ def _run_elegant(bunch_report=False, with_mpi=False):
 
 def _extract_bunch_report():
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
-        fn = 'bunchFile-sourceFile.{}'.format(data['models']['bunchFile']['sourceFile'])
-    else:
-        fn = BUNCH_OUTPUT_FILE
     info = extract_report_data(
-        fn,
-        fn,
+        BUNCH_OUTPUT_FILE,
+        BUNCH_OUTPUT_FILE,
         data['models'][data['report']],
         data['models']['bunch']['p_central_mev'],
         0,
