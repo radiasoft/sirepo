@@ -623,12 +623,20 @@ def _build_filename_map(data):
                     if model_type == 'elements':
                         filename = '{}.{}.sdds'.format(model['name'], k)
                     else:
-                        suffix = 'lte' if model['_type'] == 'save_lattice' else 'sdds'
+                        suffix = _command_file_extension(model)
                         filename = '{}{}.{}.{}'.format(model['_type'], model_index[model_name] if model_index[model_name] > 1 else '', k, suffix)
                     k = '{}{}{}'.format(model['_id'], _FILE_ID_SEP, field_index)
                     res[k] = filename
                     res['keys_in_order'].append(k)
     return res
+
+
+def _command_file_extension(model):
+    if model['_type'] == 'save_lattice':
+        return 'lte'
+    if model['_type'] == 'global_settings':
+        return 'txt'
+    return 'sdds'
 
 
 def _compute_percent_complete(data, last_element):

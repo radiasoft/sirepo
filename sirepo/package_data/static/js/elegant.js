@@ -275,6 +275,19 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         return null;
     };
 
+    self.commandFileExtension = function(command) {
+        //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
+        if (command) {
+            if (command._type == 'save_lattice') {
+                return '.lte';
+            }
+            else if (command._type == 'global_settings') {
+                return '.txt';
+            }
+        }
+        return '.sdds';
+    };
+
     self.findFirstCommand = function(types, commands) {
         if (! commands) {
             if (! appState.isLoaded()) {
@@ -1110,10 +1123,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (info.modelAccess.modelKey == modelKey) {
                 if (info.reportType == 'heatmap') {
                     showField(name, 'histogramBins');
+                    showField(name, 'colorMap');
                     hideField(name, 'framesPerSecond');
                 }
                 else {
                     hideField(name, 'histogramBins');
+                    hideField(name, 'colorMap');
                     if (frameCache.getFrameCount(modelKey) > 1) {
                         showField(name, 'framesPerSecond');
                     }
@@ -1632,7 +1647,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                             if (schema[f][1] == 'OutputFile') {
                                 res += cmd._type
                                     + (commandIndex > 1 ? commandIndex : '')
-                                    + '.' + f + fileExtension(model);
+                                    + '.' + f + elegantService.commandFileExtension(model);
                             }
                             else if (schema[f][1] == 'ElegantBeamlineList') {
                                 //res += elegantService.elementForId(model[f]).name;
@@ -1665,10 +1680,6 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
 
             function commandIndex(data) {
                 return $scope.commands.indexOf(data);
-            }
-
-            function fileExtension(model) {
-                return model._type == 'save_lattice' ? '.lte' : '.sdds';
             }
 
             function loadCommands() {
@@ -3026,7 +3037,7 @@ SIREPO.app.directive('numberList', function() {
     };
 });
 
-SIREPO.app.directive('outputFileField', function(appState) {
+SIREPO.app.directive('outputFileField', function(appState, elegantService) {
     return {
         restrict: 'A',
         scope: {
@@ -3039,12 +3050,6 @@ SIREPO.app.directive('outputFileField', function(appState) {
         controller: function($scope) {
             var items = [];
             var filename = '';
-
-            function fileExtension() {
-                if ($scope.model && $scope.model._type == 'save_lattice')
-                    return '.lte';
-                return '.sdds';
-            }
 
             $scope.items = function() {
                 if (! $scope.model)
@@ -3062,7 +3067,7 @@ SIREPO.app.directive('outputFileField', function(appState) {
                     }
                     prefix = $scope.model._type + (index > 1 ? index : '');
                 }
-                var name = prefix + '.' + $scope.field + fileExtension();
+                var name = prefix + '.' + $scope.field + elegantService.commandFileExtension($scope.model);
                 if (name != filename) {
                     filename = name;
                     items = [

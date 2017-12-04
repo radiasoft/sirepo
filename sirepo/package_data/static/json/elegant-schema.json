@@ -409,10 +409,10 @@
         },
         "simulationStatus": {},
         "command_alter_elements": {
-            "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to alter. If not specified, then one must specify type."],
-            "item": ["Item", "OptionalString", "", "The name of the parameter to alter."],
-            "type": ["Type", "OptionalString", "", "A possibly-wildcard-containing string giving the names of element types to alter. May be specified with name or by itself."],
-            "exclude": ["Exclude", "OptionalString", "", "A possibly-wildcard-containing string giving the names of elements to excluded from alteration."],
+            "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to alter. If not specified, then one must specify type."],
+            "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to alter."],
+            "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to alter. May be specified with name or by itself."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of elements to excluded from alteration."],
             "value": ["Value", "RPNValue", "0.0", "The new value for the parameter. Use string_value only if the parameter takes a character string as its value."],
             "string_value": ["String Value", "OptionalString", "", ""],
             "differential": ["Differential", "RPNBoolean", "0", "If nonzero, the new value is the predefined value of the parameter plus the quantity given with value."],
@@ -424,17 +424,17 @@
             "end_occurence": ["End Occurence", "Integer", "0", ""],
             "s_start": ["S Start", "RPNValue", "-1", "If non-negative, these give the gaving and ending position limits for the end-of-element locations of elements to be altered."],
             "s_end": ["S End", "RPNValue", "-1", ""],
-            "before": ["Before", "OptionalString", "", "The name of an element. If given, the alteration is applied only to elements that precede the named element in the beamline."],
-            "after": ["After", "OptionalString", "", "The name of an element. If given, the alteration is applied only to elements that follow the named element in the beamline."]
+            "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, the alteration is applied only to elements that precede the named element in the beamline."],
+            "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the alteration is applied only to elements that follow the named element in the beamline."]
         },
         "command_amplification_factors": {
             "output": ["Output", "OutputFile", "", "The name of a file for text output."],
             "uncorrected_orbit_function": ["Uncorrected Orbit Function", "OutputFile", "", "The name of a file for an SDDS-format output of the uncorrected-orbit amplification function."],
             "corrected_orbit_function": ["Corrected Orbit Function", "OutputFile", "", "The name of a file for an SDDS-format output of the corrected-orbit amplification function."],
             "kick_function": ["Kick Function", "OutputFile", "", "The name of a file for an SDDS-format output of the kick amplification function."],
-            "name": ["Name", "OptionalString", "", "The optionally wildcarded name of the orbit-perturbing elements."],
-            "type": ["Type", "OptionalString", "", "The optional type name of the the orbit-perturbing elements."],
-            "item": ["Item", "OptionalString", "", "The parameter of the elements producing the orbit."],
+            "name": ["Name", "OptionalStringUpper", "", "The optionally wildcarded name of the orbit-perturbing elements."],
+            "type": ["Type", "OptionalStringUpper", "", "The optional type name of the the orbit-perturbing elements."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the elements producing the orbit."],
             "plane": ["Plane", "AmplificationFactorsPlane", "", ""],
             "change": ["Change", "RPNValue", "1e-3", "The parameter change to use in computing the amplification."],
             "number_to_do": ["Number To Do", "Integer", "-1", "The number of elements to perturb."],
@@ -463,7 +463,7 @@
             "etap_y": ["Etap Y", "RPNValue", "0.0", ""]
         },
         "command_aperture_data": {
-            "input": ["Input", "OptionalString", "", "Name of SDDS file supplying the aperture data. The following columns are all required, in double or float type, with units of m (meters). ( • s — Distance along the central trajectory. • xHalfAperture — Half aperture in the horizontal. • yHalfAperture — Half aperture in the vertical. • xCenter — Center of the aperture in the horizontal. • yCenter — Center of the aperture in the vertical. )"],
+            "input": ["Input", "InputFile", "", "Name of SDDS file supplying the aperture data. The following columns are all required, in double or float type, with units of m (meters). ( • s — Distance along the central trajectory. • xHalfAperture — Half aperture in the horizontal. • yHalfAperture — Half aperture in the vertical. • xCenter — Center of the aperture in the horizontal. • yCenter — Center of the aperture in the vertical. )"],
             "periodic": ["Periodic", "RPNBoolean", "1", "If non-zero, the aperture is a periodic function of s, with period equal to the range of the data."],
             "persistent": ["Persistent", "RPNBoolean", "0", "If non-zero, the aperture data persists across subsequent run_setup commands. By default, the aperture data is forgotten when a new run_setup command is seen."],
             "disable": ["Disable", "RPNBoolean", "0", "If non-zero, the command is ignored."]
@@ -472,7 +472,7 @@
             "bunch": ["Bunch", "OutputFile", "", "The name of an SDDS file to which the phase-space coordinates of the bunches are to be written."],
             "n_particles_per_bunch": ["N Particles Per Bunch", "Integer", "1", "Number of particles in each bunch."],
             "time_start": ["Time Start", "RPNValue", "0.0", "The central value of the time coordinate for the bunch."],
-            "matched_to_cell": ["Matched To Cell", "OptionalString", "", "The name of a beamline from which the Twiss parameters of the bunch are to be computed."],
+            "matched_to_cell": ["Matched To Cell", "OptionalStringUpper", "", "The name of a beamline from which the Twiss parameters of the bunch are to be computed."],
             "emit_x": ["Emit X", "RPNValue", "0.0", "RMS emittance for the X plane."],
             "emit_nx": ["Emit NX", "RPNValue", "0.0", "RMS normalized emittance for the X plane. Ignored if emit_X is nonzero."],
             "beta_x": ["Beta X", "RPNValue", "1.0", "Twiss parameters for the X plane."],
@@ -515,7 +515,7 @@
             "charge_ratio": ["Charge Ratio", "RPNValue", "0.0", ""]
         },
         "command_chromaticity": {
-            "sextupoles": ["Sextupoles", "OptionalString", "", "List of names of elements to use to correct the chromaticities. Several names may be given and names may include wildcards. If so, then sextupoles in each group are changed by the same amount for each iteration. This would typically be used when the sextupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
+            "sextupoles": ["Sextupoles", "OptionalStringUpper", "", "List of names of elements to use to correct the chromaticities. Several names may be given and names may include wildcards. If so, then sextupoles in each group are changed by the same amount for each iteration. This would typically be used when the sextupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
             "dnux_dp": ["Dnux DP", "RPNValue", "0.0", "Desired chromaticity values."],
             "dnuy_dp": ["Dnuy DP", "RPNValue", "0.0", ""],
             "sextupole_tweek": ["Sextupole Tweek", "RPNValue", "1e-3", "Amount by which to tweak the sextupoles to compute derivatives of chromaticities with respect to sextupole strength. [The word \"tweak\" is misspelled \"tweek\" in the code.]"],
@@ -583,7 +583,7 @@
             "use_response_from_computed_orbits": ["Use Response From Computed Orbits", "RPNBoolean", "0", "If nonzero, in-plane response matrices are computed using differences of closed orbits, which is slower but may be more accurate. For cross-plane matrices, this is always the case."]
         },
         "command_correct_tunes": {
-            "quadrupoles": ["Quadrupoles", "OptionalString", "", "List of names of quadrupoles to be used. Several names may be given and the names may include wildcards. If so, then quadrupoles in each group are changed by the same amount for each iteration. This would typically be used when the quadrupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
+            "quadrupoles": ["Quadrupoles", "OptionalStringUpper", "", "List of names of quadrupoles to be used. Several names may be given and the names may include wildcards. If so, then quadrupoles in each group are changed by the same amount for each iteration. This would typically be used when the quadrupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
             "tune_x": ["Tune X", "RPNValue", "0.0", "Desired x and y tune values. If not given, the desired values are assumed to be the unperturbed tunes."],
             "tune_y": ["Tune Y", "RPNValue", "0.0", ""],
             "n_iterations": ["N Iterations", "Integer", "5", "The number of iterations of the correction to perform."],
@@ -609,7 +609,7 @@
             "use_response_from_computed_orbits": ["Use Response From Computed Orbits", "RPNBoolean", "0", "If nonzero, in-plane response matrices are computed using differences of closed orbits, which is slower but may be more accurate. For cross-plane matrices, this is always the case."]
         },
         "command_coupled_twiss_output": {
-            "filename": ["Filename", "OptionalString", "", "The name of the SDDS file to which coupled twiss parameters and beam sizes will be written. Suggested value: \"%s.ctwi\"."],
+            "filename": ["Filename", "OutputFile", "", "The name of the SDDS file to which coupled twiss parameters and beam sizes will be written. Suggested value: \"%s.ctwi\"."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "If nonzero, then this is a setup command and results in computations occurring for each simulation step (e.g., for each perturbed machine if errors are included). If zero, then this is an action command and computations are done immediately (e.g., for the unperturbed machine). If you wish to compute Twiss parameters on a closed orbit or after other calculations, be sure to set this control to a nonzero value."],
             "emittances_from_twiss_command": ["Emittances From Twiss Command", "RPNBoolean", "1", "If nonzero, then the values of the horizontal emittance and the momentum spread are taken from the uncoupled computation done with the twiss_output command. In this case, the user must issue a twiss_output command prior to the coupled_twiss_output. If zero, then the values of the horizontal emittance and the momentum spread are taken from the parameters emit_x and sigma_dp, respectively. emit_x — Gives the horizontal emittance, if emittances_from_twiss_command=0."],
             "emit_x": ["Emit X", "RPNValue", "0.0", ""],
@@ -620,9 +620,9 @@
             "concat_order": ["Concat Order", "Integer", "2", ""]
         },
         "command_divide_elements": {
-            "name": ["Name", "OptionalString", "", "A possibly wildcard-containing string specifying the elements to which this specification applies."],
-            "type": ["Type", "OptionalString", "", "A possibly wildcard-containing string specifying the element types to which this specification applies."],
-            "exclude": ["Exclude", "OptionalString", "", "A possibily wildcard-containing string specifying elements to be excluded from the specification."],
+            "name": ["Name", "OptionalStringUpper", "", "A possibly wildcard-containing string specifying the elements to which this specification applies."],
+            "type": ["Type", "OptionalStringUpper", "", "A possibly wildcard-containing string specifying the element types to which this specification applies."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "A possibily wildcard-containing string specifying elements to be excluded from the specification."],
             "divisions": ["Divisions", "Integer", "0", "The number of times to subdivide the specified elements. If zero, then maximum_length should be nonzero."],
             "maximum_length": ["Maximum Length", "RPNValue", "0.0", "The maximum length of a slice. This is usually preferrable to specifying the number of divisions, particularly when the elements divided may be of different lengths. If zero, then divisions should be nonzero."],
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior division specifications are deleted."]
@@ -635,9 +635,9 @@
             "error_factor": ["Error Factor", "RPNValue", "1", "A value by which to multiply the error amplitudes in all error commands."]
         },
         "command_error_element": {
-            "name": ["Name", "OptionalString", "", "The possibly wildcarded name of the elements for which errors are being specified."],
-            "element_type": ["Element Type", "OptionalString", "", "An optional, possibly wildcarded string giving the type of elements to which the errors should be applied. E.g., element_type=*MON* would match all beam position monitors. If this item is given, then name may be left blank."],
-            "item": ["Item", "OptionalString", "", "The parameter of the elements to which the error pertains."],
+            "name": ["Name", "OptionalStringUpper", "", "The possibly wildcarded name of the elements for which errors are being specified."],
+            "element_type": ["Element Type", "OptionalStringUpper", "", "An optional, possibly wildcarded string giving the type of elements to which the errors should be applied. E.g., element_type=*MON* would match all beam position monitors. If this item is given, then name may be left blank."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the elements to which the error pertains."],
             "type": ["Type", "ErrorElementType", "gaussian", ""],
             "amplitude": ["Amplitude", "RPNValue", "0.0", "The amplitude of the errors."],
             "cutoff": ["Cutoff", "RPNValue", "3.0", "The cutoff for the gaussian random distribution in units of the amplitude. Ignored for other distribution types."],
@@ -648,8 +648,8 @@
             "fractional": ["Fractional", "RPNBoolean", "0", "A flag indicating whether the errors are fractional, in which case the amplitude refers to the amplitude of the fractional error."],
             "additive": ["Additive", "RPNBoolean", "1", "A flag indicating that the errors should be added to the prior value of the parameter. If zero, then the errors replace the prior value of the parameter."],
             "allow_missing_elements": ["Allow Missing Elements", "RPNBoolean", "0", "A flag indicating that execution may continue even if no matching elements are found."],
-            "after": ["After", "OptionalString", "", "The name of an element. If given, the error is applied only to elements that follow the named element in the beamline."],
-            "before": ["Before", "OptionalString", "", "The name of an element. If given, the error is applied only to elements that precede the named element in the beamline."]
+            "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the error is applied only to elements that follow the named element in the beamline."],
+            "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, the error is applied only to elements that precede the named element in the beamline."]
         },
         "command_find_aperture": {
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to send output to."],
@@ -699,7 +699,7 @@
         },
         "command_global_settings": {
             "inhibit_fsync": ["Inhibit FSYNC", "RPNBoolean", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
-            "echo_namelists": ["Echo Namelists", "Integer", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
+            "echo_namelists": ["Echo Namelists", "RPNBoolean", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
             "SR_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
             "log_file": ["Log File", "OutputFile", "", "By default, elegant writes status information to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "error_log_file": ["Error Log File", "OutputFile", "", "By default, elegant writes error messages to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
@@ -707,9 +707,9 @@
             "exact_normalized_emittance": ["Exact Normalized Emittance", "RPNBoolean", "0", "By default, elegant uses an approximate computation for the normalized emittance, namely, εn = ε⟨βγ⟩, where ε is the geometric emittance computed from the trace-space coordinates. If this variable is set to a non-zero value, elegant instead uses a slower but more accurate method, namely, using the momentum coordinates.. The results will show up in the sigma and final output files, if these are requested in the run_setup command."]
         },
         "command_insert_elements": {
-            "name": ["Name", "OptionalString", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
-            "type": ["Type", "OptionalString", "", "Possibly wild-card containing string specifying the type of the elements after which the new element is inserted."],
-            "exclude": ["Exclude", "OptionalString", "", "Possibly wild-card containing string specifying the names of elements to be excluded from the specification."],
+            "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
+            "type": ["Type", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the type of the elements after which the new element is inserted."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of elements to be excluded from the specification."],
             "s_start": ["S Start", "RPNValue", "-1", "If positive, these give the starting and ending s locations for insertion of new elements. Note that the s locations are not updated as elements are inserted, but only after completion of all insertions covered by a single command."],
             "s_end": ["S End", "RPNValue", "-1", ""],
             "skip": ["Skip", "Integer", "1", "New elements are inserted at every nth specified location."],
@@ -720,9 +720,9 @@
             "occurrence": ["Occurrence", "StringArray", "0", ""]
         },
         "command_insert_sceffects": {
-            "name": ["Name", "OptionalString", "", "Possibily wild-card containing string specifying the name of the elements after which to insert the space charge kick element."],
-            "type": ["Type", "OptionalString", "", "Possibily wild-card containing string specifying the type of the elements after which to insert the space charge kick element."],
-            "exclude": ["Exclude", "OptionalString", "", "Possibily wild-card containing string specifying the name of elements to be excluded from the insertion of the space charge kick element."],
+            "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the name of the elements after which to insert the space charge kick element."],
+            "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the type of the elements after which to insert the space charge kick element."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the name of elements to be excluded from the insertion of the space charge kick element."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior space charge insertions are deleted."],
             "element_prefix": ["Element Prefix", "OptionalString", "MYSC", "Name under which the space charge kick will appear in the beamline."],
@@ -752,10 +752,10 @@
             "verbosity": ["Verbosity", "Integer", "0", "A larger value results in more output during computations."]
         },
         "command_link_elements": {
-            "target": ["Target", "OptionalString", "", "The name of the elements to be modified by the link. May contain wild-cards."],
-            "exclude": ["Exclude", "OptionalString", "", "Wildcard sequence to match to element names. If a match is found, the element is excluded from the link."],
-            "item": ["Item", "OptionalString", "", "The parameter that will be modified."],
-            "source": ["Source", "OptionalString", "", "The name of the elements to be linked to."],
+            "target": ["Target", "OptionalStringUpper", "", "The name of the elements to be modified by the link. May contain wild-cards."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Wildcard sequence to match to element names. If a match is found, the element is excluded from the link."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter that will be modified."],
+            "source": ["Source", "OptionalStringUpper", "", "The name of the elements to be linked to."],
             "source_position": ["Source Position", "LinkElementsSourcePosition", "before", ""],
             "mode": ["Mode", "LinkElementsMode", "dynamic", ""],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the new item value in terms of the item values for the source. The prior value of the item is on the top of the stack. To refer to the source parameter values, use the name of the parameters. To refer to the initial source parameter values, append \"0\" to the parameter name. These names must appear in capital letters."],
@@ -765,12 +765,12 @@
         },
         "command_load_parameters": {
             "filename": ["Filename", "InputFile", "", ""],
-            "include_name_pattern": ["Include Name Pattern", "OptionalString", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which elements to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
-            "exclude_name_pattern": ["Exclude Name Pattern", "OptionalString", "", ""],
-            "include_item_pattern": ["Include Item Pattern", "OptionalString", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which items (i.e., which element parameters) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
-            "exclude_item_pattern": ["Exclude Item Pattern", "OptionalString", "", ""],
-            "include_type_pattern": ["Include Type Pattern", "OptionalString", "", "Wildcard patterns to be used in selecting, respectively, which element types (e.g., QUAD, DRIFT) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
-            "exclude_type_pattern": ["Exclude Type Pattern", "OptionalString", "", ""],
+            "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which elements to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
+            "exclude_name_pattern": ["Exclude Name Pattern", "OptionalStringUpper", "", ""],
+            "include_item_pattern": ["Include Item Pattern", "OptionalStringUpper", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which items (i.e., which element parameters) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
+            "exclude_item_pattern": ["Exclude Item Pattern", "OptionalStringUpper", "", ""],
+            "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "Wildcard patterns to be used in selecting, respectively, which element types (e.g., QUAD, DRIFT) to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
+            "exclude_type_pattern": ["Exclude Type Pattern", "OptionalStringUpper", "", ""],
             "edit_name_command": ["Edit Name Command", "OptionalString", "", "A command using the syntax of the editstring program, allowing the strings in the ElementName column to be modified before values are assigned."],
             "change_defined_values": ["Change Defined Values", "RPNBoolean", "0", "Changes the defined values of the parameters. This means that when the lattice is saved (using save_lattice), the parameters will have the altered values. Also, if one wants to alter the values for all steps of the simulation, one must set this flag. Note that the ElementOccurence data is normally ignored if change_defined_values is nonzero. This is because there is only one definition of each element, even if it is used multiple times. This behavior can be altered with the next control."],
             "clear_settings": ["Clear Settings", "RPNBoolean", "0", "If set, clear all settings and files being used for loading parameters."],
@@ -789,17 +789,17 @@
             "SDDS_output": ["SDDS Output", "OutputFile", "", "The name of an SDDS file to which the matrix will be written."],
             "SDDS_output_order": ["SDDS Output Order", "Integer", "1", "The order to which the matrix is output in SDDS format."],
             "individual_matrices": ["Individual Matrices", "RPNBoolean", "0", "If non-zero, the matrices in the SDDS file are the individual on-trajectory matrices of the elements, rather than the concatenated matrix of the beamline."],
-            "SDDS_output_match": ["SDDS Output Match", "OptionalString", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
+            "SDDS_output_match": ["SDDS Output Match", "OptionalStringUpper", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating whether matrix output is desired at every simulation step."],
-            "start_from": ["Start From", "OptionalString", "", "The optional name of the accelerator element from which to begin concatenation and output."],
+            "start_from": ["Start From", "OptionalStringUpper", "", "The optional name of the accelerator element from which to begin concatenation and output."],
             "start_from_occurrence": ["Start From Occurrence", "Integer", "1", "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
         },
         "command_modulate_elements": {
-            "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
-            "item": ["Item", "OptionalString", "", "The name of the parameter to modulate."],
-            "type": ["Type", "OptionalString", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
+            "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
+            "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to modulate."],
+            "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
             "expression": ["Expression", "OptionalString", "", "RPN expression for the modulation amplitude A. The value of the time is on top of the stack."],
-            "filename": ["Filename", "OptionalString", "", "Name of SDDS file from which to read modulation data, if expression is not used."],
+            "filename": ["Filename", "InputFile", "", "Name of SDDS file from which to read modulation data, if expression is not used."],
             "time_column": ["Time Column", "OptionalString", "", "Name of column in filename giving time data for the modulation table."],
             "amplitude_column": ["Amplitude Column", "OptionalString", "", "Name of column in filename giving amplitude data for the modulation. Together, time_column and amplitude_column define a function A(t)."],
             "refresh_matrix": ["Refresh Matrix", "RPNBoolean", "0", "Frequently there is a matrix associated with an element even if tracking through the element does not use the matrix. In this case, elegant doesn't normally update the matrix for the element as it modulates the element, since that may involve a significant time penalty. If this parameter is set to a non-zero value, the matrix will be updated. For elements that use a matrix for tracking, the matrix is always updated."],
@@ -809,8 +809,8 @@
             "end_occurence": ["End Occurence", "Integer", "0", ""],
             "s_start": ["S Start", "RPNValue", "-1", "If non-negative, these give the gaving and ending position limits for the end-of-element locations of elements to be modulated."],
             "s_end": ["S End", "RPNValue", "-1", ""],
-            "before": ["Before", "OptionalString", "", "The name of an element. If given, the modulation is applied only to elements that precede the named element in the beamline."],
-            "after": ["After", "OptionalString", "", "The name of an element. If given, the modulation is applied only to elements that follow the named element in the beamline."],
+            "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that precede the named element in the beamline."],
+            "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that follow the named element in the beamline."],
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, information is printed to the standard output as changes are made. Use for debugging only, since otherwise it may slow the simulation."],
             "record": ["Record", "OptionalString", "", "Gives a possibly incomplete filename to which will be written a record of the values of the modulation."]
         },
@@ -855,8 +855,8 @@
             "process_elements": ["Process Elements", "Integer", "2147483647", "Number of elements for which to compute momentum aperture."],
             "s_start": ["S Start", "RPNValue", "0.0", "Limiting s coordinates of the elements from which tracking will start. The default values will exclude no elements."],
             "s_end": ["S End", "RPNValue", "DBL_MAX", ""],
-            "include_name_pattern": ["Include Name Pattern", "OptionalString", "", "If given, tracking will start only at the entrance to elements that match the given wildcard pattern."],
-            "include_type_pattern": ["Include Type Pattern", "OptionalString", "", "If given, tracking will start only at the entrance to elements whose type matches the given wildcard pattern."],
+            "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "If given, tracking will start only at the entrance to elements that match the given wildcard pattern."],
+            "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "If given, tracking will start only at the entrance to elements whose type matches the given wildcard pattern."],
             "fiducialize": ["Fiducialize", "RPNBoolean", "0", "If given, an initially on-energy particle is tracked before the momentum aperture search begins, in order to fiducialize the reference momentum. This is useful if there are synchrotron radiation losses or energy gain due to cavities in the system."],
             "verbosity": ["Verbosity", "Integer", "1", "Larger values result in more detailed printouts as calculations proceed. Mostly for debugging."],
             "soft_failure": ["Soft Failure", "RPNBoolean", "0", "Normally, if elegant fails to find the momentum aperture, it aborts. If soft_failure is non-zero, it instead assigns a momentum aperture equal to the search limit."],
@@ -869,8 +869,8 @@
             "upper": ["Upper", "RPNValue", "0.0", ""]
         },
         "command_optimization_covariable": {
-            "name": ["Name", "OptionalString", "", "The name of the element."],
-            "item": ["Item", "OptionalString", "", "The parameter of the element to be changed."],
+            "name": ["Name", "OptionalStringUpper", "", "The name of the element."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be changed."],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the value of the parameter in terms of the values of any parameters of any optimization variable. These latter appear in the equation in the form <element-name>.<parameter-name>, in all capital letters. The original values of all variables and covariable may be accessed via names like <element-name>.<parameter-name>0."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the covariable is ignored."]
         },
@@ -912,8 +912,8 @@
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, optimization terms are echoed to the terminal as they are created or read from the input file."]
         },
         "command_optimization_variable": {
-            "name": ["Name", "OptionalString", "", "The name of the element."],
-            "item": ["Item", "OptionalString", "", "The parameter of the element to be varied."],
+            "name": ["Name", "OptionalStringUpper", "", "The name of the element."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be varied."],
             "lower_limit": ["Lower Limit", "RPNValue", "0.0", "The lower and upper limits allowed for the parameter. If these are equal, the range of the parameter is unlimited."],
             "upper_limit": ["Upper Limit", "RPNValue", "0.0", ""],
             "step_size": ["Step Size", "RPNValue", "1", "The initial step size (\"simplex\" optimization ) or the grid size in this dimension (\"grid\" or \"sample\" optimization)."],
@@ -935,13 +935,13 @@
             "crossover": ["Crossover", "OptionalString", "twopoint", "For genetic optimization, it allows the user to choose a crossover type from \"onepoint\", \"twopoint\" and \"uniform\". \"twopoint\" is the default crossover type. If the dimension is 2, it will be set to onepoint crossover."]
         },
         "command_print_dictionary": {
-            "filename": ["Filename", "OptionalString", "", "The name of a file to which the dictionary will be written. By default, the output is in LaTeX format."],
+            "filename": ["Filename", "OutputFile", "", "The name of a file to which the dictionary will be written. By default, the output is in LaTeX format."],
             "SDDS_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
         },
         "command_ramp_elements": {
-            "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
-            "item": ["Item", "OptionalString", "", "The name of the parameter to modulate."],
-            "type": ["Type", "OptionalString", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
+            "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
+            "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to modulate."],
+            "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
             "start_pass": ["Start Pass", "Integer", "0", "The starting and ending pass, i(start) and i(end) for the ramp. For passes less than start_pass, the ramp value is start_value. For passes greater than end_pass, the ramp value is end_value."],
             "end_pass": ["End Pass", "Integer", "LONG_MAX", ""],
             "start_value": ["Start Value", "RPNValue", "0.0", "The end-point values S (start) and E (end) of the ramp."],
@@ -953,15 +953,15 @@
             "exponent": ["Exponent", "RPNValue", "1", "The exponent p for the variation of values between the start and end of the ramp. Note that i=0 on the first pass."],
             "s_start": ["S Start", "RPNValue", "-1", "If non-negative, these give the gaving and ending position limits for the end-of-element locations of elements to be modulated."],
             "s_end": ["S End", "RPNValue", "-1", ""],
-            "before": ["Before", "OptionalString", "", "The name of an element. If given, the modulation is applied only to elements that precede the named element in the beamline."],
-            "after": ["After", "OptionalString", "", "The name of an element. If given, the modulation is applied only to elements that follow the named element in the beamline."],
+            "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that precede the named element in the beamline."],
+            "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that follow the named element in the beamline."],
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, information is printed to the standard output as changes are made. Use for debugging only, since otherwise it may slow the simulation."],
             "record": ["Record", "OptionalString", "", "Gives a possibly incomplete filename to which will be written a record of the values of the ramp."]
         },
         "command_replace_elements": {
-            "name": ["Name", "OptionalString", "", "Possibly wild-card containing string specifying the name of the elements to be removed or replaced."],
-            "type": ["Type", "OptionalString", "", "Possibly wild-card containing string specifying the type of the elements to be removed or replaced."],
-            "exclude": ["Exclude", "OptionalString", "", "Possibly wild-card containing string specifying the name of elements to be excluded from this command."],
+            "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the name of the elements to be removed or replaced."],
+            "type": ["Type", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the type of the elements to be removed or replaced."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the name of elements to be excluded from this command."],
             "skip": ["Skip", "Integer", "1", "The element is removed or replaced at every nth specified location."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
             "element_def": ["Element Def", "OptionalString", "", "If NULL, the specified elements are removed from the beamline. If not NULL, the specified elements are replaced with the new element defined here. The definition of the element should be just as it would be entered in the lattice file."],
@@ -969,8 +969,8 @@
             "occurrence": ["Occurrence", "StringArray", "0", ""]
         },
         "command_rf_setup": {
-            "filename": ["Filename", "OptionalString", "", "Name of a file to which data related to the rf settings will be written."],
-            "name": ["Name", "OptionalString", "", "A possibly-wildcard-containing string giving the names of the elements to set. If not given, all RFCA elements are selected."],
+            "filename": ["Filename", "OutputFile", "", "Name of a file to which data related to the rf settings will be written."],
+            "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to set. If not given, all RFCA elements are selected."],
             "start_occurence": ["Start Occurence", "Integer", "-1", "If nonzero, these give the starting and ending occurrence numbers of elements that will be set."],
             "end_occurence": ["End Occurence", "Integer", "-1", ""],
             "s_start": ["S Start", "RPNValue", "-1", "If non-negative, these give the gaving and ending position limits for the end-of-element locations of elements to be set."],
@@ -987,7 +987,7 @@
         },
         "command_rpn_load": {
             "tag": ["Tag", "OptionalString", "", "Option string that will be pre-pended to the names of all the numerical columns in the file in order to create RPN variable names. E.g., if the input file was from the twiss_output command and tag = tw1 was given, then RPN variables tw1.betax, tw1.alphax, etc. would be used. N.B.: If the tag is blank, then nothing is appended to the names from the file. This can be dangerous since the names may conflict with the names of other variables!"],
-            "filename": ["Filename", "OptionalString", "", "The name of the SDDS file from which to read data. By default, data is taken from all columns from the last row of the last page of the file. This default behavior can be altered using one or more of the following parameters: ("],
+            "filename": ["Filename", "InputFile", "", "The name of the SDDS file from which to read data. By default, data is taken from all columns from the last row of the last page of the file. This default behavior can be altered using one or more of the following parameters: ("],
             "match_column": ["Match Column", "OptionalString", "", "The name of a string column to use in selecting the row from which data will be taken."],
             "match_column_value": ["Match Column Value", "OptionalString", "", "The value that the column named by match_column must have to be selected from the file. By default, the last row with a matching value is used."],
             "matching_row_number": ["Matching Row Number", "Integer", "-1", "If a nonnegative value is given, then the matching_row_number th matching row is selected (0 is the first row, 1 the second, etc). Otherwise, the last match row is used. Ignored if match_column is not given."],
@@ -1081,9 +1081,9 @@
             "final_values_only": ["Final Values Only", "RPNBoolean", "0", "If nonzero, then slice quantities are computed only at the end of the beamline."]
         },
         "command_steering_element": {
-            "name": ["Name", "OptionalString", "", "Optional: the (possibly wild-carded) name of the element to add to the steering list. If not given, then element_type must be given."],
-            "element_type": ["Element Type", "OptionalString", "", "Optional: the (possibly wild-carded) name of the element type to add to the steering list. If not given, then name must be given."],
-            "item": ["Item", "OptionalString", "", "The parameter of the element to be varied."],
+            "name": ["Name", "OptionalStringUpper", "", "Optional: the (possibly wild-carded) name of the element to add to the steering list. If not given, then element_type must be given."],
+            "element_type": ["Element Type", "OptionalStringUpper", "", "Optional: the (possibly wild-carded) name of the element type to add to the steering list. If not given, then name must be given."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be varied."],
             "plane": ["Plane", "SteeringElementPlane", "h", ""],
             "tweek": ["Tweek", "RPNValue", "1e-3", "The amount by which to change the item to compute the steering strength."],
             "limit": ["Limit", "RPNValue", "0.0", "The maximum allowed absolute value of the item."]
@@ -1132,10 +1132,10 @@
             "stop_tracking_particle_limit": ["Stop Tracking Particle Limit", "Integer", "-1", "If a non-negative is given, then elegant will stop tracking when the number of particles falls below the given value. It will be as if all the particles were lost."]
         },
         "command_transmute_elements": {
-            "name": ["Name", "OptionalString", "", "Possibily wild-card containing string specifying the elements to which the transmutation specification is to be applied."],
-            "type": ["Type", "OptionalString", "", "Possibily wild-card containing string specifying the element types to which the transmutation specification is to be applied."],
-            "exclude": ["Exclude", "OptionalString", "", "Possibily wild-card containing string specifying elements to be excluded from the specified transmutation. Does not affect elements transmuted due to other specifications."],
-            "new_type": ["New Type", "OptionalString", "DRIF", "Type into which specified elements will be transmuted."],
+            "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the elements to which the transmutation specification is to be applied."],
+            "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the element types to which the transmutation specification is to be applied."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying elements to be excluded from the specified transmutation. Does not affect elements transmuted due to other specifications."],
+            "new_type": ["New Type", "OptionalStringUpper", "DRIF", "Type into which specified elements will be transmuted."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior transmutation specifications are deleted."]
         },
@@ -1184,9 +1184,9 @@
             "tune_output": ["Tune Output", "OptionalString", "", ""]
         },
         "command_twiss_analysis": {
-            "match_name": ["Match Name", "OptionalString", "", "Optional wildcard string to match to element names for selection of elements to inculde in the analysis."],
-            "start_name": ["Start Name", "OptionalString", "", "Name of the element at which to start analysis. If the element occurs more than once, the first occurrence is used."],
-            "end_name": ["End Name", "OptionalString", "", "Name of the element at which to end analysis. If the element occurs more than once, the first occurrence is used."],
+            "match_name": ["Match Name", "OptionalStringUpper", "", "Optional wildcard string to match to element names for selection of elements to inculde in the analysis."],
+            "start_name": ["Start Name", "OptionalStringUpper", "", "Name of the element at which to start analysis. If the element occurs more than once, the first occurrence is used."],
+            "end_name": ["End Name", "OptionalStringUpper", "", "Name of the element at which to end analysis. If the element occurs more than once, the first occurrence is used."],
             "s_start": ["S Start", "RPNValue", "-1", "Position (in meters) at which to start analysis."],
             "s_end": ["S End", "RPNValue", "-1", "Position (in meters) at which to end analysis."],
             "tag": ["Tag", "OptionalString", "", "Name prefix for quantities computed by the analysis. The quantity names will have the form tag.statistic.quantity, where statistic is one of min, max, and ave, and quantity is one of betax, betay, etax, etay, alphax, alphay, etaxp, and etayp. E.g., if tag is region1, then one could use expressions like region1.max.betax in optimization."],
@@ -1228,8 +1228,8 @@
         "command_vary_element": {
             "index_number": ["Index Number", "Integer", "0", "A non-negative integer giving the number of the index."],
             "index_limit": ["Index Limit", "Integer", "0", "A positive integer giving the number of values the index will take. Must be given if this index_number has not been listed in a previous vary_element command, unless enumeration_file is given."],
-            "name": ["Name", "OptionalString", "", "The name of an element."],
-            "item": ["Item", "OptionalString", "", "The parameter of the element to vary."],
+            "name": ["Name", "OptionalStringUpper", "", "The name of an element."],
+            "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to vary."],
             "initial": ["Initial", "RPNValue", "0.0", "The initial and final values of the parameter."],
             "final": ["Final", "RPNValue", "0.0", ""],
             "differential": ["Differential", "RPNBoolean", "0", "If nonzero, the initial and final values are taken as offsets from the predefined value of the parameter."],
