@@ -18,12 +18,14 @@ from sirepo.template import template_common
 import h5py
 import numpy as np
 import os.path
+import py.path
 import re
 
+COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
-
 WANT_BROWSER_FRAME_CACHE = True
 
+_COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
 _DEFAULT_PERMITTIVITY = 7.0
@@ -111,6 +113,27 @@ def fixup_old_data(data):
             'zCell2': int(grid['num_z'] * 2. / 3),
             'zCell3': int(grid['num_z'] * 4. / 5),
         }
+
+
+def generate_field_comparison_report(data, run_dir):
+    params = data['models']['fieldComparisonReport']
+    dimension = params['dimension']
+    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
+        values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
+        values = values[:, 0, :]
+    radius = data['models']['simulationGrid']['channel_width'] / 2. * 1e-6
+    x_range = [-radius, radius]
+    z_range = [0, data['models']['simulationGrid']['plate_spacing'] * 1e-6]
+    plots, y_range = _create_plots(dimension, data, values, z_range if dimension == 'x' else x_range)
+    plot_range = x_range if dimension == 'x' else z_range
+    return {
+        'title': 'Comparison of E {}'.format(dimension),
+        'y_label': 'E {} [V/m]'.format(dimension),
+        'x_label': '{} [m]'.format(dimension),
+        'y_range': y_range,
+        'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
+        'plots': plots,
+    }
 
 
 def get_animation_name(data):
@@ -201,9 +224,10 @@ def models_related_to_report(data):
     """
     if data['report'] == 'animation':
         return []
-    return [
-        data['report'], 'beam', 'simulationGrid', 'conductors', 'conductorTypes',
-    ]
+    res = ['beam', 'simulationGrid', 'conductors', 'conductorTypes']
+    if data['report'] != 'fieldComparisonReport':
+        res.append(data['report'])
+    return res
 
 
 def open_data_file(run_dir, model_name, file_index=None):
@@ -227,6 +251,15 @@ def open_data_file(run_dir, model_name, file_index=None):
 
 def prepare_aux_files(run_dir, data):
     template_common.copy_lib_files(data, None, run_dir)
+
+
+def prepare_output_file(report_info, data):
+    if data['report'] == 'fieldComparisonReport':
+        run_dir = report_info.run_dir
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
@@ -287,6 +320,44 @@ def _add_particle_paths(electrons, x_points, y_points, limit):
         x_points.append(xres)
         y_points.append(yres)
     pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
+
+
+def _create_plots(dimension, data, values, x_range):
+    params = data['models']['fieldComparisonReport']
+    y_range = None
+    visited = {}
+    plots = []
+    #TODO(pjm): keep in sync with warpvnd.js cell colors
+    color = ['red', 'green', 'blue']
+    max_index = values.shape[1] if dimension == 'x' else values.shape[0]
+    x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
+    for i in (1, 2, 3):
+        f = '{}Cell{}'.format('z' if dimension == 'x' else 'x', i)
+        index = params[f]
+        if index >= max_index:
+            index = max_index - 1
+        if index in visited:
+            continue
+        visited[index] = True
+        if dimension == 'x':
+            points = values[:, index].tolist()
+        else:
+            points = values[index, :].tolist()
+        if dimension == 'x':
+            pos = u'{:.3f} µm'.format(x_points[index] * 1e6)
+        else:
+            pos = '{:.0f} nm'.format(x_points[index] * 1e9)
+        plots.append({
+            'points': points,
+            'color': color[i - 1],
+            'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
+        })
+        if y_range:
+            y_range[0] = min(y_range[0], min(points))
+            y_range[1] = max(y_range[1], max(points))
+        else:
+            y_range = [min(points), max(points)]
+    return plots, y_range
 
 
 def _extract_current(data, data_file):
