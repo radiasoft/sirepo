@@ -370,10 +370,10 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
                 '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
               '</div>',
-              // '<div data-ng-switch-when="Boolean" class="col-sm-7">',
-              //   // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
-              //   '<input class="sr-bs-toggle" data-ng-open="! model[field] || fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
-              // '</div>',
+               '<div data-ng-switch-when="Boolean" class="col-sm-7">',
+                 // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
+                 '<input class="sr-bs-toggle" data-ng-open="! model[field] || fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+               '</div>',
               '<div data-ng-switch-when="ColorMap" class="col-sm-7">',
                 '<div data-color-map-menu="" class="dropdown"></div>',
               '</div>',
@@ -1808,7 +1808,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
                     // don't refresh the toggle state if it did not change
                     if(toggle.prop('checked') != val) {
                         scope.isRefreshing = true;
-                        toggle.bootstrapToggle(val ? 'on' : 'off');
+                        toggle.bootstrapToggle(val != 0 ? 'on' : 'off');
                     }
                 }
                 return true;
