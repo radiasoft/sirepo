@@ -15,8 +15,7 @@ build_vars() {
 
 build_as_root() {
     umask 022
-    build_curl https://rpm.nodesource.com/setup_4.x | bash
-    yum install -y -q nodejs
+    build_yum install nodejs
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
