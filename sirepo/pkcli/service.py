@@ -78,6 +78,7 @@ def nginx_proxy():
     """
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
+    print('Connect http://localhost:8080')
     with pkio.save_chdir(run_dir):
         f = run_dir.join('default.conf')
         values = dict(pkcollections.map_items(cfg))

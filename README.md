@@ -142,19 +142,15 @@ all the support processes and configure your servers.
 Set up a few environment variables:
 
 ```sh
-export SIREPO_SERVER_JOB_QUEUE=Celery
-export SIREPO_MPI_CORES=4
-export PYKERN_PKDEBUG_REDIRECT_LOGGING=1
-export PYKERN_PKDEBUG_WANT_PID_TIME=1
-export SIREPO_CELERY_TASKS_CELERYD_CONCURRENCY=2
+export PYKERN_PKDEBUG_REDIRECT_LOGGING=1 PYKERN_PKDEBUG_WANT_PID_TIME=1
 ```
 
 Then run each of the following commands in separate windows:
 
 ```sh
 sirepo service rabbitmq
-sirepo service celery
-sirepo service uwsgi
+SIREPO_CELERY_TASKS_CELERYD_CONCURRENCY=2 SIREPO_MPI_CORES=4 sirepo service celery
+SIREPO_SERVER_JOB_QUEUE=Celery sirepo service uwsgi
 sirepo service nginx_proxy
 sirepo service flower
 ```
