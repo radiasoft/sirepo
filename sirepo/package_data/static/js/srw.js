@@ -170,7 +170,6 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     return self;
 });
 
-
 SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
     self.appState = appState;
@@ -187,6 +186,84 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         'watch',
     ];
 
+    function computeCRLCharacteristics(item) {
+        updateCRLFields(item);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crl_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['refractiveIndex', 'attenuationLength'].forEach(function(f) {
+                    formatMaterialOutput(item, data, f);
+                });
+                ['focalDistance', 'absoluteFocusPosition'].forEach(function(f) {
+                    item[f] = parseFloat(data[f]).toFixed(4);
+                });
+            });
+    }
+
+    function computeCrystalInit(item) {
+        if (item.material != 'Unknown') {
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle']);
+        }
+    }
+
+    function computeCrystalOrientation(item) {
+        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']);
+    }
+
+    function computeDeltaAttenCharacteristics(item) {
+        updateMaterialFields(item);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_delta_atten_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['refractiveIndex', 'attenuationLength'].forEach(function(f) {
+                    formatMaterialOutput(item, data, f);
+                });
+            });
+    }
+
+    function computeFiberCharacteristics(item) {
+        updateFiberFields(item);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_fiber_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['externalRefractiveIndex', 'externalAttenuationLength', 'coreRefractiveIndex', 'coreAttenuationLength'].forEach(function(f) {
+                    formatMaterialOutput(item, data, f);
+                });
+            });
+    }
+
+    function computeFields(method, item, fields) {
+        requestSender.getApplicationData(
+            {
+                method: method,
+                optical_element: item,
+            },
+            function(data) {
+                fields.forEach(function(f) {
+                    item[f] = data[f];
+                });
+            });
+
+    }
+
+    function computeVectors(item) {
+        if (item.grazingAngle && item.autocomputeVectors === '1') {
+            computeFields('compute_grazing_angle', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
+        }
+    }
+
     function defaultItemPropagationParams() {
         return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
@@ -202,8 +279,70 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return str;
     }
 
+    function formatMaterialOutput(item, data, f) {
+        item[f] = parseFloat(data[f]);
+        if (item[f] < 1e-3) {
+            item[f] = item[f].toExponential(6);
+        }
+        else if (item[f] === 1) {
+            // pass
+        }
+        else {
+            item[f] = item[f].toFixed(6);
+        }
+    }
+
     function isPropagationModelName(name) {
         return name.toLowerCase().indexOf('propagation') >= 0;
+    }
+
+    function isUserDefined(v) {
+        return v === 'User-defined';
+    }
+
+    function syncFirstElementPositionToDistanceFromSource() {
+        // Synchronize first element position -> distance from source:
+        if (appState.models.beamline.length > 0) {
+            if (appState.models.simulation.distanceFromSource != appState.models.beamline[0].position) {
+                appState.models.simulation.distanceFromSource = appState.models.beamline[0].position;
+                appState.saveChanges('simulation');
+            }
+        }
+    }
+
+    function syncDistanceFromSourceToFirstElementPosition() {
+        // Synchronize distance from source -> first element position:
+        if (appState.models.beamline.length > 0) {
+            var firstElementPosition = appState.models.beamline[0].position;
+            var distanceFromSource = appState.models.simulation.distanceFromSource;
+            if (firstElementPosition !== distanceFromSource) {
+                var diff = firstElementPosition - distanceFromSource;
+                for (var i = 0; i < appState.models.beamline.length; i++) {
+                    appState.models.beamline[i].position = appState.models.beamline[i].position - diff;
+                }
+                appState.saveChanges('beamline');
+            }
+        }
+    }
+
+    function updateCRLFields(item) {
+        panelState.enableField('crl', 'focalDistance', false);
+        updateMaterialFields(item);
+    }
+
+    function updateFiberFields(item) {
+        panelState.showField('fiber', 'method', ! isUserDefined(item.externalMaterial) || ! isUserDefined(item.coreMaterial));
+        ['external', 'core'].forEach(function(prefix) {
+            panelState.enableField(item.type, prefix + 'RefractiveIndex', isUserDefined(item[prefix + 'Material']));
+            panelState.enableField(item.type, prefix + 'AttenuationLength', isUserDefined(item[prefix + 'Material']) || item.method === 'calculation');
+
+        });
+    }
+
+    function updateMaterialFields(item) {
+        panelState.showField(item.type, 'method', ! isUserDefined(item.material));
+        panelState.enableField(item.type, 'refractiveIndex', isUserDefined(item.material));
+        panelState.enableField(item.type, 'attenuationLength', isUserDefined(item.material) || item.method === 'calculation');
     }
 
     function updatePhotonEnergyHelpText() {
@@ -222,11 +361,34 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         }
     }
 
+    function updateSampleFields(item) {
+        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
+            panelState.showField('sample', f, item.cropArea == '1');
+        });
+        ['tileRows', 'tileColumns'].forEach(function(f) {
+            panelState.showField('sample', f, item.tileImage == '1');
+        });
+        panelState.showField('sample', 'rotateReshape', item.rotateAngle);
+    }
+
     self.handleModalShown = function(name) {
-        if (appState.isLoaded()) {
-            panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
-            panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
+        var item = beamlineService.activeItem;
+        if (item && item.type == name) {
+            if (name === 'crl') {
+                updateCRLFields(item);
+            }
+            else if (name === 'fiber') {
+                updateFiberFields(item);
+            }
+            if (name === 'mask' || name === 'sample') {
+                updateMaterialFields(item);
+                if (name == 'sample') {
+                    updateSampleFields(item);
+                }
+            }
         }
+        panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
+        panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
     };
 
     self.isSingleElectron = function() {
@@ -330,272 +492,31 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return true;
     };
 
-    function updateVectors(newValue, oldValue) {
-        if (appState.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
-            var item = beamlineService.activeItem;
-            if (item.autocomputeVectors === '1') {
-                requestSender.getApplicationData(
-                    {
-                        method: 'compute_grazing_angle',
-                        optical_element: item,
-                    },
-                    function(data) {
-                        var fields = ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX'];
-                        for (var i = 0; i < fields.length; i++) {
-                            item[fields[i]] = data[fields[i]];
-                        }
-                    }
-                );
-            }
-        }
-    }
-
-    $scope.beamlineService = beamlineService;
-    $scope.$watch('beamlineService.activeItem.grazingAngle', updateVectors);
-    $scope.$watch('beamlineService.activeItem.autocomputeVectors', updateVectors);
-
-    function checkChanged(newValues, oldValues) {
-        for (var i = 0; i < newValues.length; i++) {
-            if (! angular.isDefined(newValues[i]) || newValues[i] === null || newValues[i] === 'Unknown' || ! angular.isDefined(oldValues[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function checkDefined(values) {
-        for (var i = 0; i < values.length; i++) {
-            if (typeof(values[i]) === 'undefined' || values[i] === null) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function wrapActiveItem(fields) {
-        var fieldsList = [];
-        for (var i=0; i<fields.length; i++) {
-            fieldsList.push('beamlineService.activeItem.' + fields[i].toString());
-        }
-        return '[' + fieldsList.toString() + ']';
-    }
-
-    function syncFirstElementPositionToDistanceFromSource() {
-        // Synchronize first element position -> distance from source:
-        if (appState.models.beamline.length > 0) {
-            appState.models.simulation.distanceFromSource = appState.models.beamline[0].position;
-            appState.saveChanges('simulation');
-        }
-    }
-
-    function syncDistanceFromSourceToFirstElementPosition() {
-        // Synchronize distance from source -> first element position:
-        if (appState.models.beamline.length > 0) {
-            var firstElementPosition = appState.models.beamline[0].position;
-            var distanceFromSource = appState.models.simulation.distanceFromSource;
-            if (firstElementPosition !== distanceFromSource) {
-                var diff = firstElementPosition - distanceFromSource;
-                for (var i = 0; i < appState.models.beamline.length; i++) {
-                    appState.models.beamline[i].position = appState.models.beamline[i].position - diff;
-                }
-                appState.saveChanges('beamline');
-            }
-        }
-    }
-
     appState.whenModelsLoaded($scope, function() {
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
-    });
 
-    $scope.$on('beamline.changed', function() {
-        syncFirstElementPositionToDistanceFromSource();
-    });
-
-    $scope.$on('simulation.changed', function() {
-        updatePhotonEnergyHelpText();
-        syncDistanceFromSourceToFirstElementPosition();
-    });
-
-    var CRLFields = [
-        'material',
-        'method',
-        'numberOfLenses',
-        'position',
-        'tipRadius',
-        'refractiveIndex',
-    ];
-    function computeCRLCharacteristics() {
-        var item = beamlineService.activeItem;
-        if (item.type === 'crl') {
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_crl_characteristics',
-                    optical_element: item,
-                    photon_energy: appState.models.simulation.photonEnergy,
-                },
-                function(data) {
-                    var fields = ['refractiveIndex', 'attenuationLength'];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
-                    }
-
-                    fields = ['focalDistance', 'absoluteFocusPosition'];
-                    for (i = 0; i < fields.length; i++) {
-                        item[fields[i]] = parseFloat(data[fields[i]]).toFixed(4);
-                    }
-                }
-            );
-        }
-    }
-    $scope.$watchCollection(wrapActiveItem(CRLFields), function (newValues, oldValues) {
-        panelState.showField('crl', 'method', newValues[0] != 'User-defined');
-        if (checkDefined(newValues)) {
-            computeCRLCharacteristics();
-        }
-    });
-
-    var fiberFields = [
-        'method',
-        'externalMaterial',
-        'coreMaterial',
-    ];
-    function computeFiberCharacteristics() {
-        var item = beamlineService.activeItem;
-        if (item.type === 'fiber') {
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_fiber_characteristics',
-                    optical_element: item,
-                    photon_energy: appState.models.simulation.photonEnergy,
-                },
-                function(data) {
-                    var fields = [
-                        'externalRefractiveIndex', 'externalAttenuationLength',
-                        'coreRefractiveIndex', 'coreAttenuationLength',
-                    ];
-                    for (var i = 0; i < fields.length; i++) {
-                        item[fields[i]] = parseFloat(data[fields[i]]).toExponential(6);
-                    }
-                }
-            );
-        }
-    }
-    $scope.$watchCollection(wrapActiveItem(fiberFields), function (newValues, oldValues) {
-        panelState.showField('fiber', 'method', ! (newValues[1] === 'User-defined' && newValues[2] === 'User-defined'));
-        if (checkDefined(newValues)) {
-            computeFiberCharacteristics();
-        }
-    });
-
-    function computeDeltaAttenCharacteristics() {
-        var item = beamlineService.activeItem;
-        requestSender.getApplicationData(
-            {
-                method: 'compute_delta_atten_characteristics',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            },
-            function(data) {
-                var fields = [
-                    'refractiveIndex', 'attenuationLength',
-                ];
-                for (var i = 0; i < fields.length; i++) {
-                    item[fields[i]] = parseFloat(data[fields[i]]);
-                    if (item[fields[i]] < 1e-3) {
-                        item[fields[i]] = item[fields[i]].toExponential(6);
-                    }
-                    else if (item[fields[i]] === 1) {
-                        // pass
-                    }
-                    else {
-                        item[fields[i]] = item[fields[i]].toFixed(6);
-                    }
-                }
-            }
-        );
-    }
-    $scope.$watchCollection(wrapActiveItem(['method', 'material']), function (newValues, oldValues) {
-        if (beamlineService.activeItem) {
-            var item = beamlineService.activeItem;
-            if (item.type === 'mask' || item.type === 'sample') {
-                panelState.showField(item.type, 'method', newValues[1] != 'User-defined');
-                if (checkDefined(newValues)) {
-                    computeDeltaAttenCharacteristics();
-                }
-            }
-        }
-    });
-
-    var crystalInitFields = [
-        'material',
-        'energy',
-        'h',
-        'k',
-        'l',
-    ];
-    $scope.$watchCollection(wrapActiveItem(crystalInitFields), function (newValues, oldValues) {
-        if (checkChanged(newValues, oldValues)) {
-            var item = beamlineService.activeItem;
-            if (item.type === 'crystal') {
-                requestSender.getApplicationData(
-                    {
-                        method: 'compute_crystal_init',
-                        optical_element: item,
-                    },
-                    function(data) {
-                        var fields = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle'];
-                        for (var i = 0; i < fields.length; i++) {
-                            item[fields[i]] = data[fields[i]];
-                        }
-                    }
-                );
-            }
-        }
-    });
-
-    var crystalOrientationFields = [
-        'grazingAngle',
-        'dSpacing',
-        'asymmetryAngle',
-        'psi0r',
-        'psi0i',
-        'rotationAngle',
-    ];
-    $scope.$watchCollection(wrapActiveItem(crystalOrientationFields), function (newValues, oldValues) {
-        if (checkChanged(newValues, oldValues)) {
-            var item = beamlineService.activeItem;
-            if (item.type === 'crystal') {
-                requestSender.getApplicationData(
-                    {
-                        method: 'compute_crystal_orientation',
-                        optical_element: item,
-                    },
-                    function(data) {
-                        var fields = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'];
-                        for (var i = 0; i < fields.length; i++) {
-                            item[fields[i]] = data[fields[i]];
-                        }
-                    }
-                );
-            }
-        }
-    });
-
-    // Process fields of the Sample element (image manipulation tab):
-    $scope.$watchCollection(wrapActiveItem(['cropArea']), function (newValues, oldValues) {
-        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
-            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'].forEach(function(m) {
+            beamlineService.watchBeamlineField($scope, m, ['grazingAngle', 'autocomputeVectors'], computeVectors);
         });
-    });
-    $scope.$watchCollection(wrapActiveItem(['tileImage']), function (newValues, oldValues) {
-        ['tileRows', 'tileColumns'].forEach(function(f) {
-            panelState.showField('sample', f, ! (newValues[0] === "0" || newValues[0] === false));
+        beamlineService.watchBeamlineField($scope, 'crl', ['material', 'method', 'numberOfLenses', 'position', 'tipRadius', 'refractiveIndex'], computeCRLCharacteristics);
+
+        beamlineService.watchBeamlineField($scope, 'fiber', ['method', 'externalMaterial', 'coreMaterial'], computeFiberCharacteristics);
+
+        ['mask', 'sample'].forEach(function(m) {
+            beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-    });
-    $scope.$watchCollection(wrapActiveItem(['rotateAngle']), function (newValues, oldValues) {
-        ['rotateReshape'].forEach(function(f) {
-            panelState.showField('sample', f, (newValues[0] !== 0 && (typeof(newValues[0]) !== 'undefined')));
+
+        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
+
+        beamlineService.watchBeamlineField($scope, 'crystal', ['grazingAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+
+        beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
+
+        $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
+        $scope.$on('simulation.changed', function() {
+            updatePhotonEnergyHelpText();
+            syncDistanceFromSourceToFirstElementPosition();
         });
     });
 });

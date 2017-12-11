@@ -1,6 +1,6 @@
 <div class="container-fluid">
   <div data-mobile-app-title="nav"></div>
-  <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamlineService.isEditable()"></div>
+  <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamline.beamlineService.isEditable()" data-parent-controller="beamline"></div>
   <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels">
       <div class="btn btn-default srw-propagation-button" data-ng-show="beamline.appState.models.beamline.length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small class="hidden-xs">Propagation</small></div>
   </div>
@@ -30,7 +30,7 @@
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="initialIntensityReport" data-parent-controller="beamline"></div>
 <div data-modal-editor="" view-name="multiElectronAnimation"></div>
-<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
 
 <div data-propagation-parameters-modal="" data-propagations="beamline.propagations" data-post-propagation="beamline.postPropagation"></div>
 
@@ -40,7 +40,7 @@
     <div class="modal-content">
       <div class="modal-header bg-warning">
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <span class="lead modal-title text-info">{{ beamlineService.getActiveItemTitle() }}</span>
+        <span class="lead modal-title text-info">{{ beamline.beamlineService.getActiveItemTitle() }}</span>
       </div>
       <div class="modal-body">
         <div class="container-fluid">

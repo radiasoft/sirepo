@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
+SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -148,11 +148,14 @@ SIREPO.app.factory('beamlineService', function(appState, $window, utilities) {
         };
     };
 
-    self.watchBeamlineField = function($scope, model, beamlineFields, callback) {
+    self.watchBeamlineField = function($scope, model, beamlineFields, callback, filterOldUndefined) {
         $scope.beamlineService = self;
         beamlineFields.forEach(function(f) {
             $scope.$watch('beamlineService.activeItem.' + f, function (newValue, oldValue) {
-                if (appState.isLoaded() && newValue != oldValue) {
+                if (appState.isLoaded() && newValue !== null && newValue !== undefined && newValue != oldValue) {
+                    if (filterOldUndefined && oldValue === undefined) {
+                        return;
+                    }
                     var item = self.activeItem;
                     if (item && item.type == model) {
                         callback(item);
@@ -476,6 +479,11 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             });
 
             function togglePopover() {
+                if (beamlineService.activeItem) {
+                    beamlineService.setActiveItem(null);
+                    // clears the active item and invoke watchers before setting new active item
+                    scope.$apply();
+                }
                 el.popover('toggle');
                 scope.$apply();
             }

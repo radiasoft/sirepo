@@ -254,8 +254,8 @@
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 4.20756805e-06, "Tooltip"],
             "attenuationLength": ["Attenuation Length [m]", "Float", 7.31294e-03, "Tooltip"],
-            "focalDistance": ["CRL Focal Distance [m]", "Float", "", "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
-            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", "", "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
+            "focalDistance": ["CRL Focal Distance [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
+            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "shape": ["Shape", "CRLShape", "1"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
@@ -742,6 +742,7 @@
                     "tipRadius",
                     "numberOfLenses",
                     "tipWallThickness",
+                    "focalDistance",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1152,33 +1153,37 @@
             "title": "Mask",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "material",
-                "method",
-                "refractiveIndex",
-                "attenuationLength",
-                "maskThickness",
-                "gridShape",
-                "gridTiltAngle",
-                [
-                    ["Horizontal", [
-                        "horizontalSamplingInterval",
-                        "horizontalGridPitch",
-                        "horizontalPixelsNumber",
-                        "horizontalGridsNumber",
-                        "horizontalGridDimension",
-                        "horizontalMaskCoordinate"
-                    ]],
-                    ["Vertical", [
-                        "verticalSamplingInterval",
-                        "verticalGridPitch",
-                        "verticalPixelsNumber",
-                        "verticalGridsNumber",
-                        "verticalGridDimension",
-                        "verticalMaskCoordinate"
-                    ]]
-                ]
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "maskThickness",
+                    "gridShape",
+                    "gridTiltAngle",
+                    [
+                        ["Horizontal", [
+                            "horizontalSamplingInterval",
+                            "horizontalGridPitch",
+                            "horizontalPixelsNumber",
+                            "horizontalGridsNumber",
+                            "horizontalGridDimension",
+                            "horizontalMaskCoordinate"
+                        ]],
+                        ["Vertical", [
+                            "verticalSamplingInterval",
+                            "verticalGridPitch",
+                            "verticalPixelsNumber",
+                            "verticalGridsNumber",
+                            "verticalGridDimension",
+                            "verticalMaskCoordinate"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength"
+                ]]
             ]
         },
         "mirror": {
@@ -1313,10 +1318,6 @@
                 ["Physical Properties", [
                     "resolution",
                     "thickness",
-                    "material",
-                    "method",
-                    "refractiveIndex",
-                    "attenuationLength",
                     [
                         ["Horizontal", [
                             "horizontalCenterCoordinate"
@@ -1325,6 +1326,12 @@
                             "verticalCenterCoordinate"
                         ]]
                     ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength"
                 ]]
             ]
         },
