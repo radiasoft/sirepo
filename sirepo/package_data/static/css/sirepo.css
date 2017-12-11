@@ -268,8 +268,8 @@
     }
 
     .sr-bs-toggle + .toggle-group {
-        transition: left 0.1s;
-        -webkit-transition: left 0.1s;
+        transition: left 0s;
+        -webkit-transition: left 0s;
     }
 
     .sr-notify {
