@@ -656,10 +656,10 @@ def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
-        return _compute_crl_focus(_compute_crl_characteristics(data['optical_element'], data['photon_energy']))
+        return _compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
     elif data['method'] == 'compute_fiber_characteristics':
-        return _compute_crl_characteristics(
-            _compute_crl_characteristics(
+        return _compute_material_characteristics(
+            _compute_material_characteristics(
                 data['optical_element'],
                 data['photon_energy'],
                 prefix='external',
@@ -668,7 +668,7 @@ def get_application_data(data):
             prefix='core',
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
-        return _compute_crl_characteristics(data['optical_element'], data['photon_energy'])
+        return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -1084,7 +1084,7 @@ def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator
     return ebeam_position['drift']
 
 
-def _compute_crl_characteristics(model, photon_energy, prefix=''):
+def _compute_material_characteristics(model, photon_energy, prefix=''):
     fields_with_prefix = pkcollections.Dict({
         'material': 'material',
         'refractiveIndex': 'refractiveIndex',
@@ -1188,6 +1188,8 @@ def _compute_crystal_init(model):
 
 
 def _compute_crystal_orientation(model):
+    if not model['dSpacing']:
+        return model
     parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
     try:
         opCr = srwlib.SRWLOptCryst(
