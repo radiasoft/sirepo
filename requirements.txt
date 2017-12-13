@@ -3,7 +3,7 @@ SQLAlchemy
 beaker
 bnlcrl
 celery==3.1.23
-dicompyler-core
+git+git://github.com/dicompyler/dicompyler-core.git@1d52ea9322c6c889e6f1e3319a331d6a22d7a8c4#egg=dicompyler-core
 flask
 flask_sqlalchemy
 flower==0.8.4
