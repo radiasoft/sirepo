@@ -318,7 +318,11 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     ):
         path = py.path.local(path)
         try:
-            data = open_json_file(simulation_type, path)
+            data = open_json_file(simulation_type, path, fixup=False)
+            data, changed = fixup_old_data(data)
+            # save changes to avoid re-applying fixups on each iteration
+            if changed:
+                save_simulation_json(data)
             if search and not _search_data(data, search):
                 continue
             op(res, path, data)
