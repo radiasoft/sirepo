@@ -172,6 +172,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
 SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue) {
     var self = this;
+    var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
     self.appState = appState;
     self.beamlineService = beamlineService;
     self.srwService = srwService;
@@ -259,7 +260,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     }
 
     function computeVectors(item) {
-        if (item.grazingAngle && item.autocomputeVectors === '1') {
+        updateVectorFields(item);
+        if (item.grazingAngle && item.autocomputeVectors != 'none') {
             computeFields('compute_grazing_angle', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
         }
     }
@@ -371,6 +373,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         panelState.showField('sample', 'rotateReshape', item.rotateAngle);
     }
 
+    function updateVectorFields(item) {
+        ['normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'].forEach(function(f) {
+            panelState.enableField(item.type, f, item.autocomputeVectors === 'none');
+        });
+    }
+
     self.handleModalShown = function(name) {
         var item = beamlineService.activeItem;
         if (item && item.type == name) {
@@ -385,6 +393,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 if (name == 'sample') {
                     updateSampleFields(item);
                 }
+            }
+            if (grazingAngleElements.indexOf(name) >= 0) {
+                updateVectorFields(item);
             }
         }
         panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
@@ -496,7 +507,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
 
-        ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'].forEach(function(m) {
+        grazingAngleElements.forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['grazingAngle', 'autocomputeVectors'], computeVectors);
         });
         beamlineService.watchBeamlineField($scope, 'crl', ['material', 'method', 'numberOfLenses', 'position', 'tipRadius', 'refractiveIndex'], computeCRLCharacteristics);

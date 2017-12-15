@@ -370,33 +370,6 @@ def find_height_profile_dimension(dat_file):
     return dimension
 
 
-def fixup_electron_beam(data):
-    if 'electronBeamPosition' not in data['models']:
-        ebeam = data['models']['electronBeam']
-        data['models']['electronBeamPosition'] = pkcollections.Dict({
-            'horizontalPosition': ebeam['horizontalPosition'],
-            'verticalPosition': ebeam['verticalPosition'],
-            'driftCalculationMethod': ebeam['driftCalculationMethod'] if 'driftCalculationMethod' in ebeam else 'auto',
-            'drift': ebeam['drift'] if 'drift' in ebeam else 0,
-        })
-        for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
-            if f in ebeam:
-                del ebeam[f]
-    if 'horizontalAngle' not in data['models']['electronBeamPosition']:
-        data['models']['electronBeamPosition']['horizontalAngle'] = _SCHEMA['model']['electronBeamPosition']['horizontalAngle'][2]
-        data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
-    if 'beamDefinition' not in data['models']['electronBeam']:
-        _process_beam_parameters(data['models']['electronBeam'])
-        data['models']['electronBeamPosition']['drift'] = _calculate_beam_drift(
-            data['models']['electronBeamPosition'],
-            data['models']['simulation']['sourceType'],
-            data['models']['tabulatedUndulator']['undulatorType'],
-            float(data['models']['undulator']['length']),
-            float(data['models']['undulator']['period']) / 1000.0,
-        )
-    return data
-
-
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
     # add point count to reports and move sampleFactor to simulation model
@@ -459,46 +432,7 @@ def fixup_old_data(data):
         data['models']['multiElectronAnimation']['numberOfMacroElectrons'] = 100000
     if 'photonEnergyBandWidth' not in data['models']['multiElectronAnimation']:  # added 03/29/2017 for ticket #708
         data['models']['multiElectronAnimation']['photonEnergyBandWidth'] = _SCHEMA['model']['multiElectronAnimation']['photonEnergyBandWidth'][2]
-    for item in data['models']['beamline']:
-        if item['type'] == 'ellipsoidMirror':
-            if 'firstFocusLength' not in item:
-                item['firstFocusLength'] = item['position']
-        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror']:
-            if 'grazingAngle' not in item:
-                angle = 0
-                if item['normalVectorX']:
-                    angle = math.acos(abs(float(item['normalVectorX']))) * 1000
-                elif item['normalVectorY']:
-                    angle = math.acos(abs(float(item['normalVectorY']))) * 1000
-                item['grazingAngle'] = angle
-        if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
-            item['autocomputeVectors'] = '1'
-        if item['type'] == 'crl':
-            key_value_pairs = pkcollections.Dict({
-                'material': 'User-defined',
-                'method': 'server',
-                'absoluteFocusPosition': None,
-                'focalDistance': None,
-                'tipRadius': float(item['radius']) * 1e6,  # m -> um
-                'tipWallThickness': float(item['wallThickness']) * 1e6,  # m -> um
-            })
-            for field in key_value_pairs.keys():
-                if field not in item:
-                    item[field] = key_value_pairs[field]
-            if not item['focalDistance']:
-                item = _compute_crl_focus(item)
-        if item['type'] == 'sample':
-            if 'horizontalCenterCoordinate' not in item:
-                item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
-                item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
-            if 'cropArea' not in item:
-                for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
-                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
-                          'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
-                    item[f] = _SCHEMA['model']['sample'][f][2]
-        if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
-            item['horizontalOffset'] = 0
-            item['verticalOffset'] = 0
+    _fixup_beamline(data)
     for k in data['models']:
         if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
             if 'fieldUnits' not in data['models'][k]:
@@ -532,7 +466,7 @@ def fixup_old_data(data):
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
 
     # Fixup electron beam parameters (drift, moments, etc.):
-    data = fixup_electron_beam(data)
+    data = _fixup_electron_beam(data)
 
     if 'fluxAnimation' not in data['models']:
         data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
@@ -586,9 +520,6 @@ def fixup_old_data(data):
         data['models']['trajectoryReport']['plotAxisX'] = 'Z'
         data['models']['trajectoryReport']['plotAxisY'] = 'X'
 
-    # Update tabulated undulator length:
-    _compute_undulator_length(data['models']['tabulatedUndulator'])
-
     if 'sizeDefinition' not in data['models']['gaussianBeam']:
         data['models']['gaussianBeam']['sizeDefinition'] = 1
         data['models']['gaussianBeam']['rmsDivergenceX'] = 0
@@ -601,6 +532,8 @@ def fixup_old_data(data):
 
     if 'photonEnergy' not in data['models']['gaussianBeam']:
         data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
+        # Update tabulated undulator length (only apply this once, not every fixup)
+        _compute_undulator_length(data['models']['tabulatedUndulator'])
 
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
@@ -1235,16 +1168,16 @@ def _compute_grazing_angle(model):
 
     grazing_angle = float(model['grazingAngle']) / 1000.0
     preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle))
-
-    if 'normalVectorY' in model and float(model['normalVectorY']) == 0:
+    if model['autocomputeVectors'] == 'horizontal':
         preserve_sign(model, 'normalVectorX', math.cos(grazing_angle))
         preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle))
+        model['normalVectorY'] = 0
         model['tangentialVectorY'] = 0
-    if 'normalVectorX' in model and float(model['normalVectorX']) == 0:
+    elif model['autocomputeVectors'] == 'vertical':
         preserve_sign(model, 'normalVectorY', math.cos(grazing_angle))
-        model['tangentialVectorX'] = 0
         preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle))
-
+        model['normalVectorX'] = 0
+        model['tangentialVectorX'] = 0
     return model
 
 
@@ -1381,6 +1314,81 @@ def _find_index_file(zip_object):
             break
     assert index_file is not None
     return index_dir, index_file
+
+
+def _fixup_beamline(data):
+    for item in data['models']['beamline']:
+        if item['type'] == 'ellipsoidMirror':
+            if 'firstFocusLength' not in item:
+                item['firstFocusLength'] = item['position']
+        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror']:
+            if 'grazingAngle' not in item:
+                angle = 0
+                if item['normalVectorX']:
+                    angle = math.acos(abs(float(item['normalVectorX']))) * 1000
+                elif item['normalVectorY']:
+                    angle = math.acos(abs(float(item['normalVectorY']))) * 1000
+                item['grazingAngle'] = angle
+        if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
+            item['autocomputeVectors'] = '1'
+        if item['type'] == 'crl':
+            key_value_pairs = pkcollections.Dict({
+                'material': 'User-defined',
+                'method': 'server',
+                'absoluteFocusPosition': None,
+                'focalDistance': None,
+                'tipRadius': float(item['radius']) * 1e6,  # m -> um
+                'tipWallThickness': float(item['wallThickness']) * 1e6,  # m -> um
+            })
+            for field in key_value_pairs.keys():
+                if field not in item:
+                    item[field] = key_value_pairs[field]
+            if not item['focalDistance']:
+                item = _compute_crl_focus(item)
+        if item['type'] == 'sample':
+            if 'horizontalCenterCoordinate' not in item:
+                item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
+                item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
+            if 'cropArea' not in item:
+                for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
+                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
+                          'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
+                    item[f] = _SCHEMA['model']['sample'][f][2]
+        if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
+            item['horizontalOffset'] = 0
+            item['verticalOffset'] = 0
+        if 'autocomputeVectors' in item:
+            if item['autocomputeVectors'] == '0':
+                item['autocomputeVectors'] = 'none'
+            elif item['autocomputeVectors'] == '1':
+                item['autocomputeVectors'] = 'vertical' if item['normalVectorX'] == 0 else 'horizontal'
+
+
+def _fixup_electron_beam(data):
+    if 'electronBeamPosition' not in data['models']:
+        ebeam = data['models']['electronBeam']
+        data['models']['electronBeamPosition'] = pkcollections.Dict({
+            'horizontalPosition': ebeam['horizontalPosition'],
+            'verticalPosition': ebeam['verticalPosition'],
+            'driftCalculationMethod': ebeam['driftCalculationMethod'] if 'driftCalculationMethod' in ebeam else 'auto',
+            'drift': ebeam['drift'] if 'drift' in ebeam else 0,
+        })
+        for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
+            if f in ebeam:
+                del ebeam[f]
+    if 'horizontalAngle' not in data['models']['electronBeamPosition']:
+        data['models']['electronBeamPosition']['horizontalAngle'] = _SCHEMA['model']['electronBeamPosition']['horizontalAngle'][2]
+        data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
+    if 'beamDefinition' not in data['models']['electronBeam']:
+        _process_beam_parameters(data['models']['electronBeam'])
+        data['models']['electronBeamPosition']['drift'] = _calculate_beam_drift(
+            data['models']['electronBeamPosition'],
+            data['models']['simulation']['sourceType'],
+            data['models']['tabulatedUndulator']['undulatorType'],
+            float(data['models']['undulator']['length']),
+            float(data['models']['undulator']['period']) / 1000.0,
+        )
+    return data
 
 
 def _generate_beamline_optics(models, last_id):
@@ -1892,7 +1900,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         try:
             resize_factor = float(width_pixels) / float(x_range[2])
             pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
-            ar2d = zoom(ar2d, resize_factor)
+            ar2d = zoom(ar2d, resize_factor, order=1)
             # Remove for #670, this may be required for certain reports?
             # if scale == 'linear':
             #     ar2d[np.where(ar2d < 0.)] = 0.0
