@@ -80,7 +80,6 @@
     position: relative;
   }
   .lp-flex-row .col-md-5, .col-md-7 {
-    padding-top: 8px;
     padding-bottom: 8px;
   }
 
@@ -337,15 +336,21 @@ ul.lp-list li a {
   height: 64px;
 }
 .lp-srw-sub-header-text {
-  font-size: 18pt;
   float: left;
   margin-top: 12px;
+  font-size: 16pt;
+}
+
+img.lp-header-rs-logo {
+  height: auto;
+  width: 256px;
 }
 
 img.lp-header-sr-logo {
   padding-top: 8px;
   padding-bottom: 8px;
   margin-left: 15px;
+  margin-right: 15px;
   float:left;
   height: 100%;
   width: auto;

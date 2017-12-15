@@ -61,10 +61,13 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
             $routeProvider.when('/' + key, {
                 template: [
                     '<div data-page-heading="" data-landing-page="landingPage"></div>',
-                    '<div class="lp-flex-col">',
-                    '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-',
-                    (key == 'light-sources' ? 'button-list' : 'big-button'),
-                    '="item"></div>',
+                    '<div class="container">',
+                        '<div class="row visible-xs">',
+                            '<div class="lead text-center" data-ng-bind="landingPage.pageName()"></div>',
+                        '</div>',
+                        '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-',
+                        (key == 'light-sources' ? 'button-list' : 'big-button'),
+                        '="item"></div>',
                     '</div>',
                 ].join('')
             });
@@ -402,10 +405,11 @@ app.directive('pageHeading', function(srwAppRoutes) {
         var template = [
                 '<div class="lp-main-header-content" data-ng-class="{\'lp-sub-header-content\': ! onMainLandingPage()}">',
                     '<a href="/#about">',
+                        '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
+                    '</a>',
         ].join('');
         if (SIREPO.IS_SRW_LANDING_PAGE) {
             template += [
-                '</a>',
                 '<div class="lp-srw-sub-header-text">',
                     '<a href="#/home">Synchrotron Radiation Workshop</a>',
                     ' <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span> ',
@@ -413,22 +417,14 @@ app.directive('pageHeading', function(srwAppRoutes) {
                 '</div>',
             ].join('');
         }
-
-        else {
-            template += [
-                    '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
-                '</a>',
-            ].join('');
-        }
         template += [
-                    '<div>',
-                        '<a data-ng-show="onMainLandingPage() || onSRWShortcutsPage()" class="pull-right" data-ng-class="{\'lp-hide-wide\': ! onSRWShortcutsPage()}" href="http://radiasoft.net">',
-                            '<img width="256px" height="auto" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                    '<div data-ng-show="onMainLandingPage() || onSRWShortcutsPage()" data-ng-class="{\'lp-hide-wide\': ! onSRWShortcutsPage()}" class="pull-right">',
+                        '<a href="http://radiasoft.net">',
+                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
                         '</a>',
                     '</div>',
                 '</div>',
         ].join('');
-
         return template;
     }
     return {
