@@ -17,24 +17,9 @@
     <![endif]-->
   </head>
   <body>
-    <nav class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif{{ cache_key }}" alt="radiasoft"></a>
-          <div class="navbar-brand" data-page-heading="" data-landing-page="landingPage"></div>
-        </div>
-      </div>
-    </nav>
-    <div class="container">
-      <div class="row visible-xs">
-        <div class="lead text-center" data-ng-bind="landingPage.pageName()"></div>
-      </div>
-      <div data-ng-view></div>
-      <div class="row" style="height: 30px"></div>
-      <div class="row">
-        <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif{{ cache_key }}" alt="Radiasoft" />radiasoft</a></div>
-      </div>
-    </div>
+    <div class="navbar-header-top-stripe rs-blue-background" data-ng-class="{'navbar-header-top-stripe-expanded': landingPage.onMainLandingPage(), 'navbar-header-top-stripe-collapsed': ! landingPage.onMainLandingPage()}"></div>
+    <div data-ng-view></div>
+
     <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>
     <script src="/static/js/ext/angular-1.6.1.min.js{{ cache_key }}"></script>
     <script src="/static/js/ext/angular-route-1.6.1.min.js{{ cache_key }}"></script>
