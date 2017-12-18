@@ -40,7 +40,7 @@ app.value('appRoutes', {
     'shadow': {url: '/static/html/landing-page-shadow.html', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
     'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
     'elegant': {url: '/static/html/landing-page-elegant.html', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
-    'warppba': {url: '/static/html/landing-page-warp.html', infoPanelTitle: 'Warp (plasma-based accelerators)', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
+    'warppba': {url: '/static/html/landing-page-warp.html', infoPanelTitle: 'Plasma-Based Accelerators', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
     'rslinac': {url: '/static/html/landing-page-rslinac.html', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
     'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
