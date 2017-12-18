@@ -789,7 +789,15 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             appState.saveQuietly('sourceIntensityReport');
             appState.saveQuietly('simulation');
         }
-
+        else if (name == 'sourceIntensityReport') {
+            if (! appState.models.beamline.length) {
+                var sim = appState.models.simulation;
+                var sourceReport = appState.models.sourceIntensityReport;
+                sim.photonEnergy = sourceReport.photonEnergy;
+                sim.distanceFromSource = sourceReport.distanceFromSource;
+                appState.saveChanges('simulation');
+            }
+        }
     });
 
     function changeFluxReportName(modelName) {
