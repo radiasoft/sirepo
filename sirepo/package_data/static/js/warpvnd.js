@@ -77,6 +77,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
 
 SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, frameCache, panelState, $scope) {
     var self = this;
+    var MAX_PARTICLES_PER_STEP = 1000;
 
     function updateAllFields() {
         updateBeamCurrent();
@@ -110,7 +111,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
 
     function updateParticlesPerStep() {
         var grid = appState.models.simulationGrid;
-        grid.particles_per_step = grid.num_x * 10;
+        grid.particles_per_step = Math.min(MAX_PARTICLES_PER_STEP, grid.num_x * 10);
     }
 
     function updatePermittivity() {
