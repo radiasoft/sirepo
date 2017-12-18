@@ -4,20 +4,30 @@
       <lp-info-content>
         <div class="lp-info-panel-content-header">Warp PBA</div>
         <div>
-          <p>Warp is a particle-in-cell (PIC) code designed to simulate high-intensity charged particle beams and plasmas in both the electrostatic and electromagnetic regimes, with a wide variety of integrated physics models and diagnostics.</p>
-          <p>At present, Sirepo supports a small subset of Warp’s capabilities. The full capabilities of Warp can be accessed from a <a href="#/jupyter">Jupyter server</a>. Jupyter servers are cloud based simulations of an HPC server, with nothing to install.</p>
+          <p>Warp PBA is a Sirepo-based prototype for simulating beam-driven and laser-driven plasma wakes, with close-to-cylindrical symmetry.</p>
+          <p>A 2D cylindrical mesh is used for electromagnetic PIC, together with an arbitrary number of azimuthal modes to capture non-cylindrical dynamics. Only one azimuthal mode is required to model a linearly-polarized laser pulse.</p>
+          <p>The underlying physics kernel is based on Warp, a massively parallel PIC code.</p>
         </div>
         <div class="lp-launch-button" data-launch-button="" data-label="'Launch Warp PBA'" data-url="'/warppba'"></div>
-        <div>
-          <p>The Warp source code is available on Bitbucket.</p>
-          <p>The code is primarily supported by David Grote, Jean-Luc Vay, Remi Lehe and other colleagues at Lawrence Berkeley National Laboratory and Lawrence Livermore National Laboratory. Warp is part of the Berkeley Lab Accelerator Simulation Toolkit.</p>
-        </div>
       </lp-info-content>
       <lp-info-docs>
-        <!--<div class="lp-info-panel-docs-header">Documentation</div>-->
+          <div class="lp-info-panel-docs-header">JupyterHub</div>
+          <div>
+              <p>Warp PBA supports a small subset of Warp’s capabilities.</p>
+              <p>Warp is available on <a href="#/jupyter">RadiaSoft's public JupyterHub server</a>, which provides access to many open source physics codes through IPython/Jupyter notebooks and browser-based terminals.</p>
+              <p>The Warp source code is available on Bitbucket.</p>
+              <p>The code is primarily supported by David Grote, Jean-Luc Vay, Remi Lehe and other colleagues at Lawrence Berkeley National Laboratory and Lawrence Livermore National Laboratory. Warp is part of the Berkeley Lab Accelerator Simulation Toolkit.</p>
+          </div>
       </lp-info-docs>
       <lp-info-pubs>
-        <!--<div class="lp-info-panel-docs-header">Publications</div>-->
+          <div class="lp-info-panel-docs-header">Publications</div>
+          <div>
+              <ul>
+                 <li>A. Friedman, R.H. Cohen, D.P. Grote, S.M. Lund, W.M. Sharp, J.-L. Vay, I. Haber and R.A. Kishek, "Computational Methods in the Warp Code Framework for Kinetic Simulations of Particle Beams and Plasmas," IEEE Trans. Plasma Sci. 42, 1321 (2014).</li>
+                 <li>J.-L. Vay, D. P. Grote, R. H. Cohen, A. Friedman, "Novel Methods in the Particle-In-Cell Accelerator Code-Framework Warp," Comput. Sci. Disc. 5, 014019 (2012).</li>
+                 <li>J.L. Vay, C.G.R. Geddes, E. Cormier-Michel, D.P. Grote, "Numerical methods for instability mitigation in the modeling of laser wakefield accelerators in a lorentz-boosted frame", J. Comput. Phys. 230, 5908 (2011).</li>
+              </ul>
+          </div>
       </lp-info-pubs>
       <lp-info-doe-footer>
         <div data-lp-doe-footer="">
