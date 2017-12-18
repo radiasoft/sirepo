@@ -46,7 +46,7 @@ app.value('appRoutes', {
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
     'warpvnd': {url: '/static/html/landing-page-vac-nano.html', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', url:''}},
     'genesis': {url: '/static/html/landing-page-genesis.html', infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
-    'jupyter': {url: '/static/html/landing-page-jupyter.html', infoPanelTitle: 'Jupyter Server', mediaConfig: {title: 'Jupyter Server', url:''}},
+    'jupyter': {url: '/static/html/landing-page-jupyter.html', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
