@@ -724,13 +724,16 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 if (undulatorDefinition === 'K') {
                     if (deflectingParameter === 'horizontalDeflectingParameter') {
                         appState.models.undulator.horizontalAmplitude = formatFloat(data.amplitude);
-                    } else {
+                    }
+                    else {
                         appState.models.undulator.verticalAmplitude = formatFloat(data.amplitude);
                     }
-                } else if (undulatorDefinition === 'B') {
+                }
+                else if (undulatorDefinition === 'B') {
                     if (amplitude === 'horizontalAmplitude') {
                         appState.models.undulator.horizontalDeflectingParameter = formatFloat(data.undulator_parameter);
-                    } else {
+                    }
+                    else {
                         appState.models.undulator.verticalDeflectingParameter = formatFloat(data.undulator_parameter);
                     }
                 }
@@ -775,15 +778,18 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'simulation') {
             processUndulator();
-        } else if (name == 'undulator' || name == 'tabulatedUndulator') {
+        }
+        else if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
             appState.saveQuietly('electronBeamPosition');
-        } else if (name == 'gaussianBeam') {
+        }
+        else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
             appState.models.simulation.photonEnergy = appState.models.gaussianBeam.photonEnergy;
             appState.saveQuietly('sourceIntensityReport');
             appState.saveQuietly('simulation');
         }
+
     });
 
     function changeFluxReportName(modelName) {
@@ -798,7 +804,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 'Flux',
                 fluxType
             ) + ' for Finite Emittance Electron Beam';
-        } else {
+        }
+        else {
             repName = title + ' Report';
         }
         repName += ', ' + distance;
@@ -873,7 +880,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
             if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'horizontalDeflectingParameter', 'horizontalAmplitude');
-            } else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
+            }
+            else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
         });
@@ -881,9 +889,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['undulator.horizontalAmplitude', 'undulator.verticalAmplitude', 'undulator.period'], function() {
             if (isActiveField('undulator', 'horizontalAmplitude')) {
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
-            } else if (isActiveField('undulator', 'verticalAmplitude')) {
+            }
+            else if (isActiveField('undulator', 'verticalAmplitude')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
-            } else if (isActiveField('undulator', 'period')) {
+            }
+            else if (isActiveField('undulator', 'period')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
