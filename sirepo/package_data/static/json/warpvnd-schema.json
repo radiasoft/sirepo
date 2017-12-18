@@ -52,7 +52,7 @@
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
             "zLength": ["Length (Z) [µm]", "Float"],
-            "permittivity": ["Permittivity of Free Space", "Float", 7.0],
+            "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"]
         },
         "conductorGridReport": {},
