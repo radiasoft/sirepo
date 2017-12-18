@@ -29,25 +29,47 @@ angular.element(document).ready(function() {
 
 var app = angular.module('LandingPageApp', ['ngRoute']);
 
-app.value('appRoutes', {
+app.value('srwAppRoutes', {
     'calculator': 'SR Calculator',
     'light-sources': 'Light Source Facilities',
     'wavefront': 'Wavefront Propagation',
 });
+app.value('appRoutes', {
+    'xray': {url: '/static/html/landing-page-x-ray.html', infoPanelTitle: 'X-Ray Optics', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
+    'srw': {url: '/static/html/landing-page-srw.html', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
+    'shadow': {url: '/static/html/landing-page-shadow.html', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
+    'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
+    'elegant': {url: '/static/html/landing-page-elegant.html', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
+    'warppba': {url: '/static/html/landing-page-warp.html', infoPanelTitle: 'Warp (plasma-based accelerators)', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
+    'rslinac': {url: '/static/html/landing-page-rslinac.html', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
+    'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
+    'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
+    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', url:''}},
+    'genesis': {url: '/static/html/landing-page-genesis.html', infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
+    'jupyter': {url: '/static/html/landing-page-jupyter.html', infoPanelTitle: 'Jupyter Server', mediaConfig: {title: 'Jupyter Server', url:''}},
+});
 
-app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
+app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
     $locationProvider.hashPrefix('');
     // srw landing page
     if (SIREPO.IS_SRW_LANDING_PAGE) {
-        var appRoutes = appRoutesProvider.$get();
+        var srwAppRoutes = srwAppRoutesProvider.$get();
         $routeProvider.when('/home', {
             templateUrl: '/static/html/landing-page-home.html' + SIREPO.SOURCE_CACHE_KEY,
         });
-        Object.keys(appRoutes).forEach(function(key) {
+        Object.keys(srwAppRoutes).forEach(function(key) {
             $routeProvider.when('/' + key, {
-                template: '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-'
-                    + (key == 'light-sources' ? 'button-list' : 'big-button')
-                    + '="item"></div>',
+                template: [
+                    '<div data-page-heading="" data-landing-page="landingPage"></div>',
+                    '<div class="container">',
+                        '<div class="row visible-xs">',
+                            '<div class="lead text-center" data-ng-bind="landingPage.pageName()"></div>',
+                        '</div>',
+                        '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-',
+                        (key == 'light-sources' ? 'button-list' : 'big-button'),
+                        '="item"></div>',
+                    '</div>',
+                ].join('')
             });
         });
         $routeProvider.otherwise({
@@ -56,8 +78,15 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     }
     // root landing page
     else {
+        var appRoutes = appRoutesProvider.$get();
+
         $routeProvider.when('/about', {
             templateUrl: '/static/html/landing-page-about.html' + SIREPO.SOURCE_CACHE_KEY,
+        });
+        Object.keys(appRoutes).forEach(function(key) {
+            $routeProvider.when('/' + key, {
+                templateUrl: appRoutes[key].url + SIREPO.SOURCE_CACHE_KEY
+            });
         });
         $routeProvider.otherwise({
             redirectTo: '/about',
@@ -65,7 +94,7 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     }
 });
 
-app.controller('LandingPageController', function ($location, appRoutes) {
+app.controller('LandingPageController', function ($location, appRoutes, srwAppRoutes) {
     var self = this;
     self.srwExamples = SRW_EXAMPLES;
 
@@ -89,7 +118,7 @@ app.controller('LandingPageController', function ($location, appRoutes) {
     };
 
     self.pageName = function() {
-        return appRoutes[pageCategory()];
+        return srwAppRoutes[pageCategory()];
     };
 
     self.pageTitle = function() {
@@ -98,6 +127,144 @@ app.controller('LandingPageController', function ($location, appRoutes) {
             return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - Radiasoft';
         }
         return 'Sirepo - Radiasoft';
+    };
+
+    self.onMainLandingPage = function () {
+        return $location.path() === '/about';
+    };
+
+});
+
+app.directive('lpBody', function(appRoutes) {
+    return {
+        restrict: 'A',
+        scope: {},
+        transclude: {
+            lpInfoSlot: '?lpInfo',
+            lpMediaSlot: '?lpMedia',
+        },
+        template: [
+            '<div class="lp-flex-row" data-ng-class="{\'lp-main-header-offset\': onMainLandingPage()}">',
+                '<div class="lp-flex-col col-md-7">',
+                    '<div data-page-heading="" data-landing-page="landingPage"></div>',
+                    '<div data-ng-transclude="lpInfoSlot">',
+                        '<div data-lp-info-panel=""></div>',
+                    '</div>',
+                '</div>',
+                '<div class=" lp-flex-col col-md-5 rs-blue-background">',
+                    '<div data-ng-if="onMainLandingPage()" class="lp-main-header lp-show-wide">',
+                        '<div class="lp-main-header-content">',
+                            '<a class="pull-right" href="http://radiasoft.net">',
+                                '<img width="256px" height="auto" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                            '</a>',
+                        '</div>',
+                    '</div>',
+                    '<div data-ng-transclude="lpMediaSlot"  class="lp-full-height rs-blue-background">',
+                        '<div data-lp-media-panel="" class="lp-full-height"></div>',
+                    '</div>',
+                '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $location) {
+            $scope.onMainLandingPage = function () {
+                return $location.path() === '/about';
+            };
+       },
+    };
+});
+
+app.directive('lpInfoPanel', function(appRoutes) {
+    return {
+        restrict: 'A',
+        scope: {},
+        transclude: {
+            lpInfoContentSlot: '?lpInfoContent',
+            lpInfoDocsSlot: '?lpInfoDocs',
+            lpInfoPubsSlot: '?lpInfoPubs',
+            lpInfoDOEFooterSlot: '?lpInfoDoeFooter',
+        },
+        template: [
+                '<div class="lp-info-panel-top-stripe rs-green-background">{{ infoPanelTitle() }}</div>',
+                '<div class="lp-info-panel-content" data-ng-transclude="lpInfoContentSlot"></div>',
+                '<div class="lp-info-panel-content" data-ng-transclude="lpInfoDocsSlot"></div>',
+                '<div id="lpInfoPubs" class="lp-info-panel-content" data-ng-transclude="lpInfoPubsSlot"></div>',
+                '<div id="lpInfoDOEFooter" data-ng-transclude="lpInfoDOEFooterSlot"></div>',
+        ].join(''),
+        controller: function($scope, $location) {
+            $scope.infoPanelTitle = function() {
+                var route = appRoutes[$location.path().substring(1)];
+                return route ? route.infoPanelTitle || '' : '';
+            };
+        },
+    };
+});
+app.directive('lpDoeFooter', function(utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        transclude: {
+            lpInfoDOEFooterTextSlot: '?lpInfoDoeFooterText',
+        },
+        template: [
+            '<div class="lp-doe-footer" data-ng-class="{\'lp-doe-footer-would-overlap\': applyOverlapClass() }">',
+                '<img src="/static/img/RGB_White-Seal_White-Mark_SC_Horizontal.png',SIREPO.SOURCE_CACHE_KEY,'">',
+                '<div data-ng-transclude="lpInfoDOEFooterTextSlot"></div>',
+            '</div>',
+        ].join(''),
+        link: function($scope) {
+            $scope.applyOverlapClass = function() {
+                return utilities.checkContentOverlap('div[data-lp-info-panel]', '.lp-doe-footer', 8);
+            };
+        },
+    };
+});
+
+app.directive('lpMediaPanel', function(appRoutes, utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        transclude: {
+            lpMediaContentSlot: '?lpMediaContent',
+        },
+        template: [
+            '<div class="lp-media-panel">',
+                '<div class="lp-media-container">',
+                    '<div class="lp-media-viewport">',
+                        '<iframe data-ng-if="mediaPanelURL() != null" width="420px" height="315px" data-ng-src="{{ mediaPanelURL() }}" frameborder="0" gesture="media" allow="encrypted-media"></iframe>',
+                    '</div>',
+                    '<div data-ng-if="mediaPanelURL() != null" class="caption">{{ mediaPanelTitle() }}</div>',
+                '</div>',
+                '<div data-ng-transclude="lpMediaContentSlot"></div>',
+                '<div data-ng-show="! onMainLandingPage()">',
+                    '<div class="lp-media-rs-footer"  data-ng-class="{\'lp-media-rs-footer-would-overlap\': applyOverlapClass() }">',
+                        '<a href="http://radiasoft.net">',
+                            '<img width="256px" height="auto" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                        '</a>',
+                    '</div>',
+                '</div>',
+            '</div>',
+        ].join(''),
+        link: function($scope) {
+            $scope.applyOverlapClass = function() {
+                return utilities.checkContentOverlap('.lp-media-panel', '.lp-media-rs-footer', 8);
+            };
+        },
+        controller: function($scope, $location, $sce) {
+            var routeConfig  = appRoutes[$location.path().substring(1)] || {};
+            var mediaConfig = routeConfig.mediaConfig || {};
+            $scope.onMainLandingPage = function () {
+                return $location.path() === '/about';
+            };
+            $scope.mediaPanelTitle = function() {
+                return mediaConfig.title || 'What is Sirepo?';
+            };
+            $scope.mediaPanelURL= function() {
+                if(mediaConfig.url) {
+                    return $sce.trustAsResourceUrl(mediaConfig.url);
+                }
+                return null;
+            };
+       },
     };
 });
 
@@ -219,19 +386,46 @@ app.directive('codeSummary', function() {
     };
 });
 
-app.directive('pageHeading', function() {
+
+app.directive('launchButton', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            label: '<',
+            url: '<',
+        },
+        template: [
+            '<a target="_blank" class="btn btn-default" data-ng-href="{{ url }}"><h4>{{ label }}</h4></a>',
+        ].join(''),
+    };
+});
+
+app.directive('pageHeading', function(srwAppRoutes) {
     function getTemplate() {
+        var template = [
+                '<div class="lp-main-header-content" data-ng-class="{\'lp-sub-header-content\': ! onMainLandingPage()}">',
+                    '<a href="/#about">',
+                        '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
+                    '</a>',
+        ].join('');
         if (SIREPO.IS_SRW_LANDING_PAGE) {
-            return [
-                '<div><a href="#/home">Synchrotron Radiation Workshop</a>',
-                  ' <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span> ',
-                  '<span class="hidden-xs" data-ng-if="landingPage.pageName()" data-ng-bind="landingPage.pageName()"></span>',
+            template += [
+                '<div class="lp-srw-sub-header-text">',
+                    '<a href="#/home">Synchrotron Radiation Workshop</a>',
+                    ' <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span> ',
+                    '<span class="hidden-xs" data-ng-if="landingPage.pageName()" data-ng-bind="landingPage.pageName()"></span>',
                 '</div>',
             ].join('');
         }
-        return [
-            '<div>Sirepo</div>',
+        template += [
+                    '<div data-ng-show="onMainLandingPage() || onSRWShortcutsPage()" data-ng-class="{\'lp-hide-wide\': ! onSRWShortcutsPage()}" class="pull-right">',
+                        '<a href="http://radiasoft.net">',
+                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                        '</a>',
+                    '</div>',
+                '</div>',
         ].join('');
+        return template;
     }
     return {
         restrict: 'A',
@@ -239,5 +433,49 @@ app.directive('pageHeading', function() {
             landingPage: '=',
         },
         template: getTemplate(),
+        controller: function($scope, $location, $route) {
+            $scope.onMainLandingPage = function() {
+                return $location.path() === '/about';
+            };
+            $scope.onSRWShortcutsPage = function() {
+                var route = $location.path().substring(1);
+                return route === 'home' || Object.keys(srwAppRoutes).indexOf(route) >= 0;
+            };
+       },
     };
+});
+
+app.service('utilities', function() {
+
+    var self = this;
+    this.checkContentOverlap = function(container, footer, offset) {
+
+        // exclude divs with no height
+        var footerContent = $(footer).find('*').addBack('*').filter(function () {
+            return $(this).outerHeight() > 0;
+        }).toArray();
+        var containerContent = $(container).find('*').filter(function () {
+            return $(this).outerHeight() > 0;
+        }).toArray();
+        var contentBottom = this.bottomEdge(
+            containerContent.filter(function (el) {
+                return(! footerContent.includes(el));
+            })
+        );
+        var footerTop = this.topEdge(footerContent);
+        return contentBottom + offset > footerTop;
+    };
+    this.bottomEdge = function(elements) {
+        return elements.reduce(function(newBottom, el) {
+            return Math.max(newBottom, bottom(el));
+        }, Number.MIN_SAFE_INTEGER);
+    };
+    this.topEdge = function(elements) {
+        return elements.reduce(function(newTop, el) {
+            return Math.min(newTop, $(el).offset().top);
+        }, Number.MAX_SAFE_INTEGER);
+    };
+    function bottom(el) {
+        return $(el).offset().top + $(el).outerHeight(true);
+    }
 });
