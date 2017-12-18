@@ -559,6 +559,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
 
             function caratField(index, dimension, range) {
                 var field = (dimension == 'x' ? 'z': 'x') + 'Cell' + index;
+                if (appState.models.fieldComparisonReport[field] > range.length) {
+                    appState.models.fieldComparisonReport[field] = range.length - 1;
+                }
                 return {
                     index: index,
                     field: field,
@@ -569,7 +572,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
             }
 
             function caratText(d) {
-                verifyCaratRange(d);
                 return d.range[d.pos].toFixed(5);
             }
 
@@ -860,7 +862,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
 
             function updateCarat(selection) {
                 selection.attr('transform', function(d) {
-                    verifyCaratRange(d);
                     if (d.dimension == 'x') {
                         return 'translate('
                             + xAxisScale(d.range[d.pos] * 1e-6)
@@ -936,12 +937,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                         ? d.conductorType.name
                         : '⚠️ Conductor does not cross a warp grid line and will be ignored';
                 });
-            }
-
-            function verifyCaratRange(d) {
-                if (d.pos > d.range.length) {
-                    d.pos = d.range.length - 1;
-                }
             }
 
             $scope.destroy = function() {
@@ -1050,6 +1045,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                     if (plateSpacing && plateSpacing != v) {
                         adjustConductorLocation(v - plateSpacing);
                         plateSpacing = v;
+                    }
+                    if (isInitialized) {
+                        replot();
                     }
                 }
             });
