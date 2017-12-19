@@ -45,7 +45,6 @@ SIREPO.appDefaultSimulationValues = {
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
-
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
 SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
@@ -1983,8 +1982,11 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, $location, $scope, $window, $cookies) {
     var self = this;
+
+    var sr_sim_list_view_cookie = 'net.sirepo.sim_list_view';
+    var cookie_pref_timeout = 5*365*24*60*60*1000;
 
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
@@ -1999,8 +2001,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             field: 'lastModified',
             heading: 'Last Modified',
         }];
-    //TODO(pjm): store view state in db preference or client cookie
-    self.isIconView = true;
     self.selectedItem = null;
     self.sortField = 'name';
 
@@ -2309,6 +2309,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
+        $cookies.put(sr_sim_list_view_cookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookie_pref_timeout)});
     };
 
     self.toggleFolder = function(item) {
@@ -2330,6 +2331,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
     };
 
+    initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
         appState.models.simulation.folder = self.pathName(self.activeFolder);
@@ -2402,4 +2404,12 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     $scope.$on('$destroy', function() {
         scopeOK = false;
     });
+
+    function initCookiePrefs() {
+        self.isIconView = initCookiePref(sr_sim_list_view_cookie, 'true') === 'true';
+    }
+    function initCookiePref(name, defaultValue) {
+        var c = $cookies.get(name);
+        return !c || c === 'undefined' ? defaultValue : c;
+    }
 });
