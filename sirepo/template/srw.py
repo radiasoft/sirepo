@@ -159,48 +159,59 @@ class MagnMeasZip:
         Args:
             archive_name: the name of the archive.
         """
-        self.archive_name = archive_name
         self.z = zipfile.ZipFile(archive_name)
         self.index_dir = None
         self.index_file = None
-        self.index_content = None
         self.gaps = None
         self.dat_files = None
-
-        # .dat file from the index file (depends on the provided gap):
-        self.idx = None
-        self.closest_gap = None
-        self.dat_file = None
-
-        # .dat file information:
-        self.dat_file_step = None
-        self.dat_file_number_of_points = None
-        self.dat_file_found_length = None
-
         self._find_index_file()
         self._find_dat_files_from_index_file()
 
     def find_closest_gap(self, gap):
-        d = _find_closest_value(self.gaps, float(gap))
-        self.idx = d['idx']
-        self.closest_gap = d['closest_value']
-        self.dat_file = self.dat_files[self.idx]
-        self._get_gap_parameters(self.get_file_content(self.dat_file))
+        gap = float(gap)
+        indices_previous = []
+        indices_next = []
+        for i in range(len(self.gaps)):
+            if self.gaps[i] <= gap:
+                indices_previous.append(i)
+            else:
+                indices_next.append(i)
+        assert indices_previous or indices_next
+        idx_previous = indices_previous[-1] if indices_previous else indices_next[0]
+        idx_next = indices_next[0] if indices_next else indices_previous[-1]
+        idx = idx_previous if abs(self.gaps[idx_previous] - gap) <= abs(self.gaps[idx_next] - gap) else idx_next
+        dat_file = self.dat_files[idx]
+        dat_content = self.get_file_content(dat_file)
+        dat_file_step = float(dat_content[8].split('#')[1].strip())
+        dat_file_number_of_points = int(dat_content[9].split('#')[1].strip())
+        return round(dat_file_step * dat_file_number_of_points, 6)
 
     def get_file_content(self, file_name):
         with self.z.open(self._full_path(file_name)) as f:
-            return _normalize_eol(f)
+            return self._normalize_eol(f)
 
     def save_file(self, run_dir, file_name, content):
         with open(self._full_path(file_name, run_dir), 'w') as f:
             f.write('\n'.join(content) + '\n')
 
     def _find_dat_files_from_index_file(self):
-        self.gaps, self.dat_files = _find_dat_files_from_index_file(self.index_content)
+        self.gaps = []
+        self.dat_files = []
+        for row in self.get_file_content(self.index_file):
+            v = row.strip()
+            if v:
+                v = v.split()
+                self.gaps.append(float(v[0]))
+                self.dat_files.append(v[3])
 
     def _find_index_file(self):
-        self.index_dir, self.index_file = _find_index_file(self.z)
-        self.index_content = self.get_file_content(self.index_file)
+        # finds an index file (``*.txt``) in the provided zip-object.
+        for f in self.z.namelist():
+            if re.search(r'\.txt', f):
+                self.index_file = os.path.basename(f)
+                self.index_dir = os.path.dirname(f)
+                break
+        assert self.index_file is not None
 
     def _full_path(self, file_name, run_dir=None):
         if not run_dir:
@@ -211,10 +222,10 @@ class MagnMeasZip:
             os.mkdir(abs_dir)
         return os.path.join(abs_dir, file_name)
 
-    def _get_gap_parameters(self, dat_content):
-        self.dat_file_step = float(dat_content[8].split('#')[1].strip())
-        self.dat_file_number_of_points = int(dat_content[9].split('#')[1].strip())
-        self.dat_file_found_length = round(self.dat_file_step * self.dat_file_number_of_points, 6)
+    def _normalize_eol(self, file_desc):
+        s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
+        content = s.split('\n')
+        return content
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -532,8 +543,6 @@ def fixup_old_data(data):
 
     if 'photonEnergy' not in data['models']['gaussianBeam']:
         data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
-        # Update tabulated undulator length (only apply this once, not every fixup)
-        _compute_undulator_length(data['models']['tabulatedUndulator'])
 
     for k in data['models']:
         for rep_name in _DATA_FILE_FOR_MODEL.keys():
@@ -545,6 +554,7 @@ def fixup_old_data(data):
                     data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
 
     if 'longitudinalPosition' in data['models']['tabulatedUndulator']:
+        _compute_undulator_length(data['models']['tabulatedUndulator'])
         tabulated_undulator = data['models']['tabulatedUndulator']
         for k in ['undulatorParameter', 'period', 'length', 'longitudinalPosition', 'horizontalAmplitude', 'horizontalSymmetry', 'horizontalInitialPhase', 'verticalAmplitude', 'verticalSymmetry', 'verticalInitialPhase']:
             if k in tabulated_undulator:
@@ -1186,9 +1196,7 @@ def _compute_undulator_length(model):
         return model
     zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
-        m = MagnMeasZip(str(zip_file))
-        m.find_closest_gap(model['gap'])
-        model['length'] = m.dat_file_found_length
+        model['length'] = MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])
     return model
 
 
@@ -1251,69 +1259,6 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 _save_user_model_list(model_name, user_model_list)
                 break
     return pkcollections.Dict({})
-
-
-def _find_closest_value(values_list, value):
-    """Find closest value to the specified input.
-
-    Args:
-        values_list: a list of float values.
-        value: a value for which the closest value should be found.
-
-    Returns:
-        dict: dictionary with the index of the found value (``idx``) and the closest value (``closest_value``).
-    """
-    assert type(value) is float
-    indices_previous = []
-    indices_next = []
-    for i in range(len(values_list)):
-        if values_list[i] <= value:
-            indices_previous.append(i)
-        else:
-            indices_next.append(i)
-
-    assert indices_previous or indices_next
-    idx_previous = indices_previous[-1] if indices_previous else indices_next[0]
-    idx_next = indices_next[0] if indices_next else indices_previous[-1]
-
-    idx = idx_previous if abs(values_list[idx_previous] - value) <= abs(values_list[idx_next] - value) else idx_next
-    return pkcollections.Dict({
-        'idx': idx,
-        'closest_value': values_list[idx],
-    })
-
-
-def _find_dat_files_from_index_file(index_content):
-    gaps = []
-    dat_files = []
-    for row in index_content:
-        v = row.strip()
-        if v:
-            v = v.split()
-            gaps.append(float(v[0]))
-            dat_files.append(v[3])
-    return gaps, dat_files
-
-
-def _find_index_file(zip_object):
-    """The function finds an index file (``*.txt``) in the provided zip-object.
-
-    Args:
-        zip_object: an object created by ``zipfile.ZipFile()``.
-
-    Returns:
-        index_dir (str): found dir of the index file.
-        index_file (str): found index file (e.g., ``ivu21_srx_sum.txt``).
-    """
-    index_file = None
-    index_dir = None
-    for f in zip_object.namelist():
-        if re.search(r'\.txt', f):
-            index_file = os.path.basename(f)
-            index_dir = os.path.dirname(f)
-            break
-    assert index_file is not None
-    return index_dir, index_file
 
 
 def _fixup_beamline(data):
@@ -1751,12 +1696,6 @@ def _load_user_model_list(model_name):
         return simulation_db.read_json(filepath)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
-
-
-def _normalize_eol(file_desc):
-    s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
-    content = s.split('\n')
-    return content
 
 
 def _predefined_files_for_type(file_type):

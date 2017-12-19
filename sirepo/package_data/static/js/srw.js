@@ -876,7 +876,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                     if (! appState.isLoaded()) {
                         return;
                     }
-                    appState.models.tabulatedUndulator.length = data.length;
+                    appState.models.undulator.length = data.length;
                 }
             );
         });
