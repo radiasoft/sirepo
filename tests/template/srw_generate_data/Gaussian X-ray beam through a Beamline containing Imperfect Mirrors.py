@@ -208,16 +208,8 @@ def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     source_type, mag = srwl_bl.setup_source(v)
     op = set_optics(v)
-    v.ss = True
-    v.ss_pl = 'e'
-    v.sm = True
-    v.sm_pl = 'e'
-    v.pw = True
-    v.pw_pl = 'xy'
     v.si = True
     v.si_pl = 'xy'
-    v.tr = True
-    v.tr_pl = 'xz'
     v.ws = True
     v.ws_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)

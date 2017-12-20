@@ -181,23 +181,15 @@ class MagnMeasZip:
         idx_next = indices_next[0] if indices_next else indices_previous[-1]
         idx = idx_previous if abs(self.gaps[idx_previous] - gap) <= abs(self.gaps[idx_next] - gap) else idx_next
         dat_file = self.dat_files[idx]
-        dat_content = self.get_file_content(dat_file)
+        dat_content = self._get_file_content(dat_file)
         dat_file_step = float(dat_content[8].split('#')[1].strip())
         dat_file_number_of_points = int(dat_content[9].split('#')[1].strip())
         return round(dat_file_step * dat_file_number_of_points, 6)
 
-    def get_file_content(self, file_name):
-        with self.z.open(self._full_path(file_name)) as f:
-            return self._normalize_eol(f)
-
-    def save_file(self, run_dir, file_name, content):
-        with open(self._full_path(file_name, run_dir), 'w') as f:
-            f.write('\n'.join(content) + '\n')
-
     def _find_dat_files_from_index_file(self):
         self.gaps = []
         self.dat_files = []
-        for row in self.get_file_content(self.index_file):
+        for row in self._get_file_content(self.index_file):
             v = row.strip()
             if v:
                 v = v.split()
@@ -213,14 +205,9 @@ class MagnMeasZip:
                 break
         assert self.index_file is not None
 
-    def _full_path(self, file_name, run_dir=None):
-        if not run_dir:
-            return os.path.join(self.index_dir, file_name)
-        abs_dir = os.path.join(run_dir, self.index_dir)
-        abs_dir = os.path.abspath(abs_dir)
-        if not os.path.isdir(abs_dir):
-            os.mkdir(abs_dir)
-        return os.path.join(abs_dir, file_name)
+    def _get_file_content(self, file_name):
+        with self.z.open(os.path.join(self.index_dir, file_name)) as f:
+            return self._normalize_eol(f)
 
     def _normalize_eol(self, file_desc):
         s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
@@ -466,12 +453,9 @@ def fixup_old_data(data):
             'phase': 0,
             'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
             'longitudinalPosition': 1.305,
-            'magnMeasFolder': '',
-            'indexFileName': '',
         })
     else:
         if 'indexFile' in data.models.tabulatedUndulator:
-            data.models.tabulatedUndulator.indexFileName = data.models.tabulatedUndulator.indexFile
             del data.models.tabulatedUndulator['indexFile']
     if 'undulatorType' not in data['models']['tabulatedUndulator']:
         data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
@@ -553,8 +537,14 @@ def fixup_old_data(data):
                 if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
                     data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
 
+    if 'length' in data['models']['tabulatedUndulator']:
+        tabulated_undulator = data['models']['tabulatedUndulator']
+        und_length = _compute_undulator_length(tabulated_undulator)
+        if _is_tabulated_undulator_source(data['models']['simulation']) and tabulated_undulator['undulatorType'] == 'u_t' and 'length' in und_length:
+            data['models']['undulator']['length'] = und_length['length']
+        del tabulated_undulator['length']
+
     if 'longitudinalPosition' in data['models']['tabulatedUndulator']:
-        _compute_undulator_length(data['models']['tabulatedUndulator'])
         tabulated_undulator = data['models']['tabulatedUndulator']
         for k in ['undulatorParameter', 'period', 'length', 'longitudinalPosition', 'horizontalAmplitude', 'horizontalSymmetry', 'horizontalInitialPhase', 'verticalAmplitude', 'verticalSymmetry', 'verticalInitialPhase']:
             if k in tabulated_undulator:
@@ -789,8 +779,12 @@ def new_simulation(data, new_simulation_data):
     source = new_simulation_data['sourceType']
     data['models']['simulation']['sourceType'] = source
     if source == 'g':
-        intensityReport = data['models']['initialIntensityReport']
-        intensityReport['sampleFactor'] = 0
+        data['models']['initialIntensityReport']['sampleFactor'] = 0
+    elif source == 'm':
+        data['models']['intensityReport']['method'] = "2"
+    elif _is_tabulated_undulator_source(data['models']['simulation']):
+        data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
+        data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
 
 
 def prepare_aux_files(run_dir, data):
@@ -807,12 +801,6 @@ def prepare_aux_files(run_dir, data):
     for f in _PREDEFINED.magnetic_measurements:
         if filename == f['fileName'] and not filepath.check():
             _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
-    m = MagnMeasZip(str(filepath))
-    for f in m.dat_files + [m.index_file]:
-        content = m.get_file_content(f)
-        m.save_file(str(run_dir), f, content)
-    data['models']['tabulatedUndulator']['magnMeasFolder'] = m.index_dir if m.index_dir else './'
-    data['models']['tabulatedUndulator']['indexFileName'] = m.index_file
 
 
 def prepare_for_client(data):
@@ -1193,11 +1181,13 @@ def _compute_grazing_angle(model):
 
 def _compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
-        return model
+        return {}
     zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
-        model['length'] = MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])
-    return model
+        return {
+            'length': MagnMeasZip(str(zip_file)).find_closest_gap(model['gap']),
+        }
+    return {}
 
 
 def _convert_ebeam_units(field_name, value, to_si=True):
@@ -1434,7 +1424,6 @@ def _generate_parameters_file(data, plot_reports=False):
         undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
-            data['models']['tabulatedUndulator']['indexFileName'] = ''
 
     if report != 'multiElectronAnimation' or data['models']['multiElectronAnimation']['photonEnergyBandWidth'] <= 0:
         data['models']['multiElectronAnimation']['photonEnergyIntegration'] = 0
@@ -1453,7 +1442,6 @@ def _generate_parameters_file(data, plot_reports=False):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
-    run_all = report == _RUN_ALL_MODEL
     v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
@@ -1474,7 +1462,8 @@ def _generate_parameters_file(data, plot_reports=False):
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
     _add_report_filenames(v)
-    v['srwMain'] = _generate_srw_main(report, run_all, plot_reports)
+    v['setupMagneticMeasurementFiles'] = _is_tabulated_undulator_source(data['models']['simulation'])
+    v['srwMain'] = _generate_srw_main(data, plot_reports)
 
     # Beamline optics defined through the parameters list:
     v['beamlineOpticsParameters'] = ''
@@ -1527,25 +1516,30 @@ def _generate_sample(res, item):
     res['pp'] += pp
 
 
-def _generate_srw_main(report, run_all, plot_reports):
+def _generate_srw_main(data, plot_reports):
+    report = data['report']
+    source_type = data['models']['simulation']['sourceType']
+    run_all = report == _RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
+    if _is_tabulated_undulator_source(data['models']['simulation']):
+        content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
         content.append('op = None')
-    if run_all or report == 'intensityReport':
+    if (run_all and source_type != 'g') or report == 'intensityReport':
         content.append('v.ss = True')
         if plot_reports:
             content.append("v.ss_pl = 'e'")
-    if run_all or report in 'fluxReport':
+    if (run_all and source_type not in ('g', 'm')) or report in 'fluxReport':
         content.append('v.sm = True')
         if plot_reports:
             content.append("v.sm_pl = 'e'")
-    if run_all or report == 'powerDensityReport':
+    if (run_all and source_type != 'g') or report == 'powerDensityReport':
         content.append('v.pw = True')
         if plot_reports:
             content.append("v.pw_pl = 'xy'")
@@ -1553,7 +1547,7 @@ def _generate_srw_main(report, run_all, plot_reports):
         content.append('v.si = True')
         if plot_reports:
             content.append("v.si_pl = 'xy'")
-    if run_all or report == 'trajectoryReport':
+    if (run_all and source_type != 'g') or report == 'trajectoryReport':
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
@@ -1663,6 +1657,7 @@ def _is_background_report(report):
 
 def _is_dipole_source(sim):
     return sim['sourceType'] == 'm'
+
 
 def _is_gaussian_source(sim):
     return sim['sourceType'] == 'g'

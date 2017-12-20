@@ -689,7 +689,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         ['effectiveDeflectingParameter', 'horizontalDeflectingParameter', 'verticalDeflectingParameter', 'period', 'length'].forEach(function(f) {
             panelState.showField('undulator', f, ! srwService.isTabulatedUndulatorWithMagenticFile());
         });
-        ['gap', 'phase', 'magneticFile', 'indexFileName'].forEach(function(f) {
+        ['gap', 'phase', 'magneticFile'].forEach(function(f) {
             panelState.showField('tabulatedUndulator', f, srwService.isTabulatedUndulatorWithMagenticFile());
         });
 
@@ -866,17 +866,16 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
         appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType'], processUndulator);
 
-        appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile'], function() {
+        appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap', 'tabulatedUndulator.undulatorType'], function() {
             requestSender.getApplicationData(
                 {
                     method: 'compute_undulator_length',
                     tabulated_undulator: appState.models.tabulatedUndulator,
                 },
                 function(data) {
-                    if (! appState.isLoaded()) {
-                        return;
+                    if (appState.isLoaded() && data.length) {
+                        appState.models.undulator.length = data.length;
                     }
-                    appState.models.undulator.length = data.length;
                 }
             );
         });
