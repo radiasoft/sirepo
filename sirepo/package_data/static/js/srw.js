@@ -937,7 +937,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/light">Synchrotron Radiation Workshop</a>',
+              '<div class="navbar-brand"><a href="/light">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -1503,7 +1503,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         controller: function($scope) {
 
             //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap'];
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY'];
             var multiElectronAnimation = null;
 
             function copyMultiElectronModel() {

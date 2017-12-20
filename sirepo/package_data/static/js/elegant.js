@@ -1150,7 +1150,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (! data.frameCount) {
                 if (data.state == 'completed' && ! self.simulationErrors) {
                     // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the elegant log for more information.';
+                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
                 }
                 self.outputFiles = [];
                 self.outputFileMap = {};
@@ -2132,7 +2132,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                           '</div>',
                           '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele), Lattice (.lte), or Sirepo Export (.zip)</label>',
+                              '<label>Select Command (.ele), Lattice (.lte), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
                               '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.zip" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
@@ -2153,7 +2153,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                             '<br /><br />',
                           '</div>',
                           '<div data-ng-show="isState(\'missing-files\')">',
-                            '<p>Please upload the files below which are referenced in the elegant file.</p>',
+                            '<p>Please upload the files below which are referenced in the', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
                             '<div class="form-group" data-ng-repeat="item in missingFiles">',
                               '<div class="col-sm-8 col-sm-offset-1">',
                                 '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
@@ -2177,7 +2177,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.title = 'Import Elegant File';
+            $scope.title = 'Import ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName + ' File';
             // states: ready, import, lattice, load-file-lists, missing-files
             $scope.state = 'ready';
 
@@ -3418,7 +3418,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     return $sce.trustAsHtml(' ' + units);
                 }
                 if (units) {
-                    srlog(units, ': unable to convert elegant units to HTML');
+                    srlog(units, ': unable to convert ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' units to HTML');
                 }
                 return $sce.trustAsHtml('');
             }
