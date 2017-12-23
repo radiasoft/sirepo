@@ -80,7 +80,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
     ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', 'ivu21_srx_sum.txt', 'name of magnetic measurements for different gaps summary file'],
+    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
 
 
 #---Calculation Types
@@ -201,10 +201,23 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['source_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 ])
 
+def setup_magnetic_measurement_files(filename, v):
+    import os
+    import re
+    import zipfile
+    z = zipfile.ZipFile(filename)
+    z.extractall()
+    for f in z.namelist():
+        if re.search(r'\.txt', f):
+            v.und_mfs = os.path.basename(f)
+            v.und_mdir = os.path.dirname(f) or './'
+            return
+    raise RuntimeError('missing magnetic measurement index *.txt file')
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     source_type, mag = srwl_bl.setup_source(v)
+    setup_magnetic_measurement_files("magnetic_measurements.zip", v)
     op = set_optics(v)
     v.ss = True
     v.ss_pl = 'e'

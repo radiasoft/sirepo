@@ -33,5 +33,5 @@ def _example_data(simulation_name):
     from sirepo.template import shadow
     for data in simulation_db.examples(shadow.SIM_TYPE):
         if data.models.simulation.name == simulation_name:
-            return data
+            return simulation_db.fixup_old_data(data)[0]
     assert False

@@ -40,15 +40,19 @@ SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
         var distance = '';
         if (model && 'distanceFromSource' in model) {
             distance = ', ' + model.distanceFromSource + 'm';
-        } else if (appState.isAnimationModelName(modelName)) {
+        }
+        else if (appState.isAnimationModelName(modelName)) {
             distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
-        } else if (modelName == 'initialIntensityReport') {
+        }
+        else if (modelName == 'initialIntensityReport') {
             if (savedModelValues.beamline && savedModelValues.beamline.length) {
                 distance = ', ' + savedModelValues.beamline[0].position + 'm';
-            } else {
+            }
+            else {
                 if ('models' in appState && 'simulation' in appState.models && 'distanceFromSource' in appState.models.simulation) {
                     distance = ', ' + appState.models.simulation.distanceFromSource + 'm';
-                } else {
+                }
+                else {
                     distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
                 }
             }
@@ -218,7 +222,8 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 else {
                     if ('distanceFromSource' in appState.models.simulation) {
                         newItem.position = appState.models.simulation.distanceFromSource;
-                    } else {
+                    }
+                    else {
                         newItem.position = 20;
                     }
                 }

@@ -154,7 +154,9 @@ def examples(app):
     )
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
-    return [open_json_file(app, path=str(f)) for f in files]
+    # example data is not fixed-up to avoid performance problems when searching examples by name
+    # fixup occurs during save_new_example()
+    return [open_json_file(app, path=str(f), fixup=False) for f in files]
 
 
 def find_global_simulation(simulation_type, sid):
@@ -667,7 +669,7 @@ def report_info(data):
 
 def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(data)
+    return save_new_simulation(fixup_old_data(data)[0])
 
 
 def save_new_simulation(data):

@@ -255,10 +255,23 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['source_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 ])
 
+def setup_magnetic_measurement_files(filename, v):
+    import os
+    import re
+    import zipfile
+    z = zipfile.ZipFile(filename)
+    z.extractall()
+    for f in z.namelist():
+        if re.search(r'\.txt', f):
+            v.und_mfs = os.path.basename(f)
+            v.und_mdir = os.path.dirname(f) or './'
+            return
+    raise RuntimeError('missing magnetic measurement index *.txt file')
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     source_type, mag = srwl_bl.setup_source(v)
+    setup_magnetic_measurement_files("magn_meas_srx.zip", v)
     op = set_optics(v)
     v.ss = True
     v.ss_pl = 'e'

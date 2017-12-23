@@ -262,7 +262,8 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     if (value) {
                         if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
                             return cleanNumber(value.toFixed(3));
-                        } else {
+                        }
+                        else {
                             return cleanNumber(value.toExponential(2));
                         }
                     }
@@ -780,7 +781,8 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                             break;
                         }
                     }
-                } else { // we are on the left from the maximum
+                }
+                else { // we are on the left from the maximum
                     for (i = focusIndex + 1; i < xValues.length; i++) { // >>> go to the right to find the maximum
                         if (points[i-1][1] > points[i][1]) { // we crossed the maximum and started to descend
                             // >>> ^ - we reached the maximum:
@@ -789,7 +791,8 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 // ^ - we are at the local maximum.
                 peakIndex = focusIndex;
             }
@@ -837,22 +840,28 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
             if (fwhm >= 1e9 && fwhm < 1e12) {
                 fwhmConverted = fwhm * 1e-9;
                 units = 'G' + units;
-            } else if (fwhm >= 1e6 && fwhm < 1e9) {
+            }
+            else if (fwhm >= 1e6 && fwhm < 1e9) {
                 fwhmConverted = fwhm * 1e-6;
                 units = 'M' + units;
-            } else if (fwhm >= 1e3 && fwhm < 1e6) {
+            }
+            else if (fwhm >= 1e3 && fwhm < 1e6) {
                 fwhmConverted = fwhm * 1e-3;
                 units = 'k' + units;
-            } else if (fwhm >= 1e-3 && fwhm < 1e0) {
+            }
+            else if (fwhm >= 1e-3 && fwhm < 1e0) {
                 fwhmConverted = fwhm * 1e3;
                 units = 'm' + units;
-            } else if (fwhm >= 1e-6 && fwhm < 1e-3) {
+            }
+            else if (fwhm >= 1e-6 && fwhm < 1e-3) {
                 fwhmConverted = fwhm * 1e6;
                 units = 'µ' + units;
-            } else if (fwhm >= 1e-9 && fwhm < 1e-6) {
+            }
+            else if (fwhm >= 1e-9 && fwhm < 1e-6) {
                 fwhmConverted = fwhm * 1e9;
                 units = 'n' + units;
-            } else if (fwhm >= 1e-12 && fwhm < 1e-9) {
+            }
+            else if (fwhm >= 1e-12 && fwhm < 1e-9) {
                 fwhmConverted = fwhm * 1e12;
                 units = 'p' + units;
             }
@@ -860,7 +869,8 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         }
         if (invertAxis) {
             focus.attr('transform', 'translate(' + yAxisScale(p[1]) + ',' + xAxisScale(p[0]) + ')');
-        } else {
+        }
+        else {
             focus.attr('transform', 'translate(' + xAxisScale(p[0]) + ',' + yAxisScale(p[1]) + ')');
         }
         select('.focus-text').text('X=' + formatValue(p[0]) + ', Y=' + formatValue(p[1]) + '' + fwhmText);

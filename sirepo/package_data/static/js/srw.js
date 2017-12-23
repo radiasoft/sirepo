@@ -689,7 +689,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         ['effectiveDeflectingParameter', 'horizontalDeflectingParameter', 'verticalDeflectingParameter', 'period', 'length'].forEach(function(f) {
             panelState.showField('undulator', f, ! srwService.isTabulatedUndulatorWithMagenticFile());
         });
-        ['gap', 'phase', 'magneticFile', 'indexFileName'].forEach(function(f) {
+        ['gap', 'phase', 'magneticFile'].forEach(function(f) {
             panelState.showField('tabulatedUndulator', f, srwService.isTabulatedUndulatorWithMagenticFile());
         });
 
@@ -724,13 +724,16 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 if (undulatorDefinition === 'K') {
                     if (deflectingParameter === 'horizontalDeflectingParameter') {
                         appState.models.undulator.horizontalAmplitude = formatFloat(data.amplitude);
-                    } else {
+                    }
+                    else {
                         appState.models.undulator.verticalAmplitude = formatFloat(data.amplitude);
                     }
-                } else if (undulatorDefinition === 'B') {
+                }
+                else if (undulatorDefinition === 'B') {
                     if (amplitude === 'horizontalAmplitude') {
                         appState.models.undulator.horizontalDeflectingParameter = formatFloat(data.undulator_parameter);
-                    } else {
+                    }
+                    else {
                         appState.models.undulator.verticalDeflectingParameter = formatFloat(data.undulator_parameter);
                     }
                 }
@@ -775,14 +778,25 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'simulation') {
             processUndulator();
-        } else if (name == 'undulator' || name == 'tabulatedUndulator') {
+        }
+        else if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
             appState.saveQuietly('electronBeamPosition');
-        } else if (name == 'gaussianBeam') {
+        }
+        else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
             appState.models.simulation.photonEnergy = appState.models.gaussianBeam.photonEnergy;
             appState.saveQuietly('sourceIntensityReport');
             appState.saveQuietly('simulation');
+        }
+        else if (name == 'sourceIntensityReport') {
+            if (! appState.models.beamline.length) {
+                var sim = appState.models.simulation;
+                var sourceReport = appState.models.sourceIntensityReport;
+                sim.photonEnergy = sourceReport.photonEnergy;
+                sim.distanceFromSource = sourceReport.distanceFromSource;
+                appState.saveChanges('simulation');
+            }
         }
     });
 
@@ -798,7 +812,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 'Flux',
                 fluxType
             ) + ' for Finite Emittance Electron Beam';
-        } else {
+        }
+        else {
             repName = title + ' Report';
         }
         repName += ', ' + distance;
@@ -851,17 +866,16 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
         appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType'], processUndulator);
 
-        appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile'], function() {
+        appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap', 'tabulatedUndulator.undulatorType'], function() {
             requestSender.getApplicationData(
                 {
                     method: 'compute_undulator_length',
                     tabulated_undulator: appState.models.tabulatedUndulator,
                 },
                 function(data) {
-                    if (! appState.isLoaded()) {
-                        return;
+                    if (appState.isLoaded() && data.length) {
+                        appState.models.undulator.length = data.length;
                     }
-                    appState.models.tabulatedUndulator.length = data.length;
                 }
             );
         });
@@ -873,7 +887,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
             if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'horizontalDeflectingParameter', 'horizontalAmplitude');
-            } else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
+            }
+            else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
         });
@@ -881,9 +896,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['undulator.horizontalAmplitude', 'undulator.verticalAmplitude', 'undulator.period'], function() {
             if (isActiveField('undulator', 'horizontalAmplitude')) {
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
-            } else if (isActiveField('undulator', 'verticalAmplitude')) {
+            }
+            else if (isActiveField('undulator', 'verticalAmplitude')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
-            } else if (isActiveField('undulator', 'period')) {
+            }
+            else if (isActiveField('undulator', 'period')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
