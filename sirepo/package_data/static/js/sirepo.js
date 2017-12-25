@@ -1981,9 +1981,9 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
 
     var sr_get_started_notify_cookie = 'net.sirepo.get_started_notify';
     var sr_get_started_notify_content = [
-        '<strong>Welcome to Sirepo - (',
+        '<div class="text-center"><strong>Welcome to Sirepo - ',
         SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
-        ')!</strong><br>',
+        '!</strong></div>',
         'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
     ].join('');
 
