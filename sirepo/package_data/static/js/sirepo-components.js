@@ -150,7 +150,7 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService, $sce) {
+SIREPO.app.directive('srNotify', function(notificationService) {
 
     return {
         restrict: 'A',
