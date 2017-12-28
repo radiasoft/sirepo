@@ -150,25 +150,24 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService) {
+SIREPO.app.directive('srNotify', function(notificationService, $sce) {
 
     return {
         restrict: 'A',
+        scope: {
+            notificationName: '<',
+            notificationClass: '<',
+        },
         template: [
-                '<div data-ng-show="notificationService.hasNext()" class="alert alert-success alert-dismissible sr-notify" role="alert">',
-                '<button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss()">',
+            '<div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">',
+                '<button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">',
                     '<span aria-hidden="true">&times;</span>',
                 '</button>',
-                '<span data-ng-show="setContent()" id="notification-content"></span>',
-                '</div>',
+                '<span data-ng-bind-html="notificationService.getContent(notificationName)"></span>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.notificationService = notificationService;
-            $scope.setContent = function() {
-                $('#notification-content').html(notificationService.currentContent());
-                return true;
-            };
         },
     };
 });
@@ -469,7 +468,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
                   '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
                 '</ul>',
               '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.currentNotification == loginNotification}">',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(loginNotification.name)}">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
