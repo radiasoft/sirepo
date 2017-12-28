@@ -48,9 +48,7 @@ def test_prepare_aux_files():
                     "sourceType": "t"
                 },
                 "tabulatedUndulator": {
-                    "magneticFile": "magnetic_measurements.zip",
-                    "indexFile": "",
-                    "magnMeasFolder": ""
+                    "magneticFile": "magnetic_measurements.zip"
                 },
                 "beamline": { }
             },
@@ -58,10 +56,6 @@ def test_prepare_aux_files():
         }''')
         d = pkunit.empty_work_dir()
         srw.prepare_aux_files(d, data)
-        tu = data.models.tabulatedUndulator
-        assert tu.magnMeasFolder == './'
-        assert tu.indexFileName == 'ivu21_srx_sum.txt'
-        assert d.join(tu.indexFileName).exists()
 
     from sirepo import sr_unit
     sr_unit.test_in_request(t)
