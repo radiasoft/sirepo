@@ -990,7 +990,7 @@
             ]
         },
         "fluxReport": {
-            "title": "Flux Report",
+            "title": "Flux",
             "basic": [],
             "advanced": [
                 ["Main", [
