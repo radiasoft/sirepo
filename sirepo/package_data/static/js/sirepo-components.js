@@ -154,21 +154,20 @@ SIREPO.app.directive('srNotify', function(notificationService) {
 
     return {
         restrict: 'A',
+        scope: {
+            notificationName: '<',
+            notificationClass: '<',
+        },
         template: [
-                '<div data-ng-show="notificationService.hasNext()" class="alert alert-success alert-dismissible sr-notify" role="alert">',
-                '<button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss()">',
+            '<div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">',
+                '<button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">',
                     '<span aria-hidden="true">&times;</span>',
                 '</button>',
-                '<span data-ng-show="setContent()" id="notification-content"></span>',
-                '</div>',
+                '<span data-ng-bind-html="notificationService.getContent(notificationName)"></span>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.notificationService = notificationService;
-            $scope.setContent = function() {
-                $('#notification-content').html(notificationService.currentContent());
-                return true;
-            };
         },
     };
 });
@@ -469,7 +468,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
                   '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
                 '</ul>',
               '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.currentNotification == loginNotification}">',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(loginNotification.name)}">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
@@ -1454,11 +1453,13 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                     '<li data-settings-menu="nav">',
                         '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
                     '</li>',
+                    '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>',
                 '</ul>',
                 '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
                     '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
                     '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
+                    '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>',
                 '</ul>',
                 '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
             '</div>',

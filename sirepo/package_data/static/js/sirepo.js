@@ -45,7 +45,6 @@ SIREPO.appDefaultSimulationValues = {
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
-
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
 SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
@@ -572,13 +571,13 @@ SIREPO.app.factory('appDataService', function() {
     return self;
 });
 
-SIREPO.app.factory('notificationService', function($cookies) {
+SIREPO.app.factory('notificationService', function($cookies, $sce) {
 
     var recurrent_notification_timeout = 1*24*60*60*1000;
+    var non_recurrent_notification_timeout = 5*365*24*60*60*1000;
     var self = {};
 
     self.notifications = {};
-    self.currentNotification = null;
 
     self.addNotification = function(notification) {
         if(! notification.name || ! notification.content) {
@@ -586,6 +585,9 @@ SIREPO.app.factory('notificationService', function($cookies) {
         }
         if(notification.recurs && ! notification.timeout) {
             notification.timeout = recurrent_notification_timeout;
+        }
+        if(! notification.recurs && ! notification.timeout) {
+            notification.timeout = non_recurrent_notification_timeout;
         }
         self.notifications[notification.name] = notification;
     };
@@ -599,35 +601,28 @@ SIREPO.app.factory('notificationService', function($cookies) {
         delete self.notifications[notification.name];
     };
 
-    self.nextNotification = function() {
-        for(var name in self.notifications) {
-            var notification = self.notifications[name];
-            if(! notification.active) {
-                continue;
-            }
-            if(! notification.recurs) {
-                self.currentNotification = notification;
-                return;
-            }
-            var c = $cookies.get(name);
-            if( !c || c === undefined ) {
-                self.currentNotification = notification;
-                return;
-            }
+    self.shouldPresent = function(name) {
+        var notification = self.notifications[name];
+        if(! notification) {
+            return false;
         }
-        self.currentNotification = null;
+        if(! notification.active) {
+            return false;
+        }
+
+        var c = $cookies.get(name);
+        if( !c || c === undefined ) {
+            return true;
+        }
+
+        return false;
     };
 
-    self.hasNext = function() {
-        self.nextNotification();
-        return self.currentNotification !== null;
-    };
-
-    self.currentContent = function() {
-        if(self.currentNotification) {
-            return self.currentNotification.content;
+    self.getContent = function(name) {
+        if(! name || ! self.getNotification(name)) {
+            return '';
         }
-        return ' ';
+        return $sce.trustAsHtml(self.getNotification(name).content);
     };
 
     self.sleepNotification = function(notification) {
@@ -635,20 +630,16 @@ SIREPO.app.factory('notificationService', function($cookies) {
         $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
     };
 
-    self.dismiss = function() {
-        self.dismissNotification(self.currentNotification);
+    self.dismiss = function(name) {
+        if(name) {
+            self.dismissNotification(self.getNotification(name));
+        }
     };
 
     self.dismissNotification = function(notification) {
         if(notification) {
-            if(notification.recurs) {
-                self.sleepNotification(notification);
-            }
-            else {
-                self.removeNotification(notification);
-            }
+            self.sleepNotification(notification);
         }
-        self.nextNotification();
     };
 
     return self;
@@ -1983,8 +1974,25 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, $location, $scope, $window, $cookies) {
     var self = this;
+    var sr_sim_list_view_cookie = 'net.sirepo.sim_list_view';
+    var cookie_pref_timeout = 5*365*24*60*60*1000;
+
+    var sr_get_started_notify_cookie = 'net.sirepo.get_started_notify';
+    var sr_get_started_notify_content = [
+        '<strong>Welcome to Sirepo - (',
+        SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+        ')!</strong><br>',
+        'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
+    ].join('');
+
+    notificationService.addNotification({
+        name: sr_get_started_notify_cookie,
+        content: sr_get_started_notify_content,
+        active: true,
+        recurs: false,
+    });
 
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
@@ -1999,8 +2007,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             field: 'lastModified',
             heading: 'Last Modified',
         }];
-    //TODO(pjm): store view state in db preference or client cookie
-    self.isIconView = true;
     self.selectedItem = null;
     self.sortField = 'name';
 
@@ -2309,6 +2315,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
+        $cookies.put(sr_sim_list_view_cookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookie_pref_timeout)});
     };
 
     self.toggleFolder = function(item) {
@@ -2330,6 +2337,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
     };
 
+    initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
         appState.models.simulation.folder = self.pathName(self.activeFolder);
@@ -2402,4 +2410,12 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     $scope.$on('$destroy', function() {
         scopeOK = false;
     });
+
+    function initCookiePrefs() {
+        self.isIconView = initCookiePref(sr_sim_list_view_cookie, 'true') === 'true';
+    }
+    function initCookiePref(name, defaultValue) {
+        var c = $cookies.get(name);
+        return !c || c === 'undefined' ? defaultValue : c;
+    }
 });
