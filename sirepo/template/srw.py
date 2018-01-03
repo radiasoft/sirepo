@@ -987,11 +987,11 @@ def _add_report_filenames(v):
         v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
 
 
-def _beamline_element(template, item, fields, propagation, shift=''):
+def _beamline_element(template, item, fields, propagation, shift='', is_crystal=False):
     el = template.format(*map(lambda x: item[x], fields))
     pp = _propagation_params(propagation[str(item['id'])][0], shift)
     # special case for crystal elements
-    if item['type'] == 'crystal':
+    if is_crystal:
         el = '''
     opCr = {}
     # Set crystal orientation:
@@ -1379,7 +1379,7 @@ def _generate_beamline_optics(models, last_id):
 def _generate_item(res, item):
     item_def = _ITEM_DEF[item['type']]
     if item_def[0]:
-        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'])
+        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'], is_crystal=item['type'] == 'crystal')
         res['el'] += el
         res['pp'] += pp
 
