@@ -38,6 +38,9 @@
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="2d" data-request-priority="5" data-model-name="trajectoryReport"></div>
     </div>
+    <div data-ng-if="source.srwService.isIdealizedUndulator()" class="col-md-6 col-xl-4">
+      <div data-report-panel="particle" data-request-priority="6" data-model-name="brillianceReport"></div>
+    </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 

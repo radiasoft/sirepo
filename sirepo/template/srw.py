@@ -295,6 +295,7 @@ def extract_report_data(filename, model_data):
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        #TODO(pjm): res_mirror.dat name should be shared with pkcli/srw.py
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
 
@@ -566,6 +567,15 @@ def fixup_old_data(data):
             for row in data['models']['propagation'][item_id]:
                 row += [0, 0, 0, 0, 0, 0, 0, 0]
 
+    if 'brillianceReport' not in data['models']:
+        data['models']['brillianceReport'] = {
+            "minDeflection": 0.2,
+            "initialHarmonic": 1,
+            "finalHarmonic": 5,
+            "detuning": 0,
+            "energyPointCount": 100,
+            "reportType": "0",
+        }
 
 def get_animation_name(data):
     return data['modelName']
@@ -858,7 +868,7 @@ def prepare_for_save(data):
 
 
 def prepare_output_file(report_info, data):
-    if data['report'] == 'mirrorReport':
+    if data['report'] in ('brillianceReport', 'mirrorReport'):
         return
     #TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)

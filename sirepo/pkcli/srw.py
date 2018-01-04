@@ -13,6 +13,7 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.srw import extract_report_data, get_filename_for_model, find_height_profile_dimension
+import numpy as np
 import srwlib
 
 
@@ -66,6 +67,47 @@ main()
         simulation_db.write_result({})
 
 
+def _brilliance_plot(data):
+    from sirepo.template.srwl_uti_brightness import srwl_compute_flux
+    beam = data['models']['electronBeam']
+    undulator = data['models']['undulator']
+    report = data['models']['brillianceReport']
+
+    E_Gev = beam['energy'];
+    lam_u = float(undulator['period']) / 10.0 #undulator period in cm
+    Ib = beam['current']
+    nPer = int(undulator['length'] * 1000 / float(undulator['period']))
+    numkpts = report['energyPointCount']
+    kmin = report['minDeflection']
+    dk = .015
+    kmax = kmin + dk * (numkpts - 1)
+    kvals = np.arange(kmin, kmax, dk)
+    enDetPar = report['detuning']
+    relEnSpr = beam['rmsSpread']
+
+    points = []
+    x_points = []
+
+    for harmNum in range(report['initialHarmonic'], report['finalHarmonic'] + 1):
+        if harmNum % 2:
+            x = 0.950*harmNum*E_Gev**2/lam_u/(1+kvals**2)
+            x_points.append((x * 1000.0).tolist())
+            y = []
+            for v in kvals:
+                y.append(srwl_compute_flux(Ib,v,0,0,0,harmNum,nPer,enDetPar,relEnSpr))
+            points.append(np.log10(y).tolist())
+    res = {
+        'title': '',
+        'y_label': 'Flux (Ph/s/0.1%bw) log10',
+        'x_label': 'Photon Energy [eV]',
+        'x_range': [np.amin(x_points), np.amax(x_points)],
+        'y_range': [np.amin(points), np.amax(points)],
+        'x_points': x_points,
+        'points': points,
+    }
+    simulation_db.write_result(res)
+
+
 def _mirror_plot(model_data):
     mirror = model_data['models']['mirrorReport']
     dat_file = mirror['heightProfileFile']
@@ -91,6 +133,9 @@ def _process_output(filename, model_data):
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data['report'] == 'brillianceReport':
+        _brilliance_plot(data)
+        return
     if data['report'] == 'mirrorReport':
         #TODO(pjm): mirror report should use it's own jinja template
         _process_output(_mirror_plot(data), data)
