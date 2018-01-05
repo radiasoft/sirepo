@@ -263,7 +263,7 @@
             "minDeflection": ["Minimum Deflecting Parameter (K)", "Float", 0.2],
             "initialHarmonic": ["Initial Harmonic", "Integer", 1],
             "finalHarmonic": ["Final Harmonic", "Integer", 5],
-            "detuning": ["Fund. Ph. En. \"Detuning\" (dE/E1)", "Float", 0],
+            "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
             "reportType": ["Report Type", "BrillianceReportType", "0"]
         },
