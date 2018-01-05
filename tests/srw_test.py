@@ -38,11 +38,12 @@ def DOES_NOT_WORK_test_find_tab_undulator_length():
 def test_prepare_aux_files():
 
     def t():
-        from sirepo.template import srw
+        from sirepo.template import template_common
         from pykern import pkcollections
 
         # Needed to initialize simulation_db
         data = pkcollections.json_load_any('''{
+            "simulationType": "srw",
             "models": {
                 "simulation": {
                     "sourceType": "t"
@@ -55,7 +56,7 @@ def test_prepare_aux_files():
             "report": "intensityReport"
         }''')
         d = pkunit.empty_work_dir()
-        srw.prepare_aux_files(d, data)
+        template_common.copy_lib_files(data, None, d)
 
     from sirepo import sr_unit
     sr_unit.test_in_request(t)

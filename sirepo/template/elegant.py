@@ -110,13 +110,6 @@ def copy_related_files(data, source_path, target_path):
         pkio.mkdir_parent(str(animation_dir))
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
             py.path.local(f).copy(animation_dir)
-    # copy element InputFiles to lib
-    #TODO(robnagler) only should copy valid files. Make sure no path names
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
 
 
 def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
@@ -394,7 +387,7 @@ def lib_files(data, source_lib):
     Returns:
         list: py.path.local of source files
     """
-    return template_common.internal_lib_files(_simulation_files(data), source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -443,10 +436,6 @@ def parse_elegant_log(run_dir):
             else:
                 res += line + "\n"
     return res, last_element
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
 
 
 def prepare_for_client(data):

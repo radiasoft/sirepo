@@ -87,9 +87,15 @@ def api_copyNonSessionSimulation():
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(data)
+        target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+        template_common.copy_lib_files(
+            data,
+            py.path.local(os.path.dirname(global_path)).join('lib'),
+            target.join('../lib'),
+        )
         template = sirepo.template.import_module(data)
         if hasattr(template, 'copy_related_files'):
-            template.copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
+            template.copy_related_files(data, global_path, str(target))
         return res
     werkzeug.exceptions.abort(404)
 app_copy_nonsession_simulation = api_copyNonSessionSimulation

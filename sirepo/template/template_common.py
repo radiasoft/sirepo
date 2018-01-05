@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
 import hashlib
 import json
@@ -51,6 +51,15 @@ def copy_lib_files(data, source, target):
         path = target.join(f.basename)
         pkio.mkdir_parent_only(path)
         if not path.exists():
+            if not f.exists():
+                sim_resource = resource_dir(data.simulationType)
+                r = sim_resource.join(f.basename)
+                # the file doesn't exist in the simulation lib, check the resource lib
+                if r.exists():
+                    r.copy(f)
+                else:
+                    pkdlog('No file in lib or resource: {}', f)
+                    continue
             f.copy(path)
 
 
@@ -67,17 +76,7 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def histogram_bins(nbins):
-    """Ensure the histogram count is in a valid range"""
-    nbins = int(nbins)
-    if nbins <= 0:
-        nbins = 1
-    elif nbins > _HISTOGRAM_BINS_MAX:
-        nbins = _HISTOGRAM_BINS_MAX
-    return nbins
-
-
-def internal_lib_files(files, source_lib):
+def filename_to_path(files, source_lib):
     """Returns full, unique paths of simulation files
 
     Returns:
@@ -90,6 +89,16 @@ def internal_lib_files(files, source_lib):
             seen.add(f)
             res.append(source_lib.join(f))
     return res
+
+
+def histogram_bins(nbins):
+    """Ensure the histogram count is in a valid range"""
+    nbins = int(nbins)
+    if nbins <= 0:
+        nbins = 1
+    elif nbins > _HISTOGRAM_BINS_MAX:
+        nbins = _HISTOGRAM_BINS_MAX
+    return nbins
 
 
 def is_watchpoint(name):

@@ -76,8 +76,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 def copy_related_files(data, source_path, target_path):
     # pixels3d.dat, rs4pi-roi-data.json, dicom/*.json
-    for filename in (_PIXEL_FILE, _ROI_FILE_NAME):
-        py.path.local(source_path).join(filename).copy(py.path.local(target_path).join(filename))
+    for filename in (_PIXEL_FILE, _ROI_FILE_NAME, _DOSE_FILE):
+        f = py.path.local(source_path).join(filename)
+        if f.exists():
+            f.copy(py.path.local(target_path).join(filename))
     dicom_dir = py.path.local(target_path).join(_DICOM_DIR)
     pkio.mkdir_parent(str(dicom_dir))
     for f in glob.glob(str(py.path.local(source_path).join(_DICOM_DIR, '*'))):
@@ -238,7 +240,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
 
 
 def lib_files(data, source_lib):
-    return template_common.internal_lib_files([_BEAMLIST_FILENAME], source_lib)
+    return template_common.filename_to_path([_BEAMLIST_FILENAME], source_lib)
 
 
 def models_related_to_report(data):
@@ -247,11 +249,6 @@ def models_related_to_report(data):
     if data['report'] == 'dvhReport':
         return [data['report'], 'dicomDose']
     return [data['report']]
-
-
-def prepare_aux_files(run_dir, data):
-    for f in resource_files():
-        f.copy(run_dir)
 
 
 def prepare_for_client(data):
