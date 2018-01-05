@@ -73,10 +73,10 @@ def _brilliance_plot(data):
     undulator = data['models']['undulator']
     report = data['models']['brillianceReport']
 
-    E_Gev = beam['energy'];
+    E_Gev = beam['energy']
     lam_u = float(undulator['period']) / 10.0 #undulator period in cm
     Ib = beam['current']
-    nPer = int(undulator['length'] * 1000 / float(undulator['period']))
+    nPer = int(float(undulator['length']) * 1000 / float(undulator['period']))
     numkpts = report['energyPointCount']
     kmin = report['minDeflection']
     dk = .015
