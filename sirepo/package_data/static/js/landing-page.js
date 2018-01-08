@@ -36,17 +36,17 @@ app.value('srwAppRoutes', {
 });
 app.value('appRoutes', {
     'xray': {url: '/static/html/landing-page-x-ray.html', infoPanelTitle: 'X-Ray Optics', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'srw': {url: '/static/html/landing-page-srw.html', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
-    'shadow': {url: '/static/html/landing-page-shadow.html', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
+    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
+    'shadow': {url: '/static/html/landing-page-shadow.html', codeURL: '/shadow', codeTitle: 'Shadow 3', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
     'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'elegant': {url: '/static/html/landing-page-elegant.html', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
-    'warppba': {url: '/static/html/landing-page-warp.html', infoPanelTitle: 'Plasma-Based Accelerators', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
-    'rslinac': {url: '/static/html/landing-page-rslinac.html', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
+    'elegant': {url: '/static/html/landing-page-elegant.html', codeURL: '/elegant', codeTitle: 'elegant', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
+    'warppba': {url: '/static/html/landing-page-warp.html', codeURL: '/warppba', codeTitle: 'Warp PBA', infoPanelTitle: 'Plasma-Based Accelerators', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
+    'rslinac': {url: '/static/html/landing-page-rslinac.html', codeURL: '/hellweg', codeTitle: 'RsLinac', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
     'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
-    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', url:''}},
+    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', url:''}},
     'genesis': {url: '/static/html/landing-page-genesis.html', infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
-    'jupyter': {url: '/static/html/landing-page-jupyter.html', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
+    'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
@@ -133,6 +133,29 @@ app.controller('LandingPageController', function ($location, appRoutes, srwAppRo
         return $location.path() === '/about';
     };
 
+});
+app.directive('lpCodesMenu', function(appRoutes) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="dropdown navbar-header-menu">',
+                '<a data-toggle="dropdown">Supported Codes <span class="caret"></span></a>',
+                '<ul class="rs-light-green-background dropdown-menu dropdown-menu-left">',
+                    '<li data-ng-repeat="route in codeRoutes" class="sr-model-list-item">',
+                        '<a href="{{ route.codeURL }}" target="_blank" data-ng-click="">{{ route.codeTitle }}</a>',
+                    '</li>',
+                '</ul>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.codeRoutes = Object.values(appRoutes).filter(function (route) {
+                return ! (! route.codeURL);
+            }).sort(function (r1, r2) {
+                return r1.codeTitle.localeCompare(r2.codeTitle);
+            });
+        },
+    };
 });
 
 app.directive('lpBody', function(appRoutes) {

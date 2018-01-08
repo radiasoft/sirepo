@@ -17,7 +17,9 @@
     <![endif]-->
   </head>
   <body>
-    <div class="navbar-header-top-stripe rs-blue-background" data-ng-class="{'navbar-header-top-stripe-expanded': landingPage.onMainLandingPage(), 'navbar-header-top-stripe-collapsed': ! landingPage.onMainLandingPage()}"></div>
+    <div class="navbar-header-top-stripe rs-blue-background" data-ng-class="{'navbar-header-top-stripe-expanded': landingPage.onMainLandingPage(), 'navbar-header-top-stripe-collapsed': ! landingPage.onMainLandingPage()}">
+      <div data-ng-if="landingPage.onMainLandingPage()" lp-codes-menu=""></div>
+    </div>
     <div data-ng-view></div>
 
     <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>

@@ -554,13 +554,14 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 SIREPO.app.factory('appDataService', function() {
     var self = {};
 
+    self.applicationMode = 'default';
     self.isApplicationMode = function(name) {
         return name == self.getApplicationMode();
     };
 
     // override these methods in app's service
     self.getApplicationMode = function() {
-        return 'default';
+        return self.applicationMode;
     };
     self.appDataForReset = function() {
         return null;
@@ -573,21 +574,27 @@ SIREPO.app.factory('appDataService', function() {
 
 SIREPO.app.factory('notificationService', function($cookies, $sce) {
 
-    var recurrent_notification_timeout = 1*24*60*60*1000;
-    var non_recurrent_notification_timeout = 5*365*24*60*60*1000;
+    var recurrentNotificationTimeout = 1*24*60*60*1000;
+    var nonrecurrentNotificationTimeout = 5*365*24*60*60*1000;
+    var firstVisitCookie = 'net.sirepo.first_visit';
     var self = {};
 
     self.notifications = {};
+
+    var now = new Date();
+    if(! $cookies.get(firstVisitCookie)) {
+        $cookies.put(firstVisitCookie, now.getTime(), {expires: new Date(now.getTime() + nonrecurrentNotificationTimeout)});
+    }
 
     self.addNotification = function(notification) {
         if(! notification.name || ! notification.content) {
             return;
         }
         if(notification.recurs && ! notification.timeout) {
-            notification.timeout = recurrent_notification_timeout;
+            notification.timeout = recurrentNotificationTimeout;
         }
         if(! notification.recurs && ! notification.timeout) {
-            notification.timeout = non_recurrent_notification_timeout;
+            notification.timeout = nonrecurrentNotificationTimeout;
         }
         self.notifications[notification.name] = notification;
     };
@@ -602,6 +609,7 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
     };
 
     self.shouldPresent = function(name) {
+        var now = new Date();
         var notification = self.notifications[name];
         if(! notification) {
             return false;
@@ -611,8 +619,9 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
         }
 
         var c = $cookies.get(name);
-        if( !c || c === undefined ) {
-            return true;
+        var v = parseInt($cookies.get(firstVisitCookie));
+        if(! c || c === undefined) {
+            return now.getTime() > v + (notification.delay || 0);
         }
 
         return false;
@@ -1976,11 +1985,11 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
 
 SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, $location, $scope, $window, $cookies) {
     var self = this;
-    var sr_sim_list_view_cookie = 'net.sirepo.sim_list_view';
-    var cookie_pref_timeout = 5*365*24*60*60*1000;
+    var simListViewCookie = 'net.sirepo.sim_list_view';
+    var cookiePrefTimeout = 5*365*24*60*60*1000;
 
-    var sr_get_started_notify_cookie = 'net.sirepo.get_started_notify';
-    var sr_get_started_notify_content = [
+    var getStartedNotifyCookie = 'net.sirepo.get_started_notify';
+    var getStartedNotifyContent = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
         '!</strong></div>',
@@ -1988,8 +1997,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     ].join('');
 
     notificationService.addNotification({
-        name: sr_get_started_notify_cookie,
-        content: sr_get_started_notify_content,
+        name: getStartedNotifyCookie,
+        content: getStartedNotifyContent,
         active: true,
         recurs: false,
     });
@@ -2315,7 +2324,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        $cookies.put(sr_sim_list_view_cookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookie_pref_timeout)});
+        $cookies.put(simListViewCookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookiePrefTimeout)});
     };
 
     self.toggleFolder = function(item) {
@@ -2412,7 +2421,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     });
 
     function initCookiePrefs() {
-        self.isIconView = initCookiePref(sr_sim_list_view_cookie, 'true') === 'true';
+        self.isIconView = initCookiePref(simListViewCookie, 'true') === 'true';
     }
     function initCookiePref(name, defaultValue) {
         var c = $cookies.get(name);

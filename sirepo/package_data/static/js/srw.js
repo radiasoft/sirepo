@@ -51,13 +51,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
 SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
+    appDataService.applicationMode = null;
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
 
     // override appDataService functions
-    appDataService.getApplicationMode = function () {
-        return self.applicationMode;
-    };
     appDataService.appDataForReset = function() {
         // delete the user-defined models first
          return {
@@ -143,8 +141,9 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
-        if (search && search.application_mode) {
-            self.applicationMode = search.application_mode;
+        if(search) {
+            self.applicationMode = search.application_mode || 'default';
+            appDataService.applicationMode = self.applicationMode;
             beamlineService.setEditable(self.applicationMode == 'default');
         }
     });
@@ -934,10 +933,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     var rightNav = [
         '<div data-app-header-right="nav">',
           '<app-header-right-sim-loaded>',
-            '<ul class="nav navbar-nav sr-navbar-right">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-            '</ul>',
+            '<div data-sim-sections="">',
+              '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li class="sim-section" data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+            '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
               '<div data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></div>',
@@ -954,7 +953,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/light">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand"><a href="/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -997,7 +996,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav" data-app-url="/light"></div>',
+              '<div data-app-header-brand="nav" data-app-url="/srw"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
