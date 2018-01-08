@@ -453,13 +453,15 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
 
 SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
 
-    var sr_login_notify_cookie = 'net.sirepo.login_notify_timeout';
-    var sr_login_notify_timeout = 1*24*60*60*1000;
-    var sr_login_notify_content = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
+    var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
+    var loginNotifyTimeout = 1*24*60*60*1000;
+    var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
 
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            notifyActive: '=',
+        },
         template: [
               '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
@@ -476,9 +478,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
               '</li>',
         ].join(''),
         controller: function($scope) {
-
             $scope.userState = SIREPO.userState;
-
             $scope.githubLoginURL = function() {
                 return requestSender.formatAuthUrl('github');
             };
@@ -486,6 +486,9 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             });
             $scope.isLoggedIn = function() {
+                if($scope.loginNotification) {
+                    $scope.loginNotification.active = $scope.loginNotification.active && $scope.notifyActive;
+                }
                 return $scope.userState && $scope.userState.loginState == 'logged_in';
             };
             $scope.isLoggedOut = function() {
@@ -501,16 +504,16 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
             };
 
             $scope.notificationService = notificationService;
-            $scope.sr_login_notify_cookie = sr_login_notify_cookie;
+            $scope.sr_login_notify_cookie = loginNotifyCookie;
             $scope.loginNotification = {
-                name: sr_login_notify_cookie,
-                timeout: sr_login_notify_timeout,
-                content: sr_login_notify_content,
-                active: $scope.isLoggedOut(),
+                name: loginNotifyCookie,
+                timeout: loginNotifyTimeout,
+                content: loginNotifyContent,
+                active: $scope.notifyActive && $scope.isLoggedOut(),
                 recurs: true,
+                delay: loginNotifyTimeout,
             };
             notificationService.addNotification($scope.loginNotification);
-
         },
     };
 });
@@ -1434,7 +1437,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
+SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, notificationService, $window, $rootScope) {
     return {
         restrict: 'A',
         transclude: {
@@ -1447,6 +1450,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
         },
         template: [
             '<div class="nav sr-navbar-right-flex">',
+                // spacer to fix wrapping problem in firefox
+                '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav" data-ng-show="isLoaded()">',
                     '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
@@ -1461,7 +1466,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
                     '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>',
                 '</ul>',
-                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
+                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()" data-notify-active="modeIsDefault()"></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1526,7 +1531,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                   '<ul class="dropdown-menu">',
                     //  App-specific settings are transcluded here
                     '<li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>',
-                    '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
+                    '<li><a href data-ng-if="nav.modeIsDefault(\'settings-menu-show-doc\')" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
@@ -1836,6 +1841,21 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
+SIREPO.app.directive('simSections', function(utilities) {
+
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{\'nav-tabs\': isWide()}"></ul>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.isWide = function() {
+                return utilities.isWide();
+            };
+        },
+    };
+});
 
 SIREPO.app.service('plotToPNG', function($http) {
 
@@ -1907,7 +1927,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('utilities', function() {
+SIREPO.app.service('utilities', function($window) {
 
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
@@ -1934,4 +1954,7 @@ SIREPO.app.service('utilities', function() {
         return true;
     };
 
+    this.isWide = function() {
+        return $window.innerWidth > 767;
+    };
 });
