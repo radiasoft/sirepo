@@ -1211,7 +1211,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, utilities) {
+SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {

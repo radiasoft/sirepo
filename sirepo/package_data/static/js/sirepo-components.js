@@ -1437,7 +1437,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, notificationService, $window, $rootScope) {
+SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
     return {
         restrict: 'A',
         transclude: {
@@ -1531,7 +1531,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                   '<ul class="dropdown-menu">',
                     //  App-specific settings are transcluded here
                     '<li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>',
-                    '<li><a href data-ng-if="nav.modeIsDefault(\'settings-menu-show-doc\')" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
+                    '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
