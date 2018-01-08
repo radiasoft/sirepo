@@ -8,6 +8,9 @@
       max-width: none;
       width: 100%;
     }
+    .nav-tabs {
+      border-bottom: 0;
+    }
     @media (min-width: 768px) {
       .modal-lg {
         width: 100%;
@@ -261,24 +264,19 @@
         }
     }
 
-    app-header-right-sim-loaded .nav-tabs {
-        border-bottom-width: 1px;
-        border-radius: 4px 4px 0 0;
-        padding-top: 1px;
-        padding-left: 1px;
-    }
     app-header-right-sim-loaded .nav-tabs > li > a {
-        border-color: #eee #eee #ddd;
-        background-color: #d0d0d0;
+        margin-top: 5px;
+        padding-top: 10px;
+        padding-left: 12px;
+        padding-right: 12px;
     }
     app-header-right-sim-loaded .nav-tabs > li.sim-section > a:hover {
-        background-color: #dddddd;
+        background-color: #e7e7e7;
     }
     app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a,
     app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:focus,
     app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:hover {
-        border-color: #31708f #31708f transparent #31708f;
-        background-color: #fafafa;
+        background-color: #fff;
     }
 
     .toggle-group label.btn-default.toggle-off {
