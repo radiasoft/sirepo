@@ -1847,9 +1847,7 @@ SIREPO.app.directive('simSections', function(utilities) {
         restrict: 'A',
         transclude: true,
         template: [
-            //'<li>',
             '<ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{\'nav-tabs\': isWide()}"></ul>',
-            //'</li>',
         ].join(''),
         controller: function($scope) {
             $scope.isWide = function() {

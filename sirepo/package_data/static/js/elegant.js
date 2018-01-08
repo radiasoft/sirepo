@@ -1274,13 +1274,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, utilities) {
             $scope.showImportModal = function() {
                 $('#elegant-import').modal('show');
             };
-
-            /*
-            $scope.isWide = function() {
-                return utilities.isWide();
-            };
-            */
-
         },
     };
 });
