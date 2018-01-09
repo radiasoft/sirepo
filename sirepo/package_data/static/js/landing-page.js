@@ -140,7 +140,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
         scope: {},
         template: [
             '<div class="dropdown navbar-header-menu">',
-                '<a data-toggle="dropdown">Supported Codes <span class="caret"></span></a>',
+                '<a href data-toggle="dropdown">Supported Codes <span class="caret"></span></a>',
                 '<ul class="rs-light-green-background dropdown-menu dropdown-menu-left">',
                     '<li data-ng-repeat="route in codeRoutes" class="sr-model-list-item">',
                         '<a href="{{ route.codeURL }}" target="_blank" data-ng-click="">{{ route.codeTitle }}</a>',
