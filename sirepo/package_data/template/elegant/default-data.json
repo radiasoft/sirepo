@@ -209,7 +209,7 @@
             "folder": "/",
             "name": "Example",
             "simulationId": "pAuOjl0s",
-            "simulationMode": "parallel",
+            "simulationMode": "serial",
             "simulationSerial": 1504732820846010,
             "visualizationBeamlineId": ""
         },

@@ -248,14 +248,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     return res
 
 
-def copy_related_files(data, source_path, target_path):
-    _copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def extensions_for_file_type(file_type):
     if file_type == 'mirror':
         return ['*.dat', '*.txt']
@@ -682,36 +674,32 @@ def import_file(request, lib_dir, tmp_dir):
     return simulation_db.fixup_old_data(parsed_data, force=True)[0]
 
 
-def lib_files(data, source_lib, report=None):
+def lib_files(data, source_lib):
     """Returns list of auxiliary files
 
     Args:
         data (dict): simulation db
         source_lib (py.path): directory of source
-        report
 
     Returns:
         list: py.path.local of source files
     """
     res = []
-
-    #TODO(MR): possibly need to fix up old data before accessing the data - old tests fail.
-    # fixup_old_data(data)
-
     dm = data.models
     # the mirrorReport.heightProfileFile may be different than the file in the beamline
+    report = data.report if 'report' in data else None
     if report == 'mirrorReport':
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _is_tabulated_undulator_source(dm.simulation):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             res.append(dm.tabulatedUndulator.magneticFile)
-    for m in dm.beamline:
-        for k, v in _SCHEMA.model[m.type].items():
-            t = v[1]
-            if m[k] and t in ['MirrorFile', 'ImageFile']:
-                if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
+    if _is_beamline_report(report):
+        for m in dm.beamline:
+            for k, v in _SCHEMA.model[m.type].items():
+                t = v[1]
+                if m[k] and t in ['MirrorFile', 'ImageFile']:
                     res.append(m[k])
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
@@ -785,22 +773,6 @@ def new_simulation(data, new_simulation_data):
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
-
-
-def prepare_aux_files(run_dir, data):
-    _copy_lib_files(
-        data,
-        simulation_db.simulation_lib_dir(SIM_TYPE),
-        run_dir,
-        data['report'],
-    )
-    if not _is_tabulated_undulator_source(data['models']['simulation']):
-        return
-    filename = data['models']['tabulatedUndulator']['magneticFile']
-    filepath = run_dir.join(filename)
-    for f in _PREDEFINED.magnetic_measurements:
-        if filename == f['fileName'] and not filepath.check():
-            _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
 
 
 def prepare_for_client(data):
@@ -987,11 +959,11 @@ def _add_report_filenames(v):
         v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
 
 
-def _beamline_element(template, item, fields, propagation, shift=''):
+def _beamline_element(template, item, fields, propagation, shift='', is_crystal=False):
     el = template.format(*map(lambda x: item[x], fields))
     pp = _propagation_params(propagation[str(item['id'])][0], shift)
     # special case for crystal elements
-    if item['type'] == 'crystal':
+    if is_crystal:
         el = '''
     opCr = {}
     # Set crystal orientation:
@@ -1213,21 +1185,6 @@ def _convert_ebeam_units(field_name, value, to_si=True):
     return value
 
 
-def _copy_lib_files(data, source_lib, target, report=None):
-    """Copy auxiliary files to target
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path.local): source directory
-        target (py.path): destination directory
-        report (str): report to copy [optional]
-    """
-    for f in lib_files(data, source_lib, report):
-        path = target.join(f.basename)
-        if f.exists() and not path.exists():
-            f.copy(path)
-
-
 def _create_user_model(data, model_name):
     model = data['models'][model_name]
     if model_name == 'tabulatedUndulator':
@@ -1326,7 +1283,9 @@ def _fixup_electron_beam(data):
     return data
 
 
-def _generate_beamline_optics(models, last_id):
+def _generate_beamline_optics(report, models, last_id):
+    if not _is_beamline_report(report):
+        return '    pass'
     res = {
         'el': '    el = []\n',
         'pp': '    pp = []\n',
@@ -1379,7 +1338,7 @@ def _generate_beamline_optics(models, last_id):
 def _generate_item(res, item):
     item_def = _ITEM_DEF[item['type']]
     if item_def[0]:
-        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'])
+        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'], is_crystal=item['type'] == 'crystal')
         res['el'] += el
         res['pp'] += pp
 
@@ -1442,7 +1401,8 @@ def _generate_parameters_file(data, plot_reports=False):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
-    v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    v['beamlineOptics'] = _generate_beamline_optics(report, data['models'], last_id)
+
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
     v['tabulatedUndulator_phase'] *= 1000
@@ -1653,6 +1613,12 @@ def _invert_value(value, invert=False):
 
 def _is_background_report(report):
     return 'Animation' in report
+
+
+def _is_beamline_report(report):
+    if not report or template_common.is_watchpoint(report) or report in ['multiElectronAnimation', _RUN_ALL_MODEL]:
+        return True
+    return False
 
 
 def _is_dipole_source(sim):

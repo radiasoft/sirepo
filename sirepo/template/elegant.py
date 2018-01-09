@@ -22,6 +22,7 @@ import os.path
 import py.path
 import re
 import sdds
+import stat
 import werkzeug
 
 BUNCH_OUTPUT_FILE = 'elegant.bun'
@@ -110,13 +111,6 @@ def copy_related_files(data, source_path, target_path):
         pkio.mkdir_parent(str(animation_dir))
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
             py.path.local(f).copy(animation_dir)
-    # copy element InputFiles to lib
-    #TODO(robnagler) only should copy valid files. Make sure no path names
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
 
 
 def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
@@ -394,7 +388,7 @@ def lib_files(data, source_lib):
     Returns:
         list: py.path.local of source files
     """
-    return template_common.internal_lib_files(_simulation_files(data), source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -410,12 +404,9 @@ def models_related_to_report(data):
         return []
     res = [r, 'bunch', 'bunchSource', 'bunchFile']
     for f in template_common.lib_files(data):
-        res.append(f.mtime())
+        if f.exists():
+            res.append(f.mtime())
     return res
-
-
-def new_simulation(data, new_simulation_data):
-    pass
 
 
 def parse_elegant_log(run_dir):
@@ -443,10 +434,6 @@ def parse_elegant_log(run_dir):
             else:
                 res += line + "\n"
     return res, last_element
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
 
 
 def prepare_for_client(data):
@@ -534,6 +521,9 @@ def write_parameters(data, schema, run_dir, is_parallel):
             is_parallel,
         ),
     )
+    for f in _simulation_files(data):
+        if re.search(r'SCRIPT-commandFile', f):
+            os.chmod(str(run_dir.join(f)), stat.S_IRUSR | stat.S_IXUSR)
 
 
 def _add_beamlines(beamline, beamlines, ordered_beamlines):
@@ -885,10 +875,11 @@ def _get_filename_for_element_id(id, data):
 def _infix_to_postfix(expr):
     try:
         rpn = _parse_expr_infix(expr)
-        pkdc('{} => {}', expr, rpn)
+        #pkdc('{} => {}', expr, rpn)
         expr = rpn
     except Exception as e:
-        pkdc('{}: not infix: {}', expr, e)
+        #pkdc('{}: not infix: {}', expr, e)
+        pass
     return expr
 
 
@@ -902,7 +893,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
@@ -973,12 +964,19 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         return
     if element_schema:
         state['field_index'] += 1
-        if field_name in ['name', 'type', '_id'] or re.search('(X|Y)$', field_name):
+        if field_name in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field_name):
             return
         value = model[field_name]
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
+                if model['type'] == 'SCRIPT' and field_name == 'command':
+                    for f in ('commandFile', 'commandInputFile'):
+                        if f in model and model[f]:
+                            fn = template_common.lib_file_name(model['type'], f, model[f])
+                            value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
+                    if model['commandFile']:
+                        value = './' + value
                 if element_schema[1] == 'RPNValue':
                     value = _format_rpn_value(value)
                 if element_schema[1].startswith('InputFile'):
@@ -987,6 +985,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif element_schema[1] == 'OutputFile':
                     value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
+                #TODO(pjm): don't quote numeric constants
                 state['lattice'] += '{}="{}",'.format(field_name, value)
     else:
         state['field_index'] = 0

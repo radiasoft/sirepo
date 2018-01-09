@@ -324,7 +324,8 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
             data, changed = fixup_old_data(data)
             # save changes to avoid re-applying fixups on each iteration
             if changed:
-                save_simulation_json(data)
+                #TODO(pjm): validate_name may causes infinite recursion, need better fixup of list prior to iteration
+                save_simulation_json(data, do_validate=False)
             if search and not _search_data(data, search):
                 continue
             op(res, path, data)
@@ -504,8 +505,8 @@ def prepare_simulation(data):
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    if hasattr(template, 'prepare_aux_files'):
-        template.prepare_aux_files(run_dir, data)
+    template_common.copy_lib_files(data, None, run_dir)
+
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -679,7 +680,7 @@ def save_new_simulation(data):
     return save_simulation_json(data)
 
 
-def save_simulation_json(data):
+def save_simulation_json(data, do_validate=True):
     """Prepare data and save to json db
 
     Args:
@@ -704,7 +705,7 @@ def save_simulation_json(data):
             )
         except Exception:
             pass
-        if need_validate:
+        if need_validate and do_validate:
             _validate_name(data)
         s.simulationSerial = _serial_new()
         write_json(fn, data)

@@ -1,0 +1,113 @@
+{
+    "models": {
+        "beam": {
+            "anode_voltage": 0,
+            "anode_work_function": 0.1,
+            "beam_current": 0.0025,
+            "cathode_temperature": 1273.15,
+            "cathode_work_function": 2,
+            "currentMode": "3",
+            "species": "Electron",
+            "x_radius": 0.05
+        },
+        "conductorGridReport": {},
+        "conductorTypes": [
+            {
+                "id": 2,
+                "isConductor": "1",
+                "name": "grid",
+                "permittivity": 7,
+                "voltage": 15,
+                "xLength": 0.002,
+                "zLength": 0.05
+            }
+        ],
+        "conductors": [
+            {
+                "conductorTypeId": 2,
+                "id": 2,
+                "xCenter": "0.020000000",
+                "zCenter": "5.0000000"
+            },
+            {
+                "conductorTypeId": 2,
+                "id": 3,
+                "xCenter": 0.04,
+                "zCenter": "5.0000000"
+            },
+            {
+                "conductorTypeId": 2,
+                "id": 4,
+                "xCenter": 0,
+                "zCenter": "5.0000000"
+            },
+            {
+                "conductorTypeId": 2,
+                "id": 5,
+                "xCenter": -0.02,
+                "zCenter": 5
+            },
+            {
+                "conductorTypeId": 2,
+                "id": 6,
+                "xCenter": -0.04,
+                "zCenter": 5
+            }
+        ],
+        "currentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1515458820
+        },
+        "egunCurrentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1515458820
+        },
+        "fieldAnimation": {
+            "field": "phi",
+            "framesPerSecond": "2",
+            "startTime": 1515458820
+        },
+        "fieldComparisonReport": {
+            "dimension": "x",
+            "xCell1": 66,
+            "xCell2": 38,
+            "xCell3": 17,
+            "zCell1": 720,
+            "zCell2": 401,
+            "zCell3": 499
+        },
+        "fieldReport": {},
+        "impactDensityAnimation": {
+            "startTime": 1515458820
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "particleAnimation": {
+            "renderCount": "100",
+            "startTime": 1515458820
+        },
+        "simulation": {
+            "egun_mode": "0",
+            "folder": "/",
+            "isExample": true,
+            "name": "Gridded TEC",
+            "outOfSessionSimulationId": "MQHx8g1h",
+            "simulationId": "29pzK0KX",
+            "simulationSerial": 1515459363595344
+        },
+        "simulationGrid": {
+            "channel_width": 0.1,
+            "num_steps": 2000,
+            "num_x": 100,
+            "num_z": 1000,
+            "particles_per_step": 1000,
+            "plate_spacing": 10,
+            "z_particle_min": 0.00125
+        },
+        "simulationStatus": {
+        }
+    },
+    "simulationType": "warpvnd",
+    "version": "20180108.000000"
+}

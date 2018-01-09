@@ -211,7 +211,7 @@ def get_simulation_frame(run_dir, data, model_data):
 
 def lib_files(data, source_lib):
     """No lib files"""
-    return template_common.internal_lib_files([], source_lib)
+    return []
 
 
 def models_related_to_report(data):
@@ -247,10 +247,6 @@ def open_data_file(run_dir, model_name, file_index=None):
     res.filename = str(files[res.frame_index])
     res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
     return res
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
 
 
 def prepare_output_file(report_info, data):

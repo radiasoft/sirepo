@@ -1,0 +1,7 @@
+linac: RFCA,CHANGE_P0=1,PHASE=90.0,FREQ=2856e6,L=3,VOLT=40.e6,n_kicks=0,end1_focus=1,end2_focus=1
+d: drift,l=1
+s1: script,command="sddscombine %i beam1.sdds -merge %o",use_csh=0,no_new_particles=0
+s2: script,command="sddscombine %i beam2.sdds -merge %o",use_csh=0,no_new_particles=0
+s3: script,command="sddscombine %i beam3.sdds -merge %o",use_csh=0,no_new_particles=0
+s4: script,command="sddscombine %i beam4.sdds -merge %o",use_csh=0,no_new_particles=0
+bl: line=(linac,d,s1,d,linac,d,s2,d,linac,d,s3,d,linac,d,s4,d,linac)

@@ -61,10 +61,15 @@ def _run_elegant(bunch_report=False, with_mpi=False):
         'output': ELEGANT_LOG_FILE,
         'env': elegant_common.subprocess_env(),
     }
-    #TODO(robnagler) Need to handle this specially, b/c different binary
-    if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
-        return mpi.run_program(['Pelegant', ele], **kwargs)
-    pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdp, **kwargs)
+    try:
+        #TODO(robnagler) Need to handle this specially, b/c different binary
+        if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
+            mpi.run_program(['Pelegant', ele], **kwargs)
+        else:
+            pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdp, **kwargs)
+    except Exception as e:
+        # ignore elegant failures - errors will be parsed from the log
+        pass
 
 
 def _extract_bunch_report():

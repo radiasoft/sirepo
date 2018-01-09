@@ -279,8 +279,10 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
                 appState.saveQuietly(modelName);
             });
             $rootScope.$broadcast('animation.summaryData', data.summaryData);
-            frameCache.setFrameCount(1, 'particleAnimation');
-            frameCache.setFrameCount(1, 'parameterAnimation');
+            if (data.frameCount) {
+                frameCache.setFrameCount(1, 'particleAnimation');
+                frameCache.setFrameCount(1, 'parameterAnimation');
+            }
         }
     };
 

@@ -1559,6 +1559,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.handleStatus = function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.timeData = {};
@@ -1582,7 +1585,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.isApproximateMethod = function () {
-                return appState.models.fluxAnimation.method == -1;
+                return appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
 
             $scope.saveAndRunSimulation = function() {
