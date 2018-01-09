@@ -549,7 +549,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 7,
-            "folder": "/test",
+            "folder": "/",
             "name": "Script Element Example",
             "simulationId": "fRqNPNkl",
             "simulationMode": "serial",

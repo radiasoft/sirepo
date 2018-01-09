@@ -404,7 +404,8 @@ def models_related_to_report(data):
         return []
     res = [r, 'bunch', 'bunchSource', 'bunchFile']
     for f in template_common.lib_files(data):
-        res.append(f.mtime())
+        if f.exists():
+            res.append(f.mtime())
     return res
 
 
