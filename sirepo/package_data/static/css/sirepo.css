@@ -8,7 +8,7 @@
       max-width: none;
       width: 100%;
     }
-    .nav-tabs {
+    .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
     @media (min-width: 768px) {
