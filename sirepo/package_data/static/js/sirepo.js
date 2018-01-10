@@ -2073,9 +2073,11 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     }
 
     function loadList() {
+        self.isWaitingForList = ! fileManager.getSimList().length;
         appState.listSimulations(
             $location.search(),
             function(data) {
+                self.isWaitingForList = false;
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
