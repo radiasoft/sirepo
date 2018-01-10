@@ -1111,29 +1111,25 @@ SIREPO.app.directive('safePath', function() {
     return {
         restrict: 'A',
         require: 'ngModel',
-        link: function(scope, element, attrs, ngModel, $sce) {
-
+        link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
 
-            ngModel.$validators.safe = function(value) {
-                scope.showWarning = unsafe_path_regexp.test(value);
-                if( scope.showWarning ) {
+            ngModel.$parsers.push(function (v) {
+                scope.showWarning = unsafe_path_regexp.test(v);
+                if (scope.showWarning) {
                     scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
+                    ngModel.$setValidity('size', false);
                 }
-                return !scope.showWarning;
-            };
-
-            // broadcast by root scope
-            scope.$on('cancelChanges', function(e, name) {
-                //TODO(pjm): need something other than clearViewValue()
-                // otherwise cancelChanges event could cause appState.models.simulation.name to get
-                // cleared unexpectantly, for now guarding with cancel on simulation or simFolder models
-                if (name == 'simulation' || name == 'simFolder') {
-                    scope.showWarning = false;
-                    // appears that invalid text will not be cleared unless we do this
-                    scope.clearViewValue(ngModel);
+                else {
+                    ngModel.$setValidity('size', true);
                 }
+                return v;
+            });
+            
+            ngModel.$formatters.push(function (v) {
+                scope.showWarning = false;
+                return v;
             });
         },
     };
