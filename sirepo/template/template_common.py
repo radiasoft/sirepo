@@ -56,7 +56,9 @@ def copy_lib_files(data, source, target):
                 r = sim_resource.join(f.basename)
                 # the file doesn't exist in the simulation lib, check the resource lib
                 if r.exists():
-                    f.mksymlinkto(r)
+                    #TODO(pjm): symlink has problems in containers
+                    # f.mksymlinkto(r)
+                    r.copy(f)
                 else:
                     pkdlog('No file in lib or resource: {}', f)
                     continue
