@@ -262,8 +262,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': simulation_name,
                 })
-                if len(rows):
-                    _reset_example_simulation_lib_files(simulation_db.open_json_file(simulation_type, sid=rows[0]['simulationId']))
                 break
     if len(rows):
         if application_mode == 'default':
@@ -917,17 +915,6 @@ def _render_root_page(page, values):
         'html/{}.html'.format(page),
         **values
     )
-
-
-def _reset_example_simulation_lib_files(data):
-    template = sirepo.template.import_module(data['simulationType'])
-    if hasattr(template, 'resource_files'):
-        resource_files = {}
-        for f in template.resource_files():
-            resource_files[f.basename] = f
-        for f in template_common.lib_files(data):
-            if f.basename in resource_files:
-                resource_files[f.basename].copy(f)
 
 
 def _save_new_and_reply(*args):

@@ -903,7 +903,7 @@ def _create_example_and_lib_files(simulation_type):
     template = sirepo.template.import_module(simulation_type)
     if hasattr(template, 'resource_files'):
         for f in template.resource_files():
-            f.copy(d)
+            d.join(f.basename).mksymlinkto(f)
 
 
 def _find_user_simulation_copy(simulation_type, sid):
