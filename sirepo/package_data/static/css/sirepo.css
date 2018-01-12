@@ -930,6 +930,12 @@ li.sr-model-list-item > a {
 .elegant-beamline-icon {
   background-color: #222;
 }
+.elegant-beamline-icon-disabled {
+  background-color: #aaa;
+}
+div.elegant-beamline-icon-disabled span {
+    cursor: not-allowed;
+}
 .elegant-item-selected {
   background-color: blue;
   box-shadow: 0 0 25px gray;
