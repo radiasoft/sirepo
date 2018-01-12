@@ -1805,9 +1805,9 @@ SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location)
         return p === '' ? '/' : p;
     }
 
-    self.pathToCompoundPath = function(path) {
+    function pathToCompoundPath(path) {
         return path.replace(/^\//,'').replace(/\//g, COMPOUND_PATH_SEPARATOR);
-    };
+    }
 
 
     self.decodePath = function(path) {
@@ -1969,7 +1969,7 @@ SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location)
     };
 
     self.redirectToPath = function(path) {
-        var compoundPath = self.pathToCompoundPath(path);
+        var compoundPath = pathToCompoundPath(path);
         if (compoundPath === '') {
             requestSender.localRedirect('simulations');
         }
