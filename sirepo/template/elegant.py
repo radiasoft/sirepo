@@ -417,7 +417,11 @@ def parse_elegant_log(run_dir):
     last_element = None
     text = pkio.read_text(str(path))
     want_next_line = False
+    prev_line = ''
+    prev_err = ''
     for line in text.split("\n"):
+        if line == prev_line:
+            continue
         match = re.search('^Starting (\S+) at s\=', line)
         if match:
             name = match.group(1)
@@ -432,7 +436,10 @@ def parse_elegant_log(run_dir):
             if len(line) < 10:
                 want_next_line = True
             else:
-                res += line + "\n"
+                if line != prev_err:
+                    res += line + "\n"
+                prev_err = line
+        prev_line = line
     return res, last_element
 
 

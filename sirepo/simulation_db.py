@@ -670,14 +670,14 @@ def report_info(data):
 
 def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(fixup_old_data(data)[0])
+    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
 
 
-def save_new_simulation(data):
+def save_new_simulation(data, do_validate=True):
     d = simulation_dir(data.simulationType)
     sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(data)
+    return save_simulation_json(data, do_validate=do_validate)
 
 
 def save_simulation_json(data, do_validate=True):
@@ -903,6 +903,8 @@ def _create_example_and_lib_files(simulation_type):
     template = sirepo.template.import_module(simulation_type)
     if hasattr(template, 'resource_files'):
         for f in template.resource_files():
+            #TODO(pjm): symlink has problems in containers
+            # d.join(f.basename).mksymlinkto(f)
             f.copy(d)
 
 
