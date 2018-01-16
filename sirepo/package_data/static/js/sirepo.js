@@ -879,11 +879,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     }
 
     function showValue(selector, isShown) {
-        if (isShown) {
-            selector.show();
-        }
-        else {
-            selector.hide();
+        if(selector) {
+            if (isShown) {
+                selector.show();
+            }
+            else {
+                selector.hide();
+            }
         }
     }
 
@@ -1000,6 +1002,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.setError = function(name, error) {
         setPanelValue(name, 'error', error);
+    };
+
+    self.showEnum = function(model, field, optionIndex, isShown) {
+        var opt = $(fieldClass(model, field)).find('option')[optionIndex];
+        showValue($(opt), isShown);
     };
 
     self.showField = function(model, field, isShown) {
