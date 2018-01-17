@@ -73,6 +73,7 @@ def test_prepare_aux_files():
                     "sourceType": "t"
                 },
                 "tabulatedUndulator": {
+                    "undulatorType": "u_t",
                     "magneticFile": "magnetic_measurements.zip"
                 },
                 "beamline": { }

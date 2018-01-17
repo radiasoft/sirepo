@@ -369,7 +369,7 @@ def fixup_old_data(data):
             'verticalPosition': m['verticalPosition'],
             'verticalRange': m['verticalRange'],
         })
-        template_common.update_model_defaults(data['models']['multiElectronAnimation'], 'multiElectronAnimation', _SCHEMA)
+    template_common.update_model_defaults(data['models']['multiElectronAnimation'], 'multiElectronAnimation', _SCHEMA)
     _fixup_beamline(data)
     if 'samplingMethod' not in data['models']['simulation']:
         simulation = data['models']['simulation']
@@ -573,7 +573,7 @@ def lib_files(data, source_lib):
     report = data.report if 'report' in data else None
     if report == 'mirrorReport':
         res.append(dm['mirrorReport']['heightProfileFile'])
-    if _is_tabulated_undulator_source(dm.simulation):
+    if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             res.append(dm.tabulatedUndulator.magneticFile)
     if _is_beamline_report(report):
@@ -606,7 +606,7 @@ def models_related_to_report(data):
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
-    if _is_tabulated_undulator_source(data['models']['simulation']):
+    if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
 
     watchpoint = template_common.is_watchpoint(r)
@@ -833,7 +833,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data)
+        _generate_parameters_file(data, run_dir=run_dir)
     )
 
 
@@ -1269,7 +1269,7 @@ def _generate_item(res, item):
         res['pp'] += pp
 
 
-def _generate_parameters_file(data, plot_reports=False):
+def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
     magnetic_field = _process_intensity_reports(
@@ -1336,7 +1336,7 @@ def _generate_parameters_file(data, plot_reports=False):
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
     _add_report_filenames(v)
-    v['setupMagneticMeasurementFiles'] = _is_tabulated_undulator_source(data['models']['simulation'])
+    v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
     # Beamline optics defined through the parameters list:
@@ -1346,6 +1346,15 @@ def _generate_parameters_file(data, plot_reports=False):
         if el['type'] == 'sample':
             v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'input file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
             sample_counter += 1
+
+    if run_dir and _uses_tabulated_zipfile(data):
+        z = zipfile.ZipFile(str(run_dir.join(v['tabulatedUndulator_magneticFile'])))
+        z.extractall(str(run_dir))
+        for f in z.namelist():
+            if re.search(r'\.txt', f):
+                v.magneticMeasurementsDir = os.path.dirname(f) or './'
+                v.magneticMeasurementsIndexFile = os.path.basename(f)
+                break
 
     return pkjinja.render_resource('srw.py', v)
 
@@ -1398,7 +1407,7 @@ def _generate_srw_main(data, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
-    if _is_tabulated_undulator_source(data['models']['simulation']):
+    if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
@@ -1776,6 +1785,10 @@ def _unique_name(items, field, template):
             index += 1
         else:
             return id
+
+def _uses_tabulated_zipfile(data):
+    return _is_tabulated_undulator_source(data['models']['simulation']) and data['models']['tabulatedUndulator']['undulatorType'] == 'u_t'
+
 
 def _user_model_map(model_list, field):
     res = pkcollections.Dict()
