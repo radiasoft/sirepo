@@ -9,6 +9,11 @@ import re
 
 from sirepo.template.line_parser import LineParser
 
+# a map of old elegant names to the new name
+_FIELD_ALIAS = {
+    'bmax': 'b_max',
+}
+
 
 def parse_file(lattice_text, maxId=0):
     parser = LineParser(maxId)
@@ -87,7 +92,10 @@ def _parse_element(parser, name, type):
             parser.assert_end_of_line()
         if parser.peek_char() == '=':
             parser.assert_char('=')
-            el[field.lower()] = parser.parse_value()
+            f = field.lower()
+            if f in _FIELD_ALIAS:
+                f = _FIELD_ALIAS[f]
+            el[f] = parser.parse_value()
     return el
 
 
