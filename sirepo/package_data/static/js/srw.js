@@ -665,6 +665,39 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         );
     }
 
+    function processTrajectoryAxis() {
+        // change enum list for plotAxisY2 depending on the selected plotAxisY value
+        var selected = appState.models.trajectoryReport.plotAxisY;
+        var res = [];
+        var group;
+        [
+            ['X', 'Y', 'Z'],
+            ['Bx', 'By', 'Bz'],
+            ['BetaX', 'BetaY', 'BetaZ'],
+        ].forEach(function(g) {
+            if (g.indexOf(selected) >= 0) {
+                group = g;
+            }
+        });
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
+            if (group && group.indexOf(row[0]) >= 0 && selected != row[0]) {
+                res.push(row);
+            }
+        });
+        res.push(['None', 'None']);
+        var y2 = appState.models.trajectoryReport.plotAxisY2;
+        var validY2 = false;
+        res.forEach(function(row) {
+            if (y2 == row[0]) {
+                validY2 = true;
+            }
+        });
+        if (! validY2) {
+            appState.models.trajectoryReport.plotAxisY2 = 'None';
+        }
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis2 = res;
+    }
+
     function processTrajectoryReport() {
         if (! srwService.isElectronBeam()) {
             return;
@@ -768,6 +801,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         }
         else if (name === 'trajectoryReport') {
             processTrajectoryReport();
+            processTrajectoryAxis();
         }
         else if (name === 'electronBeam') {
             processBeamFields();
@@ -879,9 +913,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             );
         });
 
-        appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], function() {
-            processTrajectoryReport();
-        });
+        appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], processTrajectoryReport);
+        appState.watchModelFields($scope, ['trajectoryReport.plotAxisY'], processTrajectoryAxis);
 
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
             if (isActiveField('undulator', 'horizontalDeflectingParameter')) {

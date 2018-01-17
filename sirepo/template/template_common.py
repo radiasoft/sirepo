@@ -128,6 +128,16 @@ def lib_files(data, source_lib=None):
     )
 
 
+def model_defaults(name, schema):
+    """Returns a set of default model values from the schema."""
+    res = pkcollections.Dict()
+    for f in schema['model'][name]:
+        field_info = schema['model'][name][f]
+        if len(field_info) >= 3 and field_info[2] is not None:
+            res[f] = field_info[2]
+    return res
+
+
 def parse_animation_args(data, key_map):
     """Parse animation args according to key_map
 
@@ -199,6 +209,13 @@ def report_parameters_hash(data):
             res.update(json.dumps(value, sort_keys=True, allow_nan=False))
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
+
+
+def update_model_defaults(model, name, schema):
+    defaults = model_defaults(name, schema)
+    for f in defaults:
+        if f not in model:
+            model[f] = defaults[f]
 
 
 def validate_model(model_data, model_schema, enum_info):

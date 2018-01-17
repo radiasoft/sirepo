@@ -182,18 +182,6 @@
             ["jpg", "JPG"],
             ["jpeg", "JPEG"]
         ],
-        "PlotAxis": [
-            ["ct", "c × t"],
-            ["X", "Horizontal Position"],
-            ["Y", "Vertical Position"],
-            ["Z", "Longitudinal Position"],
-            ["Bx", "Horizontal Magnetic Field"],
-            ["By", "Vertical Magnetic Field"],
-            ["Bz", "Longitudinal Magnetic Field"],
-            ["BetaX", "Horizontal Beta"],
-            ["BetaY", "Vertical Beta"],
-            ["BetaZ", "Longitudinal Beta"]
-        ],
         "Polarization": [
             ["0", "Linear Horizontal"],
             ["1", "Linear Vertical"],
@@ -235,6 +223,31 @@
         "Symmetry": [
             ["1", "Symmetrical"],
             ["-1", "Anti-symmetrical"]
+        ],
+        "TrajectoryPlotAxis": [
+            ["ct", "c × t"],
+            ["X", "Horizontal Position"],
+            ["Y", "Vertical Position"],
+            ["Z", "Longitudinal Position"],
+            ["Bx", "Horizontal Magnetic Field"],
+            ["By", "Vertical Magnetic Field"],
+            ["Bz", "Longitudinal Magnetic Field"],
+            ["BetaX", "Horizontal Beta"],
+            ["BetaY", "Vertical Beta"],
+            ["BetaZ", "Longitudinal Beta"]
+        ],
+        "TrajectoryPlotAxis2": [
+            ["ct", "c × t"],
+            ["X", "Horizontal Position"],
+            ["Y", "Vertical Position"],
+            ["Z", "Longitudinal Position"],
+            ["Bx", "Horizontal Magnetic Field"],
+            ["By", "Vertical Magnetic Field"],
+            ["Bz", "Longitudinal Magnetic Field"],
+            ["BetaX", "Horizontal Beta"],
+            ["BetaY", "Vertical Beta"],
+            ["BetaZ", "Longitudinal Beta"],
+            ["None", "None"]
         ],
         "UndulatorType": [
             ["u_i", "Idealized"],
@@ -370,40 +383,44 @@
             "verticalCenterPosition": ["Vertical Center Position [m]", "Float", 0]
         },
         "fluxAnimation": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
-            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
-            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
-            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
-            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
-            "method": ["Flux Computation Method", "FluxMethod"],
-            "precision": ["Relative Precision", "Float"],
-            "fluxType": ["Entity to Calculate", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float", 10000],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float", 20000],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
+            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
+            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float", 1],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", 1],
+            "method": ["Flux Computation Method", "FluxMethod", "1"],
+            "precision": ["Relative Precision", "Float", 0.01],
+            "fluxType": ["Entity to Calculate", "Flux", "1"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
         },
         "fluxReport": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
-            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
-            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
-            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
-            "fluxType": ["Entity to Calculate", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float", 10000],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float", 20000],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
+            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
+            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float", 1],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", 1],
+            "method": ["Flux Computation Method", "FluxMethod", "-1"],
+            "precision": ["Relative Precision", "Float", 0.01],
+            "fluxType": ["Entity to Calculate", "Flux", "1"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -414,11 +431,11 @@
             "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
-            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition"],
+            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition", "1"],
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
-            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float"],
-            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float"],
+            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float", 0],
+            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float", 0],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "grating": {
@@ -445,7 +462,7 @@
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"]
@@ -454,14 +471,14 @@
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-            "precision": ["Relative Precision", "Float"],
+            "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
@@ -509,8 +526,8 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "multiElectronAnimation": {
-            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
-            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
+            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
@@ -538,8 +555,8 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
-            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"]
@@ -590,18 +607,15 @@
             "outputImageFormat": ["Output Image Format", "OutputImageFormat", "tif"]
         },
         "simulation": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "facility": ["Facility", "String"],
-            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "isExample": ["Is Example Simulation", "String"],
-            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "sourceType": ["Source Type", "SourceType"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
@@ -610,7 +624,7 @@
         "sourceIntensityReport": {
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -619,7 +633,7 @@
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "precision": ["Relative Precision", "Float"],
+            "precision": ["Relative Precision", "Float", 0.01],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
@@ -649,10 +663,10 @@
         "tabulatedUndulator": {
             "undulatorSelector": ["Select Undulator", "UndulatorList"],
             "name": ["Undulator Name", "String"],
-            "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "gap": ["Magnetic Gap [mm]", "Float"],
-            "phase": ["Magnet Arrays Shift [mm]", "Float"],
-            "magneticFile": ["Magnetic Data File", "MagneticZipFile"]
+            "undulatorType": ["Type of Undulator", "UndulatorType", "u_t"],
+            "gap": ["Magnetic Gap [mm]", "Float", 6.72],
+            "phase": ["Magnet Arrays Shift [mm]", "Float", 0],
+            "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
         },
         "toroidalMirror": {
             "title": ["Element Name", "String", "Toroid Mirror"],
@@ -676,16 +690,17 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "trajectoryReport": {
-            "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters"],
-            "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
-            "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
-            "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer"],
-            "plotAxisX": ["Horizontal Axis to Plot", "PlotAxis", "Z"],
-            "plotAxisY": ["Vertical Axis to Plot", "PlotAxis", "X"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"]
+            "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters", "auto"],
+            "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
+            "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
+            "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer", 10000],
+            "plotAxisX": ["Horizontal Axis to Plot", "TrajectoryPlotAxis", "Z"],
+            "plotAxisY": ["Vertical Axis to Plot", "TrajectoryPlotAxis", "X"],
+            "plotAxisY2": ["Vertical Axis to Plot", "TrajectoryPlotAxis2", "None"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"]
         },
         "undulator": {
-            "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
+            "undulatorParameter": ["Deflecting Parameter (K)", "Float", 0],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
@@ -706,7 +721,7 @@
         "watchpointReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"]
@@ -1534,20 +1549,19 @@
             "title": "Electron Trajectory Report",
             "basic": [],
             "advanced": [
-                ["Main", [
-                    "timeMomentEstimation",
-                    "initialTimeMoment",
-                    "finalTimeMoment",
-                    "numberOfPoints",
-                    [
-                        ["Horizontal", [
-                            "plotAxisX"
-                        ]],
-                        ["Vertical", [
-                            "plotAxisY"
-                        ]]
-                    ]
-                ]]
+                "timeMomentEstimation",
+                "initialTimeMoment",
+                "finalTimeMoment",
+                "numberOfPoints",
+                [
+                    ["Horizontal", [
+                        "plotAxisX"
+                    ]],
+                    ["Vertical", [
+                        "plotAxisY",
+                        "plotAxisY2"
+                    ]]
+                ]
             ]
         },
         "undulator": {
