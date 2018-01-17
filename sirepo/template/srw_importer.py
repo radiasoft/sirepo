@@ -754,7 +754,6 @@ def _parsed_dict(v, op):
             }),
             'propagation': _get_propagation(op),
             'simulation': pkcollections.Dict({
-                'facility': 'Import',
                 'horizontalPointCount': v.w_nx,
                 'horizontalPosition': v.w_x,
                 'horizontalRange': v.w_rx * 1e3,
