@@ -2430,3 +2430,13 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         return !c || c === 'undefined' ? defaultValue : c;
     }
 });
+
+SIREPO.app.filter('simulationName', function() {
+    return function(name) {
+        if (name) {
+            // clean up name so it formats well in HTML
+            name = name.replace(/\_/g, ' ');
+        }
+        return name;
+    };
+});

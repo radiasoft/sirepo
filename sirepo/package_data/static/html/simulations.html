@@ -34,7 +34,7 @@
           </thead>
           <tbody>
             <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', simulations.sortField]">
-              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder}"></span> {{ item.name }}</a></td>
+              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder}"></span> {{ item.name | simulationName }}</a></td>
               <td>{{ item.lastModified }}</td>
             </tr>
           </tbody>
@@ -46,7 +46,7 @@
             <a class="sr-item-icon" data-toggle="dropdown">
               <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder}"></span><span class="caret"></span>
             </a>
-            <a class="sr-item-text" href data-ng-click="simulations.openItem(item)">{{ item.name }}</a>
+            <a class="sr-item-text" href data-ng-click="simulations.openItem(item)">{{ item.name | simulationName }}</a>
             <ul class="dropdown-menu">
               <li><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon sr-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isFolder, 'glyphicon-open-file': ! item.isFolder}"></span> Open</a></li>
               <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate sr-nav-icon"></span> Open as a New Copy</a></li>
@@ -66,7 +66,7 @@
   </div>
 </div>
 
-<div data-confirmation-modal="" data-id="sr-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()">Delete simulation &quot;{{ simulations.selectedItem.name }}&quot;?</div>
+<div data-confirmation-modal="" data-id="sr-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()">Delete simulation &quot;{{ simulations.selectedItem.name | simulationName }}&quot;?</div>
 
 <div data-confirmation-modal="" data-id="sr-rename-confirmation" data-title="Rename {{ simulations.selectedItemType() }}" data-ok-text="Rename" data-ok-clicked="simulations.renameSelected()">
   <form class="form-horizontal" autocomplete="off">

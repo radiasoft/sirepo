@@ -3386,6 +3386,9 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     appState.models.parameterTable.page = page = 0;
                 }
                 var params = $scope.fileInfo.parameters;
+                if (! params) {
+                    return;
+                }
                 var defs = $scope.fileInfo.parameterDefinitions;
                 var rows = [];
                 Object.keys(params).sort(
@@ -3432,7 +3435,6 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         }
     };
 });
-
 
 //TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
 // from http://stackoverflow.com/questions/19305821/multiple-modals-overlay
