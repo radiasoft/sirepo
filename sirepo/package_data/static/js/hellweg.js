@@ -264,14 +264,12 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope, $rootScope) {
     var self = this;
-    self.model = 'animation';
     self.settingsModel = 'simulationSettings';
-    self.simulationErrors = '';
+    self.panelState = panelState;
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
+    function handleStatus(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime && ! data.error) {
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
@@ -284,13 +282,9 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
                 frameCache.setFrameCount(1, 'parameterAnimation');
             }
         }
-    };
+    }
 
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
-    };
-
-    persistentSimulation.initProperties(self, $scope, {
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
         beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],

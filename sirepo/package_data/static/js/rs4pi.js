@@ -204,10 +204,9 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 
 SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, panelState, persistentSimulation, rs4piService, $scope) {
     var self = this;
-    self.model = 'doseCalculation';
     self.panelState = panelState;
 
-    self.handleStatus = function(data) {
+    function handleStatus(data) {
         if (data.report == 'doseCalculation' && data.state == 'completed') {
             if (data.dicomDose && ! appState.deepEquals(appState.models.dicomDose, data.dicomDose)) {
                 appState.models.dicomDose = data.dicomDose;
@@ -216,7 +215,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
             // actual frame count is stored on dicomDose metadata
             frameCache.setFrameCount(1);
         }
-    };
+    }
 
     self.hasDoseFrames = function() {
         if (appState.isLoaded()) {
@@ -225,15 +224,11 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
         return false;
     };
 
-    self.isBusy = function() {
-        return self.isStatePending() || self.isStateProcessing();
-    };
-
     appState.whenModelsLoaded($scope, function() {
         rs4piService.loadROIPoints();
     });
 
-    persistentSimulation.initProperties(self, $scope, rs4piService.animationArgs);
+    self.simState = persistentSimulation.initSimulationState($scope, 'doseCalculation', handleStatus, rs4piService.animationArgs);
 });
 
 SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService, $rootScope, $scope) {
@@ -318,17 +313,16 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
             model: '@dicomFrames',
         },
         controller: function($scope) {
-            $scope.handleStatus = function(data) {
+            function handleStatus(data) {
                 if ($scope.model == 'dicomAnimation' && data.state == 'stopped' && data.percentComplete === 0) {
-                    $scope.runSimulation();
+                    $scope.simState.runSimulation();
                     return;
                 }
-                $scope.simulationErrors = data.errors || '';
                 // actual frame counts are stored in dicomSeries metadata
                 frameCache.setFrameCount(1);
-            };
+            }
 
-            persistentSimulation.initProperties($scope, $scope, rs4piService.animationArgs);
+            $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, rs4piService.animationArgs);
         },
     };
 });
@@ -434,9 +428,7 @@ SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piServ
             }
 
             $scope.updatePTV = function() {
-                appState.saveChanges('doseCalculation', function() {
-                    $scope.doseController.runSimulation();
-                });
+                $scope.doseController.simState.saveAndRunSimulation('doseCalculation');
             };
         },
     };

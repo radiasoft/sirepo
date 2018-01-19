@@ -1384,8 +1384,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             if (qi.qState == 'removing') {
                 return;
             }
-            resp.isStateProcessing = resp.state == 'running' || resp.state == 'pending';
-            if (! resp.isStateProcessing) {
+            if (! (resp.state == 'running' || resp.state == 'pending')) {
                 handleResult(qi, resp);
                 return;
             }
@@ -1518,69 +1517,54 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     return self;
 });
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
+
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, frameCache) {
     var self = {};
-    self.initProperties = function(controller, $scope, animationArgs) {
-        controller.frameId = '-1';
-        controller.frameCount = 1;
-        controller.isReadyForModelChanges = false;
-        controller.simulationQueueItem = null;
-        controller.dots = '.';
-        controller.timeData = {
-            elapsedDays: null,
-            elapsedTime: null,
+
+    self.initSimulationState = function($scope, model, handleStatusCallback, animationArgs) {
+        var state = {
+            dots: '.',
+            isReadyForModelChanges: false,
+            model: model,
+            percentComplete: 0,
+            simulationQueueItem: null,
+            timeData: {
+                elapsedDays: null,
+                elapsedTime: null,
+            },
         };
-        controller.panelState = panelState;
-        controller.percentComplete = 0;
+
+        function clearSimulation() {
+            simulationQueue.removeItem(state.simulationQueueItem);
+            state.simulationQueueItem = null;
+        }
 
         function handleStatus(data) {
             setSimulationStatus(data);
             if (data.elapsedTime) {
-                controller.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                controller.timeData.elapsedTime = new Date(1970, 0, 1);
-                controller.timeData.elapsedTime.setSeconds(data.elapsedTime);
+                state.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                state.timeData.elapsedTime = new Date(1970, 0, 1);
+                state.timeData.elapsedTime.setSeconds(data.elapsedTime);
             }
             if (data.percentComplete) {
-                controller.percentComplete = data.percentComplete;
+                state.percentComplete = data.percentComplete;
             }
-            if (data.isStateProcessing) {
-                controller.dots += '.';
-                if (controller.dots.length > 3) {
-                    controller.dots = '.';
+            if (state.isProcessing()) {
+                state.dots += '.';
+                if (state.dots.length > 3) {
+                    state.dots = '.';
                 }
             }
             else {
-                controller.simulationQueueItem = null;
+                state.simulationQueueItem = null;
             }
-            controller.handleStatus(data);
-        }
-
-        function isState(state) {
-            if (! appState.isLoaded()) {
-                return false;
-            }
-            for (var i = 1; i < arguments.length; i++) {
-                if (state == arguments[i]) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function persistentSimulationInit($scope) {
-            if (! controller.model) {
-                throw 'missing persistentSimulation model';
-            }
-            setSimulationStatus({state: 'stopped'});
-            frameCache.setFrameCount(0);
-            $scope.$on('$destroy', controller.clearSimulation);
-            appState.whenModelsLoaded($scope, runStatus);
+            handleStatusCallback(data);
         }
 
         function runStatus() {
-            controller.isReadyForModelChanges = true;
-            controller.simulationQueueItem = simulationQueue.addPersistentStatusItem(
-                controller.model,
+            state.isReadyForModelChanges = true;
+            state.simulationQueueItem = simulationQueue.addPersistentStatusItem(
+                state.model,
                 appState.models,
                 handleStatus
             );
@@ -1590,110 +1574,119 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             if (!appState.models.simulationStatus) {
                 appState.models.simulationStatus = {};
             }
-            data.report = controller.model;
-            appState.models.simulationStatus[controller.model] = data;
+            data.report = state.model;
+            appState.models.simulationStatus[state.model] = data;
             if (appState.isLoaded()) {
                 // simulationStatus is not saved to server from client
                 appState.saveQuietly('simulationStatus');
             }
         }
 
-        controller.cancelSimulation = function(successCallback, errorCallback) {
+        function simulationStatus() {
+            if (appState.models.simulationStatus && appState.models.simulationStatus[state.model]) {
+                return appState.models.simulationStatus[state.model];
+            }
+            return {state: 'pending'};
+        }
+
+        state.cancelSimulation = function(callback) {
             setSimulationStatus({state: 'canceled'});
-            var queueHadItem = simulationQueue.cancelItem(controller.simulationQueueItem, successCallback, errorCallback);
-            controller.simulationQueueItem = null;
-            if (! queueHadItem && successCallback) {
-                successCallback(
-                    { 'state': 'queue empty' },
-                    200
-                );
+            var queueHadItem = simulationQueue.cancelItem(state.simulationQueueItem, callback, callback);
+            state.simulationQueueItem = null;
+            if (! queueHadItem && callback) {
+                callback();
             }
         };
 
-        controller.clearSimulation = function() {
-            simulationQueue.removeItem(controller.simulationQueueItem);
-            controller.simulationQueueItem = null;
+        state.getError = function() {
+            return simulationStatus().error;
         };
 
-        controller.displayPercentComplete = function() {
-            if (controller.isInitializing() || controller.isStatePending()) {
+        state.getFrameCount = function() {
+            return frameCache.getFrameCount();
+        };
+
+        state.getPercentComplete = function() {
+            if (state.isInitializing() || state.isStatePending()) {
                 return 100;
             }
-            return controller.percentComplete;
+            return state.percentComplete;
         };
 
-        controller.hasTimeData = function () {
-            return controller.timeData && controller.timeData.elapsedTime !== null;
+        state.hasTimeData = function () {
+            return state.timeData && state.timeData.elapsedTime;
         };
 
-        controller.isInitializing = function() {
-            if (controller.isStateProcessing() && ! controller.isStatePending()) {
+        state.isInitializing = function() {
+            if (state.isStateRunning()) {
                 return frameCache.getFrameCount() < 1;
             }
             return false;
         };
 
-        controller.isStatePending = function() {
-            return controller.simulationStatus().state == 'pending';
+        state.isProcessing = function() {
+            return state.isStatePending() || state.isStateRunning();
         };
 
-        controller.isStateProcessing = function() {
-            return controller.simulationStatus().isStateProcessing;
+        state.isStateError = function() {
+            return simulationStatus().state == 'error';
         };
 
-        controller.isStateRunning = function() {
-            return controller.simulationStatus().state == 'running';
+        state.isStatePending = function() {
+            return simulationStatus().state == 'pending';
         };
 
-        controller.isStateStopped = function() {
-            return ! controller.isStateProcessing();
+        state.isStateRunning = function() {
+            return simulationStatus().state == 'running';
         };
 
-        controller.runSimulation = function() {
-            if (controller.isStateProcessing()) {
-                //TODO(robnagler) this shouldn't happen? (double click?)
+        state.isStopped = function() {
+            return ! state.isProcessing();
+        };
+
+        state.runSimulation = function() {
+            if (state.isStateRunning()) {
                 return;
             }
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
-            controller.timeData.elapsedTime = null;
-            controller.timeData.elapsedDays = null;
+            state.timeData.elapsedTime = null;
+            state.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
-            controller.simulationQueueItem = simulationQueue.addPersistentItem(
-                controller.model,
-                //TODO(pjm): this should be appstate.savedModelValues
-                // other values haven't been saved yet
-                appState.models,
+            state.simulationQueueItem = simulationQueue.addPersistentItem(
+                state.model,
+                appState.applicationState(),
                 handleStatus
             );
         };
 
-        controller.simulationState = function() {
-            return controller.simulationStatus().state;
-        };
-
-        controller.simulationStatus = function() {
-            if (appState.models.simulationStatus && appState.models.simulationStatus[controller.model]) {
-                return appState.models.simulationStatus[controller.model];
+        state.saveAndRunSimulation = function(models) {
+            if (state.isProcessing()) {
+                return;
             }
-            return {state: 'pending'};
+            simulationStatus().state = 'pending';
+            appState.saveChanges(models, state.runSimulation);
         };
 
-        controller.stateAsText = function() {
-            var s = controller.simulationState();
-            var msg;
-            msg = s.charAt(0).toUpperCase() + s.slice(1);
-            if (s == 'error') {
-                var e = controller.simulationStatus().error;
+        state.stateAsText = function() {
+            if (state.isStateError()) {
+                var e = state.getError();
                 if (e) {
-                    msg += ': ' + e.split(/[\n\r]+/)[0];
+                    return 'Error: ' + e.split(/[\n\r]+/)[0];
                 }
             }
-            return msg;
+            // ucfirst on the state value
+            var s = simulationStatus().state;
+            return s.charAt(0).toUpperCase() + s.slice(1);
         };
 
         frameCache.setAnimationArgs(animationArgs);
-        persistentSimulationInit($scope);
+        setSimulationStatus({state: 'stopped'});
+        frameCache.setFrameCount(0);
+        $scope.$on('$destroy', clearSimulation);
+        appState.whenModelsLoaded($scope, runStatus);
+
+        return state;
     };
     return self;
 });

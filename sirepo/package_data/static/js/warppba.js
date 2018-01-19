@@ -59,11 +59,11 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     return self;
 });
 
-SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, warpPBAService, persistentSimulation, $scope) {
+SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, panelState, warpPBAService, persistentSimulation, $scope) {
     var self = this;
-    self.model = 'animation';
+    self.panelState = panelState;
 
-    self.handleStatus = function(data) {
+    function handleStatus(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime) {
             ['fieldAnimation', 'particleAnimation', 'beamAnimation'].forEach(function(m) {
@@ -71,17 +71,13 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
                 appState.saveQuietly(m);
             });
         }
-    };
-
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
-    };
+    }
 
     self.isElectronBeam = function() {
         return warpPBAService.isElectronBeam();
     };
 
-    persistentSimulation.initProperties(self, $scope, {
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'coordinate', 'mode', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
         beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],

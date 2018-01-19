@@ -960,15 +960,8 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
-    self.model = 'animation';
     self.appState = appState;
     self.panelState = panelState;
-    self.dots = '.';
-    self.simulationErrors = '';
-    self.timeData = {
-        elapsedDays: null,
-        elapsedTime: null,
-    };
     self.outputFiles = [];
     self.outputFileMap = {};
     self.auxFiles = [];
@@ -994,9 +987,27 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model || self.model,
+            '<model>': model || self.simState.model,
             '<frame>': index,
         });
+    }
+
+    function handleStatus(data) {
+        self.simulationErrors = data.errors || '';
+        if (data.frameCount) {
+            frameCache.setFrameCount(parseInt(data.frameCount));
+            loadElementReports(data.outputInfo, data.startTime);
+        }
+        if (self.simState.isStopped()) {
+            if (! data.frameCount) {
+                if (data.state == 'completed' && ! self.simulationErrors) {
+                    // completed with no output, show link to elegant log
+                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                }
+                self.outputFiles = [];
+                self.outputFileMap = {};
+            }
+        }
     }
 
     function hideField(modelName, field) {
@@ -1143,35 +1154,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         });
     };
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
-        if (data.frameCount) {
-            frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo, data.startTime);
-        }
-        if (self.isStateStopped()) {
-            if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
-                    // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
-                }
-                self.outputFiles = [];
-                self.outputFileMap = {};
-            }
-        }
-    };
-
-    self.hasOutput = function() {
-        return self.isStateStopped();
-    };
-
     self.logFileURL = function() {
         return fileURL(-1);
     };
 
-    self.saveAndRunSimulation = function() {
-        //TODO(pjm): save changes may take awhile to complete, need to set running state ahead of this
-        appState.saveChanges('simulation', self.runSimulation);
+    self.startSimulation = function() {
+        self.simState.saveAndRunSimulation('simulation');
     };
 
     self.yFileUpdate = function (modelKey) {
@@ -1191,14 +1179,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     };
 
-    persistentSimulation.initProperties(self, $scope, {});
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});
 
     // override persistentSimulation settings
-    self.isInitializing = function() {
-        if (self.percentComplete === 0 && self.isStateProcessing()) {
+    self.simState.isInitializing = function() {
+        if (self.simState.percentComplete === 0 && self.simState.isProcessing()) {
             return true;
         }
-        return self.isStatePending();
+        return self.simState.isStatePending();
     };
 });
 
@@ -3304,8 +3292,8 @@ SIREPO.app.directive('runSimulationFields', function() {
                 '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
               '</div></div>',
               '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
-                '<button class="btn btn-default" data-ng-click="visualization.saveAndRunSimulation()">Start New Simulation</button>',
+              '<div class="col-sm-5" data-ng-show="visualization.simState.isStopped()">',
+                '<button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>',
               '</div>',
             '</div>',
         ].join(''),
