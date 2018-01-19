@@ -16,6 +16,7 @@ from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
 import ast
 import glob
+import math
 import numpy as np
 import os
 import os.path
@@ -741,7 +742,8 @@ def _create_default_commands(data):
 def _extract_sdds_column(filename, field, page_index):
     try:
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
-            err = _sdds_error('{}: cannot access'.format(filename))
+            pkdlog('{}: cannot access'.format(filename))
+            err = _sdds_error('Missing report output file.')
         else:
             column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
             #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
@@ -750,17 +752,18 @@ def _extract_sdds_column(filename, field, page_index):
                     #TODO(robnagler) is this an error?
                     break
             try:
+                values = sdds.sddsdata.GetColumn(
+                    _SDDS_INDEX,
+                    column_names.index(field),
+                )
                 return (
-                    sdds.sddsdata.GetColumn(
-                        _SDDS_INDEX,
-                        column_names.index(field),
-                    ),
+                    map(lambda v: _safe_sdds_value(v), values),
                     column_names,
                     None,
                 )
             except SystemError as e:
-                err = _sdds_error(
-                    '{}: page not found in {}'.format(page_index, filename))
+                pkdlog('{}: page not found in {}'.format(page_index, filename))
+                err = _sdds_error('Output page {} not found'.format(page_index) if page_index else 'No output was generated for this report.')
     finally:
         try:
             sdds.sddsdata.Terminate(_SDDS_INDEX)
@@ -1110,7 +1113,7 @@ def _plot_title(xfield, yfield, page_index):
 
 
 def _safe_sdds_value(v):
-    if str(v) == 'nan':
+    if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
     return v
 

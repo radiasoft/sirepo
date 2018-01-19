@@ -1089,6 +1089,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             self.yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
+            if (! info.pageCount) {
+                panelState.setError(modelKey, 'No output was generated for this report.');
+            }
             appState.watchModelFields(
                 $scope,
                 [modelKey + '.yFile'],
@@ -1167,6 +1170,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     };
 
     self.saveAndRunSimulation = function() {
+        //TODO(pjm): save changes may take awhile to complete, need to set running state ahead of this
         appState.saveChanges('simulation', self.runSimulation);
     };
 
