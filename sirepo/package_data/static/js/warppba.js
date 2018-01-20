@@ -352,6 +352,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -376,9 +377,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
-                //'<ul class="nav navbar-nav sr-navbar-right">',
-                //  '<li>App-specific items</li>',
-                //'</ul>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),

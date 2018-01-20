@@ -611,13 +611,25 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     }
 
     function processFluxAnimation() {
+        // ["-1", "Use Approximate Method"]
+        var approxMethodKey = -1;
+        var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
+        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo('fluxAnimation').method[SIREPO.INFO_INDEX_TYPE]];
+        var approxMethodOptionIndex = eType.indexOf(
+            eType.find(function(etArr) {
+                return etArr[0] == approxMethodKey;
+            })
+        );
+
         panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
         if (! srwService.isTabulatedUndulatorWithMagenticFile()) {
             appState.models.fluxAnimation.magneticField = 1;
         }
-        // ["-1", "Use Approximate Method"]
-        var isApproximateMethod = appState.models.fluxAnimation.method == -1;
-        ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
+
+        // No approximate flux method with accurate magnetic field
+        panelState.showEnum('fluxAnimation', 'method', approxMethodOptionIndex, appState.models.fluxAnimation.magneticField == 1);
+
+       ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
             panelState.showField('fluxAnimation', f, isApproximateMethod);
         });
         ['precision', 'numberOfMacroElectrons'].forEach(function(f) {
@@ -885,7 +897,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             });
         });
 
-        appState.watchModelFields($scope, ['fluxAnimation.method'], processFluxAnimation);
+        appState.watchModelFields($scope, ['fluxAnimation.method', 'fluxAnimation.magneticField'], processFluxAnimation);
 
         appState.watchModelFields($scope, ['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'gaussianBeam.photonEnergy'], function() {
             if (srwService.isGaussianBeam()) {

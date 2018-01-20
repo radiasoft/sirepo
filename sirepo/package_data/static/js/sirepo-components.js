@@ -391,7 +391,6 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType == 'Float')
@@ -1433,7 +1432,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, notificationService, $window, $rootScope) {
+SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
     return {
         restrict: 'A',
         transclude: {
@@ -1472,6 +1471,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
            scope.nav.openDocumentation = scope.openDocumentation;
            scope.nav.modeIsDefault = scope.modeIsDefault;
            scope.nav.showSimulationModal = scope.showSimulationModal;
+           scope.nav.showImportModal = scope.showImportModal;
         },
         controller: function($scope) {
 
@@ -1506,6 +1506,91 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
             $scope.openDocumentation = function() {
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
+
+            $scope.showImportModal = function() {
+                $('#simulation-import').modal('show');
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="importForm">',
+                        '<div class="form-group">',
+                          '<label>Select File</label>',
+                          '<input id="file-import" type="file" data-file-model="zipFile">',
+                          '<br />',
+                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                        '</div>',
+                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
+                        '<div class="clearfix"></div>',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-ng-click="importZIPFile(zipFile)" class="btn btn-primary" data-ng-disabled="! zipFile || isUploading">Import File</button>',
+                          ' <button data-ng-click="zipFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = 'Import ZIP File';
+            $scope.importZIPFile = function(zipFile) {
+                if (! zipFile) {
+                    return;
+                }
+                $scope.isUploading = true;
+                fileUpload.uploadFileToUrl(
+                    zipFile,
+                    {
+                        folder: fileManager.getActiveFolderPath(),
+                    },
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        }),
+                    function(data) {
+                        $scope.isUploading = false;
+                        if (data.error) {
+                            $scope.fileUploadError = data.error;
+                        }
+                        else {
+                            $('#simulation-import').modal('hide');
+                            $scope.zipFile = null;
+                            requestSender.localRedirect('source', {
+                                ':simulationId': data.models.simulation.simulationId,
+                            });
+                        }
+                    });
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -1527,7 +1612,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                   '<ul class="dropdown-menu">',
                     //  App-specific settings are transcluded here
                     '<li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>',
-                    '<li><a href data-ng-if="nav.modeIsDefault(\'settings-menu-show-doc\')" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
+                    '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
