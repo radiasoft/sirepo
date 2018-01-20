@@ -1211,7 +1211,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, utilities) {
+SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1516,12 +1516,21 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
               '</thead>',
               '<tbody>',
                 '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge elegant-icon elegant-beamline-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
+                  '<td><div class="badge elegant-icon elegant-beamline-icon" data-ng-class="{\'elegant-beamline-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
+                    '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
+                    '<div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar">',
+                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
+                            ' <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                        '</div>',
+                    '<div>',
+                  '</td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1544,6 +1553,25 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 res += ')';
                 return res;
             }
+
+            $scope.wouldBeamlineSelfNest = function (beamline, blItems) {
+                var activeBeamline = $scope.lattice.getActiveBeamline();
+                if(! activeBeamline || activeBeamline.id === beamline.id) {
+                    return true;
+                }
+                if(! blItems) {
+                    blItems = beamline.items || [];
+                }
+                if(blItems.includes(activeBeamline.id)) {
+                    return true;
+                }
+                for(var i = 0; i < blItems.length; i++) {
+                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
 
             $scope.addToBeamline = function(beamline) {
                 $scope.lattice.addToBeamline(beamline);

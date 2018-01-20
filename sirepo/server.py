@@ -64,6 +64,9 @@ SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 #: WSGIApp instance (see `init_by_server`)
 _wsgi_app = None
 
+#: Default file to serve on errors
+DEFAULT_ERROR_FILE = 'server-error.html'
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -74,6 +77,17 @@ app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
 
+def handle_error(error):
+    status_code = 500
+    if isinstance(error, werkzeug.exceptions.HTTPException):
+        status_code = error.code
+    try:
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
+    except:
+        error_file = DEFAULT_ERROR_FILE
+    f = flask.send_from_directory(static_dir('html'), error_file)
+
+    return f, status_code
 
 def api_copyNonSessionSimulation():
     req = _json_input()
@@ -673,6 +687,10 @@ def init(db_dir=None, uwsgi=None):
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
+
+    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        app.register_error_handler(int(err), handle_error)
+
     return app
 
 
@@ -1109,6 +1127,9 @@ def _validate_serial(data):
         'error': 'invalidSerial',
         'simulationData': res,
     })
+
+def static_dir(dir_name):
+    return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
 cfg = pkconfig.init(
