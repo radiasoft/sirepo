@@ -1554,11 +1554,12 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 if(! blItems) {
                     blItems = beamline.items || [];
                 }
-                if(blItems.includes(activeBeamline.id)) {
+                if(blItems.indexOf(activeBeamline.id) >= 0) {
                     return true;
                 }
                 for(var i = 0; i < blItems.length; i++) {
-                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                    var nextItems = $scope.lattice.elementForId(blItems[i]).items;
+                    if(nextItems && $scope.wouldBeamlineSelfNest(beamline, nextItems)) {
                         return true;
                     }
                 }
