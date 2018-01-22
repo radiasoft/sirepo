@@ -418,7 +418,7 @@ def fixup_old_data(data):
     if 'length' in data['models']['tabulatedUndulator']:
         tabulated_undulator = data['models']['tabulatedUndulator']
         und_length = _compute_undulator_length(tabulated_undulator)
-        if _is_tabulated_undulator_source(data['models']['simulation']) and tabulated_undulator['undulatorType'] == 'u_t' and 'length' in und_length:
+        if _uses_tabulated_zipfile(data) and 'length' in und_length:
             data['models']['undulator']['length'] = und_length['length']
         del tabulated_undulator['length']
 
@@ -863,7 +863,7 @@ def _beamline_element(template, item, fields, propagation, shift='', is_crystal=
 def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
     if ebeam_position['driftCalculationMethod'] == 'auto':
         """Calculate drift for ideal undulator."""
-        if source_type == 'u' or (source_type == 't' and undulator_type == 'u_i'):
+        if _is_idealized_undulator(source_type, undulator_type):
             # initial drift = 1/2 undulator length + 2 periods
             return -0.5 * float(undulator_length) - 2 * float(undulator_period)
         return 0
@@ -1272,10 +1272,9 @@ def _generate_item(res, item):
 def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
-    magnetic_field = _process_intensity_reports(
-        data['models']['simulation']['sourceType'],
-        data['models']['tabulatedUndulator']['undulatorType']
-    )['magneticField']
+    source_type = data['models']['simulation']['sourceType']
+    undulator_type = data['models']['tabulatedUndulator']['undulatorType']
+    magnetic_field = _process_intensity_reports(source_type, undulator_type)['magneticField']
     data['models']['intensityReport']['magneticField'] = magnetic_field
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
 
@@ -1285,6 +1284,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
+        if _is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
+            data['models']['fluxReport']['magneticField'] = 1
     elif template_common.is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
@@ -1294,7 +1295,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             data['models']['simulation'][k] = data['models']['sourceIntensityReport'][k]
 
     if _is_tabulated_undulator_source(data['models']['simulation']):
-        undulator_type = data['models']['tabulatedUndulator']['undulatorType']
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
 
@@ -1552,8 +1552,16 @@ def _is_gaussian_source(sim):
     return sim['sourceType'] == 'g'
 
 
+def _is_idealized_undulator(source_type, undulator_type):
+    return source_type == 'u' or (source_type == 't' and undulator_type == 'u_i')
+
+
 def _is_tabulated_undulator_source(sim):
     return sim['sourceType'] == 't'
+
+
+def _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type):
+    return source_type == 't' and undulator_type == 'u_t'
 
 
 def _is_undulator_source(sim):
@@ -1674,7 +1682,7 @@ def _process_image(data):
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     return pkcollections.Dict({
-        'magneticField': 2 if source_type == 't' and undulator_type == 'u_t' else 1,
+        'magneticField': 2 if _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
 
 
@@ -1787,7 +1795,7 @@ def _unique_name(items, field, template):
             return id
 
 def _uses_tabulated_zipfile(data):
-    return _is_tabulated_undulator_source(data['models']['simulation']) and data['models']['tabulatedUndulator']['undulatorType'] == 'u_t'
+    return _is_tabulated_undulator_with_magnetic_file(data['models']['simulation']['sourceType'], data['models']['tabulatedUndulator']['undulatorType'])
 
 
 def _user_model_map(model_list, field):
