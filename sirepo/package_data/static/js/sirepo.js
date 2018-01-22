@@ -31,6 +31,7 @@ angular.element(document).ready(function() {
 
 SIREPO.appLocalRoutes = {
     simulations: '/simulations',
+    simulationsFolder: '/simulations/:folderPath?',
     source: '/source/:simulationId',
     loggedOut: '/logged-out',
     notFound: '/not-found',
@@ -39,11 +40,10 @@ SIREPO.appLocalRoutes = {
 
 SIREPO.appDefaultSimulationValues = {
     simulation: {},
-    simulationFolder: {},
+    simFolder: {},
 };
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
-
 
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
@@ -67,7 +67,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'underscore']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'ngCookies']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -84,6 +84,10 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
     $routeProvider
         .when(localRoutes.simulations, {
+            controller: 'SimulationsController as simulations',
+            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
+        })
+        .when(localRoutes.simulationsFolder, {
             controller: 'SimulationsController as simulations',
             templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
         })
@@ -121,7 +125,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, $document, $rootScope, $interval, _) {
+SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, fileManager, $document, $rootScope, $interval) {
     var self = {
         models: {},
     };
@@ -130,7 +134,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     var lastAutoSaveData = null;
     var autoSaveTimer = null;
     var savedModelValues = {};
-    var activeFolderPath = null;
 
     function broadcastClear() {
         $rootScope.$broadcast('clearCache');
@@ -156,18 +159,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         self.models.simulationStatus = {};
         savedModelValues = self.cloneModel();
         lastAutoSaveData = self.clone(data);
-        updateReports();
+        self.updateReports();
         broadcastLoaded();
         self.resetAutoSaveTimer();
-    }
-
-    function updateReports() {
-        broadcastClear();
-        for (var key in self.models) {
-            if (self.isReportModelName(key)) {
-                broadcastChanged(key);
-            }
-        }
     }
 
     self.applicationState = function() {
@@ -245,6 +239,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             }
         );
     };
+
     self.cancelChanges = function(name) {
         // cancel changes on a model by name, or by an array of names
         if (typeof(name) == 'string') {
@@ -267,6 +262,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         if (autoSaveTimer) {
             $interval.cancel(autoSaveTimer);
         }
+        $rootScope.$broadcast('modelsUnloaded');
     };
 
     self.clone = function(obj) {
@@ -320,15 +316,14 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     self.deleteSimulation = function(simulationId, op) {
         requestSender.sendRequest(
             'deleteSimulation',
-            op,
+            function() {
+              op();
+              fileManager.removeSimFromTree(simulationId);
+            },
             {
                 simulationId: simulationId,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
-    };
-
-    self.getActiveFolderPath = function() {
-        return activeFolderPath;
     };
 
     self.isAnimationModelName = function(name) {
@@ -476,16 +471,12 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
         self.autoSave(function() {
             if (requireReportUpdate) {
-                updateReports();
+                self.updateReports();
             }
             if (callback) {
                 callback();
             }
         });
-    };
-
-    self.setActiveFolderPath = function(path) {
-        activeFolderPath = path;
     };
 
     self.setModelDefaults = function(model, modelName) {
@@ -521,8 +512,17 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
     };
 
+    self.updateReports = function() {
+        broadcastClear();
+        for (var key in self.models) {
+            if (self.isReportModelName(key)) {
+                broadcastChanged(key);
+            }
+        }
+    };
+
     self.viewInfo = function(name) {
-        return SIREPO.APP_SCHEMA.view[name];
+        return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.commonViews[name];
     };
 
     self.watchModelFields = function($scope, modelFields, callback) {
@@ -531,7 +531,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             // elegant uses '-' in modelKey
             f = propertyToIndexForm(f);
             $scope.$watch('appState.models' + f, function (newValue, oldValue) {
-                if (self.isLoaded() && newValue != null && newValue != oldValue) {
+                if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1);
                 }
@@ -548,6 +548,109 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         $scope.$on('modelsLoaded', wrappedCallback);
         if (self.isLoaded()) {
             wrappedCallback();
+        }
+    };
+
+    return self;
+});
+
+SIREPO.app.factory('appDataService', function() {
+    var self = {};
+
+    self.applicationMode = 'default';
+    self.isApplicationMode = function(name) {
+        return name == self.getApplicationMode();
+    };
+
+    // override these methods in app's service
+    self.getApplicationMode = function() {
+        return self.applicationMode;
+    };
+    self.appDataForReset = function() {
+        return null;
+    };
+    self.canCopy = function() {
+        return true;
+    };
+    return self;
+});
+
+SIREPO.app.factory('notificationService', function($cookies, $sce) {
+
+    var recurrentNotificationTimeout = 1*24*60*60*1000;
+    var nonrecurrentNotificationTimeout = 5*365*24*60*60*1000;
+    var firstVisitCookie = 'net.sirepo.first_visit';
+    var self = {};
+
+    self.notifications = {};
+
+    var now = new Date();
+    if(! $cookies.get(firstVisitCookie)) {
+        $cookies.put(firstVisitCookie, now.getTime(), {expires: new Date(now.getTime() + nonrecurrentNotificationTimeout)});
+    }
+
+    self.addNotification = function(notification) {
+        if(! notification.name || ! notification.content) {
+            return;
+        }
+        if(notification.recurs && ! notification.timeout) {
+            notification.timeout = recurrentNotificationTimeout;
+        }
+        if(! notification.recurs && ! notification.timeout) {
+            notification.timeout = nonrecurrentNotificationTimeout;
+        }
+        self.notifications[notification.name] = notification;
+    };
+
+    self.getNotification = function(name) {
+        return self.notifications[name];
+    };
+
+    self.removeNotification = function(notification) {
+        $cookies.remove(notification.name);
+        delete self.notifications[notification.name];
+    };
+
+    self.shouldPresent = function(name) {
+        var now = new Date();
+        var notification = self.notifications[name];
+        if(! notification) {
+            return false;
+        }
+        if(! notification.active) {
+            return false;
+        }
+
+        var c = $cookies.get(name);
+        var v = parseInt($cookies.get(firstVisitCookie));
+        if(! c || c === undefined) {
+            return now.getTime() > v + (notification.delay || 0);
+        }
+
+        return false;
+    };
+
+    self.getContent = function(name) {
+        if(! name || ! self.getNotification(name)) {
+            return '';
+        }
+        return $sce.trustAsHtml(self.getNotification(name).content);
+    };
+
+    self.sleepNotification = function(notification) {
+        var now = new Date();
+        $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
+    };
+
+    self.dismiss = function(name) {
+        if(name) {
+            self.dismissNotification(self.getNotification(name));
+        }
+    };
+
+    self.dismissNotification = function(notification) {
+        if(notification) {
+            self.sleepNotification(notification);
         }
     };
 
@@ -676,10 +779,16 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
     };
 
+    $rootScope.$on('modelsUnloaded', function() {
+        masterFrameCount = 0;
+        frameCountByModelKey = {};
+        self.animationInfo = {};
+    });
+
     return self;
 });
 
-SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -770,11 +879,13 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     }
 
     function showValue(selector, isShown) {
-        if (isShown) {
-            selector.show();
-        }
-        else {
-            selector.hide();
+        if(selector) {
+            if (isShown) {
+                selector.show();
+            }
+            else {
+                selector.hide();
+            }
         }
     }
 
@@ -849,6 +960,21 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.modalId = function(name) {
+        return 'sr-' + name + '-editor';
+    };
+
+    self.pythonSource = function(simulationId, modelName) {
+        var args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        $window.open(requestSender.formatUrl('pythonSource', args), '_blank');
+    };
+
     self.requestData = function(name, callback, forceRun) {
         if (! appState.isLoaded()) {
             return;
@@ -878,8 +1004,15 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
         setPanelValue(name, 'error', error);
     };
 
+    self.showEnum = function(model, field, optionIndex, isShown) {
+        var opt = $(fieldClass(model, field)).find('option')[optionIndex];
+        showValue($(opt), isShown);
+    };
+
     self.showField = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        // try show/hide immediately, followed by timeout if UI hasn't finished layout yet
+        showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         });
@@ -887,6 +1020,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
 
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
+        showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         });
@@ -897,8 +1031,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
-        var editorId = '#sr-' + modelKey + '-editor';
-
+        var editorId = '#' + self.modalId(modelKey);
         if ($(editorId).length) {
             $(editorId).modal('show');
         }
@@ -945,7 +1078,7 @@ SIREPO.app.factory('panelState', function(appState, simulationQueue, $compile, $
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, _) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, utilities) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -978,6 +1111,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             throw routeName + ': routeName not found';
         }
         var url = map[routeName];
+
         if (params) {
             for (var k in params) {
                 if (url.indexOf(k) < 0) {
@@ -1128,17 +1262,17 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 msg = 'the server is unavailable';
                 status = 503;
             }
-            if (_.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+            if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 var m = HTML_TITLE_RE.exec(data);
                 if (m) {
                     srlog(m[1], ': error response from server');
                     data = {error: m[1]};
                 }
             }
-            if (_.isEmpty(data)) {
+            if ($.isEmptyObject(data)) {
                 data = {};
             }
-            else if (! _.isObject(data)) {
+            else if (! angular.isObject(data)) {
                 errorService.logToServer(
                     'serverResponseError', data, 'unexpected response type or empty');
                 data = {};
@@ -1162,7 +1296,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             function(response) {
                 var data = response.data;
                 $interval.cancel(interval);
-                if (_.isObject(data)) {
+                if (angular.isObject(data)) {
                     successCallback(data, response.status);
                 }
                 else {
@@ -1260,8 +1394,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             if (qi.qState == 'removing') {
                 return;
             }
-            resp.isStateProcessing = resp.state == 'running' || resp.state == 'pending';
-            if (! resp.isStateProcessing) {
+            if (! (resp.state == 'running' || resp.state == 'pending')) {
                 handleResult(qi, resp);
                 return;
             }
@@ -1293,20 +1426,22 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
-    self.cancelItem = function (qi) {
+    // TODO(mvk): handle possible queue state conflicts
+    self.cancelItem = function (qi, successCallback, errorCallback) {
         if (! qi) {
-            return;
+            return false;
         }
         qi.qMode = 'transient';
         var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
         if (qi.qState == 'processing') {
-            requestSender.sendRequest('runCancel', null, qi.request);
+            requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
             qi.qState = 'canceled';
         }
         self.removeItem(qi);
         if (isProcessingTransient) {
             runFirstTransientItem();
         }
+        return true;
     };
 
     self.removeItem = function(qi) {
@@ -1392,66 +1527,54 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     return self;
 });
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, panelState, frameCache) {
+
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, frameCache) {
     var self = {};
-    self.initProperties = function(controller, $scope, animationArgs) {
-        controller.frameId = '-1';
-        controller.frameCount = 1;
-        controller.isReadyForModelChanges = false;
-        controller.simulationQueueItem = null;
-        controller.dots = '.';
-        controller.timeData = {
-            elapsedDays: null,
-            elapsedTime: null,
+
+    self.initSimulationState = function($scope, model, handleStatusCallback, animationArgs) {
+        var state = {
+            dots: '.',
+            isReadyForModelChanges: false,
+            model: model,
+            percentComplete: 0,
+            simulationQueueItem: null,
+            timeData: {
+                elapsedDays: null,
+                elapsedTime: null,
+            },
         };
-        controller.panelState = panelState;
-        controller.percentComplete = 0;
+
+        function clearSimulation() {
+            simulationQueue.removeItem(state.simulationQueueItem);
+            state.simulationQueueItem = null;
+        }
 
         function handleStatus(data) {
             setSimulationStatus(data);
             if (data.elapsedTime) {
-                controller.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                controller.timeData.elapsedTime = new Date(1970, 0, 1);
-                controller.timeData.elapsedTime.setSeconds(data.elapsedTime);
+                state.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
+                state.timeData.elapsedTime = new Date(1970, 0, 1);
+                state.timeData.elapsedTime.setSeconds(data.elapsedTime);
             }
             if (data.percentComplete) {
-                controller.percentComplete = data.percentComplete;
+                state.percentComplete = data.percentComplete;
             }
-            if (data.isStateProcessing) {
-                controller.dots += '.';
-                if (controller.dots.length > 3) {
-                    controller.dots = '.';
+            if (state.isProcessing()) {
+                state.dots += '.';
+                if (state.dots.length > 3) {
+                    state.dots = '.';
                 }
             }
             else {
-                controller.simulationQueueItem = null;
+                state.simulationQueueItem = null;
             }
-            controller.handleStatus(data);
-        }
-
-        function isState(state) {
-            if (! appState.isLoaded()) {
-                return false;
-            }
-            for (var i = 1; i < arguments.length; i++) {
-                if (state == arguments[i]) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function persistentSimulationInit($scope) {
-            setSimulationStatus({state: 'stopped'});
-            frameCache.setFrameCount(0);
-            $scope.$on('$destroy', controller.clearSimulation);
-            appState.whenModelsLoaded($scope, runStatus);
+            handleStatusCallback(data);
         }
 
         function runStatus() {
-            controller.isReadyForModelChanges = true;
-            controller.simulationQueueItem = simulationQueue.addPersistentStatusItem(
-                controller.model,
+            state.isReadyForModelChanges = true;
+            state.simulationQueueItem = simulationQueue.addPersistentStatusItem(
+                state.model,
                 appState.models,
                 handleStatus
             );
@@ -1461,102 +1584,119 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, p
             if (!appState.models.simulationStatus) {
                 appState.models.simulationStatus = {};
             }
-            data.report = controller.model;
-            appState.models.simulationStatus[controller.model] = data;
+            data.report = state.model;
+            appState.models.simulationStatus[state.model] = data;
             if (appState.isLoaded()) {
                 // simulationStatus is not saved to server from client
                 appState.saveQuietly('simulationStatus');
             }
         }
 
-        controller.cancelSimulation = function() {
+        function simulationStatus() {
+            if (appState.models.simulationStatus && appState.models.simulationStatus[state.model]) {
+                return appState.models.simulationStatus[state.model];
+            }
+            return {state: 'pending'};
+        }
+
+        state.cancelSimulation = function(callback) {
             setSimulationStatus({state: 'canceled'});
-            simulationQueue.cancelItem(controller.simulationQueueItem);
-            controller.simulationQueueItem = null;
+            var queueHadItem = simulationQueue.cancelItem(state.simulationQueueItem, callback, callback);
+            state.simulationQueueItem = null;
+            if (! queueHadItem && callback) {
+                callback();
+            }
         };
 
-        controller.clearSimulation = function() {
-            simulationQueue.removeItem(controller.simulationQueueItem);
-            controller.simulationQueueItem = null;
+        state.getError = function() {
+            return simulationStatus().error;
         };
 
-        controller.displayPercentComplete = function() {
-            if (controller.isInitializing() || controller.isStatePending()) {
+        state.getFrameCount = function() {
+            return frameCache.getFrameCount();
+        };
+
+        state.getPercentComplete = function() {
+            if (state.isInitializing() || state.isStatePending()) {
                 return 100;
             }
-            return controller.percentComplete;
+            return state.percentComplete;
         };
 
-        controller.hasTimeData = function () {
-            return controller.timeData && controller.timeData.elapsedTime !== null;
+        state.hasTimeData = function () {
+            return state.timeData && state.timeData.elapsedTime;
         };
 
-        controller.isInitializing = function() {
-            if (controller.isStateProcessing() && ! controller.isStatePending()) {
+        state.isInitializing = function() {
+            if (state.isStateRunning()) {
                 return frameCache.getFrameCount() < 1;
             }
             return false;
         };
 
-        controller.isStatePending = function() {
-            return controller.simulationStatus().state == 'pending';
+        state.isProcessing = function() {
+            return state.isStatePending() || state.isStateRunning();
         };
 
-        controller.isStateProcessing = function() {
-            return controller.simulationStatus().isStateProcessing;
+        state.isStateError = function() {
+            return simulationStatus().state == 'error';
         };
 
-        controller.isStateRunning = function() {
-            return controller.simulationStatus().state == 'running';
+        state.isStatePending = function() {
+            return simulationStatus().state == 'pending';
         };
 
-        controller.isStateStopped = function() {
-            return ! controller.isStateProcessing();
+        state.isStateRunning = function() {
+            return simulationStatus().state == 'running';
         };
 
-        controller.runSimulation = function() {
-            if (controller.isStateProcessing()) {
-                //TODO(robnagler) this shouldn't happen? (double click?)
+        state.isStopped = function() {
+            return ! state.isProcessing();
+        };
+
+        state.runSimulation = function() {
+            if (state.isStateRunning()) {
                 return;
             }
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
-            controller.timeData.elapsedTime = null;
-            controller.timeData.elapsedDays = null;
+            state.timeData.elapsedTime = null;
+            state.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
-            controller.simulationQueueItem = simulationQueue.addPersistentItem(
-                controller.model,
-                appState.models,
+            state.simulationQueueItem = simulationQueue.addPersistentItem(
+                state.model,
+                appState.applicationState(),
                 handleStatus
             );
         };
 
-        controller.simulationState = function() {
-            return controller.simulationStatus().state;
-        };
-
-        controller.simulationStatus = function() {
-            if (appState.models.simulationStatus && appState.models.simulationStatus[controller.model]) {
-                return appState.models.simulationStatus[controller.model];
+        state.saveAndRunSimulation = function(models) {
+            if (state.isProcessing()) {
+                return;
             }
-            return {state: 'pending'};
+            simulationStatus().state = 'pending';
+            appState.saveChanges(models, state.runSimulation);
         };
 
-        controller.stateAsText = function() {
-            var s = controller.simulationState();
-            var msg;
-            msg = s.charAt(0).toUpperCase() + s.slice(1);
-            if (s == 'error') {
-                var e = controller.simulationStatus().error;
+        state.stateAsText = function() {
+            if (state.isStateError()) {
+                var e = state.getError();
                 if (e) {
-                    msg += ': ' + e.split(/[\n\r]+/)[0];
+                    return 'Error: ' + e.split(/[\n\r]+/)[0];
                 }
             }
-            return msg;
+            // ucfirst on the state value
+            var s = simulationStatus().state;
+            return s.charAt(0).toUpperCase() + s.slice(1);
         };
 
         frameCache.setAnimationArgs(animationArgs);
-        persistentSimulationInit($scope);
+        setSimulationStatus({state: 'stopped'});
+        frameCache.setFrameCount(0);
+        $scope.$on('$destroy', clearSimulation);
+        appState.whenModelsLoaded($scope, runStatus);
+
+        return state;
     };
     return self;
 });
@@ -1642,7 +1782,212 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, requestSender, $window) {
+SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location) {
+    var COMPOUND_PATH_SEPARATOR = ':';
+    var self = {};
+
+    var activeFolderPath = null;
+
+    var activeFolder = null;
+    self.fileTree = [
+        {
+            name: '/',
+            isFolder: true,
+            children: [],
+        },
+    ];
+    var flatTree = [];
+    var simList = [];
+    var fList = [];
+
+    function compoundPathToPath(compoundPath) {
+        var p = compoundPath.replace(new RegExp(COMPOUND_PATH_SEPARATOR, 'g'), '\/');
+        return p === '' ? '/' : p;
+    }
+
+    function pathToCompoundPath(path) {
+        return path.replace(/^\//,'').replace(/\//g, COMPOUND_PATH_SEPARATOR);
+    }
+
+
+    self.decodePath = function(path) {
+        return compoundPathToPath(decodeURIComponent(path));
+    };
+
+    self.rootFolder = function() {
+        return self.fileTree[0];
+    };
+
+    self.getActiveFolderPath = function() {
+        return activeFolderPath;
+    };
+
+    self.setActiveFolderPath = function(path) {
+        activeFolderPath = path;
+    };
+
+    self.getActiveFolder = function() {
+        return activeFolder;
+    };
+
+    self.setActiveFolder = function(item) {
+        activeFolder = item;
+    };
+
+    function findSimInTree(simId) {
+        var sim = flatTree.filter(function (item) {
+            return item.simulationId === simId;
+        });
+        if(sim && sim.length > 0) {
+            return sim[0];
+        }
+        return null;
+    }
+    self.updateTreeFromFileList = function(data) {
+        for(var i = 0; i < data.length; i++) {
+            if(! findSimInTree(data[i].simulationId)) {
+                var item = self.addToTree(data[i]);
+            }
+        }
+        var listItemIds = data.map(function(item) {
+            return item.simulationId;
+        });
+        var orphanItemIds = simList.filter(function(item) {
+            return ! listItemIds.includes(item);
+        });
+        for(var j = 0; j < orphanItemIds.length; ++j) {
+            self.removeFromTree(findSimInTree(orphanItemIds[j]));
+        }
+    };
+    self.addToTree = function(item) {
+        var newItem;
+        if(item.isFolder) {
+            var parent = item.parent ? item.parent : self.rootFolder();
+            parent.children.push(item);
+            newItem = item;
+        }
+        else {
+            var path = item.folder == '/'
+                ? []
+                : item.folder.slice(1).split('/');
+            var currentFolder = self.rootFolder();
+
+            while (path.length) {
+                var search = path.shift();
+                var folder = null;
+                for (var i = 0; i < currentFolder.children.length; i++) {
+                    if (search == currentFolder.children[i].name && currentFolder.children[i].isFolder) {
+                        folder = currentFolder.children[i];
+                        break;
+                    }
+                }
+                if (folder) {
+                    if (item.last_modified > folder.lastModified) {
+                        folder.lastModified = item.last_modified;
+                    }
+                }
+                else {
+                    folder = {
+                        name: search,
+                        parent: currentFolder,
+                        isFolder: true,
+                        children: [],
+                        lastModified: item.last_modified,
+                    };
+                    currentFolder.children.push(folder);
+                }
+                currentFolder = folder;
+            }
+
+            newItem = {
+                parent: currentFolder,
+                name: item.name,
+                simulationId: item.simulationId,
+                lastModified: item.last_modified,
+            };
+            currentFolder.children.push(newItem);
+        }
+        self.updateFlatTree();
+        return newItem;
+    };
+    self.folderList = function(excludeFolder) {
+        return fList.filter(function (f) {
+           return f != excludeFolder;
+        });
+    };
+
+    self.getFileTree = function () {
+        return self.fileTree;
+    };
+
+    self.getSimList = function () {
+        return simList;
+    };
+    function getSimListFromTree() {
+        return flatTree.filter(function(item) {
+            return ! item.isFolder;
+        }).map(function(item) {
+            return item.simulationId;
+        });
+    }
+    function getFolderListFromTree() {
+        return flatTree.filter(function(item) {
+           return item.isFolder;
+        });
+    }
+
+    self.flattenTree = function(tree) {
+        var items = [];
+        if(! tree) {
+            tree = self.fileTree;
+            items.push(self.rootFolder());
+        }
+        for(var i = 0; i < tree.length; ++i) {
+            var treeFolders = tree[i].children.filter(function(item) {
+                return item.isFolder;
+            });
+            items = items.concat(tree[i].children);
+            items = items.concat(self.flattenTree(treeFolders));
+        }
+        return items;
+    };
+    self.updateFlatTree = function() {
+        flatTree = self.flattenTree();
+        simList = getSimListFromTree();
+        fList = getFolderListFromTree();
+    };
+
+    self.removeSimFromTree = function(simId) {
+        self.removeFromTree(findSimInTree(simId));
+    };
+    self.removeFromTree = function(item) {
+        if(item) {
+            var parent = item.parent;
+            parent.children.splice(parent.children.indexOf(item), 1);
+            self.updateFlatTree();
+        }
+    };
+
+    self.redirectToPath = function(path) {
+        var compoundPath = pathToCompoundPath(path);
+        if (compoundPath === '') {
+            requestSender.localRedirect('simulations');
+        }
+        else {
+            requestSender.localRedirect(
+                'simulationsFolder',
+                {
+                    ':folderPath?': compoundPath,
+                }
+            );
+        }
+    };
+
+    return self;
+});
+
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+
     var self = this;
 
     function openSection(name) {
@@ -1650,6 +1995,11 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
     }
 
     function sectionParams(name) {
+        if (name === 'simulationsFolder') {
+            return {
+                ':folderPath?': ''
+            };
+        }
         if (requestSender.isRouteParameter(name, ':simulationId') && appState.isLoaded()) {
             return {
                 ':simulationId': appState.models.simulation.simulationId,
@@ -1664,8 +2014,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
 
     self.openSection = function(name) {
         if (name == 'simulations' && appState.isLoaded()) {
+            var path = appState.models.simulation.folder;
             appState.autoSave(function() {
-                openSection(name);
+                // return to the simulation's folder
+                fileManager.redirectToPath(path);
             });
         }
         else {
@@ -1715,6 +2067,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, reques
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+
+    $scope.$on('$locationChangeStart', function (event) {
+        SIREPO.setPageLoaderVisible(true);
+    });
+    $scope.$on('$viewContentLoaded', function (event) {
+        SIREPO.setPageLoaderVisible(false);
+    });
+
+
 });
 
 SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
@@ -1758,10 +2119,29 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, panelState, requestSender, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, $location, $scope, $window, $cookies) {
     var self = this;
+    var simListViewCookie = 'net.sirepo.sim_list_view';
+    var cookiePrefTimeout = 5*365*24*60*60*1000;
+
+    var getStartedNotifyCookie = 'net.sirepo.get_started_notify';
+    var getStartedNotifyContent = [
+        '<div class="text-center"><strong>Welcome to Sirepo - ',
+        SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+        '!</strong></div>',
+        'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
+    ].join('');
+
+    notificationService.addNotification({
+        name: getStartedNotifyCookie,
+        content: getStartedNotifyContent,
+        active: true,
+        recurs: false,
+    });
+
+    self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
-    self.activeFolder = null;
+    self.activeFolder = fileManager.getActiveFolder();
     self.activeFolderPath = [];
     self.listColumns = [
         {
@@ -1772,107 +2152,25 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
             field: 'lastModified',
             heading: 'Last Modified',
         }];
-    //TODO(pjm): store view state in db preference or client cookie
-    self.isIconView = true;
-    self.fileTree = [];
     self.selectedItem = null;
     self.sortField = 'name';
-
-    function addToTree(item) {
-        var path = item.folder == '/'
-            ? []
-            : item.folder.slice(1).split('/');
-        var currentFolder = rootFolder();
-
-        while (path.length) {
-            var search = path.shift();
-            var folder = null;
-            for (var i = 0; i < currentFolder.children.length; i++) {
-                if (search == currentFolder.children[i].name && currentFolder.children[i].isFolder) {
-                    folder = currentFolder.children[i];
-                    break;
-                }
-            }
-            if (folder) {
-                if (item.last_modified > folder.lastModified) {
-                    folder.lastModified = item.last_modified;
-                }
-            }
-            else {
-                folder = {
-                    name: search,
-                    parent: currentFolder,
-                    isFolder: true,
-                    children: [],
-                    lastModified: item.last_modified,
-                };
-                currentFolder.children.push(folder);
-            }
-            currentFolder = folder;
-        }
-        var newItem = {
-            parent: currentFolder,
-            name: item.name,
-            simulationId: item.simulationId,
-            lastModified: item.last_modified,
-        };
-        currentFolder.children.push(newItem);
-        return newItem;
-    }
 
     function clearModels() {
         appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
     }
 
-    function folderList(excludeFolder, res, searchFolder) {
-        if (! res) {
-            searchFolder = rootFolder();
-            res = [searchFolder];
-        }
-        for (var i = 0; i < searchFolder.children.length; i++) {
-            var child = searchFolder.children[i];
-            if (child.isFolder && child != excludeFolder) {
-                res.push(child);
-                folderList(excludeFolder, res, child);
-            }
-        }
-        return res;
-    }
-
     function loadList() {
-        var showItem = null;
-        var activeFolder = appState.getActiveFolderPath();
+        self.isWaitingForList = ! fileManager.getSimList().length;
         appState.listSimulations(
             $location.search(),
             function(data) {
+                self.isWaitingForList = false;
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
-                self.fileTree = [
-                    {
-                        name: '/',
-                        isFolder: true,
-                        children: [],
-                    },
-                ];
-                for (var i = 0; i < data.length; i++) {
-                    var item = addToTree(data[i]);
-                    if (activeFolder && data[i].folder == activeFolder) {
-                        showItem = item;
-                    }
-                }
-                if (showItem) {
-                    self.openItem(showItem.parent);
-                }
-                else {
-                    self.openItem(rootFolder());
-                }
+                fileManager.updateTreeFromFileList(data);
+                checkURLForFolder();
             });
-    }
-
-    function removeItemFromFolder(item) {
-        var parent = item.parent;
-        parent.children.splice(parent.children.indexOf(item), 1);
     }
 
     function renameSelectedItem() {
@@ -1887,17 +2185,23 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     }
 
     function rootFolder() {
-        return self.fileTree[0];
+        return fileManager.rootFolder();
     }
 
     function setActiveFolder(item) {
+        var prevPath = self.pathName(self.activeFolder || item);
         self.activeFolder = item;
         self.activeFolderPath = [];
         while (item) {
             self.activeFolderPath.unshift(item);
             item = item.parent;
         }
-        appState.setActiveFolderPath(self.pathName(self.activeFolder));
+        fileManager.setActiveFolderPath(self.pathName(self.activeFolder));
+        fileManager.setActiveFolder(self.activeFolder);
+        if (prevPath === self.pathName(self.activeFolder)) {
+            return;
+        }
+        fileManager.redirectToPath(self.pathName(self.activeFolder));
     }
 
     function updateSelectedFolder(oldPath) {
@@ -1957,7 +2261,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
 
     self.deleteItem = function(item) {
         if (item.isFolder) {
-            removeItemFromFolder(item);
+            fileManager.removeFromTree(item);
         }
         else {
             self.selectedItem = item;
@@ -1969,7 +2273,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         appState.deleteSimulation(
             self.selectedItem.simulationId,
             function() {
-                removeItemFromFolder(self.selectedItem);
+                fileManager.removeFromTree(self.selectedItem);
                 self.selectedItem = null;
             });
     };
@@ -1989,7 +2293,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     self.moveItem = function(item) {
         self.selectedItem = item;
         self.targetFolder = item.parent;
-        self.moveFolderList = folderList(item);
+        self.moveFolderList = fileManager.folderList(item);
         $('#sr-move-confirmation').modal('show');
     };
 
@@ -2041,10 +2345,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
     };
 
     self.pythonSource = function(item) {
-        $window.open(requestSender.formatUrl('pythonSource', {
-            '<simulation_id>': item.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType
-        }), '_blank');
+        panelState.pythonSource(item.simulationId);
     };
 
     self.exportArchive = function(item, extension) {
@@ -2091,6 +2392,7 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
+        $cookies.put(simListViewCookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookiePrefTimeout)});
     };
 
     self.toggleFolder = function(item) {
@@ -2112,26 +2414,96 @@ SIREPO.app.controller('SimulationsController', function (appState, panelState, r
         }
     };
 
+    initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
         appState.models.simulation.folder = self.pathName(self.activeFolder);
         appState.newSimulation(
             appState.models.simulation,
             function(data) {
+                fileManager.addToTree(data.models.simulation);
                 self.openItem(data.models.simulation);
             });
     });
-    $scope.$on('simulationFolder.changed', function() {
-        var name = appState.models.simulationFolder.name;
+    $scope.$on('simFolder.changed', function() {
+        var name = appState.models.simFolder.name;
         name = name.replace(/[\/]/g, '');
-        self.activeFolder.children.push({
+        fileManager.addToTree({
             name: name,
             parent: self.activeFolder,
             isFolder: true,
             children: [],
         });
-        appState.models.simulationFolder.name = '';
-        appState.saveQuietly('simulationFolder');
+        appState.models.simFolder.name = '';
+        appState.saveQuietly('simFolder');
     });
     loadList();
+
+    var scopeOK = true;
+    // invoked in loadList() callback
+    function checkURLForFolder() {
+
+        if (! scopeOK ) {
+            return;
+        }
+        if (! fileManager.getActiveFolder() ) {
+            self.openItem(rootFolder());
+        }
+        else {
+            if ($location.path().indexOf('/simulations') < 0) {
+                return;
+            }
+            var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
+            if (canonicalPath === fileManager.getActiveFolderPath()) {
+                return;
+            }
+            var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
+            if (newFolder) {
+                fileManager.setActiveFolderPath(canonicalPath);
+                fileManager.setActiveFolder(newFolder);
+                self.openItem(newFolder);
+            }
+            else {
+                requestSender.localRedirect('notFound');
+            }
+        }
+    }
+    function folderForPathInList (folderPath, folderList) {
+        for (var i = 0; i < folderList.length; ++i) {
+            var item = folderList[i];
+            if (! item.isFolder) {
+                continue;
+            }
+            var lPath = self.pathName(item);
+            if (lPath === folderPath) {
+                return item;
+            }
+            var childFolder = folderForPathInList(folderPath, item.children);
+            if (childFolder) {
+                return childFolder;
+            }
+        }
+        return null;
+    }
+    $scope.$on('$destroy', function() {
+        scopeOK = false;
+    });
+
+    function initCookiePrefs() {
+        self.isIconView = initCookiePref(simListViewCookie, 'true') === 'true';
+    }
+    function initCookiePref(name, defaultValue) {
+        var c = $cookies.get(name);
+        return !c || c === 'undefined' ? defaultValue : c;
+    }
+});
+
+SIREPO.app.filter('simulationName', function() {
+    return function(name) {
+        if (name) {
+            // clean up name so it formats well in HTML
+            name = name.replace(/\_/g, ' ');
+        }
+        return name;
+    };
 });

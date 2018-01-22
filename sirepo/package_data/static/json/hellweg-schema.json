@@ -127,7 +127,8 @@
         "beamAnimation": {
             "reportType": ["Report", "BeamReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "beamHistogramAnimation": {
             "reportType": ["Report", "BeamHistogramReportType"],
@@ -140,7 +141,8 @@
         },
         "beamReport": {
             "reportType": ["Report", "BeamReportType"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "cellElement": {
             "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
@@ -197,12 +199,7 @@
             "particleEnd": ["Particle End", "Integer", 1000],
             "format": ["File Format", "SaveFileFormat", "PID"]
         },
-        "simulation": {
-            "name": ["Name", "String"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
-        },
+        "simulation": {},
         "simulationSettings": {
             "allowBackwardWaves": ["Allow Backward Travelling Waves", "Boolean", "0"],
             "meshPoints": ["Number of Mesh Points", "Integer", 20],
@@ -227,10 +224,10 @@
         "twissDistribution": {
             "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float"],
             "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float"],
-            "horizontalAlpha": ["Horizontal Alpha [cm/rad]", "Float"],
+            "horizontalAlpha": ["Horizontal Alpha", "Float"],
             "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float"],
             "verticalBeta": ["Vertical Beta [cm/rad]", "Float"],
-            "verticalAlpha": ["Vertical Alpha [cm/rad]", "Float"]
+            "verticalAlpha": ["Vertical Alpha", "Float"]
         }
     },
     "view": {
@@ -300,7 +297,8 @@
             "advanced": [
                 "reportType",
                 "histogramBins",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "beamHistogramAnimation": {
@@ -321,7 +319,8 @@
             "title": "Beam Report",
             "advanced": [
                 "reportType",
-                "histogramBins"
+                "histogramBins",
+                "colorMap"
             ]
         },
         "cellElement": {
@@ -387,12 +386,6 @@
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]

@@ -18,61 +18,146 @@ from sirepo.template import template_common
 import h5py
 import numpy as np
 import os.path
+import py.path
 import re
 
+COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
-
 WANT_BROWSER_FRAME_CACHE = True
 
+_COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
-
+_DENSITY_FILE = 'density.npy'
+_DEFAULT_PERMITTIVITY = 7.0
+_EGUN_CURRENT_FILE = 'egun-current.npy'
+_EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
-
 _PARTICLE_FILE = 'particles.npy'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir, 'currentAnimation')
-    if len(files) < 2:
+    if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
             'percentComplete': 0,
             'frameCount': 0,
         }
+    if len(files) == 0:
+        return {
+            'percentComplete': 100,
+            'frameCount': 0,
+            'error': 'simulation produced no frames',
+            'state': 'error',
+        }
     file_index = len(files) - 1
-    last_update_time = int(os.path.getmtime(str(files[file_index])))
+    res = {
+        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
+    }
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
+    percent_complete = 0
+    if data.models.simulation.egun_mode == '1':
+        status_file = run_dir.join(_EGUN_STATUS_FILE)
+        if status_file.exists():
+            with open(str(status_file), 'r') as f:
+                m = re.search('([\d\.]+)\s*/\s*(\d+)', f.read())
+            if m:
+                percent_complete = float(m.group(1)) / int(m.group(2))
+        egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
+        if egun_current_file.exists():
+            v = np.load(str(egun_current_file))
+            res['egunCurrentFrameCount'] = len(v)
+    else:
+        percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
 
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
-    return {
-        'lastUpdateTime': last_update_time,
-        'percentComplete': percent_complete * 100,
-        'frameCount': file_index + 1,
-    }
-
-
-def copy_related_files(data, source_path, target_path):
-    pass
+    res['percentComplete'] = percent_complete * 100
+    res['frameCount'] = file_index + 1
+    return res
 
 
 def fixup_old_data(data):
     if 'fieldReport' not in data['models']:
         data['models']['fieldReport'] = {}
+    if 'egun_mode' not in data['models']['simulation']:
+        data['models']['simulation']['egun_mode'] = '0'
+    if 'renderCount' not in data['models']['particleAnimation']:
+        data['models']['particleAnimation']['renderCount'] = '100'
+    # fixup for old, now invalid, default data
+    if data['models']['particleAnimation']['renderCount'] == 150:
+        data['models']['particleAnimation']['renderCount'] = '100'
+    if 'egunCurrentAnimation' not in data['models']:
+        data['models']['egunCurrentAnimation'] = {
+            'framesPerSecond': '2',
+        }
+    if 'impactDensityAnimation' not in data['models']:
+        data['models']['impactDensityAnimation'] = {}
+    for c in data['models']['conductorTypes']:
+        if 'isConductor' not in c:
+            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
+        if 'permittivity' not in c:
+            c['permittivity'] = _DEFAULT_PERMITTIVITY
+    if 'fieldComparisonReport' not in data['models']:
+        grid = data['models']['simulationGrid']
+        data['models']['fieldComparisonReport'] = {
+            'dimension': 'x',
+            'xCell1': int(grid['num_x'] / 3.),
+            'xCell2': int(grid['num_x'] / 2.),
+            'xCell3': int(grid['num_x'] * 2. / 3),
+            'zCell1': int(grid['num_z'] / 2.),
+            'zCell2': int(grid['num_z'] * 2. / 3),
+            'zCell3': int(grid['num_z'] * 4. / 5),
+        }
+
+
+def generate_field_comparison_report(data, run_dir):
+    params = data['models']['fieldComparisonReport']
+    dimension = params['dimension']
+    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
+        values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
+        values = values[:, 0, :]
+    radius = data['models']['simulationGrid']['channel_width'] / 2. * 1e-6
+    x_range = [-radius, radius]
+    z_range = [0, data['models']['simulationGrid']['plate_spacing'] * 1e-6]
+    plots, y_range = _create_plots(dimension, data, values, z_range if dimension == 'x' else x_range)
+    plot_range = x_range if dimension == 'x' else z_range
+    return {
+        'title': 'Comparison of E {}'.format(dimension),
+        'y_label': 'E {} [V/m]'.format(dimension),
+        'x_label': '{} [m]'.format(dimension),
+        'y_range': y_range,
+        'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
+        'plots': plots,
+    }
 
 
 def get_animation_name(data):
     return 'animation'
 
 
+def get_application_data(data):
+    if data['method'] == 'compute_simulation_steps':
+        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
+        if run_dir.exists():
+            res = simulation_db.read_result(run_dir)[0]
+            if res and 'tof_expected' in res:
+                return {
+                    'timeOfFlight': res['tof_expected'],
+                    'steps': res['steps_expected'],
+                    'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
+                }
+        return {}
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
+
+
 def get_data_file(run_dir, model, frame, **kwargs):
-    if model == 'particleAnimation':
-        filename = str(run_dir.join(_PARTICLE_FILE))
+    if model == 'particleAnimation' or model == 'egunCurrentAnimation':
+        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
     #TODO(pjm): consolidate with template/warp.py
@@ -108,7 +193,6 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     if data['modelName'] == 'currentAnimation':
-        args = template_common.parse_animation_args(data, {'': ['startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_current(model_data, data_file)
     if data['modelName'] == 'fieldAnimation':
@@ -116,14 +200,18 @@ def get_simulation_frame(run_dir, data, model_data):
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
     if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(data, {'': ['startTime']})
-        return _extract_particle(run_dir, model_data)
+        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
+        return _extract_particle(run_dir, model_data, int(args.renderCount))
+    if data['modelName'] == 'egunCurrentAnimation':
+        return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
+    if data['modelName'] == 'impactDensityAnimation':
+        return _extract_impact_density(run_dir, model_data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def lib_files(data, source_lib):
     """No lib files"""
-    return template_common.internal_lib_files([], source_lib)
+    return []
 
 
 def models_related_to_report(data):
@@ -134,13 +222,12 @@ def models_related_to_report(data):
     Returns:
         list: Named models, model fields or values (dict, list) that affect report
     """
-    return [
-        'beam', 'simulationGrid', 'conductors',
-    ]
-
-
-def new_simulation(data, new_simulation_data):
-    pass
+    if data['report'] == 'animation':
+        return []
+    res = ['beam', 'simulationGrid', 'conductors', 'conductorTypes']
+    if data['report'] != 'fieldComparisonReport':
+        res.append(data['report'])
+    return res
 
 
 def open_data_file(run_dir, model_name, file_index=None):
@@ -162,16 +249,13 @@ def open_data_file(run_dir, model_name, file_index=None):
     return res
 
 
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
+def prepare_output_file(report_info, data):
+    if data['report'] == 'fieldComparisonReport':
+        run_dir = report_info.run_dir
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
@@ -183,10 +267,6 @@ def remove_last_frame(run_dir):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
-
-
-def resource_files():
-    return []
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -208,12 +288,12 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
-def _add_particle_paths(electrons, x_points, y_points):
+def _add_particle_paths(electrons, x_points, y_points, limit):
     # adds paths for the particleAnimation report
     # culls adjacent path points with similar slope
     count = 0
     cull_count = 0
-    for i in range(len(electrons[1])):
+    for i in range(min(len(electrons[1]), limit)):
         xres = []
         yres = []
         num_points = len(electrons[1][i])
@@ -238,6 +318,44 @@ def _add_particle_paths(electrons, x_points, y_points):
     pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
+def _create_plots(dimension, data, values, x_range):
+    params = data['models']['fieldComparisonReport']
+    y_range = None
+    visited = {}
+    plots = []
+    #TODO(pjm): keep in sync with warpvnd.js cell colors
+    color = ['red', 'green', 'blue']
+    max_index = values.shape[1] if dimension == 'x' else values.shape[0]
+    x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
+    for i in (1, 2, 3):
+        f = '{}Cell{}'.format('z' if dimension == 'x' else 'x', i)
+        index = params[f]
+        if index >= max_index:
+            index = max_index - 1
+        if index in visited:
+            continue
+        visited[index] = True
+        if dimension == 'x':
+            points = values[:, index].tolist()
+        else:
+            points = values[index, :].tolist()
+        if dimension == 'x':
+            pos = u'{:.3f} µm'.format(x_points[index] * 1e6)
+        else:
+            pos = '{:.0f} nm'.format(x_points[index] * 1e9)
+        plots.append({
+            'points': points,
+            'color': color[i - 1],
+            'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
+        })
+        if y_range:
+            y_range[0] = min(y_range[0], min(points))
+            y_range[1] = max(y_range[1], max(points))
+        else:
+            y_range = [min(points), max(points)]
+    return plots, y_range
+
+
 def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
@@ -247,10 +365,16 @@ def _extract_current(data, data_file):
     data_time = report_data['time']
     with h5py.File(data_file.filename, 'r') as f:
         weights = np.array(f['data/{}/particles/beam/weighting'.format(data_file.iteration)])
-
     curr = get_zcurrent_new(report_data['beam'][:,4], report_data['beam'][:,5], zmesh, weights, dz)
+    return _extract_current_results(data, curr, data_time)
+
+
+def _extract_current_results(data, curr, data_time):
+    grid = data['models']['simulationGrid']
+    plate_spacing = grid['plate_spacing'] * 1e-6
+    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    cathode_area = 2. * beam['x_radius'] * 1e-6
+    cathode_area = grid['channel_width'] * 1e-6
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
     JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
@@ -276,11 +400,19 @@ def _extract_current(data, data_file):
     }
 
 
+def _extract_egun_current(data, data_file, frame_index):
+    v = np.load(str(data_file))
+    if frame_index >= len(v):
+        frame_index = -1;
+    # the first element in the array is the time, the rest are the current measurements
+    return _extract_current_results(data, v[frame_index][1:], v[frame_index][0])
+
+
 def _extract_field(field, data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
-    radius = beam['x_radius'] * 1e-6
+    radius = grid['channel_width'] / 2. * 1e-6
     selector = field
     if not field == 'phi':
         selector = 'E/{}'.format(field)
@@ -305,20 +437,62 @@ def _extract_field(field, data, data_file):
     }
 
 
-def _extract_particle(run_dir, data):
+def _extract_impact_density(run_dir, data):
+    plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
+    if 'error' in plot_info:
+        return plot_info
+    grid = data['models']['simulationGrid']
+    plate_spacing = grid['plate_spacing'] * 1e-6
+    beam = data['models']['beam']
+    radius = grid['channel_width'] / 2. * 1e-6
+
+    dx = plot_info['dx']
+    dz = plot_info['dz']
+    gated_ids = plot_info['gated_ids']
+    lines = []
+
+    for i in gated_ids:
+        v = gated_ids[i]
+        for pos in ('bottom', 'left', 'right', 'top'):
+            if pos in v:
+                zmin, zmax, xmin, xmax = v[pos]['limits']
+                row = {
+                    'density': v[pos]['density'].tolist(),
+                }
+                if pos in ('bottom', 'top'):
+                    row['align'] = 'horizontal'
+                    row['points'] = [zmin, zmax, xmin + dx / 2.]
+                else:
+                    row['align'] = 'vertical'
+                    row['points'] = [xmin, xmax, zmin + dz / 2.]
+                lines.append(row)
+
+    return {
+        'title': 'Impact Density',
+        'x_range': [0, plate_spacing],
+        'y_range': [-radius, radius],
+        'y_label': 'x [m]',
+        'x_label': 'z [m]',
+        'density_lines': lines,
+        'v_min': plot_info['min'],
+        'v_max': plot_info['max'],
+    }
+
+
+def _extract_particle(run_dir, data, limit):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
-    radius = beam['x_radius'] * 1e-6
+    radius = grid['channel_width'] / 2. * 1e-6
     x_points = []
     y_points = []
-    _add_particle_paths(kept_electrons, x_points, y_points)
+    _add_particle_paths(kept_electrons, x_points, y_points, limit)
     lost_x = []
     lost_y = []
-    _add_particle_paths(lost_electrons, lost_x, lost_y)
+    _add_particle_paths(lost_electrons, lost_x, lost_y, limit)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -331,6 +505,33 @@ def _extract_particle(run_dir, data):
         'lost_y': lost_y,
     }
 
+
+def _generate_impact_density():
+    return '''
+from rswarp.diagnostics import ImpactDensity
+try:
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, top, w3d)
+    plot_density.gate_scraped_particles()
+    plot_density.map_density()
+    for gid in plot_density.gated_ids:
+        for side in plot_density.gated_ids[gid]:
+            del plot_density.gated_ids[gid][side]['interpolation']
+    density_results = {
+        'gated_ids': plot_density.gated_ids,
+        'dx': plot_density.dx,
+        'dz': plot_density.dz,
+        'min': plot_density.cmap_normalization.vmin,
+        'max': plot_density.cmap_normalization.vmax,
+    }
+except AssertionError as e:
+    density_results = {
+        'error': e.message,
+    }
+    ''' + '''
+np.save('{}', density_results)
+    '''.format(_DENSITY_FILE)
+
+
 def _generate_lattice(data):
     conductorTypeMap = {}
     for ct in data.models.conductorTypes:
@@ -339,8 +540,11 @@ def _generate_lattice(data):
     res = 'conductors = ['
     for c in data.models.conductors:
         ct = conductorTypeMap[c.conductorTypeId]
-        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}),'.format(
-            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6)
+        permittivity = ''
+        if ct.isConductor == '0':
+            permittivity = ', permittivity={}'.format(float(ct.permittivity))
+        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
+            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, permittivity)
     res += '''
 ]
 for c in conductors:
@@ -364,10 +568,21 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
+    v['impactDensityCalculation'] = _generate_impact_density()
+    v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
-    x = 'visualization' if is_parallel else 'source-field'
-    return render('base') + render('generate-' + x)
-
+    template_name = ''
+    if 'report' not in data:
+        template_name = 'visualization'
+    elif data['report'] == 'animation':
+        if data['models']['simulation']['egun_mode'] == '1':
+            v['egunStatusFile'] = _EGUN_STATUS_FILE
+            template_name = 'egun'
+        else:
+            template_name = 'visualization'
+    else:
+        template_name = 'source-field'
+    return render('base') + render('generate-{}'.format(template_name))
 
 
 def _h5_file_list(run_dir, model_name):

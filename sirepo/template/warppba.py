@@ -57,10 +57,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
-def copy_related_files(data, source_path, target_path):
-    pass
-
-
 def extract_field_report(field, coordinate, mode, data_file):
     opmd = _opmd_time_series(data_file)
     F, info = opmd.get_field(
@@ -68,7 +64,7 @@ def extract_field_report(field, coordinate, mode, data_file):
         vmin=None,
         m=mode,
         coord=coordinate,
-        iteration=data_file.iteration,
+        iteration=numpy.array([data_file.iteration]),
         slicing=0.0,
         field=field,
         theta=0.0,
@@ -101,7 +97,7 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
     data_list = opmd.get_particle(
         var_list=[xarg, yarg],
         species=particle_type,
-        iteration=data_file.iteration,
+        iteration=numpy.array([data_file.iteration]),
         select=None,
         output=True,
         plot=False,
@@ -293,7 +289,7 @@ def import_file(*args, **kwargs):
 
 def lib_files(data, source_lib):
     """No lib files"""
-    return template_common.internal_lib_files([], source_lib)
+    return []
 
 
 def models_related_to_report(data):
@@ -370,18 +366,6 @@ def open_data_file(run_dir, file_index=None):
     res.filename = str(files[res.frame_index])
     res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
     return res
-
-
-def prepare_aux_files(run_dir, data):
-    pass
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
 
 
 def python_source_for_model(data, model):

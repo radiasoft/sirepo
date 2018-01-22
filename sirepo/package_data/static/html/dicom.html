@@ -1,0 +1,39 @@
+    <div data-ng-hide="isSubFrame">
+      <div class="dicom-button-panel">
+      <div class="btn-group">
+        <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('advanceFrame')" data-ng-class="{active: rs4piService.isMouseWheelMode('advanceFrame')}" type="button" title="Scroll through frames"><span class="glyphicon glyphicon-transfer"></span></button>
+        <button class="btn btn-default" data-ng-click="rs4piService.setMouseWheelMode('zoom')" data-ng-class="{active: rs4piService.isMouseWheelMode('zoom')}" type="button" title="Zoom and pan"><span class="glyphicon glyphicon-zoom-in"></span></button>
+      </div>
+      <button class="btn btn-default" data-ng-show="isTransversePlane() && canEditROI()" data-ng-click="rs4piService.toggleEditing()" data-ng-class="{active: rs4piService.isEditing}" type="button" title="Edit ROI"><span class="glyphicon glyphicon-edit"></span></button>
+      <div class="btn-group" data-ng-show="isTransversePlane() && canEditROI() && rs4piService.isEditing">
+          <button id='select-mode' class="btn btn-default" data-ng-class="{active: rs4piService.isEditMode('select')}" title="Select" type="button" data-ng-click="rs4piService.setEditMode('select')"><span class="glyphicon glyphicon-arrow-up sr-rotate-glyph"> </span></button>
+          <button id='draw-mode' class="btn btn-default" data-ng-class="{active: rs4piService.isEditMode('draw')}" title="Draw" type="button" data-ng-click="rs4piService.setEditMode('draw')"><span class="glyphicon glyphicon-pencil"> </span></button>
+      </div>
+      <div class="btn-group" data-ng-show="isTransversePlane() && rs4piService.isEditing">
+          <button class="btn btn-default disabled" title="Undo" type="button"><span class="glyphicon glyphicon-share-alt sr-flip-glyph"> </span></button>
+          <button class="btn btn-default disabled" title="Redo" type="button"><span class="glyphicon glyphicon-share-alt"> </span></button>
+      </div>
+      <div class="btn-group" data-ng-show="isTransversePlane() && rs4piService.isEditing">
+          <button id='copy-selected' class="btn btn-default" data-ng-disabled="! isROISelected()" title="Copy" type="button"><span class="glyphicon glyphicon-copy"> </span></button>
+          <button id='paste-copy' class="btn btn-default disabled" title="Paste" type="button"><span class="glyphicon glyphicon-paste"> </span></button>
+          <button id='delete-selected' class="btn btn-default" data-ng-disabled="! isROISelected()" data-ng-click="deleteSelected()" title="Delete" type="button"><span class="glyphicon glyphicon-trash"> </span></button>
+      </div>
+      </div>
+    </div>
+    <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+      <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>
+      <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight }}">
+        <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+          <text x="0" y="-6">{{ dicomTitle() }}</text>
+          <svg class="plot-viewport" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}">
+          <rect class="overlay mouse-zoom" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
+          <defs>
+            <clippath id="{{ modelName }}-clip">
+              <rect ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
+            </clippath>
+          </defs>
+          <g class="draw-area" ng-attr-clip-path="url(#{{ modelName }}-clip)"></g>
+          </svg>
+        </g>
+      </svg></div>
+    </div>

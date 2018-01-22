@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, $window) {
+SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -31,7 +31,7 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
         if (itemId && savedModelValues.beamline) {
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
                 if (savedModelValues.beamline[i].id == itemId) {
-                    return 'Intensity at ' + savedModelValues.beamline[i].title + ' Report, '
+                    return 'Intensity ' + savedModelValues.beamline[i].title + ' Report, '
                         + savedModelValues.beamline[i].position + 'm';
                 }
             }
@@ -49,7 +49,12 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
                 distance = ', ' + savedModelValues.beamline[0].position + 'm';
             }
             else {
-                distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
+                if ('models' in appState && 'simulation' in appState.models && 'distanceFromSource' in appState.models.simulation) {
+                    distance = ', ' + appState.models.simulation.distanceFromSource + 'm';
+                }
+                else {
+                    distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
+                }
             }
         }
         return appState.viewInfo(modelName).title + distance;
@@ -69,12 +74,49 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
         return [];
     };
 
+    self.isActiveItemValid = function() {
+        return self.isItemValid(self.activeItem);
+    };
+
+    self.isBeamlineValid = function() {
+        var models = appState.models;
+        if (! models.beamline ) {
+            return true;
+        }
+        for (var i = 0; i < models.beamline.length; ++i) {
+            var item = models.beamline[i];
+            if (! self.isItemValid(item)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     self.isEditable = function() {
         return canEdit;
     };
 
+    self.isItemValid = function(item) {
+        if (! item) {
+            return false;
+        }
+        var type = item.type;
+        var fields = SIREPO.APP_SCHEMA.model[type];
+        for (var field in fields) {
+            var fieldType = fields[field][1];
+            if (! utilities.validateFieldOfType(item[field], fieldType)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     self.isTouchscreen = function() {
         return isTouchscreen;
+    };
+
+    self.isWatchpointReportModelName = function(name) {
+        return name.indexOf('watchpointReport') >= 0;
     };
 
     self.removeActiveItem = function() {
@@ -97,7 +139,7 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
     };
 
     self.setupWatchpointDirective = function($scope) {
-        var modelKey = 'watchpointReport' + $scope.itemId;
+        var modelKey = self.watchpointReportName($scope.itemId);
         $scope.modelAccess = {
             modelKey: modelKey,
             getData: function() {
@@ -110,11 +152,14 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
         };
     };
 
-    self.watchBeamlineField = function($scope, model, beamlineFields, callback) {
+    self.watchBeamlineField = function($scope, model, beamlineFields, callback, filterOldUndefined) {
         $scope.beamlineService = self;
         beamlineFields.forEach(function(f) {
             $scope.$watch('beamlineService.activeItem.' + f, function (newValue, oldValue) {
-                if (appState.isLoaded() && newValue != oldValue) {
+                if (appState.isLoaded() && newValue !== null && newValue !== undefined && newValue != oldValue) {
+                    if (filterOldUndefined && oldValue === undefined) {
+                        return;
+                    }
                     var item = self.activeItem;
                     if (item && item.type == model) {
                         callback(item);
@@ -122,6 +167,10 @@ SIREPO.app.factory('beamlineService', function(appState, $window) {
                 }
             });
         });
+    };
+
+    self.watchpointReportName = function(id) {
+        return 'watchpointReport' + id;
     };
 
     return self;
@@ -142,7 +191,10 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
               '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div><div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" data-ng-class="{\'srw-disabled-item\': item.isDisabled}">',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
+                  '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
+                    'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
+                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
                   '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
                 '</div>',
             '</div>',
@@ -150,7 +202,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
               '<div class="row">',
                 '<form>',
                   '<div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">',
-                    '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary">Save Changes</button>',
+                    '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button> ',
                     '<button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>',
                   '</div>',
                 '</form>',
@@ -168,25 +220,22 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                     newItem.position = parseFloat(appState.models.beamline[appState.models.beamline.length - 1].position) + 1;
                 }
                 else {
-                    newItem.position = 20;
+                    if ('distanceFromSource' in appState.models.simulation) {
+                        newItem.position = appState.models.simulation.distanceFromSource;
+                    }
+                    else {
+                        newItem.position = 20;
+                    }
                 }
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;
                 }
                 if (newItem.type == 'watch') {
-                    appState.models[watchpointReportName(newItem.id)] = appState.setModelDefaults(
+                    appState.models[beamlineService.watchpointReportName(newItem.id)] = appState.setModelDefaults(
                         appState.cloneModel('initialIntensityReport'), 'watchpointReport');
                 }
                 appState.models.beamline.push(newItem);
                 beamlineService.dismissPopup();
-            }
-
-            function isWatchpointReportModelName(name) {
-                return name.indexOf('watchpointReport') >= 0;
-            }
-
-            function watchpointReportName(id) {
-                return 'watchpointReport' + id;
             }
 
             $scope.cancelBeamlineChanges = function() {
@@ -245,6 +294,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 }
                 return isDirty;
             };
+
             $scope.saveBeamlineChanges = function() {
                 // sort beamline based on position
                 appState.models.beamline.sort(function(a, b) {
@@ -257,18 +307,18 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
                     if (item.type == 'watch') {
-                        watchpoints[watchpointReportName(item.id)] = true;
+                        watchpoints[beamlineService.watchpointReportName(item.id)] = true;
                     }
                 }
                 var savedModelValues = appState.applicationState();
                 for (var modelName in appState.models) {
-                    if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                    if (beamlineService.isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
                         // deleted watchpoint, remove the report model
                         delete appState.models[modelName];
                         delete savedModelValues[modelName];
                         continue;
                     }
-                    if (isWatchpointReportModelName(modelName)) {
+                    if (beamlineService.isWatchpointReportModelName(modelName)) {
                         savedModelValues[modelName] = appState.cloneModel(modelName);
                     }
                 }
@@ -365,6 +415,13 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<circle cx="26" cy="35" r="6" class="srw-sample-white" />',
                 '<circle cx="26" cy="35" r="4" class="srw-sample-black" />',
               '</g>',
+              '<g data-ng-switch-when="toroidalMirror">',
+                '<path d="M17.5 3.5 C27.5 11.5 27.5 46.5 17.5 54.5" class="srw-dash-stroke"></path>',
+                '<path d="M12.5 27.5 C27.5 28.5 32.5 29.5 37.5 32.5" class="srw-dash-stroke"></path>',
+                '<path d="M30 7 C40 15 40 50 30 58 L43 58 L43 7 L30 7" class="srw-mirror"></path>',
+                '<path d="M5 2 C20 3 25 4 30 7 L43 7 L18 2 L5 2" class="srw-mirror"></path>',
+                '<path d="M5 2 C15 10 15 45 5 53 C20 54 25 55 30 58" class="srw-no-fill"></path>',
+              '</g>',
             '</svg>',
         ].join(''),
     };
@@ -376,13 +433,13 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             item: '=',
         },
         template: [
-            '<span class="srw-beamline-badge badge">{{ item.position }}m</span>',
+            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
-            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ item.title }}<span class="caret"></span></div>',
+            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
@@ -427,6 +484,11 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             });
 
             function togglePopover() {
+                if (beamlineService.activeItem) {
+                    beamlineService.setActiveItem(null);
+                    // clears the active item and invoke watchers before setting new active item
+                    scope.$apply();
+                }
                 el.popover('toggle');
                 scope.$apply();
             }
@@ -496,12 +558,14 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
         },
         template: [
             '<div>',
+              '<button type="button" class="close" ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
               '<div data-help-button="{{ title }}"></div>',
-              '<form name="form" class="form-horizontal" novalidate>',
+              '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
+                '<div class="sr-beamline-element-title">{{ title }}</div>',
                 '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
                 '<div class="form-group">',
                   '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Close</button>',
+                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-disabled="! form.$valid">Close</button>',
                   '</div>',
                 '</div>',
                 '<div class="form-group" data-ng-show="beamlineService.isTouchscreen() && beamlineService.isEditable()">',
@@ -553,34 +617,69 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
         template: [
             '<div class="row">',
               '<div class="col-sm-12">',
-                '<p class="text-center bg-info">',
-                  '<span data-ng-repeat="item in ::toolbarItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                '<div class="text-center bg-info sr-toolbar-holder">',
+                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>',
+                    '<span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                      '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                    '</span>',
+                  '</div>',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
                     '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
                   '</span>',
-                '</p>',
+                '</div>',
               '</div>',
             '</div>',
             '<div class="srw-editor-holder" style="display:none">',
-              '<div data-ng-repeat="item in ::toolbarItems">',
+              '<div data-ng-repeat="item in ::allItems">',
                 '<div id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            function initToolbarItems() {
-                var items = [];
-                $scope.toolbarItemNames.forEach(function(name) {
-                    var featureName = name + '_in_toolbar';
-                    if (featureName in SIREPO.APP_SCHEMA.feature_config) {
-                        if (! SIREPO.APP_SCHEMA.feature_config[featureName]) {
-                            return;
-                        }
+            $scope.allItems = [];
+
+            function addItem(name, items) {
+                var featureName = name + '_in_toolbar';
+                if (featureName in SIREPO.APP_SCHEMA.feature_config) {
+                    if (! SIREPO.APP_SCHEMA.feature_config[featureName]) {
+                        return;
                     }
-                    items.push(appState.setModelDefaults({type: name}, name));
-                });
-                return items;
+                }
+                var item = appState.setModelDefaults({type: name}, name);
+                var MIRROR_TYPES = ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror'];
+                if (MIRROR_TYPES.indexOf(item.type) >= 0) {
+                    item.title = item.title.replace(' Mirror', '');
+                }
+                items.push(item);
+                $scope.allItems.push(item);
             }
-            $scope.toolbarItems = initToolbarItems();
+
+            function initToolbarItems() {
+                var sections = [];
+                var standalone = [];
+                $scope.toolbarItemNames.forEach(function(section) {
+                    var items = [];
+                    if (angular.isArray(section)) {
+                        section[1].forEach(function(name) {
+                            addItem(name, items);
+                        });
+                        sections.push([section[0], items]);
+                    }
+                    else {
+                        addItem(section, standalone);
+                    }
+                });
+                $scope.sectionItems = sections;
+                $scope.standaloneItems = standalone;
+            }
+
+            initToolbarItems();
+        },
+        link: function link(scope, element) {
+            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
+            // see discussion here: https://github.com/metafizzy/flickity/issues/457
+            window.addEventListener('touchmove', function() {});
         },
     };
 });

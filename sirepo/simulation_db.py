@@ -60,6 +60,9 @@ _ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
+#: Older than any other version
+_OLDEST_VERSION = '20140101.000001'
+
 #: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
@@ -151,7 +154,9 @@ def examples(app):
     )
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
-    return [open_json_file(app, path=str(f)) for f in files]
+    # example data is not fixed-up to avoid performance problems when searching examples by name
+    # fixup occurs during save_new_example()
+    return [open_json_file(app, path=str(f), fixup=False) for f in files]
 
 
 def find_global_simulation(simulation_type, sid):
@@ -182,7 +187,11 @@ def fixup_old_data(data, force=False):
     try:
         if not force and 'version' in data and data['version'] == SCHEMA_COMMON['version']:
             return data, False
-        data['version'] = SCHEMA_COMMON['version']
+        try:
+            data.fixup_old_version = data['version']
+        except KeyError:
+            data.fixup_old_version = _OLDEST_VERSION
+        data.version = SCHEMA_COMMON['version']
         if not 'simulationType' in data:
             if 'sourceIntensityReport' in data['models']:
                 data['simulationType'] = 'srw'
@@ -200,10 +209,8 @@ def fixup_old_data(data, force=False):
         if not 'simulationSerial' in data['models']['simulation']:
             data['models']['simulation']['simulationSerial'] = 0
         sirepo.template.import_module(data['simulationType']).fixup_old_data(data)
-        try:
-            del data['models']['simulationStatus']
-        except KeyError:
-            pass
+        pkcollections.unchecked_del(data.models, 'simulationStatus')
+        pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
     except Exception as e:
         pkdlog('{}: error: {}', data, pkdexc())
@@ -223,6 +230,24 @@ def get_schema(sim_type):
     )
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
+
+    # merge common models into app models
+    common_models = schema['commonModels']
+    app_models = schema['model']
+    for model_Name in common_models:
+        if model_Name not in app_models:
+            app_models[model_Name] = common_models[model_Name]
+        for model_field_name in common_models[model_Name]:
+            if model_field_name not in app_models[model_Name]:
+                app_models[model_Name][model_field_name] = common_models[model_Name][model_field_name]
+
+    # merge common enums into app models
+    common_enums = schema['commonEnums']
+    app_enums = schema['enum']
+    for enum_Name in common_enums:
+        if enum_Name not in app_enums:
+            app_enums[enum_Name] = common_enums[enum_Name]
+
     return schema
 
 
@@ -295,7 +320,12 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     ):
         path = py.path.local(path)
         try:
-            data = open_json_file(simulation_type, path)
+            data = open_json_file(simulation_type, path, fixup=False)
+            data, changed = fixup_old_data(data)
+            # save changes to avoid re-applying fixups on each iteration
+            if changed:
+                #TODO(pjm): validate_name may causes infinite recursion, need better fixup of list prior to iteration
+                save_simulation_json(data, do_validate=False)
             if search and not _search_data(data, search):
                 continue
             op(res, path, data)
@@ -475,8 +505,8 @@ def prepare_simulation(data):
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    if hasattr(template, 'prepare_aux_files'):
-        template.prepare_aux_files(run_dir, data)
+    template_common.copy_lib_files(data, None, run_dir)
+
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -640,17 +670,17 @@ def report_info(data):
 
 def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(data)
+    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
 
 
-def save_new_simulation(data):
+def save_new_simulation(data, do_validate=True):
     d = simulation_dir(data.simulationType)
     sid = _random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(data)
+    return save_simulation_json(data, do_validate=do_validate)
 
 
-def save_simulation_json(data):
+def save_simulation_json(data, do_validate=True):
     """Prepare data and save to json db
 
     Args:
@@ -675,7 +705,7 @@ def save_simulation_json(data):
             )
         except Exception:
             pass
-        if need_validate:
+        if need_validate and do_validate:
             _validate_name(data)
         s.simulationSerial = _serial_new()
         write_json(fn, data)
@@ -873,6 +903,8 @@ def _create_example_and_lib_files(simulation_type):
     template = sirepo.template.import_module(simulation_type)
     if hasattr(template, 'resource_files'):
         for f in template.resource_files():
+            #TODO(pjm): symlink has problems in containers
+            # d.join(f.basename).mksymlinkto(f)
             f.copy(d)
 
 

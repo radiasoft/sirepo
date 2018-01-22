@@ -32,7 +32,8 @@ SIREPO.appFieldEditors = [
       '<div data-ng-class="fieldClass">',
         '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
       '</div>',
-      '<div class="col-sm-2">',
+      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
+      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
         '<div data-rpn-static="" data-model="model" data-field="field"></div>',
       '</div>',
     '</div>',
@@ -42,6 +43,27 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
+    '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="BooleanStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Boolean\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="RandomizeStringArray" class="col-sm-7">',
+        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Randomize\']"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Integer3StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="3"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Integer6StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="6"></div>',
+    '</div>',
+    '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
+        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
+    '</div>',
+].join('');
+SIREPO.appDownloadLinks = [
+    '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -68,7 +90,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) {
+SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
 
     function bunchChanged() {
@@ -95,6 +117,7 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         if (cmd) {
             cmd.input = appState.models.bunchFile.sourceFile;
             appState.saveQuietly('commands');
+            updateBeamInputType(cmd);
         }
     }
 
@@ -121,7 +144,9 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
                 }
             }
             cmd._type = type;
+            appState.setModelDefaults(cmd, 'command_sdds_beam');
             cmd.input = appState.models.bunchFile.sourceFile;
+            updateBeamInputType(cmd);
         }
         appState.saveQuietly('commands');
     }
@@ -172,41 +197,45 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
         appState.saveQuietly('commands');
     }
 
+    function updateBeamInputType(cmd) {
+        // detemine the input file type (elegant or spiffe)
+        requestSender.getApplicationData(
+            {
+                method: 'get_beam_input_type',
+                input_file: 'bunchFile-sourceFile.' + cmd.input,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.input_type) {
+                    cmd.input_type = data.input_type;
+                    // spiffe beams require n_particles_per_ring
+                    if (cmd.input_type == 'spiffe' && cmd.n_particles_per_ring == 0) {
+                        cmd.n_particles_per_ring = 1;
+                    }
+                    appState.saveQuietly('commands');
+                }
+            });
+    }
+
     function updateBunchFromCommand(bunch, cmd) {
-        bunch.n_particles_per_bunch = cmd.n_particles_per_bunch;
-        bunch.emit_x = cmd.emit_x * 1e9;
-        bunch.beta_x = cmd.beta_x;
-        bunch.alpha_x = cmd.alpha_x;
-        bunch.emit_y = cmd.emit_y * 1e9;
-        bunch.beta_y = cmd.beta_y;
-        bunch.alpha_y = cmd.alpha_y;
+        Object.keys(cmd).forEach(function(f) {
+            if (f in bunch) {
+                bunch[f] = cmd[f];
+            }
+        });
         bunch.longitudinalMethod = cmd.dp_s_coupling !== 0
             ? 1 // sigma s, sigma dp, dp s coupling
             : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
                ? 3 // emit z, beta z, alpha z
                : 2); // sigma s, sigma dp, alpha z
-        bunch.sigma_s = cmd.sigma_s * 1e6;
-        bunch.sigma_dp = cmd.sigma_dp;
-        bunch.dp_s_coupling = cmd.dp_s_coupling;
-        bunch.emit_z = cmd.emit_z * 1e9;
-        bunch.beta_z = cmd.beta_z;
-        bunch.alpha_z = cmd.alpha_z;
     }
 
     function updateCommandFromBunch(cmd, bunch) {
-        cmd.n_particles_per_bunch = bunch.n_particles_per_bunch;
-        cmd.emit_x = bunch.emit_x / 1e9;
-        cmd.beta_x = bunch.beta_x;
-        cmd.alpha_x = bunch.alpha_x;
-        cmd.emit_y = bunch.emit_y / 1e9;
-        cmd.beta_y = bunch.beta_y;
-        cmd.alpha_y = bunch.alpha_y;
-        cmd.sigma_s = bunch.sigma_s / 1e6;
-        cmd.sigma_dp = bunch.sigma_dp;
-        cmd.dp_s_coupling = bunch.dp_s_coupling;
-        cmd.emit_z = bunch.emit_z / 1e9;
-        cmd.beta_z = bunch.beta_z;
-        cmd.alpha_z = bunch.alpha_z;
+        Object.keys(bunch).forEach(function(f) {
+            if (f in cmd) {
+                cmd[f] = bunch[f];
+            }
+        });
+
         if (bunch.longitudinalMethod == 1) {
             cmd.emit_z = 0;
             cmd.beta_z = 0;
@@ -244,6 +273,19 @@ SIREPO.app.factory('elegantService', function(appState, rpnService, $rootScope) 
             }
         }
         return null;
+    };
+
+    self.commandFileExtension = function(command) {
+        //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
+        if (command) {
+            if (command._type == 'save_lattice') {
+                return '.lte';
+            }
+            else if (command._type == 'global_settings') {
+                return '.txt';
+            }
+        }
+        return '.sdds';
     };
 
     self.findFirstCommand = function(types, commands) {
@@ -432,7 +474,7 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
     self.createElement = function(name) {
-        $('#sr-newCommand-editor').modal('hide');
+        $('#' + panelState.modalId('newCommand')).modal('hide');
         var model = {
             _id: elegantService.nextId(),
             _type: name,
@@ -448,9 +490,8 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     };
 });
 
-SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, $scope, $timeout) {
+SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, panelState, $scope) {
     var self = this;
-    var longitudinalFields = ['sigma_s', 'sigma_dp', 'dp_s_coupling', 'emit_z', 'beta_z', 'alpha_z'];
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
     var plotTitle = {
         'x-xp': 'Horizontal',
@@ -458,6 +499,12 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         'x-y': 'Cross-section',
         't-p': 'Longitudinal',
     };
+    self.bunchReports = [
+        {id: 1},
+        {id: 2},
+        {id: 3},
+        {id: 4},
+    ];
 
     function validateSaving() {
         if (! appState.isLoaded()) {
@@ -483,10 +530,21 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         }
     }
 
+    function updateHalton() {
+        panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
+    }
+
+    function updateLongitudinalFields() {
+        var method = parseInt(appState.models.bunch.longitudinalMethod);
+        panelState.showField('bunch', 'sigma_s', method == 1 || method == 2);
+        panelState.showField('bunch', 'sigma_dp', method == 1 || method == 2);
+        panelState.showField('bunch', 'dp_s_coupling', method == 1);
+        panelState.showField('bunch', 'alpha_z', method == 2 || method == 3);
+        panelState.showField('bunch', 'emit_z', method == 3);
+        panelState.showField('bunch', 'beta_z', method == 3);
+    }
+
     function validateTyping() {
-        if (! appState.isLoaded()) {
-            return;
-        }
         var bunch = appState.models.bunch;
         // dp_s_coupling valid only between -1 and 1
         var v = parseFloat(bunch.dp_s_coupling);
@@ -502,42 +560,6 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         validateGreaterOrEqualToZero(bunch, 'beta_z');
     }
 
-    function showFields(fields, delay) {
-        for (var i = 0; i < longitudinalFields.length; i++) {
-            var f = longitudinalFields[i];
-            var selector = '.model-bunch-' + f;
-            if (fields.indexOf(f) >= 0) {
-                $(selector).closest('.form-group').show(delay);
-            }
-            else {
-                $(selector).closest('.form-group').hide(delay);
-            }
-        }
-    }
-
-    function updateLongitudinalFields(delay) {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        var method = appState.models.bunch.longitudinalMethod;
-        if (parseInt(method) == 1) {
-            showFields(['sigma_s', 'sigma_dp', 'dp_s_coupling'], delay);
-        }
-        else if (parseInt(method) == 2) {
-            showFields(['sigma_s', 'sigma_dp', 'alpha_z'], delay);
-        }
-        else {
-            showFields(['emit_z', 'beta_z', 'alpha_z'], delay);
-        }
-    }
-
-    self.bunchReports = [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-    ];
-
     self.bunchReportHeading = function(item) {
         if (! appState.isLoaded()) {
             return;
@@ -548,7 +570,8 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     };
 
     self.handleModalShown = function() {
-        updateLongitudinalFields(0);
+        updateHalton();
+        updateLongitudinalFields();
     };
 
     self.isBunchSource = function(name) {
@@ -574,13 +597,12 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
         return modelAccessByItemId[itemId];
     };
 
-    // watch path depends on appState as an attribute of $scope
-    $scope.appState = appState;
-    $scope.$watch('appState.models.bunch.longitudinalMethod', function () {
-        updateLongitudinalFields(400);
-    });
-    $scope.$watchCollection('appState.models.bunch', validateTyping);
     $scope.$on('bunch.changed', validateSaving);
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+        appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
+        appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
+    });
 });
 
 SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
@@ -769,7 +791,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.createElement = function(type) {
-        $('#sr-newBeamlineElement-editor').modal('hide');
+        $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = {
             _id: elegantService.nextId(),
             type: type,
@@ -856,7 +878,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newElement = function() {
-        $('#sr-newBeamlineElement-editor').modal('show');
+        $('#' + panelState.modalId('newBeamlineElement')).modal('show');
     };
 
     //TODO(pjm): use library for this
@@ -938,15 +960,8 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
-    self.model = 'animation';
     self.appState = appState;
     self.panelState = panelState;
-    self.dots = '.';
-    self.simulationErrors = '';
-    self.timeData = {
-        elapsedDays: null,
-        elapsedTime: null,
-    };
     self.outputFiles = [];
     self.outputFileMap = {};
     self.auxFiles = [];
@@ -972,9 +987,27 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model || self.model,
+            '<model>': model || self.simState.model,
             '<frame>': index,
         });
+    }
+
+    function handleStatus(data) {
+        self.simulationErrors = data.errors || '';
+        if (data.frameCount) {
+            frameCache.setFrameCount(parseInt(data.frameCount));
+            loadElementReports(data.outputInfo, data.startTime);
+        }
+        if (self.simState.isStopped()) {
+            if (! data.frameCount) {
+                if (data.state == 'completed' && ! self.simulationErrors) {
+                    // completed with no output, show link to elegant log
+                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                }
+                self.outputFiles = [];
+                self.outputFileMap = {};
+            }
+        }
     }
 
     function hideField(modelName, field) {
@@ -1067,6 +1100,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             self.yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
+            if (! info.pageCount) {
+                panelState.setError(modelKey, 'No output was generated for this report.');
+            }
             appState.watchModelFields(
                 $scope,
                 [modelKey + '.yFile'],
@@ -1101,10 +1137,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (info.modelAccess.modelKey == modelKey) {
                 if (info.reportType == 'heatmap') {
                     showField(name, 'histogramBins');
+                    showField(name, 'colorMap');
                     hideField(name, 'framesPerSecond');
                 }
                 else {
                     hideField(name, 'histogramBins');
+                    hideField(name, 'colorMap');
                     if (frameCache.getFrameCount(modelKey) > 1) {
                         showField(name, 'framesPerSecond');
                     }
@@ -1116,34 +1154,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         });
     };
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
-        if (data.frameCount) {
-            frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo, data.startTime);
-        }
-        if (self.isStateStopped()) {
-            if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
-                    // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the elegant log for more information.';
-                }
-                self.outputFiles = [];
-                self.outputFileMap = {};
-            }
-        }
-    };
-
-    self.hasOutput = function() {
-        return self.isStateStopped();
-    };
-
     self.logFileURL = function() {
         return fileURL(-1);
     };
 
-    self.saveAndRunSimulation = function() {
-        appState.saveChanges('simulation', self.runSimulation);
+    self.startSimulation = function() {
+        self.simState.saveAndRunSimulation('simulation');
     };
 
     self.yFileUpdate = function (modelKey) {
@@ -1163,14 +1179,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     };
 
-    persistentSimulation.initProperties(self, $scope, {});
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});
 
     // override persistentSimulation settings
-    self.isInitializing = function() {
-        if (self.percentComplete === 0 && self.isStateProcessing()) {
+    self.simState.isInitializing = function() {
+        if (self.simState.percentComplete === 0 && self.simState.isProcessing()) {
             return true;
         }
-        return self.isStatePending();
+        return self.simState.isStatePending();
     };
 });
 
@@ -1181,6 +1197,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: [
+            '<div data-common-footer="nav"></div>',
             '<div data-elegant-import-dialog=""></div>',
         ].join(''),
     };
@@ -1193,27 +1210,30 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a data-ng-href="{{ nav.sectionURL(\'simulations\') }}">elegant</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-              '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-              '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-              '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-            '</ul>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+                '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
+                  '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</div>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+                //  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
+              '</app-header-right-sim-list>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.hasBeamlines = function() {
-                if (! $scope.isLoaded()) {
+                if (! $scope.nav.isLoaded()) {
                     return false;
                 }
                 for (var i = 0; i < appState.models.beamlines.length; i++) {
@@ -1231,7 +1251,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 return appState.models.commands.length > 0;
             };
             $scope.hasSourceCommand = function() {
-                if (! $scope.isLoaded()) {
+                if (! $scope.nav.isLoaded()) {
                     return false;
                 }
                 for (var i = 0; i < appState.models.commands.length; i++) {
@@ -1242,20 +1262,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 }
                 return false;
             };
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
-                return appState.isLoaded();
-            };
+
             $scope.showImportModal = function() {
                 $('#elegant-import').modal('show');
-            };
-            $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
-            };
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
             };
         },
     };
@@ -1499,12 +1508,21 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
               '</thead>',
               '<tbody>',
                 '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge elegant-icon elegant-beamline-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
+                  '<td><div class="badge elegant-icon elegant-beamline-icon" data-ng-class="{\'elegant-beamline-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
+                    '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
+                    '<div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar">',
+                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
+                            ' <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                        '</div>',
+                    '<div>',
+                  '</td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1527,6 +1545,25 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 res += ')';
                 return res;
             }
+
+            $scope.wouldBeamlineSelfNest = function (beamline, blItems) {
+                var activeBeamline = $scope.lattice.getActiveBeamline();
+                if(! activeBeamline || activeBeamline.id === beamline.id) {
+                    return true;
+                }
+                if(! blItems) {
+                    blItems = beamline.items || [];
+                }
+                if(blItems.includes(activeBeamline.id)) {
+                    return true;
+                }
+                for(var i = 0; i < blItems.length; i++) {
+                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
 
             $scope.addToBeamline = function(beamline) {
                 $scope.lattice.addToBeamline(beamline);
@@ -1630,7 +1667,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                             if (schema[f][1] == 'OutputFile') {
                                 res += cmd._type
                                     + (commandIndex > 1 ? commandIndex : '')
-                                    + '.' + f + fileExtension(model);
+                                    + '.' + f + elegantService.commandFileExtension(model);
                             }
                             else if (schema[f][1] == 'ElegantBeamlineList') {
                                 //res += elegantService.elementForId(model[f]).name;
@@ -1663,10 +1700,6 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
 
             function commandIndex(data) {
                 return $scope.commands.indexOf(data);
-            }
-
-            function fileExtension(model) {
-                return model._type == 'save_lattice' ? '.lte' : '.sdds';
             }
 
             function loadCommands() {
@@ -1773,7 +1806,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
             };
 
             $scope.newCommand = function() {
-                $('#sr-newCommand-editor').modal('show');
+                $('#' + panelState.modalId('newCommand')).modal('show');
             };
 
             $scope.selectItem = function(cmd) {
@@ -2095,7 +2128,7 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileUpload, requestSender) {
+SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -2119,8 +2152,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                           '</div>',
                           '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele) or Lattice (.lte) File</label>',
-                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte" />',
+                              '<label>Select Command (.ele), Lattice (.lte), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
+                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.zip" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
@@ -2140,7 +2173,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                             '<br /><br />',
                           '</div>',
                           '<div data-ng-show="isState(\'missing-files\')">',
-                            '<p>Please upload the files below which are referenced in the elegant file.</p>',
+                            '<p>Please upload the files below which are referenced in the', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
                             '<div class="form-group" data-ng-repeat="item in missingFiles">',
                               '<div class="col-sm-8 col-sm-offset-1">',
                                 '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
@@ -2164,7 +2197,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.title = 'Import Elegant File';
+            $scope.title = 'Import ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName + ' File';
             // states: ready, import, lattice, load-file-lists, missing-files
             $scope.state = 'ready';
 
@@ -2321,7 +2354,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                     return;
                 }
                 var args = {
-                    folder: appState.getActiveFolderPath(),
+                    folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
                     args.simulationId = $scope.id;
@@ -2465,6 +2498,39 @@ SIREPO.app.directive('inputFileXY', function() {
             };
             $scope.fieldY = function() {
                 return $scope.field + 'Y';
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('enumList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            info: '<',
+            typeList: '<',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+                '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
+                '<select ',
+                    'class="form-control elegant-list-value" data-ng-model="values[$index]" data-ng-change="didChange()"',
+                    'data-ng-options="item[0] as item[1] for item in typeList">',
+                '</select>',
+            '</div>'
+        ].join(''),
+        controller: function($scope) {
+            $scope.values = null;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
             };
         },
     };
@@ -2878,6 +2944,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             };
 
             $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
                 var width = parseInt(select().style('width'));
                 if (isNaN(width))
                     return;
@@ -2955,7 +3024,40 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
     };
 });
 
-SIREPO.app.directive('outputFileField', function(appState) {
+SIREPO.app.directive('numberList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+            '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
+            '<input class="form-control elegant-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>'
+        ].join(''),
+        controller: function($scope) {
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            //TODO(pjm): share implementation with enumList
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('outputFileField', function(appState, elegantService) {
     return {
         restrict: 'A',
         scope: {
@@ -2968,12 +3070,6 @@ SIREPO.app.directive('outputFileField', function(appState) {
         controller: function($scope) {
             var items = [];
             var filename = '';
-
-            function fileExtension() {
-                if ($scope.model && $scope.model._type == 'save_lattice')
-                    return '.lte';
-                return '.sdds';
-            }
 
             $scope.items = function() {
                 if (! $scope.model)
@@ -2991,7 +3087,7 @@ SIREPO.app.directive('outputFileField', function(appState) {
                     }
                     prefix = $scope.model._type + (index > 1 ? index : '');
                 }
-                var name = prefix + '.' + $scope.field + fileExtension();
+                var name = prefix + '.' + $scope.field + elegantService.commandFileExtension($scope.model);
                 if (name != filename) {
                     filename = name;
                     items = [
@@ -3036,7 +3132,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
-                      '<form name="form" class="form-horizontal">',
+                      '<form name="form" class="form-horizontal" autocomplete="off">',
                         '<div class="row">',
                           '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Name</h5></div>',
                           '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
@@ -3058,7 +3154,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
 
                       '<div data-ng-show="showAddNewFields" class="row">',
                         '<br />',
-                        '<form name="addNewForm" class="form-horizontal">',
+                        '<form name="addNewForm" class="form-horizontal" autocomplete="off">',
                           '<div class="form-group-sm">',
                             '<div class="col-sm-2">',
                               '<input class="form-control" required data-ng-model="newRpn.name" />',
@@ -3186,6 +3282,8 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
         link: function(scope, element, attrs, ngModel) {
             var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
             ngModel.$parsers.push(function(value) {
+                requestIndex++;
+                var currentRequestIndex = requestIndex;
                 if (ngModel.$isEmpty(value))
                     return null;
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
@@ -3195,8 +3293,6 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     return v;
                 }
-                requestIndex++;
-                var currentRequestIndex = requestIndex;
                 rpnService.computeRpnValue(value, function(v, err) {
                     // check for a stale request
                     if (requestIndex != currentRequestIndex)
@@ -3224,8 +3320,8 @@ SIREPO.app.directive('runSimulationFields', function() {
                 '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
               '</div></div>',
               '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
-                '<button class="btn btn-default" data-ng-click="visualization.saveAndRunSimulation()">Start New Simulation</button>',
+              '<div class="col-sm-5" data-ng-show="visualization.simState.isStopped()">',
+                '<button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>',
               '</div>',
             '</div>',
         ].join(''),
@@ -3241,7 +3337,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         template: [
             '<div data-ng-if="outputInfo">',
               '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
-                '<form name="form" class="form-horizontal">',
+                '<form name="form" class="form-horizontal" autocomplete="off">',
                   '<div data-ng-repeat="item in parameterRows">',
                     '<div class="elegant-parameter-table-row form-group form-group-sm">',
                       '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',
@@ -3310,6 +3406,9 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     appState.models.parameterTable.page = page = 0;
                 }
                 var params = $scope.fileInfo.parameters;
+                if (! params) {
+                    return;
+                }
                 var defs = $scope.fileInfo.parameterDefinitions;
                 var rows = [];
                 Object.keys(params).sort(
@@ -3330,14 +3429,19 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
 
             function unitsAsHtml(units) {
                 //TODO(robnagler) Needs to be generalized. Don't know all the cases though
+                //TODO(pjm): could generalize, see "special characters" section
+                // http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/SDDStoolkit/SDDStoolkitsu66.html
                 if (units == 'm$be$nc') {
                     return $sce.trustAsHtml(' m<sub>e</sub>c');
                 }
-                if (/^\w+$/.exec(units)) {
+                if (units == 'm$a2$n') {
+                    return $sce.trustAsHtml(' m<sup>2</sup>');
+                }
+                if (/^[\w/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);
                 }
                 if (units) {
-                    srlog(units, ': unable to convert elegant units to HTML');
+                    srlog(units, ': unable to convert ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' units to HTML');
                 }
                 return $sce.trustAsHtml('');
             }
@@ -3351,7 +3455,6 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         }
     };
 });
-
 
 //TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
 // from http://stackoverflow.com/questions/19305821/multiple-modals-overlay

@@ -15,6 +15,7 @@
             {
                 "id": 3,
                 "name": "Head",
+                "permittivity": 7,
                 "voltage": 30,
                 "xLength": 0.02,
                 "zLength": 0.01
@@ -22,6 +23,7 @@
             {
                 "id": 2,
                 "name": "Post",
+                "permittivity": 7,
                 "voltage": 0,
                 "xLength": 0.005,
                 "zLength": 0.5
@@ -55,30 +57,49 @@
         ],
         "currentAnimation": {
             "framesPerSecond": "2",
-            "startTime": 1494885533
+            "startTime": 1512001777
+        },
+        "egunCurrentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1512001777
         },
         "fieldAnimation": {
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1494885533
+            "startTime": 1512001777
+        },
+        "fieldComparisonReport": {
+            "dimension": "x",
+            "xCell1": 3,
+            "xCell2": 5,
+            "xCell3": 9,
+            "zCell1": 457,
+            "zCell2": 460,
+            "zCell3": 462
+        },
+        "fieldReport": {},
+        "impactDensityAnimation": {
+            "startTime": 1512001777
         },
         "panelState": {
             "hidden": []
         },
         "particleAnimation": {
-            "startTime": 1494885533
+            "renderCount": "100",
+            "startTime": 1512001777
         },
         "simulation": {
+            "egun_mode": "0",
             "folder": "/",
-            "isExample": false,
+            "isExample": true,
             "name": "Two Poles",
             "outOfSessionSimulationId": "",
-            "simulationId": "UIQuUQEJ",
-            "simulationSerial": 1494885646601878
+            "simulationId": "WlS7afLO",
+            "simulationSerial": 1512001781077464
         },
         "simulationGrid": {
             "channel_width": 0.2,
-            "num_steps": 4000,
+            "num_steps": 400,
             "num_x": 11,
             "num_z": 512,
             "particles_per_step": 110,
@@ -87,5 +108,5 @@
         }
     },
     "simulationType": "warpvnd",
-    "version": "20170515.000000"
+    "version": "20171117.000002"
 }

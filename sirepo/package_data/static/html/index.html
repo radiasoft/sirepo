@@ -7,22 +7,67 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico{{ source_cache_key }}">
     <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
-    <link href="/static/css/bootstrap-3.3.7.min.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/split-pane-0.6.1.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/bootstrap-colxl.css{{ source_cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-3.3.7.min.css{{ source_cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/split-pane-0.6.1.css{{ source_cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-colxl.css{{ source_cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-toggle.min.css{{ source_cache_key }}" rel="stylesheet">
     <link href="/static/css/sirepo.css{{ source_cache_key }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ source_cache_key }}"></script>
       <script src="/static/js/ext/msie/respond-1.4.2.min.js{{ source_cache_key }}"></script>
     <![endif]-->
+    <script>
+      var SIREPO = {
+        APP_NAME:  '{{ app_name }}',
+        APP_VERSION: '{{ app_version }}',
+        SOURCE_CACHE_KEY: '{{ source_cache_key }}',
+        {%- if oauth_login %}
+          userState: {
+            loginState: '{{ login_state }}',
+            userName: '{{ user_name }}',
+          },
+        {%- endif %}
+      };
+
+      SIREPO.setPageLoaderVisible = function() {
+        var pageLoaderTimeout = null;
+        return function (doShow) {
+          var pageLoader = document.getElementsByClassName('sr-page-load')[0];
+          if (doShow) {
+            if (pageLoaderTimeout) {
+              return;
+            }
+            pageLoaderTimeout = setTimeout(
+              function () {
+                pageLoader.style.display = 'block';
+              },
+              1000
+            );
+          }
+          else {
+            clearTimeout(pageLoaderTimeout);
+            pageLoaderTimeout = null;
+            pageLoader.style.display = 'none';
+          }
+        };
+      }();
+    </script>
   </head>
   <body>
+    <div class="sr-page-load">
+      <img class="sr-page-load-image" src="/static/img/radtrack_animated.gif" />
+        <div class="sr-page-load-text">Loading</div>
+    </div>
+    <script type="text/javascript">
+      SIREPO.setPageLoaderVisible(true);
+    </script>
     <nav class="navbar navbar-default navbar-static-top">
-      <div class="container">
+      <div class="container-fluid">
         <div data-app-header="nav"></div>
       </div>
     </nav>
+    <div class="col-sm-4 col-sm-push-8 sr-notify-text" data-sr-notify="" data-notification-name="'net.sirepo.login_notify_timeout'" data-notification-class="'alert-success'"></div>
     <div class="col-sm-12" data-sr-alert=""></div>
     <div class="clearfix"></div>
     <div data-ng-view></div>
@@ -32,6 +77,7 @@
     <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/angular-1.6.1.min.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/angular-route-1.6.1.min.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/angular-cookies.min.js{{ source_cache_key }}"></script>
     <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
     <script src="/static/js/ext/jquery-2.1.4.min.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/bootstrap-3.3.7.min.js{{ source_cache_key }}"></script>
@@ -47,25 +93,11 @@
     <script src="/static/js/ext/stacktrace-0.6.4.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/split-pane-0.6.1.min.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/angular-split-pane-1.2.0.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/underscore-1.8.3.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/angular-underscore.js{{ source_cache_key }}"></script>
-    <script>
-        var SIREPO = {
-            APP_NAME:  '{{ app_name }}',
-            APP_VERSION: '{{ app_version }}',
-            SOURCE_CACHE_KEY: '{{ source_cache_key }}',
-            {%- if oauth_login %}
-            userState: {
-                loginState: '{{ login_state }}',
-                userName: '{{ user_name }}',
-            },
-            {%- endif %}
-        };
-    </script>
     <script src="/static/js/sirepo.js{{ source_cache_key }}"></script>
     <script src="/static/js/sirepo-components.js{{ source_cache_key }}"></script>
     <script src="/static/js/sirepo-plotting.js{{ source_cache_key }}"></script>
     <script src="/static/js/sirepo-beamline.js{{ source_cache_key }}"></script>
     <script src="/static/js/{{ app_name }}.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/bootstrap-toggle.min.js{{ source_cache_key }}"></script>
   </body>
 </html>

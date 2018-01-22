@@ -7,8 +7,8 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico{{ cache_key }}">
     <title data-ng-bind="landingPage.pageTitle()">Radiasoft</title>
-    <link href="/static/css/bootstrap-3.3.7.min.css{{ cache_key }}" rel="stylesheet">
-    <link href="/static/css/bootstrap-colxl.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-3.3.7.min.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-colxl.css{{ cache_key }}" rel="stylesheet">
     <link href="/static/css/landing-page.css{{ cache_key }}" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -17,24 +17,11 @@
     <![endif]-->
   </head>
   <body>
-    <nav class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif{{ cache_key }}" alt="radiasoft"></a>
-          <div class="navbar-brand" data-page-heading="" data-landing-page="landingPage"></div>
-        </div>
-      </div>
-    </nav>
-    <div class="container">
-      <div class="row visible-xs">
-        <div class="lead text-center" data-ng-bind="landingPage.pageName()"></div>
-      </div>
-      <div data-ng-view></div>
-      <div class="row" style="height: 30px"></div>
-      <div class="row">
-        <div class="col-sm-12 lead"><a class="pull-right" href="http://radiasoft.net"><img src="/static/img/radiasoft.gif{{ cache_key }}" alt="Radiasoft" />radiasoft</a></div>
-      </div>
+    <div class="navbar-header-top-stripe rs-blue-background" data-ng-class="{'navbar-header-top-stripe-expanded': landingPage.onMainLandingPage(), 'navbar-header-top-stripe-collapsed': ! landingPage.onMainLandingPage()}">
+      <div data-ng-if="landingPage.onMainLandingPage()" lp-codes-menu=""></div>
     </div>
+    <div data-ng-view></div>
+
     <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>
     <script src="/static/js/ext/angular-1.6.1.min.js{{ cache_key }}"></script>
     <script src="/static/js/ext/angular-route-1.6.1.min.js{{ cache_key }}"></script>

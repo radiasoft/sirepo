@@ -64,6 +64,9 @@ SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 #: WSGIApp instance (see `init_by_server`)
 _wsgi_app = None
 
+#: Default file to serve on errors
+DEFAULT_ERROR_FILE = 'server-error.html'
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -74,6 +77,17 @@ app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
 
+def handle_error(error):
+    status_code = 500
+    if isinstance(error, werkzeug.exceptions.HTTPException):
+        status_code = error.code
+    try:
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
+    except:
+        error_file = DEFAULT_ERROR_FILE
+    f = flask.send_from_directory(static_dir('html'), error_file)
+
+    return f, status_code
 
 def api_copyNonSessionSimulation():
     req = _json_input()
@@ -87,9 +101,15 @@ def api_copyNonSessionSimulation():
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(data)
+        target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+        template_common.copy_lib_files(
+            data,
+            py.path.local(os.path.dirname(global_path)).join('lib'),
+            target.join('../lib'),
+        )
         template = sirepo.template.import_module(data)
         if hasattr(template, 'copy_related_files'):
-            template.copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
+            template.copy_related_files(data, global_path, str(target))
         return res
     werkzeug.exceptions.abort(404)
 app_copy_nonsession_simulation = api_copyNonSessionSimulation
@@ -116,6 +136,23 @@ def api_copySimulation():
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(data)
 app_copy_simulation = api_copySimulation
+
+
+def api_deleteFile():
+    req = _json_input()
+    filename = werkzeug.secure_filename(req['fileName'])
+    search_name = _lib_filename(req['simulationType'], filename, req['fileType'])
+    err = _simulations_using_file(req['simulationType'], req['fileType'], search_name)
+    if len(err):
+        return _json_response({
+            'error': 'File is in use in other simulations.',
+            'fileList': err,
+            'fileName': filename,
+        })
+    p = _lib_filepath(req['simulationType'], filename, req['fileType'])
+    pkio.unchecked_remove(p)
+    return _json_response({})
+app_delete_file = api_deleteFile
 
 
 def api_deleteSimulation():
@@ -179,6 +216,9 @@ def api_exportArchive(simulation_type, simulation_id, filename):
         as_attachment=True,
         attachment_filename=filename,
         mimetype=mt,
+        #TODO(pjm): the browser caches HTML files, may need to add explicit times
+        # to other calls to send_file()
+        cache_timeout=1,
     )
 
 
@@ -315,7 +355,9 @@ def api_importFile(simulation_type=None):
             ValueError('must supply a file')
         if pkio.has_file_extension(f.filename, 'json'):
             data = sirepo.importer.read_json(f.read(), template)
-        elif pkio.has_file_extension(f.filename, 'zip'):
+        #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
+        # (dicom input is normally a zip file)
+        elif pkio.has_file_extension(f.filename, 'zip') and simulation_type != 'rs4pi':
             data = sirepo.importer.read_zip(f.stream, template)
         else:
             assert simulation_type, \
@@ -578,26 +620,30 @@ app_update_folder = api_updateFolder
 
 def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    template = sirepo.template.import_module(simulation_type)
     filename = werkzeug.secure_filename(f.filename)
-    if simulation_type == 'srw':
-        p = lib.join(filename)
-    else:
-        p = lib.join(werkzeug.secure_filename('{}.{}'.format(file_type, filename)))
+    p = _lib_filepath(simulation_type, filename, file_type)
     err = None
+    file_list = None
     if p.check():
-        err = 'file exists: {}'.format(filename)
+        confirm = flask.request.form['confirm'] if 'confirm' in flask.request.form else None
+        if not confirm:
+            search_name = _lib_filename(simulation_type, filename, file_type)
+            file_list = _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=simulation_id)
+            if file_list:
+                err = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
     if not err:
         pkio.mkdir_parent_only(p)
         f.save(str(p))
-        err = template.validate_file(file_type, str(p))
-        if err:
-            pkio.unchecked_remove(p)
+        template = sirepo.template.import_module(simulation_type)
+        if hasattr(template, 'validate_file'):
+            err = template.validate_file(file_type, str(p))
+            if err:
+                pkio.unchecked_remove(p)
     if err:
         return _json_response({
             'error': err,
             'filename': filename,
+            'fileList': file_list,
             'fileType': file_type,
             'simulationId': simulation_id,
         })
@@ -641,6 +687,10 @@ def init(db_dir=None, uwsgi=None):
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
+
+    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        app.register_error_handler(int(err), handle_error)
+
     return app
 
 
@@ -855,6 +905,17 @@ def _mtime_or_now(path):
     return int(path.mtime() if path.exists() else time.time())
 
 
+def _lib_filename(simulation_type, filename, file_type):
+    if simulation_type == 'srw':
+        return filename
+    return werkzeug.secure_filename('{}.{}'.format(file_type, filename))
+
+
+def _lib_filepath(simulation_type, filename, file_type):
+    lib = simulation_db.simulation_lib_dir(simulation_type)
+    return lib.join(_lib_filename(simulation_type, filename, file_type))
+
+
 def _no_cache(response):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
@@ -1011,6 +1072,23 @@ def _simulation_run_status(data, quiet=False):
     return res
 
 
+def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
+    res = []
+    template = sirepo.template.import_module(simulation_type)
+    if not hasattr(template, 'validate_delete_file'):
+        return res
+    for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
+        if template.validate_delete_file(row, search_name, file_type):
+            sim = row['models']['simulation']
+            if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
+                continue
+            if sim['folder'] == '/':
+                res.append('/{}'.format(sim['name']))
+            else:
+                res.append('{}/{}'.format(sim['folder'], sim['name']))
+    return res
+
+
 def _source_cache_key():
     if cfg.enable_source_cache_key:
         return '?{}'.format(simulation_db.app_version())
@@ -1049,6 +1127,9 @@ def _validate_serial(data):
         'error': 'invalidSerial',
         'simulationData': res,
     })
+
+def static_dir(dir_name):
+    return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
 cfg = pkconfig.init(

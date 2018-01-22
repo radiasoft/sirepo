@@ -59,11 +59,11 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     return self;
 });
 
-SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, warpPBAService, persistentSimulation, $scope) {
+SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, panelState, warpPBAService, persistentSimulation, $scope) {
     var self = this;
-    self.model = 'animation';
+    self.panelState = panelState;
 
-    self.handleStatus = function(data) {
+    function handleStatus(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime) {
             ['fieldAnimation', 'particleAnimation', 'beamAnimation'].forEach(function(m) {
@@ -71,17 +71,13 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
                 appState.saveQuietly(m);
             });
         }
-    };
-
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
-    };
+    }
 
     self.isElectronBeam = function() {
         return warpPBAService.isElectronBeam();
     };
 
-    persistentSimulation.initProperties(self, $scope, {
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'coordinate', 'mode', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
         beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
@@ -355,6 +351,8 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: [
+            '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -366,35 +364,24 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about" data-ng-click="nav.openSection(\'simulations\')"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-            '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">',
-            SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
-            '</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-            '</ul>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+                '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'dynamics\')}"><a href data-ng-click="nav.openSection(\'dynamics\')"><span class="glyphicon glyphicon-option-horizontal"></span> Dynamics</a></li>',
+                '</div>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+                //  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
+              '</app-header-right-sim-list>',
+            '</div>',
         ].join(''),
-        controller: function($scope) {
-            $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations'))
-                    return false;
-                return appState.isLoaded();
-            };
-            $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
-            };
-            $scope.showSimulationModal = function() {
-                panelState.showModalEditor('simulation');
-            };
-        },
     };
 });

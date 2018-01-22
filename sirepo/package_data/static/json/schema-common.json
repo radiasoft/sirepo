@@ -1,12 +1,12 @@
 {
-    "version": "20170801.000002",
+    "version": "20180119.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
         },
         "elegant": {
-            "longName": "Elegant",
+            "longName": "elegant",
             "shortName": "Elegant"
         },
         "warpvnd": {
@@ -16,6 +16,10 @@
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"
+        },
+        "rs4pi": {
+            "longName": "RS4PI",
+            "shortName": "RS4PI"
         },
         "shadow": {
             "longName": "SHADOW",
@@ -37,6 +41,7 @@
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
+        "deleteFile": "/delete-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
@@ -68,5 +73,43 @@
         "srUnit": "/ sr_unit",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+    },
+    "commonViews": {
+        "simDoc": {
+            "model": "simulation",
+            "title": "Simulation Documentation",
+            "advanced": [
+                "documentationUrl"
+            ]
+        },
+        "simFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    },
+    "commonModels": {
+        "simFolder": {
+            "name": ["Folder Name", "SafePath"]
+        },
+        "simulation": {
+            "name": ["Name", "SafePath"],
+            "folder": ["Folder", "String"],
+            "documentationUrl": ["Documentation URL", "OptionalString", ""]
+        }
+    },
+    "commonEnums": {
+        "ColorMap": [
+            ["grayscale", "grayscale"],
+            ["viridis", "viridis"],
+            ["afmhot", "afmhot"],
+            ["coolwarm", "coolwarm"],
+            ["jet", "jet"]
+        ]
+    },
+    "customErrors": {
+        "404": "not-found.html",
+        "500": "server-error.html"
     }
 }

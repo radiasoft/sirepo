@@ -3,10 +3,18 @@
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
         "CurrentMode": [
             ["1", "User Specified"],
             ["2", "Child-Langmuir Emission"],
             ["3", "Thermionic Emission"]
+        ],
+        "Dimension": [
+            ["x", "X"],
+            ["z", "Z"]
         ],
         "Field": [
             ["x", "E x"],
@@ -20,6 +28,12 @@
             ["10", "10"],
             ["15", "15"],
             ["20", "20"]
+        ],
+        "ParticleRenderCount": [
+            ["100", "100"],
+            ["80", "80"],
+            ["50", "50"],
+            ["10", "10"]
         ]
     },
     "model": {
@@ -37,7 +51,9 @@
             "name": ["Name", "String"],
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
-            "zLength": ["Length (Z) [µm]", "Float"]
+            "zLength": ["Length (Z) [µm]", "Float"],
+            "permittivity": ["Relative Permittivity", "Float", 7.0],
+            "isConductor": ["Conductor", "Boolean", "1"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -47,17 +63,34 @@
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
-        "fieldAnimation": {
-            "field": ["Field", "Field"],
+        "egunCurrentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
         },
-        "fieldReport": {},
-        "particleAnimation": {},
-        "simulation": {
-            "name": ["Name", "String"]
+        "fieldAnimation": {
+            "field": ["Field", "Field"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
+        "fieldComparisonReport": {
+            "dimension": ["Dimension", "Dimension"],
+            "xCell1": ["X Position 1", "XCell"],
+            "xCell2": ["X Position 2", "XCell"],
+            "xCell3": ["X Position 3", "XCell"],
+            "zCell1": ["Z Position 1", "ZCell"],
+            "zCell2": ["Z Position 2", "ZCell"],
+            "zCell3": ["Z Position 3", "ZCell"]
+        },
+        "fieldReport": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "impactDensityAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"]
+        },
+        "particleAnimation": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+        },
+        "simulation": {
+            "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
         "simulationGrid": {
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
@@ -102,7 +135,9 @@
                 "name",
                 "voltage",
                 "zLength",
-                "xLength"
+                "xLength",
+                "isConductor",
+                "permittivity"
             ]
         },
         "cathode": {
@@ -129,20 +164,49 @@
                 "framesPerSecond"
             ]
         },
+        "egunCurrentAnimation": {
+            "title": "Current Report",
+            "advanced": [
+                "framesPerSecond"
+            ]
+        },
         "fieldAnimation": {
             "title": "Field Animation",
             "advanced": [
                 "field",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
+            ]
+        },
+        "fieldComparisonReport": {
+            "title": "Field Comparison Report",
+            "advanced": [
+                "dimension",
+                "xCell1",
+                "xCell2",
+                "xCell3",
+                "zCell1",
+                "zCell2",
+                "zCell3"
             ]
         },
         "fieldReport": {
             "title": "Field Report",
-            "advanced": []
+            "advanced": [
+                "colorMap"
+            ]
+        },
+        "impactDensityAnimation": {
+            "title": "Impact Density",
+            "advanced": [
+                "colorMap"
+            ]
         },
         "particleAnimation": {
             "title": "Particle Trace",
-            "advanced": []
+            "advanced": [
+                "renderCount"
+            ]
         },
         "simulationGrid": {
             "title": "Simulation Grid",
@@ -164,15 +228,10 @@
                 "name"
             ]
         },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
-        },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": [
+                "simulation.egun_mode",
                 "simulationGrid.num_steps",
                 "simulationGrid.particles_per_step"
             ]

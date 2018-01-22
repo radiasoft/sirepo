@@ -126,7 +126,7 @@
                 "p_central": "0.0",
                 "p_central_mev": 1001,
                 "parameters": "1",
-                "print_statistics": 1,
+                "print_statistics": "1",
                 "random_number_seed": "987654321",
                 "show_element_timing": "0",
                 "sigma": "1",
@@ -178,7 +178,7 @@
                 "reference_file": "",
                 "reflect_reference_values": "0",
                 "s_dependent_driving_terms_file": "",
-                "statistics": 1
+                "statistics": "1"
             },
             {
                 "Po": "0.0",

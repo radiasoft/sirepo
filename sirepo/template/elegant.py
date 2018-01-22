@@ -16,13 +16,17 @@ from sirepo.template import elegant_lattice_importer
 from sirepo.template import template_common
 import ast
 import glob
+import math
 import numpy as np
 import os
 import os.path
 import py.path
 import re
 import sdds
+import stat
 import werkzeug
+
+BUNCH_OUTPUT_FILE = 'elegant.bun'
 
 #: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
@@ -78,7 +82,7 @@ _INFIX_TO_RPN = {
 
 def background_percent_complete(report, run_dir, is_running, schema):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    errors, last_element = _parse_elegant_log(run_dir)
+    errors, last_element = parse_elegant_log(run_dir)
     res = {
         'percentComplete': 100,
         'frameCount': 0,
@@ -108,13 +112,6 @@ def copy_related_files(data, source_path, target_path):
         pkio.mkdir_parent(str(animation_dir))
         for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
             py.path.local(f).copy(animation_dir)
-    # copy element InputFiles to lib
-    #TODO(robnagler) only should copy valid files. Make sure no path names
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
 
 
 def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
@@ -174,6 +171,22 @@ def fixup_old_data(data):
     for m in data['models']['elements']:
         if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
             m['mode'] = 'coordinate'
+    if 'centroid' not in data['models']['bunch']:
+        bunch = data['models']['bunch']
+        for f in ('emit_x', 'emit_y', 'emit_z'):
+            if bunch[f] and not isinstance(bunch[f], basestring):
+                bunch[f] /= 1e9
+        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
+            bunch['sigma_s'] /= 1e6
+        first_bunch_command = _find_first_bunch_command(data)
+        # first_bunch_command may not exist if the elegant sim has no bunched_beam command
+        if first_bunch_command:
+            first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
+            for f in _SCHEMA['model']['bunch']:
+                if f not in bunch and f in first_bunch_command:
+                    bunch[f] = first_bunch_command[f]
+        else:
+            bunch['centroid'] = '0,0,0,0,0,0'
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -216,8 +229,23 @@ def generate_lattice(data, filename_map, beamline_map, v):
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
-    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
+    v['rpn_variables'] = _generate_variables(data)
 
+    if is_parallel:
+        filename_map = _build_filename_map(data)
+        beamline_map = _build_beamline_map(data)
+        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+        v['simulationMode'] = data['models']['simulation']['simulationMode']
+        return pkjinja.render_resource('elegant.py', v)
+
+    for f in _SCHEMA['model']['bunch']:
+        info = _SCHEMA['model']['bunch'][f]
+        if info[1] == 'RPNValue':
+            field = 'bunch_{}'.format(f)
+            v[field] = _format_rpn_value(v[field], is_command=True)
+
+    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
     # sigma s, sigma dp, dp s coupling
     if longitudinal_method == 1:
         v['bunch_emit_z'] = 0
@@ -238,16 +266,10 @@ def generate_parameters_file(data, is_parallel=False):
         v['bunch_beta_y'] = 5
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
-    v['rpn_variables'] = _generate_variables(data)
-
-    if is_parallel:
-        filename_map = _build_filename_map(data)
-        beamline_map = _build_beamline_map(data)
-        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
-        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
-        v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return pkjinja.render_resource('elegant.py', v)
-
+        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
+            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
+    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
     return pkjinja.render_resource('elegant_bunch.py', v)
 
 
@@ -256,16 +278,21 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
+    if data['method'] == 'get_beam_input_type':
+        if data['input_file']:
+            data['input_type'] = _sdds_beam_type_from_file(data['input_file'])
+        return data
     if data['method'] == 'rpn_value':
-        value, error = _parse_expr(data['value'], data['variables'])
+        value, error = _parse_expr(data['value'], _variables_to_postfix(data['variables']))
         if error:
             data['error'] = error
         else:
             data['result'] = value
         return data
     if data['method'] == 'recompute_rpn_cache_values':
+        variables = _variables_to_postfix(data['variables'])
         for k in data['cache']:
-            value, error = _parse_expr(k, data['variables'])
+            value, error = _parse_expr(k, variables)
             if not error:
                 data['cache'][k] = value
         return data
@@ -327,7 +354,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    return _sdds('elegant.bun')
+    return _sdds(BUNCH_OUTPUT_FILE)
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
@@ -362,11 +389,7 @@ def lib_files(data, source_lib):
     Returns:
         list: py.path.local of source files
     """
-    res = []
-    _iterate_model_fields(data, res, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -380,15 +403,45 @@ def models_related_to_report(data):
     r = data['report']
     if 'bunchReport' not in r:
         return []
-    return [r, 'bunch', 'bunchSource', 'bunchFile']
+    res = [r, 'bunch', 'bunchSource', 'bunchFile']
+    for f in template_common.lib_files(data):
+        if f.exists():
+            res.append(f.mtime())
+    return res
 
 
-def new_simulation(data, new_simulation_data):
-    pass
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
+def parse_elegant_log(run_dir):
+    path = run_dir.join(ELEGANT_LOG_FILE)
+    if not path.exists():
+        return '', 0
+    res = ''
+    last_element = None
+    text = pkio.read_text(str(path))
+    want_next_line = False
+    prev_line = ''
+    prev_err = ''
+    for line in text.split("\n"):
+        if line == prev_line:
+            continue
+        match = re.search('^Starting (\S+) at s\=', line)
+        if match:
+            name = match.group(1)
+            if not re.search('^M\d+\#', name):
+                last_element = name
+        if want_next_line:
+            res += line + "\n"
+            want_next_line = False
+        elif _is_ignore_error_text(line):
+            pass
+        elif _is_error_text(line):
+            if len(line) < 10:
+                want_next_line = True
+            else:
+                if line != prev_err:
+                    res += line + "\n"
+                prev_err = line
+        prev_line = line
+    return res, last_element
 
 
 def prepare_for_client(data):
@@ -397,22 +450,19 @@ def prepare_for_client(data):
     # evaluate rpn values into model.rpnCache
     cache = {}
     data['models']['rpnCache'] = cache
+    variables = _variables_to_postfix(data['models']['rpnVariables'])
     state = {
         'cache': cache,
-        'rpnVariables': data['models']['rpnVariables'],
+        'rpnVariables': variables,
     }
     _iterate_model_fields(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
-        v, err = elegant_lattice_importer.parse_rpn_value(rpn_var['value'], data['models']['rpnVariables'])
+        v, err = _parse_expr(rpn_var['value'], variables)
         if not err:
             cache[rpn_var['name']] = v
             if elegant_lattice_importer.is_rpn_value(rpn_var['value']):
                 cache[rpn_var['value']] = v
-    return data
-
-
-def prepare_for_save(data):
     return data
 
 
@@ -442,20 +492,20 @@ def resource_files():
     return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
 
 
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    return filename in _simulation_files(data)
+
+
 def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
-        err = 'expecting sdds file with x, xp, y, yp, t and p columns'
+        err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
-            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-            has_columns = True
-            for col in ['x', 'xp', 'y', 'yp', 't', 'p']:
-                if col not in column_names:
-                    has_columns = False
-                    break
-            if has_columns:
+            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+            if beam_type in ('elegant', 'spiffe'):
                 sdds.sddsdata.ReadPage(_SDDS_INDEX)
-                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, column_names.index('x'))) > 0:
+                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
                     err = None
                 else:
                     err = 'sdds file contains no rows'
@@ -479,6 +529,9 @@ def write_parameters(data, schema, run_dir, is_parallel):
             is_parallel,
         ),
     )
+    for f in _simulation_files(data):
+        if re.search(r'SCRIPT-commandFile', f):
+            os.chmod(str(run_dir.join(f)), stat.S_IRUSR | stat.S_IXUSR)
 
 
 def _add_beamlines(beamline, beamlines, ordered_beamlines):
@@ -568,12 +621,20 @@ def _build_filename_map(data):
                     if model_type == 'elements':
                         filename = '{}.{}.sdds'.format(model['name'], k)
                     else:
-                        suffix = 'lte' if model['_type'] == 'save_lattice' else 'sdds'
+                        suffix = _command_file_extension(model)
                         filename = '{}{}.{}.{}'.format(model['_type'], model_index[model_name] if model_index[model_name] > 1 else '', k, suffix)
                     k = '{}{}{}'.format(model['_id'], _FILE_ID_SEP, field_index)
                     res[k] = filename
                     res['keys_in_order'].append(k)
     return res
+
+
+def _command_file_extension(model):
+    if model['_type'] == 'save_lattice':
+        return 'lte'
+    if model['_type'] == 'global_settings':
+        return 'txt'
+    return 'sdds'
 
 
 def _compute_percent_complete(data, last_element):
@@ -593,6 +654,19 @@ def _compute_percent_complete(data, last_element):
     if res > 100:
         return 100
     return res
+
+
+def _contains_columns(column_names, search):
+    for col in search:
+        if col not in column_names:
+            return False
+    return True
+
+
+def _correct_halo_gaussian_distribution_type(m):
+    # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
+    if 'distribution_type' in m and 'halogaussian' in m['distribution_type']:
+        m['distribution_type'] = m['distribution_type'].replace("halogaussian", 'halo(gaussian)')
 
 
 def _create_command(model_name, data):
@@ -617,7 +691,7 @@ def _create_default_commands(data):
             "output": "1",
             "p_central_mev": bunch['p_central_mev'],
             "parameters": "1",
-            "print_statistics": 1,
+            "print_statistics": "1",
             "sigma": "1",
             "use_beamline": simulation['visualizationBeamlineId'] if 'visualizationBeamlineId' in simulation else '',
         }),
@@ -635,7 +709,7 @@ def _create_default_commands(data):
             "filename": "1",
             "matched": "0",
             "output_at_each_step": "1",
-            "statistics": 1
+            "statistics": "1"
         }),
         _create_command('command_bunched_beam', {
             "_id": max_id + 4,
@@ -655,7 +729,8 @@ def _create_default_commands(data):
             "one_random_bunch": '0',
             "sigma_dp": bunch['sigma_dp'],
             "sigma_s": bunch['sigma_s'] / 1e06,
-            "symmetrize": 1,
+            "symmetrize": '1',
+            "Po": 0.0,
         }),
         _create_command('command_track', {
             "_id": max_id + 5,
@@ -667,7 +742,8 @@ def _create_default_commands(data):
 def _extract_sdds_column(filename, field, page_index):
     try:
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
-            err = _sdds_error('{}: cannot access'.format(filename))
+            pkdlog('{}: cannot access'.format(filename))
+            err = _sdds_error('Missing report output file.')
         else:
             column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
             #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
@@ -676,17 +752,18 @@ def _extract_sdds_column(filename, field, page_index):
                     #TODO(robnagler) is this an error?
                     break
             try:
+                values = sdds.sddsdata.GetColumn(
+                    _SDDS_INDEX,
+                    column_names.index(field),
+                )
                 return (
-                    sdds.sddsdata.GetColumn(
-                        _SDDS_INDEX,
-                        column_names.index(field),
-                    ),
+                    map(lambda v: _safe_sdds_value(v), values),
                     column_names,
                     None,
                 )
             except SystemError as e:
-                err = _sdds_error(
-                    '{}: page not found in {}'.format(page_index, filename))
+                pkdlog('{}: page not found in {}'.format(page_index, filename))
+                err = _sdds_error('Output page {} not found'.format(page_index) if page_index else 'No output was generated for this report.')
     finally:
         try:
             sdds.sddsdata.Terminate(_SDDS_INDEX)
@@ -755,6 +832,21 @@ def _file_info(filename, run_dir, id, output_index):
             pass
 
 
+def _find_first_bunch_command(data):
+    for m in data['models']['commands']:
+        if m['_type'] == 'bunched_beam':
+            return m
+    return None
+
+
+def _format_rpn_value(value, is_command=False):
+    if elegant_lattice_importer.is_rpn_value(value):
+        value = _infix_to_postfix(value)
+        if is_command:
+            return '({})'.format(value)
+    return value
+
+
 def _generate_commands(data, filename_map, beamline_map, v):
     state = {
         'commands': '',
@@ -769,7 +861,7 @@ def _generate_commands(data, filename_map, beamline_map, v):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += "% " + '{} sto {}'.format(variables[name], name) + "\n"
+        res += "% " + '{} sto {}'.format(_format_rpn_value(variables[name]), name) + "\n"
         visited[name] = True
     return res
 
@@ -790,6 +882,17 @@ def _get_filename_for_element_id(id, data):
     return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
 
 
+def _infix_to_postfix(expr):
+    try:
+        rpn = _parse_expr_infix(expr)
+        #pkdc('{} => {}', expr, rpn)
+        expr = rpn
+    except Exception as e:
+        #pkdc('{}: not infix: {}', expr, e)
+        pass
+    return expr
+
+
 #TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
 def _is_2d_plot(columns):
     if ('x' in columns and 'xp' in columns) \
@@ -800,7 +903,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal error|no expansion for entity|unable to find|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|Unable to compute dispersion|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
@@ -830,16 +933,16 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(value):
-                    state['commands'] += '  {} = "({})",'.format(field_name, value) + "\n"
-                elif element_schema[1] == 'StringArray':
+                if element_schema[1] == 'RPNValue':
+                    state['commands'] += '  {} = "{}",'.format(field_name, _format_rpn_value(value, is_command=True)) + "\n"
+                elif element_schema[1].endswith('StringArray'):
                     state['commands'] += '  {}[0] = {},'.format(field_name, value) + "\n"
                 else:
                     #TODO(pjm): combine with lattice file input formatting below
                     if element_schema[1] == 'OutputFile':
                         value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                     elif element_schema[1].startswith('InputFile'):
-                        value = 'command_{}-{}.{}'.format(model['_type'], field_name, value)
+                        value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif element_schema[1] == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
                     elif element_schema[1] == 'ElegantBeamlineList':
@@ -862,7 +965,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
 def _iterator_input_files(state, model, element_schema=None, field_name=None):
     if element_schema:
         if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append('{}-{}.{}'.format(_model_name_for_data(model), field_name, model[field_name]))
+            state.append(template_common.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
 
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
@@ -871,18 +974,28 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         return
     if element_schema:
         state['field_index'] += 1
-        if field_name in ['name', 'type', '_id'] or re.search('(X|Y)$', field_name):
+        if field_name in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field_name):
             return
         value = model[field_name]
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
+                if model['type'] == 'SCRIPT' and field_name == 'command':
+                    for f in ('commandFile', 'commandInputFile'):
+                        if f in model and model[f]:
+                            fn = template_common.lib_file_name(model['type'], f, model[f])
+                            value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
+                    if model['commandFile']:
+                        value = './' + value
+                if element_schema[1] == 'RPNValue':
+                    value = _format_rpn_value(value)
                 if element_schema[1].startswith('InputFile'):
-                    value = '{}-{}.{}'.format(model['type'], field_name, value)
+                    value = template_common.lib_file_name(model['type'], field_name, value)
                     if element_schema[1] == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif element_schema[1] == 'OutputFile':
                     value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
+                #TODO(pjm): don't quote numeric constants
                 state['lattice'] += '{}="{}",'.format(field_name, value)
     else:
         state['field_index'] = 0
@@ -896,7 +1009,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
     if element_schema:
         if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field_name]):
-            v, err = elegant_lattice_importer.parse_rpn_value(model[field_name], state['rpnVariables'])
+            v, err = _parse_expr(model[field_name], state['rpnVariables'])
             if not err:
                 state['cache'][model[field_name]] = v
 
@@ -942,42 +1055,9 @@ def _parameter_definitions(parameters):
     return res
 
 
-def _parse_elegant_log(run_dir):
-    path = run_dir.join(ELEGANT_LOG_FILE)
-    if not path.exists():
-        return '', 0
-    res = ''
-    last_element = None
-    text = pkio.read_text(str(path))
-    want_next_line = False
-    for line in text.split("\n"):
-        match = re.search('^Starting (\S+) at s\=', line)
-        if match:
-            name = match.group(1)
-            if not re.search('^M\d+\#', name):
-                last_element = name
-        if want_next_line:
-            res += line + "\n"
-            want_next_line = False
-        elif _is_ignore_error_text(line):
-            pass
-        elif _is_error_text(line):
-            if len(line) < 10:
-                want_next_line = True
-            else:
-                res += line + "\n"
-    return res, last_element
-
-
 def _parse_expr(expr, variables):
     """If not infix, default to rpn"""
-    try:
-        rpn = _parse_expr_infix(expr)
-        pkdc('{} => {}', expr, rpn)
-        expr = rpn
-    except Exception as e:
-        pkdc('{}: not infix: {}', expr, e)
-    return elegant_lattice_importer.parse_rpn_value(expr, variables)
+    return elegant_lattice_importer.parse_rpn_value(_infix_to_postfix(expr), variables)
 
 
 def _parse_expr_infix(expr):
@@ -1033,9 +1113,26 @@ def _plot_title(xfield, yfield, page_index):
 
 
 def _safe_sdds_value(v):
-    if str(v) == 'nan':
+    if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
     return v
+
+
+def _sdds_beam_type(column_names):
+    if _contains_columns(column_names, ['x', 'xp', 'y', 'yp', 't', 'p']):
+        return 'elegant'
+    if _contains_columns(column_names, ['r', 'pr', 'pz', 't', 'pphi']):
+        return 'spiffe'
+    return ''
+
+
+def _sdds_beam_type_from_file(filename):
+    res = ''
+    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+        res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+    sdds.sddsdata.Terminate(_SDDS_INDEX)
+    return res
 
 
 def _sdds_error(error_text='invalid data file'):
@@ -1045,12 +1142,32 @@ def _sdds_error(error_text='invalid data file'):
     }
 
 
+def _simulation_files(data):
+    res = []
+    _iterate_model_fields(data, res, _iterator_input_files)
+    if data['models']['bunchFile']['sourceFile']:
+        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+    return res
+
+
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
     enum_info = template_common.validate_models(data, schema)
+    _correct_halo_gaussian_distribution_type(data['models']['bunch'])
     for model_type in ['elements', 'commands']:
         for m in data['models'][model_type]:
             template_common.validate_model(m, schema['model'][_model_name_for_data(m)], enum_info)
+            _correct_halo_gaussian_distribution_type(m)
+
+
+def _variables_to_postfix(rpn_variables):
+    res = []
+    for v in rpn_variables:
+        res.append({
+            'name': v['name'],
+            'value': _infix_to_postfix(v['value']),
+        })
+    return res
 
 
 def _walk_beamline(beamline, index, elements, beamlines, beamline_map):

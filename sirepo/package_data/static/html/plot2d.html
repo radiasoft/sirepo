@@ -7,6 +7,9 @@
         <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
         <g class="y axis"></g>
         <g class="y axis grid"></g>
+        <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
+          <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
+        </g>
         <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
         <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
@@ -14,6 +17,7 @@
           <circle r="6"></circle>
         </g>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
+          <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
           <path class="line line-0"></path>
           <path class="line line-1"></path>
           <path class="line line-2"></path>
@@ -27,6 +31,8 @@
           <path class="line line-10"></path>
         </svg>
         <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
+      </g>
+      <g data-ng-if="wantLegend" class="sr-plot-legend" ng-attr-transform="translate(0, {{ margin.top + height+ 40 }})">
       </g>
     </svg></div>
     <div data-animation-buttons=""></div>

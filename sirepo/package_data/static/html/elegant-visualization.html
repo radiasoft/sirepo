@@ -7,7 +7,7 @@
           <span class="sr-panel-heading">Simulation Status</span>
           <div class="sr-panel-options pull-right">
             <div class="dropdown" style="display: inline-block">
-              <a data-ng-if="visualization.hasOutput()" href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
+              <a data-ng-if="visualization.simState.isStopped()" href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
               <ul class="dropdown-menu dropdown-menu-right">
                 <li class="dropdown-header">Download</li>
                 <li><a href data-ng-href="{{ visualization.logFileURL() }}" target="_blank">Elegant Log File</a></li>
@@ -19,31 +19,31 @@
           </div>
         </div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateProcessing()">
-            <div class="col-sm-12" data-ng-show="visualization.isStatePending()">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
+            <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
               <div>
-                {{ visualization.stateAsText() }}  {{ visualization.dots }}
+                {{ visualization.simState.stateAsText() }}  {{ visualization.simState.dots }}
               </div>
             </div>
-            <div class="col-sm-12" data-ng-show="visualization.isStateRunning()">
+            <div class="col-sm-12" data-ng-show="visualization.simState.isStateRunning()">
               <div>
-                {{ visualization.stateAsText() }}  {{ visualization.dots }}
-                <div data-simulation-status-timer="visualization.timeData"></div>
+                {{ visualization.simState.stateAsText() }}  {{ visualization.simState.dots }}
+                <div data-simulation-status-timer="visualization.simState.timeData"></div>
               </div>
               <div class="progress">
-                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.displayPercentComplete() }}%">
+                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
                 </div>
               </div>
             </div>
             <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="visualization.cancelSimulation()">End Simulation</button>
+              <button class="btn btn-default" data-ng-click="visualization.simState.cancelSimulation()">End Simulation</button>
             </div>
           </form>
-          <form name="form" class="form-horizontal" novalidate data-ng-show="visualization.isStateStopped()">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isStopped()">
             <div class="col-sm-12">
               Simulation
-              <span>{{ visualization.stateAsText() }}</span><span data-ng-show="visualization.hasTimeData()">:
-              <span data-simulation-status-timer="visualization.timeData"></span>
+              <span>{{ visualization.simState.stateAsText() }}</span><span data-ng-show="visualization.simState.hasTimeData()">:
+              <span data-simulation-status-timer="visualization.simState.timeData"></span>
               </span>
               <br><br>
               <div data-ng-if="visualization.simulationErrors" class="well well-lg">

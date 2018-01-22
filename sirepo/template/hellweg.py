@@ -61,14 +61,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
-def copy_related_files(data, source_path, target_path):
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def extract_beam_histrogram(report, run_dir, frame):
     beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
     points = hellweg_dump_reader.get_points(beam_info, report.reportType)
@@ -174,23 +166,7 @@ def get_animation_name(data):
 
 
 def lib_files(data, source_lib):
-    res = []
-    solenoid = data.models.solenoid
-    if solenoid.sourceDefinition == 'file' and solenoid.solenoidFile:
-        res.append(template_common.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
-    beam = data.models.beam
-    if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
-        res.append(template_common.lib_file_name('beam', 'cstFile', beam.cstFile))
-    if beam.beamDefinition == 'transverse_longitude':
-        if beam.transversalDistribution == 'file2d':
-            res.append(template_common.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
-        elif beam.transversalDistribution == 'file4d':
-            res.append(template_common.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
-        if beam.longitudinalDistribution == 'file1d':
-            res.append(template_common.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
-        if beam.longitudinalDistribution == 'file2d':
-            res.append(template_common.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -233,7 +209,7 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    return [
+    res = [
         r,
         'beam',
         'ellipticalDistribution',
@@ -242,10 +218,9 @@ def models_related_to_report(data):
         'sphericalDistribution',
         'twissDistribution',
     ]
-
-
-def new_simulation(data, new_simulation_data):
-    pass
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
+    return res
 
 
 def python_source_for_model(data, model):
@@ -266,33 +241,13 @@ solver.save_output('output.txt')
     '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
 
 
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
-
-
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return []
-
-
 def remove_last_frame(run_dir):
     pass
 
 
-def validate_file(file_type, path):
-    pass
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    return filename in _simulation_files(data)
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
@@ -492,6 +447,26 @@ def _report_title(report_type, enum_name, beam_info):
     return '{}, z={:.4f} cm'.format(
         _enum_text(enum_name, report_type),
         100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
+
+
+def _simulation_files(data):
+    res = []
+    solenoid = data.models.solenoid
+    if solenoid.sourceDefinition == 'file' and solenoid.solenoidFile:
+        res.append(template_common.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
+    beam = data.models.beam
+    if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
+        res.append(template_common.lib_file_name('beam', 'cstFile', beam.cstFile))
+    if beam.beamDefinition == 'transverse_longitude':
+        if beam.transversalDistribution == 'file2d':
+            res.append(template_common.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        elif beam.transversalDistribution == 'file4d':
+            res.append(template_common.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+        if beam.longitudinalDistribution == 'file1d':
+            res.append(template_common.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
+        if beam.longitudinalDistribution == 'file2d':
+            res.append(template_common.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
+    return res
 
 
 def _summary_text(run_dir):

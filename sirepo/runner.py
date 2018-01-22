@@ -344,13 +344,20 @@ def cfg_job_queue(value):
 def _assert_celery():
     """Verify celery & rabbit are running"""
     from sirepo import celery_tasks
-    err = None
-    try:
-        if not celery_tasks.celery.control.ping():
-            err = 'You need to start Celery:\nsirepo service celery'
-    except Exception:
-        err = 'You need to start Rabbit:\nsirepo service rabbitmq'
-    if err:
-        #TODO(robnagler) really should be pkconfig.Error() or something else
-        # but this prints a nice message. Don't call sys.exit, not nice
-        pkcli.command_error(err)
+    import time
+
+    for x in range(10):
+        err = None
+        try:
+            if not celery_tasks.celery.control.ping():
+                err = 'You need to start Celery:\nsirepo service celery'
+        except Exception:
+            err = 'You need to start Rabbit:\nsirepo service rabbitmq'
+            # Rabbit doesn't have a long timeout, but celery ping does
+            time.sleep(.5)
+        if not err:
+           return
+
+    #TODO(robnagler) really should be pkconfig.Error() or something else
+    # but this prints a nice message. Don't call sys.exit, not nice
+    pkcli.command_error(err)

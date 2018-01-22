@@ -8,6 +8,9 @@
       max-width: none;
       width: 100%;
     }
+    .navbar-nav .nav-tabs {
+      border-bottom: 0;
+    }
     @media (min-width: 768px) {
       .modal-lg {
         width: 100%;
@@ -16,6 +19,9 @@
     @media (min-width: 992px) {
       .modal-lg {
         width: 945px;
+      }
+      .sr-pull-right-sm {
+        float: right !important;
       }
     }
     @media(max-width: 480px) {
@@ -39,6 +45,14 @@
       opacity: 1;
     }
 
+    input::-ms-clear {
+      display: none;
+    }
+
+    .dropdown-menu {
+      white-space: nowrap;
+    }
+
     html, body {
       height: 100%;
       min-height: 100%;
@@ -54,6 +68,7 @@
     /* use body font size, override 12px which changed in 3.3.7 */
     .form-horizontal .form-group-sm .control-label {
       font-size: inherit;
+      padding-top: 4px;
     }
 
     /* app styles */
@@ -74,6 +89,26 @@
         -webkit-user-select: none;
         -ms-user-select: none;
         user-select: none;
+    }
+    .sr-toolbar-holder {
+      padding: 0 -12px;
+      margin-bottom: 10px;
+    }
+    .sr-toolbar-section {
+      display: inline-block;
+      border: 1px dashed #31708f;
+      border-radius: 6px;
+      margin: 5px;
+    }
+    .sr-toolbar-section-header {
+      margin-top: -10px;
+      color: #31708f;
+    }
+    .sr-toolbar-section-title {
+      border: 1px solid #31708f;
+      border-radius: 3px;
+      padding: 0 3px;
+      background-color: white;
     }
     .srw-beamline {
       border-radius: 6px;
@@ -96,6 +131,14 @@
       border: 1px solid #fff;
       margin-bottom: 5px;
       vertical-align: top;
+    }
+    .sr-beamline-element-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      color: #337ab7;
+      padding: 4px 0;
+      margin-left: 2px;
     }
     .srw-beamline-element.dragging {
       opacity: 0.7;
@@ -130,6 +173,11 @@
     .srw-hover:hover {
       border-radius: 5px;
       border: 1px solid #ccc;
+    }
+    .srw-beamline-invalid {
+      border-radius: 5px;
+      border: 1.5px dashed #ff0000;
+      fill: rgba(255, 0, 0, 1.0);
     }
     .srw-hover:hover .srw-beamline-close-icon {
       visibility: visible;
@@ -184,6 +232,129 @@
       transition: all 0.5s ease 0s;
     }
 
+
+    .sr-settings-submenu > app-settings > app-settings a {
+        padding: 3px 5px 3px 20px;
+        color: #333333;
+    }
+    .sr-settings-submenu > app-settings > app-settings a:hover,
+    .sr-settings-submenu > app-settings > app-settings a:focus {
+        color: #262626;
+        text-decoration: none;
+        background-color: #f5f5f5;
+    }
+
+    @media (max-width: 767px) {
+        .sr-navbar-right {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+    }
+    @media (min-width: 768px) {
+        .sr-navbar-right-flex {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+            float: right;
+        }
+        .sr-navbar-right .dropdown-menu {
+            right: 0;
+            left: auto;
+        }
+    }
+
+    app-header-right-sim-loaded .nav-tabs > li > a {
+        margin-top: 5px;
+        padding-top: 10px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    app-header-right-sim-loaded .nav-tabs > li.sim-section > a:hover {
+        background-color: #e7e7e7;
+    }
+    app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a,
+    app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:focus,
+    app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:hover {
+        background-color: #fff;
+    }
+
+    .toggle-group label.btn-default.toggle-off {
+        color: black;
+        background-color: white;
+        box-shadow: none;
+    }
+
+    .sr-bs-toggle + .toggle-group {
+        transition: left 0s;
+        -webkit-transition: left 0s;
+    }
+
+    .sr-notify {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, .5);
+    }
+    @media (min-width: 768px) {
+        .sr-notify-text {
+            text-align: right;
+        }
+        .sr-notify-pointer {
+            float: right;
+            padding-left: 4px;
+        }
+    }
+    @media (max-width: 767px) {
+        .sr-notify-text {
+            text-align: left;
+        }
+        .sr-notify-pointer {
+            float: left;
+            padding-right: 4px;
+        }
+    }
+
+    ul.sr-button-menu {
+        list-style: none;
+    }
+    li.sr-button-menu {
+        padding: 3px;
+    }
+
+    li.sr-button-menu > button.sr-button-menu-selected {
+        border-width: 1px;
+        border-style: solid;
+        border-color: #888888;
+        text-align: left;
+        color: white;
+        background-color: #337ab7;
+    }
+    li.sr-button-menu > button.sr-button-menu-selected:hover {
+        color: white;
+        background-color: #286090;
+    }
+
+    li.sr-button-menu > button.sr-button-menu-unselected {
+        border-width: 1px;
+        border-style: solid;
+        border-color: #888888;
+        text-align: left;
+        color: black;
+        background-color: #f5f5f5;
+    }
+    li.sr-button-menu > button.sr-button-menu-unselected:hover {
+        color: white;
+        background-color: #4897da;
+    }
+
+    .sr-color-map-indicator {
+        width: 64px;
+        height: 24px;
+        border-radius: 4px;
+        border-style: solid;
+        border-width: 1px;
+        vertical-align: middle;
+        display: inline-block;
+    }
+
     .sr-panel-heading {
       font-weight: 300;
       line-height: 1.4;
@@ -223,7 +394,7 @@
 
     /* plot styles */
     .sr-plot .axis text {
-      font-size: 10px;
+      font-size: 12px;
     }
     .sr-plot .axis path,
     .sr-plot .axis line {
@@ -293,29 +464,19 @@
     .sr-plot path.line-11 {
       opacity: 0.15;
     }
-    .sr-plot path.line-y1 {
+    .sr-plot path.line-color {
       fill: none;
-      stroke: rgb(31, 119, 180);
       stroke-width: 2px;
     }
-    .sr-plot circle.line-y1 {
-      fill: rgb(31, 119, 180);
-      stroke: rgb(31, 119, 180);
+    .sr-plot circle.line-absorbed {
+      fill: steelblue;
+      stroke: steelblue;
     }
-    .sr-plot path.line-y2 {
-      fill: none;
-      stroke: rgb(255, 127, 14);
-      stroke-width: 2px;
-    }
-    .sr-plot circle.line-y2 {
-      fill: rgb(255, 127, 14);
-      stroke: rgb(255, 127, 14);
-    }
-    .sr-plot path.line-error {
+    .sr-plot path.line-reflected {
       stroke: #e04836;
       opacity: 0.35;
     }
-    .sr-plot circle.line-error {
+    .sr-plot circle.line-reflected {
       stroke: #e04836;
       fill: #e04836;
     }
@@ -329,20 +490,20 @@
       stroke-width: 2px;
     }
     .sr-plot .focus-hint {
-      font-size: 10px;
+      font-size: 12px;
       fill: steelblue;
     }
     .sr-plot .focus-text {
       font-size: 14px;
       fill: steelblue;
     }
-    .sr-plot rect.mouse-zoom {
+    .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
     }
-    .sr-plot rect.mouse-move {
+    .sr-plot rect.mouse-move, .sr-plot svg.mouse-move {
       cursor: move;
     }
-    .sr-plot rect.mouse-move-ew {
+    .sr-plot rect.mouse-move-ew, .sr-plot svg.mouse-move-ew {
       cursor: ew-resize;
     }
     .sr-plot rect.mouse-move-e {
@@ -403,6 +564,7 @@ th.srw-tiny-heading {
   font-size: 12px;
   font-weight: normal;
   text-align: center;
+  white-space: pre-wrap;
 }
 .sr-info-pointer {
   cursor: default;
@@ -477,6 +639,15 @@ circle.srw-sample-black {
   stroke: #000;
   fill: #000;
 }
+path.srw-no-fill {
+  stroke: #000;
+  fill: none;
+}
+path.srw-dash-stroke {
+  stroke: #999;
+  stroke-dasharray: 1,1;
+  fill: none;
+}
 svg.srw-beamline-item-icon {
   width: 50px;
   height: 60px;
@@ -501,6 +672,7 @@ a:focus, a.srw-tab:focus {
   margin-right: 15px;
   color: #337ab7;
   opacity: 1;
+  margin-right: 10px;
 }
 .sr-help-icon:hover {
   color: #286090;
@@ -684,6 +856,43 @@ li.sr-model-list-item > a {
   color: #d9534f;
 }
 
+.sr-input-warning {
+  font-style: italic;
+  font-size: 95%;
+  color: #ff0000;
+  align-self: center;
+}
+
+.sr-page-load {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(192, 192, 192, 0.5);
+    text-align: center;
+}
+.sr-page-load-image {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin: -23px 0 0 -24px;
+    display: block;
+}
+.sr-page-load-text {
+    display: inline-block;
+    font-size: 16pt;
+    font-weight: bold;
+    color: rgb(1, 80 , 147);
+    position: absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    margin-top: calc(23px + 0.75em);
+}
+
 .elegant-beamline-element {
   float: left;
   min-width: 4em;
@@ -720,6 +929,12 @@ li.sr-model-list-item > a {
 }
 .elegant-beamline-icon {
   background-color: #222;
+}
+.elegant-beamline-icon-disabled {
+  background-color: #aaa;
+}
+div.elegant-beamline-icon-disabled span {
+    cursor: not-allowed;
 }
 .elegant-item-selected {
   background-color: blue;
@@ -766,6 +981,13 @@ li.sr-model-list-item > a {
   overflow: auto;
   max-height: 180px;
 }
+.elegant-list-value {
+    display: inline-block;
+    width: 10em;
+    margin-right: 1em;
+    margin-bottom: 4px;
+}
+
 .hellweg-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
@@ -847,4 +1069,100 @@ p.hellweg-drop-zone {
 }
 .sr-drag-clone-hidden {
   opacity: 0;
+}
+
+.sr-plot .bar rect {
+  shape-rendering: crispEdges;
+  fill: steelblue;
+}
+.sr-plot .resize path {
+  fill: #666;
+  fill-opacity: .8;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+.sr-plot .brush .extent {
+  stroke: #fff;
+  stroke-opacity: .6;
+  stroke-width: 2px;
+  fill-opacity: .1;
+  shape-rendering: crispEdges;
+}
+.sr-flip-glyph {
+  transform: scaleX(-1);
+  filter: FlipH;
+  -ms-filter: "FlipH";
+}
+.sr-rotate-glyph {
+  transform: rotate(-45deg);
+}
+.sr-circle-glyph {
+  font-size: 24px;
+  line-height: 13px;
+  position: relative;
+  top: 3px;
+}
+
+.sr-plot .dicom-roi {
+  fill: none;
+  stroke-width: 4px;
+  stroke-dasharray: 5,5;
+  stroke-width: 2px;
+  fill-rule: evenodd;
+  pointer-events: none;
+}
+.sr-plot .dicom-roi-selected {
+  stroke-dasharray: 1,0;
+}
+.sr-plot .dicom-roi-drawing {
+  stroke-width: 2px;
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-dragpath {
+  stroke: #fff;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+  pointer-events: none;
+}
+.sr-plot .dicom-dragpath:hover {
+  stroke-opacity: 0.1;
+}
+.sr-plot .plane-dragline {
+  stroke: red;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+  pointer-events: none;
+}
+.sr-plot .selectable-path {
+  pointer-events: visibleStroke;
+}
+.sr-plot .plane-dragline:hover {
+  stroke-opacity: 0.3;
+  stroke: steelblue;
+}
+.sr-plot .plane-dragline-x {
+  cursor: ew-resize;
+}
+.sr-plot .plane-dragline-y {
+  cursor: ns-resize;
+}
+.sr-plot .dicom-dragpath-move {
+  cursor: move;
+}
+.sr-plot .dicom-dragpath-select {
+  cursor: auto;
+}
+.sr-plot .dicom-roimode-draw {
+  cursor: crosshair;
+}
+.sr-plot .dicom-draw-start {
+  stroke: rgb(0,230,0);
+  stroke-width: 1px;
+  fill: none;
+}
+.dicom-button-panel {
+  margin-bottom: 1ex;
 }

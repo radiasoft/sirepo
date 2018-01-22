@@ -11,15 +11,28 @@
             ["r", "Rectangular"],
             ["c", "Circular"]
         ],
+        "ApertureShapeToroidalMirror": [
+            ["r", "Rectangular"],
+            ["e", "Elliptical"]
+        ],
         "ApplicationMode": [
             ["default", "Expert"],
             ["calculator", "SR Calculator"],
             ["light-sources", "Light Source Facilities"],
             ["wavefront", "Wavefront Propagation"]
         ],
+        "AutocomputeVectors": [
+            ["horizontal", "Horizontal"],
+            ["vertical", "Vertical"],
+            ["none", "None"]
+        ],
         "BeamDefinition": [
             ["t", "Twiss"],
             ["m", "Moments"]
+        ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
         ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],
@@ -83,11 +96,6 @@
         "FocalPlane": [
             ["1", "Horizontal"],
             ["2", "Vertical"],
-            ["3", "Both"]
-        ],
-        "FiberFocalPlane": [
-            ["1", "Horizontal (fiber is parallel to vertical axis)"],
-            ["2", "Vertical (fiber is parallel to horizontal axis)"],
             ["3", "Both"]
         ],
         "GaussianBeamPolarization": [
@@ -165,9 +173,14 @@
             ["n", "Horizontal"],
             ["s", "Vertical"]
         ],
-        "PlotAxis": [
-            ["x", "Horizontal"],
-            ["y", "Vertical"]
+        "OutputImageFormat": [
+            ["tif", "TIF"],
+            ["tiff", "TIFF"],
+            ["png", "PNG"],
+            ["bmp", "BMP"],
+            ["gif", "GIF"],
+            ["jpg", "JPG"],
+            ["jpeg", "JPEG"]
         ],
         "Polarization": [
             ["0", "Linear Horizontal"],
@@ -211,6 +224,31 @@
             ["1", "Symmetrical"],
             ["-1", "Anti-symmetrical"]
         ],
+        "TrajectoryPlotAxis": [
+            ["ct", "c × t"],
+            ["X", "Horizontal Position"],
+            ["Y", "Vertical Position"],
+            ["Z", "Longitudinal Position"],
+            ["Bx", "Horizontal Magnetic Field"],
+            ["By", "Vertical Magnetic Field"],
+            ["Bz", "Longitudinal Magnetic Field"],
+            ["BetaX", "Horizontal Beta"],
+            ["BetaY", "Vertical Beta"],
+            ["BetaZ", "Longitudinal Beta"]
+        ],
+        "TrajectoryPlotAxis2": [
+            ["ct", "c × t"],
+            ["X", "Horizontal Position"],
+            ["Y", "Vertical Position"],
+            ["Z", "Longitudinal Position"],
+            ["Bx", "Horizontal Magnetic Field"],
+            ["By", "Vertical Magnetic Field"],
+            ["Bz", "Longitudinal Magnetic Field"],
+            ["BetaX", "Horizontal Beta"],
+            ["BetaY", "Vertical Beta"],
+            ["BetaZ", "Longitudinal Beta"],
+            ["None", "None"]
+        ],
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
@@ -223,8 +261,8 @@
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
             "verticalSize": ["Vertical Size [mm]", "Float", 1],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -234,8 +272,8 @@
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 4.20756805e-06, "Tooltip"],
             "attenuationLength": ["Attenuation Length [m]", "Float", 7.31294e-03, "Tooltip"],
-            "focalDistance": ["CRL Focal Distance [m]", "Float", "", "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
-            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", "", "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
+            "focalDistance": ["CRL Focal Distance [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
+            "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "shape": ["Shape", "CRLShape", "1"],
             "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
@@ -243,7 +281,9 @@
             "tipRadius": ["Radius on Tip of Parabola [µm]", "Float", 1.5e3],
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
             "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float", 80e-6],
-            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float", 80]
+            "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float", 80],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
@@ -307,13 +347,14 @@
             "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
-            "title": ["Element Name", "String", "Elliptical Mirror"],
+            "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
             "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.01],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.6],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999935200069984],
             "normalVectorZ": ["Longitudinal", "Float", -0.0035999922240050387],
@@ -321,12 +362,14 @@
             "tangentialVectorY": ["Vertical", "Float", -0.0035999922240050387],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
             "position": ["Nominal Position [m]", "Float"],
-            "focalPlane": ["Plane of Focusing", "FiberFocalPlane", "1"],
+            "focalPlane": ["Focal Plane", "FocalPlane", "1", "Horizontal (fiber is parallel to vertical axis), Vertical (fiber is parallel to horizontal axis)"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "externalMaterial": ["External Material", "CRLMaterial", "User-defined"],
             "externalRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "Tooltip"],
@@ -340,40 +383,44 @@
             "verticalCenterPosition": ["Vertical Center Position [m]", "Float", 0]
         },
         "fluxAnimation": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
-            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
-            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
-            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
-            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
-            "method": ["Flux Computation Method", "FluxMethod"],
-            "precision": ["Relative Precision", "Float"],
-            "fluxType": ["Entity to Calculate", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float", 10000],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float", 20000],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
+            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
+            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float", 1],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", 1],
+            "method": ["Flux Computation Method", "FluxMethod", "1"],
+            "precision": ["Relative Precision", "Float", 0.01],
+            "fluxType": ["Entity to Calculate", "Flux", "1"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
         },
         "fluxReport": {
-            "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
-            "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
-            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float"],
-            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float"],
-            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer"],
-            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer"],
-            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float"],
-            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float"],
-            "fluxType": ["Entity to Calculate", "Flux"],
-            "polarization": ["Polarization Component to Extract", "Polarization"]
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "initialEnergy": ["Initial Photon Energy [eV]", "Float", 10000],
+            "finalEnergy": ["Final Photon Energy [eV]", "Float", 20000],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
+            "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
+            "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
+            "azimuthalPrecision": ["Azimuthal Integration Precision", "Float", 1],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", 1],
+            "method": ["Flux Computation Method", "FluxMethod", "-1"],
+            "precision": ["Relative Precision", "Float", 0.01],
+            "fluxType": ["Entity to Calculate", "Flux", "1"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -381,13 +428,14 @@
             "waistZ": ["Longitudinal Waist Position [µm]", "Float"],
             "waistAngleX": ["Horizontal Beam Angle [mrad]", "Float"],
             "waistAngleY": ["Vertical Beam Angle [mrad]", "Float"],
+            "photonEnergy": ["Average Photon Energy [eV]", "Float"],
             "energyPerPulse": ["Energy per Pulse [J]", "Float"],
             "polarization": ["Polarization", "GaussianBeamPolarization"],
-            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition"],
+            "sizeDefinition": ["Definition of Beam Size", "GaussianBeamSizeDefinition", "1"],
             "rmsSizeX": ["Horizontal RMS Waist [µm]", "Float"],
             "rmsSizeY": ["Vertical RMS Waist [µm]", "Float"],
-            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float"],
-            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float"],
+            "rmsDivergenceX": ["Horizontal RMS Divergence [µrad]", "Float", 0],
+            "rmsDivergenceY": ["Vertical RMS Divergence [µrad]", "Float", 0],
             "rmsPulseDuration": ["RMS Pulse Duration [ps]", "Float"]
         },
         "grating": {
@@ -396,45 +444,49 @@
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.99991607766],
             "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
             "tangentialVectorX": ["Horizontal", "Float", 0],
             "tangentialVectorY": ["Vertical", "Float", 0.0129552166147],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
-            "grooveDensity0": ["Groove Density a0", "Float", 1800],
-            "grooveDensity1": ["Groove Density a1y", "Float", 0.08997],
-            "grooveDensity2": ["Groove Density a2y²", "Float", 3.004e-6],
-            "grooveDensity3": ["Groove Density a3y³", "Float", 9.7e-11],
-            "grooveDensity4": ["Groove Density a4y⁴", "Float", 0]
+            "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
+            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
+            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 3.004e-6],
+            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 9.7e-11],
+            "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "initialEnergy": ["Initial Photon Energy [eV]", "Float"],
             "finalEnergy": ["Final Photon Energy [eV]", "Float"],
-            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer"],
+            "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-            "precision": ["Relative Precision", "Float"],
+            "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"]
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
             "position": ["Nominal Position [m]", "Float"],
             "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
@@ -456,11 +508,11 @@
             "verticalGridsNumber": ["Vertical Number of Grids", "Integer", 21],
             "horizontalGridDimension": ["Horizontal Grid Dimension [µm]", "Float", 5, "Width and height for rectangular or elliptical grids"],
             "verticalGridDimension": ["Vertical Grid Dimension [µm]", "Float", 5],
-            "horizontalMaskCoordinate": ["Horizontal Coordinate of the Mask", "Float", 0],
-            "verticalMaskCoordinate": ["Vertical Coordinate of the Mask", "Float", 0]
+            "horizontalMaskCoordinate": ["Horizontal Center Position", "Float", 0],
+            "verticalMaskCoordinate": ["Vertical Center Position", "Float", 0]
         },
         "mirror": {
-            "title": ["Element Name", "String", "Flat Mirror"],
+            "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
@@ -474,11 +526,12 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
         },
         "multiElectronAnimation": {
-            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter"],
-            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", "", "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
+            "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0]
+            "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -491,8 +544,8 @@
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5],
             "verticalSize": ["Vertical Size [mm]", "Float", 0.5],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Offset [mm]", "Float", 0]
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "powerDensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -502,10 +555,27 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
-            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+        },
+        "propagationParameters": {
+            "0": ["Auto-resize before propagation", "Boolean", "0"],
+            "1": ["Auto-resize after propagation", "Boolean", "0"],
+            "2": ["Relative precision for propagation with auto-resizing", "Float", 1, "1. is nominal"],
+            "3": ["Propagator", "AnalyticalTreatment", "0", "<div style='text-align: left'><strong>Standard</strong> - Fresnel (it uses two FFTs) <br/> <strong>Quadratic Term</strong> - with semi-analytical treatment of the quadratic (leading) phase terms (it uses two FFTs) <br/> <strong>From Waist</strong> - good for propagation from &quot;waist&quot over a large distance (it uses one FFT) <br/> <strong>To Waist</strong> - good for propagation to a &quot;waist&quot; (e.g. some 2D focus of an optical system) over some distance (it uses one FFT)</div>"],
+            "4": ["Do any resizing on fourier side, using FFT", "Boolean", "0"],
+            "5": ["Horizontal range modification factor at resizing", "Float", 1, "1. means no modification"],
+            "6": ["Horizontal resolution modification factor at resizing", "Float", 1],
+            "7": ["Vertical range modification factor at resizing", "Float", 1],
+            "8": ["Vertical resolution modification factor at resizing", "Float", 1],
+            "12": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
+            "13": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
+            "14": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nLongitudinal Coordinate", "Float", 0],
+            "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
+            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -518,34 +588,43 @@
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 3.23075074E-05, "Tooltip"],
             "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "Tooltip"],
             "horizontalCenterCoordinate": ["Horizontal Center Position [nm]", "Float", 0],
-            "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0]
+            "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0],
+            "cropArea": ["Crop Area?", "Boolean", "1", "Crop selected rectangle area"],
+            "areaXStart": ["Horizontal Start Coordinate [pixels]", "Integer", 0],
+            "areaXEnd": ["Horizontal End Coordinate [pixels]", "Integer", 1280],
+            "areaYStart": ["Vertical Start Coordinate [pixels]", "Integer", 0],
+            "areaYEnd": ["Vertical End Coordinate [pixels]", "Integer", 834],
+            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image counterclockwise, negative - clockwise"],
+            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "0", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
+            "cutoffBackgroundNoise": ["Cutoff Background Noise Ratio", "Float", 0.5, "The ratio for cutoff the background noise (between 0 and 1)"],
+            "backgroundColor": ["Background Color", "Integer", 0, "The background color code to use instead of the background noise (0=black, 255=white)"],
+            "tileImage": ["Tile Sample?", "Boolean", "0", "Tile the cut area of the image with the provided number of rows and columns"],
+            "tileRows": ["Number of Rows", "Integer", 1],
+            "tileColumns": ["Number of Columns", "Integer", 1],
+            "shiftX": ["Horizontal Shift [pixels]", "Integer", 0],
+            "shiftY": ["Vertical Shift [pixels]", "Integer", 0],
+            "invert": ["Invert Image Colors", "Boolean", "0"],
+            "outputImageFormat": ["Output Image Format", "OutputImageFormat", "tif"]
         },
         "simulation": {
-            "documentationUrl": ["Documentation URL", "OptionalString"],
-            "facility": ["Facility", "String"],
-            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "isExample": ["Is Example Simulation", "String"],
-            "name": ["Name", "String"],
-            "outOfSessionSimulationId": ["Out of Session Simulation ID", "String"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "sourceType": ["Source Type", "SourceType"],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "simulationStatus": {
         },
         "sourceIntensityReport": {
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -554,20 +633,22 @@
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "precision": ["Relative Precision", "Float"],
+            "precision": ["Relative Precision", "Float", 0.01],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         },
         "sphericalMirror": {
-            "title": ["Element Name", "String", "Spherical Mirror"],
+            "title": ["Element Name", "String", "Circular Cylinder Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
             "normalVectorX": ["Horizontal", "Float", 0],
             "normalVectorY": ["Vertical", "Float", 0.9999025244842406],
             "normalVectorZ": ["Longitudinal", "Float", -0.013962146326506367],
@@ -575,27 +656,51 @@
             "tangentialVectorY": ["Vertical", "Float", 0.013962146326506367],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "tabulatedUndulator": {
             "undulatorSelector": ["Select Undulator", "UndulatorList"],
             "name": ["Undulator Name", "String"],
-            "undulatorType": ["Type of Undulator", "UndulatorType"],
-            "gap": ["Magnetic Gap [mm]", "Float"],
-            "phase": ["Magnet Arrays Shift [mm]", "Float"],
-            "magneticFile": ["Magnetic Data File", "MagneticZipFile"],
-            "indexFileName": ["Magnetic Zip Index File", "String"]
+            "undulatorType": ["Type of Undulator", "UndulatorType", "u_t"],
+            "gap": ["Magnetic Gap [mm]", "Float", 6.72],
+            "phase": ["Magnet Arrays Shift [mm]", "Float", 0],
+            "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
+        },
+        "toroidalMirror": {
+            "title": ["Element Name", "String", "Toroid Mirror"],
+            "position": ["Nominal Position [m]", "Float"],
+            "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
+            "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
+            "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.08],
+            "horizontalPosition": ["Horizontal Center Position [m]", "Float", 0],
+            "verticalPosition": ["Vertical Center Position [m]", "Float", 0],
+            "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
+            "normalVectorX": ["Horizontal", "Float", 0],
+            "normalVectorY": ["Vertical", "Float", 0.9999755001000415],
+            "normalVectorZ": ["Longitudinal", "Float", -0.006999942833473391],
+            "tangentialVectorX": ["Horizontal", "Float", 0],
+            "tangentialVectorY": ["Vertical", "Float", 0.006999942833473391],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "trajectoryReport": {
-            "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters"],
-            "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
-            "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float"],
-            "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer"],
-            "plotAxis": ["Axis to plot", "PlotAxis"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"]
+            "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters", "auto"],
+            "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
+            "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
+            "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer", 10000],
+            "plotAxisX": ["Horizontal Axis to Plot", "TrajectoryPlotAxis", "Z"],
+            "plotAxisY": ["Vertical Axis to Plot", "TrajectoryPlotAxis", "X"],
+            "plotAxisY2": ["Vertical Axis to Plot", "TrajectoryPlotAxis2", "None"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"]
         },
         "undulator": {
-            "undulatorParameter": ["Deflecting Parameter (K)", "Float"],
+            "undulatorParameter": ["Deflecting Parameter (K)", "Float", 0],
             "period": ["Period [mm]", "Float"],
             "length": ["Length [m]", "Float"],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
@@ -604,7 +709,10 @@
             "horizontalInitialPhase": ["Initial Horizontal Phase [rad]", "Float"],
             "verticalAmplitude": ["Vertical Magnetic Field [T]", "Float"],
             "verticalSymmetry": ["Vertical Symmetry", "Symmetry"],
-            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"]
+            "verticalInitialPhase": ["Initial Vertical Phase [rad]", "Float"],
+            "effectiveDeflectingParameter": ["Effective Deflecting Parameter", "Float"],
+            "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
+            "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
@@ -613,9 +721,10 @@
         "watchpointReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits"],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"]
         }
     },
     "view": {
@@ -642,27 +751,40 @@
             "title": "CRL",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "focalPlane",
-                "material",
-                "method",
-                "refractiveIndex",
-                "attenuationLength",
-                "focalDistance",
-                "shape",
-                "horizontalApertureSize",
-                "verticalApertureSize",
-                "tipRadius",
-                "numberOfLenses",
-                "tipWallThickness"
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "focalPlane",
+                    "shape",
+                    "horizontalApertureSize",
+                    "verticalApertureSize",
+                    "tipRadius",
+                    "numberOfLenses",
+                    "tipWallThickness",
+                    "focalDistance",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength",
+                    "focalDistance"
+                ]]
             ]
         },
         "crystal": {
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     [
@@ -771,17 +893,28 @@
             ]
         },
         "ellipsoidMirror": {
-            "title": "Elliptical Mirror",
+            "title": "Elliptical Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Dimensions", [
+                ["Geometry", [
                     "title",
                     "position",
                     "firstFocusLength",
                     "focalLength",
                     "tangentialSize",
                     "sagittalSize",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -794,7 +927,7 @@
                         ]]
                     ]
                 ]],
-                ["Mirror Error", [
+                ["Height Profile", [
                     "heightProfileFile",
                     "orientation",
                     "heightAmplification"
@@ -805,26 +938,36 @@
             "title": "Fiber",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "focalPlane",
-                "horizontalCenterPosition",
-                "verticalCenterPosition",
-                "method",
-                [
-                    ["External", [
-                        "externalMaterial",
-                        "externalRefractiveIndex",
-                        "externalAttenuationLength",
-                        "externalDiameter"
-                    ]],
-                    ["Core", [
-                        "coreMaterial",
-                        "coreRefractiveIndex",
-                        "coreAttenuationLength",
-                        "coreDiameter"
-                    ]]
-                ]
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "focalPlane",
+                    [
+                        ["Horizontal", [
+                            "horizontalCenterPosition"
+                        ]],
+                        ["Vertical", [
+                            "verticalCenterPosition"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "method",
+                    [
+                        ["External", [
+                            "externalMaterial",
+                            "externalRefractiveIndex",
+                            "externalAttenuationLength",
+                            "externalDiameter"
+                        ]],
+                        ["Core", [
+                            "coreMaterial",
+                            "coreRefractiveIndex",
+                            "coreAttenuationLength",
+                            "coreDiameter"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "fluxAnimation": {
@@ -862,7 +1005,7 @@
             ]
         },
         "fluxReport": {
-            "title": "Flux Report",
+            "title": "Flux",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -894,7 +1037,7 @@
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
             "basic": [
-                "simulation.photonEnergy",
+                "photonEnergy",
                 "energyPerPulse",
                 "polarization",
                 "rmsPulseDuration",
@@ -921,12 +1064,24 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     "tangentialSize",
                     "sagittalSize",
+                    "diffractionOrder",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -939,8 +1094,8 @@
                         ]]
                     ]
                 ]],
-                ["Additional Parameters", [
-                    "diffractionOrder",
+                ["Groove Parameters", [
+                    "*Groove Density Polynomial:\na₀ + a₁y + a₂y² + a₃y³ + a₄y⁴",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
@@ -962,6 +1117,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1014,37 +1172,41 @@
             "title": "Mask",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "material",
-                "method",
-                "refractiveIndex",
-                "attenuationLength",
-                "maskThickness",
-                "gridShape",
-                "gridTiltAngle",
-                [
-                    ["Horizontal", [
-                        "horizontalSamplingInterval",
-                        "horizontalGridPitch",
-                        "horizontalPixelsNumber",
-                        "horizontalGridsNumber",
-                        "horizontalGridDimension",
-                        "horizontalMaskCoordinate"
-                    ]],
-                    ["Vertical", [
-                        "verticalSamplingInterval",
-                        "verticalGridPitch",
-                        "verticalPixelsNumber",
-                        "verticalGridsNumber",
-                        "verticalGridDimension",
-                        "verticalMaskCoordinate"
-                    ]]
-                ]
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "maskThickness",
+                    "gridShape",
+                    "gridTiltAngle",
+                    [
+                        ["Horizontal", [
+                            "horizontalSamplingInterval",
+                            "horizontalGridPitch",
+                            "horizontalPixelsNumber",
+                            "horizontalGridsNumber",
+                            "horizontalGridDimension",
+                            "horizontalMaskCoordinate"
+                        ]],
+                        ["Vertical", [
+                            "verticalSamplingInterval",
+                            "verticalGridPitch",
+                            "verticalPixelsNumber",
+                            "verticalGridsNumber",
+                            "verticalGridDimension",
+                            "verticalMaskCoordinate"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength"
+                ]]
             ]
         },
         "mirror": {
-            "title": "Flat Mirror",
+            "title": "Planar Mirror",
             "basic": [],
             "advanced": [
                 "title",
@@ -1084,6 +1246,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1132,6 +1297,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
@@ -1139,23 +1307,51 @@
             "title": "Sample",
             "basic": [],
             "advanced": [
-                "title",
-                "position",
-                "imageFile",
-                "resolution",
-                "thickness",
-                "material",
-                "method",
-                "refractiveIndex",
-                "attenuationLength",
-                [
-                    ["Horizontal", [
-                        "horizontalCenterCoordinate"
-                    ]],
-                    ["Vertical", [
-                        "verticalCenterCoordinate"
-                    ]]
-                ]
+                ["Image Manipulation", [
+                    "title",
+                    "position",
+                    "imageFile",
+                    "rotateAngle",
+                    "rotateReshape",
+                    "cutoffBackgroundNoise",
+                    "backgroundColor",
+                    "invert",
+                    "tileImage",
+                    "tileRows",
+                    "tileColumns",
+                    "cropArea",
+                    [
+                        ["Horizontal", [
+                            "areaXStart",
+                            "areaXEnd",
+                            "shiftX"
+                        ]],
+                        ["Vertical", [
+                            "areaYStart",
+                            "areaYEnd",
+                            "shiftY"
+                        ]]
+                    ],
+                    "outputImageFormat"
+                ]],
+                ["Physical Properties", [
+                    "resolution",
+                    "thickness",
+                    [
+                        ["Horizontal", [
+                            "horizontalCenterCoordinate"
+                        ]],
+                        ["Vertical", [
+                            "verticalCenterCoordinate"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "material",
+                    "method",
+                    "refractiveIndex",
+                    "attenuationLength"
+                ]]
             ]
         },
         "simulation": {
@@ -1165,24 +1361,12 @@
                 "sourceType"
             ]
         },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationDocumentation": {
-            "model": "simulation",
-            "title": "Simulation Documentation",
-            "advanced": [
-                "documentationUrl"
-            ]
-        },
         "simulationGrid": {
             "model": "simulation",
             "title": "Initial Wavefront Simulation Grid",
             "advanced": [
                 "photonEnergy",
+                "distanceFromSource",
                 "samplingMethod",
                 "sampleFactor",
                 [
@@ -1235,20 +1419,34 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         },
         "sphericalMirror": {
-            "title": "Spherical Mirror",
+            "title": "Circular Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Main Parameters", [
+                ["Geometry", [
                     "title",
                     "position",
                     "radius",
                     "tangentialSize",
                     "sagittalSize",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Grazing Angle", [
                     "grazingAngle",
+                    "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
                             "normalVectorX",
@@ -1261,7 +1459,7 @@
                         ]]
                     ]
                 ]],
-                ["Mirror Error", [
+                ["Height Profile", [
                     "heightProfileFile",
                     "orientation",
                     "heightAmplification"
@@ -1276,19 +1474,21 @@
                 "undulatorType",
                 "gap",
                 "phase",
-                "undulator.undulatorParameter",
                 "undulator.period",
                 "undulator.length",
                 "undulator.longitudinalPosition",
                 "magneticFile",
+                "undulator.effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "undulator.horizontalAmplitude",
+                        "undulator.horizontalDeflectingParameter",
                         "undulator.horizontalInitialPhase",
                         "undulator.horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "undulator.verticalAmplitude",
+                        "undulator.verticalDeflectingParameter",
                         "undulator.verticalInitialPhase",
                         "undulator.verticalSymmetry"
                     ]]
@@ -1296,37 +1496,91 @@
             ],
             "advanced": []
         },
+        "toroidalMirror": {
+            "title": "Toroid Mirror",
+            "basic": [],
+            "advanced": [
+                ["Geometry", [
+                    "title",
+                    "position",
+                    [
+                        ["Tangential", [
+                            "tangentialRadius",
+                            "tangentialSize"
+                        ]],
+                        ["Sagittal", [
+                            "sagittalRadius",
+                            "sagittalSize"
+                        ]]
+                    ],
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ],
+                    "apertureShape"
+                ]],
+                ["Grazing Angle", [
+                    "grazingAngle",
+                    "autocomputeVectors",
+                    [
+                        ["Coordinates of Central Normal Vector", [
+                            "normalVectorX",
+                            "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Height Profile", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
+            ]
+        },
         "trajectoryReport": {
             "title": "Electron Trajectory Report",
             "basic": [],
             "advanced": [
-                ["Main", [
-                    "timeMomentEstimation",
-                    "initialTimeMoment",
-                    "finalTimeMoment",
-                    "numberOfPoints",
-                    "plotAxis"
-                ]],
-                ["Accuracy", [
-                    "magneticField"
-                ]]
+                "timeMomentEstimation",
+                "initialTimeMoment",
+                "finalTimeMoment",
+                "numberOfPoints",
+                [
+                    ["Horizontal", [
+                        "plotAxisX"
+                    ]],
+                    ["Vertical", [
+                        "plotAxisY",
+                        "plotAxisY2"
+                    ]]
+                ]
             ]
         },
         "undulator": {
             "title": "Idealized Undulator",
             "basic": [
-                "undulatorParameter",
                 "period",
                 "length",
                 "longitudinalPosition",
+                "effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",
+                        "horizontalDeflectingParameter",
                         "horizontalInitialPhase",
                         "horizontalSymmetry"
                     ]],
                     ["Vertical", [
                         "verticalAmplitude",
+                        "verticalDeflectingParameter",
                         "verticalInitialPhase",
                         "verticalSymmetry"
                     ]]
@@ -1355,6 +1609,9 @@
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap"
                 ]]
             ]
         }

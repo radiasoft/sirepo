@@ -18,6 +18,9 @@ import xraylib
 
 #: Simulation type
 SIM_TYPE = 'shadow'
+
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
@@ -26,6 +29,7 @@ _CENTIMETER_FIELDS = {
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    'crl': ['position', 'pilingThickness', 'rmirr', 'focalDistance', 'lensThickness', 'lensDiameter'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'histogramReport': ['distanceFromSource'],
     'plotXYReport': ['distanceFromSource'],
@@ -57,16 +61,22 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def copy_related_files(data, source_path, target_path):
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def fixup_old_data(data):
-    pass
+    if (
+        float(data.fixup_old_version) < 20170703.000001
+        and 'geometricSource' in data.models
+    ):
+        g = data.models.geometricSource
+        x = g.cone_max
+        g.cone_max = g.cone_min
+        g.cone_min = x
+    if 'verticalOffset' not in data.models.initialIntensityReport:
+        for name in data['models']:
+            if name == 'initialIntensityReport' or name == 'plotXYReport' or template_common.is_watchpoint(name):
+                m = data.models[name]
+                m.overrideSize = '0'
+                m.horizontalSize = m.verticalSize = 10
+                m.horizontalOffset = m.verticalOffset = 0
 
 
 def get_application_data(data):
@@ -91,12 +101,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
 
 
 def lib_files(data, source_lib):
-    res = []
-    if data['models']['simulation']['sourceType'] == 'wiggler':
-        if data['models']['wiggler']['b_from'] in ('1', '2'):
-            #TODO(pjm): need a general way to format lib file names, share with elegant.py
-            res.append('wiggler-trajFile.{}'.format(data['models']['wiggler']['trajFile']))
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -125,23 +130,9 @@ def models_related_to_report(data):
     #TODO(pjm): only include items up to the current watchpoint
     if template_common.is_watchpoint(r):
         res.append('beamline')
+    for f in template_common.lib_files(data):
+        res.append(f.mtime())
     return res
-
-
-def new_simulation(data, new_simulation_data):
-    pass
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
-
-
-def prepare_for_client(data):
-    return data
-
-
-def prepare_for_save(data):
-    return data
 
 
 def python_source_for_model(data, model):
@@ -168,6 +159,11 @@ def remove_last_frame(run_dir):
 
 def resource_files():
     return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
+
+
+def validate_delete_file(data, filename, file_type):
+    """Returns True if the filename is in use by the simulation data."""
+    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -206,6 +202,16 @@ def _convert_meters_to_centimeters(models):
                 model[f] *= 100
 
 
+def _eq(item, field, *values):
+    t = _SCHEMA.model[item['type']][field][1]
+    for v, n in _SCHEMA.enum[t]:
+        if item[field] == v:
+            return n in values
+    raise AssertionError(
+        '{}: value not found for model={} field={} type={}'.format(
+            item[field], item['type'], field, t))
+
+
 def _field_value(name, field, value):
     return "\n{}.{} = {}".format(name, field.upper(), value)
 
@@ -213,8 +219,21 @@ def _field_value(name, field, value):
 def _fields(name, item, fields):
     res = ''
     for f in fields:
-        field_name = _FIELD_ALIAS[f] if f in _FIELD_ALIAS else f
+        field_name = _FIELD_ALIAS.get(f, f)
         res += _field_value(name, field_name, item[f])
+    return res
+
+
+def _generate_autotune_element(item):
+    res = _item_field(item, ['f_central'])
+    if item['type'] == 'grating' or item.f_central == '0':
+        res += _item_field(item, ['t_incidence', 't_reflection'])
+    if item.f_central == '1':
+        res += _item_field(item, ['f_phot_cent'])
+        if item.f_phot_cent == '0':
+            res += _item_field(item, ['phot_cent'])
+        elif item.f_phot_cent == '1':
+            res += _item_field(item, ['r_lambda'])
     return res
 
 
@@ -238,26 +257,29 @@ def _generate_beamline_optics(models, last_id):
             image_distance = next_item.position - item.position
             break
         theta_recalc_required = item['type'] in ('crystal', 'grating') and item['f_default'] == '1' and item['f_central'] == '1'
-        res += "\n\n" + 'oe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
-        if item['type'] == 'aperture' or item['type'] == 'obstacle':
-            res += _generate_screen(item)
-        elif item['type'] == 'mirror':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_mirror(item)
-        elif item['type'] == 'crystal':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_crystal(item)
-        elif item['type'] == 'grating':
-            res += _generate_element(item, source_distance, image_distance)
-            res += _generate_grating(item)
-        elif item['type'] == 'watch':
-            res += "\n" + 'oe.set_empty()'
-            if last_id and last_id == int(item['id']):
-                last_element = True
+        if item['type'] == 'crl':
+            count, res = _generate_crl(item, source_distance, count, res)
         else:
-            raise RuntimeError('unknown item type: {}'.format(item))
-        if theta_recalc_required:
-            res += '''
+            res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
+            if item['type'] == 'aperture' or item['type'] == 'obstacle':
+                res += _generate_screen(item)
+            elif item['type'] == 'mirror':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_mirror(item)
+            elif item['type'] == 'crystal':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_crystal(item)
+            elif item['type'] == 'grating':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_grating(item)
+            elif item['type'] == 'watch':
+                res += "\n" + 'oe.set_empty()'
+                if last_id and last_id == int(item['id']):
+                    last_element = True
+            else:
+                raise RuntimeError('unknown item type: {}'.format(item))
+            if theta_recalc_required:
+                res += '''
 # use shadow to calculate THETA from the default position
 # but do not advance the original beam to the image depth
 calc_beam = beam.duplicate()
@@ -267,11 +289,11 @@ calc_oe.T_SOURCE = calc_oe.SSOUR
 calc_oe.T_IMAGE = calc_oe.SIMAG
 calc_beam.traceOE(calc_oe, 1)
 oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
-            '''
-        res += _field_value('oe', 'fwrite', '3') \
-               + _field_value('oe', 't_image', '0.0') \
-               + _field_value('oe', 't_source', source_distance) \
-               + "\n" + 'beam.traceOE(oe, {})'.format(count)
+'''
+            res += _field_value('oe', 'fwrite', '3') \
+                   + _field_value('oe', 't_image', 0.0) \
+                   + _field_value('oe', 't_source', source_distance) \
+                   + "\n" + 'beam.traceOE(oe, {})'.format(count)
         if last_element:
             break
         prev_position = item.position
@@ -288,17 +310,98 @@ def _generate_bending_magnet(data):
           + _field_value('source', 'r_aladdin', 'source.R_MAGNET * 100')
 
 
-def _generate_autotune_element(item):
-    res = _item_field(item, ['f_central'])
-    if item['type'] == 'grating' or item.f_central == '0':
-        res += _item_field(item, ['t_incidence', 't_reflection'])
-    if item.f_central == '1':
-        res += _item_field(item, ['f_phot_cent'])
-        if item.f_phot_cent == '0':
-            res += _item_field(item, ['phot_cent'])
-        elif item.f_phot_cent == '1':
-            res += _item_field(item, ['r_lambda'])
-    return res
+def _generate_crl(item, source_distance, count, res):
+    for n in range(item.numberOfLenses):
+        res += _generate_crl_lens(
+            item,
+            n == 0,
+            n == (item.numberOfLenses - 1),
+            count,
+            source_distance,
+        )
+        count += 2
+    return count - 1, res
+
+
+def _generate_crl_lens(item, is_first, is_last, count, source):
+
+    half_lens = item.lensThickness / 2.0
+    source_width = item.pilingThickness / 2.0 - half_lens
+    diameter = item.rmirr * 2.0
+
+    def _half(is_obj, **values):
+        is_ima = not is_obj
+        values = pkcollections.Dict(values)
+        # "10" is "conic", but it's only valid if useCCC, which
+        # are the external coefficients. The "shape" values are still
+        # valid
+        which = 'obj' if is_obj else 'ima'
+        values.update({
+            'r_attenuation_' + which: item.attenuationCoefficient,
+            'r_ind_' + which: item.refractionIndex,
+        })
+        if _eq(item, 'fmirr', 'Spherical', 'Paraboloid'):
+            ccc = [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, diameter, 0.0]
+            if bool(_eq(item, 'initialCurvature', 'Convex')) == is_ima:
+                values.f_convex = 1
+            else:
+                # Inverse diameter for concave surface
+                ccc[8] = -ccc[8]
+            if _eq(item, 'useCCC', 'Yes'):
+                if 'f_convex' in values:
+                    del values['f_convex']
+            if _eq(item, 'fmirr', 'Paraboloid'):
+                ccc[2] = 0.0
+            values.ccc = 'numpy.array([{}])'.format(', '.join(map(str, ccc)))
+        if is_ima:
+            values.update(
+                t_image=half_lens,
+                t_source=(source if is_first else 0.0) + source_width,
+            )
+        else:
+            values.update(
+                t_image=source_width,
+                t_source=half_lens,
+            )
+        fields = sorted(values.keys())
+        return '''
+
+oe = Shadow.OE(){}
+beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
+
+    common = pkcollections.Dict(
+        dummy=1.0,
+        fwrite=3,
+    )
+    # Same for all lenses (afaict)
+    common.update(
+        f_ext=1,
+        f_refrac=1,
+        t_incidence=0.0,
+        t_reflection=180.0,
+    )
+    common.fmirr = item.fmirr
+    if not _eq(item, 'fmirr', 'Plane'):
+        if _eq(item, 'useCCC', 'Yes'):
+            common.fmirr = 10
+        if _eq(item, 'fcyl', 'Yes'):
+            common.update(
+                fcyl=item.fcyl,
+                cil_ang=item.cil_ang,
+            )
+        if _eq(item, 'fmirr', 'Paraboloid'):
+            common.param = item.rmirr
+        else:
+            common.rmirr = item.rmirr
+    common.fhit_c = item.fhit_c
+    if _eq(item, 'fhit_c', 'Finite'):
+        lens_radius = item.lensDiameter / 2.0
+        common.update(
+            fshape=2,
+            rlen2=lens_radius,
+            rwidx2=lens_radius,
+        )
+    return _half(0, **common) + _half(1, **common)
 
 
 def _generate_crystal(item):
@@ -473,9 +576,9 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryFilename'] = _WIGGLER_TRAJECTOR_FILENAME
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
-            v['wigglerTrajectoryInput'] = 'wiggler-trajFile.{}'.format(data['models']['wiggler']['trajFile'])
-
-    return pkjinja.render_resource('shadow.py', v)
+            v['wigglerTrajectoryInput'] = _wiggler_file(data['models']['wiggler']['trajFile'])
+    b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
+    return pkjinja.render_file(b + '.jinja', v)
 
 
 def _generate_screen(item):
@@ -509,9 +612,21 @@ def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
 
 
+def _simulation_files(data):
+    res = []
+    if data['models']['simulation']['sourceType'] == 'wiggler':
+        if data['models']['wiggler']['b_from'] in ('1', '2'):
+            res.append(_wiggler_file(data['models']['wiggler']['trajFile']))
+    return res
+
+
 def _source_field(model, fields):
     return _fields('source', model, fields)
 
 
 def _validate_data(data, schema):
     template_common.validate_models(data, schema)
+
+
+def _wiggler_file(value):
+    return template_common.lib_file_name('wiggler', 'trajFile', value)

@@ -7,6 +7,7 @@ build_vars() {
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_tini_file=$boot_dir/tini
     sirepo_boot=$boot_dir/start
+    build_is_public=1
     build_docker_cmd='["'"$sirepo_tini_file"'", "--", "'"$sirepo_boot"'"]'
     #TODO(robnagler) don't set build user
     #build_dockerfile_aux="USER $build_run_user"
@@ -14,13 +15,13 @@ build_vars() {
 
 build_as_root() {
     umask 022
-    build_curl https://rpm.nodesource.com/setup_4.x | bash
-    yum install -y -q nodejs
+    build_yum install nodejs
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
 
 build_as_run_user() {
+    . ~/.bashrc
     cd "$build_guest_conf"
 
     sirepo_boot_init
@@ -32,7 +33,7 @@ build_as_run_user() {
     perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
 
     # reinstall pykern always
-    build_curl radia.run | bash -s code pykern
+    install_repo_eval code pykern
 
     # sirepo
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \

@@ -23,6 +23,9 @@ def test_purge_users(monkeypatch):
     from sirepo import server
     import datetime
 
+    #TODO(pjm): tried pkconfig.reset_state_for_testing() but couldn't override bool to False
+    server.cfg.oauth_login = False
+
     res = admin.purge_users(days=1, confirm=False)
     pkeq([], res, '{}: no old users so empty')
     pkdp(simulation_db.user_dir_name('*'))

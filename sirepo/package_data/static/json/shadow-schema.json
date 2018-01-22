@@ -149,6 +149,10 @@
             ["Titanium", "Titanium"],
             ["TlAP", "TlAP"]
         ],
+        "CylindricalAngle": [
+            ["0.0", "0 (Meridional)"],
+            ["90.0", "90 (Sagittal)"]
+        ],
         "ElementBoundary": [
             ["1", "Rectangular"],
             ["2", "Ellipse"],
@@ -198,6 +202,11 @@
             ["1", "Real/Virtual"],
             ["2", "Virtual/Real"],
             ["3", "Real/Real"]
+        ],
+        "LensShape": [
+            ["1", "Spherical"],
+            ["4", "Paraboloid"],
+            ["5", "Plane"]
         ],
         "LightPropagation": [
             ["0", "Reflector"],
@@ -308,6 +317,25 @@
             "ph2": ["Maximum Energy [eV]", "Float", 0.0],
             "r_magnet": ["Magnet Radius [m]", "Float"],
             "fdistr": ["Calculation Mode", "BendingMagnetMode"]
+        },
+        "crl": {
+            "title": ["Element Name", "String", "CRL"],
+            "position": ["Nominal Position [m]", "Float"],
+            "numberOfLenses": ["Number of Lenses", "Integer", 3],
+            "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
+            "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
+            "focalDistance": ["Distance Last Lens interface-Image Plane (Q) [m]", "Float", 1.8],
+            "fhit_c": ["Lens Dimensions", "ElementDimensions", "0"],
+            "lensDiameter": ["Lens Diameter [mm]", "Float", 0.5],
+            "fmirr": ["Surface Shape", "LensShape", "5"],
+            "rmirr": ["Curvature Radius [mm]", "Float", 0.3],
+            "lensThickness": ["Lens Thickness [mm]", "Float", 0.0625],
+            "useCCC": ["Use C.C.C. (conical shape)", "Boolean", "0"],
+            "initialCurvature": ["Initial curvature (1st surface)", "ElementCurvature", "0"],
+            "fcyl": ["Cylindrical", "Boolean", "1"],
+            "cil_ang": ["Cylinder Angle from X Axis [deg]", "CylindricalAngle", "0.0"],
+            "refractionIndex": ["Refraction Index", "Float", 0.9999972289735028],
+            "attenuationCoefficient": ["Attenuation Coefficient [cm-1]", "Float", 24.37099514505769]
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
@@ -466,8 +494,8 @@
             "fdistr": ["Angular Distribution", "AngularDistribution", "2"],
             "sigdix": ["Horizontal Sigma (X) [mrad]", "Float", 0.0],
             "sigdiz": ["Vertical Sigma (Z) [mrad]", "Float", 0.0],
-            "cone_max": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
-            "cone_min": ["Cone External Half-Aperture [rad]", "Float", 0.0],
+            "cone_min": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
+            "cone_max": ["Cone External Half-Aperture [rad]", "Float", 0.0],
             "fsource_depth": ["Depth", "SourceDepth", "1"],
             "wysou": ["Source Depth (y) [mm]", "Float", 0.0],
             "sigmay": ["Sigma Y [µm]", "Float", 0.0]
@@ -482,7 +510,13 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "mirror": {
             "title": ["Element Name", "String", "Mirror"],
@@ -551,7 +585,13 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "rayFilter": {
             "f_bound_sour": ["Optimize Source", "BoundSource", "0"],
@@ -562,13 +602,9 @@
             "z2": ["Z Maximum [mm]", "Float", 1e16]
         },
         "simulation": {
-            "name": ["Name", "String"],
             "sourceType": ["Source Type", "SourceType", "geometric"],
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
@@ -578,7 +614,13 @@
             "x": ["X Column", "ColumnValue"],
             "y": ["Y Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "overrideSize": ["Override Plot Size", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float"],
+            "verticalSize": ["Vertical Size [mm]", "Float"],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
+            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "wiggler": {
             "ph1": ["Minimum Energy [eV]", "Float", 20000.0],
@@ -675,6 +717,29 @@
                 ]]
             ]
         },
+        "crl": {
+            "title": "CRL",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "numberOfLenses",
+                "numberOfEmptySlots",
+                "pilingThickness",
+                "focalDistance",
+                "fhit_c",
+                "lensDiameter",
+                "fmirr",
+                "rmirr",
+                "lensThickness",
+                "useCCC",
+                "initialCurvature",
+                "fcyl",
+                "cil_ang",
+                "refractionIndex",
+                "attenuationCoefficient"
+            ]
+        },
         "crystal": {
             "title": "Crystal",
             "basic": [],
@@ -763,11 +828,9 @@
                 "sigmaz"
             ],
             "advanced": [
-                ["Basic Settings", [
-                    "simulation.npoint",
-                    "simulation.istar1"
-                ]],
                 ["Geometry Settings", [
+                    "simulation.npoint",
+                    "simulation.istar1",
                     "fsour",
                     "wxsou",
                     "wzsou",
@@ -786,8 +849,8 @@
                             "sigdiz"
                         ]]
                     ],
-                    "cone_max",
                     "cone_min",
+                    "cone_max",
                     "fsource_depth",
                     "wysou",
                     "sigmay"
@@ -922,7 +985,19 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ],
+                "colorMap"
             ]
         },
         "mirror": {
@@ -1023,17 +1098,23 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ],
+                "colorMap"
             ]
         },
         "simulation": {
             "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
             "advanced": [
                 "name"
             ]
@@ -1053,7 +1134,19 @@
                 "x",
                 "y",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "overrideSize",
+                [
+                    ["Horizontal", [
+                        "horizontalSize",
+                        "horizontalOffset"
+                    ]],
+                    ["Vertical", [
+                        "verticalSize",
+                        "verticalOffset"
+                    ]]
+                ],
+                "colorMap"
             ]
         },
         "wiggler": {

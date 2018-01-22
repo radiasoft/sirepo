@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
 import hashlib
 import json
@@ -40,7 +40,6 @@ _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
-
 def copy_lib_files(data, source, target):
     """Copy auxiliary files to target
 
@@ -52,6 +51,17 @@ def copy_lib_files(data, source, target):
         path = target.join(f.basename)
         pkio.mkdir_parent_only(path)
         if not path.exists():
+            if not f.exists():
+                sim_resource = resource_dir(data.simulationType)
+                r = sim_resource.join(f.basename)
+                # the file doesn't exist in the simulation lib, check the resource lib
+                if r.exists():
+                    #TODO(pjm): symlink has problems in containers
+                    # f.mksymlinkto(r)
+                    r.copy(f)
+                else:
+                    pkdlog('No file in lib or resource: {}', f)
+                    continue
             f.copy(path)
 
 
@@ -68,21 +78,8 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def histogram_bins(nbins):
-    """Ensure the histogram count is in a valid range"""
-    nbins = int(nbins)
-    if nbins <= 0:
-        nbins = 1
-    elif nbins > _HISTOGRAM_BINS_MAX:
-        nbins = _HISTOGRAM_BINS_MAX
-    return nbins
-
-
-def internal_lib_files(files, source_lib):
-    """Return list of files used by the simulation
-
-    Args:
-        data (dict): sim db
+def filename_to_path(files, source_lib):
+    """Returns full, unique paths of simulation files
 
     Returns:
         list: py.path.local to files
@@ -94,6 +91,16 @@ def internal_lib_files(files, source_lib):
             seen.add(f)
             res.append(source_lib.join(f))
     return res
+
+
+def histogram_bins(nbins):
+    """Ensure the histogram count is in a valid range"""
+    nbins = int(nbins)
+    if nbins <= 0:
+        nbins = 1
+    elif nbins > _HISTOGRAM_BINS_MAX:
+        nbins = _HISTOGRAM_BINS_MAX
+    return nbins
 
 
 def is_watchpoint(name):
@@ -119,6 +126,16 @@ def lib_files(data, source_lib=None):
         data,
         source_lib or simulation_db.simulation_lib_dir(sim_type),
     )
+
+
+def model_defaults(name, schema):
+    """Returns a set of default model values from the schema."""
+    res = pkcollections.Dict()
+    for f in schema['model'][name]:
+        field_info = schema['model'][name][f]
+        if len(field_info) >= 3 and field_info[2] is not None:
+            res[f] = field_info[2]
+    return res
 
 
 def parse_animation_args(data, key_map):
@@ -194,7 +211,15 @@ def report_parameters_hash(data):
     return data['reportParametersHash']
 
 
+def update_model_defaults(model, name, schema):
+    defaults = model_defaults(name, schema)
+    for f in defaults:
+        if f not in model:
+            model[f] = defaults[f]
+
+
 def validate_model(model_data, model_schema, enum_info):
+
     """Ensure the value is valid for the field type. Scales values as needed."""
     for k in model_schema:
         label = model_schema[k][0]
@@ -207,7 +232,11 @@ def validate_model(model_data, model_schema, enum_info):
             raise Exception('no value for field "{}" and no default value in schema'.format(k))
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
-                raise Exception('invalid enum value: {} for {}'.format(value, k))
+                # Check a comma-delimited string against the enumeration
+                for item in re.split(r'\s*,\s*', str(value)):
+                    if item not in enum_info[field_type]:
+                        assert item in enum_info[field_type], \
+                            '{}: invalid enum "{}" value for field "{}"'.format(item, field_type, k)
         elif field_type == 'Float':
             if not value:
                 value = 0
@@ -226,15 +255,8 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
-        elif field_type in (
-                'BeamList', 'MirrorFile', 'ImageFile', 'String', 'OptionalString', 'MagneticZipFile',
-                'ValueList', 'Array', 'InputFile', 'RPNValue', 'OutputFile', 'StringArray',
-                'InputFileXY', 'BeamInputFile', 'ElegantBeamlineList', 'ElegantLatticeList',
-                'RPNBoolean', 'UndulatorList', 'ReflectivityMaterial',
-        ):
-            model_data[k] = _escape(value)
         else:
-            raise Exception('unknown field type: {} for {}'.format(field_type, k))
+            model_data[k] = _escape(value)
 
 
 def validate_models(model_data, model_schema):
