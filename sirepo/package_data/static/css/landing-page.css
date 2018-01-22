@@ -49,7 +49,7 @@
   flex-wrap: wrap;
   position: absolute;
   top: 0px;
-  bottom: 8px;
+  bottom: 0px;
 }
 .lp-flex-row .col-md-5, .col-md-7 {
   padding-left: 0;
@@ -106,9 +106,14 @@
   height: 60px;
   text-align: center;
   color: black;
-  font-size:18pt;
+  font-size: 18pt;
   font-weight: bolder;
   line-height: 60px;
+}
+@media (max-width: 500px) {
+  .lp-info-panel-top-stripe {
+    font-size: calc(15pt +  (18 - 15)*((100vw - 400px) / (500 - 400)) );
+  }
 }
 
 .lp-info-panel-content-header {
@@ -277,6 +282,7 @@ lp-info-content p {
   float: right;
 }
 
+/* navbar */
 div.navbar-header-top-stripe {
   width: 100%;
 }
@@ -285,6 +291,23 @@ div.navbar-header-top-stripe-expanded {
 }
 div.navbar-header-top-stripe-collapsed {
   height: 0;
+}
+.navbar-header-menu {
+  margin-left: 15px;
+  padding-top: 8px;
+}
+.navbar-header-menu .dropdown-menu {
+  background-color: #bee0a3;
+}
+.navbar-header-top-stripe-expanded a {
+  color: white;
+}
+.navbar-header-top-stripe-expanded a:hover {
+  text-decoration: none;
+  color: white;
+}
+.navbar-header-top-stripe-expanded a:active {
+  color: white;
 }
 
 .lp-big-button {
@@ -315,10 +338,17 @@ div.navbar-header-top-stripe-collapsed {
 
 ul.lp-list {
   list-style: none;
-  line-height: 2.0;
+}
+ul.lp-list li {
+  margin: 1em 0;
 }
 ul.lp-list li a {
   font-size: 24pt;
+}
+@media (max-width: 768px) {
+  ul.lp-list li a {
+    font-size: 18pt;
+  }
 }
 
 .lp-main-header {

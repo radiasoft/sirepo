@@ -51,13 +51,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
 SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
+    appDataService.applicationMode = null;
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
 
     // override appDataService functions
-    appDataService.getApplicationMode = function () {
-        return self.applicationMode;
-    };
     appDataService.appDataForReset = function() {
         // delete the user-defined models first
          return {
@@ -143,8 +141,9 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
-        if (search && search.application_mode) {
-            self.applicationMode = search.application_mode;
+        if(search) {
+            self.applicationMode = search.application_mode || 'default';
+            appDataService.applicationMode = self.applicationMode;
             beamlineService.setEditable(self.applicationMode == 'default');
         }
     });
@@ -612,13 +611,25 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     }
 
     function processFluxAnimation() {
+        // ["-1", "Use Approximate Method"]
+        var approxMethodKey = -1;
+        var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
+        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo('fluxAnimation').method[SIREPO.INFO_INDEX_TYPE]];
+        var approxMethodOptionIndex = eType.indexOf(
+            eType.find(function(etArr) {
+                return etArr[0] == approxMethodKey;
+            })
+        );
+
         panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
         if (! srwService.isTabulatedUndulatorWithMagenticFile()) {
             appState.models.fluxAnimation.magneticField = 1;
         }
-        // ["-1", "Use Approximate Method"]
-        var isApproximateMethod = appState.models.fluxAnimation.method == -1;
-        ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
+
+        // No approximate flux method with accurate magnetic field
+        panelState.showEnum('fluxAnimation', 'method', approxMethodOptionIndex, appState.models.fluxAnimation.magneticField == 1);
+
+       ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
             panelState.showField('fluxAnimation', f, isApproximateMethod);
         });
         ['precision', 'numberOfMacroElectrons'].forEach(function(f) {
@@ -664,6 +675,39 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 appState.models[reportName].magneticField = data.magneticField;
             }
         );
+    }
+
+    function processTrajectoryAxis() {
+        // change enum list for plotAxisY2 depending on the selected plotAxisY value
+        var selected = appState.models.trajectoryReport.plotAxisY;
+        var res = [];
+        var group;
+        [
+            ['X', 'Y', 'Z'],
+            ['Bx', 'By', 'Bz'],
+            ['BetaX', 'BetaY', 'BetaZ'],
+        ].forEach(function(g) {
+            if (g.indexOf(selected) >= 0) {
+                group = g;
+            }
+        });
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
+            if (group && group.indexOf(row[0]) >= 0 && selected != row[0]) {
+                res.push(row);
+            }
+        });
+        res.push(['None', 'None']);
+        var y2 = appState.models.trajectoryReport.plotAxisY2;
+        var validY2 = false;
+        res.forEach(function(row) {
+            if (y2 == row[0]) {
+                validY2 = true;
+            }
+        });
+        if (! validY2) {
+            appState.models.trajectoryReport.plotAxisY2 = 'None';
+        }
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis2 = res;
     }
 
     function processTrajectoryReport() {
@@ -769,6 +813,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         }
         else if (name === 'trajectoryReport') {
             processTrajectoryReport();
+            processTrajectoryAxis();
         }
         else if (name === 'electronBeam') {
             processBeamFields();
@@ -852,7 +897,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             });
         });
 
-        appState.watchModelFields($scope, ['fluxAnimation.method'], processFluxAnimation);
+        appState.watchModelFields($scope, ['fluxAnimation.method', 'fluxAnimation.magneticField'], processFluxAnimation);
 
         appState.watchModelFields($scope, ['gaussianBeam.sizeDefinition', 'gaussianBeam.rmsSizeX', 'gaussianBeam.rmsSizeY', 'gaussianBeam.rmsDivergenceX', 'gaussianBeam.rmsDivergenceY', 'gaussianBeam.photonEnergy'], function() {
             if (srwService.isGaussianBeam()) {
@@ -880,9 +925,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             );
         });
 
-        appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], function() {
-            processTrajectoryReport();
-        });
+        appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], processTrajectoryReport);
+        appState.watchModelFields($scope, ['trajectoryReport.plotAxisY'], processTrajectoryAxis);
 
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
             if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
@@ -934,10 +978,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     var rightNav = [
         '<div data-app-header-right="nav">',
           '<app-header-right-sim-loaded>',
-            '<ul class="nav navbar-nav sr-navbar-right">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-              '<li data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
-            '</ul>',
+            '<div data-sim-sections="">',
+              '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+              '<li class="sim-section" data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
+            '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
               '<div data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></div>',
@@ -954,7 +998,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/light">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand"><a href="/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -997,7 +1041,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav" data-app-url="/light"></div>',
+              '<div data-app-header-brand="nav" data-app-url="/srw"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
@@ -1476,43 +1520,43 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
-              '<div class="progress" data-ng-if="isStateProcessing()">',
-                '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
+              '<div class="progress" data-ng-if="simState.isProcessing()">',
+                '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
               '</div>',
 
-              '<div data-ng-if="isStateProcessing()">',
+              '<div data-ng-if="simState.isProcessing()">',
                 '<div class="col-sm-6">',
-                  '<div data-ng-show="isStatePending()">',
-                    '<span class="glyphicon glyphicon-hourglass"></span> {{ stateAsText() }} {{ dots }}',
+                  '<div data-ng-show="simState.isStatePending()">',
+                    '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
                   '</div>',
-                  '<div data-ng-show="isInitializing()">',
-                    '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ dots }}',
+                  '<div data-ng-show="simState.isInitializing()">',
+                    '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ simState.dots }}',
                   '</div>',
-                  '<div data-ng-show="isStateRunning() && ! isInitializing()">',
-                    '{{ stateAsText() }} {{ dots }}',
-                    '<div data-ng-show="! isStatePending() && particleNumber">',
+                  '<div data-ng-show="simState.isStateRunning() && ! simState.isInitializing()">',
+                    '{{ simState.stateAsText() }} {{ simState.dots }}',
+                    '<div data-ng-show="! simState.isStatePending() && particleNumber">',
                       'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                     '</div>',
-                    '<div data-simulation-status-timer="timeData" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()"></div>',
+                    '<div data-simulation-status-timer="simState.timeData" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()"></div>',
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
                   '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">End Simulation</button>',
                 '</div>',
               '</div>',
-              '<div data-ng-show="isStateStopped()">',
+              '<div data-ng-show="simState.isStopped()">',
                 '<div class="col-sm-6">',
                   'Simulation ',
-                  '<span>{{ stateAsText() }}</span>',
-                  '<div data-ng-show="! isStatePending() && ! isInitializing() && particleNumber">',
+                  '<span>{{ simState.stateAsText() }}</span>',
+                  '<div data-ng-show="! simState.isStatePending() && ! simState.isInitializing() && particleNumber">',
                     'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                   '</div>',
                   '<div data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
-                    '<div data-simulation-status-timer="timeData"></div>',
+                    '<div data-simulation-status-timer="simState.timeData"></div>',
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! hasFluxCompMethod() || ! isApproximateMethod()">',
-                  '<button class="btn btn-default" data-ng-click="saveAndRunSimulation()">Start New Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
                 '</div>',
               '</div>',
             '</form>',
@@ -1522,12 +1566,35 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
             var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY'];
             var multiElectronAnimation = null;
+            $scope.frameCount = 1;
 
             function copyMultiElectronModel() {
                 multiElectronAnimation = appState.cloneModel('multiElectronAnimation');
                 plotFields.forEach(function(f) {
                     delete multiElectronAnimation[f];
                 });
+            }
+
+            function handleStatus(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                if (data.method && data.method != appState.models.fluxAnimation.method) {
+                    // the output file on the server was generated with a different flux method
+                    $scope.simState.timeData = {};
+                    frameCache.setFrameCount(0);
+                    return;
+                }
+                if (data.percentComplete) {
+                    $scope.particleNumber = data.particleNumber;
+                    $scope.particleCount = data.particleCount;
+                }
+                if (data.frameId && (data.frameId != $scope.frameId)) {
+                    $scope.frameId = data.frameId;
+                    $scope.frameCount++;
+                    frameCache.setFrameCount($scope.frameCount);
+                    frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                }
             }
 
             function hasReportParameterChanged() {
@@ -1550,32 +1617,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             $scope.cancelPersistentSimulation = function () {
-                var cancelSuccess = function (data, status) {
-                    if( $scope.hasFluxCompMethod() && $scope.isApproximateMethod() ) {
-                        $scope.saveAndRunSimulation();
+                $scope.simState.cancelSimulation(function() {
+                    if ($scope.hasFluxCompMethod() && $scope.isApproximateMethod()) {
+                        $scope.startSimulation();
                     }
-                };
-                // ignore error case
-                $scope.cancelSimulation(cancelSuccess, cancelSuccess);
-            };
-
-            $scope.handleStatus = function(data) {
-                if (data.method && data.method != appState.models.fluxAnimation.method) {
-                    // the output file on the server was generated with a different flux method
-                    $scope.timeData = {};
-                    frameCache.setFrameCount(0);
-                    return;
-                }
-                if (data.percentComplete) {
-                    $scope.particleNumber = data.particleNumber;
-                    $scope.particleCount = data.particleCount;
-                }
-                if (data.frameId && (data.frameId != $scope.frameId)) {
-                    $scope.frameId = data.frameId;
-                    $scope.frameCount++;
-                    frameCache.setFrameCount($scope.frameCount);
-                    frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
-                }
+                });
             };
 
             $scope.hasFluxCompMethod = function () {
@@ -1583,19 +1629,19 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.isApproximateMethod = function () {
-                return appState.models.fluxAnimation.method == -1;
+                return appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
 
-            $scope.saveAndRunSimulation = function() {
+            $scope.startSimulation = function() {
                 if ($scope.model == 'multiElectronAnimation') {
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
                 }
-                appState.saveChanges('simulation', $scope.runSimulation);
+                $scope.simState.saveAndRunSimulation('simulation');
             };
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on($scope.model + '.changed', function() {
-                    if ($scope.isReadyForModelChanges && hasReportParameterChanged()) {
+                    if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
                         frameCache.setFrameCount(0);
                         frameCache.clearFrames($scope.model);
@@ -1606,7 +1652,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyMultiElectronModel();
             });
 
-            persistentSimulation.initProperties($scope, $scope, {
+            $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
                 multiElectronAnimation: $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields),
                 fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
             });

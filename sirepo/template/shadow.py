@@ -61,14 +61,6 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def copy_related_files(data, source_path, target_path):
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def fixup_old_data(data):
     if (
         float(data.fixup_old_version) < 20170703.000001
@@ -109,7 +101,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
 
 
 def lib_files(data, source_lib):
-    return template_common.internal_lib_files(_simulation_files(data), source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -141,10 +133,6 @@ def models_related_to_report(data):
     for f in template_common.lib_files(data):
         res.append(f.mtime())
     return res
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
 
 
 def python_source_for_model(data, model):

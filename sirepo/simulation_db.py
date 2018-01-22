@@ -505,8 +505,8 @@ def prepare_simulation(data):
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    if hasattr(template, 'prepare_aux_files'):
-        template.prepare_aux_files(run_dir, data)
+    template_common.copy_lib_files(data, None, run_dir)
+
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -903,6 +903,8 @@ def _create_example_and_lib_files(simulation_type):
     template = sirepo.template.import_module(simulation_type)
     if hasattr(template, 'resource_files'):
         for f in template.resource_files():
+            #TODO(pjm): symlink has problems in containers
+            # d.join(f.basename).mksymlinkto(f)
             f.copy(d)
 
 

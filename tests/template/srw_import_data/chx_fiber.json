@@ -509,7 +509,6 @@
             ]
         },
         "simulation": {
-            "facility": "Import",
             "horizontalPointCount": 100,
             "horizontalPosition": 0.0,
             "horizontalRange": 0.4,

@@ -61,14 +61,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     }
 
 
-def copy_related_files(data, source_path, target_path):
-    template_common.copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def extract_beam_histrogram(report, run_dir, frame):
     beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
     points = hellweg_dump_reader.get_points(beam_info, report.reportType)
@@ -174,7 +166,7 @@ def get_animation_name(data):
 
 
 def lib_files(data, source_lib):
-    return template_common.internal_lib_files(_simulation_files(data), source_lib)
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -247,10 +239,6 @@ solver = BeamSolver('defaults.ini', 'input.txt')
 solver.solve()
 solver.save_output('output.txt')
     '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
-
-
-def prepare_aux_files(run_dir, data):
-    template_common.copy_lib_files(data, None, run_dir)
 
 
 def remove_last_frame(run_dir):

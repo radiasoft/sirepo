@@ -140,7 +140,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -248,14 +248,6 @@ def background_percent_complete(report, run_dir, is_running, schema):
     return res
 
 
-def copy_related_files(data, source_path, target_path):
-    _copy_lib_files(
-        data,
-        py.path.local(os.path.dirname(source_path)).join('lib'),
-        py.path.local(os.path.dirname(target_path)).join('lib'),
-    )
-
-
 def extensions_for_file_type(file_type):
     if file_type == 'mirror':
         return ['*.dat', '*.txt']
@@ -269,6 +261,9 @@ def extensions_for_file_type(file_type):
 
 
 def extract_report_data(filename, model_data):
+    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] == 'trajectoryReport')
+    if model_data['report'] == 'trajectoryReport':
+        return _extract_trajectory_report(model_data['models']['trajectoryReport'], data)
     flux_type = 1
     if 'report' in model_data and model_data['report'] in ['fluxReport', 'fluxAnimation']:
         flux_type = int(model_data['models'][model_data['report']]['fluxType'])
@@ -287,7 +282,6 @@ def extract_report_data(filename, model_data):
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = pkcollections.Dict({
-        'res_trj.dat': [['', '', 'Electron Trajectory'], ['', '']],
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
@@ -298,33 +292,7 @@ def extract_report_data(filename, model_data):
         #TODO(pjm): res_mirror.dat name should be shared with pkcli/srw.py
         'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
-
-    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True if model_data['report'] == 'trajectoryReport' else False)
     filename = os.path.basename(filename)
-
-    if model_data['report'] == 'trajectoryReport':
-        # Check all available axes:
-        model = model_data['models']['trajectoryReport']
-        available_axes = {}
-        for s in _SCHEMA['enum']['PlotAxis']:
-            available_axes[s[0]] = s[1]
-        assert model['plotAxisX'] in available_axes.keys()
-        assert model['plotAxisY'] in available_axes.keys()
-
-        # Prepare the data:
-        all_data = copy.deepcopy(data)
-        x_points = all_data[model['plotAxisX']]['data']
-        data = all_data[model['plotAxisY']]['data']
-        allrange = [min(x_points), max(x_points)]
-
-        # Dynamically set the axis label:
-        file_info[filename][0][0] = available_axes[model['plotAxisX']]
-        file_info[filename][0][1] = available_axes[model['plotAxisY']]
-        file_info[filename][1] = [
-            all_data[model['plotAxisX']]['units'],
-            all_data[model['plotAxisY']]['units'],
-        ]
-
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
         title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
@@ -339,10 +307,6 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
-
-    # Add x_points for the Trajectory report:
-    if model_data['report'] == 'trajectoryReport':
-        info['x_points'] = x_points
 
     orig_rep_name = model_data['report']
     rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(orig_rep_name) else orig_rep_name
@@ -371,53 +335,33 @@ def find_height_profile_dimension(dat_file):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    # add point count to reports and move sampleFactor to simulation model
-    if data['models']['fluxReport'] and 'photonEnergyPointCount' not in data['models']['fluxReport']:
-        data['models']['fluxReport']['photonEnergyPointCount'] = 10000
-        data['models']['powerDensityReport']['horizontalPointCount'] = 100
-        data['models']['powerDensityReport']['verticalPointCount'] = 100
-        data['models']['intensityReport']['photonEnergyPointCount'] = 10000
-        # move sampleFactor to simulation model
-        if 'sampleFactor' in data['models']['initialIntensityReport']:
+    for m in ('fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+        if m not in data['models']:
+            data['models'][m] = pkcollections.Dict()
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    for m in data['models']:
+        if template_common.is_watchpoint(m):
+            template_common.update_model_defaults(data['models'][m], 'watchpointReport', _SCHEMA)
+    # move sampleFactor to simulation model
+    if 'sampleFactor' in data['models']['initialIntensityReport']:
+        if 'sampleFactor' not in data['models']['simulation']:
             data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
-            data['models']['simulation']['horizontalPointCount'] = 100
-            data['models']['simulation']['verticalPointCount'] = 100
-            for k in data['models']:
-                if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
+        for k in data['models']:
+            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
+                if 'sampleFactor' in data['models'][k]:
                     del data['models'][k]['sampleFactor']
-    if data['models']['fluxReport']:
-        data['models']['fluxReport']['method'] = -1  # always approximate for static Flux Report
-        data['models']['fluxReport']['precision'] = 0.01  # is not used in static Flux Report
-        if 'initialHarmonic' not in data['models']['fluxReport']:
-            data['models']['fluxReport']['initialHarmonic'] = 1
-            data['models']['fluxReport']['finalHarmonic'] = 15
-        if 'magneticField' not in data['models']['fluxReport']:
-            data['models']['fluxReport']['magneticField'] = 1
-    if 'fluxAnimation' in data['models']:
-        if 'method' not in data['models']['fluxAnimation']:
-            data['models']['fluxAnimation']['method'] = 1
-            data['models']['fluxAnimation']['precision'] = 0.01
-            data['models']['fluxAnimation']['initialHarmonic'] = 1
-            data['models']['fluxAnimation']['finalHarmonic'] = 15
-        if 'magneticField' not in data['models']['fluxAnimation']:
-            data['models']['fluxAnimation']['magneticField'] = 1
-    if data['models']['intensityReport']:
-        if 'method' not in data['models']['intensityReport']:
-            if _is_undulator_source(data['models']['simulation']):
-                data['models']['intensityReport']['method'] = 1
-            elif _is_dipole_source(data['models']['simulation']):
-                data['models']['intensityReport']['method'] = 2
-            else:
-                data['models']['intensityReport']['method'] = 0
-            data['models']['intensityReport']['precision'] = 0.01
-            data['models']['intensityReport']['fieldUnits'] = 1
-    if 'sourceIntensityReport' in data['models']:
-        if 'precision' not in data['models']['sourceIntensityReport']:
-            data['models']['sourceIntensityReport']['precision'] = 0.01
+    # default intensityReport.method based on source type
+    if 'method' not in data['models']['intensityReport']:
+        if _is_undulator_source(data['models']['simulation']):
+            data['models']['intensityReport']['method'] = '1'
+        elif _is_dipole_source(data['models']['simulation']):
+            data['models']['intensityReport']['method'] = '2'
+        else:
+            data['models']['intensityReport']['method'] = '0'
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = pkcollections.Dict()
-    if 'outOfSessionSimulationId' not in data['models']['simulation']:
-        data['models']['simulation']['outOfSessionSimulationId'] = ''
+    if 'facility' in data['models']['simulation']:
+        del data['models']['simulation']['facility']
     if 'multiElectronAnimation' not in data['models']:
         m = data['models']['initialIntensityReport']
         data['models']['multiElectronAnimation'] = pkcollections.Dict({
@@ -425,17 +369,9 @@ def fixup_old_data(data):
             'horizontalRange': m['horizontalRange'],
             'verticalPosition': m['verticalPosition'],
             'verticalRange': m['verticalRange'],
-            'stokesParameter': '0',
         })
-    if 'numberOfMacroElectrons' not in data['models']['multiElectronAnimation']:  # added 08/10/2016 for ticket #278
-        data['models']['multiElectronAnimation']['numberOfMacroElectrons'] = 100000
-    if 'photonEnergyBandWidth' not in data['models']['multiElectronAnimation']:  # added 03/29/2017 for ticket #708
-        data['models']['multiElectronAnimation']['photonEnergyBandWidth'] = _SCHEMA['model']['multiElectronAnimation']['photonEnergyBandWidth'][2]
+    template_common.update_model_defaults(data['models']['multiElectronAnimation'], 'multiElectronAnimation', _SCHEMA)
     _fixup_beamline(data)
-    for k in data['models']:
-        if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
-            if 'fieldUnits' not in data['models'][k]:
-                data['models'][k]['fieldUnits'] = 1
     if 'samplingMethod' not in data['models']['simulation']:
         simulation = data['models']['simulation']
         simulation['samplingMethod'] = 1 if simulation['sampleFactor'] > 0 else 2
@@ -446,41 +382,12 @@ def fixup_old_data(data):
             if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
                 for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
                     del data['models'][k][f]
-    if 'documentationUrl' not in data['models']['simulation']:
-        data['models']['simulation']['documentationUrl'] = ''
-    if 'tabulatedUndulator' not in data['models']:
-        data['models']['tabulatedUndulator'] = pkcollections.Dict({
-            'gap': 6.72,
-            'phase': 0,
-            'magneticFile': _PREDEFINED.magnetic_measurements[0]['fileName'],
-            'longitudinalPosition': 1.305,
-        })
-    else:
-        if 'indexFile' in data.models.tabulatedUndulator:
-            del data.models.tabulatedUndulator['indexFile']
-    if 'undulatorType' not in data['models']['tabulatedUndulator']:
-        data['models']['tabulatedUndulator']['undulatorType'] = 'u_t'
+    if 'indexFile' in data.models.tabulatedUndulator:
+        del data.models.tabulatedUndulator['indexFile']
 
     # Fixup electron beam parameters (drift, moments, etc.):
     data = _fixup_electron_beam(data)
 
-    if 'fluxAnimation' not in data['models']:
-        data['models']['fluxAnimation'] = data['models']['fluxReport'].copy()
-        data['models']['fluxAnimation']['photonEnergyPointCount'] = 1000
-        data['models']['fluxAnimation']['initialEnergy'] = 10000.0
-        data['models']['fluxAnimation']['finalEnergy'] = 20000.0
-        data['models']['fluxAnimation']['method'] = 1
-        data['models']['fluxAnimation']['precision'] = 0.01
-        data['models']['fluxAnimation']['initialHarmonic'] = 1
-        data['models']['fluxAnimation']['finalHarmonic'] = 15
-    if 'numberOfMacroElectrons' not in data['models']['fluxReport']:  # added 08/09/2016 for ticket #188
-        data['models']['fluxReport']['numberOfMacroElectrons'] = 1
-    if 'numberOfMacroElectrons' not in data['models']['fluxAnimation']:  # added 08/09/2016 for ticket #188
-        data['models']['fluxAnimation']['numberOfMacroElectrons'] = 100000
-
-    # Deflecting parameters of undulator:
-    if 'undulatorParameter' not in data['models']['undulator']:
-        data['models']['undulator']['undulatorParameter'] = 0.0
     for component in ['horizontal', 'vertical']:
         if '{}DeflectingParameter'.format(component) not in data['models']['undulator']:
             undulator = data['models']['undulator']
@@ -501,26 +408,6 @@ def fixup_old_data(data):
         else:
             data['models']['simulation']['folder'] = '/'
 
-    # Trajectory report:
-    if 'trajectoryReport' not in data['models']:
-        data['models']['trajectoryReport'] = pkcollections.Dict({
-            'timeMomentEstimation': 'auto',
-            'initialTimeMoment': 0.0,
-            'finalTimeMoment': 0.0,
-            'numberOfPoints': 10000,
-            'plotAxisX': 'Z',
-            'plotAxisY': 'X',
-            'magneticField': 2,
-        })
-    if 'plotAxisX' not in data['models']['trajectoryReport']:
-        data['models']['trajectoryReport']['plotAxisX'] = 'Z'
-        data['models']['trajectoryReport']['plotAxisY'] = 'X'
-
-    if 'sizeDefinition' not in data['models']['gaussianBeam']:
-        data['models']['gaussianBeam']['sizeDefinition'] = 1
-        data['models']['gaussianBeam']['rmsDivergenceX'] = 0
-        data['models']['gaussianBeam']['rmsDivergenceY'] = 0
-
     for k in ['photonEnergy', 'horizontalPointCount', 'horizontalPosition', 'horizontalRange',
               'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
         if k not in data['models']['sourceIntensityReport']:
@@ -528,15 +415,6 @@ def fixup_old_data(data):
 
     if 'photonEnergy' not in data['models']['gaussianBeam']:
         data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
-
-    for k in data['models']:
-        for rep_name in _DATA_FILE_FOR_MODEL.keys():
-            if (k == rep_name or rep_name in k) and _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
-                work_rep_name = k if template_common.is_watchpoint(k) else rep_name
-                if work_rep_name in data['models'] and 'intensityPlotsWidth' not in data['models'][work_rep_name]:
-                    data['models'][work_rep_name]['intensityPlotsWidth'] = _SCHEMA['model'][rep_name]['intensityPlotsWidth'][2]
-                if work_rep_name in data['models'] and 'intensityPlotsScale' not in data['models'][work_rep_name]:
-                    data['models'][work_rep_name]['intensityPlotsScale'] = _SCHEMA['model'][rep_name]['intensityPlotsScale'][2]
 
     if 'length' in data['models']['tabulatedUndulator']:
         tabulated_undulator = data['models']['tabulatedUndulator']
@@ -557,9 +435,6 @@ def fixup_old_data(data):
         und = data['models']['tabulatedUndulator']
         und['name'] = und['undulatorSelector'] = 'Undulator'
         und['id'] = '1'
-
-    if 'distanceFromSource' not in data['models']['simulation']:
-        data['models']['simulation']['distanceFromSource'] = template_common.DEFAULT_INTENSITY_DISTANCE
 
     if len(data['models']['postPropagation']) == 9:
         data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
@@ -692,36 +567,32 @@ def import_file(request, lib_dir, tmp_dir):
     return simulation_db.fixup_old_data(parsed_data, force=True)[0]
 
 
-def lib_files(data, source_lib, report=None):
+def lib_files(data, source_lib):
     """Returns list of auxiliary files
 
     Args:
         data (dict): simulation db
         source_lib (py.path): directory of source
-        report
 
     Returns:
         list: py.path.local of source files
     """
     res = []
-
-    #TODO(MR): possibly need to fix up old data before accessing the data - old tests fail.
-    # fixup_old_data(data)
-
     dm = data.models
     # the mirrorReport.heightProfileFile may be different than the file in the beamline
+    report = data.report if 'report' in data else None
     if report == 'mirrorReport':
         res.append(dm['mirrorReport']['heightProfileFile'])
-    if _is_tabulated_undulator_source(dm.simulation):
+    if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             res.append(dm.tabulatedUndulator.magneticFile)
-    for m in dm.beamline:
-        for k, v in _SCHEMA.model[m.type].items():
-            t = v[1]
-            if m[k] and t in ['MirrorFile', 'ImageFile']:
-                if not report or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
+    if _is_beamline_report(report):
+        for m in dm.beamline:
+            for k, v in _SCHEMA.model[m.type].items():
+                t = v[1]
+                if m[k] and t in ['MirrorFile', 'ImageFile']:
                     res.append(m[k])
-    return template_common.internal_lib_files(res, source_lib)
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
@@ -745,7 +616,7 @@ def models_related_to_report(data):
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
-    if _is_tabulated_undulator_source(data['models']['simulation']):
+    if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
 
     watchpoint = template_common.is_watchpoint(r)
@@ -795,22 +666,6 @@ def new_simulation(data, new_simulation_data):
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
-
-
-def prepare_aux_files(run_dir, data):
-    _copy_lib_files(
-        data,
-        simulation_db.simulation_lib_dir(SIM_TYPE),
-        run_dir,
-        data['report'],
-    )
-    if not _is_tabulated_undulator_source(data['models']['simulation']):
-        return
-    filename = data['models']['tabulatedUndulator']['magneticFile']
-    filepath = run_dir.join(filename)
-    for f in _PREDEFINED.magnetic_measurements:
-        if filename == f['fileName'] and not filepath.check():
-            _RESOURCE_DIR.join(f['fileName']).copy(run_dir)
 
 
 def prepare_for_client(data):
@@ -988,7 +843,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
     """
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data)
+        _generate_parameters_file(data, run_dir=run_dir)
     )
 
 
@@ -1223,21 +1078,6 @@ def _convert_ebeam_units(field_name, value, to_si=True):
     return value
 
 
-def _copy_lib_files(data, source_lib, target, report=None):
-    """Copy auxiliary files to target
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path.local): source directory
-        target (py.path): destination directory
-        report (str): report to copy [optional]
-    """
-    for f in lib_files(data, source_lib, report):
-        path = target.join(f.basename)
-        if f.exists() and not path.exists():
-            f.copy(path)
-
-
 def _create_user_model(data, model_name):
     model = data['models'][model_name]
     if model_name == 'tabulatedUndulator':
@@ -1259,6 +1099,37 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 _save_user_model_list(model_name, user_model_list)
                 break
     return pkcollections.Dict({})
+
+
+def _extract_trajectory_report(model, data):
+    available_axes = {}
+    for s in _SCHEMA['enum']['TrajectoryPlotAxis']:
+        available_axes[s[0]] = s[1]
+    x_points = data[model['plotAxisX']]['data']
+    plots = []
+    y_range = []
+
+    for f in ('plotAxisY', 'plotAxisY2'):
+        if model[f] != 'None':
+            points = data[model[f]]['data']
+            if y_range:
+                y_range = [min(y_range[0], min(points)), max(y_range[1], max(points))]
+            else:
+                y_range = [min(points), max(points)]
+            plots.append({
+                'points': points,
+                'label': available_axes[model[f]],
+                'color': '#ff7f0e' if len(plots) else '#1f77b4',
+            })
+    return {
+        'title': 'Electron Trajectory',
+        'x_range': [min(x_points), max(x_points)],
+        'x_points': x_points,
+        'y_label': '[' + data[model['plotAxisY']]['units'] + ']',
+        'x_label': available_axes[model['plotAxisX']] + ' [' + data[model['plotAxisX']]['units'] + ']',
+        'y_range': y_range,
+        'plots': plots,
+    }
 
 
 def _fixup_beamline(data):
@@ -1336,7 +1207,9 @@ def _fixup_electron_beam(data):
     return data
 
 
-def _generate_beamline_optics(models, last_id):
+def _generate_beamline_optics(report, models, last_id):
+    if not _is_beamline_report(report):
+        return '    pass'
     res = {
         'el': '    el = []\n',
         'pp': '    pp = []\n',
@@ -1406,7 +1279,7 @@ def _generate_item(res, item):
         res['pp'] += pp
 
 
-def _generate_parameters_file(data, plot_reports=False):
+def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # Process method and magnetic field values for intensity, flux and intensity distribution reports:
     # Intensity report:
     magnetic_field = _process_intensity_reports(
@@ -1452,7 +1325,8 @@ def _generate_parameters_file(data, plot_reports=False):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
-    v['beamlineOptics'] = _generate_beamline_optics(data['models'], last_id)
+    v['beamlineOptics'] = _generate_beamline_optics(report, data['models'], last_id)
+
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
     v['tabulatedUndulator_phase'] *= 1000
@@ -1472,7 +1346,7 @@ def _generate_parameters_file(data, plot_reports=False):
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
     _add_report_filenames(v)
-    v['setupMagneticMeasurementFiles'] = _is_tabulated_undulator_source(data['models']['simulation'])
+    v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
     # Beamline optics defined through the parameters list:
@@ -1482,6 +1356,15 @@ def _generate_parameters_file(data, plot_reports=False):
         if el['type'] == 'sample':
             v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'input file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
             sample_counter += 1
+
+    if run_dir and _uses_tabulated_zipfile(data):
+        z = zipfile.ZipFile(str(run_dir.join(v['tabulatedUndulator_magneticFile'])))
+        z.extractall(str(run_dir))
+        for f in z.namelist():
+            if re.search(r'\.txt', f):
+                v.magneticMeasurementsDir = os.path.dirname(f) or './'
+                v.magneticMeasurementsIndexFile = os.path.basename(f)
+                break
 
     return pkjinja.render_resource('srw.py', v)
 
@@ -1534,7 +1417,7 @@ def _generate_srw_main(data, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
-    if _is_tabulated_undulator_source(data['models']['simulation']):
+    if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
@@ -1663,6 +1546,12 @@ def _invert_value(value, invert=False):
 
 def _is_background_report(report):
     return 'Animation' in report
+
+
+def _is_beamline_report(report):
+    if not report or template_common.is_watchpoint(report) or report in ['multiElectronAnimation', _RUN_ALL_MODEL]:
+        return True
+    return False
 
 
 def _is_dipole_source(sim):
@@ -1906,6 +1795,10 @@ def _unique_name(items, field, template):
             index += 1
         else:
             return id
+
+def _uses_tabulated_zipfile(data):
+    return _is_tabulated_undulator_source(data['models']['simulation']) and data['models']['tabulatedUndulator']['undulatorType'] == 'u_t'
+
 
 def _user_model_map(model_list, field):
     res = pkcollections.Dict()

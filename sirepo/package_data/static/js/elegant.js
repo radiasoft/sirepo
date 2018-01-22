@@ -960,15 +960,8 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
-    self.model = 'animation';
     self.appState = appState;
     self.panelState = panelState;
-    self.dots = '.';
-    self.simulationErrors = '';
-    self.timeData = {
-        elapsedDays: null,
-        elapsedTime: null,
-    };
     self.outputFiles = [];
     self.outputFileMap = {};
     self.auxFiles = [];
@@ -994,9 +987,27 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model || self.model,
+            '<model>': model || self.simState.model,
             '<frame>': index,
         });
+    }
+
+    function handleStatus(data) {
+        self.simulationErrors = data.errors || '';
+        if (data.frameCount) {
+            frameCache.setFrameCount(parseInt(data.frameCount));
+            loadElementReports(data.outputInfo, data.startTime);
+        }
+        if (self.simState.isStopped()) {
+            if (! data.frameCount) {
+                if (data.state == 'completed' && ! self.simulationErrors) {
+                    // completed with no output, show link to elegant log
+                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                }
+                self.outputFiles = [];
+                self.outputFileMap = {};
+            }
+        }
     }
 
     function hideField(modelName, field) {
@@ -1089,6 +1100,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             self.yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
+            if (! info.pageCount) {
+                panelState.setError(modelKey, 'No output was generated for this report.');
+            }
             appState.watchModelFields(
                 $scope,
                 [modelKey + '.yFile'],
@@ -1140,34 +1154,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         });
     };
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
-        if (data.frameCount) {
-            frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo, data.startTime);
-        }
-        if (self.isStateStopped()) {
-            if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
-                    // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
-                }
-                self.outputFiles = [];
-                self.outputFileMap = {};
-            }
-        }
-    };
-
-    self.hasOutput = function() {
-        return self.isStateStopped();
-    };
-
     self.logFileURL = function() {
         return fileURL(-1);
     };
 
-    self.saveAndRunSimulation = function() {
-        appState.saveChanges('simulation', self.runSimulation);
+    self.startSimulation = function() {
+        self.simState.saveAndRunSimulation('simulation');
     };
 
     self.yFileUpdate = function (modelKey) {
@@ -1187,14 +1179,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     };
 
-    persistentSimulation.initProperties(self, $scope, {});
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});
 
     // override persistentSimulation settings
-    self.isInitializing = function() {
-        if (self.percentComplete === 0 && self.isStateProcessing()) {
+    self.simState.isInitializing = function() {
+        if (self.simState.percentComplete === 0 && self.simState.isProcessing()) {
             return true;
         }
-        return self.isStatePending();
+        return self.simState.isStatePending();
     };
 });
 
@@ -1222,12 +1214,12 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-                  '<li data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</ul>',
+                '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
+                  '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
                 //  '<div>App-specific setting item</div>',
@@ -1516,12 +1508,21 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
               '</thead>',
               '<tbody>',
                 '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge elegant-icon elegant-beamline-icon"><span data-ng-drag="true" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
+                  '<td><div class="badge elegant-icon elegant-beamline-icon" data-ng-class="{\'elegant-beamline-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
                   '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}<span data-ng-if="beamlineBend(beamline)">&deg;</span><div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(beamline)">Add to Beamline</button> <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
+                    '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
+                    '<div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar">',
+                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
+                            ' <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                        '</div>',
+                    '<div>',
+                  '</td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1544,6 +1545,25 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 res += ')';
                 return res;
             }
+
+            $scope.wouldBeamlineSelfNest = function (beamline, blItems) {
+                var activeBeamline = $scope.lattice.getActiveBeamline();
+                if(! activeBeamline || activeBeamline.id === beamline.id) {
+                    return true;
+                }
+                if(! blItems) {
+                    blItems = beamline.items || [];
+                }
+                if(blItems.includes(activeBeamline.id)) {
+                    return true;
+                }
+                for(var i = 0; i < blItems.length; i++) {
+                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
 
             $scope.addToBeamline = function(beamline) {
                 $scope.lattice.addToBeamline(beamline);
@@ -3300,8 +3320,8 @@ SIREPO.app.directive('runSimulationFields', function() {
                 '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
               '</div></div>',
               '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '<div class="col-sm-5" data-ng-show="visualization.isStateStopped()">',
-                '<button class="btn btn-default" data-ng-click="visualization.saveAndRunSimulation()">Start New Simulation</button>',
+              '<div class="col-sm-5" data-ng-show="visualization.simState.isStopped()">',
+                '<button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>',
               '</div>',
             '</div>',
         ].join(''),
@@ -3386,6 +3406,9 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     appState.models.parameterTable.page = page = 0;
                 }
                 var params = $scope.fileInfo.parameters;
+                if (! params) {
+                    return;
+                }
                 var defs = $scope.fileInfo.parameterDefinitions;
                 var rows = [];
                 Object.keys(params).sort(
@@ -3432,7 +3455,6 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         }
     };
 });
-
 
 //TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
 // from http://stackoverflow.com/questions/19305821/multiple-modals-overlay

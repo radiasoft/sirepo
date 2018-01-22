@@ -4,15 +4,15 @@
       <div class="row">
         <div class="col-sm-12">
           <div data-simulation-status-panel="simulationStatus">
-            <div class="col-sm-12" data-ng-show="$parent.getFrameCount() >= 1">
+            <div class="col-sm-12" data-ng-show="$parent.simState.getFrameCount() >= 1">
               Simulation
-              <span>{{ $parent.stateAsText() }}</span><span>:
-                {{ $parent.getFrameCount() }} animation frames
+              <span>{{ $parent.simState.stateAsText() }}</span><span>:
+                {{ $parent.simState.getFrameCount() }} animation frames
               </span>
               <br><br>
             </div>
-            <div data-ng-show="$parent.simulationState() =='error'">
-              <div class="col-sm-12">{{ $parent.stateAsText() }}</div>
+            <div data-ng-show="$parent.simState.isStateError()">
+              <div class="col-sm-12">{{ $parent.simState.stateAsText() }}</div>
             </div>
             <div class="form-group">
               <div data-model-field="'egun_mode'" data-model-name="'simulation'" data-label-size="4"></div>

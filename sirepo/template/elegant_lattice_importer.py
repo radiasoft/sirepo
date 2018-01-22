@@ -309,6 +309,8 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
         _validate_string_array_field(el, field)
     elif field_type in _SCHEMA['enum']:
         _validate_enum(el, field, field_type)
+    elif 'type' in el and el['type'] == 'SCRIPT' and field == 'command':
+        _validate_script(el)
 
 
 def _validate_input_file(el, field):
@@ -326,6 +328,7 @@ def _validate_input_file(el, field):
 def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
     if '_type' in el:
         return
+    #TODO(pjm): doesn't reach this if?
     if '_type' in el:
         m = re.search('\((.*?)\)$', el[field])
         if m:
@@ -337,6 +340,24 @@ def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
     if error:
         raise IOError('invalid rpn: "{}"'.format(el[field]))
     rpn_cache[el[field]] = value
+
+
+def _validate_script(el):
+    # ex, command: 'sddscombine %i beam1.sdds -merge %o'
+    v = el['command']
+    if v:
+        m = re.search(r'(\w+)\b', v, re.IGNORECASE)
+        if m:
+            executable = m.group(1)
+            try:
+                import distutils.spawn
+                if not distutils.spawn.find_executable(executable):
+                    el['commandFile'] = executable
+            except Exception as e:
+                pass
+        m = re.search(r'\b(\w+\.sdds)\b', v, re.IGNORECASE)
+        if m:
+            el['commandInputFile'] = m.group(1)
 
 
 def _validate_string_array_field(el, field):

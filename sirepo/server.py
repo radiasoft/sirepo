@@ -64,6 +64,9 @@ SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 #: WSGIApp instance (see `init_by_server`)
 _wsgi_app = None
 
+#: Default file to serve on errors
+DEFAULT_ERROR_FILE = 'server-error.html'
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -74,6 +77,17 @@ app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
 
+def handle_error(error):
+    status_code = 500
+    if isinstance(error, werkzeug.exceptions.HTTPException):
+        status_code = error.code
+    try:
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
+    except:
+        error_file = DEFAULT_ERROR_FILE
+    f = flask.send_from_directory(static_dir('html'), error_file)
+
+    return f, status_code
 
 def api_copyNonSessionSimulation():
     req = _json_input()
@@ -87,9 +101,15 @@ def api_copyNonSessionSimulation():
         data['models']['simulation']['isExample'] = False
         data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
         res = _save_new_and_reply(data)
+        target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+        template_common.copy_lib_files(
+            data,
+            py.path.local(os.path.dirname(global_path)).join('lib'),
+            target.join('../lib'),
+        )
         template = sirepo.template.import_module(data)
         if hasattr(template, 'copy_related_files'):
-            template.copy_related_files(data, global_path, str(simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))))
+            template.copy_related_files(data, global_path, str(target))
         return res
     werkzeug.exceptions.abort(404)
 app_copy_nonsession_simulation = api_copyNonSessionSimulation
@@ -256,8 +276,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                 rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
                     'simulation.name': simulation_name,
                 })
-                if len(rows):
-                    _reset_example_simulation_lib_files(simulation_db.open_json_file(simulation_type, sid=rows[0]['simulationId']))
                 break
     if len(rows):
         if application_mode == 'default':
@@ -669,6 +687,10 @@ def init(db_dir=None, uwsgi=None):
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
+
+    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        app.register_error_handler(int(err), handle_error)
+
     return app
 
 
@@ -913,17 +935,6 @@ def _render_root_page(page, values):
     )
 
 
-def _reset_example_simulation_lib_files(data):
-    template = sirepo.template.import_module(data['simulationType'])
-    if hasattr(template, 'resource_files'):
-        resource_files = {}
-        for f in template.resource_files():
-            resource_files[f.basename] = f
-        for f in template_common.lib_files(data):
-            if f.basename in resource_files:
-                resource_files[f.basename].copy(f)
-
-
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return app_simulation_data(
@@ -1116,6 +1127,9 @@ def _validate_serial(data):
         'error': 'invalidSerial',
         'simulationData': res,
     })
+
+def static_dir(dir_name):
+    return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
 cfg = pkconfig.init(

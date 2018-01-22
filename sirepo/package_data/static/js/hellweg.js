@@ -264,14 +264,12 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope, $rootScope) {
     var self = this;
-    self.model = 'animation';
     self.settingsModel = 'simulationSettings';
-    self.simulationErrors = '';
+    self.panelState = panelState;
 
-    self.handleStatus = function(data) {
-        self.simulationErrors = data.errors || '';
+    function handleStatus(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime && ! data.error) {
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
@@ -279,16 +277,14 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
                 appState.saveQuietly(modelName);
             });
             $rootScope.$broadcast('animation.summaryData', data.summaryData);
-            frameCache.setFrameCount(1, 'particleAnimation');
-            frameCache.setFrameCount(1, 'parameterAnimation');
+            if (data.frameCount) {
+                frameCache.setFrameCount(1, 'particleAnimation');
+                frameCache.setFrameCount(1, 'parameterAnimation');
+            }
         }
-    };
+    }
 
-    self.getFrameCount = function() {
-        return frameCache.getFrameCount();
-    };
-
-    persistentSimulation.initProperties(self, $scope, {
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
         beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],
@@ -304,6 +300,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -319,18 +316,19 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                '<li data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                '<li data-ng-if="showVisualizationTab()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '<div data-sim-sections="">',
+                    '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                    '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                    '<li class="sim-section" data-ng-if="showVisualizationTab()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
               //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
-                //'<ul class="nav navbar-nav sr-navbar-right">',
-                //  '<li>App-specific items</li>',
-                //'</ul>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),

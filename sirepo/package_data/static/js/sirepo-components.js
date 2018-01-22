@@ -391,7 +391,6 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType == 'Float')
@@ -453,13 +452,15 @@ SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender
 
 SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
 
-    var sr_login_notify_cookie = 'net.sirepo.login_notify_timeout';
-    var sr_login_notify_timeout = 1*24*60*60*1000;
-    var sr_login_notify_content = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
+    var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
+    var loginNotifyTimeout = 1*24*60*60*1000;
+    var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
 
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            notifyActive: '=',
+        },
         template: [
               '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"></span><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
@@ -476,9 +477,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
               '</li>',
         ].join(''),
         controller: function($scope) {
-
             $scope.userState = SIREPO.userState;
-
             $scope.githubLoginURL = function() {
                 return requestSender.formatAuthUrl('github');
             };
@@ -486,6 +485,9 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             });
             $scope.isLoggedIn = function() {
+                if($scope.loginNotification) {
+                    $scope.loginNotification.active = $scope.loginNotification.active && $scope.notifyActive;
+                }
                 return $scope.userState && $scope.userState.loginState == 'logged_in';
             };
             $scope.isLoggedOut = function() {
@@ -501,16 +503,16 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
             };
 
             $scope.notificationService = notificationService;
-            $scope.sr_login_notify_cookie = sr_login_notify_cookie;
+            $scope.sr_login_notify_cookie = loginNotifyCookie;
             $scope.loginNotification = {
-                name: sr_login_notify_cookie,
-                timeout: sr_login_notify_timeout,
-                content: sr_login_notify_content,
-                active: $scope.isLoggedOut(),
+                name: loginNotifyCookie,
+                timeout: loginNotifyTimeout,
+                content: loginNotifyContent,
+                active: $scope.notifyActive && $scope.isLoggedOut(),
                 recurs: true,
+                delay: loginNotifyTimeout,
             };
             notificationService.addNotification($scope.loginNotification);
-
         },
     };
 });
@@ -1126,7 +1128,7 @@ SIREPO.app.directive('safePath', function() {
                 }
                 return v;
             });
-            
+
             ngModel.$formatters.push(function (v) {
                 scope.showWarning = false;
                 return v;
@@ -1443,6 +1445,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
         },
         template: [
             '<div class="nav sr-navbar-right-flex">',
+                // spacer to fix wrapping problem in firefox
+                '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav" data-ng-show="isLoaded()">',
                     '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
@@ -1457,7 +1461,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
                     '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>',
                 '</ul>',
-                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()"></ul>',
+                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()" data-notify-active="modeIsDefault()"></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1467,6 +1471,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
            scope.nav.openDocumentation = scope.openDocumentation;
            scope.nav.modeIsDefault = scope.modeIsDefault;
            scope.nav.showSimulationModal = scope.showSimulationModal;
+           scope.nav.showImportModal = scope.showImportModal;
         },
         controller: function($scope) {
 
@@ -1501,6 +1506,91 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
             $scope.openDocumentation = function() {
                 $window.open(appState.models.simulation.documentationUrl, '_blank');
             };
+
+            $scope.showImportModal = function() {
+                $('#simulation-import').modal('show');
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="importForm">',
+                        '<div class="form-group">',
+                          '<label>Select File</label>',
+                          '<input id="file-import" type="file" data-file-model="zipFile">',
+                          '<br />',
+                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                        '</div>',
+                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
+                        '<div class="clearfix"></div>',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-ng-click="importZIPFile(zipFile)" class="btn btn-primary" data-ng-disabled="! zipFile || isUploading">Import File</button>',
+                          ' <button data-ng-click="zipFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = 'Import ZIP File';
+            $scope.importZIPFile = function(zipFile) {
+                if (! zipFile) {
+                    return;
+                }
+                $scope.isUploading = true;
+                fileUpload.uploadFileToUrl(
+                    zipFile,
+                    {
+                        folder: fileManager.getActiveFolderPath(),
+                    },
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        }),
+                    function(data) {
+                        $scope.isUploading = false;
+                        if (data.error) {
+                            $scope.fileUploadError = data.error;
+                        }
+                        else {
+                            $('#simulation-import').modal('hide');
+                            $scope.zipFile = null;
+                            requestSender.localRedirect('source', {
+                                ':simulationId': data.models.simulation.simulationId,
+                            });
+                        }
+                    });
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -1832,6 +1922,21 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
+SIREPO.app.directive('simSections', function(utilities) {
+
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{\'nav-tabs\': isWide()}"></ul>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.isWide = function() {
+                return utilities.isWide();
+            };
+        },
+    };
+});
 
 SIREPO.app.service('plotToPNG', function($http) {
 
@@ -1903,7 +2008,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('utilities', function() {
+SIREPO.app.service('utilities', function($window) {
 
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
@@ -1930,4 +2035,7 @@ SIREPO.app.service('utilities', function() {
         return true;
     };
 
+    this.isWide = function() {
+        return $window.innerWidth > 767;
+    };
 });

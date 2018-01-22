@@ -294,6 +294,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -309,18 +310,18 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</ul>',
+                '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
                 //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
-                //'<ul class="nav navbar-nav sr-navbar-right">',
-                //  '<li>App-specific items</li>',
-                //'</ul>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
          ].join(''),
@@ -1072,28 +1073,28 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             '<div class="panel panel-info">',
               '<div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="modelName"></div>',
               '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
-                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="isStateProcessing()">',
-                  '<div data-ng-show="isStatePending()">',
-                    '<div class="col-sm-12">{{ stateAsText() }} {{ dots }}</div>',
+                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
+                  '<div data-ng-show="simState.isStatePending()">',
+                    '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
                   '</div>',
-                  '<div data-ng-show="isStateRunning()">',
+                  '<div data-ng-show="simState.isStateRunning()">',
                     '<div class="col-sm-12">',
-                      '<div data-ng-show="isInitializing()">',
-                        'Running Simulation {{ dots }}',
+                      '<div data-ng-show="simState.isInitializing()">',
+                        'Running Simulation {{ simState.dots }}',
                       '</div>',
-                      '<div data-ng-show="getFrameCount() > 0">',
-                        'Completed frame: {{ getFrameCount() }}',
+                      '<div data-ng-show="simState.getFrameCount() > 0">',
+                        'Completed frame: {{ simState.getFrameCount() }}',
                       '</div>',
                       '<div class="progress">',
-                        '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': isInitializing() }" role="progressbar" aria-valuenow="{{ displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ displayPercentComplete() }}%"></div>',
+                        '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
                       '</div>',
                     '</div>',
                   '</div>',
                   '<div class="col-sm-6 pull-right">',
-                    '<button class="btn btn-default" data-ng-click="cancelSimulation()">End Simulation</button>',
+                    '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">End Simulation</button>',
                   '</div>',
                 '</form>',
-                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="isStateStopped()">',
+                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
                   '<div data-ng-transclude=""></div>',
                 '</form>',
               '</div>',
@@ -1102,13 +1103,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         controller: function($scope) {
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation'];
             $scope.panelState = panelState;
-            $scope.model = 'animation';
 
-            $scope.getFrameCount = function() {
-                return frameCache.getFrameCount();
-            };
-
-            $scope.handleStatus = function(data) {
+            function handleStatus(data) {
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
@@ -1117,7 +1113,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                         appState.models[modelName].startTime = data.startTime;
                         appState.saveQuietly(modelName);
                     });
-                    if (data.percentComplete === 100 && ! data.isStateProcessing) {
+                    if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         SINGLE_PLOTS.forEach(function(name) {
                             frameCache.setFrameCount(1, name);
                         });
@@ -1130,14 +1126,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     frameCache.setFrameCount(0, 'egunCurrentAnimation');
                 }
                 frameCache.setFrameCount(data.frameCount);
-            };
+            }
 
             $scope.startSimulation = function() {
-                frameCache.setFrameCount(0);
-                appState.saveChanges(['simulation', 'simulationGrid'], $scope.runSimulation);
+                $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-            persistentSimulation.initProperties($scope, $scope, {
+            $scope.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
                 currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
                 fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
                 particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],

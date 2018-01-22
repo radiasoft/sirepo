@@ -12,25 +12,25 @@
           </div>
         </div>
         <div class="panel-body" data-ng-hide="dose.panelState.isHidden('simulationStatus')">
-          <div class="col-sm-10 col-sm-offset-1" data-ng-if="dose.isBusy()">
-            <div class="progress" data-ng-if="dose.isBusy()">
-              <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dose.isBusy() }" role="progressbar" aria-valuenow="{{ dose.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dose.displayPercentComplete() }}%"></div>
+          <div class="col-sm-10 col-sm-offset-1" data-ng-if="dose.simState.isProcessing()">
+            <div class="progress" data-ng-if="dose.simState.isProcessing()">
+              <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dose.simState.isProcessing() }" role="progressbar" aria-valuenow="{{ dose.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dose.simState.getPercentComplete() }}%"></div>
             </div>
           </div>
-          <div class="col-sm-7 col-sm-offset-3" data-ng-if="dose.isBusy()">
-            {{ dose.stateAsText() }} {{ dose.dots }}
+          <div class="col-sm-7 col-sm-offset-3" data-ng-if="dose.simState.isProcessing()">
+            {{ dose.simState.stateAsText() }} {{ dose.simState.dots }}
             <div class="pull-right">
-              <button class="btn btn-default" data-ng-click="dose.cancelSimulation()">Cancel Computation</button>
+              <button class="btn btn-default" data-ng-click="dose.simState.cancelSimulation()">Cancel Computation</button>
             </div>
           </div>
 
-          <div data-ng-hide="dose.isBusy()" data-compute-dose-form=""></div>
+          <div data-ng-hide="dose.simState.isProcessing()" data-compute-dose-form=""></div>
         </div>
       </div>
-      <div data-ng-if="dose.hasDoseFrames() && ! dose.isBusy()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
     </div>
     <div class="col-md-5 col-sm-6">
-      <div data-ng-if="dose.hasDoseFrames() && ! dose.isBusy()" data-report-panel="parameter" data-model-name="dvhReport"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing()" data-report-panel="parameter" data-model-name="dvhReport"></div>
     </div>
   </div>
 </div>

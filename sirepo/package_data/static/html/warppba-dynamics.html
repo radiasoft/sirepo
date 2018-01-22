@@ -4,40 +4,40 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
         <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.isStateProcessing()">
-            <div data-ng-show="dynamics.isStatePending()">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.simState.isProcessing()">
+            <div data-ng-show="dynamics.simState.isStatePending()">
               <div class="col-sm-12">
-                 {{ dynamics.stateAsText() }} {{ dynamics.dots }}
+                 {{ dynamics.simState.stateAsText() }} {{ dynamics.simState.dots }}
               </div>
             </div>
-            <div data-ng-show="dynamics.isStateRunning()">
+            <div data-ng-show="dynamics.simState.isStateRunning()">
               <div class="col-sm-12">
-                <div data-ng-show="dynamics.isInitializing()">
-                  Initializing Laser Pulse and Plasma {{ dynamics.dots }}
+                <div data-ng-show="dynamics.simState.isInitializing()">
+                  Initializing Laser Pulse and Plasma {{ dynamics.simState.dots }}
                 </div>
-                <div data-ng-show="dynamics.getFrameCount() > 0">
-                  Completed frame: {{ dynamics.getFrameCount() }}
+                <div data-ng-show="dynamics.simState.getFrameCount() > 0">
+                  Completed frame: {{ dynamics.simState.getFrameCount() }}
                 </div>
                 <div class="progress">
-                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.displayPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.displayPercentComplete() }}%">
+                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.simState.getPercentComplete() }}%">
                   </div>
                 </div>
               </div>
             </div>
             <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="dynamics.cancelSimulation()">End Simulation</button>
+              <button class="btn btn-default" data-ng-click="dynamics.simState.cancelSimulation()">End Simulation</button>
             </div>
           </form>
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.isStateStopped()">
-            <div class="col-sm-12" data-ng-show="dynamics.getFrameCount() >= 1">
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.simState.isStopped()">
+            <div class="col-sm-12" data-ng-show="dynamics.simState.getFrameCount() >= 1">
               Simulation
-              <span>{{ dynamics.stateAsText() }}</span><span>:
-                {{ dynamics.getFrameCount() }} animation frames
+              <span>{{ dynamics.simState.stateAsText() }}</span><span>:
+                {{ dynamics.simState.getFrameCount() }} animation frames
               </span>
               <br><br>
             </div>
             <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="dynamics.runSimulation()">Start New Simulation</button>
+              <button class="btn btn-default" data-ng-click="dynamics.simState.runSimulation()">Start New Simulation</button>
             </div>
           </form>
         </div>

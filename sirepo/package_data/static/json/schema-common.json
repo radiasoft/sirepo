@@ -1,5 +1,5 @@
 {
-    "version": "20180103.000001",
+    "version": "20180119.000000",
     "appInfo": {
         "elegant": {
             "longName": "elegant",
@@ -103,5 +103,9 @@
             ["coolwarm", "coolwarm"],
             ["jet", "jet"]
         ]
+    },
+    "customErrors": {
+        "404": "not-found.html",
+        "500": "server-error.html"
     }
 }
