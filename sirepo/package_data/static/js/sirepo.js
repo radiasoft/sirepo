@@ -1004,7 +1004,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         setPanelValue(name, 'error', error);
     };
 
-    self.showEnum = function(model, field, optionIndex, isShown) {
+    self.showEnum = function(model, field, value, isShown) {
+        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
+        var optionIndex = eType.indexOf(
+            eType.find(function(etArr) {
+                return etArr[0] == value;
+            })
+        );
+        if (optionIndex < 0) {
+            throw 'no enum value found for ' + model + '.' + field + ' = ' + value;
+        }
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         showValue($(opt), isShown);
     };
@@ -1845,15 +1854,19 @@ SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location)
     }
     self.updateTreeFromFileList = function(data) {
         for(var i = 0; i < data.length; i++) {
-            if(! findSimInTree(data[i].simulationId)) {
-                var item = self.addToTree(data[i]);
+            var item = findSimInTree(data[i].simulationId);
+            if (item) {
+                item.name = data[i].name;
+            }
+            else {
+                self.addToTree(data[i]);
             }
         }
         var listItemIds = data.map(function(item) {
             return item.simulationId;
         });
         var orphanItemIds = simList.filter(function(item) {
-            return ! listItemIds.includes(item);
+            return listItemIds.indexOf(item) < 0;
         });
         for(var j = 0; j < orphanItemIds.length; ++j) {
             self.removeFromTree(findSimInTree(orphanItemIds[j]));

@@ -614,20 +614,18 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         // ["-1", "Use Approximate Method"]
         var approxMethodKey = -1;
         var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
-        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo('fluxAnimation').method[SIREPO.INFO_INDEX_TYPE]];
-        var approxMethodOptionIndex = eType.indexOf(
-            eType.find(function(etArr) {
-                return etArr[0] == approxMethodKey;
-            })
-        );
-
         panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
-        if (! srwService.isTabulatedUndulatorWithMagenticFile()) {
-            appState.models.fluxAnimation.magneticField = 1;
+        if (srwService.isTabulatedUndulatorWithMagenticFile()) {
+            if (appState.models.fluxAnimation.magneticField == '2' && isApproximateMethod) {
+                appState.models.fluxAnimation.method = '1';
+            }
+        }
+        else {
+            appState.models.fluxAnimation.magneticField = '1';
         }
 
         // No approximate flux method with accurate magnetic field
-        panelState.showEnum('fluxAnimation', 'method', approxMethodOptionIndex, appState.models.fluxAnimation.magneticField == 1);
+        panelState.showEnum('fluxAnimation', 'method', approxMethodKey, appState.models.fluxAnimation.magneticField == 1);
 
        ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
             panelState.showField('fluxAnimation', f, isApproximateMethod);
@@ -691,23 +689,18 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 group = g;
             }
         });
-        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
-            if (group && group.indexOf(row[0]) >= 0 && selected != row[0]) {
-                res.push(row);
-            }
-        });
-        res.push(['None', 'None']);
         var y2 = appState.models.trajectoryReport.plotAxisY2;
         var validY2 = false;
-        res.forEach(function(row) {
-            if (y2 == row[0]) {
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
+            var isValid = group && group.indexOf(row[0]) >= 0 && selected != row[0];
+            panelState.showEnum('trajectoryReport', 'plotAxisY2', row[0], isValid);
+            if (isValid && y2 == row[0]) {
                 validY2 = true;
             }
         });
         if (! validY2) {
             appState.models.trajectoryReport.plotAxisY2 = 'None';
         }
-        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis2 = res;
     }
 
     function processTrajectoryReport() {
