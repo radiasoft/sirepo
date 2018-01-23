@@ -68,33 +68,33 @@ main()
 
 
 def _brilliance_plot(data):
-    from sirepo.template.srwl_uti_brightness import srwl_compute_flux
+    from sirepo.template.srwl_uti_brightness import SRW_flux_energy
     beam = data['models']['electronBeam']
     undulator = data['models']['undulator']
     report = data['models']['brillianceReport']
-
-    E_Gev = beam['energy']
     lam_u = float(undulator['period']) / 10.0 #undulator period in cm
-    Ib = beam['current']
     nPer = int(float(undulator['length']) * 1000 / float(undulator['period']))
-    numkpts = report['energyPointCount']
-    kmin = report['minDeflection']
-    dk = .015
-    kmax = kmin + dk * (numkpts - 1)
-    kvals = np.arange(kmin, kmax, dk)
-    enDetPar = report['detuning']
-    relEnSpr = beam['rmsSpread']
-
     points = []
     x_points = []
 
     for harmNum in range(report['initialHarmonic'], report['finalHarmonic'] + 1):
         if harmNum % 2:
-            x = 0.950*harmNum*E_Gev**2/lam_u/(1+kvals**2)
+            (x, y) = SRW_flux_energy(
+                beam['current'],
+                undulator['horizontalDeflectingParameter'],
+                undulator['verticalDeflectingParameter'],
+                report['minDeflection'],
+                report['energyPointCount'],
+                beam['energy'],
+                lam_u,
+                undulator['horizontalInitialPhase'],
+                undulator['verticalInitialPhase'],
+                harmNum,
+                nPer,
+                report['detuning'],
+                beam['rmsSpread'],
+            )
             x_points.append((x * 1000.0).tolist())
-            y = []
-            for v in kvals:
-                y.append(srwl_compute_flux(Ib,v,0,0,0,harmNum,nPer,enDetPar,relEnSpr))
             points.append(np.log10(y).tolist())
     res = {
         'title': '',
