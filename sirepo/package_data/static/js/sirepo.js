@@ -1006,16 +1006,24 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
-        var optionIndex = eType.indexOf(
-            eType.find(function(etArr) {
-                return etArr[0] == value;
-            })
-        );
+        var optionIndex = -1;
+        eType.forEach(function(row, index) {
+            if (row[0] == value) {
+                optionIndex = index;
+            }
+        });
         if (optionIndex < 0) {
             throw 'no enum value found for ' + model + '.' + field + ' = ' + value;
         }
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         showValue($(opt), isShown);
+        // this is required for MSIE 11 and Safari which can't hide select options
+        if (isShown) {
+            $(opt).removeAttr('disabled');
+        }
+        else {
+            $(opt).attr('disabled', 'disabled');
+        }
     };
 
     self.showField = function(model, field, isShown) {
