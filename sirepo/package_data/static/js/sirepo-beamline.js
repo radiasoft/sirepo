@@ -615,6 +615,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             parentController: '=',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<div class="row">',
               '<div class="col-sm-12">',
                 '<div class="text-center bg-info sr-toolbar-holder">',
@@ -675,11 +676,6 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             }
 
             initToolbarItems();
-        },
-        link: function link(scope, element) {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
         },
     };
 });

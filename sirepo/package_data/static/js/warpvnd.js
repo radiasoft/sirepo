@@ -377,6 +377,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
             source: '=controller',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<table data-ng-show="appState.models.conductorTypes.length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
               '<colgroup>',
                 '<col>',
@@ -465,11 +466,6 @@ SIREPO.app.directive('conductorTable', function(appState) {
             };
             appState.whenModelsLoaded($scope, updateConductors);
             $scope.$on('conductors.changed', updateConductors);
-        },
-        link: function link(scope, element) {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
         },
     };
 });
