@@ -464,7 +464,7 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUp
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
                             '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-class="{\'disabled\': ! dicomFile }">Import File</button>',
+                              '<button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-disabled="! dicomFile">Import File</button>',
                               ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
                             '</div>',
                           '</div>',

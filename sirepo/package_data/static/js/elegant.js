@@ -3170,7 +3170,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                       '</div>',
 
                       '<div data-ng-hide="showAddNewFields" class="col-sm-6 pull-right">',
-                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
                         '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
                       '</div>',
 

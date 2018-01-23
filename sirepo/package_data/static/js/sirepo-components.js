@@ -217,7 +217,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: [
             '<div data-ng-show="isFormDirty()">',
-              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
@@ -832,7 +832,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         '<div class="col-sm-6 pull-right">',
                           '<button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile, true)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>',
                           '<button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-disabled="isUploading">Save Changes</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-class="{\'disabled\': isUploading}">Cancel</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
                         '</div>',
                       '</form>',
                     '</div>',
