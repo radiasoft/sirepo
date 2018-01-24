@@ -7,7 +7,6 @@ u"""SRW execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from scipy.ndimage import zoom
 from sirepo import crystal
@@ -335,7 +334,7 @@ def find_height_profile_dimension(dat_file):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -1365,8 +1364,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
                 v.magneticMeasurementsDir = os.path.dirname(f) or './'
                 v.magneticMeasurementsIndexFile = os.path.basename(f)
                 break
-
-    return pkjinja.render_resource('srw.py', v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_sample(res, item):

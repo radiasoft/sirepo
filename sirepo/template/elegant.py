@@ -6,7 +6,6 @@ u"""elegant execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -237,7 +236,7 @@ def generate_parameters_file(data, is_parallel=False):
         v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
         v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
         v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return pkjinja.render_resource('elegant.py', v)
+        return template_common.render_jinja(SIM_TYPE, v)
 
     for f in _SCHEMA['model']['bunch']:
         info = _SCHEMA['model']['bunch'][f]
@@ -270,7 +269,7 @@ def generate_parameters_file(data, is_parallel=False):
             v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
     v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
-    return pkjinja.render_resource('elegant_bunch.py', v)
+    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
 def get_animation_name(data):

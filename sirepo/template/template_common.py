@@ -7,6 +7,7 @@ u"""SRW execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
@@ -173,15 +174,17 @@ def parse_enums(enum_schema):
     return res
 
 
-def resource_dir(sim_type):
-    """Where to get library files from
+def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
+    """Render the values into a jinja template.
 
     Args:
         sim_type (str): application name
+        v: flattened model data
     Returns:
-        py.path.Local: absolute path to folder
+        str: source text
     """
-    return RESOURCE_DIR.join(sim_type)
+    b = resource_dir(sim_type).join(name)
+    return pkjinja.render_file(b + '.jinja', v)
 
 
 def report_parameters_hash(data):
@@ -209,6 +212,17 @@ def report_parameters_hash(data):
             res.update(json.dumps(value, sort_keys=True, allow_nan=False))
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
+
+
+def resource_dir(sim_type):
+    """Where to get library files from
+
+    Args:
+        sim_type (str): application name
+    Returns:
+        py.path.Local: absolute path to folder
+    """
+    return RESOURCE_DIR.join(sim_type)
 
 
 def update_model_defaults(model, name, schema):

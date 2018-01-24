@@ -13,7 +13,6 @@ from opmd_viewer.openpmd_timeseries import main
 from opmd_viewer.openpmd_timeseries.data_reader import field_reader
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -239,8 +238,7 @@ def generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['useLaser'] = 1
     if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
         v['electronBeam_transverseEmittance'] = 0
-    b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
-    return pkjinja.render_file(b + '.jinja', v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def get_animation_name(data):
