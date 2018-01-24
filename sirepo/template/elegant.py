@@ -1163,6 +1163,9 @@ def _validate_data(data, schema):
 def _variables_to_postfix(rpn_variables):
     res = []
     for v in rpn_variables:
+        if 'value' not in v:
+            pkdlog('rpn var missing value: {}', v['name'])
+            v['value'] = '0'
         res.append({
             'name': v['name'],
             'value': _infix_to_postfix(v['value']),

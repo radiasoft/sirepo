@@ -1277,6 +1277,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             lattice: '=controller',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
                 '<div class="sr-panel-options pull-right">',
@@ -1554,11 +1555,12 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 if(! blItems) {
                     blItems = beamline.items || [];
                 }
-                if(blItems.includes(activeBeamline.id)) {
+                if(blItems.indexOf(activeBeamline.id) >= 0) {
                     return true;
                 }
                 for(var i = 0; i < blItems.length; i++) {
-                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                    var nextItems = $scope.lattice.elementForId(blItems[i]).items;
+                    if(nextItems && $scope.wouldBeamlineSelfNest(beamline, nextItems)) {
                         return true;
                     }
                 }
@@ -3169,7 +3171,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                       '</div>',
 
                       '<div data-ng-hide="showAddNewFields" class="col-sm-6 pull-right">',
-                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
                         '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
                       '</div>',
 

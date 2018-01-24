@@ -204,7 +204,7 @@ def api_errorLogging():
             e,
             flask.request.data.decode('unicode-escape'),
         )
-    return _json_response_ok();
+    return _json_response_ok()
 app_error_logging = api_errorLogging
 
 
@@ -362,6 +362,8 @@ def api_importFile(simulation_type=None):
         else:
             assert simulation_type, \
                 'simulation_type is required param for non-zip|json imports'
+            assert hasattr(template, 'import_file'), \
+                ValueError('Only zip files are supported')
             data = template.import_file(
                 flask.request,
                 simulation_db.simulation_lib_dir(simulation_type),
@@ -372,7 +374,7 @@ def api_importFile(simulation_type=None):
         return _save_new_and_reply(data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
-        error = e.message if hasattr(e, 'message') else str(e)
+        error = str(e.message) if hasattr(e, 'message') else str(e)
     return _json_response({'error': error})
 
 app_import_file = api_importFile
@@ -380,7 +382,7 @@ app_import_file = api_importFile
 
 
 def api_homePage():
-    return _render_root_page('sr-landing-page', pkcollections.Dict());
+    return _render_root_page('sr-landing-page', pkcollections.Dict())
 light_landing_page = api_homePage
 
 

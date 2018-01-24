@@ -482,7 +482,7 @@ app.service('utilities', function() {
         }).toArray();
         var contentBottom = this.bottomEdge(
             containerContent.filter(function (el) {
-                return(! footerContent.includes(el));
+                return footerContent.indexOf(el) < 0;
             })
         );
         var footerTop = this.topEdge(footerContent);
