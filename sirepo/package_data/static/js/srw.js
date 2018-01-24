@@ -125,6 +125,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         return self.isTabulatedUndulator() && appState.models.tabulatedUndulator.undulatorType == 'u_t';
     };
 
+    self.showBrillianceReport = function() {
+        return self.isIdealizedUndulator() && SIREPO.APP_SCHEMA.feature_config.brilliance_report;
+    };
+
     self.updateSimulationGridFields = function() {
         if (! appState.isLoaded()) {
             return;

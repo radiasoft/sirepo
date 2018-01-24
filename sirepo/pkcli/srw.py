@@ -86,7 +86,7 @@ def _brilliance_plot(data):
                 report['minDeflection'],
                 report['energyPointCount'],
                 beam['energy'],
-                lam_u,
+                lam_u, # undulator period in cm
                 undulator['horizontalInitialPhase'],
                 undulator['verticalInitialPhase'],
                 harmNum,
