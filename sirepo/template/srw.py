@@ -37,6 +37,10 @@ WANT_BROWSER_FRAME_CACHE = False
 #: Simulation type
 SIM_TYPE = 'srw'
 
+_BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
+
+_MIRROR_OUTPUT_FILE = 'res_mirror.dat'
+
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 _DATA_FILE_FOR_MODEL = pkcollections.Dict({
@@ -44,10 +48,11 @@ _DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'initialIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'intensityReport': {'filename': 'res_spec_se.dat', 'dimension': 2},
-    'mirrorReport': {'filename': '', 'dimension': 3},
+    'mirrorReport': {'filename': _MIRROR_OUTPUT_FILE, 'dimension': 3},
     'multiElectronAnimation': {'filename': 'res_int_pr_me.dat', 'dimension': 3},
     'powerDensityReport': {'filename': 'res_pow.dat', 'dimension': 3},
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
+    'brillianceReport': {'filename': _BRILLIANCE_OUTPUT_FILE, 'dimension': 2},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
     _WATCHPOINT_REPORT_NAME: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 })
@@ -260,7 +265,9 @@ def extensions_for_file_type(file_type):
 
 
 def extract_report_data(filename, model_data):
-    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] == 'trajectoryReport')
+    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
+    if model_data['report'] == 'brillianceReport':
+        return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
     if model_data['report'] == 'trajectoryReport':
         return _extract_trajectory_report(model_data['models']['trajectoryReport'], data)
     flux_type = 1
@@ -288,8 +295,7 @@ def extract_report_data(filename, model_data):
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        #TODO(pjm): res_mirror.dat name should be shared with pkcli/srw.py
-        'res_mirror.dat': [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
+        _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
     filename = os.path.basename(filename)
     title = file_info[filename][0][2]
@@ -1100,6 +1106,25 @@ def _delete_user_models(electron_beam, tabulated_undulator):
     return pkcollections.Dict({})
 
 
+def _extract_brilliance_report(model, data):
+    x_points = []
+    points = []
+    for f in data:
+        m = re.search('^f(\d+)', f)
+        if m:
+            x_points.append((np.array(data[f]['data']) * 1000.0).tolist())
+            points.append(np.log10(data['e{}'.format(m.group(1))]['data']).tolist())
+    return {
+        'title': '',
+        'y_label': 'Flux (Ph/s/0.1%bw) log10',
+        'x_label': 'Photon Energy [eV]',
+        'x_range': [np.amin(x_points), np.amax(x_points)],
+        'y_range': [np.amin(points), np.amax(points)],
+        'x_points': x_points,
+        'points': points,
+    }
+
+
 def _extract_trajectory_report(model, data):
     available_axes = {}
     for s in _SCHEMA['enum']['TrajectoryPlotAxis']:
@@ -1324,6 +1349,14 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
+
+    if report == 'mirrorReport':
+        v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
+    if report == 'brillianceReport':
+        v['brillianceOutputFilename'] = _BRILLIANCE_OUTPUT_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
+
     v['beamlineOptics'] = _generate_beamline_optics(report, data['models'], last_id)
 
     # und_g and und_ph API units are mm rather than m

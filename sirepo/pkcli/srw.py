@@ -12,9 +12,8 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data, get_filename_for_model, find_height_profile_dimension
+from sirepo.template.srw import extract_report_data, get_filename_for_model
 import numpy as np
-import srwlib
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
@@ -66,84 +65,12 @@ main()
         mpi.run_script(script)
         simulation_db.write_result({})
 
-
-def _brilliance_plot(data):
-    from sirepo.template.srwl_uti_brightness import SRW_flux_energy
-    beam = data['models']['electronBeam']
-    undulator = data['models']['undulator']
-    report = data['models']['brillianceReport']
-    lam_u = float(undulator['period']) / 10.0 #undulator period in cm
-    nPer = int(float(undulator['length']) * 1000 / float(undulator['period']))
-    points = []
-    x_points = []
-
-    for harmNum in range(report['initialHarmonic'], report['finalHarmonic'] + 1):
-        if harmNum % 2:
-            (x, y) = SRW_flux_energy(
-                beam['current'],
-                undulator['horizontalDeflectingParameter'],
-                undulator['verticalDeflectingParameter'],
-                report['minDeflection'],
-                report['energyPointCount'],
-                beam['energy'],
-                lam_u, # undulator period in cm
-                undulator['horizontalInitialPhase'],
-                undulator['verticalInitialPhase'],
-                harmNum,
-                nPer,
-                report['detuning'],
-                beam['rmsSpread'],
-            )
-            x_points.append((x * 1000.0).tolist())
-            points.append(np.log10(y).tolist())
-    res = {
-        'title': '',
-        'y_label': 'Flux (Ph/s/0.1%bw) log10',
-        'x_label': 'Photon Energy [eV]',
-        'x_range': [np.amin(x_points), np.amax(x_points)],
-        'y_range': [np.amin(points), np.amax(points)],
-        'x_points': x_points,
-        'points': points,
-    }
-    simulation_db.write_result(res)
-
-
-def _mirror_plot(model_data):
-    mirror = model_data['models']['mirrorReport']
-    dat_file = mirror['heightProfileFile']
-    dimension = find_height_profile_dimension(dat_file)
-    func_name = 'srwl_opt_setup_surf_height_{}d'.format(dimension)
-    add_args = [0, 1] if dimension == 1 else []
-    element = getattr(srwlib, func_name)(
-        srwlib.srwl_uti_read_data_cols(mirror['heightProfileFile'], "\t", *add_args),
-        _dim=mirror['orientation'],
-        _ang=float(mirror['grazingAngle']) / 1e3,
-        _amp_coef=float(mirror['heightAmplification']))
-    transmission_data = element.get_data(3, 3)
-    srwlib.srwl_uti_save_intens_ascii(
-        transmission_data, element.mesh, 'res_mirror.dat', 0,
-        ['', 'Horizontal Position', 'Vertical Position', 'Optical Path Difference'], _arUnits=['', 'm', 'm', ''])
-    return 'res_mirror.dat'
-
-
-def _process_output(filename, model_data):
-    simulation_db.write_result(extract_report_data(filename, model_data))
-
-
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data['report'] == 'brillianceReport':
-        _brilliance_plot(data)
-        return
-    if data['report'] == 'mirrorReport':
-        #TODO(pjm): mirror report should use it's own jinja template
-        _process_output(_mirror_plot(data), data)
-        return
-    # This defines the main() function:
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     main()
-    _process_output(get_filename_for_model(data['report']), data)
+    simulation_db.write_result(extract_report_data(get_filename_for_model(data['report']), data))
 
 
 def _cfg_int(lower, upper):
