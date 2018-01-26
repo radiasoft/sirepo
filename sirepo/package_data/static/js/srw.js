@@ -660,6 +660,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     function processIntensityReport(reportName) {
         panelState.showField(reportName, 'fieldUnits', srwService.isGaussianBeam());
         updatePrecisionLabel();
+        updateSubtitleCharacteristic();
         panelState.enableField(reportName, 'magneticField', false);
         if (reportName === 'intensityReport') {
             panelState.showField(reportName, 'magneticField', false);
@@ -795,6 +796,21 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             $('.model-intensityReport-precision').find('label').text(precisionLabel);
         }
     }
+    function updateSubtitleCharacteristic() {
+        var subTitleText = SIREPO.APP_SCHEMA.enum.Characteristic.find(function (val) {
+            return val[0] === appState.models.sourceIntensityReport.characteristic;
+        })[1];
+        updateSubtitle(subTitleText);
+    }
+    function updateSubtitlePolarization() {
+        var subTitleText = SIREPO.APP_SCHEMA.enum.Polarization.find(function (val) {
+            return val[0] === appState.models.intensityReport.polarization;
+        })[1];
+        updateSubtitle(subTitleText);
+    }
+    function updateSubtitle(subTitleText) {
+        $('.sr-plot .sub-title').text(subTitleText);
+    }
 
     self.handleModalShown = function(name) {
         if (name === 'fluxAnimation') {
@@ -868,6 +884,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         disableBasicEditorBeamName();
         processUndulator();
         processGaussianBeamSize();
+        processIntensityReport('sourceIntensityReport');
 
         appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamFields);
 
@@ -903,6 +920,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         });
 
         appState.watchModelFields($scope, ['intensityReport.method'], updatePrecisionLabel);
+        appState.watchModelFields($scope, ['sourceIntensityReport.characteristic'], updateSubtitleCharacteristic);
 
         appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType', 'undulator.length', 'undulator.period', 'simulation.sourceType'], processBeamParameters);
 
@@ -1369,12 +1387,13 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         scope: {
             param: '=',
             paramInfo: '=',
+            disabled: '=',
         },
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
-              '<input data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
-              '<input data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
+              '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
+              '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1383,7 +1402,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
     };
 });
 
-SIREPO.app.directive('propagationParametersModal', function() {
+SIREPO.app.directive('propagationParametersModal', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -1404,10 +1423,10 @@ SIREPO.app.directive('propagationParametersModal', function() {
                       '<div class="row">',
                         '<ul class="nav nav-tabs">',
                           '<li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">',
-                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }}</a>',
+                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"</span></a>',
                           '</li>',
                         '</ul>',
-                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
+                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-sections="propagationSections"  data-section-params="parametersBySection[$index]" data-prop-type-index="propTypeIndex" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
                       '</div>',
                       '<div class="row">',
                         '<div class="col-sm-offset-6 col-sm-3">',
@@ -1423,6 +1442,12 @@ SIREPO.app.directive('propagationParametersModal', function() {
         controller: function($scope) {
             var activePropagationSection = 0;
             $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
+            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null];
+            $scope.parametersBySection = [
+                [3, 4, 5, 6, 7, 8],
+                [0, 1, 2],
+                [12, 13, 14, 15, 16],
+            ];
 
             $scope.isPropagationSectionActive = function(index) {
                 return index == activePropagationSection;
@@ -1431,6 +1456,15 @@ SIREPO.app.directive('propagationParametersModal', function() {
             $scope.setPropagationSection = function(index) {
                 activePropagationSection = index;
             };
+
+            var info = appState.modelInfo('propagationParameters');
+            $scope.propTypeIndex = -1;
+            for( var s in info ) {
+                 if( info[s][SIREPO.INFO_INDEX_LABEL] === 'Propagator' ) {
+                    $scope.propTypeIndex = parseInt(s);
+                    break;
+                }
+            }
         },
     };
 });
@@ -1440,6 +1474,9 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
         restrict: 'A',
         scope: {
             sectionIndex: '@',
+            sections: '=',
+            sectionParams: '=',
+            propTypeIndex: '=',
             propagations: '=',
             postPropagation: '=',
         },
@@ -1453,16 +1490,16 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                   '</tr>',
                 '</thead>',
                 '<tbody>',
-                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop)}">',
+                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop, $index)}" >',
                     '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo" data-disabled="isControlDisabledForProp(prop, $index)"></div>',
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
                     '<td class="input-sm">Final post-propagation (resize)</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation, $index)"></div>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -1473,18 +1510,14 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
 
             function initParameters() {
                 var info = appState.modelInfo('propagationParameters');
-                var parametersBySection = [
-                    [3, 4, 5, 6, 7, 8],
-                    [0, 1, 2],
-                    [12, 13, 14, 15, 16],
-                ];
+                $scope.resizeSectionIndex = $scope.sections.indexOf('Auto-Resize');
                 $scope.parameterInfo = [];
-                parametersBySection[$scope.sectionIndex].forEach(function(i) {
+                $scope.sectionParams.forEach(function(i) {
                     var field = i.toString();
                     $scope.parameterInfo.push({
-                        headingText: info[field][0],
+                        headingText: info[field][SIREPO.INFO_INDEX_LABEL],
                         headingTooltip: info[field][3],
-                        fieldType: info[field][1],
+                        fieldType: info[field][SIREPO.INFO_INDEX_TYPE],
                         fieldIndex: i,
                     });
                 });
@@ -1501,6 +1534,17 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                     return prop.item.isDisabled;
                 }
                 return false;
+            };
+
+            $scope.isControlDisabledForProp = function(prop, ctlIndex) {
+                var p = prop ? (prop.params || []) : [];
+                return $scope.isControlDisabledForParams(p, ctlIndex);
+            };
+            $scope.isControlDisabledForParams = function(params, ctlIndex) {
+                if(params[$scope.propTypeIndex] == 0) {
+                    return false;
+                }
+                return $scope.sectionIndex == $scope.resizeSectionIndex;
             };
 
             initParameters();

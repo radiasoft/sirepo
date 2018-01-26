@@ -71,6 +71,10 @@
       padding-top: 4px;
     }
 
+    .sr-disabled-text {
+        color: #aaa;
+    }
+
     /* app styles */
     .srw-toolbar-button {
         background-color: #fff;
@@ -423,6 +427,10 @@
       font-weight: bold;
       text-anchor: middle;
     }
+    .sr-plot .sub-title {
+      font-size: 14px;
+      text-anchor: middle;
+    }
     .sr-plot .line {
       fill: none;
       stroke: steelblue;
@@ -718,7 +726,10 @@ tr:hover .sr-button-bar-parent {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  background: silver;
+  background: white;
+}
+.sr-split-pane-frame .split-pane [data-split-pane-divider] {
+    background-color: silver;
 }
 .sr-split-pane-frame .split-pane > .split-pane-divider.dragged.touch {
   background: blue;

@@ -1029,6 +1029,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.titleCenter = 0;
+            $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
@@ -1065,15 +1066,22 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function centerTitle() {
-                // center the title over the image, if text is too large, center it over whole plot
-                var titleNode = select('text.main-title').node();
-                if (titleNode) {
-                    var width = titleNode.getBBox().width;
-                    $scope.titleCenter = $scope.canvasSize / 2;
+                $scope.titleCenter = centerNode(select('text.main-title').node());
+            }
+            function centerSubTitle() {
+                $scope.subTitleCenter = centerNode(select('text.sub-title').node());
+            }
+            function centerNode(node) {
+                // center the node over the image; if node is too large, center it over whole plot
+                if(node) {
+                    var width = node.getBBox().width;
+                    var ctr = $scope.canvasSize / 2;
                     if (width > $scope.canvasSize) {
-                        $scope.titleCenter += $scope.rightPanelWidth / 2;
+                        ctr += $scope.rightPanelWidth / 2;
                     }
+                    return ctr;
                 }
+                return 0;
             }
 
             function clipDomain(scale, axisName) {
@@ -1224,6 +1232,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     yAxisScale.domain(),
                 ];
                 centerTitle();
+                centerSubTitle();
             }
 
             function resetZoom() {

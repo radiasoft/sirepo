@@ -767,10 +767,11 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                 break;
             }
         }
+        // always check the name in case the user changed it
+        if (elementsByName()[m.name]) {
+            m.name = uniqueNameForType(m.name + '-');
+        }
         if (! foundIt) {
-            if (elementsByName()[m.name]) {
-                m.name = uniqueNameForType(m.name + '-');
-            }
             appState.models[containerName].push(m);
         }
         sortMethod();
@@ -809,6 +810,10 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         for (var i = 0; i < appState.models[type].length; i++) {
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
+                if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
+                    appState.models.simulation.visualizationBeamlineId = null;
+                    appState.saveQuietly('simulation');
+                }
                 appState.models[type].splice(i, 1);
                 appState.saveChanges(type);
                 $rootScope.$broadcast('elementDeleted', type);
@@ -856,6 +861,10 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             return appState.models.elements;
         }
         return emptyElements;
+    };
+    self.getNumElements = function () {
+        var n = (self.getElements() || emptyElements).length;
+        return n;
     };
 
     self.isElementModel = function(name) {
@@ -917,10 +926,72 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         self.activeTab = name;
     };
 
+    self.minPanelHeight = 150;
+    self.dividerHeight = 15;
     self.splitPaneHeight = function() {
         var w = $($window);
         var el = $('.sr-split-pane-frame');
-        return Math.round(w.height() - el.offset().top - 15) + 'px';
+        //srdbg('top h', self.splitPaneTopHeight(), 'bottom h', self.splitPaneBottomHeight(), 'min', self.splitPaneBottomMinHeight());
+        return Math.round(w.height() - el.offset().top - self.dividerHeight) + 'px';
+    };
+    self.splitPanePixels = function() {
+        var w = $($window);
+        var el = $('.sr-split-pane-frame');
+        return Math.round(w.height() - el.offset().top - self.dividerHeight);
+    };
+    self.splitPaneTopHeight = function () {
+        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
+        var h = $(el).height();
+        return h + 'px';
+    };
+    self.splitPaneTopHeightPixels = function () {
+        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
+        var h = $(el).height();
+        return h;
+    };
+    self.splitPaneBottomHeight = function () {
+        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
+        var h = $(el).height();
+        return h + 'px';
+    };
+    self.splitPaneBottomHeightPixels = function () {
+        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
+        var h = $(el).height();
+        return h;
+    };
+     self.splitPaneBottomPos = function () {
+        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
+        var t = $(el).position().top;
+        return t + 'px';
+    };
+   self.splitPaneBottom = function() {
+        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
+        var h = $(el).height();
+        var t = $(el).position().top;
+        var b = t + h;
+        return b + 'px';
+    };
+    self.splitPaneBottomPct = function() {
+        var sph = self.splitPanePixels();
+        var w = $($window);
+        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
+        var h = $(el).height();
+        var t = $(el).position().top;
+        var b = t + h;
+        var pct = Math.round(100*(1-b/sph));
+        return pct;
+    };
+
+    self.splitPaneBottomMinHeight = function() {
+        srdbg('widget height', self.splitPanePixels(), 'total height', self.splitPaneTopHeightPixels() + self.splitPaneBottomHeightPixels() + self.dividerHeight);
+        if(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight  < self.minPanelHeight ) {
+            srdbg('min min bottom panel h', self.minPanelHeight);
+            return self.minPanelHeight;
+        }
+        //var min = Math.max(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight, self.splitPanePixels() - self.minPanelHeight);
+        var min = self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight;
+        srdbg('min bottom panel h', min);
+        return min;
     };
 
     self.titleForName = function(name) {
@@ -1872,8 +1943,9 @@ SIREPO.app.directive('elegantBeamlineList', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.beamlineList = function() {
-                if (! appState.isLoaded() || ! $scope.model)
+                if (! appState.isLoaded() || ! $scope.model) {
                     return null;
+                }
                 if (! $scope.model[$scope.field]
                     && appState.models.beamlines
                     && appState.models.beamlines.length) {
