@@ -862,10 +862,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         }
         return emptyElements;
     };
-    self.getNumElements = function () {
-        var n = (self.getElements() || emptyElements).length;
-        return n;
-    };
 
     self.isElementModel = function(name) {
         return name == name.toUpperCase();
@@ -983,14 +979,14 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.splitPaneBottomMinHeight = function() {
-        srdbg('widget height', self.splitPanePixels(), 'total height', self.splitPaneTopHeightPixels() + self.splitPaneBottomHeightPixels() + self.dividerHeight);
+        //srdbg('widget height', self.splitPanePixels(), 'total height', self.splitPaneTopHeightPixels() + self.splitPaneBottomHeightPixels() + self.dividerHeight);
         if(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight  < self.minPanelHeight ) {
-            srdbg('min min bottom panel h', self.minPanelHeight);
+            //srdbg('min min bottom panel h', self.minPanelHeight);
             return self.minPanelHeight;
         }
         //var min = Math.max(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight, self.splitPanePixels() - self.minPanelHeight);
         var min = self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight;
-        srdbg('min bottom panel h', min);
+        //srdbg('min bottom panel h', min);
         return min;
     };
 
@@ -2637,7 +2633,11 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             $scope.svgGroups = [];
             $scope.svgBounds = null;
             var picTypeCache = null;
-
+            /*
+            $scope.windowResize = plotting.debounce(function() {
+                    $scope.resize();
+                }, 250);
+            */
             function rpnValue(num) {
                 return rpnService.getRpnValue(num);
             }

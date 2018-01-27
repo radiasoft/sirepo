@@ -660,10 +660,14 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     function processIntensityReport(reportName) {
         panelState.showField(reportName, 'fieldUnits', srwService.isGaussianBeam());
         updatePrecisionLabel();
-        updateSubtitleCharacteristic();
+        var reportTitle = SIREPO.APP_SCHEMA.view[reportName].title;
         panelState.enableField(reportName, 'magneticField', false);
         if (reportName === 'intensityReport') {
             panelState.showField(reportName, 'magneticField', false);
+            updateSubtitlePolarization(reportName);
+        }
+        if(reportName === 'sourceIntensityReport') {
+            updateSubtitleCharacteristic(reportName);
         }
         requestSender.getApplicationData(
             {
@@ -796,20 +800,26 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             $('.model-intensityReport-precision').find('label').text(precisionLabel);
         }
     }
-    function updateSubtitleCharacteristic() {
-        var subTitleText = SIREPO.APP_SCHEMA.enum.Characteristic.find(function (val) {
+    function updateSubtitleCharacteristic(reportName) {
+        var subTitleText = (SIREPO.APP_SCHEMA.enum.Characteristic.find(function (val) {
             return val[0] === appState.models.sourceIntensityReport.characteristic;
-        })[1];
-        updateSubtitle(subTitleText);
+        }) || ['', ''] )[1];
+        updateSubtitleForReport(reportName, subTitleText);
     }
-    function updateSubtitlePolarization() {
-        var subTitleText = SIREPO.APP_SCHEMA.enum.Polarization.find(function (val) {
+    function updateSubtitlePolarization(reportName) {
+        var subTitleText = (SIREPO.APP_SCHEMA.enum.Polarization.find(function (val) {
             return val[0] === appState.models.intensityReport.polarization;
-        })[1];
-        updateSubtitle(subTitleText);
+        }) || ['', ''] )[1];
+        updateSubtitleForReport(reportName, subTitleText);
     }
-    function updateSubtitle(subTitleText) {
-        $('.sr-plot .sub-title').text(subTitleText);
+    function updateSubtitleForReport(reportName, subTitleText) {
+        // selects the report body
+        updateSubtitle(
+            $('div[data-panel-heading*=\'' + SIREPO.APP_SCHEMA.view[reportName].title + '\']').next(),
+            subTitleText);
+    }
+    function updateSubtitle(reportNode, subTitleText) {
+        $(reportNode).find('.sr-plot .sub-title').text(subTitleText);
     }
 
     self.handleModalShown = function(name) {
@@ -885,6 +895,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         processUndulator();
         processGaussianBeamSize();
         processIntensityReport('sourceIntensityReport');
+        processIntensityReport('intensityReport');
 
         appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamFields);
 
@@ -920,7 +931,12 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         });
 
         appState.watchModelFields($scope, ['intensityReport.method'], updatePrecisionLabel);
-        appState.watchModelFields($scope, ['sourceIntensityReport.characteristic'], updateSubtitleCharacteristic);
+        appState.watchModelFields($scope, ['intensityReport.polarization'], function() {
+            updateSubtitlePolarization('intensityReport');
+        });
+        appState.watchModelFields($scope, ['sourceIntensityReport.characteristic'], function() {
+            updateSubtitleCharacteristic('sourceIntensityReport');
+        });
 
         appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType', 'undulator.length', 'undulator.period', 'simulation.sourceType'], processBeamParameters);
 

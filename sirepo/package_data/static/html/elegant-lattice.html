@@ -11,7 +11,7 @@
       </div>
     </div>
     <div class="col-sm-12 col-md-6 col-xl-5" data-ng-attr-style="height: {{ lattice.splitPaneHeight() }}">
-      <div class="sr-split-pane-frame">
+      <div class="pretty-split-pane-frame sr-split-pane-frame">
 	    <div data-split-pane>
 	        <div data-split-pane-component data-ng-attr-style="min-height: {{ lattice.minPanelHeight }}px;" style>
 	            <div class="sr-split-pane-component-inner">
@@ -28,7 +28,7 @@
 
 	        </div>
 	    </div>
-	        <div data-split-pane-divider data-ng-show="lattice.getNumElements() > 0" data-height="{{ lattice.dividerHeight }}px"></div>
+	        <div data-split-pane-divider data-height="{{ lattice.dividerHeight }}px"></div>
 	        <div data-split-pane-component data-height="{{ lattice.splitPaneBottomPct() }}%" data-ng-attr-style="min-height:{{ lattice.splitPaneBottomMinHeight() }}px">
 	            <div class="sr-split-pane-component-inner">
 

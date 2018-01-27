@@ -283,6 +283,10 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
 
+        debounce: function (delayedFunc, milliseconds) {
+            return debounce(delayedFunc, milliseconds);
+        },
+
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
             var xZoomDomain = xAxisScale.domain();
             var xDomain = [xValues[0], xValues[xValues.length - 1]];
