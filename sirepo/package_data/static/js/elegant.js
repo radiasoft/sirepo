@@ -338,11 +338,11 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         else if (name == 'commands') {
             commandsChanged();
         }
-        else if (name == 'WATCH') {
-            // elegant will crash if the watch has no output filename
-            var watch = appState.models.WATCH;
-            if (watch && ! watch.filename) {
-                watch.filename = '1';
+        else if (name == 'WATCH' || name == 'HISTOGRAM') {
+            // elegant will crash if these element's have no output filename
+            var el = appState.models[name];
+            if (el && ! el.filename) {
+                el.filename = '1';
             }
         }
     });
@@ -1115,6 +1115,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
     function reportTypeForColumns(columns) {
+        if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
+            return '2d';
+        }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {

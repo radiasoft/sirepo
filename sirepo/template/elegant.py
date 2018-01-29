@@ -894,6 +894,8 @@ def _infix_to_postfix(expr):
 
 #TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
 def _is_2d_plot(columns):
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return True
     if ('x' in columns and 'xp' in columns) \
        or ('y' in columns and 'yp' in columns) \
        or ('t' in columns and 'p' in columns):
