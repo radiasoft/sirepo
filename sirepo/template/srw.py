@@ -150,6 +150,8 @@ _RUN_ALL_MODEL = 'simulation'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
+
 _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'electronBeam': '_user_beam_list.json',
     'tabulatedUndulator': '_user_undulator_list.json',
@@ -250,6 +252,12 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particleCount': status['total_num_of_particles'],
         })
     return res
+
+
+def clean_run_dir(run_dir):
+    zip_dir = run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)
+    if zip_dir.exists():
+        zip_dir.remove()
 
 
 def extensions_for_file_type(file_type):
@@ -1395,9 +1403,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
     if run_dir and _uses_tabulated_zipfile(data):
         z = zipfile.ZipFile(str(run_dir.join(v['tabulatedUndulator_magneticFile'])))
-        z.extractall(str(run_dir))
+        z.extractall(str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)))
         for f in z.namelist():
             if re.search(r'\.txt', f):
+                f = _TABULATED_UNDULATOR_DATA_DIR + '/' + f
                 v.magneticMeasurementsDir = os.path.dirname(f) or './'
                 v.magneticMeasurementsIndexFile = os.path.basename(f)
                 break

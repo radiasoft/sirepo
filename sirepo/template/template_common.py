@@ -31,11 +31,11 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
-RESOURCE_DIR = py.path.local(pkresource.filename('template'))
-
 LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
 _HISTOGRAM_BINS_MAX = 500
+
+_RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
@@ -57,13 +57,17 @@ def copy_lib_files(data, source, target):
                 r = sim_resource.join(f.basename)
                 # the file doesn't exist in the simulation lib, check the resource lib
                 if r.exists():
-                    #TODO(pjm): symlink has problems in containers
-                    # f.mksymlinkto(r)
                     r.copy(f)
                 else:
                     pkdlog('No file in lib or resource: {}', f)
                     continue
-            f.copy(path)
+            if source:
+                # copy files from another session
+                f.copy(path)
+            else:
+                # symlink into the run directory
+                path.mksymlinkto(f)
+
 
 
 def flatten_data(d, res, prefix=''):
@@ -222,7 +226,7 @@ def resource_dir(sim_type):
     Returns:
         py.path.Local: absolute path to folder
     """
-    return RESOURCE_DIR.join(sim_type)
+    return _RESOURCE_DIR.join(sim_type)
 
 
 def update_model_defaults(model, name, schema):

@@ -880,6 +880,11 @@ def write_result(result, run_dir=None):
     result.setdefault('state', 'completed')
     write_json(fn, result)
     write_status(result['state'], run_dir)
+    input_file = json_filename(template_common.INPUT_BASE_NAME, run_dir)
+    if input_file.exists():
+        template = sirepo.template.import_module(read_json(input_file))
+        if hasattr(template, 'clean_run_dir'):
+            template.clean_run_dir(run_dir)
 
 
 def write_status(status, run_dir):
