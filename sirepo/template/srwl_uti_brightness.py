@@ -11,7 +11,7 @@ from pykern import pkresource
 
 #fluxcorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivFlux.txt")
 #TODO(pjm): need a way to initialize this module with a set of static datafiles
-fluxcorrectionarray = np.loadtxt(pkresource.filename('template/srw/gwSrwBrilUndHarmUnivFlux.txt'))
+fluxcorrectionarray = np.loadtxt(pkresource.filename('template/srw/brilliance/gwSrwBrilUndHarmUnivFlux.txt'))
 
 def KtoE(K,E_elec,lam_u,n):
     #compute photon Energy (in KeV) from a given K value
