@@ -184,8 +184,14 @@ app_download_data_file = api_downloadDataFile
 
 def api_downloadFile(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
-    p = lib.join(werkzeug.secure_filename(filename))
-    return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
+    filename = werkzeug.secure_filename(filename)
+    p = lib.join(filename)
+    if simulation_type == 'srw':
+        attachment_name = filename
+    else:
+        # strip file_type prefix from attachment filename
+        attachment_name = re.sub(r'^.*?-.*?\.', '', filename)
+    return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
 app_download_file = api_downloadFile
 
 
