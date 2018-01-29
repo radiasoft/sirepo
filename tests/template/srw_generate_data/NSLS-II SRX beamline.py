@@ -15,68 +15,82 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
+    # S0: aperture 33.1798m
     el.append(srwlib.SRWLOptA("r", "a", 0.002, 0.001, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(1.081))
+    # HFM: sphericalMirror 34.2608m
     el.append(srwlib.SRWLOptMirSph(_r=8871.45, _size_tang=0.95, _size_sag=0.005, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(1.407))
+    # S1: aperture 35.6678m
     el.append(srwlib.SRWLOptA("r", "a", 0.0024, 0.0015, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(0.781))
-
+    # DCM: C1: crystal 36.4488m
     opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-1.53227839905e-05, _psi0i=3.59410775406e-07, _psi_hr=-8.10706354484e-06, _psi_hi=2.50931132347e-07, _psi_hbr=-8.10706354484e-06, _psi_hbi=2.50931132347e-07, _tc=0.01, _ang_as=0.0)
     # Set crystal orientation:
     opCr.set_orient(-0.968973817886, 2.59635532439e-08, -0.247163387763, -0.247163387763, 6.62271741473e-09)
     el.append(opCr)
 
-
+    # DCM: C2: crystal 36.4488m
     opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-1.53227839905e-05, _psi0i=3.59410775406e-07, _psi_hr=-8.10706354484e-06, _psi_hi=2.50931132347e-07, _psi_hbr=-8.10706354484e-06, _psi_hbi=2.50931132347e-07, _tc=0.01, _ang_as=0.0)
     # Set crystal orientation:
     opCr.set_orient(0.968973817886, 0.0, -0.247163387763, 0.247163387763, 0.0)
     el.append(opCr)
 
     el.append(srwlib.SRWLOptD(2.2416))
+    # At BPM1: watch 38.6904m
 
     el.append(srwlib.SRWLOptD(11.9668))
+    # Before SSA: watch 50.6572m
 
+    # SSA: aperture 50.6572m
     el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.003, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(11.8308))
+    # AKB: aperture 62.488m
     el.append(srwlib.SRWLOptA("r", "a", 0.003, 0.000875, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(0.175))
+    # KBV: ellipsoidMirror 62.663m
     el.append(srwlib.SRWLOptMirEl(_p=63.913, _q=0.637, _ang_graz=0.0025, _size_tang=0.35, _size_sag=0.003, _nvx=0.0, _nvy=0.999996875002, _nvz=-0.00249999739583, _tvx=0.0, _tvy=-0.00249999739583, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(0.337))
+    # KBH: ellipsoidMirror 63.0m
     el.append(srwlib.SRWLOptMirEl(_p=12.3428, _q=0.3, _ang_graz=0.0025, _size_tang=0.3, _size_sag=0.003, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=-0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(0.3))
+    # At Sample: watch 63.3m
 
     pp = []
+    # S0
     pp.append([0, 0, 1.0, 0, 0, 1.1, 7.0, 1.3, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # HFM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # S1
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # DCM: C1
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # DCM: C2
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # At BPM1
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Before SSA
+    # SSA
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # AKB
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # KBV
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # KBH
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 4, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # At Sample
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 1, 0.5, 1.0, 0.2, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

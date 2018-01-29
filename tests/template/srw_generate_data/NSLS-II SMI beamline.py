@@ -15,82 +15,89 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
-
+    # MOAT 1: crystal 31.94m
     opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-2.33400050166e-06, _psi0i=8.59790386417e-09, _psi_hr=-1.22944507993e-06, _psi_hi=6.00282990962e-09, _psi_hbr=-1.22944507993e-06, _psi_hbi=6.00282990962e-09, _tc=0.01, _ang_as=0.0)
     # Set crystal orientation:
     opCr.set_orient(-0.0966554453406, 0.990567587399, -0.0971266167475, -0.00943241252825, 0.0966675192333)
     el.append(opCr)
-
     ifnCryst1 = "Si_heat204.dat"
     if ifnCryst1:
         hProfDataCryst1 = srwlib.srwl_uti_read_data_cols(ifnCryst1, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataCryst1, _dim="y", _ang=0.0972679033965, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.05))
-
+    # MOAT 2: crystal 31.99m
     opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-2.33400050166e-06, _psi0i=8.59790386417e-09, _psi_hr=-1.22944507993e-06, _psi_hi=6.00282990962e-09, _psi_hbr=-1.22944507993e-06, _psi_hbi=6.00282990962e-09, _tc=0.01, _ang_as=0.0)
     # Set crystal orientation:
     opCr.set_orient(0.0966554453406, 0.990567587399, -0.0971266167475, 0.00943241252825, 0.0966675192333)
     el.append(opCr)
 
     el.append(srwlib.SRWLOptD(2.89244))
+    # HFM: sphericalMirror 34.88244m
     el.append(srwlib.SRWLOptMirSph(_r=7100.0, _size_tang=0.5, _size_sag=0.04, _nvx=0.999995065202, _nvy=0.0, _nvz=-0.00314158748629, _tvx=0.00314158748629, _tvy=0.0, _x=0.0, _y=0.0))
     ifnSphMirror2 = "HFM_Rh7.6km.dat"
     if ifnSphMirror2:
         hProfDataSphMirror2 = srwlib.srwl_uti_read_data_cols(ifnSphMirror2, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror2, _dim="x", _ang=0.003141592654, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(3.42))
+    # VFM: sphericalMirror 38.30244m
     el.append(srwlib.SRWLOptMirSph(_r=6100.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158748629, _tvx=0.0, _tvy=0.00314158748629, _x=0.0, _y=0.0))
     ifnSphMirror3 = "VFM_Rh5.4km.dat"
     if ifnSphMirror3:
         hProfDataSphMirror3 = srwlib.srwl_uti_read_data_cols(ifnSphMirror3, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror3, _dim="y", _ang=0.003141592654, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.69756))
+    # VDM: sphericalMirror 39.0m
     el.append(srwlib.SRWLOptMirSph(_r=300000.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158743229, _tvx=0.0, _tvy=0.00314158743229, _x=0.0, _y=0.0))
     ifnSphMirror4 = "VDM.dat"
     if ifnSphMirror4:
         hProfDataSphMirror4 = srwlib.srwl_uti_read_data_cols(ifnSphMirror4, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror4, _dim="y", _ang=0.0031415926, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(8.00244))
+    # SSA: aperture 47.00244m
     el.append(srwlib.SRWLOptA("r", "a", 0.0004, 0.0004, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(3.89756))
+    # ES1: watch 50.9m
 
     el.append(srwlib.SRWLOptD(6.435))
+    # CRL: crl 57.335m
     el.append(srwlib.srwl_opt_setup_CRL(3, 8.211821e-07, 0.0285408, 1, 0.001, 0.001, 5e-05, 23, 3.24e-05, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(1.665))
+    # ES2: watch 59.0m
 
     pp = []
+    # MOAT 1
     pp.append([0, 0, 1.0, 0, 0, 3.0, 1.0, 3.0, 1.0])
     if ifnCryst1:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # MOAT 2
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # HFM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
     if ifnSphMirror2:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # VFM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
     if ifnSphMirror3:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # VDM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
     if ifnSphMirror4:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # SSA
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 0.5, 5.0, 0.5, 5.0])
-
+    # ES1
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
+    # CRL
     pp.append([0, 0, 1.0, 2, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0])
-
+    # ES2
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 0, 0.4, 3.0, 0.4, 3.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

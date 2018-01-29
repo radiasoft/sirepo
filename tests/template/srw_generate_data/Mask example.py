@@ -15,26 +15,34 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
+    # VFM: ellipsoidMirror 50.0m
     el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.4, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.0, _nvy=0.999995500003, _nvz=-0.0029999955, _tvx=0.0, _tvy=-0.0029999955, _x=0.0, _y=0.0))
-    el.append(srwlib.SRWLOptD(0.2))
-    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.2, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.999995500003, _nvy=0.0, _nvz=-0.0029999955, _tvx=-0.0029999955, _tvy=0.0, _x=0.0, _y=0.0))
-    el.append(srwlib.SRWLOptD(0.2))
 
     el.append(srwlib.SRWLOptD(0.2))
+    # HFM: ellipsoidMirror 50.2m
+    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.2, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.999995500003, _nvy=0.0, _nvz=-0.0029999955, _tvx=-0.0029999955, _tvy=0.0, _x=0.0, _y=0.0))
+
+    el.append(srwlib.SRWLOptD(0.2))
+    # Watchpoint: watch 50.4m
+
+    el.append(srwlib.SRWLOptD(0.2))
+    # Mask: mask 50.6m
     el.append(srwlib.srwl_opt_setup_mask(_delta=1.0, _atten_len=1.0, _thick=1.0, _grid_sh=0, _grid_dx=5e-06, _grid_dy=5e-06, _pitch_x=2e-05, _pitch_y=2e-05, _grid_nx=21, _grid_ny=21, _mask_Nx=1024, _mask_Ny=1024, _grid_angle=0.436332312999, _hx=7.32e-07, _hy=7.32e-07, _mask_x0=0.0, _mask_y0=0.0))
+    # Watchpoint: watch 50.6m
 
     pp = []
+    # VFM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # HFM
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Watchpoint
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # Mask
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
-
+    # Watchpoint
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

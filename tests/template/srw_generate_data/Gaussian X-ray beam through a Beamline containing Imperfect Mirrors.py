@@ -15,49 +15,56 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
+    # ApM1: aperture 270.0m
     el.append(srwlib.SRWLOptA("r", "a", 0.01, 0.0009, 0.0, 0.0))
-
+    # M1: mirror 270.0m
     ifnMirror1 = "mirror2_1d.dat"
     if ifnMirror1:
         hProfDataMirror1 = srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="y", _ang=0.0018, _amp_coef=1.0, _size_x=0.0, _size_y=0.0))
     el.append(srwlib.SRWLOptD(658.3))
+    # Watchpoint: watch 928.3m
 
+    # ApKB: aperture 928.3m
     el.append(srwlib.SRWLOptA("r", "a", 0.0018, 0.0018, 0.0, 0.0))
+    # VFM: ellipsoidMirror 928.3m
     el.append(srwlib.SRWLOptMirEl(_p=928.3, _q=1.7, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.0, _nvy=0.999993520007, _nvz=-0.00359999222401, _tvx=0.0, _tvy=-0.00359999222401, _x=0.0, _y=0.0))
     ifnElMirror2 = "mirror2_1d.dat"
     if ifnElMirror2:
         hProfDataElMirror2 = srwlib.srwl_uti_read_data_cols(ifnElMirror2, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataElMirror2, _dim="y", _ang=0.0036, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.6))
+    # HFM: ellipsoidMirror 928.9m
     el.append(srwlib.SRWLOptMirEl(_p=928.9, _q=1.1, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.999993520007, _nvy=0.0, _nvz=-0.00359999222401, _tvx=-0.00359999222401, _tvy=0.0, _x=0.0, _y=0.0))
     ifnElMirror3 = "mirror2_1d.dat"
     if ifnElMirror3:
         hProfDataElMirror3 = srwlib.srwl_uti_read_data_cols(ifnElMirror3, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataElMirror3, _dim="x", _ang=0.0036, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(1.1))
+    # Sample: watch 930.0m
 
     pp = []
+    # ApM1
     pp.append([0, 0, 1.0, 1, 0, 2.0, 5.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # M1
     if ifnMirror1:
         pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Watchpoint
+    # ApKB
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # VFM
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     if ifnElMirror2:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # HFM
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     if ifnElMirror3:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Sample
+    # final post-propagation
     pp.append([0, 0, 1.0, 1, 0, 0.06, 3.0, 0.1, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

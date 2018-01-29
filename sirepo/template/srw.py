@@ -862,11 +862,10 @@ def _beamline_element(template, item, fields, propagation, shift='', is_crystal=
     pp = _propagation_params(propagation[str(item['id'])][0], shift)
     # special case for crystal elements
     if is_crystal:
-        el = '''
-    opCr = {}
+        el = '''    opCr = {}
     # Set crystal orientation:
     opCr.set_orient({}, {}, {}, {}, {})
-    el.append(opCr)\n'''.format(
+    el.append(opCr)'''.format(
         el,
         item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
     )
@@ -1262,22 +1261,25 @@ def _generate_beamline_optics(report, models, last_id):
                 res['pp'] += _propagation_params(res['propagation'][str(prev['id'])][1])
         if is_disabled:
             pass
-        elif item['type'] == 'sample':
-            _generate_sample(res, item)
-        elif item['type'] == 'watch':
-            if not has_item:
-                res['el'] += '    el.append(srwlib.SRWLOptD({}))\n'.format(1.0e-16)
-                res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
-            if last_id and last_id == int(item['id']):
-                last_element = True
         else:
-            _generate_item(res, item)
+            res['el'] += '    # {}: {} {}m\n'.format(item['title'], item['type'], item['position'])
+            res['pp'] += '    # {}\n'.format(item['title'])
+            if item['type'] == 'sample':
+                _generate_sample(res, item)
+            elif item['type'] == 'watch':
+                if not has_item:
+                    res['el'] += '    el.append(srwlib.SRWLOptD({}))'.format(1.0e-16)
+                    res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
+                if last_id and last_id == int(item['id']):
+                    last_element = True
+            else:
+                _generate_item(res, item)
         prev = item
         res['el'] += '\n'
-        res['pp'] += '\n'
 
     # final propagation parameters
     if want_final_propagation:
+        res['pp'] += '    # final post-propagation\n'
         res['pp'] += _propagation_params(models['postPropagation'])
 
     return res['el'] + res['pp'] + '    return srwlib.SRWLOptC(el, pp)'
@@ -1297,6 +1299,8 @@ def _generate_item(res, item):
             '{}{}'.format(item_def[2], res['height_profile_counter']),
             item_def[3],
         )
+        if item_def[0]:
+            res['el'] += '\n'
         if pp:
             res['height_profile_counter'] += 1
         res['el'] += el
@@ -1504,7 +1508,7 @@ def _height_profile_element(item, propagation, height_profile_el_name, overwrite
     dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
     dimension = find_height_profile_dimension(dat_file)
 
-    res = '\n{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
+    res = '{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
     res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
     add_args = ', 0, 1' if dimension == 1 else ''
     res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t"{})\n'.format(shift, height_profile_el_name, height_profile_el_name, add_args)
