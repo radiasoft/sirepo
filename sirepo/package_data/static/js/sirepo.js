@@ -2524,6 +2524,7 @@ SIREPO.app.filter('simulationName', function() {
         if (name) {
             // clean up name so it formats well in HTML
             name = name.replace(/\_/g, ' ');
+            name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
         }
         return name;
     };
