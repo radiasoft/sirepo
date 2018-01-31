@@ -25,6 +25,7 @@ angular.module('shagstrom.angular-split-pane', [])
 		}],
 		link: function($scope, element, attrs) {
                     element = $(element);
+                    console.log('setting up angular split pane');
 		    var $firstComponent = element.children('.split-pane-component:first'),
 				$divider = element.children('.split-pane-divider'),
 				$lastComponent = element.children('.split-pane-component:last');
@@ -61,6 +62,7 @@ angular.module('shagstrom.angular-split-pane', [])
 				$divider.css({ top: $scope.components[0].height, height: $scope.divider.height });
 				$lastComponent.css({ top: $scope.components[0].height, marginTop: $scope.divider.height });
 			} if ($scope.components[1].height && $scope.components[1].height.match(/%$/)) {
+				console.log('horiz percent');
 				element.addClass('horizontal-percent');
 				$firstComponent.css({ bottom: $scope.components[1].height, marginBottom: $scope.divider.height });
 				$divider.css({ bottom: $scope.components[1].height, height: $scope.divider.height });

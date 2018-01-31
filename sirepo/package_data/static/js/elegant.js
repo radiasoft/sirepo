@@ -605,7 +605,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, plotting, $rootScope, $scope, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -776,7 +776,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         }
         sortMethod();
         appState.removeModel(name);
-        appState.saveChanges(containerName);
+        appState.saveChanges(containerName, self.updateSplitPaneBottom);
     }
 
     self.addToBeamline = function(item) {
@@ -815,7 +815,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                     appState.saveQuietly('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type);
+                appState.saveChanges(type, self.updateSplitPaneBottom);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
@@ -872,6 +872,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newBeamline = function() {
+        srdbg('new beamline');
         appState.models.beamline = {
             name: uniqueNameForType('BL'),
             id: elegantService.nextId(),
@@ -883,6 +884,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newElement = function() {
+        srdbg('new element');
         $('#' + panelState.modalId('newBeamlineElement')).modal('show');
     };
 
@@ -922,74 +924,84 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         self.activeTab = name;
     };
 
-    self.minPanelHeight = 150;
+    self.minPanelHeight = 160;
     self.dividerHeight = 15;
+    var topPanel = null;
+    function getTopPanel() {
+        if(! topPanel) {
+            topPanel = $('.sr-split-pane-component-inner .panel')[0];
+        }
+        return topPanel;
+    }
+
     self.splitPaneHeight = function() {
-        var w = $($window);
-        var el = $('.sr-split-pane-frame');
-        //srdbg('top h', self.splitPaneTopHeight(), 'bottom h', self.splitPaneBottomHeight(), 'min', self.splitPaneBottomMinHeight());
-        return Math.round(w.height() - el.offset().top - self.dividerHeight) + 'px';
-    };
-    self.splitPanePixels = function() {
         var w = $($window);
         var el = $('.sr-split-pane-frame');
         return Math.round(w.height() - el.offset().top - self.dividerHeight);
     };
     self.splitPaneTopHeight = function () {
-        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
-        var h = $(el).height();
-        return h + 'px';
-    };
-    self.splitPaneTopHeightPixels = function () {
-        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
-        var h = $(el).height();
-        return h;
-    };
-    self.splitPaneBottomHeight = function () {
-        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
-        var h = $(el).height();
-        return h + 'px';
-    };
-    self.splitPaneBottomHeightPixels = function () {
-        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
-        var h = $(el).height();
-        return h;
-    };
-     self.splitPaneBottomPos = function () {
-        var el = $('.sr-split-pane-component-inner .panel')[1];  // bottom panel
-        var t = $(el).position().top;
-        return t + 'px';
-    };
-   self.splitPaneBottom = function() {
-        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
-        var h = $(el).height();
-        var t = $(el).position().top;
-        var b = t + h;
-        return b + 'px';
-    };
-    self.splitPaneBottomPct = function() {
-        var sph = self.splitPanePixels();
-        var w = $($window);
-        var el = $('.sr-split-pane-component-inner .panel')[0];  // top panel
-        var h = $(el).height();
-        var t = $(el).position().top;
-        var b = t + h;
-        var pct = Math.round(100*(1-b/sph));
-        return pct;
+        return $(getTopPanel()).height();
     };
 
+    self.splitPaneBottomPct = function() {
+        var el = getTopPanel();
+        var b = $(el).position().top + $(el).height();
+        var pct = Math.round(100 * (1 - b / self.splitPaneHeight()));
+        var minPct = Math.round(100 * (self.minPanelHeight / self.splitPaneHeight()));
+        srdbg('top h', $(el).height(), 'bottom pct', pct, 'min pct', minPct, 'bottom px', pct*self.splitPaneHeight()/100);
+        return  Math.max(pct, minPct); //Math.round(100*(1-b/self.splitPaneHeight()));
+    };
+    //self.splitPaneBottomMinHeight = function() {
+    //    return self.minBottomHeightForTopHeight(self.splitPaneTopHeight());
+    //};
     self.splitPaneBottomMinHeight = function() {
-        //srdbg('widget height', self.splitPanePixels(), 'total height', self.splitPaneTopHeightPixels() + self.splitPaneBottomHeightPixels() + self.dividerHeight);
-        if(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight  < self.minPanelHeight ) {
-            //srdbg('min min bottom panel h', self.minPanelHeight);
+    //self.minBottomHeightForTopHeight = function (h) {
+        if(self.splitPaneHeight() - self.splitPaneTopHeight() < self.minPanelHeight ) {
+            srdbg('bottom min for top h', self.splitPaneTopHeight(), self.minPanelHeight);
             return self.minPanelHeight;
         }
-        //var min = Math.max(self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight, self.splitPanePixels() - self.minPanelHeight);
-        var min = self.splitPanePixels() - self.splitPaneTopHeightPixels() - self.dividerHeight;
-        //srdbg('min bottom panel h', min);
+        var min = self.splitPaneHeight() - self.splitPaneTopHeight();
+        srdbg('bottom min for top h', self.splitPaneTopHeight(), min);
         return min;
     };
+    self.setSplitPaneBottomMinHeight = function () {
+        var el = $('[data-split-pane-component]')[1];
+        $(el).css('min-height', self.splitPaneBottomMinHeight()+'px');
+        srdbg('css min h', $(el).css('min-height'));
+    };
+    self.setSplitPaneBottomPct = function () {
+        var el = $('[data-split-pane-component]')[1];
+        var pct = self.splitPaneBottomPct() + '%';
+        $(el).css('height', pct);
+        srdbg('css h', $(el).css('height'), 'actual', $(el).height());
+        //$(el).attr('data-height', pct);
+        var bottomPX = self.splitPaneBottomPct()*self.splitPaneHeight()/100;
+        srdbg('bottom now', bottomPX);
+        srdbg('moving divider', pct);
+        el = $('.split-pane-divider');
+        $(el).css('bottom', pct);
+    };
+    self.updateSplitPaneBottom = function () {
+        srdbg('updating after save');
+            self.setSplitPaneBottomPct();
+            self.setSplitPaneBottomMinHeight();
+    };
 
+    self.showDivider = function() {
+        return (appState.models.beamlines || []).length > 0;
+    };
+
+    $scope.windowResize = plotting.doDebounce(function() {
+        $scope.resize();
+        }, 50);
+    $($window).resize($scope.windowResize);
+    $scope.resize = function() {
+        srdbg('resizing');
+        self.setSplitPaneBottomMinHeight();
+    };
+    $scope.$on('$destroy', function() {
+        $($window).off('resize', $scope.windowResize);
+        });
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
@@ -1018,7 +1030,11 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         }
     });
     appState.whenModelsLoaded($scope, function() {
+        srdbg('models loaded');
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+        //self.setSplitPaneBottomMinHeight();
+        //self.setSplitPaneBottomPct();
+        self.updateSplitPaneBottom();
         //TODO(pjm): only required for when viewing after import
         // force update to bunch from command.bunched_beam
         appState.saveChanges('commands');

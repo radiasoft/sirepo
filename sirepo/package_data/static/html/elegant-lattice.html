@@ -10,10 +10,10 @@
         </div>
       </div>
     </div>
-    <div class="col-sm-12 col-md-6 col-xl-5" data-ng-attr-style="height: {{ lattice.splitPaneHeight() }}">
-      <div class="pretty-split-pane-frame sr-split-pane-frame">
+    <div class="col-sm-12 col-md-6 col-xl-5" data-ng-attr-style="height: {{ lattice.splitPaneHeight() }}px;">
+      <div class="sr-split-pane-frame">
 	    <div data-split-pane>
-	        <div data-split-pane-component data-ng-attr-style="min-height: {{ lattice.minPanelHeight }}px;" style>
+	        <div data-split-pane-component data-ng-attr-style="min-height: {{ ::lattice.minPanelHeight }}px;">
 	            <div class="sr-split-pane-component-inner">
 
                     <div class="panel panel-info">
@@ -28,8 +28,8 @@
 
 	        </div>
 	    </div>
-	        <div data-split-pane-divider data-height="{{ lattice.dividerHeight }}px"></div>
-	        <div data-split-pane-component data-height="{{ lattice.splitPaneBottomPct() }}%" data-ng-attr-style="min-height:{{ lattice.splitPaneBottomMinHeight() }}px">
+	        <div data-split-pane-divider data-ng-show="lattice.showDivider()" data-height="{{ ::lattice.dividerHeight }}px"></div>
+	        <div data-split-pane-component data-height="{{ lattice.splitPaneBottomPct() }}%">
 	            <div class="sr-split-pane-component-inner">
 
                     <!-- TODO(pjm): refactor panels -->

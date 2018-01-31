@@ -283,7 +283,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
 
-        debounce: function (delayedFunc, milliseconds) {
+        doDebounce: function (delayedFunc, milliseconds) {
             return debounce(delayedFunc, milliseconds);
         },
 
