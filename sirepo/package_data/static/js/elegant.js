@@ -605,7 +605,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, plotting, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, utilities, $rootScope, $scope, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -776,7 +776,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         }
         sortMethod();
         appState.removeModel(name);
-        appState.saveChanges(containerName, self.updateSplitPaneBottom);
+        appState.saveChanges(containerName, self.updateSplitPane);
     }
 
     self.addToBeamline = function(item) {
@@ -815,7 +815,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                     appState.saveQuietly('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type, self.updateSplitPaneBottom);
+                appState.saveChanges(type, self.updateSplitPane);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
@@ -872,7 +872,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newBeamline = function() {
-        srdbg('new beamline');
         appState.models.beamline = {
             name: uniqueNameForType('BL'),
             id: elegantService.nextId(),
@@ -884,7 +883,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
 
     self.newElement = function() {
-        srdbg('new element');
         $('#' + panelState.modalId('newBeamlineElement')).modal('show');
     };
 
@@ -926,81 +924,65 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.minPanelHeight = 160;
     self.dividerHeight = 15;
-    var topPanel = null;
-    function getTopPanel() {
-        if(! topPanel) {
-            topPanel = $('.sr-split-pane-component-inner .panel')[0];
-        }
-        return topPanel;
-    }
 
     self.splitPaneHeight = function() {
         var w = $($window);
         var el = $('.sr-split-pane-frame');
         return Math.round(w.height() - el.offset().top - self.dividerHeight);
     };
-    self.splitPaneTopHeight = function () {
-        return $(getTopPanel()).height();
-    };
 
+    // The angular digest cycle does not mesh well with the jquery split panes.
+    // We'll do our own updates when changing beamline or element lists, etc.
+    self.splitPaneTopHeight = function () {
+        return $($('.sr-split-pane-component-inner .panel')[0]).height();
+    };
     self.splitPaneBottomPct = function() {
-        var el = getTopPanel();
-        var b = $(el).position().top + $(el).height();
+        var b = $($('.sr-split-pane-component-inner .panel')[0]).position().top + self.splitPaneTopHeight();
         var pct = Math.round(100 * (1 - b / self.splitPaneHeight()));
         var minPct = Math.round(100 * (self.minPanelHeight / self.splitPaneHeight()));
-        srdbg('top h', $(el).height(), 'bottom pct', pct, 'min pct', minPct, 'bottom px', pct*self.splitPaneHeight()/100);
-        return  Math.max(pct, minPct); //Math.round(100*(1-b/self.splitPaneHeight()));
+        // prevents the percentage from dropping below the minimum, which can cause layout problems
+        return Math.max(pct, minPct);
     };
-    //self.splitPaneBottomMinHeight = function() {
-    //    return self.minBottomHeightForTopHeight(self.splitPaneTopHeight());
-    //};
     self.splitPaneBottomMinHeight = function() {
-    //self.minBottomHeightForTopHeight = function (h) {
         if(self.splitPaneHeight() - self.splitPaneTopHeight() < self.minPanelHeight ) {
-            srdbg('bottom min for top h', self.splitPaneTopHeight(), self.minPanelHeight);
             return self.minPanelHeight;
         }
-        var min = self.splitPaneHeight() - self.splitPaneTopHeight();
-        srdbg('bottom min for top h', self.splitPaneTopHeight(), min);
-        return min;
+        return self.splitPaneHeight() - self.splitPaneTopHeight();
     };
-    self.setSplitPaneBottomMinHeight = function () {
-        var el = $('[data-split-pane-component]')[1];
-        $(el).css('min-height', self.splitPaneBottomMinHeight()+'px');
-        srdbg('css min h', $(el).css('min-height'));
+    self.setSplitPaneBottomMinHeight = function() {
+        $($('[data-split-pane-component]')[1]).css('min-height', self.splitPaneBottomMinHeight()+'px');
     };
-    self.setSplitPaneBottomPct = function () {
-        var el = $('[data-split-pane-component]')[1];
-        var pct = self.splitPaneBottomPct() + '%';
-        $(el).css('height', pct);
-        srdbg('css h', $(el).css('height'), 'actual', $(el).height());
-        //$(el).attr('data-height', pct);
-        var bottomPX = self.splitPaneBottomPct()*self.splitPaneHeight()/100;
-        srdbg('bottom now', bottomPX);
-        srdbg('moving divider', pct);
-        el = $('.split-pane-divider');
-        $(el).css('bottom', pct);
+    self.setSplitPaneBottomPct = function() {
+        $($('[data-split-pane-component]')[1]).css('height', self.splitPaneBottomPct() + '%');
     };
-    self.updateSplitPaneBottom = function () {
-        srdbg('updating after save');
-            self.setSplitPaneBottomPct();
-            self.setSplitPaneBottomMinHeight();
+    self.setSplitPaneDivider = function() {
+        $('.split-pane-divider').css('bottom', self.splitPaneBottomPct() + '%');
+    };
+    self.setSplitPaneTop = function() {
+        $($('[data-split-pane-component]')[0]).css('height', $('.split-pane-divider').position().top + self.dividerHeight);
+    };
+
+    self.updateSplitPane = function() {
+        self.setSplitPaneBottomPct();
+        self.setSplitPaneDivider();
+        self.setSplitPaneBottomMinHeight();
+        self.setSplitPaneTop();
     };
 
     self.showDivider = function() {
         return (appState.models.beamlines || []).length > 0;
     };
 
-    $scope.windowResize = plotting.doDebounce(function() {
-        $scope.resize();
-        }, 50);
-    $($window).resize($scope.windowResize);
-    $scope.resize = function() {
-        srdbg('resizing');
+    self.windowResize = utilities.debounce(function() {
+        self.resize();
+        }, 100);
+    $($window).resize(self.windowResize);
+    self.resize = function() {
+        // recalculate the minimum in response to user manipulations
         self.setSplitPaneBottomMinHeight();
     };
     $scope.$on('$destroy', function() {
-        $($window).off('resize', $scope.windowResize);
+        $($window).off('resize', self.windowResize);
         });
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
@@ -1029,12 +1011,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
+
     appState.whenModelsLoaded($scope, function() {
-        srdbg('models loaded');
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-        //self.setSplitPaneBottomMinHeight();
-        //self.setSplitPaneBottomPct();
-        self.updateSplitPaneBottom();
         //TODO(pjm): only required for when viewing after import
         // force update to bunch from command.bunched_beam
         appState.saveChanges('commands');
@@ -2649,11 +2628,7 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             $scope.svgGroups = [];
             $scope.svgBounds = null;
             var picTypeCache = null;
-            /*
-            $scope.windowResize = plotting.debounce(function() {
-                    $scope.resize();
-                }, 250);
-            */
+
             function rpnValue(num) {
                 return rpnService.getRpnValue(num);
             }

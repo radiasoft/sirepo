@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, utilities, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -40,28 +40,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         return d3.svg.axis()
             .scale(scale)
             .orient(orient);
-    }
-
-    // Returns a function, that, as long as it continues to be invoked, will not
-    // be triggered. The function will be called after it stops being called for
-    // N milliseconds.
-    // taken from http://davidwalsh.name/javascript-debounce-function
-    function debounce(delayedFunc, milliseconds) {
-        var debounceInterval = null;
-        return function() {
-            var context = this, args = arguments;
-            var later = function() {
-                if (debounceInterval) {
-                    $interval.cancel(debounceInterval);
-                    debounceInterval = null;
-                }
-                delayedFunc.apply(context, args);
-            };
-            if (debounceInterval) {
-                $interval.cancel(debounceInterval);
-            }
-            debounceInterval = $interval(later, milliseconds, 1);
-        };
     }
 
     function initAnimation(scope) {
@@ -283,10 +261,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
 
-        doDebounce: function (delayedFunc, milliseconds) {
-            return debounce(delayedFunc, milliseconds);
-        },
-
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
             var xZoomDomain = xAxisScale.domain();
             var xDomain = [xValues[0], xValues[xValues.length - 1]];
@@ -407,7 +381,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     requestData = initPlot(scope);
                 }
 
-                scope.windowResize = debounce(function() {
+                scope.windowResize = utilities.debounce(function() {
                     scope.resize();
                 }, 250);
 
