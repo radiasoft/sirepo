@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, utilities, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -40,28 +40,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         return d3.svg.axis()
             .scale(scale)
             .orient(orient);
-    }
-
-    // Returns a function, that, as long as it continues to be invoked, will not
-    // be triggered. The function will be called after it stops being called for
-    // N milliseconds.
-    // taken from http://davidwalsh.name/javascript-debounce-function
-    function debounce(delayedFunc, milliseconds) {
-        var debounceInterval = null;
-        return function() {
-            var context = this, args = arguments;
-            var later = function() {
-                if (debounceInterval) {
-                    $interval.cancel(debounceInterval);
-                    debounceInterval = null;
-                }
-                delayedFunc.apply(context, args);
-            };
-            if (debounceInterval) {
-                $interval.cancel(debounceInterval);
-            }
-            debounceInterval = $interval(later, milliseconds, 1);
-        };
     }
 
     function initAnimation(scope) {
@@ -403,7 +381,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     requestData = initPlot(scope);
                 }
 
-                scope.windowResize = debounce(function() {
+                scope.windowResize = utilities.debounce(function() {
                     scope.resize();
                 }, 250);
 
@@ -1029,6 +1007,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             // will be set to the correct size in resize()
             $scope.canvasSize = 0;
             $scope.titleCenter = 0;
+            $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
@@ -1065,15 +1044,22 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
 
             function centerTitle() {
-                // center the title over the image, if text is too large, center it over whole plot
-                var titleNode = select('text.main-title').node();
-                if (titleNode) {
-                    var width = titleNode.getBBox().width;
-                    $scope.titleCenter = $scope.canvasSize / 2;
+                $scope.titleCenter = centerNode(select('text.main-title').node());
+            }
+            function centerSubTitle() {
+                $scope.subTitleCenter = centerNode(select('text.sub-title').node());
+            }
+            function centerNode(node) {
+                // center the node over the image; if node is too large, center it over whole plot
+                if(node) {
+                    var width = node.getBBox().width;
+                    var ctr = $scope.canvasSize / 2;
                     if (width > $scope.canvasSize) {
-                        $scope.titleCenter += $scope.rightPanelWidth / 2;
+                        ctr += $scope.rightPanelWidth / 2;
                     }
+                    return ctr;
                 }
+                return 0;
             }
 
             function clipDomain(scale, axisName) {
@@ -1224,6 +1210,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                     yAxisScale.domain(),
                 ];
                 centerTitle();
+                centerSubTitle();
             }
 
             function resetZoom() {
