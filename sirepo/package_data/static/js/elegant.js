@@ -9,6 +9,9 @@ SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
 //TODO(pjm): provide API for this, keyed by field type
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
       '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',

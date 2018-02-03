@@ -328,7 +328,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label>{{ label }} <span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
+            '<label>{{ label }}&nbsp;<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
@@ -837,7 +837,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                       '<form>',
                         '<div class="form-group">',
                           '<label>Select File</label>',
-                          '<input type="file" data-file-model="inputFile" />',
+                          '<input type="file" data-file-model="inputFile" accept="{{ acceptTypes() }}" />',
                           '<div class="text-warning" style="white-space: pre-line"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
@@ -858,6 +858,13 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.isConfirming = false;
+
+            $scope.acceptTypes = function() {
+                if (appState.isLoaded() && SIREPO.FILE_UPLOAD_TYPE) {
+                    return SIREPO.FILE_UPLOAD_TYPE[$scope.fileType] || '';
+                }
+                return '';
+            };
 
             $scope.uploadFile = function(inputFile, isConfirmed) {
                 if (! inputFile) {
@@ -1330,13 +1337,9 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                //TODO(pjm): these reports are specific to the elegant/hellweg apps
-                '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
             '</div>',
@@ -1947,6 +1950,54 @@ SIREPO.app.directive('simSections', function(utilities) {
             $scope.isWide = function() {
                 return utilities.isWide();
             };
+        },
+    };
+});
+
+SIREPO.app.directive('simStatusPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=simStatusPanel',
+            initMessage: '@',
+        },
+        template: [
+            '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
+              '<div data-ng-show="simState.isStatePending()">',
+                '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
+              '</div>',
+              '<div data-ng-show="simState.isStateRunning()">',
+                '<div class="col-sm-12">',
+                  '<div data-ng-show="simState.isInitializing()">{{ initMessage }} {{ simState.dots }}</div>',
+                  '<div data-ng-show="simState.getFrameCount() > 0">Completed frame: {{ simState.getFrameCount() }}</div>',
+                  '<div class="progress">',
+                    '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%">',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+              '<div class="col-sm-6 pull-right">',
+                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">End Simulation</button>',
+              '</div>',
+            '</form>',
+            '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
+              '<div class="col-sm-12" data-ng-show="simState.getFrameCount() >= 1">',
+                'Simulation ',
+                '<span>{{ simState.stateAsText() }}</span><span>: {{ simState.getFrameCount() }} animation frames</span>',
+                '<br><br>',
+              '</div>',
+              '<div data-ng-show="simState.isStateError()">',
+                '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
+              '</div>',
+              '<div class="col-sm-6 pull-right">',
+                '<button class="btn btn-default" data-ng-click="simState.runSimulation()">Start New Simulation</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            if (! $scope.initMessage) {
+                $scope.initMessage = 'Running Simulation';
+            }
         },
     };
 });
