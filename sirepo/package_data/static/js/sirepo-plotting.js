@@ -64,6 +64,18 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         };
     }
 
+    function formatNumber(value) {
+        if (value) {
+            if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
+                return cleanNumber(value.toFixed(3));
+            }
+            else {
+                return cleanNumber(value.toExponential(2));
+            }
+        }
+        return '' + value;
+    }
+
     function initAnimation(scope) {
         scope.prevFrameIndex = -1;
         scope.isPlaying = false;
@@ -258,17 +270,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return createAxis(scale, orient)
             // this causes a 'number of fractional digits' error in MSIE
             //.tickFormat(d3.format('e'))
-                .tickFormat(function (value) {
-                    if (value) {
-                        if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
-                            return cleanNumber(value.toFixed(3));
-                        }
-                        else {
-                            return cleanNumber(value.toExponential(2));
-                        }
-                    }
-                    return value;
-                });
+                .tickFormat(formatNumber);
         },
 
         exportCSV: function(fileName, heading, points) {
@@ -317,12 +319,11 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         fixFormat: function(scope, axis, precision) {
             var format = d3.format('.' + (precision || '3') + 's');
-            var format2 = d3.format('.2f');
             // amounts near zero may appear as NNNz, change them to 0
             return function(n) {
                 var units = scope[axis + 'units'];
                 if (! units) {
-                    return cleanNumber(format2(n));
+                    return cleanNumber(formatNumber(n));
                 }
                 var v = format(n);
                 //TODO(pjm): use a regexp
