@@ -131,7 +131,7 @@
         ],
         "BodyFocusModel": [
             ["", "None"],
-            ["SRS", "SRS"]
+            ["srs", "SRS"]
         ],
         "CeplMethod": [
             ["runge-kutta", "Runge-Kutta"],
