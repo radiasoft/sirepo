@@ -42,6 +42,18 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             .orient(orient);
     }
 
+    function formatNumber(value) {
+        if (value) {
+            if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
+                return cleanNumber(value.toFixed(3));
+            }
+            else {
+                return cleanNumber(value.toExponential(2));
+            }
+        }
+        return '' + value;
+    }
+
     function initAnimation(scope) {
         scope.prevFrameIndex = -1;
         scope.isPlaying = false;
