@@ -1,17 +1,17 @@
 {
-    "version": "20180129.000000",
+    "version": "20180202.000001",
     "appInfo": {
         "elegant": {
             "longName": "elegant",
             "shortName": "Elegant"
         },
-        "warpvnd": {
-            "longName": "Warp VND",
-            "shortName": "Warp VND"
-        },
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"
+        },
+        "jspec": {
+            "longName": "JSPEC",
+            "shortName": "JSPEC"
         },
         "rs4pi": {
             "longName": "RS4PI",
@@ -28,6 +28,10 @@
         "warppba": {
             "longName": "Warp PBA",
             "shortName": "Warp PBA"
+        },
+        "warpvnd": {
+            "longName": "Warp VND",
+            "shortName": "Warp VND"
         }
     },
     "productInfo": {

@@ -1,0 +1,284 @@
+{
+    "enum": {
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
+        "ElectronBeamShape": [
+            ["dc_uniform", "Uniform Cylinder"],
+            ["bunched_gaussian", "Gaussian Bunch"],
+            ["bunched_uniform", "Uniform Bunch"]
+        ],
+        "EmittanceColumn": [
+            ["t", "t"],
+            ["emitx", "emit_x"],
+            ["emity", "emit_y"],
+            ["dpp", "dp/p"],
+            ["sigmas", "sigma_s"],
+            ["rx", "rx"],
+            ["ry", "ry"],
+            ["rs", "rs"]
+        ],
+        "EmittanceOptionalColumn": [
+            ["t", "t"],
+            ["emitx", "emit_x"],
+            ["emity", "emit_y"],
+            ["dpp", "dp/p"],
+            ["sigmas", "sigma_s"],
+            ["rx", "rx"],
+            ["ry", "ry"],
+            ["rs", "rs"],
+            ["none", "None"]
+        ],
+        "ForceFormula": [
+            ["parkhomchuk", "Parkhomchuk"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
+        "IBSLongitudinalMethod": [
+            ["nz", "Longitudinal Grid Size"],
+            ["log_c", "Coulomb Logarithm"]
+        ],
+        "ParticleColumn": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["ds", "ds"],
+            ["dpp", "dp/p"]
+        ],
+        "SimulationModel": [
+            ["rms", "RMS"],
+            ["model_beam", "Model Beam"]
+        ]
+    },
+    "model": {
+        "cooler": {
+            "length": ["Length [m]", "Float"],
+            "section_number": ["Number of Coolers", "Integer", 1],
+            "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
+            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function in horizontal direction"],
+            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function in vertical direction"],
+            "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0, "Dispersion in horizontal direction"],
+            "disp_y": ["Vertical Dispersion [m]", "Float", 0.0, "Dispersion in vertical direction"],
+            "alpha_x": ["Horizontal Alpha", "Float", 0.0, "Alpha in horizontal direction"],
+            "alpha_y": ["Vertical Alpha", "Float", 0.0, "Alpha in vertical direction"],
+            "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion in horizontal direction"],
+            "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion in vertical direction"]
+        },
+        "electronBeam": {
+            "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
+            "tmp_tr": ["Transverse Temperature [eV]", "Float"],
+            "tmp_l": ["Longitudinal Temperature [eV]", "Float"],
+            "shape": ["Shape", "ElectronBeamShape", "dc_uniform"],
+            "radius": ["Radius [m]", "Float"],
+            "current": ["Current [A]", "Float"],
+            "sigma_x": ["Horizontal RMS Size", "Float"],
+            "sigma_y": ["Vertical RMS Size", "Float"],
+            "sigma_z": ["RMS Bunch Length", "Float"],
+            "length": ["Length [m]", "Float"],
+            "e_number": ["Number of Electrons", "Float"]
+        },
+        "electronCoolingRate": {
+            "sample_number": ["Number of Sample Ions", "Integer"],
+            "force_formula": ["Force Formula", "ForceFormula"]
+        },
+        "emittanceAnimation": {
+            "x": ["X Value", "EmittanceColumn"],
+            "y1": ["Y1 Value", "EmittanceColumn"],
+            "y2": ["Y2 Value", "EmittanceOptionalColumn"],
+            "y3": ["Y3 Value", "EmittanceOptionalColumn"]
+        },
+        "intrabeamScatteringRate": {
+            "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration."],
+            "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration."],
+            "longitudinalMethod": ["Longitudinal Method", "IBSLongitudinalMethod", "nz"],
+            "nz": ["Longitudinal Grid Size", "Integer", 40, "Set the grid number in longitudinal direction for the 3D integration."],
+            "log_c": ["Coulomb Logarithm", "Float"],
+            "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1."]
+        },
+        "ionBeam": {
+            "charge_number": ["Number of Charges", "Integer", 1, "Number of the charges of the ion."],
+            "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion."],
+            "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion."],
+            "norm_emit_x": ["Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "Normalized horizontal emittance of the ion beam."],
+            "norm_emit_y": ["Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "Normalized vertical emittance of the ion beam."],
+            "momentum_spread": ["Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam."],
+            "particle_number": ["Number of Particles", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam."],
+            "rms_bunch_length": ["RMS Bunch Length", "Float", 7.0, "RMS bunch length for the bunched ion beam. For a coasting ion beam, set this value to 0."]
+        },
+        "particleAnimation": {
+            "x": ["X Value", "ParticleColumn"],
+            "y": ["Y Value", "ParticleColumn"],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "rateCalculationReport": {
+        },
+        "ring": {
+            "lattice": ["Ring Lattice File", "InputFile", null, "This file should be in the MAD-X output format (*.tfs)."]
+        },
+        "simulationSettings": {
+            "time": ["Total Simulation Time [s]", "Float"],
+            "step_number": ["Total Number of Steps", "Integer", null, "The time interval of each step is time/step_number."],
+            "sample_number": ["Number of Sample Ions", "Integer"],
+            "ibs": ["Simulation the IBS Effect", "Boolean", "1"],
+            "e_cool": ["Simulation Electron Cooling Effect", "Boolean", "1"],
+            "model": ["Model", "SimulationModel", "model_beam"],
+            "output_interval": ["Output Interval", "Integer"],
+            "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero."],
+            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_bet_y": ["Vertical Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_alf_y": ["Vertical Alpha Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float", null, "TWISS parameters for the reference point."],
+            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float", null, "TWISS parameters for the reference point."]
+        },
+        "runSettings": {
+            "calculate_ibs": ["Calculated the IBS Rate", "Boolean", "1"],
+            "calculate_ecool": ["Calculate the Electron Cooling Rate", "Boolean", "1"],
+            "total_expansion_rate": ["Calculated the Total Expansion Rate", "Boolean", "1"]
+        }
+    },
+    "view": {
+        "cooler": {
+            "title": "Cooler",
+            "basic": [
+                "length",
+                "section_number",
+                "magnetic_field",
+                [
+                    ["Horizontal", [
+                        "bet_x",
+                        "disp_x",
+                        "alpha_x",
+                        "disp_dx"
+                    ]],
+                    ["Vertical", [
+                        "bet_y",
+                        "disp_y",
+                        "alpha_y",
+                        "disp_dy"
+                    ]]
+                ]
+            ],
+            "advanced": [
+            ]
+        },
+        "electronBeam": {
+            "title": "Cooling Electron Beam",
+            "basic": [
+                "gamma",
+                "tmp_tr",
+                "tmp_l",
+                "shape",
+                "radius",
+                "current",
+                "sigma_x",
+                "sigma_y",
+                "sigma_z",
+                "length",
+                "e_number"
+            ],
+            "advanced": [
+            ]
+        },
+        "emittanceAnimation": {
+            "title": "Emittance Report",
+            "advanced": [
+                "x",
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "ionBeam": {
+            "title": "Ion Beam",
+            "basic": [
+                "charge_number",
+                "mass",
+                "kinetic_energy",
+                "momentum_spread",
+                "particle_number",
+                "rms_bunch_length",
+                [
+                    ["Horizontal", [
+                        "norm_emit_x"
+                    ]],
+                    ["Vertical", [
+                        "norm_emit_y"
+                    ]]
+                ],
+                "ring.lattice"
+            ],
+            "advanced": [
+            ]
+        },
+        "particleAnimation": {
+            "title": "Particle Animation",
+            "advanced": [
+                "x",
+                "y",
+                "histogramBins",
+                "framesPerSecond",
+                "colorMap"
+            ]
+        },
+        "rateCalculationReport": {
+            "title": "Rate Calculation Report",
+            "basic": [],
+            "advanced": [
+                ["Intrabeam Scattering", [
+                    "intrabeamScatteringRate.nu",
+                    "intrabeamScatteringRate.nv",
+                    "intrabeamScatteringRate.longitudinalMethod",
+                    "intrabeamScatteringRate.nz",
+                    "intrabeamScatteringRate.log_c",
+                    "intrabeamScatteringRate.coupling"
+                ]],
+                ["Electron Cooling", [
+                    "electronCoolingRate.sample_number",
+                    "electronCoolingRate.force_formula"
+                ]]
+            ]
+        },
+        "runSettings": {
+            "title": "Rate Calculations",
+            "basic": [
+                "calculate_ibs",
+                "calculate_ecool",
+                "total_expansion_rate"
+            ],
+            "advanced": [
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "time",
+                "step_number",
+                "sample_number",
+                "model",
+                "output_interval",
+                "save_particle_interval"
+            ],
+            "advanced": [
+            ]
+        }
+    }
+}

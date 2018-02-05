@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.dose = '/dose/:simulationId';
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ROI" class="col-sm-7">',

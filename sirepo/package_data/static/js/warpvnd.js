@@ -4,6 +4,10 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
