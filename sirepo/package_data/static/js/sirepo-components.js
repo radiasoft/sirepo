@@ -2072,7 +2072,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('utilities', function($window) {
+SIREPO.app.service('utilities', function($window, $interval) {
 
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
@@ -2102,4 +2102,27 @@ SIREPO.app.service('utilities', function($window) {
     this.isWide = function() {
         return $window.innerWidth > 767;
     };
+
+    // Returns a function, that, as long as it continues to be invoked, will not
+    // be triggered. The function will be called after it stops being called for
+    // N milliseconds.
+    // taken from http://davidwalsh.name/javascript-debounce-function
+    this.debounce = function(delayedFunc, milliseconds) {
+        var debounceInterval = null;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                if (debounceInterval) {
+                    $interval.cancel(debounceInterval);
+                    debounceInterval = null;
+                }
+                delayedFunc.apply(context, args);
+            };
+            if (debounceInterval) {
+                $interval.cancel(debounceInterval);
+            }
+            debounceInterval = $interval(later, milliseconds, 1);
+        };
+    };
+
 });
