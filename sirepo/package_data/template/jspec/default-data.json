@@ -30,7 +30,7 @@
             "force_formula": "parkhomchuk",
             "sample_number": 10000
         },
-        "emittanceAnimation": {
+        "beamEvolutionAnimation": {
             "histogramBins": 100,
             "startTime": 1517617255,
             "x": "t",

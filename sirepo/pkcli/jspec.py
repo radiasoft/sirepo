@@ -16,29 +16,29 @@ import sirepo.template.jspec as template
 
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        _run_jspec()
-        res = {
-            'rate': [],
-        }
-        text = pkio.read_text(template.JSPEC_LOG_FILE)
-        for line in text.split("\n"):
-            m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
-            if m:
-                res['rate'].append([m.group(1), [m.group(2), m.group(3), m.group(4)]])
+    text = _run_jspec(cfg_dir)
+    res = {
+        'rate': [],
+    }
+    for line in text.split("\n"):
+        m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
+        if m:
+            res['rate'].append([m.group(1), [m.group(2), m.group(3), m.group(4)]])
     simulation_db.write_result(res)
 
 
 def run_background(cfg_dir):
-    run(cfg_dir)
+    _run_jspec(cfg_dir)
     simulation_db.write_result({})
 
 
-def _run_jspec():
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    jspec_filename = 'jspec.in'
-    pkio.write_text(jspec_filename, jspec_file)
-    kwargs = {
-        'output': template.JSPEC_LOG_FILE,
-    }
-    pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdp, **kwargs)
+def _run_jspec(run_dir):
+    with pkio.save_chdir(run_dir):
+        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        jspec_filename = 'jspec.in'
+        pkio.write_text(jspec_filename, jspec_file)
+        kwargs = {
+            'output': template.JSPEC_LOG_FILE,
+        }
+        pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdp, **kwargs)
+        return pkio.read_text(template.JSPEC_LOG_FILE)

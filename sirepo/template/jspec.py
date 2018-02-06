@@ -14,6 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common, sdds_util
 import glob
 import numpy as np
+import py.path
 import re
 
 JSPEC_LOG_FILE = 'jspec.log'
@@ -22,7 +23,7 @@ SIM_TYPE = 'jspec'
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_EMITTANCE_OUTPUT_FILENAME ='JSPEC.SDDS'
+_BEAM_EVOLUTION_OUTPUT_FILENAME = 'JSPEC.SDDS'
 
 _ION_FILE_PREFIX = 'ions'
 
@@ -64,15 +65,17 @@ def background_percent_complete(report, run_dir, is_running, schema):
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         settings = data.models.simulationSettings
         count = 0
-        if len(files) > 1:
-            count = len(files) - 1
-        if current_step > 1:
+        # only use the most recent file if the current_step has passed that interval
+        # otherwise the file might be read before it has been completely written
+        if current_step > 1 and current_step % settings.save_particle_interval:
             count = len(files)
+        elif len(files) > 1:
+            count = len(files) - 1
         return {
             'percentComplete': 100 * current_step / settings.step_number,
             'frameCount': count,
         }
-    if run_dir.join(_EMITTANCE_OUTPUT_FILENAME).exists():
+    if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
         return {
             'percentComplete': 100,
             'frameCount': len(files),
@@ -91,16 +94,25 @@ def get_animation_name(data):
     return 'animation'
 
 
+def get_data_file(run_dir, model, frame, options=None):
+    if model == 'beamEvolutionAnimation':
+        path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+    else:
+        path = py.path.local(_ion_files(run_dir)[frame])
+    with open(str(path)) as f:
+        return path.basename, f.read(), 'application/octet-stream'
+
+
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'emittanceAnimation':
+    if data['modelName'] == 'beamEvolutionAnimation':
         args = template_common.parse_animation_args(
             data,
             {
                 '': ['x', 'y1', 'y2', 'y3', 'startTime'],
             },
         )
-        return _extract_emittance_plot(args, run_dir)
+        return _extract_evolution_plot(args, run_dir)
     elif data['modelName'] == 'particleAnimation':
         args = template_common.parse_animation_args(
             data,
@@ -148,8 +160,8 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
-def _extract_emittance_plot(report, run_dir):
-    filename = str(run_dir.join(_EMITTANCE_OUTPUT_FILENAME))
+def _extract_evolution_plot(report, run_dir):
+    filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
     xfield = _map_field_name(report['x'])
     x, column_names, err = sdds_util.extract_sdds_column(filename, xfield, 0)
     if err:
@@ -221,7 +233,7 @@ def _generate_parameters_file(data):
     report = data['report'] if 'report' in data else None
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
-    v['emittanceOutputFilename'] = _EMITTANCE_OUTPUT_FILENAME
+    v['beamEvolutionOutputFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
     v['runSimulation'] = report is None or report == 'animation'
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     return template_common.render_jinja(SIM_TYPE, v)

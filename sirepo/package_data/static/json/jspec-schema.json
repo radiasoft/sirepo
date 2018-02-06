@@ -9,7 +9,7 @@
             ["bunched_gaussian", "Gaussian Bunch"],
             ["bunched_uniform", "Uniform Bunch"]
         ],
-        "EmittanceColumn": [
+        "BeamColumn": [
             ["t", "t"],
             ["emitx", "emit_x"],
             ["emity", "emit_y"],
@@ -19,7 +19,7 @@
             ["ry", "ry"],
             ["rs", "rs"]
         ],
-        "EmittanceOptionalColumn": [
+        "BeamOptionalColumn": [
             ["t", "t"],
             ["emitx", "emit_x"],
             ["emity", "emit_y"],
@@ -59,6 +59,12 @@
         ]
     },
     "model": {
+        "beamEvolutionAnimation": {
+            "x": ["X Value", "BeamColumn"],
+            "y1": ["Y1 Value", "BeamColumn"],
+            "y2": ["Y2 Value", "BeamOptionalColumn"],
+            "y3": ["Y3 Value", "BeamOptionalColumn"]
+        },
         "cooler": {
             "length": ["Length [m]", "Float"],
             "section_number": ["Number of Coolers", "Integer", 1],
@@ -88,12 +94,6 @@
         "electronCoolingRate": {
             "sample_number": ["Number of Sample Ions", "Integer"],
             "force_formula": ["Force Formula", "ForceFormula"]
-        },
-        "emittanceAnimation": {
-            "x": ["X Value", "EmittanceColumn"],
-            "y1": ["Y1 Value", "EmittanceColumn"],
-            "y2": ["Y2 Value", "EmittanceOptionalColumn"],
-            "y3": ["Y3 Value", "EmittanceOptionalColumn"]
         },
         "intrabeamScatteringRate": {
             "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration."],
@@ -150,6 +150,15 @@
         }
     },
     "view": {
+        "beamEvolutionAnimation": {
+            "title": "Beam Evolution Report",
+            "advanced": [
+                "x",
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
         "cooler": {
             "title": "Cooler",
             "basic": [
@@ -190,15 +199,6 @@
                 "e_number"
             ],
             "advanced": [
-            ]
-        },
-        "emittanceAnimation": {
-            "title": "Emittance Report",
-            "advanced": [
-                "x",
-                "y1",
-                "y2",
-                "y3"
             ]
         },
         "ionBeam": {

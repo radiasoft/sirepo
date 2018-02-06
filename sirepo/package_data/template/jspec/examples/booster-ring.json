@@ -30,11 +30,10 @@
             "force_formula": "parkhomchuk",
             "sample_number": 10000
         },
-        "emittanceAnimation": {
+        "beamEvolutionAnimation": {
             "histogramBins": 100,
             "startTime": 1517617255,
             "x": "t",
-            "y": "emitx",
             "y1": "emitx",
             "y2": "emity",
             "y3": "none"
@@ -66,7 +65,7 @@
             "histogramBins": 200,
             "startTime": 1517617255,
             "x": "x",
-            "y": "dpp"
+            "y": "xp"
         },
         "rateCalculationReport": {},
         "ring": {

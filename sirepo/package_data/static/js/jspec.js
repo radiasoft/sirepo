@@ -4,6 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
 SIREPO.FILE_UPLOAD_TYPE = {
     'ring-lattice': '.tfs',
 };
@@ -67,25 +69,33 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
-            ['emittanceAnimation', 'particleAnimation'].forEach(function(m) {
+            ['beamEvolutionAnimation', 'particleAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
-            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                frameCache.setFrameCount(data.frameCount > 0 ? 1 : 0, 'emittanceAnimation');
-            }
-            else {
-                frameCache.setFrameCount(0, 'emittanceAnimation');
-            }
+            frameCache.setFrameCount(data.frameCount, 'beamEvolutionAnimation');
             frameCache.setFrameCount(data.frameCount, 'particleAnimation');
         }
-        frameCache.setFrameCount(data.frameCount);
+        frameCache.setFrameCount(data.frameCount || 0);
     }
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        emittanceAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
+        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
     });
+});
+
+SIREPO.app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
+        ].join(''),
+    };
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
@@ -101,7 +111,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-header-right-sim-loaded>',
 		'<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-option-horizontal"></span> Visualization</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -132,15 +142,24 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            function runCalculation() {
+            var isRunning = false;
+
+            $scope.runCalculation = function() {
+                if (isRunning) {
+                    return;
+                }
+                isRunning = true;
                 $scope.rates = null;
                 panelState.clear('rateCalculationReport');
                 panelState.requestData('rateCalculationReport', function(data) {
+                    isRunning = false;
                     $scope.rates = data.rate;
                 });
-            }
-            $scope.$on('rateCalculationReport.changed', runCalculation);
-            appState.whenModelsLoaded($scope, runCalculation);
+            };
+            $scope.$on('rateCalculationReport.changed', $scope.runCalculation);
+        },
+        link: function link(scope) {
+            appState.whenModelsLoaded(scope, scope.runCalculation);
         },
     };
 });
