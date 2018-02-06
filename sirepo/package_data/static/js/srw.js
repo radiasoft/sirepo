@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [

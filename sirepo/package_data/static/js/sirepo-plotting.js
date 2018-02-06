@@ -72,6 +72,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                         panelState.setError(scope.modelName, data.error);
                         return;
                     }
+                    panelState.setError(scope.modelName, null);
                     scope.load(data);
                 }
                 if (scope.isPlaying) {
@@ -109,7 +110,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {
-            if (SIREPO.APP_NAME == 'srw') {
+            if (SIREPO.SINGLE_FRAME_ANIMATION && SIREPO.SINGLE_FRAME_ANIMATION.indexOf(scope.modelName) >= 0) {
                 return false;
             }
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
