@@ -10,13 +10,15 @@ dedup_one() {
     local f s
     for f in $u/*/lib/*; do
         if [[ -L $f ]]; then
-            # UNDO: cp "$f" z && rm "$f" && mv xyzz "$f"
+            # revert: cp "$f" z && rm "$f" && mv z "$f"
             continue
         fi
         s=${f/$u/$src}
         if [[ -r "$s" ]] && cmp -s "$s" "$f" >& /dev/null; then
             rm -f "$f"
-            ln --relative -s "$s" "$f"
+            # CentOS 6 does not support --relative
+            # ln -s --relative "$src" "$f"
+            ln -s "../../../${f/$u/src}" "$f"
         fi
     done
 }
@@ -31,7 +33,8 @@ dedup_main() {
         mkdir "$src"
         local f=srw/lib/magn_meas_chx.zip
         local x=$(ls -tr */"$f" | tail -1)
-        (cd "${x%$f}" && rsync -avR */lib "$src")
+        local s=$PWD/src
+        (cd "${x%$f}" && rsync -avR */lib "$s")
         chmod -R a+rX "$src"
     fi
     for u in *; do
