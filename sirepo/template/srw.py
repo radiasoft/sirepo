@@ -1323,9 +1323,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     magnetic_field = _process_intensity_reports(source_type, undulator_type)['magneticField']
     data['models']['intensityReport']['magneticField'] = magnetic_field
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
-
-    if magnetic_field == 1:
-        data['models']['trajectoryReport']['magneticField'] = 1
+    data['models']['trajectoryReport']['magneticField'] = magnetic_field
 
     report = data['report']
     if report == 'fluxAnimation':
