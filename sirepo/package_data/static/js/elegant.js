@@ -925,19 +925,22 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         self.activeTab = name;
     };
 
-    self.minPanelHeight = 160;
+    self.minPanelHeight = 166;
     self.dividerHeight = 15;
 
     self.splitPaneHeight = function() {
         var w = $($window);
         var el = $('.sr-split-pane-frame');
-        return Math.round(w.height() - el.offset().top - self.dividerHeight);
+        if (el.length) {
+            return Math.round(w.height() - el.offset().top - self.dividerHeight);
+        }
+        return 0;
     };
 
     // The angular digest cycle does not mesh well with the jquery split panes.
     // We'll do our own updates when changing beamline or element lists, etc.
     self.splitPaneTopHeight = function () {
-        return $($('.sr-split-pane-component-inner .panel')[0]).height();
+        return $($('.sr-split-pane-component-inner .panel')[0]).height() + 5;
     };
     self.splitPaneBottomPct = function() {
         var b = $($('.sr-split-pane-component-inner .panel')[0]).position().top + self.splitPaneTopHeight();
@@ -986,7 +989,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     };
     $scope.$on('$destroy', function() {
         $($window).off('resize', self.windowResize);
-        });
+        // this triggers the teardown() handler in split-pane.js
+        $('.sr-split-pane-frame').remove();
+    });
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
