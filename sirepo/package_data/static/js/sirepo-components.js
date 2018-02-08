@@ -1300,6 +1300,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
             $scope.hasData = function() {
+                if (! $scope.panel.find('svg')[0]) {
+                    return;
+                }
                 if (appState.isLoaded()) {
                     if (panelState.isHidden($scope.modelKey)) {
                         return false;
