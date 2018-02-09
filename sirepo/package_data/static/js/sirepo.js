@@ -326,6 +326,19 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
+    self.enumDescription = function(enumName, value) {
+        var res = null;
+        SIREPO.APP_SCHEMA.enum[enumName].forEach(function(v) {
+            if (v[0] == value) {
+                res = v[1];
+            }
+        });
+        if (res === null) {
+            throw 'no value for enum: ' + enumName + '.' + value;
+        }
+        return res;
+    };
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };

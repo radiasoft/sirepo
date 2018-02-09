@@ -797,16 +797,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         }
     }
     function updateSubtitleCharacteristic(reportName) {
-        var subTitleText = (SIREPO.APP_SCHEMA.enum.Characteristic.find(function (val) {
-            return val[0] === appState.models.sourceIntensityReport.characteristic;
-        }) || ['', ''] )[1];
-        updateSubtitleForReport(reportName, subTitleText);
+        updateSubtitleForReport(reportName, appState.enumDescription('Characteristic', appState.models.sourceIntensityReport.characteristic));
     }
     function updateSubtitlePolarization(reportName) {
-        var subTitleText = (SIREPO.APP_SCHEMA.enum.Polarization.find(function (val) {
-            return val[0] === appState.models.intensityReport.polarization;
-        }) || ['', ''] )[1];
-        updateSubtitleForReport(reportName, subTitleText);
+        updateSubtitleForReport(reportName, appState.enumDescription('Polarization', appState.models.intensityReport.polarization));
     }
     function updateSubtitleForReport(reportName, subTitleText) {
         // selects the report body
