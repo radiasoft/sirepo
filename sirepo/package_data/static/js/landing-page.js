@@ -149,7 +149,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.codeRoutes = Object.values(appRoutes).filter(function (route) {
+            $scope.codeRoutes = Object.keys(appRoutes).map(function(k) { return appRoutes[k] }).filter(function (route) {
                 return ! (! route.codeURL);
             }).sort(function (r1, r2) {
                 return r1.codeTitle.localeCompare(r2.codeTitle);
