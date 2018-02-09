@@ -228,7 +228,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                             callback(resp);
                         }
                     },
-                    errorCallback: function (resp, status) {
+                    errorCallback: function (resp) {
                         if ($.isFunction(callback)) {
                             //TODO(robnagler) this should be errorCallback
                             callback(resp);
@@ -361,7 +361,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<pretty>': false
             },
-            function(data, status) {
+            function(data) {
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
                         ':simulationIds': data.redirect.simulationId
@@ -501,7 +501,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
         var index = 1;
         while (true) {
-            var foundIt = false;
             var id = template.replace('{}', index);
             if (values[id]) {
                 index++;
@@ -671,13 +670,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         });
         return args.join('_');
     }
-
-    self.clearFrames = function(modelName) {
-        // TODO(robnagler) if there are locally cached frames, they
-        // would be cleared here, but right now they are in the browser
-        // cache so do nothing.
-        return;
-    };
 
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
@@ -1095,7 +1087,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, utilities) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1160,8 +1152,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             return v ? '1' : '0';
         }
         if (angular.isString(v)) {
-            if (v === '')
+            if (v === '') {
                 throw param + ': may not be empty string';
+            }
             return v;
         }
         if (angular.isNumber(v)) {
@@ -1407,7 +1400,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             }
         };
 
-        var process = function(resp, status) {
+        var process = function(resp) {
             if (qi.qState == 'removing') {
                 return;
             }
@@ -1799,7 +1792,7 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
-SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location) {
+SIREPO.app.factory('fileManager', function(requestSender) {
     var COMPOUND_PATH_SEPARATOR = ':';
     var self = {};
 
@@ -2089,10 +2082,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 
-    $scope.$on('$locationChangeStart', function (event) {
+    $scope.$on('$locationChangeStart', function () {
         SIREPO.setPageLoaderVisible(true);
     });
-    $scope.$on('$viewContentLoaded', function (event) {
+    $scope.$on('$viewContentLoaded', function () {
         SIREPO.setPageLoaderVisible(false);
     });
 
@@ -2265,8 +2258,9 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         var count = 2;
         var name = item.name;
         name = name.replace(/\s+\d+$/, '');
-        while (names[name + ' ' + count])
+        while (names[name + ' ' + count]) {
             count++;
+        }
         self.copyName = name + ' ' + count;
         $('#sr-copy-confirmation').modal('show');
     };
@@ -2400,7 +2394,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
     };
 
-    self.selectedItemType = function(item) {
+    self.selectedItemType = function() {
         if (self.selectedItem && self.selectedItem.isFolder) {
             return 'Folder';
         }

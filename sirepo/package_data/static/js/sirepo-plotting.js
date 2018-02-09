@@ -591,7 +591,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
                 d3.select('body').on('keydown', null);
                 keyListener = false;
             })
-            .on('mousedown', function(e) {
+            .on('mousedown', function() {
                 lastClickX = d3.event[invertAxis ? 'clientY' : 'clientX'];
             })
             .on('click', onClick)

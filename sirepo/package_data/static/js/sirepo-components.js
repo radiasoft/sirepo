@@ -312,7 +312,7 @@ SIREPO.app.directive('dragAndDropSupport', function() {
         restrict: 'A',
         scope: {},
         template: '',
-        link: function(scope, element) {
+        link: function() {
             //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
             // see discussion here: https://github.com/metafizzy/flickity/issues/457
             window.addEventListener('touchmove', function() {});
@@ -347,7 +347,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, panelState, requestSender) {
+SIREPO.app.directive('fieldEditor', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -748,7 +748,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
               '</div>',
             '</div>',
             '<div data-ng-if="oneLabelLayout" class="row">',
-              '<div class="col-sm-7 col-sm-offset-1">',
+              '<div class="col-sm-8">',
                 '<div class="row">',
                   '<div class="col-sm-5 col-sm-offset-7">',
                     '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[0][0] }}</div>',
@@ -843,7 +843,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
                         '<div class="clearfix"></div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile, true)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>',
+                          '<button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>',
                           '<button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-disabled="isUploading">Save Changes</button>',
                           ' <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
                         '</div>',
@@ -866,7 +866,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                 return '';
             };
 
-            $scope.uploadFile = function(inputFile, isConfirmed) {
+            $scope.uploadFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }
@@ -1046,7 +1046,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
                     });
                 }
             });
-            $(element).on('hidden.bs.modal', function(e) {
+            $(element).on('hidden.bs.modal', function() {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 var viewInfo = appState.viewInfo(scope.viewName);
@@ -1099,7 +1099,7 @@ SIREPO.app.directive('modelField', function(appState) {
                 return modelName;
             };
 
-            $scope.fieldName = function(f) {
+            $scope.fieldName = function() {
                 return field;
             };
         },
@@ -1109,7 +1109,7 @@ SIREPO.app.directive('modelField', function(appState) {
 SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interval) {
     return {
         restrict: 'A',
-        link: function(scope, element) {
+        link: function() {
             //TODO(pjm): remove timeout hack, needed for MSIE and Edge
             $interval(
                 function () {
@@ -1383,7 +1383,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
     };
 });
 
-SIREPO.app.directive('appHeaderBrand', function(appState, panelState) {
+SIREPO.app.directive('appHeaderBrand', function() {
     return {
         restrict: 'A',
         scope: {
@@ -1648,14 +1648,10 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
               '</ul>',
         ].join(''),
         controller: function($scope) {
-            var self = this;
             var currentSimulationId = null;
 
             function simulationId() {
                 return appState.models.simulation.simulationId;
-            }
-            function simulationName() {
-                return appState.models.simulation.name;
             }
 
             $scope.showDocumentationUrl = function() {

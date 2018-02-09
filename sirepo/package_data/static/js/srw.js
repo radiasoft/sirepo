@@ -79,8 +79,9 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         self.originalCharacteristicEnum = SIREPO.APP_SCHEMA.enum.Characteristic;
         var characteristic = appState.clone(SIREPO.APP_SCHEMA.enum.Characteristic);
         characteristic.splice(1, 1);
-        for (var i = 0; i < characteristic.length; i++)
+        for (var i = 0; i < characteristic.length; i++) {
             characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
+        }
         self.singleElectronCharacteristicEnum = characteristic;
     }
 
@@ -296,10 +297,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         else {
             item[f] = item[f].toFixed(6);
         }
-    }
-
-    function isPropagationModelName(name) {
-        return name.toLowerCase().indexOf('propagation') >= 0;
     }
 
     function isUserDefined(v) {
@@ -661,7 +658,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     function processIntensityReport(reportName) {
         panelState.showField(reportName, 'fieldUnits', srwService.isGaussianBeam());
         updatePrecisionLabel();
-        var reportTitle = SIREPO.APP_SCHEMA.view[reportName].title;
         panelState.enableField(reportName, 'magneticField', false);
         if (reportName === 'intensityReport') {
             panelState.showField(reportName, 'magneticField', false);
@@ -688,7 +684,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     function processTrajectoryAxis() {
         // change enum list for plotAxisY2 depending on the selected plotAxisY value
         var selected = appState.models.trajectoryReport.plotAxisY;
-        var res = [];
         var group;
         [
             ['X', 'Y', 'Z'],
@@ -871,7 +866,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
     function changeFluxReportName(modelName) {
         var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
-        // var distance = tag.text().split(',')[1];
         var distance = appState.models[modelName].distanceFromSource + 'm';
         var fluxType = SIREPO.APP_SCHEMA.enum.Flux[appState.models[modelName].fluxType-1][1];
         var title = SIREPO.APP_SCHEMA.view[modelName].title;
@@ -1005,7 +999,7 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
+SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService) {
 
     var rightNav = [
         '<div data-app-header-right="nav">',
@@ -1026,7 +1020,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         '</div>',
     ].join('');
 
-    function navHeader(mode, modeTitle, $window) {
+    function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
@@ -1368,7 +1362,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 }
             };
         },
-        link: function link(scope, element) {
+        link: function link(scope) {
             scope.loadModelList();
             scope.$on('modelChanged', function(e, name) {
                 if (name != scope.modelName) {
@@ -1507,16 +1501,16 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                   '</tr>',
                 '</thead>',
                 '<tbody>',
-                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop, $index)}" >',
+                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop)}" >',
                     '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo" data-disabled="isControlDisabledForProp(prop, $index)"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo" data-disabled="isControlDisabledForProp(prop)"></div>',
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
                     '<td class="input-sm">Final post-propagation (resize)</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation, $index)"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -1553,11 +1547,11 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                 return false;
             };
 
-            $scope.isControlDisabledForProp = function(prop, ctlIndex) {
+            $scope.isControlDisabledForProp = function(prop) {
                 var p = prop ? (prop.params || []) : [];
-                return $scope.isControlDisabledForParams(p, ctlIndex);
+                return $scope.isControlDisabledForParams(p);
             };
-            $scope.isControlDisabledForParams = function(params, ctlIndex) {
+            $scope.isControlDisabledForParams = function(params) {
                 if(params[$scope.propTypeIndex] == 0) {
                     return false;
                 }
@@ -1668,12 +1662,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return true;
             }
 
-            function methodForMethodNum(methodNum) {
-                return SIREPO.APP_SCHEMA.enum.FluxMethod.filter(function (fm) {
-                    return fm[0] == methodNum;
-                })[0];
-            }
-
             $scope.cancelPersistentSimulation = function () {
                 $scope.simState.cancelSimulation(function() {
                     if ($scope.hasFluxCompMethod() && $scope.isApproximateMethod()) {
@@ -1702,7 +1690,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
                         frameCache.setFrameCount(0);
-                        frameCache.clearFrames($scope.model);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;
                     }

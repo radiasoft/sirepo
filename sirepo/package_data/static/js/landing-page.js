@@ -158,7 +158,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
     };
 });
 
-app.directive('lpBody', function(appRoutes) {
+app.directive('lpBody', function() {
     return {
         restrict: 'A',
         scope: {},
@@ -456,7 +456,7 @@ app.directive('pageHeading', function(srwAppRoutes) {
             landingPage: '=',
         },
         template: getTemplate(),
-        controller: function($scope, $location, $route) {
+        controller: function($scope, $location) {
             $scope.onMainLandingPage = function() {
                 return $location.path() === '/about';
             };
@@ -470,7 +470,6 @@ app.directive('pageHeading', function(srwAppRoutes) {
 
 app.service('utilities', function() {
 
-    var self = this;
     this.checkContentOverlap = function(container, footer, offset) {
 
         // exclude divs with no height

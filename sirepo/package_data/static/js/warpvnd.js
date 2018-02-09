@@ -209,7 +209,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         panelState.showModalEditor(type);
     };
 
-    self.handleModalShown = function(name) {
+    self.handleModalShown = function() {
         updateAllFields();
     };
 
@@ -283,7 +283,7 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, pane
             });
     }
 
-    self.handleModalShown = function(name) {
+    self.handleModalShown = function() {
         panelState.enableField('simulationGrid', 'particles_per_step', false);
     };
 
@@ -303,7 +303,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function() {
     return {
         restrict: 'A',
         scope: {
@@ -505,7 +505,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 var numX = appState.models.simulationGrid.num_x;
                 var n = toMicron(appState.models.simulationGrid.channel_width / (numX * 2));
                 var yCenter = shape.y - shape.height / 2;
-                shape.y = alignValue(yCenter, n, numX) + shape.height / 2;
+                shape.y = alignValue(yCenter, n) + shape.height / 2;
                 // iterate shapes (and anode)
                 //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
                 //      set drag-shape right edge to shape left edge
@@ -536,7 +536,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 });
             }
 
-            function alignValue(p, n, numX) {
+            function alignValue(p, n) {
                 var pn = fmod(p, n);
                 var v = pn < n / 2
                     ? p - pn
@@ -906,12 +906,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
                     .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
-                    .attr('x', function(d) { return xAxisScale(shape.x); })
-                    .attr('y', function(d) { return yAxisScale(shape.y); })
-                    .attr('width', function(d) {
+                    .attr('x', function() { return xAxisScale(shape.x); })
+                    .attr('y', function() { return yAxisScale(shape.y); })
+                    .attr('width', function() {
                         return xAxisScale(shape.x + shape.width) - xAxisScale(shape.x);
                     })
-                    .attr('height', function(d) { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
+                    .attr('height', function() { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
             }
 
             function updateShapeAttributes(selection) {

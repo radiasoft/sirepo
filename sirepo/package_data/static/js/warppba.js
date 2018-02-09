@@ -7,7 +7,7 @@ SIREPO.appLocalRoutes.dynamics = '/dynamics/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
-    if (SIREPO.IS_LOGGED_OUT) {
+    if (SIREPO.IS_LOGGED_OUT) { 
         return;
     }
     var localRoutes = localRoutesProvider.$get();
@@ -28,8 +28,9 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     self.beamGridDimensions = null;
 
     function initGridDimensions() {
-        if (self.laserGridDimensions)
+        if (self.laserGridDimensions) {
             return;
+        }
         self.laserGridDimensions = appState.clone(SIREPO.APP_SCHEMA.enum.GridDimensions);
         self.beamGridDimensions = appState.clone(self.laserGridDimensions);
         self.laserGridDimensions.splice(2, 1);
@@ -37,8 +38,9 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     }
 
     function isSourceType(sourceType) {
-        if (appState.isLoaded())
+        if (appState.isLoaded()) {
             return appState.applicationState().simulation.sourceType == sourceType;
+        }
         return false;
     }
 
@@ -96,8 +98,9 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     };
 
     function beamBunchLengthMethodChanged(newValue, oldValue) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var isAbsolute = appState.models.electronBeam.beamBunchLengthMethod == 'a';
         setVisibility(['electronBeam.rmsLength'], ! isAbsolute, oldValue);
         setReadOnly(['electronBeam.rmsLength'], true);
@@ -106,17 +109,13 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function beamRadiusMethodChanged(newValue, oldValue) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var isAbsolute = appState.models.electronBeam.beamRadiusMethod == 'a';
         setVisibility(['electronBeam.transverseEmittance'], ! isAbsolute, oldValue);
         setReadOnly(['electronBeam.rmsRadius'], ! isAbsolute);
         recalcRMSRadius();
-    }
-
-    function clearFrames() {
-        //TODO(pjm): show a warning dialog before saving model if frame count > 10
-        frameCache.clearFrames('animation');
     }
 
     function fieldClass(field) {
@@ -124,8 +123,9 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function gridDimensionsChanged(newValue, oldValue) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var fields = {
             visible: ['simulationGrid.rScale', 'simulationGrid.zScale'],
             editable: ['simulationGrid.rLength', 'simulationGrid.zLength'],
@@ -152,8 +152,9 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function pulseDimensionsChanged(newValue, oldValue) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var fields = {
             visible: ['laserPulse.length', 'laserPulse.spotSize'],
             editable: ['laserPulse.waist', 'laserPulse.duration'],
@@ -165,24 +166,25 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function recalcBeamBunchLength() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var isAbsolute = appState.models.electronBeam.beamBunchLengthMethod == 'a';
-        if (isAbsolute)
+        if (isAbsolute) {
             return;
+        }
 
-        var fwMatched = 2 * lambdaPlasma();
         var rmsMax = lambdaPlasma() / Math.PI;
         var rmsLength = constants.beamFactor * rmsMax;
-        var longNorm = 1 / (Math.sqrt(2 * Math.PI) * rmsLength);
         var xBunchHw = 3 * rmsLength;
         appState.models.electronBeam.rmsLength = rmsLength * 1e6;
         appState.models.electronBeam.bunchLength = 2 * xBunchHw * 1e6;
     }
 
     function recalcCellCount() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var grid = appState.models.simulationGrid;
         if (self.isLaserPulse()) {
             var laserPulse = appState.models.laserPulse;
@@ -197,8 +199,9 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function recalcHistogramBins(newValue, oldValue) {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         if (newValue && oldValue) {
             appState.models.particleAnimation.histogramBins = newValue;
             //TODO(pjm): beam reports require a slight increase to match the grid
@@ -210,27 +213,31 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     }
 
     function recalcLength() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var grid = appState.models.simulationGrid;
         grid.rMax = grid.rLength;
         grid.zMin = - grid.zLength;
     }
 
-    function recalcRMSRadius(newValue, oldValue) {
-        if (! appState.isLoaded())
+    function recalcRMSRadius() {
+        if (! appState.isLoaded()) {
             return;
+        }
         var isAbsolute = appState.models.electronBeam.beamRadiusMethod == 'a';
-        if (isAbsolute)
+        if (isAbsolute) {
             return;
+        }
         var kPe = 2 * Math.PI / lambdaPlasma();
         var twissBetaMatch = Math.sqrt(2) / kPe;
         appState.models.electronBeam.rmsRadius = Math.sqrt(twissBetaMatch * parseFloat(appState.models.electronBeam.transverseEmittance)) * 1e6;
     }
 
     function recalcValues() {
-        if (! appState.isLoaded())
+        if (! appState.isLoaded()) {
             return;
+        }
         var grid = appState.models.simulationGrid;
         if (self.isLaserPulse()) {
             var laserPulse = appState.models.laserPulse;
@@ -276,14 +283,17 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
         for (var i = 0; i < fields.length; i++) {
             var el = $(fieldClass(fields[i])).closest('.form-group');
             if (isVisible) {
-                if (oldValue)
+                if (oldValue) {
                     el.slideDown();
+                }
             }
             else {
-                if (oldValue)
+                if (oldValue) {
                     el.slideUp();
-                else
+                }
+                else {
                     el.hide();
+                }
             }
         }
     }
@@ -324,11 +334,6 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     $scope.$watch('appState.models.electronBeam.beamBunchLengthMethod', beamBunchLengthMethodChanged);
     $scope.$watch('appState.models.electronBeam.transverseEmittance', recalcRMSRadius);
 
-    $scope.$on('laserPulse.changed', clearFrames);
-    $scope.$on('electronBeam.changed', clearFrames);
-    $scope.$on('electronPlasma.changed', clearFrames);
-    $scope.$on('simulationGrid.changed', clearFrames);
-
     $scope.$on(
         'laserPulse.changed',
         function() {
@@ -337,8 +342,9 @@ SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, 
     $scope.$on(
         'electronPlasma.changed',
         function() {
-            if (appState.models.laserPulse.pulseDimensions == 'r')
+            if (appState.models.laserPulse.pulseDimensions == 'r') {
                 appState.saveQuietly('laserPulse');
+            }
             appState.saveQuietly('simulationGrid');
         });
     appState.whenModelsLoaded($scope, updateFieldState);
@@ -357,7 +363,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function() {
     return {
         restrict: 'A',
         scope: {
