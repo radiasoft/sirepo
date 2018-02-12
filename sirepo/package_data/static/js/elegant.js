@@ -616,7 +616,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, utilities, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
     var self = this;
     var emptyElements = [];
 
@@ -789,7 +789,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         }
         sortMethod();
         appState.removeModel(name);
-        appState.saveChanges(containerName, self.updateSplitPane);
+        appState.saveChanges(containerName);
     }
 
     self.addToBeamline = function(item) {
@@ -828,7 +828,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                     appState.saveQuietly('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type, self.updateSplitPane);
+                appState.saveChanges(type);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
@@ -935,73 +935,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         self.activeTab = name;
     };
 
-    self.minPanelHeight = 166;
-    self.dividerHeight = 15;
-
-    self.splitPaneHeight = function() {
-        var w = $($window);
-        var el = $('.sr-split-pane-frame');
-        if (el.length) {
-            return Math.round(w.height() - el.offset().top - self.dividerHeight);
-        }
-        return 0;
-    };
-
-    // The angular digest cycle does not mesh well with the jquery split panes.
-    // We'll do our own updates when changing beamline or element lists, etc.
-    self.splitPaneTopHeight = function () {
-        return $($('.sr-split-pane-component-inner .panel')[0]).height() + 5;
-    };
-    self.splitPaneBottomPct = function() {
-        var b = $($('.sr-split-pane-component-inner .panel')[0]).position().top + self.splitPaneTopHeight();
-        var pct = Math.round(100 * (1 - b / self.splitPaneHeight()));
-        var minPct = Math.round(100 * (self.minPanelHeight / self.splitPaneHeight()));
-        // prevents the percentage from dropping below the minimum, which can cause layout problems
-        return Math.max(pct, minPct);
-    };
-    self.splitPaneBottomMinHeight = function() {
-        if(self.splitPaneHeight() - self.splitPaneTopHeight() < self.minPanelHeight ) {
-            return self.minPanelHeight;
-        }
-        return self.splitPaneHeight() - self.splitPaneTopHeight();
-    };
-    self.setSplitPaneBottomMinHeight = function() {
-        $($('[data-split-pane-component]')[1]).css('min-height', self.splitPaneBottomMinHeight()+'px');
-    };
-    self.setSplitPaneBottomPct = function() {
-        $($('[data-split-pane-component]')[1]).css('height', self.splitPaneBottomPct() + '%');
-    };
-    self.setSplitPaneDivider = function() {
-        $('.split-pane-divider').css('bottom', self.splitPaneBottomPct() + '%');
-    };
-    self.setSplitPaneTop = function() {
-        $($('[data-split-pane-component]')[0]).css('height', $('.split-pane-divider').position().top + self.dividerHeight);
-    };
-
-    self.updateSplitPane = function() {
-        self.setSplitPaneBottomPct();
-        self.setSplitPaneDivider();
-        self.setSplitPaneBottomMinHeight();
-        self.setSplitPaneTop();
-    };
-
-    self.showDivider = function() {
-        return (appState.models.beamlines || []).length > 0;
-    };
-
-    self.windowResize = utilities.debounce(function() {
-        self.resize();
-        }, 100);
-    $($window).resize(self.windowResize);
-    self.resize = function() {
-        // recalculate the minimum in response to user manipulations
-        self.setSplitPaneBottomMinHeight();
-    };
-    $scope.$on('$destroy', function() {
-        $($window).off('resize', self.windowResize);
-        // this triggers the teardown() handler in split-pane.js
-        $('.sr-split-pane-frame').remove();
-    });
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
@@ -1571,7 +1504,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
             lattice: '=controller',
         },
         template: [
-            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
@@ -2077,7 +2010,7 @@ SIREPO.app.directive('elementTable', function(appState) {
             lattice: '=controller',
         },
         template: [
-            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
@@ -3451,6 +3384,58 @@ SIREPO.app.directive('runSimulationFields', function() {
     };
 });
 
+SIREPO.app.directive('splitPanels', function($window) {
+    return {
+        controller: function($scope) {
+            var MIN_TOP_PERCENT = 15;
+            var MAX_TOP_PERCENT = 85;
+            var TOP_PAD = 15;
+            
+            function totalHeight() {
+                return $($window).height() - $scope.el.offset().top;
+            }
+
+            function childHeight(panel) {
+                return panel.children().first().height();
+            }
+
+            $scope.constrainTopPanelHeight = function() {
+                var topPanel = $('#sr-top-panel');
+                var topHeight = topPanel.height();
+                var maxHeight = childHeight(topPanel);
+                var bottomPanel = $('#sr-bottom-panel');
+                // if topPanel is sized too large or both panels fit in the page height
+                if (topHeight > maxHeight || topHeight + childHeight(bottomPanel) < totalHeight()) {
+                    // set split sizes to exactly fit the top panel
+                    var splitterHeight = $scope.el.height();
+                    var x = Math.min(Math.max((maxHeight + TOP_PAD) * 100 / splitterHeight, MIN_TOP_PERCENT), MAX_TOP_PERCENT);
+                    $scope.split.setSizes([x, 100 - x]);
+                }
+            };
+            $scope.panelHeight = function() {
+                if (! $scope.el) {
+                    return '0';
+                }
+                $scope.constrainTopPanelHeight();
+                return totalHeight() + 'px';
+            };
+        },
+        link: function(scope, element) {
+            scope.el = $(element);
+            scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
+                direction: 'vertical',
+                gutterSize: 20,
+                sizes: [25, 75],
+                onDrag: function() {
+                    scope.constrainTopPanelHeight();
+                },
+            });
+            scope.$on('$destroy', function() {
+                scope.split.destroy();
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
     return {
