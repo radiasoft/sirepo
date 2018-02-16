@@ -139,6 +139,8 @@ _ITEM_DEF = {
     ],
 }
 
+_LOG_DIR = '__srwl_logs__'
+
 #: Where server files and static files are found
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
@@ -233,7 +235,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particle_number': 0,
             'total_num_of_particles': 0,
         })
-        status_files = pkio.sorted_glob(run_dir.join('__srwl_logs__', 'srwl_*.json'))
+        status_files = pkio.sorted_glob(run_dir.join(_LOG_DIR, 'srwl_*.json'))
         if status_files:  # Read the status file if SRW produces the multi-e logs
             progress_file = py.path.local(status_files[-1])
             if progress_file.exists():
@@ -252,6 +254,25 @@ def background_percent_complete(report, run_dir, is_running, schema):
             'particleCount': status['total_num_of_particles'],
         })
     return res
+
+
+def copy_related_files(data, source_path, target_path):
+    # copy results and log for the long-running simulations
+    for d in ('fluxAnimation', 'multiElectronAnimation'):
+        source_dir = py.path.local(source_path).join(d)
+        if source_dir.exists():
+            target_dir = py.path.local(target_path).join(d)
+            pkio.mkdir_parent(str(target_dir))
+            for f in glob.glob(str(source_dir.join('*'))):
+                name = os.path.basename(f)
+                if re.search(r'^res.*\.dat$', name) or re.search(r'\.json$', name):
+                    py.path.local(f).copy(target_dir)
+            source_log_dir = source_dir.join(_LOG_DIR)
+            if source_log_dir.exists():
+                target_log_dir = target_dir.join(_LOG_DIR)
+                pkio.mkdir_parent(str(target_log_dir))
+                for f in glob.glob(str(source_log_dir.join('*.json'))):
+                    py.path.local(f).copy(target_log_dir)
 
 
 def clean_run_dir(run_dir):
