@@ -15,7 +15,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import ctypes
 import datetime
-import dicom
+import pydicom as dicom
 import glob
 import h5py
 import numpy as np
