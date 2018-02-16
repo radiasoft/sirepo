@@ -1814,11 +1814,12 @@ SIREPO.app.directive('particle', function(plotting) {
                 viewport.selectAll('.line').remove();
                 var isFixedX = ! Array.isArray(json.x_points[0]);
                 var i;
+                var lineClass = json.points.length > 20 ? 'line line-7' : 'line line-0';
                 for (i = 0; i < json.points.length; i++) {
                     var p = d3.zip(
                         isFixedX ? json.x_points : json.x_points[i],
                         json.points[i]);
-                    viewport.append('path').attr('class', 'line line-7').datum(p);
+                    viewport.append('path').attr('class', lineClass).datum(p);
                 }
                 if (json.lost_x && json.lost_x.length) {
                     for (i = 0; i < json.lost_x.length; i++) {

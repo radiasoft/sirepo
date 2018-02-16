@@ -27,9 +27,9 @@ def interp(x,y,W,xmin,ymin,xstep,ystep,nx,ny):
         y = ymax - ystep    
 
     #now find surrounding integers for (x,y)    
-
-    [djx,jx0]=np.modf(x-xmin)
-    [djy,jy0]=np.modf(y-ymin)
+    
+    [djx,jx0]=np.modf((x-xmin)/xstep)
+    [djy,jy0]=np.modf((y-ymin)/ystep)
     jx0=int(jx0)
     jy0=int(jy0)
 
@@ -38,6 +38,6 @@ def interp(x,y,W,xmin,ymin,xstep,ystep,nx,ny):
     W00 = W[jx0,jy0]
     W01 = W[jx0,jy0+1]
     W10 = W[jx0+1,jy0]
-    #W11 = W(jx0+1,jy0+1)
+    #W11 = W[jx0+1,jy0+1]
 
-    return W00 +  djx*(W01-W00) + djy*(W10-W00)
+    return W00 +  djx*(W01-W00) + djy*(W10-W00) #+ djx*djy*W11

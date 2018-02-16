@@ -35,12 +35,13 @@
             ["1", "Yes"]
         ],
         "BrillianceReportType": [
-            ["0", "Flux (Phot/s/.1%)"],
-            ["1", "Angular Flux (Phot/s/.1%/mr2)"],
-            ["2", "Horizontal RMS Ang. Div."],
-            ["3", "Vertical RMS Ang. Div."],
-            ["4", "Horizontal RMS Source Size"],
-            ["5", "Vertical RMS Source Size"]
+            ["0", "Flux (Ph/s/.1%)"],
+            ["1", "Angular Flux (Ph/s/.1%/mr²)"],
+            ["2", "Brilliance (Ph/s/.1%/mr²/mm²)"],
+            ["3", "Horizontal RMS Angular Divergence"],
+            ["4", "Vertical RMS Angular Divergence"],
+            ["5", "Horizontal RMS Source Size"],
+            ["6", "Vertical RMS Source Size"]
         ],
         "Characteristic": [
             ["0", "Single-Electron Intensity"],

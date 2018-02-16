@@ -1135,6 +1135,15 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 
 def _extract_brilliance_report(model, data):
+    label = ''
+    for e in _SCHEMA['enum']['BrillianceReportType']:
+        if e[0] == model['reportType']:
+            label = e[1]
+            break
+    if model['reportType'] in ('3', '4'):
+        label += ' [rad]'
+    elif model['reportType'] in ('5', '6'):
+        label += ' [m]'
     x_points = []
     points = []
     for f in data:
@@ -1144,7 +1153,7 @@ def _extract_brilliance_report(model, data):
             points.append(np.log10(data['e{}'.format(m.group(1))]['data']).tolist())
     return {
         'title': '',
-        'y_label': 'Flux (Ph/s/0.1%bw) log10',
+        'y_label': '{} log₁₀'.format(label),
         'x_label': 'Photon Energy [eV]',
         'x_range': [np.amin(x_points), np.amax(x_points)],
         'y_range': [np.amin(points), np.amax(points)],
