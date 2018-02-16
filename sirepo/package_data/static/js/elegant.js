@@ -340,7 +340,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         else if (name == 'commands') {
             commandsChanged();
         }
-        else if (name == 'WATCH' || name == 'HISTOGRAM') {
+        else if (name == 'WATCH' || name == 'HISTOGRAM' || name == 'SLICE') {
             // elegant will crash if these element's have no output filename
             var el = appState.models[name];
             if (el && ! el.filename) {
@@ -472,8 +472,9 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     self.advancedNames = [
         'amplification_factors', 'analyze_map', 'aperture_data', 'change_particle',
         'closed_orbit', 'correct', 'correct_tunes', 'correction_matrix_output',
-        'coupled_twiss_output', 'divide_elements', 'find_aperture', 'floor_coordinates',
-        'frequency_map', 'global_settings', 'insert_elements', 'insert_sceffects',
+        'coupled_twiss_output', 'divide_elements', 'elastic_scattering', 'find_aperture',
+        'floor_coordinates', 'frequency_map', 'global_settings', 'ignore_elements',
+        'inelastic_scattering', 'insert_elements', 'insert_sceffects', 'ion_effects',
         'linear_chromatic_tracking_setup', 'link_control', 'link_elements', 'modulate_elements',
         'moments_output', 'momentum_aperture', 'optimization_constraint', 'optimization_covariable',
         'parallel_optimization_setup', 'print_dictionary', 'ramp_elements', 'replace_elements',
@@ -632,13 +633,13 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     ];
 
     self.advancedNames = [
-        'ALPH', 'BMAPXY', 'BUMPER', 'CENTER',
+        'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
         'CWIGGLER', 'DSCATTER', 'EDRIFT', 'ELSE',
         'EMATRIX', 'EMITTANCE', 'ENERGY', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
         'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
-        'IBSCATTER', 'ILMATRIX', 'KOCT', 'KPOLY',
+        'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
         'LMIRROR', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
         'MAGNIFY', 'MALIGN', 'MAPSOLENOID', 'MATR',
@@ -651,7 +652,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         'RFMODE', 'RFTM110', 'RFTMEZ0', 'RIMULT',
         'RMDF', 'ROTATE', 'SAMPLE', 'SBEN',
         'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT',
-        'SOLE', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
+        'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
         'TFBPICKUP', 'TMCF', 'TRCOUNT', 'TRFMODE',
         'TRWAKE', 'TUBEND', 'TWISS', 'TWLA',
         'TWMTA', 'TWPL', 'UKICKMAP', 'VKICK',
@@ -662,7 +663,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.elementPic = {
         alpha: ['ALPH'],
-        bend: ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
         drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
         aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
         lens: ['LTHINLENS'],
@@ -672,7 +673,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         solenoid: ['MAPSOLENOID', 'SOLE'],
         undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
         watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
         rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
     };
 
@@ -688,8 +689,8 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         QUFRINGE: 'salmon',
         SEXT: 'lightgreen',
         VKICK: 'blue',
-        'LMIRROR': 'lightblue',
-        'REFLECT': 'blue',
+        LMIRROR: 'lightblue',
+        REFLECT: 'blue',
     };
 
     function elementsByName() {
@@ -1504,7 +1505,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
             lattice: '=controller',
         },
         template: [
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
+            '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
@@ -2003,7 +2004,7 @@ SIREPO.app.directive('elementPicker', function() {
     };
 });
 
-SIREPO.app.directive('elementTable', function(appState) {
+SIREPO.app.directive('elementTable', function(appState, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -3385,12 +3386,13 @@ SIREPO.app.directive('runSimulationFields', function() {
 });
 
 SIREPO.app.directive('splitPanels', function($window) {
+    var GUTTER_SIZE = 20;
+    var MAX_TOP_PERCENT = 85;
+    var MIN_TOP_PERCENT = 15;
+    var TOP_PAD = 12;
     return {
         controller: function($scope) {
-            var MIN_TOP_PERCENT = 15;
-            var MAX_TOP_PERCENT = 85;
-            var TOP_PAD = 15;
-            
+
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;
             }
@@ -3404,19 +3406,23 @@ SIREPO.app.directive('splitPanels', function($window) {
                 var topHeight = topPanel.height();
                 var maxHeight = childHeight(topPanel);
                 var bottomPanel = $('#sr-bottom-panel');
+                var bothFit = maxHeight + TOP_PAD + GUTTER_SIZE + childHeight(bottomPanel) < totalHeight();
                 // if topPanel is sized too large or both panels fit in the page height
-                if (topHeight > maxHeight || topHeight + childHeight(bottomPanel) < totalHeight()) {
+                if (topHeight > maxHeight || bothFit) {
                     // set split sizes to exactly fit the top panel
                     var splitterHeight = $scope.el.height();
                     var x = Math.min(Math.max((maxHeight + TOP_PAD) * 100 / splitterHeight, MIN_TOP_PERCENT), MAX_TOP_PERCENT);
                     $scope.split.setSizes([x, 100 - x]);
                 }
+                $scope.el.find('.gutter').css('visibility', bothFit ? 'hidden' : 'visible');
             };
             $scope.panelHeight = function() {
                 if (! $scope.el) {
                     return '0';
                 }
-                $scope.constrainTopPanelHeight();
+                // the DOM is not yet in the state to be measured, check sizes in next cycle
+                // can't use $timeout() here because it causes an endless digest loop
+                setTimeout($scope.constrainTopPanelHeight, 0);
                 return totalHeight() + 'px';
             };
         },
@@ -3424,11 +3430,10 @@ SIREPO.app.directive('splitPanels', function($window) {
             scope.el = $(element);
             scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
                 direction: 'vertical',
-                gutterSize: 20,
+                gutterSize: GUTTER_SIZE,
+                snapOffset: 0,
                 sizes: [25, 75],
-                onDrag: function() {
-                    scope.constrainTopPanelHeight();
-                },
+                onDrag: scope.constrainTopPanelHeight,
             });
             scope.$on('$destroy', function() {
                 scope.split.destroy();

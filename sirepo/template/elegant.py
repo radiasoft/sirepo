@@ -170,6 +170,7 @@ def fixup_old_data(data):
     for m in data['models']['elements']:
         if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
             m['mode'] = 'coordinate'
+        template_common.update_model_defaults(m, m['type'], _SCHEMA)
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
         for f in ('emit_x', 'emit_y', 'emit_z'):
@@ -186,6 +187,8 @@ def fixup_old_data(data):
                     bunch[f] = first_bunch_command[f]
         else:
             bunch['centroid'] = '0,0,0,0,0,0'
+    for m in data['models']['commands']:
+        template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -904,7 +907,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
