@@ -781,10 +781,11 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                 break;
             }
         }
+        //TODO(pjm): backed out this change
         // always check the name in case the user changed it
-        if (elementsByName()[m.name]) {
-            m.name = uniqueNameForType(m.name + '-');
-        }
+        // if (elementsByName()[m.name]) {
+        //     m.name = uniqueNameForType(m.name + '-');
+        // }
         if (! foundIt) {
             appState.models[containerName].push(m);
         }
