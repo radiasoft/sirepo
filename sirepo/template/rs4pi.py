@@ -15,7 +15,6 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import ctypes
 import datetime
-import pydicom as dicom
 import glob
 import h5py
 import numpy as np
@@ -27,6 +26,11 @@ import struct
 import time
 import werkzeug
 import zipfile
+try:
+    # pydicom is changing to pydicom in 1.0
+    import pydicom as dicom
+except ImportError:
+    import dicom
 
 RTSTRUCT_EXPORT_FILENAME = 'rtstruct.dcm'
 RTDOSE_EXPORT_FILENAME = 'dose.dcm'
