@@ -787,6 +787,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         //     m.name = uniqueNameForType(m.name + '-');
         // }
         if (! foundIt) {
+            if (elementsByName()[m.name]) {
+                m.name = uniqueNameForType(m.name + '-');
+            }
             appState.models[containerName].push(m);
         }
         sortMethod();
