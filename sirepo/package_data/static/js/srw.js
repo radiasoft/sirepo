@@ -28,7 +28,7 @@ SIREPO.appFieldEditors = [
 SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="x"></li>',
     '<li data-lineout-csv-link="y"></li>',
-    '<li data-export-python-link=""></li>',
+    '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
 ].join('');
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
@@ -1084,7 +1084,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
 SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            reportTitle: '@',
+        },
         template: [
             '<a href data-ng-click="exportPython()">Export Python Code</a>',
         ].join(''),
@@ -1092,7 +1094,8 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
             $scope.exportPython = function() {
                 panelState.pythonSource(
                     appState.models.simulation.simulationId,
-                    panelState.findParentAttribute($scope, 'modelKey'));
+                    panelState.findParentAttribute($scope, 'modelKey'),
+                    $scope.reportTitle);
             };
         },
     };

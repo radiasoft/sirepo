@@ -558,7 +558,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
         },
         template: [
             '<div>',
-              '<button type="button" class="close" ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
+              '<button type="button" class="close" ng-click="cancelItemChanges()"><span>&times;</span></button>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
                 '<div class="sr-beamline-element-title">{{ title }}</div>',
@@ -584,6 +584,10 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
                 getData: function() {
                     return beamlineService.activeItem;
                 },
+            };
+            $scope.cancelItemChanges = function() {
+                appState.cancelChanges('beamline');
+                beamlineService.dismissPopup();
             };
         },
     };

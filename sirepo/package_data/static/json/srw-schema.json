@@ -732,7 +732,7 @@
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "watch": {
-            "title": ["Element Name", "String", "Watchpoint"],
+            "title": ["Element Name", "SafePath", "Watchpoint"],
             "position": ["Nominal Position [m]", "Float"]
         },
         "watchpointReport": {
