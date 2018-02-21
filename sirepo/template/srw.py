@@ -1153,7 +1153,7 @@ def _extract_brilliance_report(model, data):
             points.append(np.log10(data['e{}'.format(m.group(1))]['data']).tolist())
     return {
         'title': '',
-        'y_label': '{} log₁₀'.format(label),
+        'y_label': u'{} log₁₀'.format(label),
         'x_label': 'Photon Energy [eV]',
         'x_range': [np.amin(x_points), np.amax(x_points)],
         'y_range': [np.amin(points), np.amax(points)],
