@@ -45,6 +45,11 @@
             ["nz", "Longitudinal Grid Size"],
             ["log_c", "Coulomb Logarithm"]
         ],
+        "LatticeSource": [
+            ["madx", "Mad-X TFS File"],
+            ["elegant", "elegant twiss_output SDDS File"],
+            ["elegant-sirepo", "Sirepo elegant Simulation"]
+        ],
         "ParticleColumn": [
             ["x", "x"],
             ["xp", "xp"],
@@ -123,7 +128,10 @@
         "rateCalculationReport": {
         },
         "ring": {
-            "lattice": ["Ring Lattice File", "InputFile", null, "This file should be in the MAD-X output format (*.tfs)."]
+            "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
+            "lattice": ["Ring Lattice File", "InputFile", null, "This file should be in the MAD-X output format (*.tfs)."],
+            "elegantTwiss": ["Elegant twiss_output", "InputFile", null, "This file should be the SDDS output from the twiss_output command."],
+            "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
         },
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float"],
@@ -217,8 +225,7 @@
                     ["Vertical", [
                         "norm_emit_y"
                     ]]
-                ],
-                "ring.lattice"
+                ]
             ],
             "advanced": [
             ]
@@ -249,6 +256,17 @@
                     "electronCoolingRate.sample_number",
                     "electronCoolingRate.force_formula"
                 ]]
+            ]
+        },
+        "ring": {
+            "title": "Ring",
+            "basic": [
+                "latticeSource",
+                "lattice",
+                "elegantTwiss",
+                "elegantSirepo"
+            ],
+            "advanced": [
             ]
         },
         "runSettings": {

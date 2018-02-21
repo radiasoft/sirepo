@@ -10,7 +10,12 @@ SIREPO.FILE_UPLOAD_TYPE = {
     'ring-lattice': '.tfs',
 };
 SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
+].join('');
+SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
+      '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -49,6 +54,13 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
     }
 
+    function processLatticeSource() {
+        var latticeSource = appState.models.ring.latticeSource;
+        panelState.showField('ring', 'lattice', latticeSource == 'madx');
+        panelState.showField('ring', 'elegantTwiss', latticeSource == 'elegant');
+        panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
+    }
+
     self.handleModalShown = function(name) {
         if (name == 'rateCalculationReport') {
             processIntrabeamScatteringMethod();
@@ -57,8 +69,10 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
     appState.whenModelsLoaded($scope, function() {
         processElectronBeamShape();
+        processLatticeSource();
         appState.watchModelFields($scope, ['electronBeam.shape'], processElectronBeamShape);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
+        appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
     });
 });
 
@@ -78,6 +92,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
+
+    self.hasFrames = function() {
+        return frameCache.getFrameCount() > 0;
+    };
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
@@ -124,7 +142,46 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-SIREPO.app.directive('rateCalculationPanel', function(appState, panelState) {
+SIREPO.app.directive('elegantSimList', function(appState, requestSender, $window) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div style="white-space: nowrap">',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              ' ',
+              '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openElegantSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.simList = null;
+            $scope.openElegantSimulation = function() {
+                if ($scope.model && $scope.model[$scope.field]) {
+                    //TODO(pjm): this depends on the visualization route being present in both jspec and elegant apps
+                    // need meta data for a page in another app
+                    var url = '/elegant#' + requestSender.formatUrlLocal('visualization', {
+                        ':simulationId': $scope.model[$scope.field],
+                    });
+                    $window.open(url, '_blank');
+                }
+            };
+            appState.whenModelsLoaded($scope, function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'get_elegant_sim_list',
+                    },
+                    function(data) {
+                        if (appState.isLoaded() && data.simList) {
+                            $scope.simList = data.simList.sort(function(a, b) {
+                                return a.name.localeCompare(b.name);
+                            });
+                        }
+                    });
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
     return {
         restrict: 'A',
         scope: {},
@@ -142,24 +199,19 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var isRunning = false;
-
-            $scope.runCalculation = function() {
-                if (isRunning) {
-                    return;
-                }
-                isRunning = true;
-                $scope.rates = null;
-                panelState.clear('rateCalculationReport');
-                panelState.requestData('rateCalculationReport', function(data) {
-                    isRunning = false;
-                    $scope.rates = data.rate;
-                });
+            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
+            var noOp = function() {};
+            $scope.clearData = noOp;
+            $scope.destroy = noOp;
+            $scope.init = noOp;
+            $scope.resize = noOp;
+            $scope.load = function(json) {
+                $scope.rates = json.rate;
             };
-            $scope.$on('rateCalculationReport.changed', $scope.runCalculation);
         },
-        link: function link(scope) {
-            appState.whenModelsLoaded(scope, scope.runCalculation);
+        link: function link(scope, element) {
+            scope.modelName = 'rateCalculationReport';
+            plotting.linkPlot(scope, element);
         },
     };
 });

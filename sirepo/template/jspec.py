@@ -17,13 +17,21 @@ import numpy as np
 import py.path
 import re
 
+ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
+
+JSPEC_INPUT_FILENAME = 'jspec.in'
+
 JSPEC_LOG_FILE = 'jspec.log'
+
+JSPEC_TWISS_FILENAME = 'jspec.tfs'
 
 SIM_TYPE = 'jspec'
 
 WANT_BROWSER_FRAME_CACHE = True
 
 _BEAM_EVOLUTION_OUTPUT_FILENAME = 'JSPEC.SDDS'
+
+_ELEGANT_TWISS_PATH = 'animation/{}'.format(ELEGANT_TWISS_FILENAME)
 
 _ION_FILE_PREFIX = 'ions'
 
@@ -57,6 +65,8 @@ _PLOT_LINE_COLOR = {
     'y3': '#2ca02c',
 }
 
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _ion_files(run_dir)
@@ -87,11 +97,29 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def fixup_old_data(data):
-    pass
+    template_common.update_model_defaults(data['models']['ring'], 'ring', _SCHEMA)
 
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_application_data(data):
+    if data['method'] == 'get_elegant_sim_list':
+        res = []
+        for f in pkio.sorted_glob(_elegant_dir().join('*/', _ELEGANT_TWISS_PATH)):
+            m = re.match(r'.*?/elegant/(.*?)/animation', str(f))
+            if not m:
+                continue
+            id = m.group(1)
+            name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
+            res.append({
+                'simulationId': id,
+                'name': name,
+            })
+        return {
+            'simList': res,
+        }
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -126,9 +154,13 @@ def get_simulation_frame(run_dir, data, model_data):
 
 
 def lib_files(data, source_lib):
-    return template_common.filename_to_path([
-        template_common.lib_file_name('ring', 'lattice', data['models']['ring']['lattice']),
-    ], source_lib)
+    res = []
+    lattice_source = data['models']['ring']['latticeSource']
+    if lattice_source == 'madx':
+        res.append(template_common.lib_file_name('ring', 'lattice', data['models']['ring']['lattice']))
+    elif lattice_source == 'elegant':
+        res.append(template_common.lib_file_name('ring', 'elegantTwiss', data['models']['ring']['elegantTwiss']))
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
@@ -141,12 +173,12 @@ def python_source_for_model(data, model):
     return '''
 {}
 
-with open('jspec.in', 'w') as f:
+with open('{}', 'w') as f:
     f.write(jspec_file)
 
 import os
-os.system('jspec jspec.in')
-    '''.format(_generate_parameters_file(data))
+os.system('jspec {}')
+    '''.format(_generate_parameters_file(data), JSPEC_INPUT_FILENAME, JSPEC_INPUT_FILENAME)
 
 
 def remove_last_frame(run_dir):
@@ -154,10 +186,15 @@ def remove_last_frame(run_dir):
 
 
 def write_parameters(data, schema, run_dir, is_parallel):
+    _prepare_twiss_file(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data)
     )
+
+
+def _elegant_dir():
+    return simulation_db.simulation_dir(SIM_TYPE).join('../elegant')
 
 
 def _extract_evolution_plot(report, run_dir):
@@ -236,6 +273,10 @@ def _generate_parameters_file(data):
     v['beamEvolutionOutputFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
     v['runSimulation'] = report is None or report == 'animation'
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
+    if data['models']['ring']['latticeSource'] == 'madx':
+        v['latticeFilename'] = template_common.lib_file_name('ring', 'lattice', v['ring_lattice'])
+    else:
+        v['latticeFilename'] = JSPEC_TWISS_FILENAME
     return template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -253,6 +294,17 @@ def _map_field_name(f):
     if f in _FIELD_MAP:
         return _FIELD_MAP[f]
     return f
+
+
+def _prepare_twiss_file(data, run_dir):
+    if data['models']['ring']['latticeSource'] == 'elegant-sirepo':
+        sim_id = data['models']['ring']['elegantSirepo']
+        if not sim_id:
+            raise RuntimeError('elegant simulation not selected')
+        f = _elegant_dir().join(sim_id, _ELEGANT_TWISS_PATH)
+        if not f.exists():
+            raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
+        f.copy(run_dir)
 
 
 def _step_from_log(run_dir):
