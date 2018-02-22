@@ -1452,7 +1452,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 var linkInput = document.getElementById('sr-simulation-link-input').select();
                 document.execCommand('copy');
                 return false;
-            }
+            };
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
             };
