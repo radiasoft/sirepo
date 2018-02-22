@@ -1428,10 +1428,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if run_dir and _uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
-        try:
-            template_common.validate_safe_zip(src_zip, target_dir, validate_magnet_data_file)
-        except AssertionError as err:
-            werkzeug.exceptions.abort(422)
         # The MagnMeasZip class defined above has convenient properties we can use here
         mmz = MagnMeasZip(src_zip)
         zindex = template_common.zip_path_for_file(mmz.z, mmz.index_file)
