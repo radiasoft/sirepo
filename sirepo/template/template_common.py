@@ -10,13 +10,12 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import copy
 import hashlib
 import json
 import py.path
+import os.path
 import re
 import sirepo.template
-import collections
 
 DEFAULT_INTENSITY_DISTANCE = 20
 
@@ -377,7 +376,7 @@ def validate_safe_zip(zip_file_name, target_dir='.', *args):
 
     for validator in args:
         res, err_string = validator(zip_file)
-        assert res, '{} failed validator: {}'.format(zip_file_name, err_string)
+        assert res, '{} failed validator: {}'.format(os.path.basename(zip_file_name), err_string)
 
 
 def zip_path_for_file(zf, file_to_find):
