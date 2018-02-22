@@ -429,13 +429,19 @@ def api_oauthLogout(simulation_type):
 app_oauth_logout = api_oauthLogout
 
 
-def api_pythonSource(simulation_type, simulation_id, model=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+    import string
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
+    sim_name = data.models.simulation.name.lower()
+    report_rider = '' if report is None else '-' + report.lower()
+    py_name = sim_name + report_rider
+    py_name = re.sub(r'[\"&\'()+,/:<>?\[\]\\`{}|]', '', py_name)
+    py_name = re.sub(r'\s', '-', py_name)
     return _as_attachment(
         flask.make_response(template.python_source_for_model(data, model)),
         'text/x-python',
-        '{}.py'.format(data.models.simulation.name),
+        '{}.py'.format(py_name),
     )
 app_python_source = api_pythonSource
 

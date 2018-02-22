@@ -30,7 +30,7 @@ import traceback
 import uti_math
 import uti_plot_com
 import zipfile
-
+import werkzeug
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -849,14 +849,10 @@ def validate_file(file_type, path):
     elif extension == 'zip':
         # undulator magnetic data file
         #TODO(pjm): add additional zip file validation
-        zip_file = zipfile.ZipFile(str(path))
-        is_valid = False
-        for f in zip_file.namelist():
-            if re.search(r'\.txt', f.lower()):
-                is_valid = True
-                break
-        if not is_valid:
-            return 'zip file missing txt index file'
+        try:
+            template_common.validate_safe_zip(str(path), '.', validate_magnet_data_file)
+        except AssertionError as err:
+            return err.message
     elif extension.lower() in ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'npy']:
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
@@ -1430,15 +1426,80 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             sample_counter += 1
 
     if run_dir and _uses_tabulated_zipfile(data):
-        z = zipfile.ZipFile(str(run_dir.join(v['tabulatedUndulator_magneticFile'])))
-        z.extractall(str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)))
-        for f in z.namelist():
-            if re.search(r'\.txt', f):
-                f = _TABULATED_UNDULATOR_DATA_DIR + '/' + f
-                v.magneticMeasurementsDir = os.path.dirname(f) or './'
-                v.magneticMeasurementsIndexFile = os.path.basename(f)
-                break
+        src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
+        target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
+        try:
+            template_common.validate_safe_zip(src_zip, target_dir, validate_magnet_data_file)
+        except AssertionError as err:
+            werkzeug.exceptions.abort(422)
+        # The MagnMeasZip class defined above has convenient properties we can use here
+        mmz = MagnMeasZip(src_zip)
+        zindex = template_common.zip_path_for_file(mmz.z, mmz.index_file)
+        zdata = map(lambda fn: template_common.zip_path_for_file(mmz.z, fn), mmz.dat_files)
+        # extract only the index file and the data files it lists
+        mmz.z.extract(zindex, target_dir)
+        for df in zdata:
+            mmz.z.extract(df, target_dir)
+        v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + '/' + mmz.index_dir
+        v.magneticMeasurementsIndexFile = mmz.index_file
     return template_common.render_jinja(SIM_TYPE, v)
+
+
+def validate_magnet_data_file(zf):
+    """Validate a zip file containing tabulated magentic data
+
+    Performs the following checks:
+
+        - Only .txt and .dat files are allowed
+        - Zip file must contain one and only one .txt file to use as an index
+        - The index file must list the data files with the name in the 4th column
+        - Zip file must contain only the index file and the data files it lists
+
+    Args:
+        zf (zipfile.ZipFile): the zip file to examine
+    Returns:
+        True if all conditions are met, False otherwise
+        A string for debugging purposes
+    """
+    import collections
+
+    def index_file_name(zf):
+        # Apparently pkio.has_file_extension will return true for any extension if fed a directory path ('some_dir/')
+        text_files = [f for f in zf.namelist() if not f.endswith('/') and pkio.has_file_extension(f, 'txt')]
+        if len(text_files) != 1:
+            return None
+        return text_files[0]
+
+    # Check against whitelist
+    for f in zf.namelist():
+        # allow directories
+        if f.endswith('/'):
+            continue
+        if not template_common.file_extension_ok(f, white_list=['txt', 'dat']):
+            return False, 'File {} has forbidden type'.format(f)
+
+    file_name_column = 3
+
+    # Assure unique index exists
+    if index_file_name(zf) is None:
+        return False, 'Zip file has no unique index'
+
+    # Validate correct number of columns (plus other format validations if needed)
+    index_file = zf.open(index_file_name(zf))
+    lines = index_file.readlines()
+    file_names_in_index = []
+    for line in lines:
+        cols = line.split()
+        if len(cols) <= file_name_column:
+            return False, 'Index file {} has bad format'.format(index_file_name())
+        file_names_in_index.append(cols[file_name_column])
+
+    # Compare index and zip contents
+    # Does not include the index itself, nor any directories
+    # also extract the filename since the index does not include path info
+    file_names_in_zip = map(lambda path: os.path.basename(path),  [f for f in zf.namelist() if not f.endswith('/') and f != index_file_name(zf)])
+    files_match = collections.Counter(file_names_in_index) == collections.Counter(file_names_in_zip)
+    return files_match, '' if files_match else 'Files in index {} do not match files in zip {}'.format(file_names_in_index, file_names_in_zip)
 
 
 def _generate_sample(res, item):

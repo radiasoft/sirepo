@@ -563,7 +563,6 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
         controller: function($scope) {
             var modalId = null;
             $scope.isDeletingFile = false;
-
             function sortList(list) {
                 if (list) {
                     list.sort(function(a, b) {
@@ -1273,6 +1272,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
             $scope.panelState = panelState;
 
+            // used for python export which lives in SIREPO.appDownloadLinks
+            $scope.reportTitle = function () {
+                return $scope.panelHeading;
+            };
+
             $scope.dataFileURL = function(suffix) {
                 if (appState.isLoaded()) {
                     var params = {
@@ -1433,7 +1437,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 panelState.showModalEditor(
                     'simulationLink',
                     [
-                        '<div data-confirmation-modal="" data-id="sr-simulationLink-editor" data-title="Share link for {{ nav.sectionTitle() }}" data-cancel-text="OK">',
+                        '<div data-confirmation-modal="" data-id="sr-simulationLink-editor" data-title="Share link for {{ nav.sectionTitle() }}" data-ok-text="Copy" data-ok-clicked="copySimulationLink()" data-cancel-text="Done">',
                             '<input id="sr-simulation-link-input" type="text" readonly="true"',
                                 'value="',
                                     $window.location.href,
@@ -1444,6 +1448,11 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                     $scope
                 );
             };
+            $scope.copySimulationLink = function() {
+                var linkInput = document.getElementById('sr-simulation-link-input').select();
+                document.execCommand('copy');
+                return false;
+            }
             $scope.showSimulationModal = function() {
                 panelState.showModalEditor('simulation');
             };
