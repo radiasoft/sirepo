@@ -14,19 +14,19 @@ from sirepo.template import template_common
 import re
 import sirepo.template.jspec as template
 
-#TODO(pjm): verify that the column values are 1:1
+# elegant mux and muy are computed in sddsprocess below
 _ELEGANT_TO_MADX_COLUMNS = [
     ['ElementName', 'NAME'],
     ['ElementType', 'TYPE'],
     ['s', 'S'],
     ['betax', 'BETX'],
     ['alphax', 'ALFX'],
-    ['psix', 'MUX'],
+    ['mux', 'MUX'],
     ['etax', 'DX'],
     ['etaxp', 'DPX'],
     ['betay', 'BETY'],
     ['alphay', 'ALFY'],
-    ['psiy', 'MUY'],
+    ['muy', 'MUY'],
     ['etay', 'DY'],
     ['etayp', 'DPY'],
     ['ElementOccurence', 'COUNT'],
@@ -61,9 +61,18 @@ def _elegant_to_madx(ring):
     else: # elegant-sirepo
         elegant_twiss_file = template.ELEGANT_TWISS_FILENAME
     outfile = 'sdds_output.txt'
+    twiss_file = 'twiss-with-mu.sdds'
+    # convert elegant psix to mad-x MU, rad --> rad / 2pi
+    pksubprocess.check_call_with_signals([
+        'sddsprocess',
+        elegant_twiss_file,
+        '-define=column,mux,psix 2 pi * /',
+        '-define=column,muy,psiy 2 pi * /',
+        twiss_file,
+    ], msg=pkdp, output=outfile)
     pksubprocess.check_call_with_signals([
         'sdds2stream',
-        elegant_twiss_file,
+        twiss_file,
         '-columns={}'.format(','.join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))),
     ], msg=pkdp, output=outfile)
     lines = pkio.read_text(outfile).split('\n')
