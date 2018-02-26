@@ -155,7 +155,7 @@ def generate_rtdose_file(data, run_dir):
         ds.PixelSpacing = _string_list([frame['spacing'][0], frame['spacing'][1]])
         ds.Rows = shape[1]
         ds.Columns = shape[2]
-        ds.NumberofFrames = shape[0]
+        ds.NumberOfFrames = shape[0]
         ds.DoseUnits = 'GY'
 
         pixels = pixels.flatten()
@@ -343,7 +343,7 @@ def _compute_histogram(simulation, frames):
 
 
 def _create_dicom_dataset(study_uid, dicom_class, modality):
-    sop_uid = dicom.UID.generate_uid()
+    sop_uid = dicom.uid.generate_uid()
 
     file_meta = dicom.dataset.Dataset()
     file_meta.MediaStorageSOPClassUID = _DICOM_CLASS[dicom_class]
@@ -370,7 +370,7 @@ def _create_dicom_dataset(study_uid, dicom_class, modality):
     ds.PatientsBirthDate = ''
     ds.PatientsSex = ''
     ds.StudyInstanceUID = study_uid
-    ds.SeriesInstanceUID = dicom.UID.generate_uid()
+    ds.SeriesInstanceUID = dicom.uid.generate_uid()
     ds.StudyID = ''
     ds.SeriesNumber = ''
     return ds
@@ -425,7 +425,7 @@ def _extract_series_frames(simulation, dicom_dir):
                 'ImageOrientationPatient': _float_list(plan.ImageOrientationPatient),
                 'PixelSpacing': _float_list(plan.PixelSpacing),
             }
-            for f in ('FrameofReferenceUID', 'StudyInstanceUID', 'SeriesInstanceUID', 'SOPInstanceUID'):
+            for f in ('FrameOfReferenceUID', 'StudyInstanceUID', 'SeriesInstanceUID', 'SOPInstanceUID'):
                 info[f] = getattr(plan, f)
             z = _frame_id(info['ImagePositionPatient'][2])
             info['frameId'] = z
@@ -466,7 +466,7 @@ def _frame_file_name(plane, index):
 
 def _generate_dicom_reference_frame_info(plan, frame_data):
     ref_ds = dicom.dataset.Dataset()
-    ref_ds.FrameOfReferenceUID = frame_data['FrameofReferenceUID']
+    ref_ds.FrameOfReferenceUID = frame_data['FrameOfReferenceUID']
     study_ds = dicom.dataset.Dataset()
     study_ds.ReferencedSOPClassUID = _DICOM_CLASS['DETATCHED_STUDY']
     study_ds.ReferencedSOPInstanceUID = frame_data['StudyInstanceUID']
@@ -492,7 +492,7 @@ def _generate_dicom_roi_info(plan, frame_data, roi_data):
         roi_ds = dicom.dataset.Dataset()
         roi_ds.ROINumber = roi_number
         roi_ds.ROIName = roi['name']
-        roi_ds.ReferencedFrameofReferenceUID = frame_data['FrameofReferenceUID']
+        roi_ds.ReferencedFrameOfReferenceUID = frame_data['FrameOfReferenceUID']
         plan.StructureSetROISequence.append(roi_ds)
 
         contour_ds = dicom.dataset.Dataset()
@@ -512,7 +512,7 @@ def _generate_dicom_roi_info(plan, frame_data, roi_data):
                     image_ds.ContourData.append(str(points[i]))
                     image_ds.ContourData.append(str(points[i + 1]))
                     image_ds.ContourData.append(str(frame_id))
-                image_ds.NumberofContourPoints = str(int(len(image_ds.ContourData) / 3))
+                image_ds.NumberOfContourPoints = str(int(len(image_ds.ContourData) / 3))
                 contour_ds.ContourSequence.append(image_ds)
         plan.ROIContourSequence.append(contour_ds)
 
@@ -789,7 +789,7 @@ def _summarize_dicom_series(simulation, frames):
 def _summarize_frames(frames):
     res = {}
     frame0 = frames[0]
-    for n in ('FrameofReferenceUID', 'StudyInstanceUID', 'SeriesInstanceUID'):
+    for n in ('FrameOfReferenceUID', 'StudyInstanceUID', 'SeriesInstanceUID'):
         res[n] = frame0[n]
     res['SOPInstanceUID'] = []
     for frame in frames:
@@ -806,7 +806,7 @@ def _summarize_rt_dose(simulation, plan, run_dir=None):
         pixels.tofile(f)
     #TODO(pjm): assuming frame start matches dicom frame start
     res = {
-        'frameCount': int(plan.NumberofFrames),
+        'frameCount': int(plan.NumberOfFrames),
         'units': plan.DoseUnits,
         'min': float(np.min(pixels)),
         'max': float(np.max(pixels)),
@@ -849,9 +849,8 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
                     roi['contour'][ct_id] = []
                 roi['contour'][ct_id].append(contour_data)
         if roi['contour']:
-            roi['color'] = roi_contour.ROIDisplayColor
+            roi['color'] = _string_list(roi_contour.ROIDisplayColor)
             res[roi_contour.ReferencedROINumber] = roi
-
     simulation_db.write_json(_roi_file(simulation['simulationId']), {
         'models': {
             'regionsOfInterest': res,
