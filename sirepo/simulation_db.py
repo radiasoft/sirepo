@@ -1033,9 +1033,9 @@ def _validate_name(data):
         {'simulation.folder': s.folder},
     ):
         n2 = d.models.simulation.name
-        if n2.startswith(n):
+        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
             starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with and starts_with[n] != s.simulationId:
+    if n in starts_with:
         _validate_name_uniquify(data, starts_with)
 
 
