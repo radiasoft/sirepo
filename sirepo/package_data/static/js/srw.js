@@ -1124,7 +1124,7 @@ SIREPO.app.directive('headerTooltip', function() {
 });
 
 //TODO(pjm): refactor and generalize with mirrorUpload
-SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender) {
+SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender, simulationQueue) {
     return {
         restrict: 'A',
         scope: {},
@@ -1165,23 +1165,36 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = 'Import Python or JSON Simulation File';
-            var import_args = $('.srw-python-file-import-args');
-            import_args.hide();
-            $scope.fileType = function(pythonFile) {
-                if (typeof(pythonFile) === 'undefined') {
-                    return;
+
+            function handleStatus(data) {
+                $scope.isUploading = false;
+                if (data.error) {
+                    $scope.fileUploadError = data.error;
+                    appState.deleteSimulation(appState.models.simulation.simulationId, function() {});
                 }
-                if (pythonFile.name.search('.py') >= 0) {
-                    import_args.show();
+                appState.clearModels();
+                if (data.simulationId) {
+                    hideAndRedirect(data.simulationId);
+                }
+            }
+
+            function hideAndRedirect(simId) {
+                $('#srw-simulation-import').modal('hide');
+                requestSender.localRedirect('source', {
+                    ':simulationId': simId,
+                });
+            }
+
+            $scope.fileType = function(pythonFile) {
+                var importArgs = $('.srw-python-file-import-args');
+                if (pythonFile && pythonFile.name.indexOf('.py') >= 0) {
+                    importArgs.show();
                 }
                 else {
-                    import_args.hide();
+                    importArgs.hide();
                 }
             };
             $scope.importPythonFile = function(pythonFile, importArgs) {
-                if (typeof(importArgs) === 'undefined') {
-                    importArgs = '';
-                }
                 if (! pythonFile) {
                     return;
                 }
@@ -1190,7 +1203,7 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                     pythonFile,
                     {
                         folder: fileManager.getActiveFolderPath(),
-                        arguments: importArgs,
+                        arguments: importArgs || '',
                     },
                     requestSender.formatUrl(
                         'importFile',
@@ -1202,11 +1215,17 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                         }
-                        else {
-                            $('#srw-simulation-import').modal('hide');
-                            requestSender.localRedirect('source', {
-                                ':simulationId': data.models.simulation.simulationId,
+                        else if (data.models.backgroundImport) {
+                            $scope.isUploading = true;
+                            appState.loadModels(data.models.simulation.simulationId, function() {
+                                simulationQueue.addTransientItem(
+                                    'backgroundImport',
+                                    appState.applicationState(),
+                                    handleStatus);
                             });
+                        }
+                        else {
+                            hideAndRedirect(data.models.simulation.simulationId);
                         }
                     });
             };
@@ -1214,6 +1233,7 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
                 $('#srw-python-file-import').val(null);
+                delete scope.pythonFile;
                 scope.fileUploadError = '';
             });
             scope.$on('$destroy', function() {

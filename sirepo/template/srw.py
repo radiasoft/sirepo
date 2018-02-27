@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from scipy.ndimage import zoom
 from sirepo import crystal
 from sirepo import simulation_db
-from sirepo.template import srw_importer
 from sirepo.template import template_common
 from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 from srwlib import SRWLMagFldH, SRWLMagFldU
@@ -583,22 +582,18 @@ def get_simulation_frame(run_dir, data, model_data):
 
 def import_file(request, lib_dir, tmp_dir):
     f = request.files['file']
-    input_text = f.read()
-    # attempt to decode the input as json first, if invalid try python
-    try:
-        parsed_data = simulation_db.json_load(input_text)
-    except ValueError as e:
-        # Failed to read json
-        arguments = str(request.form.get('arguments', ''))
-        pkdlog('{}: arguments={}', f.filename, arguments)
-        parsed_data = srw_importer.import_python(
-            input_text,
-            lib_dir=lib_dir,
-            tmp_dir=tmp_dir,
-            user_filename=f.filename,
-            arguments=arguments,
-        )
-    return simulation_db.fixup_old_data(parsed_data, force=True)[0]
+    input_path = str(tmp_dir.join('import.py'))
+    f.save(input_path)
+    arguments = str(request.form.get('arguments', ''))
+    pkdlog('{}: arguments={}', f.filename, arguments)
+    data = simulation_db.default_data(SIM_TYPE)
+    data['models']['backgroundImport'] = {
+        'inputPath': input_path,
+        'arguments': arguments,
+        'userFilename': f.filename,
+        'libDir': str(simulation_db.simulation_lib_dir(SIM_TYPE)),
+    }
+    return data
 
 
 def lib_files(data, source_lib):
@@ -1392,6 +1387,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if report == 'brillianceReport':
         v['brillianceOutputFilename'] = _BRILLIANCE_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
+    if report == 'backgroundImport':
+        return template_common.render_jinja(SIM_TYPE, v, 'import.py')
 
     v['beamlineOptics'] = _generate_beamline_optics(report, data['models'], last_id)
 

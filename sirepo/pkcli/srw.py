@@ -70,7 +70,18 @@ def _run_srw():
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     main()
-    simulation_db.write_result(extract_report_data(get_filename_for_model(data['report']), data))
+    # special case for importing python code
+    if data['report'] == 'backgroundImport':
+        sim_id = data['models']['simulation']['simulationId']
+        parsed_data['models']['simulation']['simulationId'] = sim_id
+        #TODO(pjm): assumes the parent directory contains the simulation data,
+        # can't call simulation_db.save_simulation_json() because user isn't set for pkcli commands
+        simulation_db.write_json('../{}'.format(simulation_db.SIMULATION_DATA_FILE), parsed_data)
+        simulation_db.write_result({
+            'simulationId': sim_id,
+        })
+    else:
+        simulation_db.write_result(extract_report_data(get_filename_for_model(data['report']), data))
 
 
 def _cfg_int(lower, upper):
