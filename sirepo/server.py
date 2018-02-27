@@ -53,7 +53,7 @@ _RUN_STATES = ('pending', 'running')
 _SESSION_KEY_USER = 'uid'
 
 #: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
