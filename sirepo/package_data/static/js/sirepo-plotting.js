@@ -1446,7 +1446,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
                 else {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-move');
                 }
-                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize.width, $scope.canvasSize.height, xValues, yValues, canvas, cacheCanvas, false);
+                plotting.drawImage(xAxisScale, yAxisScale, $scope.canvasSize.width, $scope.canvasSize.height, xValues, yValues, canvas, cacheCanvas, true);
                 resetZoom();
                 select('.mouse-rect').call(zoom);
                 select('.x.axis').call(xAxis);
