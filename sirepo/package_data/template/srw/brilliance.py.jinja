@@ -13,7 +13,8 @@ def main():
         if harmNum % 2:
 {% if brillianceReport_reportType == '0' %}
             header.append('f{} [Ph/s/.1%], e{} [eV]'.format(harmNum, harmNum))
-            (x, y) = SRW_flux_energy(
+            # Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr
+            (x, y) = srwl_und_flux_en(
                 {{ electronBeam_current }}, # electronBeam.current
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
@@ -30,8 +31,8 @@ def main():
             )
 {% elif brillianceReport_reportType == '1' %}
             header.append('f{} [Ph/s/.1%bw/mrad2], e{} [eV]'.format(harmNum, harmNum))
-            # srwl_angularflux_energy(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpxsq,sigpzsq):
-            (x, y) = srwl_angularflux_energy(
+            # Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpxsq,sigpzsq
+            (x, y) = srwl_und_ang_flux_en(
                 {{ electronBeam_current }}, # electronBeam.current
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
@@ -50,7 +51,8 @@ def main():
             )
 {% elif brillianceReport_reportType == '2' %}
             header.append('f{} [Ph/s/.1/mr2/mm2], e{} [eV]'.format(harmNum, harmNum))
-            (x, y) = srwl_brightness_energy(
+            # Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts
+            (x, y) = srwl_und_bright_en(
                 {{ electronBeam_current }}, # electronBeam.current
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
@@ -75,7 +77,7 @@ def main():
 {% elif brillianceReport_reportType == '3' %}
             header.append('f{} [rad], e{} [eV]'.format(harmNum, harmNum))
             # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq
-            (x, y) = srwl_divergence_energy(
+            (x, y) = srwl_und_div_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
                 {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
@@ -93,7 +95,7 @@ def main():
 {% elif brillianceReport_reportType == '4' %}
             header.append('f{} [rad], e{} [eV]'.format(harmNum, harmNum))
             # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq
-            (x, y) = srwl_divergence_energy(
+            (x, y) = srwl_und_div_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
                 {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
@@ -110,8 +112,8 @@ def main():
             )
 {% elif brillianceReport_reportType == '5' %}
             header.append('f{} [m], e{} [eV]'.format(harmNum, harmNum))
-            # srwl_size_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq)
-            (x, y) = srwl_size_energy(
+            # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq
+            (x, y) = srwl_und_size_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
                 {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
@@ -128,8 +130,8 @@ def main():
             )
 {% elif brillianceReport_reportType == '6' %}
             header.append('f{} [m], e{} [eV]'.format(harmNum, harmNum))
-            # srwl_size_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq)
-            (x, y) = srwl_size_energy(
+            # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq
+            (x, y) = srwl_und_size_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
                 {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
                 {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
