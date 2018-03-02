@@ -12,15 +12,14 @@ from pykern import pkresource
 # fluxcorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivFlux.txt")
 # divcorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivDiv.txt")
 # sizecorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivSize.txt")
-
 #TODO(pjm): need a way to initialize this module with a set of static datafiles
-fluxcorrectionarray = np.loadtxt(pkresource.filename('template/srw/brilliance/gwSrwBrilUndHarmUnivFlux.txt'))
-divcorrectionarray = np.loadtxt(pkresource.filename('template/srw/brilliance/gwSrwBrilUndHarmUnivDiv.txt'))
-sizecorrectionarray = np.loadtxt(pkresource.filename('template/srw/brilliance/gwSrwBrilUndHarmUnivSize.txt'))
+fluxcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivFlux.txt"))
+divcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivDiv.txt"))
+sizecorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivSize.txt"))
 
 #srwlib.srwl_uti_read_data_cols
 #np.array(srwlib.srwl_uti_read_data_cols('gwSrwBrilUndHarmUnivFlux.txt', '\t'))
-
+#srwl_uti_interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0)
 
 def KtoE(K,E_elec,lam_u,n):
     #compute photon Energy (in KeV) from a given K value
@@ -30,7 +29,11 @@ def KtoE(K,E_elec,lam_u,n):
     return 0.9496376*n*E_elec**2/lam_u/(1+K**2/2)
 
 
-def srwl_compute_flux(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
+def CalcK(B,lam_u):
+    #compute undulator K value from magnetic field B [T] and period lam_u [m]
+    return 93.36*B*lam_u
+
+def CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
     #flux function in SRW Igor Pro
     #returns flux [#photons/sec/0.1%bandwidth]
     #Ib: beam current in Amps
@@ -83,7 +86,7 @@ def srwl_compute_flux(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
 
     return C0*N*Ib*(n*k12/(1+ke2/2))*JJbs*factDetunAndEnSpr*GG
 
-def SRW_flux_energy(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr):
+def srwl_und_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr):
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -108,11 +111,11 @@ def SRW_flux_energy(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,en
     fluxvals = []
     for j in range(len(kvals)):
         #print j
-        fluxvals.append(srwl_compute_flux(Ib,kxvals[j],kzvals[j],0,0,n,nPer,enDetPar,relEnSpr))
+        fluxvals.append(CalcFluxUnd(Ib,kxvals[j],kzvals[j],0,0,n,nPer,enDetPar,relEnSpr))
     return (Evals,fluxvals)
 
 
-def srwl_compute_size(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
+def CalcSizeUnd(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     #sigsq: hor. or vert. RMS electron beamsize squared [m^2]
     #L: length of undulator [m]
     #K: K value of undulator
@@ -127,7 +130,7 @@ def srwl_compute_size(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     factAngDivDetunAndEnSpr = interp(normDetun,normEnSpr,sizecorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
     return math.sqrt(sigsq + (convConstSize/energy)*factAngDivDetunAndEnSpr**2)
 
-def srwl_size_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigsq):
+def srwl_und_size_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigsq):
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -145,10 +148,10 @@ def srwl_size_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDe
     #compute size for each k value
     sizevals = []
     for j in range(len(kvals)):
-        sizevals.append(srwl_compute_size(sigsq,L,kvals[j],E_elec,lam_u,n,nPer,enDetPar,relEnSpr))
+        sizevals.append(CalcSizeUnd(sigsq,L,kvals[j],E_elec,lam_u,n,nPer,enDetPar,relEnSpr))
     return (Evals,sizevals)
 
-def srwl_compute_divergence(sigpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
+def CalcDivergenceUnd(sigpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     #sigpsq: hor. or vert. RMS electron divergence squared
     #L: length of undulator [m]
     #K: K value of undulator
@@ -163,7 +166,7 @@ def srwl_compute_divergence(sigpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     factAngDivDetunAndEnSpr = interp(normDetun,normEnSpr,divcorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
     return math.sqrt(sigpsq + (convConstDiv/energy)*factAngDivDetunAndEnSpr**2)
 
-def srwl_divergence_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq):
+def srwl_und_div_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq):
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -181,11 +184,11 @@ def srwl_divergence_energy(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPe
     #compute divergence for each k value
     divergevals = []
     for j in range(len(kvals)):
-        divergevals.append(srwl_compute_divergence(sigpsq,L,kvals[j],E_elec,lam_u,n,nPer,enDetPar,relEnSpr))
+        divergevals.append(CalcDivergenceUnd(sigpsq,L,kvals[j],E_elec,lam_u,n,nPer,enDetPar,relEnSpr))
     return (Evals,divergevals)
 
 
-def srwl_compute_angularflux(Ib,kx,kz,phix,phiz,n,nPer,E_elec,lam_u,enDetPar,relEnSpr,sigpxsq,sigpzsq):
+def CalcAngularfluxUnd(Ib,kx,kz,phix,phiz,n,nPer,E_elec,lam_u,enDetPar,relEnSpr,sigpxsq,sigpzsq):
     #Ib: beam current in Amps
     #kx: horizontal undulator strength parameter
     #kz: vertical undulator strength parameter
@@ -199,13 +202,13 @@ def srwl_compute_angularflux(Ib,kx,kz,phix,phiz,n,nPer,E_elec,lam_u,enDetPar,rel
     L=(lam_u/100.)*nPer
     convConstDiv = 2*1.239842e-06/L
     K=math.sqrt(kx**2+kz**2)
-    flux = srwl_compute_flux(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr)
-    divx = srwl_compute_divergence(sigpxsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
-    divz = srwl_compute_divergence(sigpzsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    flux = CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr)
+    divx = CalcDivergenceUnd(sigpxsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    divz = CalcDivergenceUnd(sigpzsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
     fluxdivide = (2e+06*math.pi)*divx*divz
     return flux/fluxdivide
 
-def srwl_angularflux_energy(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpxsq,sigpzsq):
+def srwl_und_ang_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpxsq,sigpzsq):
      #compute kvals and Evals
      #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -223,11 +226,11 @@ def srwl_angularflux_energy(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n
     #compute flux for each k value
     angularflux = []
     for j in range(len(kvals)):
-        angularflux.append(srwl_compute_angularflux(Ib,kxvals[j],kzvals[j],phix,phiz,n,nPer,E_elec,lam_u,enDetPar,relEnSpr,sigpxsq,sigpzsq))
+        angularflux.append(CalcAngularfluxUnd(Ib,kxvals[j],kzvals[j],phix,phiz,n,nPer,E_elec,lam_u,enDetPar,relEnSpr,sigpxsq,sigpzsq))
     return (Evals,angularflux)
 
 
-def srwl_compute_brightness(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq):
+def CalcBrightnessUnd(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq):
     #compute Brightness from undulator by dividing flux by Sigx*Sigx'*Sigz*Sigz', with Sigx,z and Sigz,z'
     #photon beamsize at center of undulator
     #uses same parameters as srwl_compute_flux, plus
@@ -239,18 +242,18 @@ def srwl_compute_brightness(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relE
     #sigzp: RMS vertical electron beam divergence
     cst=(math.pi*2)**2*1e12
 
-    flux = srwl_compute_flux(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr)
+    flux = CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr)
 
     K = math.sqrt(kx**2+kz**2)
 
-    Sigmax = srwl_compute_size(sigxsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
-    Sigmaz = srwl_compute_size(sigzsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
-    Sigmaxp = srwl_compute_divergence(sigxpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
-    Sigmazp = srwl_compute_divergence(sigzpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    Sigmax = CalcSizeUnd(sigxsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    Sigmaz = CalcSizeUnd(sigzsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    Sigmaxp = CalcDivergenceUnd(sigxpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
+    Sigmazp = CalcDivergenceUnd(sigzpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr)
 
     return flux/(cst*Sigmax*Sigmaxp*Sigmaz*Sigmazp)
 
-def srwl_brightness_energy(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts):
+def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts):
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -266,5 +269,5 @@ def srwl_brightness_energy(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEn
 
     brightnessvals = []
     for j in range(len(kvals)):
-           brightnessvals.append(srwl_compute_brightness(Ib,kxvals[j],kzvals[j],phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq))
+           brightnessvals.append(CalcBrightnessUnd(Ib,kxvals[j],kzvals[j],phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq))
     return (Evals,brightnessvals)
