@@ -66,7 +66,7 @@ def copy_lib_files(data, source, target):
                 f.copy(path)
             else:
                 # symlink into the run directory
-                path.mksymlinkto(f)
+                path.mksymlinkto(f, absolute=False)
 
 
 
