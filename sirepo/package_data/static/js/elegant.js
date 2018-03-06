@@ -617,7 +617,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, validationService, utilities, panelState, rpnService, $rootScope, $scope) {
     var self = this;
     var emptyElements = [];
 
@@ -698,7 +698,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         var containerNames = ['elements', 'beamlines'];
         for (var i = 0; i < containerNames.length; i++) {
             var containerName = containerNames[i];
-            for (var j = 0; j < appState.models[containerName].length; j++) {
+            for (var j = 0; j < (appState.models[containerName] || []).length; j++) {
                 res[appState.models[containerName][j].name] = 1;
             }
         }
@@ -781,11 +781,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
                 break;
             }
         }
-        //TODO(pjm): backed out this change
-        // always check the name in case the user changed it
-        // if (elementsByName()[m.name]) {
-        //     m.name = uniqueNameForType(m.name + '-');
-        // }
         if (! foundIt) {
             if (elementsByName()[m.name]) {
                 m.name = uniqueNameForType(m.name + '-');
@@ -856,8 +851,24 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.editElement = function(type, item) {
         appState.models[type] = item;
+        validationService.setFieldValidator(utilities.modelFieldID(type, 'name'), self.elementNameValidator(item.name), self.elementNameInvalidMsg);
         panelState.showModalEditor(type);
     };
+
+    self.elementNameValidator = function(currentName) {
+        // make a copy of the keys as of creation of the function and exclude the starting value
+        var names = Object.keys(elementsByName()).slice();
+        return function(newNameV, newNameM) {
+            var cnIndex = names.indexOf(currentName);
+            if(cnIndex >= 0) {
+                names.splice(cnIndex, 1);
+            }
+            return names.indexOf(newNameV) < 0;
+        };
+    };
+    self.elementNameInvalidMsg = function(newName) {
+        return newName == '' ? '' : newName + ' already exists';
+    }
 
     self.elementForId = function(id) {
         return elegantService.elementForId(id);
@@ -897,6 +908,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             count: 0,
             items: [],
         };
+        validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), self.elementNameValidator(appState.models.beamline.name), self.elementNameInvalidMsg);
         panelState.showModalEditor('beamline');
     };
 
@@ -1231,7 +1243,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav" data-app-url="/#/elegant"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -1291,7 +1303,7 @@ SIREPO.app.directive('appHeader', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
+SIREPO.app.directive('beamlineEditor', function(appState, panelState, validationService, utilities, $document, $timeout, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1465,6 +1477,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             $scope.showBeamlineNameModal = function() {
                 if (activeBeamline) {
                     appState.models.beamline = activeBeamline;
+                    validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), $scope.lattice.elementNameValidator(activeBeamline.name), $scope.lattice.elementNameInvalidMsg);
                     panelState.showModalEditor('beamline');
                 }
             };

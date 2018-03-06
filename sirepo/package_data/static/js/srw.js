@@ -661,10 +661,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         panelState.enableField(reportName, 'magneticField', false);
         if (reportName === 'intensityReport') {
             panelState.showField(reportName, 'magneticField', false);
-            updateSubtitlePolarization(reportName);
-        }
-        if(reportName === 'sourceIntensityReport') {
-            updateSubtitleCharacteristic(reportName);
         }
         requestSender.getApplicationData(
             {
@@ -796,21 +792,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             $('.model-intensityReport-precision').find('label').text(precisionLabel);
         }
     }
-    function updateSubtitleCharacteristic(reportName) {
-        updateSubtitleForReport(reportName, appState.enumDescription('Characteristic', appState.models.sourceIntensityReport.characteristic));
-    }
-    function updateSubtitlePolarization(reportName) {
-        updateSubtitleForReport(reportName, appState.enumDescription('Polarization', appState.models.intensityReport.polarization));
-    }
-    function updateSubtitleForReport(reportName, subTitleText) {
-        // selects the report body
-        updateSubtitle(
-            $('div[data-panel-heading*=\'' + SIREPO.APP_SCHEMA.view[reportName].title + '\']').next(),
-            subTitleText);
-    }
-    function updateSubtitle(reportNode, subTitleText) {
-        $(reportNode).find('.sr-plot .sub-title').text(subTitleText);
-    }
 
     self.handleModalShown = function(name) {
         if (name === 'fluxAnimation') {
@@ -920,12 +901,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         });
 
         appState.watchModelFields($scope, ['intensityReport.method'], updatePrecisionLabel);
-        appState.watchModelFields($scope, ['intensityReport.polarization'], function() {
-            updateSubtitlePolarization('intensityReport');
-        });
-        appState.watchModelFields($scope, ['sourceIntensityReport.characteristic'], function() {
-            updateSubtitleCharacteristic('sourceIntensityReport');
-        });
 
         appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType', 'undulator.length', 'undulator.period', 'simulation.sourceType'], processBeamParameters);
 
@@ -1018,7 +993,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -1061,7 +1036,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav" data-app-url="/srw"></div>',
+              '<div data-app-header-brand="nav" data-app-url="/#/srw"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
@@ -1451,7 +1426,7 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
                       '<div class="row">',
                         '<ul class="nav nav-tabs">',
                           '<li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">',
-                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"</span></a>',
+                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"></span></a>',
                           '</li>',
                         '</ul>',
                         '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-sections="propagationSections"  data-section-params="parametersBySection[$index]" data-prop-type-index="propTypeIndex" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
