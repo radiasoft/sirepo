@@ -483,7 +483,7 @@ app.directive('modeSelector', function(utilities) {
         '<div class="row">',
           '<div class="col-sm-6 col-sm-offset-3" style="font-weight: 500;">Select the mode you\'d like to run in</div>',
           '<div class="col-sm-12" style="display: flex; justify-content: flex-start; align-items: flex-end;">',
-            '<div class="col-sm-6">',  // tabs
+            '<div class="col-sm-6">',
               '<div class="panel">',
                 '<div class="panel-heading">',
                   '<ul class="nav nav-tabs">',
@@ -496,7 +496,7 @@ app.directive('modeSelector', function(utilities) {
                   '</div>',
                 '</div>',
               '</div>',
-            '</div>',  // end tabs
+            '</div>',
             '<div class="lp-launch-button" data-launch-button="" data-label="launchLabel" data-url="urlForMode()"></div>',
           '</div>',
         '</div>',

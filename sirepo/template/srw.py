@@ -294,7 +294,6 @@ def extensions_for_file_type(file_type):
 
 def extract_report_data(filename, model_data):
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
-    #print('MODEL DATA {}', model_data)
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
     if model_data['report'] == 'trajectoryReport':

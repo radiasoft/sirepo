@@ -2213,7 +2213,7 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, utilities, $location, $scope, $window, $cookies) {
+SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, $location, $scope, $window, $cookies) {
     var self = this;
     var simListViewCookie = 'net.sirepo.sim_list_view';
     var cookiePrefTimeout = 5*365*24*60*60*1000;
