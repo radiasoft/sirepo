@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
+from sirepo.template import elegant_common
 from sirepo.template import template_common
 import re
 import sirepo.template.jspec as template
@@ -69,12 +70,12 @@ def _elegant_to_madx(ring):
         '-define=column,mux,psix 2 pi * /',
         '-define=column,muy,psiy 2 pi * /',
         twiss_file,
-    ], msg=pkdp, output=outfile)
+    ], msg=pkdp, output=outfile, env=elegant_common.subprocess_env())
     pksubprocess.check_call_with_signals([
         'sdds2stream',
         twiss_file,
         '-columns={}'.format(','.join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))),
-    ], msg=pkdp, output=outfile)
+    ], msg=pkdp, output=outfile, env=elegant_common.subprocess_env())
     lines = pkio.read_text(outfile).split('\n')
     if not lines[-1]:
         del lines[-1]
