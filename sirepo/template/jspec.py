@@ -71,18 +71,17 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _ion_files(run_dir)
     if is_running:
-        current_step = _step_from_log(run_dir)
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         settings = data.models.simulationSettings
-        count = 0
-        # only use the most recent file if the current_step has passed that interval
-        # otherwise the file might be read before it has been completely written
-        if current_step > 1 and current_step % settings.save_particle_interval:
-            count = len(files)
-        elif len(files) > 1:
-            count = len(files) - 1
+        percent_complete = 0
+        count = len(files)
+        if settings.save_particle_interval > 0:
+            percent_complete = count * 100 / (1 + int(settings.time / settings.save_particle_interval))
+        # the most recent file may not yet be fully written
+        if count > 0:
+            count -= 1
         return {
-            'percentComplete': 100 * current_step / settings.step_number,
+            'percentComplete': percent_complete,
             'frameCount': count,
         }
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
@@ -305,15 +304,3 @@ def _prepare_twiss_file(data, run_dir):
         if not f.exists():
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
         f.copy(run_dir)
-
-
-def _step_from_log(run_dir):
-    log_file = run_dir.join(JSPEC_LOG_FILE)
-    if log_file.exists():
-        text = pkio.read_text(log_file)
-        lines = text.split("\n")
-        if len(lines) > 2:
-            last_line = lines[-2]
-            if re.search(r'^\d+$', last_line):
-                return int(last_line) + 1
-    return 1
