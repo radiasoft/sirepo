@@ -16,7 +16,8 @@ def extract_sdds_column(filename, field, page_index):
     try:
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
             pkdlog('{}: cannot access'.format(filename))
-            err = _sdds_error('Missing report output file.')
+            # In normal execution, the file may not yet be available for NFS
+            err = _sdds_error('Output file is not yet available.')
         else:
             column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
             #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
