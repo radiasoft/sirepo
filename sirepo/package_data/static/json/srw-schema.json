@@ -1034,7 +1034,7 @@
             ]
         },
         "fluxReport": {
-            "title": "Flux",
+            "title": "Spectral Flux",
             "basic": [],
             "advanced": [
                 ["Main", [
