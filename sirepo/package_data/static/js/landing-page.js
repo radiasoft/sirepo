@@ -504,10 +504,9 @@ app.directive('modeSelector', function(utilities) {
         link: function($scope) {
         },
         controller: function($scope, $element) {
-            $scope.currentMode = $scope.modeMap.find(function(mode) {
+            $scope.currentMode = $.grep($scope.modeMap, function(mode) {
                 return mode.default;
-            });
-
+            })[0];
             $scope.setMode = function(m) {
                 $scope.currentMode = m;
             };
