@@ -510,7 +510,7 @@ app.directive('modeSelector', function(utilities) {
 
             $scope.setMode = function(m) {
                 $scope.currentMode = m;
-            }
+            };
             $scope.urlForMode = function() {
                 return $scope.currentMode.url;
             };

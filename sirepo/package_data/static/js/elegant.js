@@ -868,7 +868,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
     };
     self.elementNameInvalidMsg = function(newName) {
         return newName == '' ? '' : newName + ' already exists';
-    }
+    };
 
     self.elementForId = function(id) {
         return elegantService.elementForId(id);
