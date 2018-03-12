@@ -47,6 +47,7 @@ app.value('appRoutes', {
     'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', url:''}},
     'genesis': {url: '/static/html/landing-page-genesis.html', codeURL: '/#/genesis', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
     'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
+    'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
