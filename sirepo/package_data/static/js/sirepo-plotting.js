@@ -960,6 +960,7 @@ SIREPO.app.directive('plot2d', function(plotting) {
                 select('.y-axis-label').text(json.y_label);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 $scope.resize();
             };
 
@@ -1310,6 +1311,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
                 cacheCanvas.height = yValues.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.z-axis-label').text(json.z_label);
@@ -1500,6 +1502,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting) {
                 cacheCanvas.height = yValues.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.z-axis-label').text(json.z_label);
@@ -1643,6 +1646,7 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
 
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
@@ -1841,6 +1845,7 @@ SIREPO.app.directive('particle', function(plotting) {
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 $scope.resize();
             };
 

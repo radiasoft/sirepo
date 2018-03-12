@@ -36,7 +36,7 @@ app.value('srwAppRoutes', {
 });
 app.value('appRoutes', {
     'xray': {url: '/static/html/landing-page-x-ray.html', infoPanelTitle: 'X-Ray Optics', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
+    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', modeMap:[{name: 'Demo', value: 'demo', text: 'Experiment with pre-built examples and existing beamlines', url: '/light', default: true}, {name: 'Expert', value:'full', text: 'Jump right in and build your own beamline from scratch', url:'/srw'}], mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
     'shadow': {url: '/static/html/landing-page-shadow.html', codeURL: '/shadow', codeTitle: 'Shadow 3', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
     'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
     'elegant': {url: '/static/html/landing-page-elegant.html', codeURL: '/elegant', codeTitle: 'elegant', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
@@ -131,6 +131,10 @@ app.controller('LandingPageController', function ($location, appRoutes, srwAppRo
 
     self.onMainLandingPage = function () {
         return $location.path() === '/about';
+    };
+
+    self.getModeMap = function(route) {
+        return appRoutes[route].modeMap;
     };
 
 });
@@ -434,7 +438,7 @@ app.directive('pageHeading', function(srwAppRoutes) {
         if (SIREPO.IS_SRW_LANDING_PAGE) {
             template += [
                 '<div class="lp-srw-sub-header-text">',
-                    '<a href="#/home">Synchrotron Radiation Workshop</a>',
+                    '<a href="/#/srw">Synchrotron Radiation Workshop</a>',
                     ' <span class="hidden-xs" data-ng-if="landingPage.pageName()">-</span> ',
                     '<span class="hidden-xs" data-ng-if="landingPage.pageName()" data-ng-bind="landingPage.pageName()"></span>',
                 '</div>',
@@ -463,6 +467,55 @@ app.directive('pageHeading', function(srwAppRoutes) {
             $scope.onSRWShortcutsPage = function() {
                 var route = $location.path().substring(1);
                 return route === 'home' || Object.keys(srwAppRoutes).indexOf(route) >= 0;
+            };
+       },
+    };
+});
+
+app.directive('modeSelector', function(utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            launchLabel: '@',
+            modeMap: '<',
+        },
+        template: [
+        '<div class="row">',
+          '<div class="col-sm-6 col-sm-offset-3" style="font-weight: 500;">Select the mode you\'d like to run in</div>',
+          '<div class="col-sm-12" style="display: flex; justify-content: flex-start; align-items: flex-end;">',
+            '<div class="col-sm-6">',
+              '<div class="panel">',
+                '<div class="panel-heading">',
+                  '<ul class="nav nav-tabs">',
+                    '<li data-ng-class="{active: mode.default}"  data-ng-repeat="mode in modeMap track by $index" data-toggle="tab"><a href="#mode_{{$index}}" data-ng-click="setMode(mode)">{{ mode.name }}</a></li>',
+                  '</ul>',
+                '</div>',
+                '<div class="panel-body">',
+                  '<div class="tab-content">',
+                    '<div data-ng-class="{active: mode == currentMode}" class="tab-pane" data-ng-repeat="mode in modeMap track by $index" data-ng-id="mode_{{$index}}">{{ mode.text }}</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+            '<div class="lp-launch-button" data-launch-button="" data-label="launchLabel" data-url="urlForMode()"></div>',
+          '</div>',
+        '</div>',
+        ].join(''),
+        link: function($scope) {
+        },
+        controller: function($scope, $element) {
+            $scope.currentMode = $scope.modeMap.find(function(mode) {
+                return mode.default;
+            });
+
+            $scope.setMode = function(m) {
+                $scope.currentMode = m;
+            }
+            $scope.urlForMode = function() {
+                return $scope.currentMode.url;
+            };
+            $scope.textForMode = function() {
+                return $scope.currentMode.text;
             };
        },
     };
