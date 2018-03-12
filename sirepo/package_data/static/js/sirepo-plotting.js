@@ -572,6 +572,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function hideFocusPoint() {
+        select('.sub-title').style('display', null);
         select(circleClass).style('display', 'none');
         select('.focus-text').text('');
     }
@@ -717,6 +718,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         if (! hasFocusPoint()) {
             return;
         }
+        select('.sub-title').style('display', 'none');
         var p = points[focusIndex];
         var domain = xAxisScale.domain();
         $(overlay.node()).parent().find('[class=focus]').hide();
@@ -1054,7 +1056,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting) {
             }
             function centerNode(node) {
                 // center the node over the image; if node is too large, center it over whole plot
-                if(node) {
+                if (node && ! (node.style && node.style.display == 'none')) {
                     var width = node.getBBox().width;
                     var ctr = $scope.canvasSize / 2;
                     if (width > $scope.canvasSize) {
