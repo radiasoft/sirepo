@@ -287,7 +287,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       '</div>',
                       '<div class="row">',
                         '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
-                          '<button data-ng-if="okText" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
+                          '<button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
                           ' <button data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
@@ -297,11 +297,22 @@ SIREPO.app.directive('confirmationModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+            $scope.formCtl = null;
             $scope.clicked = function() {
                 if ($scope.okClicked() !== false) {
                     $('#' + $scope.id).modal('hide');
                 }
+            };
+            $scope.isValid = function() {
+                if(! $scope.formCtl) {
+                    var f = $($element).find('form').eq(0);
+                    $scope.formCtl = angular.element(f).controller('form');
+                }
+                if(! $scope.formCtl) {
+                    return true;
+                }
+                return $scope.formCtl.$valid;
             };
         },
     };
@@ -347,7 +358,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState) {
+SIREPO.app.directive('fieldEditor', function(appState, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -359,7 +370,7 @@ SIREPO.app.directive('fieldEditor', function(appState) {
             fieldSize: "@",
         },
         template: [
-            '<div class="model-{{modelName}}-{{field}}">',
+            '<div data-ng-class="utilities.modelFieldID(modelName, field)">',
             '<div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
@@ -377,6 +388,10 @@ SIREPO.app.directive('fieldEditor', function(appState) {
               '</div>',
               '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
                 '<input data-ng-model="model[field]" class="form-control" required />',
+              '</div>',
+              '<div data-ng-switch-when="ValidatedString" data-ng-class="fieldClass">',
+                '<input data-validated-string="" data-field-validator-name=" utilities.modelFieldID(modelName, field)" data-ng-model="model[field]" class="form-control" required />',
+                '<div class="sr-input-warning" data-ng-show="! form.$valid">{{ getWarningText() }}</div>',
               '</div>',
               '<div data-ng-switch-when="SafePath" data-ng-class="fieldClass">',
                 '<input data-safe-path="" data-ng-model="model[field]" class="form-control" required />',
@@ -404,6 +419,8 @@ SIREPO.app.directive('fieldEditor', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+
+            $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
                     (fieldType == 'Integer' || fieldType == 'Float')
@@ -454,6 +471,8 @@ SIREPO.app.directive('fieldEditor', function(appState) {
                 }
                 return false;
             };
+
+            $scope.fieldValidatorName = utilities.modelFieldID($scope.modelName, $scope.field);
 
             $scope.clearViewValue = function(model) {
                 model.$setViewValue('');
@@ -1135,7 +1154,6 @@ SIREPO.app.directive('safePath', function() {
         link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
-
             ngModel.$parsers.push(function (v) {
                 scope.showWarning = unsafe_path_regexp.test(v);
                 if (scope.showWarning) {
@@ -1151,6 +1169,35 @@ SIREPO.app.directive('safePath', function() {
             ngModel.$formatters.push(function (v) {
                 scope.showWarning = false;
                 return v;
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('validatedString', function(validationService, panelState) {
+
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+
+            var modelValidatorName = 'vstring';
+            scope.getWarningText = function() {
+                return validationService.getMessageForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+            };
+
+            function reloadValidator() {
+                validationService.reloadValidatorForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+            }
+
+            // add and remove validators as needed
+            var modal =  $('#' + panelState.modalId(scope.modelName));
+            $(modal).on('shown.bs.modal', function() {
+                reloadValidator();
+            });
+            $(modal).on('hidden.bs.modal', function() {
+                delete ngModel.$validators[modelValidatorName];
+                validationService.removeFieldValidator(scope.fieldValidatorName);
             });
         },
     };
@@ -2082,29 +2129,8 @@ SIREPO.app.service('fileUpload', function($http) {
 
 SIREPO.app.service('utilities', function($window, $interval) {
 
-    this.validateFieldOfType = function(value, type) {
-        if (value === undefined || value === null || value === '')  {
-            // null files OK, at least sometimes
-            if (type === 'MirrorFile') {
-                return true;
-            }
-            return false;
-        }
-        if (type === 'Float' || type === 'Integer') {
-            if (SIREPO.NUMBER_REGEXP.test(value)) {
-                var v;
-                if (type  === 'Integer') {
-                    v = parseInt(value);
-                    return v == value;
-                }
-                return isFinite(parseFloat(value));
-            }
-        }
-        if (type === 'String') {
-            return true;
-        }
-        // TODO(mvk): other types here, for now just accept everything
-        return true;
+    this.modelFieldID = function (modelName, fieldName) {
+        return 'model-' + modelName + '-' + fieldName;
     };
 
     this.isWide = function() {

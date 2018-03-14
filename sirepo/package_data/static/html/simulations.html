@@ -37,6 +37,12 @@
               <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder}"></span> {{ item.name | simulationName }}</a></td>
               <td>{{ item.lastModified }}</td>
             </tr>
+            <tr data-ng-show="simulations.isWaitingForSim">
+              <td>
+                <img src="/static/img/radtrack_animated.gif" width="24px"/>
+                <a>Creating {{ simulations.newSimName }}...</a>
+              </td>
+            </tr>
           </tbody>
         </table>
         </div></div>
@@ -61,8 +67,15 @@
               </ul>
             </div>
           </div>
+          <div data-ng-show="simulations.isWaitingForSim" class="sr-icon-col">
+            <div class="sr-thumbnail text-center dropdown">
+              <a class="sr-item-icon">
+            <img src="/static/img/radtrack_animated.gif"/>
+                </a>
+              <a class="sr-item-text">Creating {{ simulations.newSimName }}...</a>
+            </div>
+          </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -74,7 +87,8 @@
   <form class="form-horizontal" autocomplete="off">
     <label class="col-sm-3 control-label">New Name</label>
     <div class="col-sm-9">
-      <input class="form-control" data-ng-model="simulations.renameName" />
+      <input data-safe-path="" class="form-control" data-ng-model="simulations.renameName" required/>
+      <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
     </div>
   </form>
 </div>
@@ -83,7 +97,8 @@
   <form class="form-horizontal"autocomplete="off">
     <label class="col-sm-3 control-label">New Name</label>
     <div class="col-sm-9">
-      <input class="form-control" data-ng-model="simulations.copyName" />
+      <input data-safe-path="" class="form-control" data-ng-model="simulations.copyName" required/>
+      <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
     </div>
   </form>
 </div>

@@ -700,6 +700,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
     }
 
     function hideFocusPoint() {
+        select('.sub-title').style('display', null);
         select(circleClass).style('display', 'none');
         select('.focus-text').text('');
     }
@@ -845,6 +846,7 @@ function setupFocusPoint(overlay, circleClass, xAxisScale, yAxisScale, invertAxi
         if (! hasFocusPoint()) {
             return;
         }
+        select('.sub-title').style('display', 'none');
         var p = points[focusIndex];
         var domain = xAxisScale.domain();
         $(overlay.node()).parent().find('[class=focus]').hide();
@@ -1076,6 +1078,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities) {
                     select('.' + dim + '-axis-label').text(json[dim + '_label']);
                 });
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 $scope.resize();
             };
 
@@ -1163,7 +1166,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
             }
             function centerNode(node) {
                 // center the node over the image; if node is too large, center it over whole plot
-                if(node) {
+                if (node && ! (node.style && node.style.display == 'none')) {
                     var width = node.getBBox().width;
                     var ctr = $scope.canvasSize / 2;
                     if (width > $scope.canvasSize) {
@@ -1440,6 +1443,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
                 cacheCanvas.height = axes.y.values.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 axes.x.parseLabelAndUnits(json.x_label);
                 select('.x-axis-label').text(json.x_label);
                 axes.y.parseLabelAndUnits(json.y_label);
@@ -1630,6 +1634,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 aspectRatio = json.aspect_ratio || 1.0;
                 heatmap = appState.clone(json.z_matrix).reverse();
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 $.each(axes, function(dim, axis) {
                     axis.values = plotting.linspace(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
                     axis.parseLabelAndUnits(json[dim + '_label']);
@@ -1639,6 +1644,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 cacheCanvas.width = axes.x.values.length;
                 cacheCanvas.height = axes.y.values.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
+                select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
                 initDraw(
                     allFrameMin.compute(plotting.min2d(heatmap)),
@@ -1766,6 +1772,7 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
 
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
@@ -1964,6 +1971,7 @@ SIREPO.app.directive('particle', function(plotting) {
                 select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
                 $scope.resize();
             };
 

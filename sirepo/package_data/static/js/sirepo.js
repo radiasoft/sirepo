@@ -669,6 +669,70 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
     return self;
 });
 
+// manages validators for ngModels and provides other validation services
+SIREPO.app.service('validationService', function(utilities) {
+
+    this.fieldValidators = {};
+
+    this.setFieldValidator = function(name, validatorFn, messageFn) {
+        if(! this.fieldValidators[name]) {
+            this.fieldValidators[name] = {};
+        }
+        this.fieldValidators[name].vFunc = validatorFn;
+        this.fieldValidators[name].vMsg = messageFn;
+    };
+    this.getFieldValidator = function(name) {
+        return this.fieldValidators[name];
+    };
+    this.removeFieldValidator = function(name) {
+        if(this.fieldValidators[name]) {
+            delete this.fieldValidators[name];
+        }
+    };
+    this.reloadValidatorForModel = function(name, modelValidatorName, ngModel) {
+        var fv = this.getFieldValidator(name);
+        if(! ngModel.$validators[modelValidatorName]) {
+            if(fv) {
+                ngModel.$validators[modelValidatorName] = fv.vFunc;
+            }
+        }
+    };
+    this.getMessageForModel = function(name, modelValidatorName, ngModel) {
+        if(! ngModel.$validators[modelValidatorName]) {
+            return '';
+        }
+        var fv = this.getFieldValidator(name);
+        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
+    };
+
+    this.validateFieldOfType = function(value, type) {
+        if (value === undefined || value === null || value === '')  {
+            // null files OK, at least sometimes
+            if (type === 'MirrorFile') {
+                return true;
+            }
+            return false;
+        }
+        if (type === 'Float' || type === 'Integer') {
+            if (SIREPO.NUMBER_REGEXP.test(value)) {
+                var v;
+                if (type  === 'Integer') {
+                    v = parseInt(value);
+                    return v == value;
+                }
+                return isFinite(parseFloat(value));
+            }
+        }
+        if (type === 'String') {
+            return true;
+        }
+        // TODO(mvk): other types here, for now just accept everything
+        return true;
+    };
+
+});
+
+
 SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope) {
     var self = {};
     var frameCountByModelKey = {};
@@ -2184,6 +2248,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }];
     self.selectedItem = null;
     self.sortField = 'name';
+    self.isWaitingForSim = false;
 
     function clearModels() {
         appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
@@ -2448,10 +2513,14 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
+        self.isWaitingForSim = true;
+        self.newSimName = appState.models.simulation.name;
         appState.models.simulation.folder = self.pathName(self.activeFolder);
         appState.newSimulation(
             appState.models.simulation,
             function(data) {
+                self.isWaitingForSim = false;
+                self.newSimName = '';
                 fileManager.addToTree(data.models.simulation);
                 self.openItem(data.models.simulation);
             });

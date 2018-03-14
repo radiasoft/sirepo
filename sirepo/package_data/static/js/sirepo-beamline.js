@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
+SIREPO.app.factory('beamlineService', function(appState, validationService, $window) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -104,7 +104,7 @@ SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
         var fields = SIREPO.APP_SCHEMA.model[type];
         for (var field in fields) {
             var fieldType = fields[field][1];
-            if (! utilities.validateFieldOfType(item[field], fieldType)) {
+            if (! validationService.validateFieldOfType(item[field], fieldType)) {
                 return false;
             }
         }

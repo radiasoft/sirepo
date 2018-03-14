@@ -357,7 +357,7 @@
     },
     "model": {
         "beamline": {
-            "name": ["Name", "String"]
+            "name": ["Name", "ValidatedString"]
         },
         "beamlineReport": {
         },
@@ -1336,7 +1336,7 @@
             "enumeration_column": ["Enumeration Column", "OptionalString", "", "Column of the SDDS file giving the values."]
         },
         "ALPH": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "xmax": ["XMAX [M]", "RPNValue", "0.0", "size of alpha"],
             "xs1": ["XS1 [M]", "RPNValue", "0.0", "inner scraper position relative to XMAX"],
             "xs2": ["XS2 [M]", "RPNValue", "0.0", "outer scraper position relative to XMAX"],
@@ -1353,7 +1353,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BGGEXP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
             "lfield": ["LFIELD [M]", "RPNValue", "-1", "expected length of the field map. If negative, use L."],
             "filename": ["FILENAME", "InputFile", "", "name of file generalized gradient data"],
@@ -1374,7 +1374,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BMAPXY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "factor by which to multiply field"],
             "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
@@ -1385,7 +1385,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BMXYZ": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
             "lfield": ["LFIELD [M]", "RPNValue", "-1", "expected length of the field map. If negative, use L."],
             "strength": ["STRENGTH", "RPNValue", "1", "factor by which to multiply field"],
@@ -1398,7 +1398,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BRANCH": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "counter": ["COUNTER", "Integer", "0", "Counter, which is decremented by 1 for each pass."],
             "verbosity": ["VERBOSITY", "Integer", "0", "Larger values result in more output during running."],
             "branch_to": ["BRANCH TO", "OptionalStringUpper", "", "Optional name of element to which to jump when counter is non-positive."],
@@ -1406,12 +1406,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BRAT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "Nominal bending angle. Will be refined to match geometry specified by input/output and vertex coordinates"],
             "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
             "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
-	    "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z, Bx, By, Bz)"],
+	        "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z, Bx, By, Bz)"],
             "xvertex": ["XVERTEX [M]", "RPNValue", "0.0", "x coordinate of vertex point"],
             "zvertex": ["ZVERTEX [M]", "RPNValue", "0.0", "z coordinate of vertex point"],
             "xentry": ["XENTRY [M]", "RPNValue", "0.0", "x coordinate of nominal entry point"],
@@ -1426,7 +1426,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BUMPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -1446,7 +1446,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CENTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNBoolean", "1", "center x coordinates?"],
             "xp": ["XP", "RPNBoolean", "1", "center x' coordinates?"],
             "y": ["Y", "RPNBoolean", "1", "center y coordinates?"],
@@ -1459,7 +1459,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CEPL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "time to ramp to full strength"],
             "time_offset": ["TIME OFFSET [S]", "RPNValue", "0.0", "offset of ramp-start time"],
@@ -1479,14 +1479,14 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CHARGE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "total": ["TOTAL [C]", "RPNValue", "0.0", "total charge in beam"],
             "per_particle": ["PER PARTICLE [C]", "RPNValue", "0.0", "charge per macroparticle"],
             "allow_total_change": ["ALLOW TOTAL CHANGE", "RPNBoolean", "0", "If nonzero, allow total charge to change while tracking even if number of particles does not change. Useful for ramping of charge."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CLEAN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "mode": ["MODE", "CleanMode", "stdeviation", ""],
             "xlimit": ["XLIMIT", "RPNValue", "0.0", "Limit for x"],
             "xplimit": ["XPLIMIT", "RPNValue", "0.0", "Limit for x'"],
@@ -1497,7 +1497,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CORGPIPE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radius": ["RADIUS [M]", "RPNValue", "0.0", "pipe radius"],
             "period": ["PERIOD [M]", "RPNValue", "0.0", "period of corrugations (<<radius recommended)"],
@@ -1516,7 +1516,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
@@ -1589,7 +1589,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSRCSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
@@ -1663,7 +1663,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSRDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "attenuation_length": ["ATTENUATION LENGTH [M]", "RPNValue", "0.0", "exponential attenuation length for wake"],
             "dz": ["DZ", "RPNValue", "0.0", "interval between kicks"],
@@ -1694,7 +1694,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CWIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Total length"],
             "b_max": ["B MAX", "RPNValue", "0.0", "Maximum on-axis magnetic field."],
             "bx_max": ["BX MAX", "RPNValue", "0.0", "Maximum on-axis magnetic field. Ignored if B MAX is nonzero."],
@@ -1722,13 +1722,13 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "DRIF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "DSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "plane": ["PLANE", "DscatterPlane", "", "Plane to scatter, (dp is deltaP/P)"],
             "filename": ["FILENAME", "InputFile", "", "Name of SDDS file containing distribution function."],
             "valuename": ["VALUENAME", "OptionalString", "", "Name of column containing the independent variable for the distribution function data."],
@@ -1746,7 +1746,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ECOL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "half-axis in x"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "half-axis in y"],
@@ -1759,12 +1759,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EHKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -1781,7 +1781,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EKICKER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "hkick": ["HKICK [RAD]", "RPNValue", "0.0", "horizontal kick angle"],
             "vkick": ["VKICK [RAD]", "RPNValue", "0.0", "vertical kick angle"],
@@ -1800,11 +1800,11 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ELSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EMATRIX": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length (used only for position computation)"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "Angle (used only for position computation)"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -1986,7 +1986,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EMITTANCE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "emitx": ["EMITX [M]", "RPNValue", "-1", "horizontal emittance"],
             "emity": ["EMITY [M]", "RPNValue", "-1", "vertical emittance"],
             "emitnx": ["EMITNX [M]", "RPNValue", "-1", "horizontal normalized emittance"],
@@ -1994,7 +1994,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ENERGY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "central_energy": ["CENTRAL ENERGY [MC2]", "RPNValue", "0.0", "desired central gamma"],
             "central_momentum": ["CENTRAL MOMENTUM [MC]", "RPNValue", "0.0", "desired central beta*gamma"],
             "match_beamline": ["MATCH BEAMLINE", "RPNBoolean", "0", "if nonzero, beamline reference momentum is set to beam average momentum"],
@@ -2002,7 +2002,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EVKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2020,7 +2020,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FLOOR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNValue", "0.0", "X coordinate"],
             "y": ["Y", "RPNValue", "0.0", "Y coordinate"],
             "z": ["Z", "RPNValue", "0.0", "Z coordinate"],
@@ -2030,7 +2030,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -2044,7 +2044,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "RPNValue", "20", "number of bins for current histogram"],
@@ -2062,7 +2062,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FTABLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "The effective field length measured along a straight line."],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "The designed bending angle"],
             "l1": ["L1 [M]", "RPNValue", "0.0", "The left fringe field length."],
@@ -2082,7 +2082,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FTRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "RPNValue", "20", "number of bins for current histogram"],
@@ -2103,7 +2103,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "GFWIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Total length"],
             "b_max": ["B MAX [T]", "RPNValue", "0.0", "Maximum on-axis magnetic field at gap=GAP0 and equal longitudinal phases of PHASE 1,2,3,4"],
             "shim_scale": ["SHIM SCALE", "RPNValue", "1", "Scaling factor of shim correction field."],
@@ -2132,7 +2132,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HISTOGRAM": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "OutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
             "interval": ["INTERVAL", "RPNValue", "1", "interval in passes between output"],
             "start_pass": ["START PASS", "RPNValue", "0", "starting pass for output"],
@@ -2150,7 +2150,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2165,7 +2165,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HMON": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2179,7 +2179,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "IBSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "factor by which to multiply growth rates before using"],
             "do_x": ["DO X", "RPNBoolean", "1", "do x-plane scattering?"],
             "do_y": ["DO Y", "RPNBoolean", "1", "do y-plane scattering?"],
@@ -2195,7 +2195,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ILMATRIX": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length (used for position and time-of-flight computation)"],
             "nux": ["NUX", "RPNValue", "0.0", "Horizontal tune"],
             "nuy": ["NUY", "RPNValue", "0.0", "Vertical tune"],
@@ -2245,7 +2245,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "IONEFFECTS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "disable": ["DISABLE", "RPNBoolean", "0", "If non-zero, turn off ion effects in the region covered by this element."],
             "macro_ions": ["MACRO IONS", "Integer", "0", "If positive, overrides the default value set in the ion_effects command, giving the number of macro ions generated per bunch passage."],
             "generation_interval": ["GENERATION INTERVAL", "Integer", "0", "If positive, overrides the default value set in the ion_effects command, giving the number of macro ions generated per bunch passage."],
@@ -2257,7 +2257,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KICKER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "hkick": ["HKICK [RAD]", "RPNValue", "0.0", "x kick angle"],
             "vkick": ["VKICK [RAD]", "RPNValue", "0.0", "y kick angle"],
@@ -2274,7 +2274,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KOCT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k3": ["K3 [1/M⁴]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2295,7 +2295,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KPOLY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "coefficient": ["COEFFICIENT [M-ORDER]", "RPNValue", "0.0", "coefficient of polynomial"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -2307,7 +2307,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KQUAD": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2357,7 +2357,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KQUSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
             "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
@@ -2376,7 +2376,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
@@ -2407,7 +2407,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KSEXT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric strength"],
             "j1": ["J1 [1∕M²]", "RPNValue", "0.0", "geometric skew quadrupole strength"],
@@ -2440,7 +2440,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LMIRROR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "rx": ["RX [M]", "RPNValue", "0.0", "radius in horizontal plane"],
             "ry": ["RY [M]", "RPNValue", "0.0", "radius in vertical plane"],
             "theta": ["THETA [RAD]", "RPNValue", "0.0", "angle of incidence (in horizontal plane)"],
@@ -2453,7 +2453,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LRWAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing longitudinal Green function"],
@@ -2472,7 +2472,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LSCDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "leffective": ["LEFFECTIVE [M]", "RPNValue", "0.0", "effective length (used if L=0)"],
             "bins": ["BINS", "RPNValue", "0", "number of bins for current histogram"],
@@ -2489,7 +2489,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LSRMDLTR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "bu": ["BU [T]", "RPNValue", "0.0", "Undulator peak field"],
             "periods": ["PERIODS", "RPNValue", "0", "Number of undulator periods."],
@@ -2520,7 +2520,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LTHINLENS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fx": ["FX [M]", "RPNValue", "0.0", "focal length in horizontal plane"],
             "fy": ["FY [M]", "RPNValue", "0.0", "focal length in vertical plane"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -2532,7 +2532,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAGNIFY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "mx": ["MX", "RPNValue", "1", "factor for x coordinates"],
             "mxp": ["MXP", "RPNValue", "1", "factor for x' coordinates"],
             "my": ["MY", "RPNValue", "1", "factor for y coordinates"],
@@ -2542,7 +2542,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MALIGN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dxp": ["DXP", "RPNValue", "0.0", "delta x'"],
             "dyp": ["DYP", "RPNValue", "0.0", "delta y'"],
             "dx": ["DX [M]", "RPNValue", "0.0", "delta x"],
@@ -2558,7 +2558,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAPSOLENOID": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2580,21 +2580,21 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MARK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dx": ["DX [M]", "RPNValue", "0.0", "non-functional misalignment (e.g., for girder)"],
             "dy": ["DY [M]", "RPNValue", "0.0", "non-functional misalignment (e.g., for girder)"],
             "fitpoint": ["FITPOINT", "RPNBoolean", "0", "Supply local values of Twiss parameters, moments, floor coordinates, matrices, etc. for optimization?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MATR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "order": ["ORDER", "RPNValue", "1", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "leffective": ["LEFFECTIVE [M]", "RPNValue", "0.0", "effective length (used if L=0)"],
             "xo": ["XO [M]", "RPNValue", "0.0", "radiation length"],
@@ -2616,7 +2616,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAXAMP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "x half-aperture"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "y half-aperture"],
             "elliptical": ["ELLIPTICAL", "RPNBoolean", "0", "is aperture elliptical?"],
@@ -2626,7 +2626,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MBUMPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "geometric strength in 1/m^order"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2645,7 +2645,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MHISTOGRAM": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "file1d": ["FILE1D", "OutputFile", "", "filename for 1d histogram output, possibly incomplete (see below)"],
             "file2dh": ["FILE2DH", "OutputFile", "", "filename for 2d x-x' histogram output, possibly incomplete (see below)"],
             "file2dv": ["FILE2DV", "OutputFile", "", "filename for 2d y-y' histogram output, possibly incomplete (see below)"],
@@ -2661,7 +2661,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MODRF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "nominal voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "nominal phase"],
@@ -2680,7 +2680,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MONI": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2697,7 +2697,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MRFDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "A factor to multiple all components with."],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "a1": ["A1 [V/m]", "RPNValue", "0.0", "Vertically-deflecting dipole"],
@@ -2724,7 +2724,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "knl": ["KNL [M-ORDER]", "RPNValue", "0.0", "integrated geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2740,7 +2740,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "NIBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bending angle"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
@@ -2768,7 +2768,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "NISEPT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
@@ -2781,7 +2781,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "OCTU": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k3": ["K3 [1/M³]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2793,7 +2793,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "PEPPOT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radii": ["RADII [M]", "RPNValue", "0.0", "hole radius"],
             "transmission": ["TRANSMISSION", "RPNValue", "0.0", "transmission of material"],
@@ -2803,7 +2803,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "PFILTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "deltalimit": ["DELTALIMIT", "RPNValue", "-1", "maximum fractional momentum deviation"],
             "lowerfraction": ["LOWERFRACTION", "RPNValue", "0.0", "fraction of lowest-momentum particles to remove"],
             "upperfraction": ["UPPERFRACTION", "RPNValue", "0.0", "fraction of highest-momentum particles to remove"],
@@ -2813,7 +2813,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "QUAD": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2847,7 +2847,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "QUFRINGE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "peak geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2860,14 +2860,14 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "waveform": ["WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
             "waveformX": ["X", "String", ""],
             "waveformY": ["Y", "String", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPRF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "nominal voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "nominal phase"],
@@ -2886,7 +2886,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RBEN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "magnet (straight) length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric focusing strength"],
@@ -2914,7 +2914,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RCOL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "half-width in x"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "half-width in y"],
@@ -2925,17 +2925,17 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RECIRC": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "i_recirc_element": ["I RECIRC ELEMENT", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "REFLECT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "REMCOR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNBoolean", "1", "remove correlations in x?"],
             "xp": ["XP", "RPNBoolean", "1", "remove correlations in x' ?"],
             "y": ["Y", "RPNBoolean", "1", "remove correlations in y?"],
@@ -2945,7 +2945,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFCA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "peak voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
@@ -2967,7 +2967,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFCW": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "cell_length": ["CELL LENGTH [M]", "RPNValue", "0.0", "cell length (used to scale wakes, which are assumed to be given for a cell, according to L/CELL LENGTH)"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "voltage"],
@@ -3011,7 +3011,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -3044,7 +3044,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "ra": ["RA [Ohm]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
             "rs": ["RS [Ohm]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "RPNValue", "0.0", "cavity Q"],
@@ -3118,7 +3118,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFTM110": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
@@ -3140,7 +3140,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFTMEZ0": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -3180,12 +3180,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RIMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "factor"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RMDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "length of ramp"],
@@ -3199,18 +3199,18 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ROTATE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SAMPLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fraction": ["FRACTION", "RPNValue", "1", "fraction to keep"],
             "interval": ["INTERVAL", "RPNValue", "1", "interval between sampled particles"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SBEN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric focusing strength"],
@@ -3238,7 +3238,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X [M]", "RPNValue", "0.0", "rms scattering level for x"],
             "xp": ["XP", "RPNValue", "0.0", "rms scattering level for x'"],
             "y": ["Y [M]", "RPNValue", "0.0", "rms scattering level for y"],
@@ -3250,11 +3250,11 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCRAPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "xo": ["XO [M]", "RPNValue", "0.0", "radiation length"],
             "energy_decay": ["ENERGY DECAY", "RPNBoolean", "0", "If nonzero, then particles will lose energy due to material using a simple exponential model."],
@@ -3273,7 +3273,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCRIPT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length to be used for matrix-based operations such as twiss parameter computation."],
             "command": ["COMMAND", "OptionalString", "", "SDDS-compliant command to apply to the beam. Use the sequence %i to represent the input filename and %o to represent the output filename."],
             "commandFile": ["COMMAND FILE", "InputFile", "", "Optional script source."],
@@ -3316,7 +3316,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SEXT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric strength"],
             "j1": ["J1 [1∕M²]", "RPNValue", "0.0", "geometric skew quadrupole strength"],
@@ -3330,7 +3330,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SLICE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "n_slices": ["N SLICES", "Integer", "10", "number of slices"],
             "start_pid": ["START PID", "Integer", "-1", "starting particleID for particles to dump"],
             "end_pid": ["END PID", "Integer", "-1", "ending particleID for particles to dump"],
@@ -3346,7 +3346,7 @@
             "group": ["GROUP", "Optionally", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SOLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ks": ["KS [RAD/M]", "RPNValue", "0.0", "geometric strength, -Bs/(B*Rho)"],
             "b": ["B [T]", "RPNValue", "0.0", "field strength (used if KS is zero)"],
@@ -3357,7 +3357,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SPEEDBUMP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
             "chord": ["CHORD [M]", "RPNValue", "0.0", "z length of speed bump"],
             "dzcenter": ["DZCENTER [M]", "RPNValue", "0.0", "z center displacement of speed bump relative to middle of object"],
@@ -3369,7 +3369,7 @@
 	    "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SREFFECTS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "jx": ["JX", "RPNValue", "1", "x damping partition number"],
             "jy": ["JY", "RPNValue", "1", "y damping partition number"],
             "jdelta": ["JDELTA", "RPNValue", "2", "momentum damping partition number"],
@@ -3388,7 +3388,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "STRAY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "lbx": ["LBX [T]", "RPNValue", "0.0", "local Bx"],
             "lby": ["LBY [T]", "RPNValue", "0.0", "local By"],
@@ -3399,7 +3399,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TFBDRIVER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "id": ["ID", "OptionalString", "", "System identifier"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "Strength factor"],
             "kick_limit": ["KICK LIMIT", "RPNValue", "0.0", "Limit on applied kick, nominally in radians."],
@@ -3446,7 +3446,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TFBPICKUP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "id": ["ID", "OptionalString", "", "System identifier"],
             "plane": ["PLANE", "TfbpickupPlane", "x", ""],
             "rms_noise": ["RMS NOISE [M]", "RPNValue", "0.0", "RMS noise to add to position readings."],
@@ -3490,7 +3490,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TMCF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [S]", "RPNValue", "0.0", "phase"],
@@ -3512,12 +3512,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRCOUNT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "ra": ["RA [Ohm/m]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
             "rs": ["RS [Ohm/m]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "RPNValue", "0.0", "cavity Q"],
@@ -3546,7 +3546,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRWAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green functions"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing x Green function"],
@@ -3572,12 +3572,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TUBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
@@ -3587,7 +3587,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWISS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "betax": ["BETAX [M]", "RPNValue", "1", "horizontal beta function"],
             "alphax": ["ALPHAX", "RPNValue", "0.0", "horizontal alpha function"],
             "etax": ["ETAX [M]", "RPNValue", "0.0", "horizontal eta function"],
@@ -3613,7 +3613,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWLA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -3637,7 +3637,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWMTA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -3658,7 +3658,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWPL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "time to ramp to full strength"],
             "time_offset": ["TIME OFFSET [S]", "RPNValue", "0.0", "offset of ramp-start time"],
@@ -3678,7 +3678,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "UKICKMAP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -3697,7 +3697,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "VKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -3712,7 +3712,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "VMON": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -3726,7 +3726,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wcolumn": ["WCOLUMN", "OptionalString", "", "column in INPUTFILE containing Green function"],
@@ -3744,7 +3744,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WATCH": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fraction": ["FRACTION", "RPNValue", "1", "fraction of particles to dump (coordinate mode)"],
             "start_pid": ["START PID", "RPNValue", "-1", "starting particleID for particles to dump"],
             "end_pid": ["END PID", "RPNValue", "-1", "ending particleID for particles to dump"],
@@ -3766,7 +3766,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radius": ["RADIUS [M]", "RPNValue", "0.0", "Peak bending radius. Ignored if K or B is non-negative."],
             "k": ["K", "RPNValue", "0.0", "Dimensionless strength parameter."],
@@ -3780,7 +3780,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ZLONGIT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "charge": ["CHARGE [C]", "RPNValue", "0.0", "beam charge (or use CHARGE element)"],
             "broad_band": ["BROAD BAND", "RPNBoolean", "0", "broad-band impedance?"],
             "ra": ["RA [Ohm]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
@@ -3816,7 +3816,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ZTRANSVERSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "charge": ["CHARGE [C]", "RPNValue", "0.0", "beam charge (or use CHARGE element)"],
             "broad_band": ["BROAD BAND", "RPNBoolean", "0", "broad-band impedance?"],
             "rs": ["RS [Ohm]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2=V^2/(2*P))"],

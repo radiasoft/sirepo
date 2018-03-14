@@ -336,8 +336,29 @@ def extract_report_data(filename, model_data):
         y_units = '[m]'
     else:
         y_units = '({})'.format(y_units)
+
+    subtitle = ''
+    if 'report' in model_data:
+        schema_enum = []
+        model_report = model_data['report']
+        this_report = model_data['models'][model_report]
+        subtitle_datum = ''
+        subtitle_format = '{}'
+        if model_report in ['intensityReport']:
+            schema_enum = _SCHEMA['enum']['Polarization']
+            subtitle_datum = this_report['polarization']
+            subtitle_format = '{} Polarization'
+        elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or model_report.startswith('watchpointReport'):
+            schema_enum = _SCHEMA['enum']['Characteristic']
+            subtitle_datum = this_report['characteristic']
+        # Schema enums are indexed by strings, but model data may be numeric
+        schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
+        if len(schema_values) > 0:
+            subtitle = subtitle_format.format(schema_values[0][1])
+
     info = pkcollections.Dict({
         'title': title,
+        'subtitle': subtitle,
         'x_range': [allrange[0], allrange[1]],
         'y_label': _superscript(file_info[filename][0][1] + ' ' + y_units),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
@@ -1891,6 +1912,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         'y_label': info['y_label'],
         'z_label': _superscript(z_label + ' [' + z_units + ']'),
         'title': info['title'],
+        'subtitle': info['subtitle'],
         'z_matrix': ar2d.tolist(),
     })
 
