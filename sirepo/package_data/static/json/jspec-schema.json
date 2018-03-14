@@ -74,14 +74,14 @@
             "length": ["Length [m]", "Float"],
             "section_number": ["Number of Coolers", "Integer", 1],
             "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
-            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function in horizontal direction"],
-            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function in vertical direction"],
-            "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0, "Dispersion in horizontal direction"],
-            "disp_y": ["Vertical Dispersion [m]", "Float", 0.0, "Dispersion in vertical direction"],
-            "alpha_x": ["Horizontal Alpha", "Float", 0.0, "Alpha in horizontal direction"],
-            "alpha_y": ["Vertical Alpha", "Float", 0.0, "Alpha in vertical direction"],
-            "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion in horizontal direction"],
-            "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion in vertical direction"]
+            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function"],
+            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function"],
+            "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0],
+            "disp_y": ["Vertical Dispersion [m]", "Float", 0.0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0.0],
+            "alpha_y": ["Vertical Alpha", "Float", 0.0],
+            "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"],
+            "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"]
         },
         "electronBeam": {
             "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
