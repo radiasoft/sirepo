@@ -331,10 +331,15 @@ def extract_report_data(filename, model_data):
         title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
     elif '{sourcePhotonEnergy}' in title:
         title = title.format(sourcePhotonEnergy=model_data['models']['sourceIntensityReport']['photonEnergy'])
+    y_units = file_info[filename][1][1]
+    if y_units == 'm':
+        y_units = '[m]'
+    else:
+        y_units = '({})'.format(y_units)
     info = pkcollections.Dict({
         'title': title,
         'x_range': [allrange[0], allrange[1]],
-        'y_label': _superscript(file_info[filename][0][1] + ' [' + file_info[filename][1][1] + ']'),
+        'y_label': _superscript(file_info[filename][0][1] + ' ' + y_units),
         'x_label': file_info[filename][0][0] + ' [' + file_info[filename][1][0] + ']',
         'x_units': file_info[filename][1][0],
         'y_units': file_info[filename][1][1],
