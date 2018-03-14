@@ -1713,6 +1713,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             return state.percentComplete;
         };
 
+        state.hasFrames = function() {
+            return state.getFrameCount() > 0;
+        };
+
         state.hasTimeData = function () {
             return state.timeData && state.timeData.elapsedTime;
         };

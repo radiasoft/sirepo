@@ -93,10 +93,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.hasFrames = function() {
-        return frameCache.getFrameCount() > 0;
-    };
-
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],

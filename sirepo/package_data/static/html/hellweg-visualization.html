@@ -10,16 +10,16 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="3d" data-model-name="beamAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="particle" data-model-name="particleAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="2d" data-model-name="beamHistogramAnimation"></div>
     </div>
   </div>

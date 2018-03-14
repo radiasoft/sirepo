@@ -79,7 +79,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     return self;
 });
 
-SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, frameCache, panelState, $scope) {
+SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, panelState, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
 
@@ -259,7 +259,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, panelState, requestSender, warpvndService, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
@@ -282,6 +282,10 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, pane
                 }
             });
     }
+
+    self.hasFrames = function() {
+        return frameCache.getFrameCount() > 0;
+    };
 
     self.handleModalShown = function() {
         panelState.enableField('simulationGrid', 'particles_per_step', false);
