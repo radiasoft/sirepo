@@ -673,9 +673,6 @@ a:focus, a.srw-tab:focus {
   outline: none;
 }
 
-.sr-clearfix-pad {
-  height: 10px;
-}
 .sr-help-icon {
   margin-right: 15px;
   color: #337ab7;
