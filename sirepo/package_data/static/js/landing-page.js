@@ -48,6 +48,7 @@ app.value('appRoutes', {
     'genesis': {url: '/static/html/landing-page-genesis.html', codeURL: '/#/genesis', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
     'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
     'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
+    'comsol': {url: '/static/html/landing-page-comsol.html', codeURL: '/comsol', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'Vacuum Chamber Design for 4th-Generation Electron Synchrotrons', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
