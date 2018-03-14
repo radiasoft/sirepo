@@ -1626,12 +1626,14 @@ def _height_profile_element(item, propagation, height_profile_el_name, overwrite
     dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
     dimension = find_height_profile_dimension(dat_file)
 
-    res = '{}ifn{} = "{}"\n'.format(shift, height_profile_el_name, item['heightProfileFile'])
-    res += '{}if ifn{}:\n'.format(shift, height_profile_el_name)
-    add_args = ', 0, 1' if dimension == 1 else ''
-    res += '{}    hProfData{} = srwlib.srwl_uti_read_data_cols(ifn{}, "\\t"{})\n'.format(shift, height_profile_el_name, height_profile_el_name, add_args)
-    fields = ['orientation', 'grazingAngle', 'heightAmplification']
+    ifn = 'ifn{}'.format(height_profile_el_name)
     hProfData = 'hProfData{}'.format(height_profile_el_name)
+
+    res = '{shift}{ifn} = "{item}"\n'.format(shift=shift, ifn=ifn, item=item['heightProfileFile'])
+    res += '{shift}if {ifn} and os.path.isfile({ifn}):\n'.format(shift=shift, ifn=ifn)
+    add_args = ', 0, 1' if dimension == 1 else ''
+    res += '{shift}{shift}{hProfData} = srwlib.srwl_uti_read_data_cols({ifn}, "\\t"{args})\n'.format(shift=shift, hProfData=hProfData, ifn=ifn, args=add_args)
+    fields = ['orientation', 'grazingAngle', 'heightAmplification']
     surf_height_func = 'srwlib.srwl_opt_setup_surf_height_{}d'.format(dimension)
     if 'horizontalTransverseSize' in item:
         template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
@@ -1640,7 +1642,7 @@ def _height_profile_element(item, propagation, height_profile_el_name, overwrite
         template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
     el, pp = _beamline_element(template, item, fields, propagation, shift=shift)
     res += el
-    pp = '{}if ifn{}:\n{}'.format(shift, height_profile_el_name, pp)
+    pp = '{shift}if {ifn} and os.path.isfile({ifn}):\n{pp}'.format(shift=shift, ifn=ifn, pp=pp)
     return res, pp
 
 
