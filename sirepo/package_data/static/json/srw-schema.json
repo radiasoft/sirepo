@@ -765,7 +765,7 @@
             ]
         },
         "brillianceReport": {
-            "title": "Brilliance Report",
+            "title": "Brightness Report",
             "basic": [],
             "advanced": [
                 "minDeflection",
