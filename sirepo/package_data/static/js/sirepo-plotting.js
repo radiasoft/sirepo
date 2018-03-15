@@ -575,8 +575,8 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         else {
             tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.height / (5 * FONT_SIZE)));
         }
-        format = d3.format(calcFormat(tickCount > 2 ? tickCount : 2, unit));
-        if ((orientation == 'left' || orientation == 'right') && plotAxis.allowUpdates) {
+        format = d3.format(calcFormat(Math.max(2, tickCount), unit));
+        if ((orientation == 'left' || orientation == 'right')) {
             var w = Math.max(format(applyUnit(d[0], unit)).length, format(applyUnit(d[1], unit)).length);
             margin[orientation] = (w + 6) * (FONT_SIZE / 2);
         }
@@ -610,7 +610,7 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
     self.createZoom = function() {
         return d3.behavior.zoom()[dimension](self.scale)
             .on('zoom', function() {
-                // don't update the plot margins during zoom/pad
+                // don't update the plot margins during zoom/pan
                 plotAxis.allowUpdates = false;
                 refresh();
                 plotAxis.allowUpdates = true;
@@ -981,20 +981,21 @@ SIREPO.app.directive('plot2d', function(plotting, utilities) {
                 if (! axes.x.domain) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! points || isNaN(width)) {
-                    return;
+                if (plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (! points || isNaN(width)) {
+                        return;
+                    }
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
                 }
-                $scope.width = width;
-                $scope.height = ASPECT_RATIO * $scope.width;
-                select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                axes.x.scale.range([0, $scope.width]);
-                axes.y.scale.range([$scope.height, 0]);
-                axes.x.grid.tickSize(-$scope.height);
-                axes.y.grid.tickSize(-$scope.width);
-
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
                     axes.y.scale.domain(axes.y.domain).nice();
@@ -1295,19 +1296,20 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
                 if (! fullDomain) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
-                if (! heatmap || isNaN(width)){
-                    return;
+                if (plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
+                    if (! heatmap || isNaN(width)){
+                        return;
+                    }
+                    var canvasSize = 2 * width / 3;
+                    $scope.canvasSize = canvasSize;
+                    $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.pad + $scope.margin.bottom;
+                    $scope.rightPanelWidth = canvasSize / 2 + $scope.pad + $scope.margin.right;
+                    axes.x.scale.range([0, canvasSize]);
+                    axes.y.scale.range([canvasSize, 0]);
+                    axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
+                    axes.rightX.scale.range([0, $scope.rightPanelWidth - $scope.pad - $scope.margin.right]);
                 }
-                var canvasSize = 2 * width / 3;
-                $scope.canvasSize = canvasSize;
-                $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.pad + $scope.margin.bottom;
-                $scope.rightPanelWidth = canvasSize / 2 + $scope.pad + $scope.margin.right;
-                axes.x.scale.range([0, canvasSize]);
-                axes.y.scale.range([canvasSize, 0]);
-                axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
-                axes.rightX.scale.range([0, $scope.rightPanelWidth - $scope.pad - $scope.margin.right]);
-
                 if (prevDomain && (exceededMaxZoom(axes.x.scale, 'x') || exceededMaxZoom(axes.y.scale, 'y'))) {
                     restoreDomain(axes.x.scale, prevDomain[0]);
                     restoreDomain(axes.y.scale, prevDomain[1]);
@@ -1339,11 +1341,12 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
                     height: $scope.canvasSize,
                 }, select, '.right-panel ');
 
-                axes.x.grid.ticks(axes.x.tickCount);
-                axes.y.grid.ticks(axes.y.tickCount);
-                axes.x.grid.tickSize(- $scope.canvasSize - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
-                axes.y.grid.tickSize(- $scope.canvasSize - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
-
+                if (plotAxis.allowUpdates) {
+                    axes.x.grid.ticks(axes.x.tickCount);
+                    axes.y.grid.ticks(axes.y.tickCount);
+                    axes.x.grid.tickSize(- $scope.canvasSize - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
+                    axes.y.grid.tickSize(- $scope.canvasSize - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
+                }
                 resetZoom();
                 select('.mouse-rect-xy').call(xyZoom);
                 select('.mouse-rect-x').call(axes.x.zoom);
@@ -1565,15 +1568,17 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
             }
 
             function refresh() {
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! heatmap || isNaN(width)) {
-                    return;
+                if (plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (! heatmap || isNaN(width)) {
+                        return;
+                    }
+                    $scope.canvasSize.width = width;
+                    $scope.canvasSize.height = width * aspectRatio;
+                    axes.x.scale.range([0, $scope.canvasSize.width]);
+                    axes.y.scale.range([$scope.canvasSize.height, 0]);
+                    $scope.margin.right = colorbarSize();
                 }
-                $scope.canvasSize.width = width;
-                $scope.canvasSize.height = width * aspectRatio;
-                axes.x.scale.range([0, $scope.canvasSize.width]);
-                axes.y.scale.range([$scope.canvasSize.height, 0]);
-                $scope.margin.right = colorbarSize();
                 if (plotting.trimDomain(axes.x.scale, getRange(axes.x.values))
                     + plotting.trimDomain(axes.y.scale, getRange(axes.y.values))) {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-zoom');
@@ -1587,10 +1592,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 $.each(axes, function(dim, axis) {
                     axis.updateLabelAndTicks($scope.canvasSize, select);
                 });
-                colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
-                // must remove the element to reset the margins
-                select('svg.colorbar').remove();
-                pointer = select('.colorbar').call(colorbar);
+                if (plotAxis.allowUpdates) {
+                    colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
+                    // must remove the element to reset the margins
+                    select('svg.colorbar').remove();
+                    pointer = select('.colorbar').call(colorbar);
+                }
             }
 
             function resetZoom() {
