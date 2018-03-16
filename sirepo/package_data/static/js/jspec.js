@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
+SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
 SIREPO.FILE_UPLOAD_TYPE = {
     'ring-lattice': '.tfs',
 };
@@ -83,18 +83,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
-            ['beamEvolutionAnimation', 'particleAnimation'].forEach(function(m) {
+            ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
+                frameCache.setFrameCount(data.frameCount, m);
             });
-            frameCache.setFrameCount(data.frameCount, 'beamEvolutionAnimation');
-            frameCache.setFrameCount(data.frameCount, 'particleAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
+        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
+        coolingRatesAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
     });
 });

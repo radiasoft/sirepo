@@ -81,7 +81,6 @@
         },
         "simulationSettings": {
             "model": "model_beam",
-            "output_interval": 1,
             "sample_number": 100000,
             "save_particle_interval": 10,
             "step_number": 60,

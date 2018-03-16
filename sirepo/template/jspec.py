@@ -43,7 +43,7 @@ _FIELD_LABEL = {
     'yp': "y' [rad]",
     't': 't [s]',
     'ds': 'ds [m]',
-    'dp/p': 'dp/p [m]',
+    'dp/p': 'dp/p',
     'emit_x': 'emit x [m*rad]',
     'emit_y': 'emit y [m*rad]',
     'sigma_s': 'sigma s [m]',
@@ -66,6 +66,8 @@ _PLOT_LINE_COLOR = {
 }
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
+_X_FIELD = 't'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -97,6 +99,10 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 def fixup_old_data(data):
     template_common.update_model_defaults(data['models']['ring'], 'ring', _SCHEMA)
+    if 'coolingRatesAnimation' not in data['models']:
+        for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
+            data['models'][m] = {}
+            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
 def get_animation_name(data):
@@ -132,11 +138,12 @@ def get_data_file(run_dir, model, frame, options=None):
 
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'beamEvolutionAnimation':
+    if data['modelName'] in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         args = template_common.parse_animation_args(
             data,
             {
-                '': ['x', 'y1', 'y2', 'y3', 'startTime'],
+                '1': ['x', 'y1', 'y2', 'y3', 'startTime'],
+                '': ['y1', 'y2', 'y3', 'startTime'],
             },
         )
         return _extract_evolution_plot(args, run_dir)
@@ -198,8 +205,7 @@ def _elegant_dir():
 
 def _extract_evolution_plot(report, run_dir):
     filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    xfield = _map_field_name(report['x'])
-    x, column_names, err = sdds_util.extract_sdds_column(filename, xfield, 0)
+    x, column_names, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
     if err:
         return err
     plots = []
@@ -225,7 +231,7 @@ def _extract_evolution_plot(report, run_dir):
         'title': '',
         'x_range': [min(x), max(x)],
         'y_label': '',
-        'x_label': _field_label(xfield),
+        'x_label': _field_label(_X_FIELD),
         'x_points': x,
         'plots': plots,
         'y_range': y_range,

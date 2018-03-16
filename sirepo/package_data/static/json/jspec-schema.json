@@ -10,21 +10,24 @@
             ["bunched_uniform", "Uniform Bunch"]
         ],
         "BeamColumn": [
-            ["t", "t"],
+            ["emitx", "emit_x"],
+            ["emity", "emit_y"],
+            ["dpp", "dp/p"],
+            ["sigmas", "sigma_s"]
+        ],
+        "BeamOptionalColumn": [
             ["emitx", "emit_x"],
             ["emity", "emit_y"],
             ["dpp", "dp/p"],
             ["sigmas", "sigma_s"],
+            ["none", "None"]
+        ],
+        "CoolingRatesColumn": [
             ["rx", "rx"],
             ["ry", "ry"],
             ["rs", "rs"]
         ],
-        "BeamOptionalColumn": [
-            ["t", "t"],
-            ["emitx", "emit_x"],
-            ["emity", "emit_y"],
-            ["dpp", "dp/p"],
-            ["sigmas", "sigma_s"],
+        "CoolingRatesOptionalColumn": [
             ["rx", "rx"],
             ["ry", "ry"],
             ["rs", "rs"],
@@ -65,10 +68,9 @@
     },
     "model": {
         "beamEvolutionAnimation": {
-            "x": ["X Value", "BeamColumn"],
-            "y1": ["Y1 Value", "BeamColumn"],
-            "y2": ["Y2 Value", "BeamOptionalColumn"],
-            "y3": ["Y3 Value", "BeamOptionalColumn"]
+            "y1": ["Y1 Value", "BeamColumn", "emitx"],
+            "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
         },
         "cooler": {
             "length": ["Length [m]", "Float"],
@@ -82,6 +84,11 @@
             "alpha_y": ["Vertical Alpha", "Float", 0.0],
             "disp_dx": ["Horizontal Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"],
             "disp_dy": ["Vertical Dispersion Derivative", "Float", 0.0, "Derivative of the dispersion"]
+        },
+        "coolingRatesAnimation": {
+            "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
+            "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
+            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"]
         },
         "electronBeam": {
             "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
@@ -109,14 +116,14 @@
             "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1."]
         },
         "ionBeam": {
-            "charge_number": ["Number of Charges", "Integer", 1, "Number of the charges of the ion."],
+            "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion."],
             "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion."],
             "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion."],
-            "norm_emit_x": ["Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "Normalized horizontal emittance of the ion beam."],
-            "norm_emit_y": ["Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "Normalized vertical emittance of the ion beam."],
-            "momentum_spread": ["Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam."],
-            "particle_number": ["Number of Particles", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam."],
-            "rms_bunch_length": ["RMS Bunch Length", "Float", 7.0, "RMS bunch length for the bunched ion beam. For a coasting ion beam, set this value to 0."]
+            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "Normalized horizontal emittance of the ion beam."],
+            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "Normalized vertical emittance of the ion beam."],
+            "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam."],
+            "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam."],
+            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam. For a coasting ion beam, set this value to 0."]
         },
         "particleAnimation": {
             "x": ["X Value", "ParticleColumn"],
@@ -136,11 +143,10 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float"],
             "step_number": ["Total Number of Steps", "Integer", null, "The time interval of each step is time/step_number."],
-            "sample_number": ["Number of Sample Ions", "Integer"],
+            "sample_number": ["Number of Macroparticles", "Integer"],
             "ibs": ["Simulation the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulation Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "model_beam"],
-            "output_interval": ["Output Interval", "Integer"],
             "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero."],
             "ref_bet_x": ["Horizontal Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
             "ref_bet_y": ["Vertical Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
@@ -159,9 +165,8 @@
     },
     "view": {
         "beamEvolutionAnimation": {
-            "title": "Beam Evolution Report",
+            "title": "RMS Ion Beam Evolution",
             "advanced": [
-                "x",
                 "y1",
                 "y2",
                 "y3"
@@ -189,6 +194,14 @@
                 ]
             ],
             "advanced": [
+            ]
+        },
+        "coolingRatesAnimation": {
+            "title": "Cooling Rates",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
             ]
         },
         "electronBeam": {
@@ -231,7 +244,7 @@
             ]
         },
         "particleAnimation": {
-            "title": "Particle Animation",
+            "title": "Ion Particle Animation",
             "advanced": [
                 "x",
                 "y",
@@ -292,7 +305,6 @@
                 "step_number",
                 "sample_number",
                 "model",
-                "output_interval",
                 "save_particle_interval"
             ],
             "advanced": [
