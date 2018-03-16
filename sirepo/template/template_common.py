@@ -412,4 +412,4 @@ def watchpoint_id(report):
 
 
 def _escape(v):
-    return re.sub("['()]", '', str(v))
+    return re.sub("[\"'()]", '', str(v))

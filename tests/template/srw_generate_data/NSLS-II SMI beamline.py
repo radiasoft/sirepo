@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -22,6 +22,7 @@ def set_optics(v=None):
     el.append(opCr)
     ifnCryst1 = "Si_heat204.dat"
     if ifnCryst1:
+        assert os.path.isfile(ifnCryst1), "Missing input file Si_heat204.dat, required by MOAT 1 beamline element"
         hProfDataCryst1 = srwlib.srwl_uti_read_data_cols(ifnCryst1, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataCryst1, _dim="y", _ang=0.0972679033965, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.05))
@@ -36,6 +37,7 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptMirSph(_r=7100.0, _size_tang=0.5, _size_sag=0.04, _nvx=0.999995065202, _nvy=0.0, _nvz=-0.00314158748629, _tvx=0.00314158748629, _tvy=0.0, _x=0.0, _y=0.0))
     ifnSphMirror2 = "HFM_Rh7.6km.dat"
     if ifnSphMirror2:
+        assert os.path.isfile(ifnSphMirror2), "Missing input file HFM_Rh7.6km.dat, required by HFM beamline element"
         hProfDataSphMirror2 = srwlib.srwl_uti_read_data_cols(ifnSphMirror2, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror2, _dim="x", _ang=0.003141592654, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(3.42))
@@ -43,6 +45,7 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptMirSph(_r=6100.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158748629, _tvx=0.0, _tvy=0.00314158748629, _x=0.0, _y=0.0))
     ifnSphMirror3 = "VFM_Rh5.4km.dat"
     if ifnSphMirror3:
+        assert os.path.isfile(ifnSphMirror3), "Missing input file VFM_Rh5.4km.dat, required by VFM beamline element"
         hProfDataSphMirror3 = srwlib.srwl_uti_read_data_cols(ifnSphMirror3, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror3, _dim="y", _ang=0.003141592654, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(0.69756))
@@ -50,6 +53,7 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptMirSph(_r=300000.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158743229, _tvx=0.0, _tvy=0.00314158743229, _x=0.0, _y=0.0))
     ifnSphMirror4 = "VDM.dat"
     if ifnSphMirror4:
+        assert os.path.isfile(ifnSphMirror4), "Missing input file VDM.dat, required by VDM beamline element"
         hProfDataSphMirror4 = srwlib.srwl_uti_read_data_cols(ifnSphMirror4, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror4, _dim="y", _ang=0.0031415926, _amp_coef=1.0))
     el.append(srwlib.SRWLOptD(8.00244))

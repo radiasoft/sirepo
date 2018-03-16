@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -21,6 +21,7 @@ def set_optics(v=None):
     # HDM: mirror 27.4m
     ifnMirror1 = "mirror_1d.dat"
     if ifnMirror1:
+        assert os.path.isfile(ifnMirror1), "Missing input file mirror_1d.dat, required by HDM beamline element"
         hProfDataMirror1 = srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="x", _ang=0.0031415926, _amp_coef=1.0, _size_x=0.00094, _size_y=0.001))
     el.append(srwlib.SRWLOptD(2.5))

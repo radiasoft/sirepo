@@ -1348,7 +1348,7 @@ def _generate_item(res, item):
         res['el'] += el
         res['pp'] += pp
 
-    if len(item_def) >= 3:
+    if len(item_def) > 3:
         el, pp = _height_profile_element(
             item,
             res['propagation'],
@@ -1630,7 +1630,8 @@ def _height_profile_element(item, propagation, height_profile_el_name, overwrite
     hProfData = 'hProfData{}'.format(height_profile_el_name)
 
     res = '{shift}{ifn} = "{item}"\n'.format(shift=shift, ifn=ifn, item=item['heightProfileFile'])
-    res += '{shift}if {ifn} and os.path.isfile({ifn}):\n'.format(shift=shift, ifn=ifn)
+    res += '{shift}if {ifn}:\n'.format(shift=shift, ifn=ifn)
+    res += '{shift}{shift}assert os.path.isfile({ifn}), "Missing input file {filename}, required by {name} beamline element"\n'.format(shift=shift, ifn=ifn, filename=item['heightProfileFile'], name=item['title'])
     add_args = ', 0, 1' if dimension == 1 else ''
     res += '{shift}{shift}{hProfData} = srwlib.srwl_uti_read_data_cols({ifn}, "\\t"{args})\n'.format(shift=shift, hProfData=hProfData, ifn=ifn, args=add_args)
     fields = ['orientation', 'grazingAngle', 'heightAmplification']
@@ -1642,7 +1643,7 @@ def _height_profile_element(item, propagation, height_profile_el_name, overwrite
         template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
     el, pp = _beamline_element(template, item, fields, propagation, shift=shift)
     res += el
-    pp = '{shift}if {ifn} and os.path.isfile({ifn}):\n{pp}'.format(shift=shift, ifn=ifn, pp=pp)
+    pp = '{shift}if {ifn}:\n{pp}'.format(shift=shift, ifn=ifn, pp=pp)
     return res, pp
 
 
