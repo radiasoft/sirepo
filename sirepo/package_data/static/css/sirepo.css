@@ -543,6 +543,9 @@
       shape-rendering: crispEdges;
       stroke: steelblue;
     }
+    .sr-plot .x-base, .sr-plot .y-base {
+      font-size: 13px;
+    }
 
     @media (max-width: 767px) {
       div.sr-plot .z-axis-label,

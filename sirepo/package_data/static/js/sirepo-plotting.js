@@ -544,11 +544,11 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         return unit ? unit.scale(v) : v;
     }
 
-    function calcFormat(count, unit) {
+    function calcFormat(count, unit, base) {
         var code = 'e';
         var tickValues = self.scale.ticks(count);
-        var v0 = applyUnit(tickValues[0], unit);
-        var v1 = applyUnit(tickValues[tickValues.length - 1], unit);
+        var v0 = applyUnit(tickValues[0] - (base || 0), unit);
+        var v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
         var p0 = valuePrecision(v0);
         var p1 = valuePrecision(v1);
         var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
@@ -558,38 +558,82 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         else {
             decimals -= (decimals < 0 ? Math.min(p0, p1) : Math.max(p0, p1));
         }
-        return "." + (decimals < 0 ? Math.abs(decimals) : 0) + code;
+        decimals = decimals < 0 ? Math.abs(decimals) : 0;
+        return {
+            decimals: decimals,
+            code: code,
+            unit: unit,
+            tickValues: tickValues,
+            format: d3.format('.' + decimals + code),
+        };
     }
 
-    function calcTicks(format, canvasSize, unit) {
+    function calcTickCount(format, canvasSize, unit, base) {
         var d = self.scale.domain();
         var width = Math.max(
             4,
-            Math.max(format(applyUnit(d[0], unit)).length, format(applyUnit(d[1], unit)).length)
+            Math.max(format(applyUnit(d[0] - (base || 0), unit)).length, format(applyUnit(d[1] - (base || 0), unit)).length)
         );
         var tickCount;
-
         if (dimension == 'x') {
             tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * FONT_SIZE)));
         }
         else {
             tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.height / (5 * FONT_SIZE)));
         }
-        format = d3.format(calcFormat(Math.max(2, tickCount), unit));
+        return Math.max(2, tickCount);
+    }
+
+    //TODO(pjm): this could be refactored, moving the base recalc out
+    function calcTicks(formatInfo, canvasSize, unit) {
+        var d = self.scale.domain();
+        var tickCount = calcTickCount(formatInfo.format, canvasSize, unit);
+        formatInfo = calcFormat(tickCount, unit);
+        if (formatInfo.decimals > 2) {
+            var base = midPoint(formatInfo, d);
+            if (unit) {
+                unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+            }
+            var baseFormat = formatInfo.format;
+            formatInfo = calcFormat(tickCount, unit, base);
+            tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base);
+            var f2 = calcFormat(tickCount, unit);
+            base = midPoint(f2, d);
+            if (unit) {
+                unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+            }
+            formatInfo = calcFormat(tickCount, unit, base);
+            formatInfo.base = base;
+            formatInfo.baseFormat = baseFormat;
+        }
         if ((orientation == 'left' || orientation == 'right')) {
-            var w = Math.max(format(applyUnit(d[0], unit)).length, format(applyUnit(d[1], unit)).length);
+            var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
             margin[orientation] = (w + 6) * (FONT_SIZE / 2);
         }
         self.svgAxis.ticks(tickCount);
         self.tickCount = tickCount;
         self.svgAxis.tickFormat(function(v) {
-            var res = format(applyUnit(v, unit));
+            var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
             // format zero values as '0'
             if (ZERO_REGEX.test(res)) {
                 return '0';
             }
             return res;
         });
+        return formatInfo;
+    }
+
+    function midPoint(formatInfo, domain) {
+        // find the tickValue which is closest to the domain midpoint
+        var mid = domain[0] + (domain[1] - domain[0]) / 2;
+        var values = formatInfo.tickValues;
+        var v = (values.length - 1) / 2;
+        var i1 = Math.floor(v);
+        var i2 = Math.ceil(v);
+        if (Math.abs(values[i1] - mid) > Math.abs(values[i2] - mid)) {
+            return values[i2];
+        }
+        return values[i1];
     }
 
     function useFloatFormat(logV) {
@@ -628,7 +672,7 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         var match = label.match(/\[(.*?)\]/);
         if (match) {
             self.units = match[1];
-            label = label.replace(/\[.*?\]/, '');
+            label = label.replace(/\s*\[.*?\]/, '');
         }
         else {
             self.units = '';
@@ -636,17 +680,38 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         self.label = label;
     };
 
+    function baseLabel() {
+        var res = self.label.length > 4 ? dimension : self.label;
+        // padding is unicode thin-space
+        return '< ' + res + ' >';
+    }
+
     self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
         if (plotAxis.allowUpdates) {
+            var formatInfo, unit;
             if (self.units) {
                 var d = self.scale.domain();
-                var unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
-                calcTicks(d3.format(calcFormat(MAX_TICKS, unit)), canvasSize, unit);
-                select('.' + dimension + '-axis-label').text(self.label + '[' + unit.symbol + self.units + ']');
+                unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
+                formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit);
+                select('.' + dimension + '-axis-label').text(
+                    self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
+                        + ' [' + formatInfo.unit.symbol + self.units + ']');
             }
             else {
-                calcTicks(d3.format(calcFormat(MAX_TICKS)), canvasSize);
+                formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize);
+                if (self.label) {
+                    select('.' + dimension + '-axis-label').text(
+                        self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
+                }
             }
+            var formattedBase = '';
+            if (formatInfo.base) {
+                formattedBase = baseLabel() + ' = ' + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
+                if (unit) {
+                    formattedBase += unit.symbol + self.units;
+                }
+            }
+            select('.' + dimension + '-base').text(formattedBase);
         }
         select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
     };
@@ -1511,7 +1576,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
             $scope.margin = {top: 40, left: 70, right: 100, bottom: 50};
 
             var aspectRatio = 1.0;
-            var canvas, ctx, heatmap, pointer, zoom;
+            var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
             var cacheCanvas, imageData;
             var colorbar, colorbarFormat;
             var axes = {
@@ -1552,12 +1617,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 colorbar.scale(colorScale);
             }
 
-            function mouseMove() {
+            var mouseMove = utilities.debounce(function() {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = d3.mouse(this);
+                var point = mouseMovePoint;
                 var xRange = getRange(axes.x.values);
                 var yRange = getRange(axes.y.values);
                 var x0 = axes.x.scale.invert(point[0] - 1);
@@ -1565,7 +1630,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
                 pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
-            }
+            }, 100);
 
             function refresh() {
                 if (plotAxis.allowUpdates) {
@@ -1626,7 +1691,11 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 });
                 resetZoom();
                 canvas = select('canvas').node();
-                select('.mouse-rect').on('mousemove', mouseMove);
+                select('.mouse-rect').on('mousemove', function() {
+                    // mouseMove is debounced, so save the point before calling
+                    mouseMovePoint = d3.mouse(this);
+                    mouseMove();
+                });
                 ctx = canvas.getContext('2d');
                 cacheCanvas = document.createElement('canvas');
                 colorbarFormat = d3.format('s');
