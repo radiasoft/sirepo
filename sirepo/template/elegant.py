@@ -44,9 +44,9 @@ _FIELD_LABEL = {
     't': 't [s]',
     'p': 'p (mₑc)',
     's': 's [m]',
-    'LinearDensity': 'Linear Density [C/s]',
-    'LinearDensityDeriv': 'LinearDensityDeriv [C/s²]',
-    'GammaDeriv': 'GammaDeriv [1/m]',
+    'LinearDensity': 'Linear Density (C/s)',
+    'LinearDensityDeriv': 'LinearDensityDeriv (C/s²)',
+    'GammaDeriv': 'GammaDeriv (1/m)',
 }
 
 #
