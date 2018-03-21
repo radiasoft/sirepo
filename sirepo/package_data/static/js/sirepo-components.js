@@ -1893,7 +1893,7 @@ SIREPO.app.directive('stringToNumber', function() {
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
                     var v;
                     if (scope.numberType == 'integer') {
-                        v = parseInt(value);
+                        v = parseInt(parseFloat(value));
                         if (v != value) {
                             ngModel.$setViewValue(v);
                             ngModel.$render();
@@ -1910,6 +1910,11 @@ SIREPO.app.directive('stringToNumber', function() {
             ngModel.$formatters.push(function(value) {
                 if (ngModel.$isEmpty(value)) {
                     return value;
+                }
+                if (scope.numberType != 'integer') {
+                    if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
+                        value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
+                    }
                 }
                 return value.toString();
             });
@@ -2015,6 +2020,8 @@ SIREPO.app.directive('simStatusPanel', function() {
         scope: {
             simState: '=simStatusPanel',
             initMessage: '@',
+            runningMessage: '&',
+            notRunningMessage: '&',
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
@@ -2024,7 +2031,7 @@ SIREPO.app.directive('simStatusPanel', function() {
               '<div data-ng-show="simState.isStateRunning()">',
                 '<div class="col-sm-12">',
                   '<div data-ng-show="simState.isInitializing()">{{ initMessage }} {{ simState.dots }}</div>',
-                  '<div data-ng-show="simState.getFrameCount() > 0">Completed frame: {{ simState.getFrameCount() }}</div>',
+                  '<div data-ng-show="simState.getFrameCount() > 0">{{ message(true); }}</div>',
                   '<div class="progress">',
                     '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%">',
                     '</div>',
@@ -2036,11 +2043,7 @@ SIREPO.app.directive('simStatusPanel', function() {
               '</div>',
             '</form>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
-              '<div class="col-sm-12" data-ng-show="simState.getFrameCount() >= 1">',
-                'Simulation ',
-                '<span>{{ simState.stateAsText() }}</span><span>: {{ simState.getFrameCount() }} animation frames</span>',
-                '<br><br>',
-              '</div>',
+              '<div class="col-sm-12" data-ng-show="simState.getFrameCount() >= 1">{{ message(false); }}<br><br></div>',
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
@@ -2053,6 +2056,15 @@ SIREPO.app.directive('simStatusPanel', function() {
             if (! $scope.initMessage) {
                 $scope.initMessage = 'Running Simulation';
             }
+
+            $scope.message = function(isRunning) {
+                if (isRunning) {
+                    return $scope.runningMessage()
+                        || 'Completed frame: ' + $scope.simState.getFrameCount();
+                }
+                return $scope.notRunningMessage()
+                    || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
+            };
         },
     };
 });
