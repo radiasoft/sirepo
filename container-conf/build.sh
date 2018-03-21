@@ -9,8 +9,7 @@ build_vars() {
     sirepo_boot=$boot_dir/start
     build_is_public=1
     build_docker_cmd='["'"$sirepo_tini_file"'", "--", "'"$sirepo_boot"'"]'
-    #TODO(robnagler) don't set build user
-    #build_dockerfile_aux="USER $build_run_user"
+    build_dockerfile_aux="USER $build_run_user"
 }
 
 build_as_root() {
