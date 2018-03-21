@@ -13,12 +13,12 @@ Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.c
 
 No signup is required and Sirepo is completely free.
 
-### If you prefer, Sirepo can also be downloaded! :arrow_down:
-1. Curl Installer
-2. Install with Docker
-3. Install with Vagrant
+## If you prefer, Sirepo can also be downloaded! :arrow_down:
+1. [Curl Installer for Mac and Linux](#curl-installer)
+2. [Manual Install with Docker](#manual-install-with-docker)
+3. [Development](#development)
 
-#### Curl Installer
+## Curl Installer
 You can use our
 [curl installer on your Mac, PC (Cygwin only), or Linux box](https://github.com/radiasoft/download/blob/master/README.md)
 as follows:
@@ -33,105 +33,44 @@ For this to work, you will need to [install the prerequisites](https://github.co
 
 [API Documentation is available on Read the Docs.](http://sirepo.readthedocs.org)
 
-#### Manual Install with Docker
+## Manual Install with Docker
 
 You can start Sirepo with [Docker](https://www.docker.com/).
 
 If you are running Docker as an ordinary user (recommended), use the following:
 
 ```bash
-$ docker run --rm -u vagrant -p 8000:8000 -v "$PWD:/sirepo" radiasoft/sirepo
+$ docker run --rm -p 8000:8000 -v "$PWD:/sirepo" radiasoft/sirepo
 ```
 
-The `-v "$PWD:/sirepo"` notation creates a database directory on the host in a subdirectory `run`.
+Then visit: http://127.0.0.1:8000
 
-Then visit the following link:
-
-[http://localhost:8000/light](http://localhost:8000/light)
-
-#### Manual Install with Vagrant
-
-You can start Sirepo with [Vagrant](https://www.vagrantup.com/).
-
-First create a `Vagrantfile` by copy-and-pasting this into a shell:
-
-```bash
-cat > Vagrantfile <<'EOF'
-Vagrant.configure(2) do |config|
-  config.vm.box = "radiasoft/sirepo"
-  config.vm.network "forwarded_port", guest: 8000, host: 8000
-  config.vm.synced_folder ".", "/vagrant", disabled: true
-end
-EOF
-```
-
-Boot the machine:
-
-```bash
-vagrant up
-```
-
-The image is 2.5GB so this will take some time to start.
-
-If it's your first time running Vagrant, it will ask to install VirtualBox.
-
-Follow the prompts
-
-You can run Sirepo with a single command:
-
-```bash
-vagrant ssh -c '. ~/.bashrc; sirepo service http'
-```
-
-Or, if you would like to do development:
-
-```bash
-vagrant ssh
-cd src/radiasoft
-pip uninstall sirepo pykern
-git clone https://github.com/radiasoft/pykern
-cd pykern
-pip install -e .
-cd ..
-git clone https://github.com/radiasoft/sirepo
-cd sirepo
-pip install -e .
-sirepo service http
-```
-
-Then visit the following link:
-
-[http://localhost:8000/light](http://localhost:8000/light)
-
-##### Sharing Folder with Vagrant VM
-
-Note that if you want to transfer files to the virtual machine,
-you'll need to install the
-[vagrant-vbguest plugin](https://github.com/dotless-de/vagrant-vbguest)
-and remove the following line from the `Vagrantfile`:
-
-```text
-config.vm.synced_folder ".", "/vagrant", disabled: true
-```
+The `-v "$PWD:/sirepo"` creates a `db` subdirectory, which is where the database is stored.
 
 ## Development
 
-To start developing on vagrant, you should do the following:
+We use [vagrant](https://www.vagrantup.com) to develop Sirepo. To install a virtual machine with most of the codes, do this:
 
 ```sh
-curl radia.run | bash -s vagrant-centos7
+mkdir v
+cd v
+curl radia.run | bash -s vagrant-sirepo-dev
 vagrant ssh
-curl radia.run | bash -s sirepo-dev
-source ~/.bashrc
 ```
 
-Not yet supported, but to install Opal:
+The host defaults to `v.radia.run` (ip 10.10.10.10). You can also specify one after `vagrant-sirepo-dev`, e.g.
+
+```sh
+curl radia.run | bash -s vagrant-sirepo-dev my-host.example.com 1.2.3.4
+```
+
+Not all the codes install automatically.  You can install OPAL inside the Vagrant instance with:
 
 ```sh
 $ curl radia.run | bash -s code pyOPALTools trilinos opal
 ```
 
-### Full Stack Development
+## Full Stack Development
 
 The `sirepo service http` setup is used for basic application development.
 However, if you want to test the full stack workflow, you'll need to start
@@ -168,7 +107,7 @@ You can also visit
 on this URL:
 [http://localhost:15672](http://localhost:15672).
 
-### License
+# License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
