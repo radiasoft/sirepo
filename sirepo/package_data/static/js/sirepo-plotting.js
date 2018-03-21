@@ -681,9 +681,11 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
     };
 
     function baseLabel() {
-        var res = self.label.length > 4 ? dimension : self.label;
+        // remove any parenthesis first, ex. "p (mec)" --> "p"
+        var label = self.label.replace(/\s\(.*/, '');
+        var res = label.length > 4 ? dimension : label;
         // padding is unicode thin-space
-        return '< ' + res + ' >';
+        return res ? ('< ' + res + ' >') : '';
     }
 
     self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
@@ -706,7 +708,14 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
             }
             var formattedBase = '';
             if (formatInfo.base) {
-                formattedBase = baseLabel() + ' = ' + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
+                var label = baseLabel();
+                if (label) {
+                    label += ' = ';
+                }
+                else {
+                    label = '+';
+                }
+                formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
                 if (unit) {
                     formattedBase += unit.symbol + self.units;
                 }
@@ -1749,7 +1758,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
 });
 
 //TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('parameterPlot', function(plotting) {
+SIREPO.app.directive('parameterPlot', function(plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1762,42 +1771,90 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
             $scope.wantLegend = true;
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
-            var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom, xPoints;
+            var graphLine, zoom;
+            var axes = {
+                x: plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
+                y: plotAxis($scope.margin, 'y', 'left', refresh, utilities),
+            };
+
+            function recalculateYDomain() {
+                var ydom;
+                var xdom = axes.x.scale.domain();
+                var xPoints = axes.x.points;
+                var plots = axes.y.plots;
+                for (var i = 0; i < xPoints.length; i++) {
+                    var x = xPoints[i];
+                    if (x > xdom[1] || x < xdom[0]) {
+                        continue;
+                    }
+                    for (var j = 0; j < plots.length; j++) {
+                        var y = plots[j].points[i];
+                        if (ydom) {
+                            if (y < ydom[0]) {
+                                ydom[0] = y;
+                            }
+                            else if (y > ydom[1]) {
+                                ydom[1] = y;
+                            }
+                        }
+                        else {
+                            ydom = [y, y];
+                        }
+                    }
+                }
+                if (ydom && ydom[0] != ydom[1]) {
+                    if (ydom[0] > 0 && axes.y.domain[0] == 0) {
+                        ydom[0] = 0;
+                    }
+                    axes.y.scale.domain(ydom).nice();
+                }
+            }
 
             function refresh() {
-                if (! xDomain) {
+                if (! axes.x.domain) {
                     return;
                 }
-                var xdom = xAxisScale.domain();
+                if (plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (! axes.x.points || isNaN(width)) {
+                        return;
+                    }
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                }
+                var xdom = axes.x.scale.domain();
                 var zoomWidth = xdom[1] - xdom[0];
 
-                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    xAxisScale.domain(xDomain);
-                    yAxisScale.domain(yDomain).nice();
+                    axes.y.scale.domain(axes.y.domain).nice();
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    if (xdom[0] < xDomain[0]) {
-                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
-                    }
-                    if (xdom[1] > xDomain[1]) {
-                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
-                    }
+                    recalculateYDomain();
                 }
                 resetZoom();
                 select('.overlay').call(zoom);
-                select('.x.axis').call(xAxis);
-                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
-                select('.y.axis').call(yAxis);
-                select('.y.axis.grid').call(yAxisGrid);
                 select('.plot-viewport').selectAll('.line').attr('d', graphLine);
+                $.each(axes, function(dim, axis) {
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
             }
 
             function resetZoom() {
-                zoom = d3.behavior.zoom()
-                    .x(xAxisScale)
-                    .on('zoom', refresh);
+                zoom = axes.x.createZoom($scope);
             }
 
             function select(selector) {
@@ -1807,7 +1864,7 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
-                xDomain = null;
+                axes.x.domain = null;
             };
 
             $scope.destroy = function() {
@@ -1817,36 +1874,34 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
 
             $scope.init = function() {
                 select('svg').attr('height', plotting.initialHeight($scope));
-                xAxisScale = d3.scale.linear();
-                yAxisScale = d3.scale.linear();
-                xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
-                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
-                yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
-                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
                 graphLine = d3.svg.line()
                     .x(function(d, i) {
-                        return xAxisScale(xPoints[i]);
+                        return axes.x.scale(axes.x.points[i]);
                     })
                     .y(function(d) {
-                        return yAxisScale(d);
+                        return axes.y.scale(d);
                     });
                 resetZoom();
             };
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                xPoints = json.x_points
+                axes.x.points = json.x_points
                     || plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
-                xDomain = xdom;
-                xAxisScale.domain(xdom);
-                yDomain = [json.y_range[0], json.y_range[1]];
-                yAxisScale.domain(yDomain).nice();
-                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
-                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                axes.x.domain = xdom;
+                axes.x.scale.domain(xdom);
+                axes.y.domain = [json.y_range[0], json.y_range[1]];
+                axes.y.scale.domain(axes.y.domain).nice();
+                $.each(axes, function(dim, axis) {
+                    axis.parseLabelAndUnits(json[dim + '_label']);
+                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                });
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
 
@@ -1887,7 +1942,8 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
                 }
-                $scope.margin.top = json.title ? 50 : 10;
+                axes.y.plots = plots;
+                $scope.margin.top = json.title ? 50 : 20;
                 $scope.margin.bottom = 50 + 20 * plots.length;
                 $scope.resize();
             };
@@ -1896,23 +1952,6 @@ SIREPO.app.directive('parameterPlot', function(plotting) {
                 if (select().empty()) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! xPoints || isNaN(width)) {
-                    return;
-                }
-                $scope.width = width;
-                $scope.height = ASPECT_RATIO * $scope.width;
-                select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                plotting.ticks(xAxis, $scope.width, true);
-                plotting.ticks(xAxisGrid, $scope.width, true);
-                plotting.ticks(yAxis, $scope.height, false);
-                plotting.ticks(yAxisGrid, $scope.height, false);
-                xAxisScale.range([0, $scope.width]);
-                yAxisScale.range([$scope.height, 0]);
-                xAxisGrid.tickSize(-$scope.height);
-                yAxisGrid.tickSize(-$scope.width);
                 refresh();
             };
         },
