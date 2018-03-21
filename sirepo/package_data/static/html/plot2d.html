@@ -1,5 +1,6 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
     <div><svg class="sr-plot">
+      <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
         <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
