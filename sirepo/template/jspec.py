@@ -14,6 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common, sdds_util
 import glob
 import numpy as np
+import os.path
 import py.path
 import re
 
@@ -71,26 +72,44 @@ _X_FIELD = 't'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    files = _ion_files(run_dir)
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         settings = data.models.simulationSettings
         percent_complete = 0
-        count = len(files)
-        if settings.save_particle_interval > 0:
+
+        if settings.model == 'particle' and settings.save_particle_interval > 0:
+            files = _ion_files(run_dir)
+            count = len(files)
             percent_complete = count * 100 / (1 + int(settings.time / settings.save_particle_interval))
-        # the most recent file may not yet be fully written
-        if count > 0:
-            count -= 1
-        return {
-            'percentComplete': percent_complete,
-            'frameCount': count,
-        }
+            # the most recent file may not yet be fully written
+            if count > 0:
+                count -= 1
+            return {
+                'percentComplete': percent_complete,
+                'frameCount': count,
+                'hasParticles': True,
+            }
+        else:
+            # estimate the percent complete from the simulation time in sdds file
+            if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
+                return _beam_evolution_status(run_dir, settings)
+            return {
+                'percentComplete': 0,
+                'frameCount': 0,
+            }
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-        return {
-            'percentComplete': 100,
-            'frameCount': len(files),
-        }
+        files = _ion_files(run_dir)
+        if len(files):
+            return {
+                'percentComplete': 100,
+                'frameCount': len(files),
+                'hasParticles': True,
+            }
+        else:
+            return {
+                'percentComplete': 100,
+                'frameCount': 1,
+            }
     return {
         'percentComplete': 0,
         'frameCount': 0,
@@ -103,6 +122,23 @@ def fixup_old_data(data):
         for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    if 'beam_type' not in data['models']['ionBeam']:
+        ion_beam = data['models']['ionBeam']
+        ion_beam['beam_type'] = 'bunched' if ion_beam['rms_bunch_length'] > 0 else 'continuous'
+    if 'beam_type' not in data['models']['electronBeam']:
+        ebeam = data['models']['electronBeam']
+        ebeam['beam_type'] = 'continuous' if ebeam['shape'] == 'dc_uniform' else 'bunched'
+        ebeam['rh'] = ebeam['rv'] = 0.004
+    settings = data['models']['simulationSettings']
+    if settings['model'] == 'model_beam':
+        settings['model'] = 'particle'
+    if 'ibs' not in settings:
+        settings['ibs'] = '1'
+        settings['e_cool'] = '1'
+    if 'ref_bet_x' not in settings or not settings['ref_bet_x']:
+        settings['ref_bet_x'] = settings['ref_bet_y'] = 10
+        for f in ('ref_alf_x', 'ref_disp_x', 'ref_disp_dx', 'ref_alf_y', 'ref_disp_y', 'ref_disp_dy'):
+            settings[f] = 0
 
 
 def get_animation_name(data):
@@ -199,6 +235,24 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
+def _beam_evolution_status(run_dir, settings):
+    try:
+        filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
+        t, column_names, err = sdds_util.extract_sdds_column(filename, 't', 0)
+        t_max = max(t)
+        if t_max and settings.time > 0:
+            return {
+                'frameCount': int(float(os.path.getmtime(filename))),
+                'percentComplete': 100.0 * t_max / settings.time,
+            }
+    except:
+        pass
+    return {
+        'frameCount': 0,
+        'percentComplete': 0,
+    }
+
+
 def _elegant_dir():
     return simulation_db.simulation_dir(SIM_TYPE).join('../elegant')
 
@@ -282,6 +336,14 @@ def _generate_parameters_file(data):
         v['latticeFilename'] = template_common.lib_file_name('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
+    if v['ionBeam_beam_type'] == 'continuous':
+        v['ionBeam_rms_bunch_length'] = 0
+    #TODO(pjm): work-around for recent JSPEC bug, remove when fixed
+    # set simulationSettings.sample_number = electronCoolingRate.sample_number if greater
+    if v['simulationSettings_sample_number'] > v['electronCoolingRate_sample_number']:
+        v['simulationSettings_sample_number'] = v['electronCoolingRate_sample_number']
+    v['simulationSettings_ibs'] = 'on' if int(v['simulationSettings_ibs']) else 'off'
+    v['simulationSettings_e_cool'] = 'on' if int(v['simulationSettings_e_cool']) else 'off'
     return template_common.render_jinja(SIM_TYPE, v)
 
 

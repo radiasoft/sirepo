@@ -5,9 +5,10 @@
             ["1", "Yes"]
         ],
         "ElectronBeamShape": [
-            ["dc_uniform", "Uniform Cylinder"],
-            ["bunched_gaussian", "Gaussian Bunch"],
-            ["bunched_uniform", "Uniform Bunch"]
+            ["dc_uniform", "Uniform"],
+            ["bunched_gaussian", "Gaussian"],
+            ["bunched_uniform", "Uniform"],
+            ["bunched_uniform_elliptic", "Uniform Elliptic"]
         ],
         "BeamColumn": [
             ["emitx", "emit_x"],
@@ -21,6 +22,10 @@
             ["dpp", "dp/p"],
             ["sigmas", "sigma_s"],
             ["none", "None"]
+        ],
+        "BeamType": [
+            ["bunched", "Bunched Beam"],
+            ["continuous", "Continuous Beam"]
         ],
         "CoolingRatesColumn": [
             ["rx", "rx"],
@@ -63,7 +68,7 @@
         ],
         "SimulationModel": [
             ["rms", "RMS"],
-            ["model_beam", "Model Beam"]
+            ["particle", "Particle"]
         ]
     },
     "model": {
@@ -101,10 +106,13 @@
             "sigma_y": ["Vertical RMS Size", "Float"],
             "sigma_z": ["RMS Bunch Length", "Float"],
             "length": ["Length [m]", "Float"],
-            "e_number": ["Number of Electrons", "Float"]
+            "e_number": ["Number of Electrons", "Float"],
+            "beam_type": ["Beam Type", "BeamType", "bunched"],
+            "rh": ["Horizontal Semi-Axis Length [m]", "Float", 0.004],
+            "rv": ["Vertical Semi-Axis Length [m]", "Float", 0.004]
         },
         "electronCoolingRate": {
-            "sample_number": ["Number of Sample Ions", "Integer"],
+            "sample_number": ["Number of Sample Ions", "Float"],
             "force_formula": ["Force Formula", "ForceFormula"]
         },
         "intrabeamScatteringRate": {
@@ -119,11 +127,12 @@
             "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion."],
             "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion."],
             "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion."],
-            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "Normalized horizontal emittance of the ion beam."],
-            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "Normalized vertical emittance of the ion beam."],
+            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6],
+            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6],
             "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam."],
             "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam."],
-            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam. For a coasting ion beam, set this value to 0."]
+            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam."],
+            "beam_type": ["Beam Type", "BeamType", "bunched"]
         },
         "particleAnimation": {
             "x": ["X Value", "ParticleColumn"],
@@ -143,24 +152,19 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float"],
             "step_number": ["Total Number of Steps", "Integer", null, "The time interval of each step is time/step_number."],
-            "sample_number": ["Number of Macroparticles", "Integer"],
-            "ibs": ["Simulation the IBS Effect", "Boolean", "1"],
-            "e_cool": ["Simulation Electron Cooling Effect", "Boolean", "1"],
+            "sample_number": ["Number of Macroparticles", "Float", 10000, "Number of the sample ions. This is only used when using the Particle model to simulate the IBS expansion process without cooling."],
+            "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
+            "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "model_beam"],
             "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero."],
-            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_bet_y": ["Vertical Beta Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_alf_y": ["Vertical Alpha Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float", null, "TWISS parameters for the reference point."],
-            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float", null, "TWISS parameters for the reference point."]
-        },
-        "runSettings": {
-            "calculate_ibs": ["Calculated the IBS Rate", "Boolean", "1"],
-            "calculate_ecool": ["Calculate the Electron Cooling Rate", "Boolean", "1"],
-            "total_expansion_rate": ["Calculated the Total Expansion Rate", "Boolean", "1"]
+            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", null, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation."],
+            "ref_bet_y": ["Vertical Beta Reference Point", "Float"],
+            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float"],
+            "ref_alf_y": ["Vertical Alpha Reference Point", "Float"],
+            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float"],
+            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
+            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
+            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
         }
     },
     "view": {
@@ -210,12 +214,15 @@
                 "gamma",
                 "tmp_tr",
                 "tmp_l",
+                "beam_type",
                 "shape",
                 "radius",
                 "current",
                 "sigma_x",
                 "sigma_y",
                 "sigma_z",
+                "rh",
+                "rv",
                 "length",
                 "e_number"
             ],
@@ -230,6 +237,7 @@
                 "kinetic_energy",
                 "momentum_spread",
                 "particle_number",
+                "beam_type",
                 "rms_bunch_length",
                 [
                     ["Horizontal", [
@@ -282,16 +290,6 @@
             "advanced": [
             ]
         },
-        "runSettings": {
-            "title": "Rate Calculations",
-            "basic": [
-                "calculate_ibs",
-                "calculate_ecool",
-                "total_expansion_rate"
-            ],
-            "advanced": [
-            ]
-        },
         "simulation": {
             "title": "Simulation",
             "advanced": [
@@ -303,9 +301,25 @@
             "basic": [
                 "time",
                 "step_number",
-                "sample_number",
                 "model",
-                "save_particle_interval"
+                "save_particle_interval",
+                "ibs",
+                "e_cool",
+                "sample_number",
+                [
+                    ["Horizontal", [
+                        "ref_bet_x",
+                        "ref_alf_x",
+                        "ref_disp_x",
+                        "ref_disp_dx"
+                    ]],
+                    ["Vertical", [
+                        "ref_bet_y",
+                        "ref_alf_y",
+                        "ref_disp_y",
+                        "ref_disp_dy"
+                    ]]
+                ]
             ],
             "advanced": [
             ]

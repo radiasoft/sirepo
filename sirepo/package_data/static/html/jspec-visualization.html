@@ -7,7 +7,7 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationSettings')">
-          <div data-sim-status-panel="visualization.simState"></div>
+          <div data-sim-status-panel="visualization.simState" data-running-message="visualization.runningMessage()" data-not-running-message="visualization.notRunningMessage()"></div>
         </div>
       </div>
     </div>
@@ -18,7 +18,7 @@
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="coolingRatesAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames() && visualization.hasParticles">
       <div data-report-panel="3d" data-model-name="particleAnimation"></div>
     </div>
   </div>

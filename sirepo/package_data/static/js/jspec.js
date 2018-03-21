@@ -39,12 +39,36 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
     function processElectronBeamShape() {
         var shape = appState.models.electronBeam.shape;
-        ['current', 'radius'].forEach(function(f) {
-            panelState.showField('electronBeam', f, shape == 'dc_uniform' || shape == 'bunched_uniform');
-        });
-        panelState.showField('electronBeam', 'length', shape == 'bunched_uniform');
+        panelState.showField('electronBeam', 'radius', shape == 'dc_uniform' || shape == 'bunched_uniform');
+        panelState.showField('electronBeam', 'current', shape == 'dc_uniform' || shape == 'bunched_uniform' || shape == 'bunched_uniform_elliptic');
+        panelState.showField('electronBeam', 'length', shape == 'bunched_uniform' || shape == 'bunched_uniform_elliptic');
         ['e_number', 'sigma_x', 'sigma_y', 'sigma_z'].forEach(function(f) {
             panelState.showField('electronBeam', f, shape == 'bunched_gaussian');
+        });
+        ['rh', 'rv'].forEach(function(f) {
+            panelState.showField('electronBeam', f, shape == 'bunched_uniform_elliptic');
+        });
+    }
+
+    function processElectronBeamType() {
+        var ebeam = appState.models.electronBeam;
+        var beam_type = ebeam.beam_type;
+        if (beam_type == 'continuous') {
+            // only one shape choice for continuous beams
+            ebeam.shape = 'dc_uniform';
+        }
+        else {
+            if (ebeam.shape == 'dc_uniform') {
+                ebeam.shape = 'bunched_uniform';
+            }
+        }
+        SIREPO.APP_SCHEMA.enum.ElectronBeamShape.forEach(function(v) {
+            if (v[0].indexOf('bunched') >= 0) {
+                panelState.showEnum('electronBeam', 'shape', v[0], beam_type == 'bunched');
+            }
+            else {
+                panelState.showEnum('electronBeam', 'shape', v[0], beam_type == 'continuous');
+            }
         });
     }
 
@@ -52,6 +76,10 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
         panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
         panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
+    }
+
+    function processIonBeamType() {
+        panelState.showField('ionBeam', 'rms_bunch_length', appState.models.ionBeam.beam_type == 'bunched');
     }
 
     function processLatticeSource() {
@@ -68,9 +96,12 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     };
 
     appState.whenModelsLoaded($scope, function() {
+        processElectronBeamType();
         processElectronBeamShape();
         processLatticeSource();
-        appState.watchModelFields($scope, ['electronBeam.shape'], processElectronBeamShape);
+        appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
+        appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
+        appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
     });
@@ -80,17 +111,45 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     var self = this;
     self.settingsModel = 'simulationSettings';
     self.panelState = panelState;
+    self.hasParticles = false;
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
             ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
+                self.hasParticles = data.hasParticles;
                 frameCache.setFrameCount(data.frameCount, m);
             });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
+
+    function processModel() {
+        var settings = appState.models.simulationSettings;
+        panelState.showField('simulationSettings', 'save_particle_interval', settings.model == 'particle');
+        panelState.showField('simulationSettings', 'sample_number', settings.model == 'particle' && settings.e_cool == '0');
+        panelState.showRow('simulationSettings', 'ref_bet_x', settings.model == 'particle' && settings.e_cool == '0');
+    }
+
+    self.notRunningMessage = function() {
+        if (self.hasParticles) {
+            return '';
+        }
+        return 'Simulation ' + self.simState.stateAsText();
+    };
+
+    self.runningMessage = function() {
+        if (self.hasParticles) {
+            return '';
+        }
+        return 'Simulation running';
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        processModel();
+        appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+    });
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],

@@ -4,66 +4,74 @@ jspec_file = """
 section_scratch
         # required to initialize muParser
 section_ion
-	charge_number = {{ ionBeam_charge_number }}
-	mass = {{ ionBeam_mass }}
-   	kinetic_energy = {{ ionBeam_kinetic_energy }}
-	norm_emit_x = {{ ionBeam_norm_emit_x }}
-	norm_emit_y = {{ ionBeam_norm_emit_y }}
-	momentum_spread = {{ ionBeam_momentum_spread }}
-	particle_number = {{ ionBeam_particle_number }}
-	rms_bunch_length = {{ ionBeam_rms_bunch_length }}
+        charge_number = {{ ionBeam_charge_number }}
+        mass = {{ ionBeam_mass }}
+        kinetic_energy = {{ ionBeam_kinetic_energy }}
+        norm_emit_x = {{ ionBeam_norm_emit_x }}
+        norm_emit_y = {{ ionBeam_norm_emit_y }}
+        momentum_spread = {{ ionBeam_momentum_spread }}
+        particle_number = {{ ionBeam_particle_number }}
+        rms_bunch_length = {{ ionBeam_rms_bunch_length }}
 section_ring
-	lattice = {{ latticeFilename }}
+        lattice = {{ latticeFilename }}
 section_ibs
-	nu = {{ intrabeamScatteringRate_nu }}
-	nv = {{ intrabeamScatteringRate_nv }}
+        nu = {{ intrabeamScatteringRate_nu }}
+        nv = {{ intrabeamScatteringRate_nv }}
 {% if intrabeamScatteringRate_longitudinalMethod == 'nz' %}
-	nz = {{ intrabeamScatteringRate_nz }}
+        nz = {{ intrabeamScatteringRate_nz }}
 {% else %}
-	log_c = {{ intrabeamScatteringRate_log_c }}
+        log_c = {{ intrabeamScatteringRate_log_c }}
 {% endif %}
-	coupling = {{ intrabeamScatteringRate_coupling }}
+        coupling = {{ intrabeamScatteringRate_coupling }}
 section_cooler
-	length = {{ cooler_length }}
-	section_number = {{ cooler_section_number }}
-	magnetic_field = {{ cooler_magnetic_field }}
-	bet_x = {{ cooler_bet_x }}
-	bet_y = {{ cooler_bet_y }}
-	disp_x = {{ cooler_disp_x }}
-	disp_y = {{ cooler_disp_y }}
-	alpha_x = {{ cooler_alpha_x }}
-	alpha_y = {{ cooler_alpha_y }}
-	disp_dx = {{ cooler_disp_dx }}
-	disp_dy = {{ cooler_disp_dy }}
+        length = {{ cooler_length }}
+        section_number = {{ cooler_section_number }}
+        magnetic_field = {{ cooler_magnetic_field }}
+        bet_x = {{ cooler_bet_x }}
+        bet_y = {{ cooler_bet_y }}
+        disp_x = {{ cooler_disp_x }}
+        disp_y = {{ cooler_disp_y }}
+        alpha_x = {{ cooler_alpha_x }}
+        alpha_y = {{ cooler_alpha_y }}
+        disp_dx = {{ cooler_disp_dx }}
+        disp_dy = {{ cooler_disp_dy }}
 section_e_beam
-	gamma = {{ electronBeam_gamma }}
-	tmp_tr = {{ electronBeam_tmp_tr }}
-	tmp_l = {{ electronBeam_tmp_l }}
-	shape = {{ electronBeam_shape }}
-	radius = {{ electronBeam_radius }}
-	current = {{ electronBeam_current }}
-        simga_x = {{ electronBeam_sigma_x }}
+        gamma = {{ electronBeam_gamma }}
+        tmp_tr = {{ electronBeam_tmp_tr }}
+        tmp_l = {{ electronBeam_tmp_l }}
+        shape = {{ electronBeam_shape }}
+        radius = {{ electronBeam_radius }}
+        current = {{ electronBeam_current }}
+{% if electronBeam_shape == 'bunched_gaussian' %}
+        sigma_x = {{ electronBeam_sigma_x }}
         sigma_y = {{ electronBeam_sigma_y }}
         sigma_z = {{ electronBeam_sigma_z }}
+{% endif %}
+{% if electronBeam_shape == 'bunched_uniform_elliptic' %}
+        rh = {{ electronBeam_rh }}
+        rv = {{ electronBeam_rv }}
+{% endif %}
         length = {{ electronBeam_length }}
         e_number = {{ electronBeam_e_number }}
 section_ecool
-	sample_number = {{ electronCoolingRate_sample_number }}
-	force_formula = {{ electronCoolingRate_force_formula }}
+        sample_number = {{ electronCoolingRate_sample_number }}
+        force_formula = {{ electronCoolingRate_force_formula }}
 section_run
- 	create_ion_beam
-	create_ring
-	create_e_beam
-	create_cooler
+        create_ion_beam
+        create_ring
+        create_e_beam
+        create_cooler
 section_simulation
-	ibs = on
-	e_cool = on
-	time = {{ simulationSettings_time }}
-	step_number = {{ simulationSettings_step_number }}
-	sample_number = {{ simulationSettings_sample_number }}
-	save_particle_interval = {{ simulationSettings_save_particle_interval }}
-	output_file = {{ beamEvolutionOutputFilename }}
-	model = {{ simulationSettings_model }}
+        ibs = {{ simulationSettings_ibs }}
+        e_cool = {{ simulationSettings_e_cool }}
+        time = {{ simulationSettings_time }}
+        step_number = {{ simulationSettings_step_number }}
+{% if simulationSettings_model == 'particle' %}
+        sample_number = {{ simulationSettings_sample_number }}
+        save_particle_interval = {{ simulationSettings_save_particle_interval }}
+{% endif %}
+        output_file = {{ beamEvolutionOutputFilename }}
+        model = {{ simulationSettings_model }}
         ref_bet_x = {{ simulationSettings_ref_bet_x }}
         ref_bet_y = {{ simulationSettings_ref_bet_y }}
         ref_alf_x = {{ simulationSettings_ref_alf_x }}
@@ -74,11 +82,11 @@ section_simulation
         ref_disp_dy = {{ simulationSettings_ref_disp_dy }}
 section_run
 {% if runRateCalculation %}
-	calculate_ibs
-	calculate_ecool
-	total_expansion_rate
+        calculate_ibs
+        calculate_ecool
+        total_expansion_rate
 {% endif %}
 {% if runSimulation %}
-	run_simulation
+        run_simulation
 {% endif %}
 """

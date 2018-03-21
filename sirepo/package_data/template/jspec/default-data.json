@@ -72,7 +72,6 @@
         "ring": {
             "lattice": "Booster.tfs"
         },
-        "runSettings": {},
         "simulation": {
             "folder": "/",
             "name": "Booster Ring",
