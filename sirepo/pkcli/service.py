@@ -67,7 +67,7 @@ def http():
             host=cfg.ip,
             port=cfg.port,
             threaded=True,
-            use_reloader=1,
+            use_reloader=pkconfig.channel_in('dev'),
         )
 
 
