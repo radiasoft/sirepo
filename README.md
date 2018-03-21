@@ -40,12 +40,10 @@ You can start Sirepo with [Docker](https://www.docker.com/).
 If you are running Docker as an ordinary user (recommended), use the following:
 
 ```bash
-$ docker run -p 8000:8000 -v "$PWD:/sirepo" radiasoft/sirepo
+$ docker run --rm -u vagrant -p 8000:8000 -v "$PWD:/sirepo" radiasoft/sirepo
 ```
 
-The `/radia-run` command ensures the guest's user can read/write files from the
-current directory, which is where the database and other files will be stored.
-
+The `-v "$PWD:/sirepo"` notation creates a database directory on the host in a subdirectory `run`.
 
 Then visit the following link:
 
