@@ -652,6 +652,8 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
     self.sleepNotification = function(notification) {
         var now = new Date();
         $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
+        //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+        notification.active = false;
     };
 
     self.dismiss = function(name) {
