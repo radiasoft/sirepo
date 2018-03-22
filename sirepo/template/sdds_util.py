@@ -26,6 +26,7 @@ def extract_sdds_column(filename, field, page_index):
                     #TODO(robnagler) is this an error?
                     break
             try:
+                column_def = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, field)
                 values = sdds.sddsdata.GetColumn(
                     _SDDS_INDEX,
                     column_names.index(field),
@@ -33,6 +34,7 @@ def extract_sdds_column(filename, field, page_index):
                 return (
                     map(lambda v: _safe_sdds_value(v), values),
                     column_names,
+                    column_def,
                     None,
                 )
             except SystemError as e:
@@ -43,7 +45,7 @@ def extract_sdds_column(filename, field, page_index):
             sdds.sddsdata.Terminate(_SDDS_INDEX)
         except Exception:
             pass
-    return None, None, err
+    return None, None, None, err
 
 
 def _safe_sdds_value(v):

@@ -12,7 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
-from sirepo.template import template_common
+from sirepo.template import template_common, sdds_util
 import ast
 import glob
 import math
@@ -67,6 +67,8 @@ _SDDS_STRING_TYPE = 7
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
+_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
+
 _INFIX_TO_RPN = {
     ast.Add: '+',
     ast.Div: '/',
@@ -118,10 +120,10 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     yfield = data['y']
     bins = data['histogramBins']
 
-    x, column_names, err = _extract_sdds_column(xFilename, xfield, page_index)
+    x, column_names, x_def, err = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
     if err:
         return err
-    y, _, err = _extract_sdds_column(yFilename, yfield, page_index)
+    y, _, y_def, err = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
     if err:
         return err
     if _is_2d_plot(column_names):
@@ -129,8 +131,8 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
-            'x_label': _field_label(xfield),
-            'y_label': _field_label(yfield),
+            'x_label': _field_label(xfield, x_def[1]),
+            'y_label': _field_label(yfield, y_def[1]),
             'points': y,
             'x_points': x,
         }
@@ -138,8 +140,8 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _field_label(xfield),
-        'y_label': _field_label(yfield),
+        'x_label': _field_label(xfield, x_def[1]),
+        'y_label': _field_label(yfield, y_def[1]),
         'title': _plot_title(xfield, yfield, page_index),
         'z_matrix': hist.T.tolist(),
     }
@@ -740,43 +742,11 @@ def _create_default_commands(data):
         }),
     ]
 
-
-def _extract_sdds_column(filename, field, page_index):
-    try:
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
-            pkdlog('{}: cannot access'.format(filename))
-            err = _sdds_error('Missing report output file.')
-        else:
-            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-            #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
-            for _ in xrange(page_index + 1):
-                if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
-                    #TODO(robnagler) is this an error?
-                    break
-            try:
-                values = sdds.sddsdata.GetColumn(
-                    _SDDS_INDEX,
-                    column_names.index(field),
-                )
-                return (
-                    map(lambda v: _safe_sdds_value(v), values),
-                    column_names,
-                    None,
-                )
-            except SystemError as e:
-                pkdlog('{}: page not found in {}'.format(page_index, filename))
-                err = _sdds_error('Output page {} not found'.format(page_index) if page_index else 'No output was generated for this report.')
-    finally:
-        try:
-            sdds.sddsdata.Terminate(_SDDS_INDEX)
-        except Exception:
-            pass
-    return None, None, err
-
-
-def _field_label(field):
+def _field_label(field, units):
     if field in _FIELD_LABEL:
         return _FIELD_LABEL[field]
+    if units in _SIMPLE_UNITS:
+        return '{} [{}]'.format(field, units)
     return field
 
 
@@ -1137,13 +1107,6 @@ def _sdds_beam_type_from_file(filename):
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)
     return res
-
-
-def _sdds_error(error_text='invalid data file'):
-    sdds.sddsdata.Terminate(_SDDS_INDEX)
-    return {
-        'error': error_text,
-    }
 
 
 def _simulation_files(data):

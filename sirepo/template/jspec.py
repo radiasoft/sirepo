@@ -238,7 +238,7 @@ def write_parameters(data, schema, run_dir, is_parallel):
 def _beam_evolution_status(run_dir, settings):
     try:
         filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-        t, column_names, err = sdds_util.extract_sdds_column(filename, 't', 0)
+        t, _, _, _ = sdds_util.extract_sdds_column(filename, 't', 0)
         t_max = max(t)
         if t_max and settings.time > 0:
             return {
@@ -259,7 +259,7 @@ def _elegant_dir():
 
 def _extract_evolution_plot(report, run_dir):
     filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    x, column_names, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
+    x, _, _, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
     if err:
         return err
     plots = []
@@ -268,7 +268,7 @@ def _extract_evolution_plot(report, run_dir):
         if report[f] == 'none':
             continue
         yfield = _map_field_name(report[f])
-        y, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
+        y, _, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
         if err:
             return err
         if y_range:
@@ -302,10 +302,10 @@ def _extract_particle_plot(report, run_dir, page_index):
     time = settings.time / settings.step_number * settings.save_particle_interval * page_index
     if time > settings.time:
         time = settings.time
-    x, column_names, err = sdds_util.extract_sdds_column(filename, xfield, 0)
+    x, _, _, err = sdds_util.extract_sdds_column(filename, xfield, 0)
     if err:
         return err
-    y, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
+    y, _, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
     if err:
         return err
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
