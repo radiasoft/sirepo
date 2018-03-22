@@ -5,10 +5,16 @@
             ["1", "Yes"]
         ],
         "ElectronBeamShape": [
-            ["dc_uniform", "Uniform"],
+            ["dc_uniform", "Cylindrical"],
             ["bunched_gaussian", "Gaussian"],
-            ["bunched_uniform", "Uniform"],
-            ["bunched_uniform_elliptic", "Uniform Elliptic"]
+            ["bunched_uniform", "Cylindrical"],
+            ["bunched_uniform_elliptic", "Cylindrical (elliptical cross-section)"]
+        ],
+        "ElectronBeamShapeDescription": [
+            ["dc_uniform", "The unbunched electron beam is a continuous cylinder with circular cross-section."],
+            ["bunched_gaussian", "The electron beam is a 3D Gaussian distribution in space."],
+            ["bunched_uniform", "The electron beam is a uniformly-filled 3D cylinder with circular cross-section."],
+            ["bunched_uniform_elliptic", "The electron beam is a uniformly-filled 3D cylinder with elliptical cross-section."]
         ],
         "BeamColumn": [
             ["emitx", "emit_x"],
@@ -99,7 +105,7 @@
             "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
             "tmp_tr": ["Transverse Temperature [eV]", "Float"],
             "tmp_l": ["Longitudinal Temperature [eV]", "Float"],
-            "shape": ["Shape", "ElectronBeamShape", "dc_uniform"],
+            "shape": ["Shape", "ElectronBeamShape", "dc_uniform", "Shape of the electron beam."],
             "radius": ["Radius [m]", "Float"],
             "current": ["Current [A]", "Float"],
             "sigma_x": ["Horizontal RMS Size", "Float"],
@@ -217,12 +223,12 @@
                 "beam_type",
                 "shape",
                 "radius",
+                "rh",
+                "rv",
                 "current",
                 "sigma_x",
                 "sigma_y",
                 "sigma_z",
-                "rh",
-                "rv",
                 "length",
                 "e_number"
             ],

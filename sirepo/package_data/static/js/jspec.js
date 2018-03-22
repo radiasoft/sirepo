@@ -48,6 +48,12 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         ['rh', 'rv'].forEach(function(f) {
             panelState.showField('electronBeam', f, shape == 'bunched_uniform_elliptic');
         });
+        // dynamically set the help text in the schema for the selected beam shape
+        SIREPO.APP_SCHEMA.enum.ElectronBeamShape.forEach(function(v, i) {
+            if (v[0] == shape) {
+                SIREPO.APP_SCHEMA.model.electronBeam.shape[3] = SIREPO.APP_SCHEMA.enum.ElectronBeamShapeDescription[i][1];
+            }
+        });
     }
 
     function processElectronBeamType() {
