@@ -1264,6 +1264,7 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     };
 });
 
+//TODO(pjm): this directive is only needed for old data which might have enum values as a number rather than string
 SIREPO.app.directive('numberToString', function() {
     return {
         restrict: 'A',
@@ -1271,7 +1272,7 @@ SIREPO.app.directive('numberToString', function() {
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value)) {
-                    return null;
+                    return '';
                 }
                 return '' + value;
             });
@@ -1284,6 +1285,7 @@ SIREPO.app.directive('numberToString', function() {
         }
     };
 });
+
 SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
     return {
         restrict: 'A',
