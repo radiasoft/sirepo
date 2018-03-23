@@ -20,21 +20,25 @@ describe('Controller: NavController', function() {
         });
     }));
 
-    var $controller;
+    var createController;
 
-    beforeEach(inject(function(_$controller_) {
-        $controller = _$controller_;
+    beforeEach(inject(function($injector) {
+        var $rootScope = $injector.get('$rootScope');
+        var $controller = $injector.get('$controller');
+        createController = function() {
+            return $controller('NavController', {'$scope': $rootScope});
+        };
     }));
 
     it('should have default section/title', inject(function() {
-        var controller = $controller('NavController', {});
+        var controller = createController();
         expect(controller.sectionTitle()).toBe(null);
         expect(controller.pageTitle()).toBe('SRW - Radiasoft');
     }));
 
-    if('should show the simulation name in title', inject(function(activeSection) {
+    it('should show the simulation name in title', inject(function(activeSection) {
         isLoaded = true;
-        var controller = $controller('NavController', {});
+        var controller = createController();
         expect(controller.sectionTitle()).toBe('my simulation');
         expect(controller.pageTitle()).toBe('my simulation - SRW - Radiasoft');
     }));

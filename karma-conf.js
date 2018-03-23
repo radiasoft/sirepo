@@ -5,6 +5,7 @@
 //   npm install karma-jasmine --save-dev
 //   npm install karma-phantomjs-launcher
 //   npm install karma-chrome-launcher
+//   npm install jasmine-core --save-dev
 // then:
 //   ./node_modules/karma/bin/karma start karma-conf.js
 
@@ -22,12 +23,12 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-        'sirepo/package_data/static/js/ext/angular-1.4.2.js',
-        'sirepo/package_data/static/js/ext/angular-route-1.4.2.js',
+        'sirepo/package_data/static/js/ext/angular-1.6.7.js',
+        'sirepo/package_data/static/js/ext/angular-route-1.6.7.js',
+        'sirepo/package_data/static/js/ext/angular-cookies-1.6.7.js',
         'sirepo/package_data/static/js/ext/jquery-2.1.4.js',
         'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
-        'sirepo/package_data/static/js/ext/modernizr-touch-2.8.3.min.js',
         'sirepo/package_data/static/js/ext/angular-d3.js',
         'sirepo/package_data/static/js/ext/colorbar.js',
         'sirepo/package_data/static/js/ext/Blob.js',
@@ -37,10 +38,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/StackBlur.js',
         'sirepo/package_data/static/js/ext/canvg.js',
         'sirepo/package_data/static/js/ext/stacktrace-0.6.4.js',
-        'sirepo/package_data/static/js/ext/split-pane-0.6.1.min.js',
-        'sirepo/package_data/static/js/ext/angular-split-pane-1.2.0.js',
-        'sirepo/package_data/static/js/ext/underscore-1.8.3.min.js',
-        'sirepo/package_data/static/js/ext/angular-underscore.js',
+        'sirepo/package_data/static/js/ext/bootstrap-toggle.js',
         'tests/helpers/globals.js',
         'sirepo/package_data/static/js/sirepo.js',
         'sirepo/package_data/static/js/sirepo-components.js',
