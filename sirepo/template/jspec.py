@@ -61,14 +61,9 @@ _X_FIELD = 't'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    settings = data.models.simulationSettings
-    has_rates = settings['ibs'] == '1' or settings['e_cool'] == '1'
     if is_running:
-        percent_complete = 0
+        count, settings, has_rates = _background_task_info(run_dir)
         if settings.model == 'particle' and settings.save_particle_interval > 0:
-            files = _ion_files(run_dir)
-            count = len(files)
             percent_complete = count * 100 / (1 + int(settings.time / settings.save_particle_interval))
             # the most recent file may not yet be fully written
             if count > 0:
@@ -82,17 +77,17 @@ def background_percent_complete(report, run_dir, is_running, schema):
         else:
             # estimate the percent complete from the simulation time in sdds file
             if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-                return _beam_evolution_status(run_dir, settings)
+                return _beam_evolution_status(run_dir, settings, has_rates)
             return {
                 'percentComplete': 0,
                 'frameCount': 0,
             }
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-        files = _ion_files(run_dir)
-        if len(files):
+        count, settings, has_rates = _background_task_info(run_dir)
+        if count:
             return {
                 'percentComplete': 100,
-                'frameCount': len(files),
+                'frameCount': count,
                 'hasParticles': True,
                 'hasRates': has_rates,
             }
@@ -100,6 +95,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
             return {
                 'percentComplete': 100,
                 'frameCount': 1,
+                'hasRates': has_rates,
             }
     return {
         'percentComplete': 0,
@@ -226,15 +222,25 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
-def _beam_evolution_status(run_dir, settings):
+def _background_task_info(run_dir):
+    files = _ion_files(run_dir)
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    settings = data.models.simulationSettings
+    has_rates = settings['ibs'] == '1' or settings['e_cool'] == '1'
+    return len(files), settings, has_rates
+
+
+def _beam_evolution_status(run_dir, settings, has_rates):
     try:
         filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
         t, _, _, _ = sdds_util.extract_sdds_column(filename, 't', 0)
         t_max = max(t)
         if t_max and settings.time > 0:
             return {
+                # use current time as frameCount for uniqueness until simulation is completed
                 'frameCount': int(float(os.path.getmtime(filename))),
                 'percentComplete': 100.0 * t_max / settings.time,
+                'hasRates': has_rates,
             }
     except:
         pass
