@@ -36,12 +36,24 @@
         "CoolingRatesColumn": [
             ["rx", "rx"],
             ["ry", "ry"],
-            ["rs", "rs"]
+            ["rs", "rs"],
+            ["rxibs", "rx_ibs"],
+            ["ryibs", "ry_ibs"],
+            ["rsibs", "rs_ibs"],
+            ["rxecool", "rx_ecool"],
+            ["ryecool", "ry_ecool"],
+            ["rsecool", "rs_ecool"]
         ],
         "CoolingRatesOptionalColumn": [
             ["rx", "rx"],
             ["ry", "ry"],
             ["rs", "rs"],
+            ["rxibs", "rx_ibs"],
+            ["ryibs", "ry_ibs"],
+            ["rsibs", "rs_ibs"],
+            ["rxecool", "rx_ecool"],
+            ["ryecool", "ry_ecool"],
+            ["rsecool", "rs_ecool"],
             ["none", "None"]
         ],
         "ForceFormula": [

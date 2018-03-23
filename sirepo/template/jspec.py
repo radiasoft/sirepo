@@ -36,28 +36,17 @@ _ELEGANT_TWISS_PATH = 'animation/{}'.format(ELEGANT_TWISS_FILENAME)
 
 _ION_FILE_PREFIX = 'ions'
 
-#TODO(pjm): fix units
-_FIELD_LABEL = {
-    'x': 'x [m]',
-    'xp': "x' [rad]",
-    'y': 'y [m]',
-    'yp': "y' [rad]",
-    't': 't [s]',
-    'ds': 'ds [m]',
-    'dp/p': 'dp/p',
-    'emit_x': 'emit x [m*rad]',
-    'emit_y': 'emit y [m*rad]',
-    'sigma_s': 'sigma s [m]',
-    'rx': 'rx [1/s]',
-    'ry': 'ry [1/s]',
-    'rs': 'rs [1/s]',
-}
-
 _FIELD_MAP = {
     'emitx': 'emit_x',
     'emity': 'emit_y',
     'dpp': 'dp/p',
     'sigmas': 'sigma_s',
+    'rxibs': 'rx_ibs',
+    'ryibs': 'ry_ibs',
+    'rsibs': 'rs_ibs',
+    'rxecool': 'rx_ecool',
+    'ryecool': 'ry_ecool',
+    'rsecool': 'rs_ecool'
 }
 
 _PLOT_LINE_COLOR = {
@@ -259,7 +248,7 @@ def _elegant_dir():
 
 def _extract_evolution_plot(report, run_dir):
     filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    x, _, _, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
+    x, _, x_def, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
     if err:
         return err
     plots = []
@@ -268,7 +257,7 @@ def _extract_evolution_plot(report, run_dir):
         if report[f] == 'none':
             continue
         yfield = _map_field_name(report[f])
-        y, _, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
+        y, _, y_def, err = sdds_util.extract_sdds_column(filename, yfield, 0)
         if err:
             return err
         if y_range:
@@ -278,14 +267,14 @@ def _extract_evolution_plot(report, run_dir):
             y_range = [min(y), max(y)]
         plots.append({
             'points': y,
-            'label': _field_label(yfield),
+            'label': _field_label(yfield, y_def),
             'color': _PLOT_LINE_COLOR[f],
         })
     return {
         'title': '',
         'x_range': [min(x), max(x)],
         'y_label': '',
-        'x_label': _field_label(_X_FIELD),
+        'x_label': _field_label(_X_FIELD, x_def),
         'x_points': x,
         'plots': plots,
         'y_range': y_range,
@@ -302,27 +291,28 @@ def _extract_particle_plot(report, run_dir, page_index):
     time = settings.time / settings.step_number * settings.save_particle_interval * page_index
     if time > settings.time:
         time = settings.time
-    x, _, _, err = sdds_util.extract_sdds_column(filename, xfield, 0)
+    x, _, x_def, err = sdds_util.extract_sdds_column(filename, xfield, 0)
     if err:
         return err
-    y, _, _, err = sdds_util.extract_sdds_column(filename, yfield, 0)
+    y, _, y_def, err = sdds_util.extract_sdds_column(filename, yfield, 0)
     if err:
         return err
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _field_label(xfield),
-        'y_label': _field_label(yfield),
+        'x_label': _field_label(xfield, x_def),
+        'y_label': _field_label(yfield, y_def),
         'title': 'Ions at time {:.2f} [s]'.format(time),
         'z_matrix': hist.T.tolist(),
     }
 
 
-def _field_label(field):
-    if field in _FIELD_LABEL:
-        return _FIELD_LABEL[field]
-    return field
+def _field_label(field, field_def):
+    units = field_def[1]
+    if units == 'NULL':
+        return field
+    return '{} [{}]'.format(field, units)
 
 
 def _generate_parameters_file(data):
@@ -338,10 +328,6 @@ def _generate_parameters_file(data):
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':
         v['ionBeam_rms_bunch_length'] = 0
-    #TODO(pjm): work-around for recent JSPEC bug, remove when fixed
-    # set simulationSettings.sample_number = electronCoolingRate.sample_number if greater
-    if v['simulationSettings_sample_number'] > v['electronCoolingRate_sample_number']:
-        v['simulationSettings_sample_number'] = v['electronCoolingRate_sample_number']
     v['simulationSettings_ibs'] = 'on' if int(v['simulationSettings_ibs']) else 'off'
     v['simulationSettings_e_cool'] = 'on' if int(v['simulationSettings_e_cool']) else 'off'
     return template_common.render_jinja(SIM_TYPE, v)
