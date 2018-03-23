@@ -1,5 +1,5 @@
 {
-    "version": "20180322.000000",
+    "version": "20180323.000000",
     "appInfo": {
         "elegant": {
             "longName": "elegant",
@@ -94,7 +94,7 @@
             "name": ["Folder Name", "SafePath"]
         },
         "simulation": {
-            "name": ["Name", "SafePath"],
+            "name": ["Name", "SimulationName"],
             "folder": ["Folder", "String"],
             "documentationUrl": ["Documentation URL", "OptionalString", ""]
         }

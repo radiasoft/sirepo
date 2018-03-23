@@ -2004,6 +2004,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 name: item.name,
                 simulationId: item.simulationId,
                 lastModified: item.last_modified,
+                isExample: item.isExample,
             };
             currentFolder.children.push(newItem);
         }
@@ -2333,7 +2334,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         if (item.isFolder) {
             return item.children.length === 0;
         }
-        return true;
+        return ! item.isExample;
     };
 
     self.copyItem = function(item) {

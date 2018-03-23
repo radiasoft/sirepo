@@ -526,14 +526,16 @@ def prepare_simulation(data):
 
 
 def process_simulation_list(res, path, data):
+    sim = data['models']['simulation']
     res.append({
         'simulationId': _sid_from_path(path),
-        'name': data['models']['simulation']['name'],
-        'folder': data['models']['simulation']['folder'],
+        'name': sim['name'],
+        'folder': sim['folder'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
-        'simulation': data['models']['simulation'],
+        'isExample': sim['isExample'] if 'isExample' in sim else False,
+        'simulation': sim,
     })
 
 

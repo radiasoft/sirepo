@@ -274,6 +274,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
         'simulation.name': simulation_name,
+        'simulation.isExample': True,
     })
     if len(rows) == 0:
         for s in simulation_db.examples(simulation_type):
