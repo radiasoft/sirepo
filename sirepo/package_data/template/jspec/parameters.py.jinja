@@ -2,11 +2,13 @@
 
 jspec_file = """
 section_scratch
-        # required to initialize muParser
+        ion_mass = {{ ionBeam_mass }}
+        ion_ke = {{ ionBeam_kinetic_energy }}
+        ion_gamma = 1 + ion_ke/ion_mass
 section_ion
         charge_number = {{ ionBeam_charge_number }}
-        mass = {{ ionBeam_mass }}
-        kinetic_energy = {{ ionBeam_kinetic_energy }}
+        mass = ion_mass
+        kinetic_energy = ion_ke
         norm_emit_x = {{ ionBeam_norm_emit_x }}
         norm_emit_y = {{ ionBeam_norm_emit_y }}
         momentum_spread = {{ ionBeam_momentum_spread }}
@@ -36,7 +38,7 @@ section_cooler
         disp_dx = {{ cooler_disp_dx }}
         disp_dy = {{ cooler_disp_dy }}
 section_e_beam
-        gamma = {{ electronBeam_gamma }}
+        gamma = ion_gamma
         tmp_tr = {{ electronBeam_tmp_tr }}
         tmp_l = {{ electronBeam_tmp_l }}
         shape = {{ electronBeam_shape }}

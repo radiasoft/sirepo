@@ -78,6 +78,18 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         });
     }
 
+    function processGamma() {
+        var ionBeam = appState.models.ionBeam;
+        var gamma = 0;
+        if (ionBeam.mass != 0) {
+            gamma = (1 + ionBeam.kinetic_energy / ionBeam.mass).toFixed(6);
+        }
+        // electronBeam.gamma is not directly used on server side calculation
+        appState.models.electronBeam.gamma = gamma;
+        appState.applicationState().electronBeam.gamma = gamma;
+        panelState.enableField('electronBeam', 'gamma', false);
+    }
+
     function processIntrabeamScatteringMethod() {
         var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
         panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
@@ -105,11 +117,13 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         processElectronBeamType();
         processElectronBeamShape();
         processLatticeSource();
+        processGamma();
         appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
         appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
+        appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
     });
 });
 
