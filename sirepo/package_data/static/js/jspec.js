@@ -129,7 +129,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
     var self = this;
-    self.settingsModel = 'simulationSettings';
+    self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.hasParticles = false;
     self.hasRates = false;
