@@ -61,11 +61,11 @@ _X_FIELD = 't'
 
 
 def background_percent_complete(report, run_dir, is_running, schema):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    settings = data.models.simulationSettings
+    has_rates = settings['ibs'] == '1' or settings['e_cool'] == '1'
     if is_running:
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        settings = data.models.simulationSettings
         percent_complete = 0
-
         if settings.model == 'particle' and settings.save_particle_interval > 0:
             files = _ion_files(run_dir)
             count = len(files)
@@ -77,6 +77,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
                 'percentComplete': percent_complete,
                 'frameCount': count,
                 'hasParticles': True,
+                'hasRates': has_rates,
             }
         else:
             # estimate the percent complete from the simulation time in sdds file
@@ -93,6 +94,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
                 'percentComplete': 100,
                 'frameCount': len(files),
                 'hasParticles': True,
+                'hasRates': has_rates,
             }
         else:
             return {
@@ -248,6 +250,7 @@ def _elegant_dir():
 
 def _extract_evolution_plot(report, run_dir):
     filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     x, _, x_def, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
     if err:
         return err
@@ -267,7 +270,7 @@ def _extract_evolution_plot(report, run_dir):
             y_range = [min(y), max(y)]
         plots.append({
             'points': y,
-            'label': _field_label(yfield, y_def),
+            'label': '{}{}'.format(_field_label(yfield, y_def), _field_description(yfield, data)),
             'color': _PLOT_LINE_COLOR[f],
         })
     return {
@@ -308,6 +311,36 @@ def _extract_particle_plot(report, run_dir, page_index):
     }
 
 
+def _field_description(field, data):
+    if not re.search(r'rx|ry|rs', field):
+        return ''
+    settings = data['models']['simulationSettings']
+    ibs = settings['ibs'] == '1'
+    e_cool = settings['e_cool'] == '1'
+    dir = _field_direction(field)
+    if 'ibs' in field:
+        return ' - {} IBS rate'.format(dir)
+    if 'ecool' in field:
+        return ' - {} electron cooling rate'.format(dir)
+    if ibs and e_cool:
+        return ' - combined electron cooling and IBS heating rate ({})'.format(dir)
+    if e_cool:
+        return ' - {} electron cooling rate'.format(dir)
+    if ibs:
+        return ' - {} IBS rate'.format(dir)
+    return ''
+
+
+def _field_direction(field):
+    if 'rx' in field:
+        return 'horizontal'
+    if 'ry' in field:
+        return 'vertical'
+    if 'rs' in field:
+        return 'longitudinal'
+    assert False, 'invalid direction field: {}'.format(field)
+
+
 def _field_label(field, field_def):
     units = field_def[1]
     if units == 'NULL':
@@ -328,8 +361,8 @@ def _generate_parameters_file(data):
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':
         v['ionBeam_rms_bunch_length'] = 0
-    v['simulationSettings_ibs'] = 'on' if int(v['simulationSettings_ibs']) else 'off'
-    v['simulationSettings_e_cool'] = 'on' if int(v['simulationSettings_e_cool']) else 'off'
+    v['simulationSettings_ibs'] = 'on' if v['simulationSettings_ibs'] == '1' else 'off'
+    v['simulationSettings_e_cool'] = 'on' if v['simulationSettings_e_cool'] == '1' else 'off'
     return template_common.render_jinja(SIM_TYPE, v)
 
 

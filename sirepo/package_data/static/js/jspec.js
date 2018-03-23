@@ -132,6 +132,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.settingsModel = 'simulationSettings';
     self.panelState = panelState;
     self.hasParticles = false;
+    self.hasRates = false;
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
@@ -139,6 +140,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 self.hasParticles = data.hasParticles;
+                self.hasRates = data.hasRates;
                 frameCache.setFrameCount(data.frameCount, m);
             });
         }
