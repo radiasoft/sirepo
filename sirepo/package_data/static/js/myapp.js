@@ -19,6 +19,18 @@ SIREPO.app.controller('MyAppSourceController', function () {
     var self = this;
 });
 
+SIREPO.app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -32,7 +44,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'beamline\')}"><a href data-ng-click="nav.openSection(\'beamline\')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',

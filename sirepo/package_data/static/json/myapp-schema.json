@@ -12,13 +12,7 @@
             "height": ["Height [cm]", "Float", null, "Distance from front paws to withers"],
             "weight": ["Weight [lbs]", "Float"]
         },
-        "dogReport": {},
-        "simulation": {
-            "name": ["Name", "String"]
-        },
-        "simulationFolder": {
-            "name": ["Folder Name", "String"]
-        }
+        "dogReport": {}
     },
     "view": {
         "dog": {

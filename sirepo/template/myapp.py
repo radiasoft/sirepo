@@ -19,6 +19,10 @@ def fixup_old_data(data):
     pass
 
 
+def lib_files(data, source_lib):
+    return []
+
+
 def models_related_to_report(data):
     r = data['report']
     return [
