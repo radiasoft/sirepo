@@ -552,11 +552,21 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         var p0 = valuePrecision(v0);
         var p1 = valuePrecision(v1);
         var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-        if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
-            code = 'f';
+        if (useFloatFormat(decimals)) {
+            if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
+                code = 'f';
+            }
         }
         else {
-            decimals -= (decimals < 0 ? Math.min(p0, p1) : Math.max(p0, p1));
+            if (p0 == 0) {
+                decimals -= p1;
+            }
+            else if (p1 == 0) {
+                decimals -= p0;
+            }
+            else {
+                decimals -= Math.max(p0, p1);
+            }
         }
         decimals = decimals < 0 ? Math.abs(decimals) : 0;
         return {
@@ -713,7 +723,9 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
                     label += ' = ';
                 }
                 else {
-                    label = '+';
+                    if (formatInfo.base > 0) {
+                        label = '+';
+                    }
                 }
                 formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
                 if (unit) {
