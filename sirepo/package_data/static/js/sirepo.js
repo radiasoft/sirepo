@@ -67,7 +67,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'shagstrom.angular-split-pane', 'ngCookies']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'ngCookies']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -228,7 +228,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                             callback(resp);
                         }
                     },
-                    errorCallback: function (resp, status) {
+                    errorCallback: function (resp) {
                         if ($.isFunction(callback)) {
                             //TODO(robnagler) this should be errorCallback
                             callback(resp);
@@ -326,6 +326,19 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
+    self.enumDescription = function(enumName, value) {
+        var res = null;
+        SIREPO.APP_SCHEMA.enum[enumName].forEach(function(v) {
+            if (v[0] == value) {
+                res = v[1];
+            }
+        });
+        if (res === null) {
+            throw 'no value for enum: ' + enumName + '.' + value;
+        }
+        return res;
+    };
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -361,7 +374,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<pretty>': false
             },
-            function(data, status) {
+            function(data) {
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
                         ':simulationIds': data.redirect.simulationId
@@ -501,7 +514,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         }
         var index = 1;
         while (true) {
-            var foundIt = false;
             var id = template.replace('{}', index);
             if (values[id]) {
                 index++;
@@ -640,6 +652,8 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
     self.sleepNotification = function(notification) {
         var now = new Date();
         $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
+        //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+        notification.active = false;
     };
 
     self.dismiss = function(name) {
@@ -657,6 +671,70 @@ SIREPO.app.factory('notificationService', function($cookies, $sce) {
     return self;
 });
 
+// manages validators for ngModels and provides other validation services
+SIREPO.app.service('validationService', function(utilities) {
+
+    this.fieldValidators = {};
+
+    this.setFieldValidator = function(name, validatorFn, messageFn) {
+        if(! this.fieldValidators[name]) {
+            this.fieldValidators[name] = {};
+        }
+        this.fieldValidators[name].vFunc = validatorFn;
+        this.fieldValidators[name].vMsg = messageFn;
+    };
+    this.getFieldValidator = function(name) {
+        return this.fieldValidators[name];
+    };
+    this.removeFieldValidator = function(name) {
+        if(this.fieldValidators[name]) {
+            delete this.fieldValidators[name];
+        }
+    };
+    this.reloadValidatorForModel = function(name, modelValidatorName, ngModel) {
+        var fv = this.getFieldValidator(name);
+        if(! ngModel.$validators[modelValidatorName]) {
+            if(fv) {
+                ngModel.$validators[modelValidatorName] = fv.vFunc;
+            }
+        }
+    };
+    this.getMessageForModel = function(name, modelValidatorName, ngModel) {
+        if(! ngModel.$validators[modelValidatorName]) {
+            return '';
+        }
+        var fv = this.getFieldValidator(name);
+        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
+    };
+
+    this.validateFieldOfType = function(value, type) {
+        if (value === undefined || value === null || value === '')  {
+            // null files OK, at least sometimes
+            if (type === 'MirrorFile') {
+                return true;
+            }
+            return false;
+        }
+        if (type === 'Float' || type === 'Integer') {
+            if (SIREPO.NUMBER_REGEXP.test(value)) {
+                var v;
+                if (type  === 'Integer') {
+                    v = parseInt(value);
+                    return v == value;
+                }
+                return isFinite(parseFloat(value));
+            }
+        }
+        if (type === 'String') {
+            return true;
+        }
+        // TODO(mvk): other types here, for now just accept everything
+        return true;
+    };
+
+});
+
+
 SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope) {
     var self = {};
     var frameCountByModelKey = {};
@@ -671,13 +749,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         });
         return args.join('_');
     }
-
-    self.clearFrames = function(modelName) {
-        // TODO(robnagler) if there are locally cached frames, they
-        // would be cleared here, but right now they are in the browser
-        // cache so do nothing.
-        return;
-    };
 
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
@@ -964,13 +1035,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'sr-' + name + '-editor';
     };
 
-    self.pythonSource = function(simulationId, modelName) {
+    self.pythonSource = function(simulationId, modelName, reportName) {
         var args = {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
         };
         if (modelName) {
             args['<model>'] = modelName;
+        }
+        if (reportName) {
+            args['<report>'] = reportName;
         }
         $window.open(requestSender.formatUrl('pythonSource', args), '_blank');
     };
@@ -1004,9 +1078,26 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         setPanelValue(name, 'error', error);
     };
 
-    self.showEnum = function(model, field, optionIndex, isShown) {
+    self.showEnum = function(model, field, value, isShown) {
+        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
+        var optionIndex = -1;
+        eType.forEach(function(row, index) {
+            if (row[0] == value) {
+                optionIndex = index;
+            }
+        });
+        if (optionIndex < 0) {
+            throw 'no enum value found for ' + model + '.' + field + ' = ' + value;
+        }
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         showValue($(opt), isShown);
+        // this is required for MSIE 11 and Safari which can't hide select options
+        if (isShown) {
+            $(opt).removeAttr('disabled');
+        }
+        else {
+            $(opt).attr('disabled', 'disabled');
+        }
     };
 
     self.showField = function(model, field, isShown) {
@@ -1078,7 +1169,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q, utilities) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1143,8 +1234,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             return v ? '1' : '0';
         }
         if (angular.isString(v)) {
-            if (v === '')
+            if (v === '') {
                 throw param + ': may not be empty string';
+            }
             return v;
         }
         if (angular.isNumber(v)) {
@@ -1390,7 +1482,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             }
         };
 
-        var process = function(resp, status) {
+        var process = function(resp) {
             if (qi.qState == 'removing') {
                 return;
             }
@@ -1623,6 +1715,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             return state.percentComplete;
         };
 
+        state.hasFrames = function() {
+            return state.getFrameCount() > 0;
+        };
+
         state.hasTimeData = function () {
             return state.timeData && state.timeData.elapsedTime;
         };
@@ -1782,7 +1878,7 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
     return self;
 });
 
-SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location) {
+SIREPO.app.factory('fileManager', function(requestSender) {
     var COMPOUND_PATH_SEPARATOR = ':';
     var self = {};
 
@@ -1845,15 +1941,19 @@ SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location)
     }
     self.updateTreeFromFileList = function(data) {
         for(var i = 0; i < data.length; i++) {
-            if(! findSimInTree(data[i].simulationId)) {
-                var item = self.addToTree(data[i]);
+            var item = findSimInTree(data[i].simulationId);
+            if (item) {
+                item.name = data[i].name;
+            }
+            else {
+                self.addToTree(data[i]);
             }
         }
         var listItemIds = data.map(function(item) {
             return item.simulationId;
         });
         var orphanItemIds = simList.filter(function(item) {
-            return ! listItemIds.includes(item);
+            return listItemIds.indexOf(item) < 0;
         });
         for(var j = 0; j < orphanItemIds.length; ++j) {
             self.removeFromTree(findSimInTree(orphanItemIds[j]));
@@ -1904,6 +2004,7 @@ SIREPO.app.factory('fileManager', function(requestSender, $rootScope, $location)
                 name: item.name,
                 simulationId: item.simulationId,
                 lastModified: item.last_modified,
+                isExample: item.isExample,
             };
             currentFolder.children.push(newItem);
         }
@@ -2068,10 +2169,10 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 
-    $scope.$on('$locationChangeStart', function (event) {
+    $scope.$on('$locationChangeStart', function () {
         SIREPO.setPageLoaderVisible(true);
     });
-    $scope.$on('$viewContentLoaded', function (event) {
+    $scope.$on('$viewContentLoaded', function () {
         SIREPO.setPageLoaderVisible(false);
     });
 
@@ -2154,6 +2255,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }];
     self.selectedItem = null;
     self.sortField = 'name';
+    self.isWaitingForSim = false;
 
     function clearModels() {
         appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
@@ -2232,7 +2334,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         if (item.isFolder) {
             return item.children.length === 0;
         }
-        return true;
+        return ! item.isExample;
     };
 
     self.copyItem = function(item) {
@@ -2244,8 +2346,9 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         var count = 2;
         var name = item.name;
         name = name.replace(/\s+\d+$/, '');
-        while (names[name + ' ' + count])
+        while (names[name + ' ' + count]) {
             count++;
+        }
         self.copyName = name + ' ' + count;
         $('#sr-copy-confirmation').modal('show');
     };
@@ -2379,7 +2482,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
     };
 
-    self.selectedItemType = function(item) {
+    self.selectedItemType = function() {
         if (self.selectedItem && self.selectedItem.isFolder) {
             return 'Folder';
         }
@@ -2417,10 +2520,14 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
+        self.isWaitingForSim = true;
+        self.newSimName = appState.models.simulation.name;
         appState.models.simulation.folder = self.pathName(self.activeFolder);
         appState.newSimulation(
             appState.models.simulation,
             function(data) {
+                self.isWaitingForSim = false;
+                self.newSimName = '';
                 fileManager.addToTree(data.models.simulation);
                 self.openItem(data.models.simulation);
             });
@@ -2503,6 +2610,7 @@ SIREPO.app.filter('simulationName', function() {
         if (name) {
             // clean up name so it formats well in HTML
             name = name.replace(/\_/g, ' ');
+            name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
         }
         return name;
     };

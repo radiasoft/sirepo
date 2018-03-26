@@ -4,62 +4,22 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationSettings')">
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
-            <div data-ng-show="visualization.simState.isStatePending()">
-              <div class="col-sm-12">
-                 {{ visualization.simState.stateAsText() }} {{ visualization.simState.dots }}
-              </div>
-            </div>
-            <div data-ng-show="visualization.simState.isStateRunning()">
-              <div class="col-sm-12">
-                <div data-ng-show="visualization.simState.isInitializing()">
-                   Running Simulation {{ visualization.simState.dots }}
-                </div>
-                <div data-ng-show="visualization.simState.getFrameCount() > 0">
-                  Completed frame: {{ visualization.simState.getFrameCount() }}
-                </div>
-                <div class="progress">
-                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="visualization.simState.cancelSimulation()">End Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isStopped()">
-            <div class="col-sm-12" data-ng-show="visualization.simState.getFrameCount() >= 1">
-              Simulation
-              <span>{{ visualization.simState.stateAsText() }}</span><span>:
-                {{ visualization.simState.getFrameCount() }} animation frames
-              </span>
-              <br><br>
-            </div>
-            <div data-ng-show="visualization.simState.isStateError()">
-              <div class="col-sm-12">
-                {{ visualization.simState.stateAsText() }}
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="visualization.simState.runSimulation()">Start New Simulation</button>
-            </div>
-          </form>
+          <div data-sim-status-panel="visualization.simState"></div>
           <div class="clearfix"></div>
           <div data-summary-table="animation"></div>
         </div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="3d" data-model-name="beamAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="particle" data-model-name="particleAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="2d" data-model-name="beamHistogramAnimation"></div>
     </div>
   </div>

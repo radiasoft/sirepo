@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -15,14 +15,17 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
+    # Aperture: aperture 33.1798m
     el.append(srwlib.SRWLOptA("r", "a", 0.00025, 0.00025, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(11.8202))
+    # Watchpoint: watch 45.0m
 
     pp = []
+    # Aperture
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Watchpoint
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

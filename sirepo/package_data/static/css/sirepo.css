@@ -71,6 +71,10 @@
       padding-top: 4px;
     }
 
+    .sr-disabled-text {
+        color: #aaa;
+    }
+
     /* app styles */
     .srw-toolbar-button {
         background-color: #fff;
@@ -423,6 +427,10 @@
       font-weight: bold;
       text-anchor: middle;
     }
+    .sr-plot .sub-title {
+      font-size: 14px;
+      text-anchor: middle;
+    }
     .sr-plot .line {
       fill: none;
       stroke: steelblue;
@@ -534,6 +542,9 @@
       stroke-width: 1px;
       shape-rendering: crispEdges;
       stroke: steelblue;
+    }
+    .sr-plot .x-base, .sr-plot .y-base {
+      font-size: 13px;
     }
 
     @media (max-width: 767px) {
@@ -665,9 +676,6 @@ a:focus, a.srw-tab:focus {
   outline: none;
 }
 
-.sr-clearfix-pad {
-  height: 10px;
-}
 .sr-help-icon {
   margin-right: 15px;
   color: #337ab7;
@@ -707,35 +715,6 @@ tr:hover .sr-button-bar-parent {
   background-color: blue;
   width: 40px;
   transition: all 0.5s ease 0s;
-}
-
-.split-pane-divider {
-  -moz-user-select: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.sr-split-pane-frame {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  background: silver;
-}
-.sr-split-pane-frame .split-pane > .split-pane-divider.dragged.touch {
-  background: blue;
-  opacity: 0.25;
-}
-.sr-split-pane-component-inner {
-  box-sizing: border-box;
-  background: white;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-}
-.sr-split-pane-frame div.panel {
-  margin-bottom: 0;
-}
-.sr-split-pane-frame table.table {
-  margin-bottom: 0;
 }
 
 .sr-dropdown-submenu {
@@ -1165,4 +1144,30 @@ p.hellweg-drop-zone {
 }
 .dicom-button-panel {
   margin-bottom: 1ex;
+}
+
+/* for Split.js */
+.split {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.gutter {
+  background-color: #eee;;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+  background-image: url('../img/grips-vertical.png');
+}
+.gutter.gutter-vertical {
+  cursor: row-resize;
+  background-image: url('../img/grips-horizontal.png');
+}
+.split.split-horizontal, .gutter.gutter-horizontal {
+  height: 100%;
+  float: left;
 }

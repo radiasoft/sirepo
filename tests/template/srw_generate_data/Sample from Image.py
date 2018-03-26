@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -16,6 +16,7 @@ import srwl_uti_smp
 
 def set_optics(v=None):
     el = []
+    # Sample: sample 20.0m
     el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
                     file_path=v.op_sample1,
                     resolution=2.480469e-09,
@@ -34,11 +35,13 @@ def set_optics(v=None):
                     prefix='op_sample1',
                     output_image_format='tif',
                     ))
+    # Watchpoint: watch 20.0m
 
     pp = []
+    # Sample
     pp.append([0, 0, 1.0, 0, 0, 1.0, 100.0, 1.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
-
+    # Watchpoint
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 0, 0.005, 20.0, 0.005, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

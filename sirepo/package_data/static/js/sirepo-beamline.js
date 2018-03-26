@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
+SIREPO.app.factory('beamlineService', function(appState, validationService, $window) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -104,7 +104,7 @@ SIREPO.app.factory('beamlineService', function(appState, utilities, $window) {
         var fields = SIREPO.APP_SCHEMA.model[type];
         for (var field in fields) {
             var fieldType = fields[field][1];
-            if (! utilities.validateFieldOfType(item[field], fieldType)) {
+            if (! validationService.validateFieldOfType(item[field], fieldType)) {
                 return false;
             }
         }
@@ -558,7 +558,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
         },
         template: [
             '<div>',
-              '<button type="button" class="close" ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
+              '<button type="button" class="close" ng-click="cancelItemChanges()"><span>&times;</span></button>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
                 '<div class="sr-beamline-element-title">{{ title }}</div>',
@@ -584,6 +584,10 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
                 getData: function() {
                     return beamlineService.activeItem;
                 },
+            };
+            $scope.cancelItemChanges = function() {
+                appState.cancelChanges('beamline');
+                beamlineService.dismissPopup();
             };
         },
     };
@@ -615,6 +619,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             parentController: '=',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<div class="row">',
               '<div class="col-sm-12">',
                 '<div class="text-center bg-info sr-toolbar-holder">',
@@ -675,11 +680,6 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             }
 
             initToolbarItems();
-        },
-        link: function link(scope, element) {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
         },
     };
 });

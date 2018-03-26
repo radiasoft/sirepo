@@ -4,6 +4,10 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
@@ -75,7 +79,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     return self;
 });
 
-SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, frameCache, panelState, $scope) {
+SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, panelState, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
 
@@ -205,7 +209,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         panelState.showModalEditor(type);
     };
 
-    self.handleModalShown = function(name) {
+    self.handleModalShown = function() {
         updateAllFields();
     };
 
@@ -255,7 +259,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, panelState, requestSender, warpvndService, $scope) {
+SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
@@ -279,7 +283,11 @@ SIREPO.app.controller('WarpVNDVisualizationController', function (appState, pane
             });
     }
 
-    self.handleModalShown = function(name) {
+    self.hasFrames = function() {
+        return frameCache.getFrameCount() > 0;
+    };
+
+    self.handleModalShown = function() {
         panelState.enableField('simulationGrid', 'particles_per_step', false);
     };
 
@@ -299,14 +307,14 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function() {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav" data-app-url="/#/warpvnd"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -377,6 +385,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
             source: '=controller',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<table data-ng-show="appState.models.conductorTypes.length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
               '<colgroup>',
                 '<col>',
@@ -466,11 +475,6 @@ SIREPO.app.directive('conductorTable', function(appState) {
             appState.whenModelsLoaded($scope, updateConductors);
             $scope.$on('conductors.changed', updateConductors);
         },
-        link: function link(scope, element) {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
-        },
     };
 });
 
@@ -505,7 +509,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 var numX = appState.models.simulationGrid.num_x;
                 var n = toMicron(appState.models.simulationGrid.channel_width / (numX * 2));
                 var yCenter = shape.y - shape.height / 2;
-                shape.y = alignValue(yCenter, n, numX) + shape.height / 2;
+                shape.y = alignValue(yCenter, n) + shape.height / 2;
                 // iterate shapes (and anode)
                 //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
                 //      set drag-shape right edge to shape left edge
@@ -536,7 +540,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 });
             }
 
-            function alignValue(p, n, numX) {
+            function alignValue(p, n) {
                 var pn = fmod(p, n);
                 var v = pn < n / 2
                     ? p - pn
@@ -906,12 +910,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
                     .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
-                    .attr('x', function(d) { return xAxisScale(shape.x); })
-                    .attr('y', function(d) { return yAxisScale(shape.y); })
-                    .attr('width', function(d) {
+                    .attr('x', function() { return xAxisScale(shape.x); })
+                    .attr('y', function() { return yAxisScale(shape.y); })
+                    .attr('width', function() {
                         return xAxisScale(shape.x + shape.width) - xAxisScale(shape.x);
                     })
-                    .attr('height', function(d) { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
+                    .attr('height', function() { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
             }
 
             function updateShapeAttributes(selection) {

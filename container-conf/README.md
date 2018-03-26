@@ -18,6 +18,5 @@ You can access the service at port 8000:
 
 ### Build Info
 
-* [Vagrant repository](https://atlas.hashicorp.com/radiasoft/boxes/sirepo)
 * [Docker repository](https://hub.docker.com/r/radiasoft/sirepo)
 * [Base container config: radiasoft/beamsim](https://github.com/radiasoft/containers/tree/master/vagrant/radiasoft/beamsim)

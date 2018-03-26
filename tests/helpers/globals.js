@@ -12,6 +12,12 @@ $.ajax = function() {};
 SIREPO.APP_SCHEMA = {
     "version": "20160912.000000",
     "simulationType": "srw",
+    "appInfo": {
+        "srw": {
+            "shortName": "SRW",
+            "longName": "Synchrotron Radiation Workshop",
+        },
+    },
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",

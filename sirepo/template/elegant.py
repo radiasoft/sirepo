@@ -6,14 +6,13 @@ u"""elegant execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
-from sirepo.template import template_common
+from sirepo.template import template_common, sdds_util
 import ast
 import glob
 import math
@@ -45,9 +44,9 @@ _FIELD_LABEL = {
     't': 't [s]',
     'p': 'p (mₑc)',
     's': 's [m]',
-    'LinearDensity': 'Linear Density [C/s]',
-    'LinearDensityDeriv': 'LinearDensityDeriv [C/s²]',
-    'GammaDeriv': 'GammaDeriv [1/m]',
+    'LinearDensity': 'Linear Density (C/s)',
+    'LinearDensityDeriv': 'LinearDensityDeriv (C/s²)',
+    'GammaDeriv': 'GammaDeriv (1/m)',
 }
 
 #
@@ -67,6 +66,8 @@ _SDDS_DOUBLE_TYPE = 1
 _SDDS_STRING_TYPE = 7
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
+
+_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
 
 _INFIX_TO_RPN = {
     ast.Add: '+',
@@ -119,10 +120,10 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     yfield = data['y']
     bins = data['histogramBins']
 
-    x, column_names, err = _extract_sdds_column(xFilename, xfield, page_index)
+    x, column_names, x_def, err = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
     if err:
         return err
-    y, _, err = _extract_sdds_column(yFilename, yfield, page_index)
+    y, _, y_def, err = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
     if err:
         return err
     if _is_2d_plot(column_names):
@@ -130,8 +131,8 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
-            'x_label': _field_label(xfield),
-            'y_label': _field_label(yfield),
+            'x_label': _field_label(xfield, x_def[1]),
+            'y_label': _field_label(yfield, y_def[1]),
             'points': y,
             'x_points': x,
         }
@@ -139,8 +140,8 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _field_label(xfield),
-        'y_label': _field_label(yfield),
+        'x_label': _field_label(xfield, x_def[1]),
+        'y_label': _field_label(yfield, y_def[1]),
         'title': _plot_title(xfield, yfield, page_index),
         'z_matrix': hist.T.tolist(),
     }
@@ -171,6 +172,7 @@ def fixup_old_data(data):
     for m in data['models']['elements']:
         if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
             m['mode'] = 'coordinate'
+        template_common.update_model_defaults(m, m['type'], _SCHEMA)
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
         for f in ('emit_x', 'emit_y', 'emit_z'):
@@ -187,6 +189,8 @@ def fixup_old_data(data):
                     bunch[f] = first_bunch_command[f]
         else:
             bunch['centroid'] = '0,0,0,0,0,0'
+    for m in data['models']['commands']:
+        template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -237,7 +241,7 @@ def generate_parameters_file(data, is_parallel=False):
         v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
         v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
         v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return pkjinja.render_resource('elegant.py', v)
+        return template_common.render_jinja(SIM_TYPE, v)
 
     for f in _SCHEMA['model']['bunch']:
         info = _SCHEMA['model']['bunch'][f]
@@ -270,7 +274,7 @@ def generate_parameters_file(data, is_parallel=False):
             v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
     v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
-    return pkjinja.render_resource('elegant_bunch.py', v)
+    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
 def get_animation_name(data):
@@ -738,43 +742,11 @@ def _create_default_commands(data):
         }),
     ]
 
-
-def _extract_sdds_column(filename, field, page_index):
-    try:
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
-            pkdlog('{}: cannot access'.format(filename))
-            err = _sdds_error('Missing report output file.')
-        else:
-            column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-            #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
-            for _ in xrange(page_index + 1):
-                if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
-                    #TODO(robnagler) is this an error?
-                    break
-            try:
-                values = sdds.sddsdata.GetColumn(
-                    _SDDS_INDEX,
-                    column_names.index(field),
-                )
-                return (
-                    map(lambda v: _safe_sdds_value(v), values),
-                    column_names,
-                    None,
-                )
-            except SystemError as e:
-                pkdlog('{}: page not found in {}'.format(page_index, filename))
-                err = _sdds_error('Output page {} not found'.format(page_index) if page_index else 'No output was generated for this report.')
-    finally:
-        try:
-            sdds.sddsdata.Terminate(_SDDS_INDEX)
-        except Exception:
-            pass
-    return None, None, err
-
-
-def _field_label(field):
+def _field_label(field, units):
     if field in _FIELD_LABEL:
         return _FIELD_LABEL[field]
+    if units in _SIMPLE_UNITS:
+        return '{} [{}]'.format(field, units)
     return field
 
 
@@ -895,6 +867,8 @@ def _infix_to_postfix(expr):
 
 #TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
 def _is_2d_plot(columns):
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return True
     if ('x' in columns and 'xp' in columns) \
        or ('y' in columns and 'yp' in columns) \
        or ('t' in columns and 'p' in columns):
@@ -903,7 +877,7 @@ def _is_2d_plot(columns):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
@@ -1135,13 +1109,6 @@ def _sdds_beam_type_from_file(filename):
     return res
 
 
-def _sdds_error(error_text='invalid data file'):
-    sdds.sddsdata.Terminate(_SDDS_INDEX)
-    return {
-        'error': error_text,
-    }
-
-
 def _simulation_files(data):
     res = []
     _iterate_model_fields(data, res, _iterator_input_files)
@@ -1163,6 +1130,9 @@ def _validate_data(data, schema):
 def _variables_to_postfix(rpn_variables):
     res = []
     for v in rpn_variables:
+        if 'value' not in v:
+            pkdlog('rpn var missing value: {}', v['name'])
+            v['value'] = '0'
         res.append({
             'name': v['name'],
             'value': _infix_to_postfix(v['value']),

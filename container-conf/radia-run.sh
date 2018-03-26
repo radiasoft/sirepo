@@ -5,7 +5,10 @@
 . ~/.bashrc
 set -e
 cd '{sirepo_db_dir}'
-export SIREPO_PKCLI_SERVICE_PORT={sirepo_port}
-export SIREPO_PKCLI_SERVICE_DB_DIR=$PWD
+export PYKERN_PKCONFIG_CHANNEL=alpha
 export PYTHONUNBUFFERED=1
+export SIREPO_PKCLI_SERVICE_PORT='{sirepo_port}'
+export SIREPO_PKCLI_SERVICE_RUN_DIR="$PWD"
+export SIREPO_SERVER_DB_DIR="$PWD/db"
+mkdir -m 700 -p "$SIREPO_SERVER_DB_DIR"
 exec sirepo service http

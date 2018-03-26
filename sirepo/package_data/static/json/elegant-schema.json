@@ -129,9 +129,18 @@
             ["leap-frog", "Leap Frog"],
             ["non-adaptive runge-kutta", "Non-adaptive Runge-Kutta"]
         ],
+        "BmxyzMethod": [
+            ["", ""],
+            ["runge-kutta", "Runge-Kutta"],
+            ["bulirsch-stoer", "Bulirsch-Stoer"],
+            ["modified-midpoint", "Modified Midpoint"],
+            ["two-pass modified-midpoint", "Two Pass Modified Midpoint"],
+            ["leap-frog", "Leap Frog"],
+            ["non-adaptive runge-kutta", "Non-adaptive Runge-Kutta"]
+        ],
         "BodyFocusModel": [
             ["", "None"],
-            ["SRS", "SRS"]
+            ["srs", "SRS"]
         ],
         "CeplMethod": [
             ["runge-kutta", "Runge-Kutta"],
@@ -272,6 +281,15 @@
             ["non-adaptive runge-kutta", "Non-adaptive Runge-Kutta"],
             ["modified-midpoint", "Modified Midpoint"]
         ],
+        "SpeedbumpInsertFrom": [
+            ["", ""],
+            ["x", "x"],
+            ["+x", "+x"],
+            ["-x", "-x"],
+            ["y", "y"],
+            ["+y", "+y"],
+            ["-y", "-y"]
+        ],
         "TfbpickupPlane": [
             ["x", "x"],
             ["y", "y"],
@@ -321,6 +339,11 @@
             ["y", "Y"],
             ["both", "Both"]
         ],
+        "UkickmapYawEnd": [
+            ["-1", "Entrance"],
+            ["0", "Center"],
+            ["1", "Exit"]
+        ],
         "WatchMode": [
             ["coordinate", "coordinate"],
             ["parameter", "parameter"],
@@ -334,7 +357,7 @@
     },
     "model": {
         "beamline": {
-            "name": ["Name", "String"]
+            "name": ["Name", "ValidatedString"]
         },
         "beamlineReport": {
         },
@@ -352,7 +375,7 @@
             "distribution_type": ["Distribution Type", "DistributionTypeStringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
             "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
             "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
-            "limit_invariants": ["Limit Invariants", "RPNBoolean", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
+            "limit_invariants": ["Limit Invariants", "Integer", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
             "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", ""],
             "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", ""],
@@ -417,6 +440,8 @@
             "string_value": ["String Value", "OptionalString", "", ""],
             "differential": ["Differential", "RPNBoolean", "0", "If nonzero, the new value is the predefined value of the parameter plus the quantity given with value."],
             "multiplicative": ["Multiplicative", "Integer", "0", "If nonozero, the new given value is the predefined value of the parameter times the quantity given with value."],
+            "alter_at_each_step": ["Alter at Each Step", "RPNBoolean", "0", "If nonzero, the changes requested by the command are performed at each simulation step. Note that if differential or multiplicative are non-zero, then changes will accumulate. (A more conventional way to perform such variation is with vary_elements.)"],
+            "alter_before_load_parameters": ["Alter Before Load Parameters", "RPNBoolean", "0", "If alter_at_each_step, by default the alteration takes place after any load_parameters commands are processed. If this control is non-zero, the alteration takes place before any load_parameters commands are processed."],
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, information is printed to the standard output describing what elements are changed."],
             "allow_missing_elements": ["Allow Missing Elements", "RPNBoolean", "0", "If nonzero, then it is not an error if an element matching name does not exist. Normally, such an occurence is an error and terminates the program."],
             "allow_missing_parameters": ["Allow Missing Parameters", "RPNBoolean", "0", "If nonzero, then it is not an error if an element does not have the parameter named with item. Normally, such an occurence is an error and terminates the program."],
@@ -449,8 +474,10 @@
             "delta_yp": ["Delta YP", "RPNValue", "1e-6", ""],
             "delta_s": ["Delta S", "RPNValue", "1e-6", ""],
             "delta_dp": ["Delta DP", "RPNValue", "1e-6", ""],
+            "accuracy_factor": ["Accuracy Factor", "RPNValue", "1e-12", "The fraction of the maximum absolute value of the final coordinate that is considered meaningful. Used to estimate errors and eliminate spurious matrix elements."],
             "center_on_orbit": ["Center On Orbit", "RPNBoolean", "0", "A flag directing the expansion to be made about the closed orbit instead of the design orbit."],
             "verbosity": ["Verbosity", "Integer", "0", "The larger this value, the more output is printed during computations."],
+            "canonical_variables": ["Canonical Variables", "RPNBoolean", "0", "If non-zero, the matrix is expressed in terms of canonical variables (x,qx,y,qy,-s,δ) instead of the default (x,x′,y,y′,s,δ)."],
             "printout_order": ["Printout Order", "Integer", "2", "Order of the matrix to be printed to the printout file."],
             "periodic": ["Periodic", "RPNBoolean", "1", "If non-zero, system is assumed to be periodic and lattice functions, tunes, chromaticities, etc are computed."],
             "beta_x": ["Beta X", "RPNValue", "1", "If periodic=0, these are the starting values for the lattice functions."],
@@ -486,6 +513,7 @@
             "eta_y": ["Eta Y", "RPNValue", "0.0", ""],
             "etap_y": ["Etap Y", "RPNValue", "0.0", ""],
             "use_twiss_command_values": ["Use Twiss Command Values", "RPNBoolean", "0", "If nonzero, then the values for β, α, η, and η^′ are taken from the twiss_output command. It is an error if no twiss_output command has been given."],
+            "use_moments_output_values": ["Use Moments Output Values", "RPNBoolean", "0", "If nonzero, then the beam is generated to match the 6D matched, equilibrium beam moments computed by the moments_output command. The distribution type must be gaussian. This mode is incompatible with using closed orbit correction with start_from_centroid=1 (the default value). Po — Central momentum of the bunch."],
             "Po": ["Po", "RPNValue", "0.0", "Central momentum of the bunch."],
             "sigma_dp": ["Sigma DP", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
             "sigma_s": ["Sigma S", "RPNValue", "0.0", ""],
@@ -500,7 +528,7 @@
             "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
             "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
             "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"],
-            "limit_invariants": ["Limit Invariants", "RPNBoolean", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
+            "limit_invariants": ["Limit Invariants", "Integer", "0", "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
             "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
             "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
@@ -516,6 +544,7 @@
         },
         "command_chromaticity": {
             "sextupoles": ["Sextupoles", "OptionalStringUpper", "", "List of names of elements to use to correct the chromaticities. Several names may be given and names may include wildcards. If so, then sextupoles in each group are changed by the same amount for each iteration. This would typically be used when the sextupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "List of names of elements to exclude. This may be used to exclude some sextupoles that are matched by wildcards in the sextupole list."],
             "dnux_dp": ["Dnux DP", "RPNValue", "0.0", "Desired chromaticity values."],
             "dnuy_dp": ["Dnuy DP", "RPNValue", "0.0", ""],
             "sextupole_tweek": ["Sextupole Tweek", "RPNValue", "1e-3", "Amount by which to tweak the sextupoles to compute derivatives of chromaticities with respect to sextupole strength. [The word \"tweak\" is misspelled \"tweek\" in the code.]"],
@@ -541,7 +570,7 @@
             "fixed_length": ["Fixed Length", "RPNBoolean", "0", "A flag indicating whether to find a closed orbit with the same length as the design orbit by changing the momentum offset."],
             "start_from_recirc": ["Start From Recirc", "RPNBoolean", "0", "A flag indicating whether to compute the closed orbit from the recirculation (recirc) element in the beamline. In general, if one has a recirculation element, one should give this flag."],
             "verbosity": ["Verbosity", "Integer", "0", "A larger value results in more printouts during the computations."],
-            "tracking_turns": ["Tracking Turns", "RPNBoolean", "0", "If non-zero, the number of turns to track for detemination of the closed orbit by averaging. This may be useful if the regular closed orbit algorithm complains about convergence issues."]
+            "tracking_turns": ["Tracking Turns", "Integer", "0", "If non-zero, the number of turns to track for detemination of the closed orbit by averaging. This may be useful if the regular closed orbit algorithm complains about convergence issues."]
         },
         "command_correct": {
             "mode": ["Mode", "CorrectMode", "trajectory", ""],
@@ -549,6 +578,7 @@
             "trajectory_output": ["Trajectory Output", "OutputFile", "", "The name of an SDDS file to which the trajectories or orbits will be written."],
             "corrector_output": ["Corrector Output", "OutputFile", "", "The name of an SDDS file to which information about the final corrector strengths will be written."],
             "statistics": ["Statistics", "OutputFile", "", "The name of an SDDS file to which statistical information about the trajectories (or orbits) and corrector strengths will be written."],
+            "bpm_output": ["BPM Output", "OutputFile", "", "The (incomplete) name of an SDDS file to which post-correction BPM errors will be written. The errors are the residual after correction, and include the effects of offsets (DX and DY), setpoints (XSETPOINT, YSETPOINT, and SETPOINT), and tilts (TILT)."],
             "corrector_tweek": ["Corrector Tweek", "StringArray", "1e-3, 1e-3", "The amount by which to change the correctors in order to compute correction coefficients for transport lines. [The word \"tweak\" is misspelled \"tweek\" in the code.] The default value, 1 mrad, may be too large for systems with small apertures. If you get an error message about \"tracking failed for test particle,\" try decreasing this value."],
             "corrector_limit": ["Corrector Limit", "StringArray", "0, 0", "The maximum strength allowed for a corrector."],
             "correction_fraction": ["Correction Fraction", "StringArray", "1, 1", "The fraction of the computed correction strength to actually use for any one iteration."],
@@ -627,6 +657,21 @@
             "maximum_length": ["Maximum Length", "RPNValue", "0.0", "The maximum length of a slice. This is usually preferrable to specifying the number of divisions, particularly when the elements divided may be of different lengths. If zero, then divisions should be nonzero."],
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior division specifications are deleted."]
         },
+        "command_elastic_scattering": {
+            "losses": ["Losses", "OutputFile", "", "The (incomplete) name of an SDDS file to which the record of initial scattering location, initial scattering angle, and loss coordinates will be written."],
+            "output": ["Output", "OutputFile", "", "The (incomplete) name of an SDDS file to which the final coordinates of all surviving particles will be written."],
+            "log_file": ["Log File", "OutputFile", "", "The (incomplete) name of an SDDS file to which statistical data will be written as the simulations run. Users should check the MinParticles and MaxParticles columns as the simulation runs to ensure reasonable load balance (e.g., within 10-20%). If balance is poor, consider changing the values of n_phi and n_theta slightly. The product of these values should not evenly divide the number of working cores (which is one less than the total number of cores)."],
+            "theta_min": ["Theta Min", "RPNValue", "0.001", "Minimum polar scattering angle in radians. Should be small enough that no particle scattered by this angle are lost, regardless of the scattering location. See also twiss_scaling."],
+            "theta_max": ["Theta Max", "RPNValue", "0.01", "Maximum polar scattering angle in radians. Should be large enough that no particle scattered by this angle survives, regardless of scattering location."],
+            "n_theta": ["N Theta", "Integer", "11", "Number of polar scattering angle values on the range theta_min to theta_max."],
+            "n_phi": ["N Phi", "Integer", "37", "Number of azimuthal scattering angles on the range [0,π]."],
+            "twiss_scaling": ["Twiss Scaling", "RPNBoolean", "0", "If nonzero, then theta_min is scaled by √(βx(s)βy(s))∕(βx(0)βy(0)), where s is the location of the scattering location and s = 0 is the start of the lattice."],
+            "s_start": ["S Start", "RPNValue", "0", "Range of s location for simulated scattering sites."],
+            "s_end": ["S End", "RPNValue", "1.7976931348623158e+308", ""],
+            "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element names in selecting scattering sites."],
+            "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element types in selecting scattering sites."],
+            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]  
+        },
         "command_error_control": {
             "clear_error_settings": ["Clear Error Settings", "RPNBoolean", "1", "Clear all previous error settings."],
             "summarize_error_settings": ["Summarize Error Settings", "RPNBoolean", "0", "Summarize current error settings. If non-zero, then the command has no other function except showing a summary of the current error settings."],
@@ -658,8 +703,12 @@
             "mode": ["Mode", "FindApertureMode", "many-particle", ""],
             "xmin": ["Xmin", "RPNValue", "-0.1", "Region of the aperture search. The minimum values are relevant only for many- and single-particle modes."],
             "xmax": ["Xmax", "RPNValue", "0.1", ""],
+            "xpmin": ["Xpmin", "RPNValue", "0.0", "Region of the aperture search, in slope coordinates. The minimum values are relevant only for many- and single-particle modes. Ignored unless xmin=xmax and ymin=ymax."],
+            "xpmax": ["Xpmax", "RPNValue", "0.0", ""],
             "ymin": ["Ymin", "RPNValue", "0.0", ""],
             "ymax": ["Ymax", "RPNValue", "0.1", ""],
+            "ypmin": ["Ypmin", "RPNValue", "0.0", ""],
+            "ypmax": ["Ypmax", "RPNValue", "0.0", ""],
             "nx": ["NX", "Integer", "21", "For many- and single-particle modes, the number of x values to take in initial search. For line modes, this determines the initial x and y step sizes via Δ x = x(max)/n_x and Δ y = y(max)/n_x."],
             "ny": ["NY", "Integer", "11", "For many- and single-particle modes, the number of y values to take in search. Ignored for line modes."],
             "n_splits": ["N Splits", "Integer", "0", "If positive, the number of times to do interval splitting. Interval splitting refers to searching between the original grid points in order to refine the results. This is done only for single-particle and line modes."],
@@ -701,10 +750,33 @@
             "inhibit_fsync": ["Inhibit FSYNC", "RPNBoolean", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
             "echo_namelists": ["Echo Namelists", "RPNBoolean", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
             "SR_gaussian_limit": ["SR Gaussian Limit", "RPNValue", "3.0", "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
+            "inhibit_seed_permutation": ["Inhibit Seed Permutation", "RPNBoolean", "0", "If nonzero, randomization of the user-supplied random number seed is not performed. This feature is useful in that it provides a higher degree of apparent randomness, in that small changes in the seed result in very different random sequences."],
             "log_file": ["Log File", "OutputFile", "", "By default, elegant writes status information to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "error_log_file": ["Error Log File", "OutputFile", "", "By default, elegant writes error messages to the terminal. If a filename is supplied for this parameter, the output will instead go to the file. On Linux and Unix, using /dev/null will result in the output being discarded."],
             "mpi_randomization_mode": ["Mpi Randomization Mode", "Integer", "1", "Controls how the random numbers are seeded on multiple processors ( •[1] — This is the original default, which showed issues in some simulations. The seed on the ith processor is s_0+2*i. •[2] — The seed on the ith processor is s_0+2*i^2. •[3] — This is the new default. The seed on the ith processor is s_0+i*(i+1). •[4] — The seed on the ith processor is s_0+R_i, where R_i is the ith random integer returned by the system rand() function. )"],
             "exact_normalized_emittance": ["Exact Normalized Emittance", "RPNBoolean", "0", "By default, elegant uses an approximate computation for the normalized emittance, namely, εn = ε⟨βγ⟩, where ε is the geometric emittance computed from the trace-space coordinates. If this variable is set to a non-zero value, elegant instead uses a slower but more accurate method, namely, using the momentum coordinates.. The results will show up in the sigma and final output files, if these are requested in the run_setup command."]
+        },
+        "command_ignore_elements": {
+            "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the elements to which the operation is to be applied."],
+            "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the element types to which the operation is to be applied."],
+            "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying elements to be excluded from the operation. Does not affect elements included by other specifications."],
+            "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
+            "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior specifications are deleted."]
+        },
+        "command_inelastic_scattering": {
+            "losses": ["Losses", "OutputFile", "", "The (incomplete) name of an SDDS file to which the record of initial scattering location, initial scattering δ, and loss coordinates will be written."],
+            "output": ["Output", "OutputFile", "", "The (incomplete) name of an SDDS file to which the final coordinates of all surviving particles will be written."],
+            "log_file": ["Log File", "OutputFile", "", "The (incomplete) name of an SDDS file to which statistical data will be written as the simulations run. Users should check the MinParticles and MaxParticles columns as the simulation runs to ensure reasonable load balance (e.g., within 10-20%). If balance is poor, consider changing the value of n_delta slightly."],
+            "k_min": ["K Min", "RPNValue", "0.001", "Minimum energy k of the brehmsstrahlung photon as a fraction of the beam energy. The electron has δ = -k after scattering. k_min should be small enough that no electron scattered by -k_min is lost, regardless of the scattering location."],
+            "momentum_aperture": ["Momentum Aperture", "InputFile", "", "If given, names a file giving the momentum aperture vs s, which is interpolated at the scattering locations to obtain the local momentum aperture. Such a file may be obtained from running the momentum_aperture command. The absolute values of the values in the deltaNegative column will be used in place of k_min. The k_min values thus obtained are multiplied by momentum_aperture_scale, so there is some assurance that the minimally-scattered particles will survive. This ensures that the results are valid for computation of loss rates, for example."],
+            "momentum_aperture_scale": ["Momentum Aperture Scale", "RPNValue", "0.95", ""],
+            "momentum_aperture_periodicity": ["Momentum Aperture Periodicity", "RPNValue", "0", ""],
+            "n_k": ["N K", "Integer", "101", "Number of scattering values on the range k_min to k_max."],
+            "s_start": ["S Start", "RPNValue", "0", "Range of s location for simulated scattering sites."],
+            "s_end": ["S End", "RPNValue", "1.7976931348623158e+308", ""],
+            "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element names in selecting scattering sites."],
+            "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element types in selecting scattering sites."],
+            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]  
         },
         "command_insert_elements": {
             "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
@@ -715,6 +787,7 @@
             "skip": ["Skip", "Integer", "1", "New elements are inserted at every nth specified location."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
             "add_at_end": ["Add At End", "RPNBoolean", "0", "If nonzero, the element is also inserted to the end of the beamline."],
+            "add_at_start": ["Add At Start", "RPNBoolean", "0", "If nonzero, the element is also inserted to the start of the beamline, ahead of all other elements."],
             "element_def": ["Element Def", "OptionalString", "", "The definition of the new element should be just as it would be entered in the lattice file."],
             "total_occurrences": ["Total Occurrences", "Integer", "0", "These parameters are used to insert the new elements after specified occurrences of the element name. total_occurrences specifies how many new elements to add, up to a maximum of 100, while the entries in the array occurrence specify the occurrences after which to add the new elements. If total_occurrences is non-zero, then skip must be set to zero and the name must be the exact name (no wild-card matching)."],
             "occurrence": ["Occurrence", "StringArray", "0", ""]
@@ -732,6 +805,20 @@
             "nonlinear": ["Nonlinear", "RPNBoolean", "0", ""],
             "uniform_distribution": ["Uniform Distribution", "Integer", "0", "Used for bi-Gaussian distributed beam (coasting beam), i.e., beam that is uniform in z but gaussian in x and y."],
             "verbosity": ["Verbosity", "Integer", "0", "Larger non-zero values request greater amounts of detail in printouts."]
+        },
+        "command_ion_effects": {
+            "pressure_profile": ["Pressure Profile", "InputFile", "", "Name of an SDDS file giving the s-dependent gas pressure for various gas species. Column names will be matched to the entries in the SourceName column of the ion_properties file."],
+            "ion_properties": ["Ion Properties", "InputFile", "", "Name of an SDDS file giving properties of ions. Column names are • IonName — String column giving the name of the ion. • Mass — Floating-point column giving the ion mass, in AMU. • ChargeState — Integer column giving the ion charge state (a positive integer). • SourceName — String column giving the name of the source gas for this ion. In a future release, the source may also be another type of ion, to allow for multiple ionization. • CrossSection — Floating-point column giving the cross section for producing the ion from the source, in Mb."],
+            "beam_output": ["Beam Output", "OutputFile", "", "Possibly incomplete name of an SDDS file to which beam data will be written."],
+            "beam_output_all_locations": ["Beam Output All Locations", "RPNBoolean", "0", "If nonzero, beam_output includes data at the location of all IONEFFECTS elements."],
+            "ion_density_output": ["Ion Density Output", "OutputFile", "", "Possibly incomplete name of an SDDS file to which ion density data will be written."],
+            "ion_output_all_locations": ["Ion Output All Locations", "RPNBoolean", "1", "If nonzero, ion_density_output includes data at the location of all IONEFFECTS elements."],
+            "ion_species_output": ["Ion Species Output", "RPNBoolean", "0", ""], 
+            "macro_ions": ["Macro Ions", "Integer", "0", "The number of macro ions to generate per bunch on each turn for which generation is done. The macro ion charge is adjusted according to the cross section and bunch charge. May be overriden by the MACRO_IONS parameter on individual IONEFFECTS elements."],
+            "generation_interval": ["Generation Interval", "Integer", "1", "The number of bunches between generation of ions. The macro ion charge is adjusted to account for this, so the effective ion charge after many turns is the same. May be overridden with the GENERATION_INTERVAL parameter on individual IONEFFECTS elements. The actual condition for generation of ions is such that the generating bunches vary on each turn. This can be used to effectively reduce macro_ions below 1, to prevent generation of too many macro ions."],
+            "x_span": ["X Span", "RPNValue", "0", "The transverse half-extent, in meters, of the region within which ions are modeled. Ions moving outside this region are considered lost. May be overriden by the X_SPAN and Y_SPAN parameters on individual IONEFFECTS elements."],
+            "y_span": ["Y Span", "RPNValue", "0", ""],
+            "verbosity": ["Verbosity", "Integer", "0", "Larger values result in more output during running. Used for debugging only."]
         },
         "command_linear_chromatic_tracking_setup": {
             "nux": ["Nux", "StringArray", "-1, 0, 0, 0", "Provide the horizontal tune plus its first three chromatic derivatives, i.e., ∂ νx/∂δ, ∂^2 νx/∂δ^2, and ∂^3 νx/∂δ^3."],
@@ -756,6 +843,7 @@
             "exclude": ["Exclude", "OptionalStringUpper", "", "Wildcard sequence to match to element names. If a match is found, the element is excluded from the link."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter that will be modified."],
             "source": ["Source", "OptionalStringUpper", "", "The name of the elements to be linked to."],
+            "source_from_target_edit": ["Source From Target Edit", "OptionalStringUpper", "", "If given and if source is not given, an editing command to create the name of the elements to be linked to from the name of the target. Uses the syntax of the editstring program."],
             "source_position": ["Source Position", "LinkElementsSourcePosition", "before", ""],
             "mode": ["Mode", "LinkElementsMode", "dynamic", ""],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the new item value in terms of the item values for the source. The prior value of the item is on the top of the stack. To refer to the source parameter values, use the name of the parameters. To refer to the initial source parameter values, append \"0\" to the parameter name. These names must appear in capital letters."],
@@ -792,7 +880,7 @@
             "SDDS_output_match": ["SDDS Output Match", "OptionalStringUpper", "", "A wildcard string which element names must match in order for data to appear in the SDDS output file."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating whether matrix output is desired at every simulation step."],
             "start_from": ["Start From", "OptionalStringUpper", "", "The optional name of the accelerator element from which to begin concatenation and output."],
-            "start_from_occurrence": ["Start From Occurrence", "Integer", "1", "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
+            "start_from_occurence": ["Start From Occurrence", "Integer", "1", "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
         },
         "command_modulate_elements": {
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
@@ -812,7 +900,9 @@
             "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that precede the named element in the beamline."],
             "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the modulation is applied only to elements that follow the named element in the beamline."],
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, information is printed to the standard output as changes are made. Use for debugging only, since otherwise it may slow the simulation."],
-            "record": ["Record", "OptionalString", "", "Gives a possibly incomplete filename to which will be written a record of the values of the modulation."]
+            "verbose_threshold": ["Verbose Threshold", "RPNValue", "0", "If nonzero, verbose information is printed only when the fractional change exceeds the given value."],
+            "record": ["Record", "OptionalString", "", "Gives a possibly incomplete filename to which will be written a record of the values of the modulation."],
+            "flush_record": ["Flush Record", "Integer", "1", "Gives the interval in steps at which to flush the record file. Higher values result in less frequent updates to the record, but may improve performance."]
         },
         "command_moments_output": {
             "filename": ["Filename", "OutputFile", "", "The name of a file to which the moments results will be written."],
@@ -1086,7 +1176,14 @@
             "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be varied."],
             "plane": ["Plane", "SteeringElementPlane", "h", ""],
             "tweek": ["Tweek", "RPNValue", "1e-3", "The amount by which to change the item to compute the steering strength."],
-            "limit": ["Limit", "RPNValue", "0.0", "The maximum allowed absolute value of the item."]
+            "limit": ["Limit", "RPNValue", "0.0", "The maximum allowed absolute value of the item."],
+            "start_occurence": ["Start Occurence", "Integer", "0", "If nonzero, these give the starting and ending occurence numbers of elements that will be included. N.B.: if wildcards are used, occurence number counting is for each set of identically-named elements separately, rather than for the sequence of matched elements."],
+            "end_occurence": ["End Occurence", "Integer", "0", ""],
+            "occurence_step": ["Occurence Step", "Integer", "1", ""],
+            "s_start": ["S Start", "RPNValue", "-1", "If non-negative, these give the gaving and ending position limits for the end-of-element locations of elements to be included."],
+            "s_end": ["S End", "RPNValue", "-1", ""],
+            "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, only elements that follow the named element in the beamline are included."],
+            "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, only elements that precede the named element in the beamline are included."]
         },
         "command_touschek_scatter": {
             "charge": ["Charge", "RPNValue", "0.0", ""],
@@ -1239,7 +1336,7 @@
             "enumeration_column": ["Enumeration Column", "OptionalString", "", "Column of the SDDS file giving the values."]
         },
         "ALPH": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "xmax": ["XMAX [M]", "RPNValue", "0.0", "size of alpha"],
             "xs1": ["XS1 [M]", "RPNValue", "0.0", "inner scraper position relative to XMAX"],
             "xs2": ["XS2 [M]", "RPNValue", "0.0", "outer scraper position relative to XMAX"],
@@ -1255,8 +1352,29 @@
             "order": ["ORDER", "RPNValue", "0", "matrix order [1,3]"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "BGGEXP": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
+            "lfield": ["LFIELD [M]", "RPNValue", "-1", "expected length of the field map. If negative, use L."],
+            "filename": ["FILENAME", "InputFile", "", "name of file generalized gradient data"],
+            "strength": ["STRENGTH", "RPNValue", "1", "factor by which to multiply field"],
+            "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
+            "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
+            "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
+            "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
+            "bx": ["BX [T]", "RPNValue", "0.0", "add BX*STRENGTH to Bx field"],
+            "by": ["BY [T]", "RPNValue", "0.0", "add BY*STRENGTH to By field"],
+            "maximum_m": ["MAXIMUM M", "Integer", "-1", "data with m greater than this is ignored"],
+            "maximum_2n": ["MAXIMUM 2N", "Integer", "-1", "data with 2*n greater than this is ignored"],
+            "z_interval": ["Z INTERVAL", "Integer", "1", "input z data is sampled at this interval"],
+            "symplectic": ["SYMPLECTIC", "RPNBoolean", "0", "if nonzero, use implicit symplectic integrator. At minimum, should always be used to validate the sufficiency of the non-symplectic integrator."],
+            "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "if nonzero, include classical, single-particle synchrotron radiation"],
+            "isr": ["ISR", "RPNBoolean", "0", "if nonzero, include incoherent synchrotron radiation (quantum excitation)"],
+            "particle_output_file": ["PARTICLE OUTPUT FILE", "OutputFile", "", "name of file for phase-space output. Use for debugging only!"],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "BMAPXY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "factor by which to multiply field"],
             "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
@@ -1266,15 +1384,56 @@
             "fy": ["FY", "OptionalString", "", "rpn expression for Fy in terms of x and y"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "BMXYZ": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
+            "lfield": ["LFIELD [M]", "RPNValue", "-1", "expected length of the field map. If negative, use L."],
+            "strength": ["STRENGTH", "RPNValue", "1", "factor by which to multiply field"],
+            "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
+            "method": ["METHOD", "BmxyzMethod", "", "integration method"],
+	    "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z) and either (Bx, By, Bz) or (Fx, Fy, Fz)"],
+            "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical, single-particle synchrotron radiation?"],
+            "check_fields": ["CHECK FIELDS", "RPNBoolean", "0", "check fields by computing divB and curlB errors?"],
+            "particle_output_file": ["PARTICLE OUTPUT FILE", "OutputFile", "", "name of file for phase-space output inside element. Use for debugging only in serial version."],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
+        "BRANCH": {
+            "name": ["Name", "ValidatedString"],
+            "counter": ["COUNTER", "Integer", "0", "Counter, which is decremented by 1 for each pass."],
+            "verbosity": ["VERBOSITY", "Integer", "0", "Larger values result in more output during running."],
+            "branch_to": ["BRANCH TO", "OptionalStringUpper", "", "Optional name of element to which to jump when counter is non-positive."],
+            "else_to": ["ELSE TO", "OptionalStringUpper", "", "Optional name of element to which to jump when counter is positive."],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
+        "BRAT": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [M]", "RPNValue", "0.0", "length"],
+            "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "Nominal bending angle. Will be refined to match geometry specified by input/output and vertex coordinates"],
+            "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
+            "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
+	        "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z, Bx, By, Bz)"],
+            "xvertex": ["XVERTEX [M]", "RPNValue", "0.0", "x coordinate of vertex point"],
+            "zvertex": ["ZVERTEX [M]", "RPNValue", "0.0", "z coordinate of vertex point"],
+            "xentry": ["XENTRY [M]", "RPNValue", "0.0", "x coordinate of nominal entry point"],
+            "zentry": ["ZENTRY [M]", "RPNValue", "0.0", "z coordinate of nominal entry point"],
+            "xexit": ["XEXIT [M]", "RPNValue", "0.0", "x coordinate of nominal exit point"],
+            "zexit": ["ZEXIT [M]", "RPNValue", "0.0", "z coordinate of nominal exit point"],
+            "dxmap": ["DXMAP [M]", "RPNValue", "0.0", "x displacement of map"],
+            "dzmap": ["DZMAP [M]", "RPNValue", "0.0", "z displacement of map"],
+            "yawmap": ["YAWMAP [RAD]", "RPNValue", "0.0", "yaw of map about x=z=0"],
+            "factor": ["FACTOR", "RPNValue", "1", "factor by which to multiply fields"],
+            "use_ftable": ["USE FTABLE", "RPNBoolean", "0", "If nonzero, use FTABLE method for integration. Value gives the number of kicks."],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "BUMPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
             "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "Sextupole term: By=Bo*(1+b2*x^2)"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "Sextupole term: By=Bo*(1+b2*x^2)"],
             "time_offset": ["TIME OFFSET [S]", "RPNValue", "0.0", "time offset of waveform"],
             "periodic": ["PERIODIC", "RPNBoolean", "0", "is waveform periodic?"],
             "phase_reference": ["PHASE REFERENCE", "RPNValue", "0", "phase reference number (to link with other time-dependent elements)"],
@@ -1287,7 +1446,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CENTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNBoolean", "1", "center x coordinates?"],
             "xp": ["XP", "RPNBoolean", "1", "center x' coordinates?"],
             "y": ["Y", "RPNBoolean", "1", "center y coordinates?"],
@@ -1300,7 +1459,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CEPL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "time to ramp to full strength"],
             "time_offset": ["TIME OFFSET [S]", "RPNValue", "0.0", "offset of ramp-start time"],
@@ -1320,14 +1479,14 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CHARGE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "total": ["TOTAL [C]", "RPNValue", "0.0", "total charge in beam"],
             "per_particle": ["PER PARTICLE [C]", "RPNValue", "0.0", "charge per macroparticle"],
             "allow_total_change": ["ALLOW TOTAL CHANGE", "RPNBoolean", "0", "If nonzero, allow total charge to change while tracking even if number of particles does not change. Useful for ramping of charge."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CLEAN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "mode": ["MODE", "CleanMode", "stdeviation", ""],
             "xlimit": ["XLIMIT", "RPNValue", "0.0", "Limit for x"],
             "xplimit": ["XPLIMIT", "RPNValue", "0.0", "Limit for x'"],
@@ -1338,7 +1497,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CORGPIPE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radius": ["RADIUS [M]", "RPNValue", "0.0", "pipe radius"],
             "period": ["PERIOD [M]", "RPNValue", "0.0", "period of corrugations (<<radius recommended)"],
@@ -1357,17 +1516,17 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric quadrupole strength"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
-            "k3": ["K3 [1/M4]", "RPNValue", "0.0", "geometric octupole strength"],
-            "k4": ["K4 [1/M5]", "RPNValue", "0.0", "geometric decapole strength"],
-            "k5": ["K5 [1/M6]", "RPNValue", "0.0", "geometric 12-pole strength"],
-            "k6": ["K6 [1/M7]", "RPNValue", "0.0", "geometric 14-pole strength"],
-            "k7": ["K7 [1/M8]", "RPNValue", "0.0", "geometric 16-pole strength"],
-            "k8": ["K8 [1/M9]", "RPNValue", "0.0", "geometric 18-pole strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k3": ["K3 [1/M⁴]", "RPNValue", "0.0", "geometric octupole strength"],
+            "k4": ["K4 [1/M⁵]", "RPNValue", "0.0", "geometric decapole strength"],
+            "k5": ["K5 [1/M⁶]", "RPNValue", "0.0", "geometric 12-pole strength"],
+            "k6": ["K6 [1/M⁷]", "RPNValue", "0.0", "geometric 14-pole strength"],
+            "k7": ["K7 [1/M⁸]", "RPNValue", "0.0", "geometric 16-pole strength"],
+            "k8": ["K8 [1/M⁹]", "RPNValue", "0.0", "geometric 18-pole strength"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
             "e2": ["E2 [RAD]", "RPNValue", "0.0", "exit edge angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about incoming longitudinal axis"],
@@ -1394,13 +1553,13 @@
             "use_bn": ["USE BN", "RPNBoolean", "0", "use b<n>instead of K<n>?"],
             "expansion_order": ["EXPANSION ORDER", "RPNValue", "0", "Order of field expansion. (0=auto)"],
             "b1": ["B1 [1/M]", "RPNValue", "0.0", "K1 = b1/rho, where rho is bend radius"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "K2 = b2/rho"],
-            "b3": ["B3 [1/M3]", "RPNValue", "0.0", "K3 = b3/rho"],
-            "b4": ["B4 [1/M4]", "RPNValue", "0.0", "K4 = b4/rho"],
-            "b5": ["B5 [1/M5]", "RPNValue", "0.0", "K5 = b5/rho"],
-            "b6": ["B6 [1/M6]", "RPNValue", "0.0", "K6 = b6/rho"],
-            "b7": ["B7 [1/M7]", "RPNValue", "0.0", "K7 = b7/rho"],
-            "b8": ["B8 [1/M8]", "RPNValue", "0.0", "K8 = b8/rho"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "K2 = b2/rho"],
+            "b3": ["B3 [1/M³]", "RPNValue", "0.0", "K3 = b3/rho"],
+            "b4": ["B4 [1/M⁴]", "RPNValue", "0.0", "K4 = b4/rho"],
+            "b5": ["B5 [1/M⁵]", "RPNValue", "0.0", "K5 = b5/rho"],
+            "b6": ["B6 [1/M⁶]", "RPNValue", "0.0", "K6 = b6/rho"],
+            "b7": ["B7 [1/M⁷]", "RPNValue", "0.0", "K7 = b7/rho"],
+            "b8": ["B8 [1/M⁸]", "RPNValue", "0.0", "K8 = b8/rho"],
             "xreference": ["XREFERENCE", "RPNValue", "0.0", "reference x for interpretation of fn values"],
             "f1": ["F1", "RPNValue", "0.0", "Fractional field error fn=bn*xr^n/n!, adds to K1 or b1."],
             "f2": ["F2", "RPNValue", "0.0", "Fractional field error fn=bn*xr^n/n!, adds to K2 or b2."],
@@ -1410,26 +1569,37 @@
             "f6": ["F6", "RPNValue", "0.0", "Fractional field error fn=bn*xr^n/n!, additive."],
             "f7": ["F7", "RPNValue", "0.0", "Fractional field error fn=bn*xr^n/n!, additive."],
             "f8": ["F8", "RPNValue", "0.0", "Fractional field error fn=bn*xr^n/n!, additive."],
+            "g1": ["G1", "RPNValue", "0.0", "Fractional skew field error."],
+            "g2": ["G2", "RPNValue", "0.0", "Fractional skew field error."],
+            "g3": ["G3", "RPNValue", "0.0", "Fractional skew field error."],
+            "g4": ["G4", "RPNValue", "0.0", "Fractional skew field error."],
+            "g5": ["G5", "RPNValue", "0.0", "Fractional skew field error."],
+            "g6": ["G6", "RPNValue", "0.0", "Fractional skew field error."],
+            "g7": ["G7", "RPNValue", "0.0", "Fractional skew field error."],
+            "g8": ["G8", "RPNValue", "0.0", "Fractional skew field error."],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "RPNValue", "1", "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
             "sqrt_order": ["SQRT ORDER", "RPNValue", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "use_rad_dist": ["USE RAD DIST", "RPNBoolean", "0", "If nonzero, overrides SYNCH RAD and ISR, causing simulation of radiation from distributions, optionally including opening angle."],
             "add_opening_angle": ["ADD OPENING ANGLE", "RPNBoolean", "1", "If nonzero, radiation opening angle effects are add if USE RAD DIST is nonzero."],
+            "photon_output_file": ["PHOTON OUTPUT FILE", "OutputFile", "", "output file for photons, if USE_RAD_DIST=1"],
+            "photon_low_energy_cutoff": ["PHOTON LOW ENERGY CUTOFF [eV]", "RPNValue", "0.0", "Lower limit of photon energy to output."],
             "reference_correction": ["REFERENCE CORRECTION", "RPNBoolean", "0", "If nonzero, reference trajectory is subtracted from particle trajectories to compensate for inaccuracy in integration."],
+            "tracking_matrix": ["TRACKING MATRIX", "RPNBoolean", "0", "If nonzero, matrix up to third order used for twiss parameters etc is computed from tracking. Experimental."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSRCSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric quadrupole strength"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
-            "k3": ["K3 [1/M4]", "RPNValue", "0.0", "geometric octupole strength"],
-            "k4": ["K4 [1/M5]", "RPNValue", "0.0", "geometric decapole strength"],
-            "k5": ["K5 [1/M6]", "RPNValue", "0.0", "geometric 12-pole strength"],
-            "k6": ["K6 [1/M7]", "RPNValue", "0.0", "geometric 14-pole strength"],
-            "k7": ["K7 [1/M8]", "RPNValue", "0.0", "geometric 16-pole strength"],
-            "k8": ["K8 [1/M9]", "RPNValue", "0.0", "geometric 18-pole strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k3": ["K3 [1/M⁴]", "RPNValue", "0.0", "geometric octupole strength"],
+            "k4": ["K4 [1/M⁵]", "RPNValue", "0.0", "geometric decapole strength"],
+            "k5": ["K5 [1/M⁶]", "RPNValue", "0.0", "geometric 12-pole strength"],
+            "k6": ["K6 [1/M⁷]", "RPNValue", "0.0", "geometric 14-pole strength"],
+            "k7": ["K7 [1/M⁸]", "RPNValue", "0.0", "geometric 16-pole strength"],
+            "k8": ["K8 [1/M⁹]", "RPNValue", "0.0", "geometric 18-pole strength"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
             "e2": ["E2 [RAD]", "RPNValue", "0.0", "exit edge angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about incoming longitudinal axis"],
@@ -1466,13 +1636,13 @@
             "use_bn": ["USE BN", "RPNBoolean", "0", "use b<n>instead of K<n>?"],
             "expansion_order": ["EXPANSION ORDER", "RPNValue", "0", "Order of field expansion. (0=auto)"],
             "b1": ["B1 [1/M]", "RPNValue", "0.0", "K1 = b1/rho, where rho is bend radius"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "K2 = B2/rho"],
-            "b3": ["B3 [1/M3]", "RPNValue", "0.0", "K3 = B3/rho"],
-            "b4": ["B4 [1/M4]", "RPNValue", "0.0", "K4 = B4/rho"],
-            "b5": ["B5 [1/M5]", "RPNValue", "0.0", "K5 = B5/rho"],
-            "b6": ["B6 [1/M6]", "RPNValue", "0.0", "K6 = B6/rho"],
-            "b7": ["B7 [1/M7]", "RPNValue", "0.0", "K7 = B7/rho"],
-            "b8": ["B8 [1/M8]", "RPNValue", "0.0", "K8 = B8/rho"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "K2 = B2/rho"],
+            "b3": ["B3 [1/M³]", "RPNValue", "0.0", "K3 = B3/rho"],
+            "b4": ["B4 [1/M⁴]", "RPNValue", "0.0", "K4 = B4/rho"],
+            "b5": ["B5 [1/M⁵]", "RPNValue", "0.0", "K5 = B5/rho"],
+            "b6": ["B6 [1/M⁶]", "RPNValue", "0.0", "K6 = B6/rho"],
+            "b7": ["B7 [1/M⁷]", "RPNValue", "0.0", "K7 = B7/rho"],
+            "b8": ["B8 [1/M⁸]", "RPNValue", "0.0", "K8 = B8/rho"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "RPNValue", "1", "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
             "csr": ["CSR", "RPNBoolean", "1", "enable CSR computations?"],
@@ -1493,7 +1663,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSRDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "attenuation_length": ["ATTENUATION LENGTH [M]", "RPNValue", "0.0", "exponential attenuation length for wake"],
             "dz": ["DZ", "RPNValue", "0.0", "interval between kicks"],
@@ -1514,7 +1684,7 @@
             "stupakov_output_interval": ["STUPAKOV OUTPUT INTERVAL", "RPNValue", "1", "Interval (in kicks) between output of Stupakov wakes."],
             "slice_analysis_interval": ["SLICE ANALYSIS INTERVAL", "RPNValue", "0", "interval (in kicks) of output to slice analysis file (from slice analysis command)"],
             "linearize": ["LINEARIZE", "RPNBoolean", "0", "use linear optics for drift pieces?"],
-            "lsc_bins": ["LSC BINS", "RPNBoolean", "0", "If non-zero, include LSC with given number of bins."],
+            "lsc_bins": ["LSC BINS", "Integer", "0", "If non-zero, include LSC with given number of bins."],
             "lsc_interpolate": ["LSC INTERPOLATE", "RPNBoolean", "1", "Interpolate computed LSC wake?"],
             "lsc_low_frequency_cutoff0": ["LSC LOW FREQUENCY CUTOFF0", "RPNValue", "-1", "Highest spatial frequency at which low-frequency cutoff filter is zero. If not positive, no low-frequency cutoff filter is applied. Frequency is in units of Nyquist (0.5/binsize)."],
             "lsc_low_frequency_cutoff1": ["LSC LOW FREQUENCY CUTOFF1", "RPNValue", "-1", "Lowest spatial frequency at which low-frequency cutoff filter is 1. If not given, defaults to LOW FREQUENCY CUTOFF1."],
@@ -1524,7 +1694,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CWIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Total length"],
             "b_max": ["B MAX", "RPNValue", "0.0", "Maximum on-axis magnetic field."],
             "bx_max": ["BX MAX", "RPNValue", "0.0", "Maximum on-axis magnetic field. Ignored if B MAX is nonzero."],
@@ -1552,13 +1722,13 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "DRIF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "DSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "plane": ["PLANE", "DscatterPlane", "", "Plane to scatter, (dp is deltaP/P)"],
             "filename": ["FILENAME", "InputFile", "", "Name of SDDS file containing distribution function."],
             "valuename": ["VALUENAME", "OptionalString", "", "Name of column containing the independent variable for the distribution function data."],
@@ -1576,7 +1746,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ECOL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "half-axis in x"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "half-axis in y"],
@@ -1589,42 +1759,52 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EHKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
+            "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
+            "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
+            "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
             "calibration": ["CALIBRATION", "RPNValue", "1", "factor applied to obtain kick"],
             "steering": ["STEERING", "RPNBoolean", "1", "use for steering?"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "lerad": ["LERAD", "RPNValue", "0.0", "if L=0, use this length for radiation computations"],
+            "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for systematic multipole content of steering kicks"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multipoles content of steering kicks"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EKICKER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "hkick": ["HKICK [RAD]", "RPNValue", "0.0", "horizontal kick angle"],
             "vkick": ["VKICK [RAD]", "RPNValue", "0.0", "vertical kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
+            "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
+            "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
+            "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
             "hcalibration": ["HCALIBRATION", "RPNValue", "1", "factor applied to obtain horizontal kick"],
             "vcalibration": ["VCALIBRATION", "RPNValue", "1", "factor applied to obtain vertical kick"],
             "steering": ["STEERING", "RPNBoolean", "1", "use for steering?"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "lerad": ["LERAD", "RPNValue", "0.0", "if L=0, use this length for radiation computations"],
+            "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for systematic multipole content of steering kicks"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multipoles content of steering kicks"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ELSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EMATRIX": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length (used only for position computation)"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "Angle (used only for position computation)"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -1698,21 +1878,21 @@
             "t164": ["T164 [M]", "RPNValue", "0.0", ""],
             "t165": ["T165", "RPNValue", "0.0", ""],
             "t166": ["T166 [M]", "RPNValue", "0.0", ""],
-            "t211": ["T211 [1/M2]", "RPNValue", "0.0", ""],
+            "t211": ["T211 [1/M²]", "RPNValue", "0.0", ""],
             "t221": ["T221 [1/M]", "RPNValue", "0.0", ""],
             "t222": ["T222", "RPNValue", "0.0", ""],
-            "t231": ["T231 [1/M2]", "RPNValue", "0.0", ""],
+            "t231": ["T231 [1/M²]", "RPNValue", "0.0", ""],
             "t232": ["T232 [1/M]", "RPNValue", "0.0", ""],
-            "t233": ["T233 [1/M2]", "RPNValue", "0.0", ""],
+            "t233": ["T233 [1/M²]", "RPNValue", "0.0", ""],
             "t241": ["T241 [1/M]", "RPNValue", "0.0", ""],
             "t242": ["T242", "RPNValue", "0.0", ""],
             "t243": ["T243 [1/M]", "RPNValue", "0.0", ""],
             "t244": ["T244", "RPNValue", "0.0", ""],
-            "t251": ["T251 [1/M2]", "RPNValue", "0.0", ""],
+            "t251": ["T251 [1/M²]", "RPNValue", "0.0", ""],
             "t252": ["T252 [1/M]", "RPNValue", "0.0", ""],
-            "t253": ["T253 [1/M2]", "RPNValue", "0.0", ""],
+            "t253": ["T253 [1/M²]", "RPNValue", "0.0", ""],
             "t254": ["T254 [1/M]", "RPNValue", "0.0", ""],
-            "t255": ["T255 [1/M2]", "RPNValue", "0.0", ""],
+            "t255": ["T255 [1/M²]", "RPNValue", "0.0", ""],
             "t261": ["T261 [1/M]", "RPNValue", "0.0", ""],
             "t262": ["T262", "RPNValue", "0.0", ""],
             "t263": ["T263 [1/M]", "RPNValue", "0.0", ""],
@@ -1740,21 +1920,21 @@
             "t364": ["T364 [M]", "RPNValue", "0.0", ""],
             "t365": ["T365", "RPNValue", "0.0", ""],
             "t366": ["T366 [M]", "RPNValue", "0.0", ""],
-            "t411": ["T411 [1/M2]", "RPNValue", "0.0", ""],
+            "t411": ["T411 [1/M²]", "RPNValue", "0.0", ""],
             "t421": ["T421 [1/M]", "RPNValue", "0.0", ""],
             "t422": ["T422", "RPNValue", "0.0", ""],
-            "t431": ["T431 [1/M2]", "RPNValue", "0.0", ""],
+            "t431": ["T431 [1/M²]", "RPNValue", "0.0", ""],
             "t432": ["T432 [1/M]", "RPNValue", "0.0", ""],
-            "t433": ["T433 [1/M2]", "RPNValue", "0.0", ""],
+            "t433": ["T433 [1/M²]", "RPNValue", "0.0", ""],
             "t441": ["T441 [1/M]", "RPNValue", "0.0", ""],
             "t442": ["T442", "RPNValue", "0.0", ""],
             "t443": ["T443 [1/M]", "RPNValue", "0.0", ""],
             "t444": ["T444", "RPNValue", "0.0", ""],
-            "t451": ["T451 [1/M2]", "RPNValue", "0.0", ""],
+            "t451": ["T451 [1/M²]", "RPNValue", "0.0", ""],
             "t452": ["T452 [1/M]", "RPNValue", "0.0", ""],
-            "t453": ["T453 [1/M2]", "RPNValue", "0.0", ""],
+            "t453": ["T453 [1/M²]", "RPNValue", "0.0", ""],
             "t454": ["T454 [1/M]", "RPNValue", "0.0", ""],
-            "t455": ["T455 [1/M2]", "RPNValue", "0.0", ""],
+            "t455": ["T455 [1/M²]", "RPNValue", "0.0", ""],
             "t461": ["T461 [1/M]", "RPNValue", "0.0", ""],
             "t462": ["T462", "RPNValue", "0.0", ""],
             "t463": ["T463 [1/M]", "RPNValue", "0.0", ""],
@@ -1782,21 +1962,21 @@
             "t564": ["T564 [M]", "RPNValue", "0.0", ""],
             "t565": ["T565", "RPNValue", "0.0", ""],
             "t566": ["T566 [M]", "RPNValue", "0.0", ""],
-            "t611": ["T611 [1/M2]", "RPNValue", "0.0", ""],
+            "t611": ["T611 [1/M²]", "RPNValue", "0.0", ""],
             "t621": ["T621 [1/M]", "RPNValue", "0.0", ""],
             "t622": ["T622", "RPNValue", "0.0", ""],
-            "t631": ["T631 [1/M2]", "RPNValue", "0.0", ""],
+            "t631": ["T631 [1/M²]", "RPNValue", "0.0", ""],
             "t632": ["T632 [1/M]", "RPNValue", "0.0", ""],
-            "t633": ["T633 [1/M2]", "RPNValue", "0.0", ""],
+            "t633": ["T633 [1/M²]", "RPNValue", "0.0", ""],
             "t641": ["T641 [1/M]", "RPNValue", "0.0", ""],
             "t642": ["T642", "RPNValue", "0.0", ""],
             "t643": ["T643 [1/M]", "RPNValue", "0.0", ""],
             "t644": ["T644", "RPNValue", "0.0", ""],
-            "t651": ["T651 [1/M2]", "RPNValue", "0.0", ""],
+            "t651": ["T651 [1/M²]", "RPNValue", "0.0", ""],
             "t652": ["T652 [1/M]", "RPNValue", "0.0", ""],
-            "t653": ["T653 [1/M2]", "RPNValue", "0.0", ""],
+            "t653": ["T653 [1/M²]", "RPNValue", "0.0", ""],
             "t654": ["T654 [1/M]", "RPNValue", "0.0", ""],
-            "t655": ["T655 [1/M2]", "RPNValue", "0.0", ""],
+            "t655": ["T655 [1/M²]", "RPNValue", "0.0", ""],
             "t661": ["T661 [1/M]", "RPNValue", "0.0", ""],
             "t662": ["T662", "RPNValue", "0.0", ""],
             "t663": ["T663 [1/M]", "RPNValue", "0.0", ""],
@@ -1806,7 +1986,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EMITTANCE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "emitx": ["EMITX [M]", "RPNValue", "-1", "horizontal emittance"],
             "emity": ["EMITY [M]", "RPNValue", "-1", "vertical emittance"],
             "emitnx": ["EMITNX [M]", "RPNValue", "-1", "horizontal normalized emittance"],
@@ -1814,7 +1994,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ENERGY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "central_energy": ["CENTRAL ENERGY [MC2]", "RPNValue", "0.0", "desired central gamma"],
             "central_momentum": ["CENTRAL MOMENTUM [MC]", "RPNValue", "0.0", "desired central beta*gamma"],
             "match_beamline": ["MATCH BEAMLINE", "RPNBoolean", "0", "if nonzero, beamline reference momentum is set to beam average momentum"],
@@ -1822,19 +2002,25 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "EVKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
+            "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
+            "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
+            "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
             "calibration": ["CALIBRATION", "RPNValue", "1", "factor applied to obtain kick"],
             "steering": ["STEERING", "RPNBoolean", "1", "use for steering?"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "lerad": ["LERAD", "RPNValue", "0.0", "if L=0, use this length for radiation computations"],
+            "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for systematic multipole content of steering kicks"],
+            "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multipoles content of steering kicks"],
+            
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FLOOR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNValue", "0.0", "X coordinate"],
             "y": ["Y", "RPNValue", "0.0", "Y coordinate"],
             "z": ["Z", "RPNValue", "0.0", "Z coordinate"],
@@ -1844,7 +2030,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -1858,7 +2044,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "RPNValue", "20", "number of bins for current histogram"],
@@ -1876,7 +2062,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FTABLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "The effective field length measured along a straight line."],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "The designed bending angle"],
             "l1": ["L1 [M]", "RPNValue", "0.0", "The left fringe field length."],
@@ -1887,13 +2073,16 @@
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
             "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
+            "factor": ["FACTOR", "RPNValue", "1", "Factor by which to multiply field data."],
+            "threshold": ["THRESHOLD", "RPNValue", "1e-08", "Fields smaller than this are considered 0."],
             "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file which contains field data."],
             "n_kicks": ["N KICKS", "RPNValue", "1", "Number of kicks into which to split the element."],
             "verbose": ["VERBOSE", "RPNValue", "0.0", "Used for debugging code. Not applicable to Pelegant"],
+            "simple_input": ["SIMPLE INPUT", "RPNBoolean", "0", "If non-zero, use simple input format."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FTRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "RPNValue", "20", "number of bins for current histogram"],
@@ -1914,7 +2103,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "GFWIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Total length"],
             "b_max": ["B MAX [T]", "RPNValue", "0.0", "Maximum on-axis magnetic field at gap=GAP0 and equal longitudinal phases of PHASE 1,2,3,4"],
             "shim_scale": ["SHIM SCALE", "RPNValue", "1", "Scaling factor of shim correction field."],
@@ -1943,7 +2132,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HISTOGRAM": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "OutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
             "interval": ["INTERVAL", "RPNValue", "1", "interval in passes between output"],
             "start_pass": ["START PASS", "RPNValue", "0", "starting pass for output"],
@@ -1961,11 +2150,11 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "normalized sextupole strength (kick = KICK*(1+B2*x^2) when y=0)"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "normalized sextupole strength (kick = KICK*(1+B2*x^2) when y=0)"],
             "calibration": ["CALIBRATION", "RPNValue", "1", "strength multiplier"],
             "edge_effects": ["EDGE EFFECTS", "RPNBoolean", "0", "include edge effects?"],
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
@@ -1976,7 +2165,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "HMON": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -1990,7 +2179,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "IBSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "factor by which to multiply growth rates before using"],
             "do_x": ["DO X", "RPNBoolean", "1", "do x-plane scattering?"],
             "do_y": ["DO Y", "RPNBoolean", "1", "do y-plane scattering?"],
@@ -2006,7 +2195,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ILMATRIX": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length (used for position and time-of-flight computation)"],
             "nux": ["NUX", "RPNValue", "0.0", "Horizontal tune"],
             "nuy": ["NUY", "RPNValue", "0.0", "Vertical tune"],
@@ -2020,6 +2209,12 @@
             "nuy1ax": ["NUY1AX", "RPNValue", "0.0", "First amplitude derivative of the vertical tune wrt Ax"],
             "nux1ay": ["NUX1AY", "RPNValue", "0.0", "First amplitude derivative of the horizontal tune wrt Ay"],
             "nuy1ay": ["NUY1AY", "RPNValue", "0.0", "First amplitude derivative of the vertical tune wrt Ay"],
+            "nux2ax": ["NUX2AX [1∕M²]", "RPNValue", "0.0", "Second amplitude derivative of the horizontal tune wrt Ax"],
+            "nuy2ax": ["NUY2AX [1∕M²]", "RPNValue", "0.0", "Second amplitude derivative of the vertical tune wrt Ax"],
+            "nux2ay": ["NUX2AY [1∕M²]", "RPNValue", "0.0", "Second amplitude derivative of the horizontal tune wrt Ay"],
+            "nuy2ay": ["NUY2AY [1∕M²]", "RPNValue", "0.0", "Second amplitude derivative of the vertical tune wrt Ay"],
+            "nux1ax1ay": ["NUX1AX1AY 1∕M²", "RPNValue", "0.0", "Amplitude derivative of the horizontal tune wrt Ax and Ay"],
+            "nuy1ax1ay": ["NUY1AX1AY 1∕M²", "RPNValue", "0.0", "Amplitude derivative of the vertical tune wrt Ax and Ay"],
             "betax": ["BETAX [M]", "RPNValue", "0.0", "On-momentum horizontal beta function"],
             "betay": ["BETAY [M]", "RPNValue", "0.0", "On-momentum vertical beta function"],
             "betax1m": ["BETAX1M [M]", "RPNValue", "0.0", "First chromatic derivative of horizontal beta function"],
@@ -2039,18 +2234,35 @@
             "alphac": ["ALPHAC", "RPNValue", "0.0", "First-order momentum compaction factor"],
             "alphac2": ["ALPHAC2", "RPNValue", "0.0", "Second-order momentum compaction factor"],
             "alphac3": ["ALPHAC3", "RPNValue", "0.0", "Third-order momentum compaction factor"],
+            "ds1ax": ["DS1AX", "RPNValue", "0.0", "First amplitude derivative of the path length wrt Ax"],
+            "ds1ay": ["DS1AY", "RPNValue", "0.0", "First amplitude derivative of the path length wrt Ay"],
+            "ds2ax": ["DS2AX [1∕M]", "RPNValue", "0.0", "Second amplitude derivative of the path length wrt Ax"],
+            "ds2ay": ["DS2AY [1∕M]", "RPNValue", "0.0", "Second amplitude derivative of the path length wrt Ay"],
+            "ds1ax1ay": ["DS1AX1AY [1∕M]", "RPNValue", "0.0", "Amplitude derivative of the path length wrt Ax and Ay"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "Rotation angle about the longitudinal axis."],
             "cross_resonance": ["CROSS RESONANCE", "RPNValue", "0", "If zero, then particles that cross an integer or half-integer resonance are considered lost."],
             "verbosity": ["VERBOSITY", "RPNBoolean", "0", "If nonzero, then information about particle losses is printed out."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "IONEFFECTS": {
+            "name": ["Name", "ValidatedString"],
+            "disable": ["DISABLE", "RPNBoolean", "0", "If non-zero, turn off ion effects in the region covered by this element."],
+            "macro_ions": ["MACRO IONS", "Integer", "0", "If positive, overrides the default value set in the ion_effects command, giving the number of macro ions generated per bunch passage."],
+            "generation_interval": ["GENERATION INTERVAL", "Integer", "0", "If positive, overrides the default value set in the ion_effects command, giving the number of macro ions generated per bunch passage."],
+            "x_span": ["X SPAN", "RPNValue", "0.0", "If positive, gives the region over which ions are kept."],
+            "y_span": ["Y SPAN", "RPNValue", "0.0", "If positive, gives the region over which ions are kept."],
+            "startpass": ["STARTPASS", "Integer", "0", "If positive, gives the pass on which ion effects start."],
+            "endpass": ["ENDPASS", "Integer", "-1", "If positive, gives the pass on which ion effects end."],
+            "passinterval": ["PASSINTERVAL", "Integer", "1", "Interval between ion effects modeling."],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "KICKER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "hkick": ["HKICK [RAD]", "RPNValue", "0.0", "x kick angle"],
             "vkick": ["VKICK [RAD]", "RPNValue", "0.0", "y kick angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "normalized sextupole strength (e.g., kick = KICK*(1+B2*x^2))"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "normalized sextupole strength (e.g., kick = KICK*(1+B2*x^2))"],
             "hcalibration": ["HCALIBRATION", "RPNValue", "1", "factor applied to obtain x kick"],
             "vcalibration": ["VCALIBRATION", "RPNValue", "1", "factor applied to obtain y kick"],
             "edge_effects": ["EDGE EFFECTS", "RPNBoolean", "0", "include edge effects?"],
@@ -2062,9 +2274,9 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KOCT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k3": ["K3 [1/M4]", "RPNValue", "0.0", "geometric strength"],
+            "k3": ["K3 [1/M⁴]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "bore": ["BORE [M]", "RPNValue", "0.0", "bore radius"],
             "b": ["B [T]", "RPNValue", "0.0", "field at pole tip (used if bore nonzero)"],
@@ -2083,7 +2295,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KPOLY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "coefficient": ["COEFFICIENT [M-ORDER]", "RPNValue", "0.0", "coefficient of polynomial"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -2095,9 +2307,9 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KQUAD": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "bore": ["BORE [M]", "RPNValue", "0.0", "bore radius"],
             "b": ["B [T]", "RPNValue", "0.0", "pole tip field (used if bore nonzero)"],
@@ -2114,32 +2326,41 @@
             "n_kicks": ["N KICKS", "RPNValue", "4", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
+            "edge_multipoles": ["EDGE MULTIPOLES", "InputFile", "", "input file for systematic edge multipoles"],
             "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
             "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for multipole content of steering kicks"],
+            "systematic_multipole_factor": ["SYSTEMATIC MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply systematic and edge multipoles"],
+            "random_multipole_factor": ["RANDOM MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply random multipoles"],
+            "steering_multipole_factor": ["STEERING MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply steering multipoles"],
             "integration_order": ["INTEGRATION ORDER", "RPNValue", "4", "integration order (2 or 4)"],
             "sqrt_order": ["SQRT ORDER", "RPNValue", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "RPNValue", "1", "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
             "edge1_effects": ["EDGE1 EFFECTS", "RPNBoolean", "0", "include entrance edge effects?"],
             "edge2_effects": ["EDGE2 EFFECTS", "RPNBoolean", "0", "include exit edge effects?"],
+            "leffective": ["LEFFECTIVE [M]", "RPNValue", "0.0", "Effective length. Ignored if non-positive."],
             "i0p": ["I0P [M]", "RPNValue", "0.0", "i0+ fringe integral"],
-            "i1p": ["I1P [M2]", "RPNValue", "0.0", "i1+ fringe integral"],
-            "i2p": ["I2P [M3]", "RPNValue", "0.0", "i2+ fringe integral"],
-            "i3p": ["I3P [M4]", "RPNValue", "0.0", "i3+ fringe integral"],
-            "lambda2p": ["LAMBDA2P [M3]", "RPNValue", "0.0", "lambda2+ fringe integral"],
+            "i1p": ["I1P [M²]", "RPNValue", "0.0", "i1+ fringe integral"],
+            "i2p": ["I2P [M³]", "RPNValue", "0.0", "i2+ fringe integral"],
+            "i3p": ["I3P [M⁴]", "RPNValue", "0.0", "i3+ fringe integral"],
+            "lambda2p": ["LAMBDA2P [M³]", "RPNValue", "0.0", "lambda2+ fringe integral"],
             "i0m": ["I0M [M]", "RPNValue", "0.0", "i0-fringe integral"],
-            "i1m": ["I1M [M2]", "RPNValue", "0.0", "i1-fringe integral"],
-            "i2m": ["I2M [M3]", "RPNValue", "0.0", "i2-fringe integral"],
-            "i3m": ["I3M [M4]", "RPNValue", "0.0", "i3-fringe integral"],
-            "lambda2m": ["LAMBDA2M [M3]", "RPNValue", "0.0", "lambda2-fringe integral"],
+            "i1m": ["I1M [M²]", "RPNValue", "0.0", "i1-fringe integral"],
+            "i2m": ["I2M [M³]", "RPNValue", "0.0", "i2-fringe integral"],
+            "i3m": ["I3M [M⁴]", "RPNValue", "0.0", "i3-fringe integral"],
+            "lambda2m": ["LAMBDA2M [M³]", "RPNValue", "0.0", "lambda2-fringe integral"],
+            "edge1_linear": ["EDGE1 LINEAR", "RPNBoolean", "1", "Use to selectively turn off linear part if EDGE1_EFFECTS nonzero."],
+            "edge2_linear": ["EDGE2 LINEAR", "RPNBoolean", "1", "Use to selectively turn off linear part if EDGE2_EFFECTS nonzero."],
+            "edge1_nonlinear_factor": ["EDGE1 NONLINEAR FACTOR", "RPNBoolean", "1", "Use to selectively scale nonlinear entrance edge effects if EDGE1_EFFECTS>1"],
+            "edge2_nonlinear_factor": ["EDGE2 NONLINEAR FACTOR", "RPNBoolean", "1", "Use to selectively scale nonlinear exit edge effects if EDGE2_EFFECTS>1"],
             "radial": ["RADIAL", "RPNBoolean", "0", "If non-zero, converts the quadrupole into a radially-focusing lens"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KQUSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric quadrupole strength"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2155,13 +2376,13 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KSBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric quadrupole strength"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
-            "k3": ["K3 [1/M4]", "RPNValue", "0.0", "geometric octupole strength"],
-            "k4": ["K4 [1/M5]", "RPNValue", "0.0", "geometric decapole strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric quadrupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k3": ["K3 [1/M⁴]", "RPNValue", "0.0", "geometric octupole strength"],
+            "k4": ["K4 [1/M⁵]", "RPNValue", "0.0", "geometric decapole strength"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
             "e2": ["E2 [RAD]", "RPNValue", "0.0", "exit edge angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about incoming longitudinal axis"],
@@ -2186,9 +2407,10 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KSEXT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric strength"],
+            "j1": ["J1 [1∕M²]", "RPNValue", "0.0", "geometric skew quadrupole strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "bore": ["BORE [M]", "RPNValue", "0.0", "bore radius"],
             "b": ["B [T]", "RPNValue", "0.0", "field at pole tip (used if bore nonzero)"],
@@ -2196,10 +2418,21 @@
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
             "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
             "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
+            "hkick": ["HKICK [RAD]", "RPNValue", "0.0", "horizontal correction kick"],
+            "vkick": ["VKICK [RAD]", "RPNValue", "0.0", "vertical correction kick"],
+            "hcalibration": ["HCALIBRATION", "RPNValue", "1", "calibration factor for horizontal correction kick"],
+            "vcalibration": ["VCALIBRATION", "RPNValue", "1", "calibration factor for vertical correction kick"],
+            "hsteering": ["HSTEERING", "RPNBoolean", "0", "use for horizontal correction?"],
+            "vsteering": ["VSTEERING", "RPNBoolean", "0", "use for vertical correction?"],
             "n_kicks": ["N KICKS", "RPNValue", "4", "number of kicks"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
+            "edge_multipoles": ["EDGE MULTIPOLES", "InputFile", "", "input file for systematic edge multipoles"],
             "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
+            "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for multipole content of steering kicks"],
+            "systematic_multipole_factor": ["SYSTEMATIC MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply systematic and edge multipoles"],
+            "random_multipole_factor": ["RANDOM MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply random multipoles"],
+            "steering_multipole_factor": ["STEERING MULTIPOLE FACTOR", "RPNValue", "1", "Factor by which to multiply steering multipoles"],
             "integration_order": ["INTEGRATION ORDER", "RPNValue", "4", "integration order (2 or 4)"],
             "sqrt_order": ["SQRT ORDER", "RPNValue", "0", "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
@@ -2207,7 +2440,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LMIRROR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "rx": ["RX [M]", "RPNValue", "0.0", "radius in horizontal plane"],
             "ry": ["RY [M]", "RPNValue", "0.0", "radius in vertical plane"],
             "theta": ["THETA [RAD]", "RPNValue", "0.0", "angle of incidence (in horizontal plane)"],
@@ -2220,22 +2453,26 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LRWAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing longitudinal Green function"],
             "wycolumn": ["WYCOLUMN", "OptionalString", "", "column in INPUTFILE containing horizontal Green function"],
             "wzcolumn": ["WZCOLUMN", "OptionalString", "", "column in INPUTFILE containing vertical Green function"],
+            "qxcolumn": ["QXCOLUMN", "OptionalString", "", "column in INPUTFILE containing horizontal quadrupole Green function"],
+            "qycolumn": ["QYCOLUMN", "OptionalString", "", "column in INPUTFILE containing vertical quadrupole Green function"],
             "factor": ["FACTOR", "RPNValue", "1", "factor to multiply wakes by"],
             "xfactor": ["XFACTOR", "RPNValue", "1", "factor by which to multiply longitudinal"],
             "yfactor": ["YFACTOR", "RPNValue", "1", "factor by which to multiply horizontal"],
             "zfactor": ["ZFACTOR", "RPNValue", "1", "factor by which to multiply vertical"],
+            "qxfactor": ["QXFACTOR", "RPNValue", "1", "factor by which to multiply horizontal quadrupole wake"],
+            "qyfactor": ["QYFACTOR", "RPNValue", "1", "factor by which to multiply vertical quadrupole wake"],
             "turns_to_keep": ["TURNS TO KEEP", "RPNValue", "128", "number of turns of data to retain"],
             "ramp_passes": ["RAMP PASSES", "RPNValue", "0", "Number of passes over which to linearly ramp up the wake to full strength."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LSCDRIFT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "leffective": ["LEFFECTIVE [M]", "RPNValue", "0.0", "effective length (used if L=0)"],
             "bins": ["BINS", "RPNValue", "0", "number of bins for current histogram"],
@@ -2252,7 +2489,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LSRMDLTR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "bu": ["BU [T]", "RPNValue", "0.0", "Undulator peak field"],
             "periods": ["PERIODS", "RPNValue", "0", "Number of undulator periods."],
@@ -2275,6 +2512,7 @@
             "laser_n": ["LASER N", "RPNValue", "0", "laser vertical mode number (<5)"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "Include classical synchrotron radiation?"],
             "isr": ["ISR", "RPNBoolean", "0", "Include quantum excitation?"],
+            "helical": ["HELICAL", "RPNBoolean", "0", "If non-zero, simulate helical undulator."],
             "time_profile": ["TIME PROFILE", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving time-dependent modulation of the laser electric and magnetic fields."],
             "time_profileX": ["X", "String", ""],
             "time_profileY": ["Y", "String", ""],
@@ -2282,7 +2520,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LTHINLENS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fx": ["FX [M]", "RPNValue", "0.0", "focal length in horizontal plane"],
             "fy": ["FY [M]", "RPNValue", "0.0", "focal length in vertical plane"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -2294,7 +2532,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAGNIFY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "mx": ["MX", "RPNValue", "1", "factor for x coordinates"],
             "mxp": ["MXP", "RPNValue", "1", "factor for x' coordinates"],
             "my": ["MY", "RPNValue", "1", "factor for y coordinates"],
@@ -2304,7 +2542,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MALIGN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dxp": ["DXP", "RPNValue", "0.0", "delta x'"],
             "dyp": ["DYP", "RPNValue", "0.0", "delta y'"],
             "dx": ["DX [M]", "RPNValue", "0.0", "delta x"],
@@ -2320,7 +2558,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAPSOLENOID": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2342,21 +2580,21 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MARK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dx": ["DX [M]", "RPNValue", "0.0", "non-functional misalignment (e.g., for girder)"],
             "dy": ["DY [M]", "RPNValue", "0.0", "non-functional misalignment (e.g., for girder)"],
             "fitpoint": ["FITPOINT", "RPNBoolean", "0", "Supply local values of Twiss parameters, moments, floor coordinates, matrices, etc. for optimization?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MATR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "filename": ["FILENAME", "InputFile", "", "input file"],
             "order": ["ORDER", "RPNValue", "1", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "leffective": ["LEFFECTIVE [M]", "RPNValue", "0.0", "effective length (used if L=0)"],
             "xo": ["XO [M]", "RPNValue", "0.0", "radiation length"],
@@ -2366,17 +2604,19 @@
             "electron_recoil": ["ELECTRON RECOIL", "RPNBoolean", "0", "If non-zero, electron recoil during Coulomb scattering is included (results in energy change)."],
             "z": ["Z", "RPNValue", "0", "Atomic number"],
             "a": ["A [AMU]", "RPNValue", "0.0", "Atomic mass"],
-            "rho": ["RHO [KG/M3]", "RPNValue", "0.0", "Density"],
+            "rho": ["RHO [KG/M³]", "RPNValue", "0.0", "Density"],
             "plimit": ["PLIMIT", "RPNValue", "0.05", "Probability cutoff for each slice"],
             "width": ["WIDTH [M]", "RPNValue", "0.0", "Full width of slots. If 0, no slots are present."],
             "spacing": ["SPACING [M]", "RPNValue", "0.0", "Center-to-center spacing of slots. If 0, no slots are present."],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "Tilt of slot array about the longitudinal axis."],
             "center": ["CENTER [M]", "RPNValue", "0.0", "Position of center of slot array in rotated frame."],
             "n_slots": ["N SLOTS", "RPNValue", "0", "Number of empty slots in material. If <=0, an infinite array is assumed."],
+            "start_pass": ["START PASS", "Integer", "-1", "If non-negative, pass on which to start interaction with beam."],
+            "end_pass": ["END PASS", "Integer", "-1", "If non-negative, pass on which to end interaction with beam."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MAXAMP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "x half-aperture"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "y half-aperture"],
             "elliptical": ["ELLIPTICAL", "RPNBoolean", "0", "is aperture elliptical?"],
@@ -2386,7 +2626,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MBUMPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "geometric strength in 1/m^order"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2405,7 +2645,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MHISTOGRAM": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "file1d": ["FILE1D", "OutputFile", "", "filename for 1d histogram output, possibly incomplete (see below)"],
             "file2dh": ["FILE2DH", "OutputFile", "", "filename for 2d x-x' histogram output, possibly incomplete (see below)"],
             "file2dv": ["FILE2DV", "OutputFile", "", "filename for 2d y-y' histogram output, possibly incomplete (see below)"],
@@ -2421,7 +2661,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MODRF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "nominal voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "nominal phase"],
@@ -2440,7 +2680,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MONI": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2457,7 +2697,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MRFDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "A factor to multiple all components with."],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "a1": ["A1 [V/m]", "RPNValue", "0.0", "Vertically-deflecting dipole"],
@@ -2484,7 +2724,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "knl": ["KNL [M-ORDER]", "RPNValue", "0.0", "integrated geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2500,7 +2740,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "NIBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bending angle"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
@@ -2528,7 +2768,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "NISEPT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
@@ -2541,9 +2781,9 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "OCTU": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k3": ["K3 [1/M3]", "RPNValue", "0.0", "geometric strength"],
+            "k3": ["K3 [1/M³]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2553,7 +2793,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "PEPPOT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radii": ["RADII [M]", "RPNValue", "0.0", "hole radius"],
             "transmission": ["TRANSMISSION", "RPNValue", "0.0", "transmission of material"],
@@ -2563,7 +2803,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "PFILTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "deltalimit": ["DELTALIMIT", "RPNValue", "-1", "maximum fractional momentum deviation"],
             "lowerfraction": ["LOWERFRACTION", "RPNValue", "0.0", "fraction of lowest-momentum particles to remove"],
             "upperfraction": ["UPPERFRACTION", "RPNValue", "0.0", "fraction of highest-momentum particles to remove"],
@@ -2573,9 +2813,9 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "QUAD": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2592,23 +2832,24 @@
             "edge2_effects": ["EDGE2 EFFECTS", "RPNBoolean", "1", "include exit edge effects?"],
             "fringe_type": ["FRINGE TYPE", "QuadFringeType", "fixed-strength", "type of fringe"],
             "ffringe": ["FFRINGE", "RPNValue", "0.0", "For non-integrals mode, fraction of length occupied by linear fringe region"],
+            "leffective": ["LEFFECTIVE [M]", "RPNValue", "-1", "Effective length. Ignored if non-positive. Cannot be used with non-zero FFRINGE."],
             "i0p": ["I0P [M]", "RPNValue", "0.0", "i0+ fringe integral"],
-            "i1p": ["I1P [M2]", "RPNValue", "0.0", "i1+ fringe integral"],
-            "i2p": ["I2P [M3]", "RPNValue", "0.0", "i2+ fringe integral"],
-            "i3p": ["I3P [M4]", "RPNValue", "0.0", "i3+ fringe integral"],
-            "lambda2p": ["LAMBDA2P [M3]", "RPNValue", "0.0", "lambda2+ fringe integral"],
+            "i1p": ["I1P [M²]", "RPNValue", "0.0", "i1+ fringe integral"],
+            "i2p": ["I2P [M³]", "RPNValue", "0.0", "i2+ fringe integral"],
+            "i3p": ["I3P [M⁴]", "RPNValue", "0.0", "i3+ fringe integral"],
+            "lambda2p": ["LAMBDA2P [M³]", "RPNValue", "0.0", "lambda2+ fringe integral"],
             "i0m": ["I0M [M]", "RPNValue", "0.0", "i0-fringe integral"],
-            "i1m": ["I1M [M2]", "RPNValue", "0.0", "i1-fringe integral"],
-            "i2m": ["I2M [M3]", "RPNValue", "0.0", "i2-fringe integral"],
-            "i3m": ["I3M [M4]", "RPNValue", "0.0", "i3-fringe integral"],
-            "lambda2m": ["LAMBDA2M [M3]", "RPNValue", "0.0", "lambda2-fringe integral"],
+            "i1m": ["I1M [M²]", "RPNValue", "0.0", "i1-fringe integral"],
+            "i2m": ["I2M [M³]", "RPNValue", "0.0", "i2-fringe integral"],
+            "i3m": ["I3M [M⁴]", "RPNValue", "0.0", "i3-fringe integral"],
+            "lambda2m": ["LAMBDA2M [M³]", "RPNValue", "0.0", "lambda2-fringe integral"],
             "radial": ["RADIAL", "RPNBoolean", "0", "If non-zero, converts the quadrupole into a radially-focusing lens"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "QUFRINGE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "peak geometric strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "peak geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -2619,14 +2860,14 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "waveform": ["WAVEFORM", "InputFileXY", "", "<filename>=<x>+<y>form specification of input file giving momentum factor vs time"],
             "waveformX": ["X", "String", ""],
             "waveformY": ["Y", "String", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RAMPRF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "nominal voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "nominal phase"],
@@ -2645,14 +2886,14 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RBEN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "magnet (straight) length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric focusing strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric focusing strength"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
             "e2": ["E2 [RAD]", "RPNValue", "0.0", "exit edge angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about incoming longitudinal axis"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
             "h1": ["H1 [1/M]", "RPNValue", "0.0", "entrance pole-face curvature"],
             "h2": ["H2 [1/M]", "RPNValue", "0.0", "exit pole-face curvature"],
             "hgap": ["HGAP [M]", "RPNValue", "0.0", "half-gap between poles"],
@@ -2669,11 +2910,11 @@
             "transport": ["TRANSPORT", "RPNBoolean", "0", "use (incorrect) TRANSPORT equations for T436 of edge?"],
             "use_bn": ["USE BN", "RPNBoolean", "0", "use B1 and B2 instead of K1 and K2 values?"],
             "b1": ["B1 [1/M]", "RPNValue", "0.0", "K1 = B1/rho, where rho is bend radius"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "K2 = B2/rho"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "K2 = B2/rho"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RCOL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "x_max": ["X MAX [M]", "RPNValue", "0.0", "half-width in x"],
             "y_max": ["Y MAX [M]", "RPNValue", "0.0", "half-width in y"],
@@ -2684,17 +2925,17 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RECIRC": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "i_recirc_element": ["I RECIRC ELEMENT", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "REFLECT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "REMCOR": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X", "RPNBoolean", "1", "remove correlations in x?"],
             "xp": ["XP", "RPNBoolean", "1", "remove correlations in x' ?"],
             "y": ["Y", "RPNBoolean", "1", "remove correlations in y?"],
@@ -2704,7 +2945,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFCA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "peak voltage"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
@@ -2726,7 +2967,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFCW": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "cell_length": ["CELL LENGTH [M]", "RPNValue", "0.0", "cell length (used to scale wakes, which are assumed to be given for a cell, according to L/CELL LENGTH)"],
             "volt": ["VOLT [V]", "RPNValue", "0.0", "voltage"],
@@ -2770,7 +3011,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
@@ -2803,7 +3044,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "ra": ["RA [Ohm]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
             "rs": ["RS [Ohm]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "RPNValue", "0.0", "cavity Q"],
@@ -2846,12 +3087,38 @@
             "update_interval": ["UPDATE INTERVAL", "RPNValue", "1", "update interval of feedback in units of rf period"],
             "amplitude_filter": ["AMPLITUDE FILTER", "OptionalString", "", "IIR filter specification for amplitude feedback"],
             "phase_filter": ["PHASE FILTER", "OptionalString", "", "IIR filter specification for phase feedback"],
+            "in_phase_filter": ["IN PHASEFILTER", "OptionalString", "", "IIR filter specification for in-phase component feedback"],
+            "quadrature_filter": ["QUADRATURE FILTER", "OptionalString", "", "IIR filter specification for quadrature component feedback"],
             "feedback_record": ["FEEDBACK RECORD", "OptionalString", "", "output file for feedback data"],
             "mute_generator": ["MUTE GENERATOR", "RPNValue", "-1", "If nonnegative, gives the pass on which to mute the generator. This simulates an rf trip."],
+            "noise_alpha_gen": ["NOISE ALPHA GEN", "InputFileXY", "", "<filename>=<x>+<y> specifying alpha(t) for generator noise."],
+            "noise_alpha_genX": ["X", "String", ""],
+            "noise_alpha_genY": ["Y", "String", ""],
+            "noise_phi_gen": ["NOISE PHI GEN", "InputFileXY", "", "<filename>=<x>+<y> specifying dphi(t) for generator noise, in radians."],
+            "noise_phi_genX": ["X", "String", ""],
+            "noise_phi_genY": ["Y", "String", ""],
+            "noise_alpha_v": ["NOISE ALPHA V", "InputFileXY", "", "<filename>=<x>+<y> specifying alpha(t) for voltage noise."],
+            "noise_alpha_vX": ["X", "String", ""],
+            "noise_alpha_vY": ["Y", "String", ""],
+            "noise_phi_v": ["NOISE PHI V", "InputFileXY", "", "<filename>=<x>+<y> specifying dphi(t) for voltage noise, in radians."],
+            "noise_phi_vX": ["X", "String", ""],
+            "noise_phi_vY": ["Y", "String", ""],
+            "noise_i_gen": ["NOISE I GEN", "InputFileXY", "", "<filename>=<x>+<y> specifying ni(t) for in-phase generator noise."],
+            "noise_i_genX": ["X", "String", ""],
+            "noise_i_genY": ["Y", "String", ""],
+            "noise_q_gen": ["NOISE Q GEN", "InputFileXY", "", "<filename>=<x>+<y> specifying nq(t) for quadrature generator noise."],
+            "noise_q_genX": ["X", "String", ""],
+            "noise_q_genY": ["Y", "String", ""],
+            "noise_i_v": ["NOISE I V", "InputFileXY", "", "<filename>=<x>+<y> specifying ei(t) for in-phase voltage noise."],
+            "noise_i_vX": ["X", "String", ""],
+            "noise_i_vY": ["Y", "String", ""],
+            "noise_q_v": ["NOISE Q V", "InputFileXY", "", "<filename>=<x>+<y> specifying eq(t) for quadrature voltage noise."],
+            "noise_q_vX": ["X", "String", ""],
+            "noise_q_vY": ["Y", "String", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFTM110": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "phase": ["PHASE [DEG]", "RPNValue", "0.0", "phase"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
@@ -2873,7 +3140,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RFTMEZ0": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -2913,12 +3180,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RIMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "factor": ["FACTOR", "RPNValue", "1", "factor"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "RMDF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "length of ramp"],
@@ -2932,25 +3199,25 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ROTATE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SAMPLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fraction": ["FRACTION", "RPNValue", "1", "fraction to keep"],
             "interval": ["INTERVAL", "RPNValue", "1", "interval between sampled particles"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SBEN": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
-            "k1": ["K1 [1/M2]", "RPNValue", "0.0", "geometric focusing strength"],
+            "k1": ["K1 [1/M²]", "RPNValue", "0.0", "geometric focusing strength"],
             "e1": ["E1 [RAD]", "RPNValue", "0.0", "entrance edge angle"],
             "e2": ["E2 [RAD]", "RPNValue", "0.0", "exit edge angle"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about incoming longitudinal axis"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric sextupole strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric sextupole strength"],
             "h1": ["H1 [1/M]", "RPNValue", "0.0", "entrance pole-face curvature"],
             "h2": ["H2 [1/M]", "RPNValue", "0.0", "exit pole-face curvature"],
             "hgap": ["HGAP [M]", "RPNValue", "0.0", "half-gap between poles"],
@@ -2967,11 +3234,11 @@
             "transport": ["TRANSPORT", "RPNBoolean", "0", "use (incorrect) TRANSPORT equations for T436 of edge?"],
             "use_bn": ["USE BN", "RPNBoolean", "0", "use B1 and B2 instead of K1 and K2 values?"],
             "b1": ["B1 [1/M]", "RPNValue", "0.0", "K1 = B1/rho, where rho is bend radius"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "K2 = B2/rho"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "K2 = B2/rho"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "x": ["X [M]", "RPNValue", "0.0", "rms scattering level for x"],
             "xp": ["XP", "RPNValue", "0.0", "rms scattering level for x'"],
             "y": ["Y [M]", "RPNValue", "0.0", "rms scattering level for y"],
@@ -2983,11 +3250,11 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCMULT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCRAPER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "xo": ["XO [M]", "RPNValue", "0.0", "radiation length"],
             "energy_decay": ["ENERGY DECAY", "RPNBoolean", "0", "If nonzero, then particles will lose energy due to material using a simple exponential model."],
@@ -2996,7 +3263,7 @@
             "electron_recoil": ["ELECTRON RECOIL", "RPNBoolean", "0", "If non-zero, electron recoil during Coulomb scattering is included (results in energy change)."],
             "z": ["Z", "RPNValue", "0", "Atomic number"],
             "a": ["A [AMU]", "RPNValue", "0.0", "Atomic mass"],
-            "rho": ["RHO [KG/M3]", "RPNValue", "0.0", "Density"],
+            "rho": ["RHO [KG/M³]", "RPNValue", "0.0", "Density"],
             "plimit": ["PLIMIT", "RPNValue", "0.05", "Probability cutoff for each slice"],
             "position": ["POSITION [M]", "RPNValue", "0.0", "position of edge"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -3006,7 +3273,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCRIPT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "Length to be used for matrix-based operations such as twiss parameter computation."],
             "command": ["COMMAND", "OptionalString", "", "SDDS-compliant command to apply to the beam. Use the sequence %i to represent the input filename and %o to represent the output filename."],
             "commandFile": ["COMMAND FILE", "InputFile", "", "Optional script source."],
@@ -3025,6 +3292,7 @@
             "drift_matrix": ["DRIFT MATRIX", "RPNBoolean", "0", "If nonzero, then for non-tracking calculations the element is treated as a drift space."],
             "use_particle_id": ["USE PARTICLE ID", "RPNBoolean", "1", "If nonzero, then the output file will supply particle IDs. Otherwise, particles are renumbered."],
             "no_new_particles": ["NO NEW PARTICLES", "RPNBoolean", "1", "If nonzero, then no new particles will be added in the script output file."],
+            "determine_losses_from_pid": ["DETERMINE LOSSES FROM PID", "RPNBoolean", "1", "If nonzero and if USE_PARTICLE_ID is nonzero, then particleID data from script output is used to determine which particles were lost."],
             "np0": ["NP0", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np0"],
             "np1": ["NP1", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np1"],
             "np2": ["NP2", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np2"],
@@ -3032,13 +3300,26 @@
             "np4": ["NP4", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np4"],
             "np5": ["NP5", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np5"],
             "np6": ["NP6", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np6"],
+            "np7": ["NP7", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np7"],
+            "np8": ["NP8", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np8"],
+            "np9": ["NP9", "RPNValue", "0.0", "User-defined numerical parameter for command substitution for sequence %np9"],
+            "sp0": ["SP0", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp0"],
+            "sp1": ["SP1", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp1"],
+            "sp2": ["SP2", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp2"],
+            "sp3": ["SP3", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp3"],
+            "sp4": ["SP4", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp4"],
+            "sp5": ["SP5", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp5"],
+            "sp6": ["SP6", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp6"],
+            "sp7": ["SP7", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp7"],
+            "sp8": ["SP8", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp8"],
             "sp9": ["SP9", "OptionalString", "", "User-defined string parameter for command substitution for sequence %sp9"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SEXT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
-            "k2": ["K2 [1/M3]", "RPNValue", "0.0", "geometric strength"],
+            "k2": ["K2 [1/M³]", "RPNValue", "0.0", "geometric strength"],
+            "j1": ["J1 [1∕M²]", "RPNValue", "0.0", "geometric skew quadrupole strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -3048,8 +3329,24 @@
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "SLICE": {
+            "name": ["Name", "ValidatedString"],
+            "n_slices": ["N SLICES", "Integer", "10", "number of slices"],
+            "start_pid": ["START PID", "Integer", "-1", "starting particleID for particles to dump"],
+            "end_pid": ["END PID", "Integer", "-1", "ending particleID for particles to dump"],
+            "interval": ["INTERVAL", "Integer", "1", "interval for data output (in turns)"],
+            "start_pass": ["START PASS", "Integer", "0", "pass on which to start"],
+            "end_pass": ["END PASS", "Integer", "-1", "pass on which to end (inclusive). Ignored if negative."],
+            "filename": ["FILENAME", "OutputFile", "", "output filename, possibly incomplete (see below)"],
+            "label": ["LABEL", "String", "", "output label"],
+            "index_offset": ["INDEX OFFSET", "Integer", "0", "Offset for file indices for sequential file naming."],
+            "reference_frequency": ["REFERENCE FREQUENCY", "RPNValue", "-1", "If non-zero, the indicated frequency is used to define the bucket center for purposes of computing time offsets."],
+            "disable": ["DISABLE", "RPNBoolean", "0", "If nonzero, no output will be generated."],
+            "use_disconnect": ["USE DISCONNECT", "RPNBoolean", "0", "If nonzero, files are disconnected between each write operation. May be useful for parallel operation. Ignored otherwise."],
+            "group": ["GROUP", "Optionally", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "SOLE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ks": ["KS [RAD/M]", "RPNValue", "0.0", "geometric strength, -Bs/(B*Rho)"],
             "b": ["B [T]", "RPNValue", "0.0", "field strength (used if KS is zero)"],
@@ -3059,8 +3356,20 @@
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "SPEEDBUMP": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [M]", "RPNValue", "0.0", "insertion length"],
+            "chord": ["CHORD [M]", "RPNValue", "0.0", "z length of speed bump"],
+            "dzcenter": ["DZCENTER [M]", "RPNValue", "0.0", "z center displacement of speed bump relative to middle of object"],
+            "height": ["HEIGHT [M]", "RPNValue", "0.0", "height above the surrounding chamber"],
+            "position": ["POSITION [M]", "RPNValue", "0.0", "position of peak relative to ideal trajectory"],
+            "dx": ["DX [M]", "RPNValue", "0.0", "horizontal misalignment"],
+            "dy": ["DY [M]", "RPNValue", "0.0", "vertical misalignment"],
+            "insert_from": ["INSERT FROM", "SpeedbumpInsertFrom", "", "direction from which inserted"],
+	    "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "SREFFECTS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "jx": ["JX", "RPNValue", "1", "x damping partition number"],
             "jy": ["JY", "RPNValue", "1", "y damping partition number"],
             "jdelta": ["JDELTA", "RPNValue", "2", "momentum damping partition number"],
@@ -3079,7 +3388,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "STRAY": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "lbx": ["LBX [T]", "RPNValue", "0.0", "local Bx"],
             "lby": ["LBY [T]", "RPNValue", "0.0", "local By"],
@@ -3090,10 +3399,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TFBDRIVER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "id": ["ID", "OptionalString", "", "System identifier"],
             "strength": ["STRENGTH", "RPNValue", "0.0", "Strength factor"],
             "kick_limit": ["KICK LIMIT", "RPNValue", "0.0", "Limit on applied kick, nominally in radians."],
+            "frequency": ["FREQUENCY [Hz]", "RPNValue", "0.0", "Frequency of the kicker cavity."],
+            "phase": ["PHASE [Deg]", "RPNValue", "0.0", "Phase of the applied voltage relative to the bunch center."],
             "delay": ["DELAY", "RPNValue", "0", "Delay (in turns)"],
             "longitudinal": ["LONGITUDINAL", "RPNBoolean", "0", "If non-zero, kick is in the longitudinal plane. KICK LIMIT is in fractional momentum deviation."],
             "output_file": ["OUTPUT FILE", "OutputFile", "", "File for logging filter output and driver output"],
@@ -3112,13 +3423,30 @@
             "a12": ["A12", "RPNValue", "0.0", "Filter coefficient"],
             "a13": ["A13", "RPNValue", "0.0", "Filter coefficient"],
             "a14": ["A14", "RPNValue", "0.0", "Filter coefficient"],
+            "a15": ["A15", "RPNValue", "0.0", "Filter coefficient"],
+            "a16": ["A16", "RPNValue", "0.0", "Filter coefficient"],
+            "a17": ["A17", "RPNValue", "0.0", "Filter coefficient"],
+            "a18": ["A18", "RPNValue", "0.0", "Filter coefficient"],
+            "a19": ["A19", "RPNValue", "0.0", "Filter coefficient"],
+            "a20": ["A20", "RPNValue", "0.0", "Filter coefficient"],
+            "a21": ["A21", "RPNValue", "0.0", "Filter coefficient"],
+            "a22": ["A22", "RPNValue", "0.0", "Filter coefficient"],
+            "a23": ["A23", "RPNValue", "0.0", "Filter coefficient"],
+            "a24": ["A24", "RPNValue", "0.0", "Filter coefficient"],
+            "a25": ["A25", "RPNValue", "0.0", "Filter coefficient"],
+            "a26": ["A26", "RPNValue", "0.0", "Filter coefficient"],
+            "a27": ["A27", "RPNValue", "0.0", "Filter coefficient"],
+            "a28": ["A28", "RPNValue", "0.0", "Filter coefficient"],
+            "a29": ["A29", "RPNValue", "0.0", "Filter coefficient"],
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "RPNBoolean", "1", "If non-zero, run in bunched beam mode."],
+            "start_pass": ["START PASS", "Integer", "-1", "If positive, first pass on which to drive beam."],
+            "end_pass": ["END PASS", "Integer", "-1", "If positive, last pass on which to drive beam."],
             "update_interval": ["UPDATE INTERVAL", "RPNValue", "0", "Interval in units of pickup update interval for sampling pickup data and updating filter output."],
             "output_interval": ["OUTPUT INTERVAL", "RPNValue", "1024", "Number of samples to buffer between writing output file updates."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TFBPICKUP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "id": ["ID", "OptionalString", "", "System identifier"],
             "plane": ["PLANE", "TfbpickupPlane", "x", ""],
             "rms_noise": ["RMS NOISE [M]", "RPNValue", "0.0", "RMS noise to add to position readings."],
@@ -3137,13 +3465,32 @@
             "a12": ["A12", "RPNValue", "0.0", "Filter coefficient"],
             "a13": ["A13", "RPNValue", "0.0", "Filter coefficient"],
             "a14": ["A14", "RPNValue", "0.0", "Filter coefficient"],
+            "a15": ["A15", "RPNValue", "0.0", "Filter coefficient"],
+            "a16": ["A16", "RPNValue", "0.0", "Filter coefficient"],
+            "a17": ["A17", "RPNValue", "0.0", "Filter coefficient"],
+            "a18": ["A18", "RPNValue", "0.0", "Filter coefficient"],
+            "a19": ["A19", "RPNValue", "0.0", "Filter coefficient"],
+            "a20": ["A20", "RPNValue", "0.0", "Filter coefficient"],
+            "a21": ["A21", "RPNValue", "0.0", "Filter coefficient"],
+            "a22": ["A22", "RPNValue", "0.0", "Filter coefficient"],
+            "a23": ["A23", "RPNValue", "0.0", "Filter coefficient"],
+            "a24": ["A24", "RPNValue", "0.0", "Filter coefficient"],
+            "a25": ["A25", "RPNValue", "0.0", "Filter coefficient"],
+            "a26": ["A26", "RPNValue", "0.0", "Filter coefficient"],
+            "a27": ["A27", "RPNValue", "0.0", "Filter coefficient"],
+            "a28": ["A28", "RPNValue", "0.0", "Filter coefficient"],
+            "a29": ["A29", "RPNValue", "0.0", "Filter coefficient"],
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "RPNBoolean", "1", "If non-zero, run in bunched beam mode."],
+            "start_pass": ["START PASS", "Integer", "-1", "If positive, first pass on which to perform computations."],
+            "end_pass": ["END PASS", "Integer", "-1", "If positive, last pass on which to perform computations."],
             "update_interval": ["UPDATE INTERVAL", "RPNValue", "0", "Interval in turns for sampling data and updating filter output."],
             "reference_frequency": ["REFERENCE FREQUENCY", "RPNValue", "0.0", "Reference frequency for computing phase offsets."],
+            "dx": ["DX [M]", "RPNValue", "0.0", "Horizontal offset (subtracted from pickup signal)."],
+            "dy": ["DY [M]", "RPNValue", "0.0", "Vertical offset (subtracted from pickup signal)"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TMCF": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [S]", "RPNValue", "0.0", "phase"],
@@ -3165,12 +3512,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRCOUNT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRFMODE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "ra": ["RA [Ohm/m]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
             "rs": ["RS [Ohm/m]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2)"],
             "q": ["Q", "RPNValue", "0.0", "cavity Q"],
@@ -3178,6 +3525,7 @@
             "charge": ["CHARGE [C]", "RPNValue", "0.0", "beam charge (or use CHARGE element)"],
             "beta": ["BETA", "RPNValue", "0.0", "normalized load impedance"],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
+            "interpolate": ["INTERPOLATE", "RPNBoolean", "0", "if non-zero, interpolate voltage within bins"],
             "n_bins": ["N BINS", "RPNValue", "20", "number of bins for current histogram"],
             "plane": ["PLANE", "TrfmodePlane", "both", ""],
             "sample_interval": ["SAMPLE INTERVAL", "RPNValue", "1", "passes between output to RECORD file"],
@@ -3198,7 +3546,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TRWAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green functions"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wxcolumn": ["WXCOLUMN", "OptionalString", "", "column in INPUTFILE containing x Green function"],
@@ -3224,12 +3572,12 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TSCATTER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "dummy": ["DUMMY", "RPNValue", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TUBEND": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "arc length"],
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "bend angle"],
             "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
@@ -3239,7 +3587,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWISS": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "betax": ["BETAX [M]", "RPNValue", "1", "horizontal beta function"],
             "alphax": ["ALPHAX", "RPNValue", "0.0", "horizontal alpha function"],
             "etax": ["ETAX [M]", "RPNValue", "0.0", "horizontal eta function"],
@@ -3265,7 +3613,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWLA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -3289,7 +3637,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWMTA": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "frequency": ["FREQUENCY [HZ]", "RPNValue", "2856000000", "frequency"],
             "phase": ["PHASE [RAD]", "RPNValue", "0.0", "phase"],
@@ -3310,7 +3658,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "TWPL": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "ramp_time": ["RAMP TIME [S]", "RPNValue", "1e-09", "time to ramp to full strength"],
             "time_offset": ["TIME OFFSET [S]", "RPNValue", "0.0", "offset of ramp-start time"],
@@ -3330,7 +3678,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "UKICKMAP": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
@@ -3338,20 +3686,22 @@
             "dz": ["DZ [M]", "RPNValue", "0.0", "misalignment"],
             "field_factor": ["FIELD FACTOR", "RPNValue", "1", "Factor by which to multiply the magnetic fields."],
             "xy_factor": ["XY FACTOR", "RPNValue", "1", "Factor by which to multiply the x and y values in the input file."],
+            "yaw": ["YAW", "RPNValue", "0.0", "Yaw angle of the device. Meaningful only if N_KICKS is not 1."],
             "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file with undulator kickmap data."],
             "n_kicks": ["N KICKS", "RPNValue", "1", "Number of kicks into which to split the element."],
             "periods": ["PERIODS", "RPNValue", "0", "Number of periods (for radiation integral computations only)."],
             "kref": ["KREF", "RPNValue", "0.0", "Reference value of undulator parameter. K=KREF*FIELD FACTOR is used for radiation integral calculations only assuming period=L/PERIODS."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
+            "yaw_end": ["YAW END", "UkickmapYawEnd", "0", ""],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "VKICK": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "kick": ["KICK [RAD]", "RPNValue", "0.0", "kick strength"],
             "tilt": ["TILT [RAD]", "RPNValue", "0.0", "rotation about longitudinal axis"],
-            "b2": ["B2 [1/M2]", "RPNValue", "0.0", "normalized sextupole strength (kick= KICK*(1+B2*y^2))"],
+            "b2": ["B2 [1/M²]", "RPNValue", "0.0", "normalized sextupole strength (kick= KICK*(1+B2*y^2))"],
             "calibration": ["CALIBRATION", "RPNValue", "1", "strength multiplier"],
             "edge_effects": ["EDGE EFFECTS", "RPNBoolean", "0", "include edge effects?"],
             "order": ["ORDER", "RPNValue", "0", "matrix order"],
@@ -3362,7 +3712,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "VMON": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "dx": ["DX [M]", "RPNValue", "0.0", "misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "misalignment"],
@@ -3376,7 +3726,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WAKE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "inputfile": ["INPUTFILE", "InputFile", "", "name of file giving Green function"],
             "tcolumn": ["TCOLUMN", "OptionalString", "", "column in INPUTFILE containing time data"],
             "wcolumn": ["WCOLUMN", "OptionalString", "", "column in INPUTFILE containing Green function"],
@@ -3394,7 +3744,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WATCH": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "fraction": ["FRACTION", "RPNValue", "1", "fraction of particles to dump (coordinate mode)"],
             "start_pid": ["START PID", "RPNValue", "-1", "starting particleID for particles to dump"],
             "end_pid": ["END PID", "RPNValue", "-1", "ending particleID for particles to dump"],
@@ -3412,10 +3762,11 @@
             "disable": ["DISABLE", "RPNBoolean", "0", "If nonzero, no output will be generated."],
             "use_disconnect": ["USE DISCONNECT", "RPNBoolean", "0", "If nonzero, files are disconnected between each write operation. Maybe useful for parallel operation. Ignored otherwise."],
             "index_offset": ["INDEX OFFSET", "RPNValue", "0", "Offset for file indices for sequential file naming."],
+            "reference_frequency": ["REFERENCE FREQUENCY", "RPNValue", "-1", "If non-zero, the indicated frequency is used to define the bucket center for purposes of computing time offsets."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WIGGLER": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "l": ["L [M]", "RPNValue", "0.0", "length"],
             "radius": ["RADIUS [M]", "RPNValue", "0.0", "Peak bending radius. Ignored if K or B is non-negative."],
             "k": ["K", "RPNValue", "0.0", "Dimensionless strength parameter."],
@@ -3429,7 +3780,7 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ZLONGIT": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "charge": ["CHARGE [C]", "RPNValue", "0.0", "beam charge (or use CHARGE element)"],
             "broad_band": ["BROAD BAND", "RPNBoolean", "0", "broad-band impedance?"],
             "ra": ["RA [Ohm]", "RPNValue", "0.0", "shunt impedance, Ra=V^2/P"],
@@ -3444,7 +3795,7 @@
             "zimagY": ["Y", "String", ""],
             "bin_size": ["BIN SIZE [S]", "RPNValue", "0.0", "bin size for current histogram (use 0 for autosize)"],
             "n_bins": ["N BINS", "RPNValue", "128", "number of bins for current histogram"],
-            "max_n_bins": ["MAX N_BINS", "RPNValue", "0", "Maximum number of bins for current histogram"],
+            "max_n_bins": ["MAX N BINS", "RPNValue", "0", "Maximum number of bins for current histogram"],
             "wakes": ["WAKES", "OutputFile", "", "filename for output of wake"],
             "wake_interval": ["WAKE INTERVAL", "RPNValue", "1", "interval in passes at which to output wake"],
             "wake_start": ["WAKE START", "RPNValue", "0", "pass at which to start to output wake"],
@@ -3461,10 +3812,11 @@
             "high_frequency_cutoff0": ["HIGH FREQUENCY CUTOFF0", "RPNValue", "-1", "Frequency at which smoothing filter begins. If not positive, no frequency filter smoothing is done. Frequency is in units of Nyquist (0.5/binsize)."],
             "high_frequency_cutoff1": ["HIGH FREQUENCY CUTOFF1", "RPNValue", "-1", "Frequency at which smoothing filter is 0. If not given, defaults to HIGH FREQUENCY CUTOFF0."],
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "RPNBoolean", "1", "If non-zero, then do calculations bunch-by-bunch."],
+            "allow_long_beam": ["ALLOW LONG BEAM", "RPNBoolean", "0", "Allow beam longer than covered by impedance data?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "ZTRANSVERSE": {
-            "name": ["Name", "String"],
+            "name": ["Name", "ValidatedString"],
             "charge": ["CHARGE [C]", "RPNValue", "0.0", "beam charge (or use CHARGE element)"],
             "broad_band": ["BROAD BAND", "RPNBoolean", "0", "broad-band impedance?"],
             "rs": ["RS [Ohm]", "RPNValue", "0.0", "shunt impedance (Rs=Ra/2=V^2/(2*P))"],
@@ -3501,6 +3853,7 @@
             "x_probe_exponent": ["X PROBE EXPONENT", "RPNValue", "0", "Exponent applied to x coordinates of probe particles"],
             "y_probe_exponent": ["Y PROBE EXPONENT", "RPNValue", "0", "Exponent applied to y coordinates of probe particles"],
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "RPNBoolean", "1", "If non-zero, then do calculations bunch-by-bunch."],
+            "allow_long_beam": ["ALLOW LONG BEAM", "RPNBoolean", "0", "Allow beam longer than covered by impedance data?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         }
     },
@@ -3633,6 +3986,8 @@
                 "string_value",
                 "differential",
                 "multiplicative",
+                "alter_at_each_step",
+                "alter_before_load_parameters",
                 "verbose",
                 "allow_missing_elements",
                 "allow_missing_parameters",
@@ -3675,8 +4030,10 @@
                 "delta_yp",
                 "delta_s",
                 "delta_dp",
+                "accuracy_factor",
                 "center_on_orbit",
                 "verbosity",
+                "canonical_variables",
                 "printout_order",
                 "periodic",
                 "beta_x",
@@ -3722,6 +4079,7 @@
                 "eta_y",
                 "etap_y",
                 "use_twiss_command_values",
+                "use_moments_output_values",
                 "Po",
                 "sigma_dp",
                 "sigma_s",
@@ -3762,6 +4120,7 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "sextupoles",
+                "exclude",
                 "dnux_dp",
                 "dnuy_dp",
                 "sextupole_tweek",
@@ -3805,6 +4164,7 @@
                 "trajectory_output",
                 "corrector_output",
                 "statistics",
+                "bpm_output",
                 "corrector_tweek",
                 "corrector_limit",
                 "correction_fraction",
@@ -3904,6 +4264,26 @@
                 "clear"
             ]
         },
+        "command_elastic_scattering": {
+            "title": "elastic_scattering",
+            "description": "perform simulation of elastic scattering at multiple s locations, for use in computing elastic gas scattering lifetime and loss distribution",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "losses",
+                "output",
+                "log_file",
+                "theta_min",
+                "theta_max",
+                "n_theta",
+                "n_phi",
+                "twiss_scaling",
+                "s_start",
+                "s_end",
+                "include_name_pattern",
+                "include_type_pattern",
+                "verbosity"
+            ]
+        },
         "command_error_control": {
             "title": "error_control",
             "description": "overall control of random errors.",
@@ -3949,8 +4329,12 @@
                 "mode",
                 "xmin",
                 "xmax",
+                "xpmin",
+                "xpmax",
                 "ymin",
                 "ymax",
+                "ypmin",
+                "ypmax",
                 "nx",
                 "ny",
                 "n_splits",
@@ -4007,10 +4391,43 @@
                 "inhibit_fsync",
                 "echo_namelists",
                 "SR_gaussian_limit",
+                "inhibit_seed_permutation",
                 "log_file",
                 "error_log_file",
                 "mpi_randomization_mode",
                 "exact_normalized_emittance"
+            ]
+        },
+        "command_ignore_elements": {
+            "title": "ignore_elements",
+            "description": "causes specified elements to be ignored during tracking.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "type",
+                "exclude",
+                "disable",
+                "clear"
+            ]
+        },
+        "command_inelastic_scattering": {
+            "title": "inelastic_scattering",
+            "description": "perform simulation of inelastic scattering at multiple s locations, for use in computing inelastic gas scattering lifetime and loss distribution",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "losses",
+                "output",
+                "log_file",
+                "k_min",
+                "momentum_aperture",
+                "momentum_aperture_scale",
+                "momentum_aperture_periodicity",
+                "n_k",
+                "s_start",
+                "s_end",
+                "include_name_pattern",
+                "include_type_pattern",
+                "verbosity"
             ]
         },
         "command_insert_elements": {
@@ -4026,6 +4443,7 @@
                 "skip",
                 "disable",
                 "add_at_end",
+                "add_at_start",
                 "element_def",
                 "total_occurrences",
                 "occurrence"
@@ -4047,6 +4465,25 @@
                 "horizontal",
                 "nonlinear",
                 "uniform_distribution",
+                "verbosity"
+            ]
+        },
+        "command_ion_effects": {
+            "title": "ion_effects",
+            "description": "set up for modeling of residual gas ions.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "pressure_profile",
+                "ion_properties",
+                "beam_output",
+                "beam_output_all_locations",
+                "ion_density_output",
+                "ion_output_all_locations",
+                "ion_species_output",
+                "macro_ions",
+                "generation_interval",
+                "x_span",
+                "y_span",
                 "verbosity"
             ]
         },
@@ -4087,6 +4524,7 @@
                 "exclude",
                 "item",
                 "source",
+                "source_from_target_edit",
                 "source_position",
                 "mode",
                 "equation",
@@ -4133,7 +4571,7 @@
                 "SDDS_output_match",
                 "output_at_each_step",
                 "start_from",
-                "start_from_occurrence"
+                "start_from_occurence"
             ]
         },
         "command_modulate_elements": {
@@ -4158,7 +4596,9 @@
                 "before",
                 "after",
                 "verbose",
-                "record"
+                "verbose_threshold",
+                "record",
+                "flush_record"
             ]
         },
         "command_moments_output": {
@@ -4542,7 +4982,14 @@
                 "item",
                 "plane",
                 "tweek",
-                "limit"
+                "limit",
+                "start_occurence",
+                "end_occurence",
+                "occurence_step",
+                "s_start",
+                "s_end",
+                "before",
+                "after"
             ]
         },
         "command_touschek_scatter": {
@@ -4757,6 +5204,32 @@
                 "group"
             ]
         },
+        "BGGEXP": {
+            "title": "BGGEXP",
+            "description": "A straight magnetic field element using generalized gradient expansion.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "lfield",
+                "filename",
+                "strength",
+                "tilt",
+                "dx",
+                "dy",
+                "dz",
+                "bx",
+                "by",
+                "maximum_m",
+                "maximum_2n",
+                "z_interval",
+                "symplectic",
+                "synch_rad",
+                "isr",
+                "particle_output_file",
+                "group"
+            ]
+        },
         "BMAPXY": {
             "title": "BMAPXY",
             "description": "A map of Bx and By vs x and y.",
@@ -4770,6 +5243,62 @@
                 "filename",
                 "fx",
                 "fy",
+                "group"
+            ]
+        },
+        "BMXYZ": {
+            "title": "BMXYZ",
+            "description": "A map of (Bx, By, Bz) vs (x, y, z), for straight elements only",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "lfield",
+                "strength",
+                "accuracy",
+                "method",
+	        "filename",
+                "synch_rad",
+                "check_fields",
+                "particle_output_file",
+                "group"
+            ]
+        },
+        "BRANCH": {
+            "title": "BRANCH",
+            "description": "Conditional branch instruction to jump to another part of the beamline",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "counter",
+                "verbosity",
+                "branch_to",
+                "else_to",
+                "group"
+            ]
+        },
+        "BRAT": {
+            "title": "BRAT",
+            "description": "Bending magnet Ray Tracing using (Bx, By, Bz) vs (x, y, z).",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "fse",
+                "accuracy",
+	        "filename",
+                "xvertex",
+                "zvertex",
+                "xentry",
+                "zentry",
+                "xexit",
+                "zexit",
+                "dxmap",
+                "dzmap",
+                "yawmap",
+                "factor",
+                "use_ftable",
                 "group"
             ]
         },
@@ -4949,12 +5478,23 @@
                 "f6",
                 "f7",
                 "f8",
+                "g1",
+                "g2",
+                "g3",
+                "g4",
+                "g5",
+                "g6",
+                "g7",
+                "g8",
                 "isr",
                 "isr1part",
                 "sqrt_order",
                 "use_rad_dist",
                 "add_opening_angle",
+                "photon_output_file",
+                "photon_low_energy_cutoff",
                 "reference_correction",
+                "tracking_matrix",
                 "group"
             ]
         },
@@ -5177,11 +5717,16 @@
                 "l",
                 "kick",
                 "tilt",
+                "dx",
+                "dy",
+                "dz",
                 "calibration",
                 "steering",
                 "synch_rad",
                 "isr",
                 "lerad",
+                "steering_multipoles",
+                "random_multipoles",
                 "group"
             ]
         },
@@ -5195,12 +5740,17 @@
                 "hkick",
                 "vkick",
                 "tilt",
+                "dx",
+                "dy",
+                "dz",
                 "hcalibration",
                 "vcalibration",
                 "steering",
                 "synch_rad",
                 "isr",
                 "lerad",
+                "steering_multipoles",
+                "random_multipoles",
                 "group"
             ]
         },
@@ -5435,11 +5985,16 @@
                 "l",
                 "kick",
                 "tilt",
+                "dx",
+                "dy",
+                "dz",
                 "calibration",
                 "steering",
                 "synch_rad",
                 "isr",
                 "lerad",
+                "steering_multipoles",
+                "random_multipoles",
                 "group"
             ]
         },
@@ -5516,9 +6071,12 @@
                 "dx",
                 "dy",
                 "dz",
+                "factor",
+                "threshold",
                 "input_file",
                 "n_kicks",
                 "verbose",
+                "simple_input",
                 "group"
             ]
         },
@@ -5684,6 +6242,12 @@
                 "nuy1ax",
                 "nux1ay",
                 "nuy1ay",
+                "nux2ax",
+                "nuy2ax",
+                "nux2ay",
+                "nuy2ay",
+                "nux1ax1ay",
+                "nuy1ax1ay",
                 "betax",
                 "betay",
                 "betax1m",
@@ -5703,9 +6267,31 @@
                 "alphac",
                 "alphac2",
                 "alphac3",
+                "ds1ax",
+                "ds1ay",
+                "ds2ax",
+                "ds2ay",
+                "ds1ax1ay",
                 "tilt",
                 "cross_resonance",
                 "verbosity",
+                "group"
+            ]
+        },
+        "IONEFFECTS": {
+            "title": "IONEFFECTS",
+            "description": "Simulates ionization of residual gas and interaction with the beam.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "disable",
+                "macro_ions",
+                "generation_interval",
+                "x_span",
+                "y_span",
+                "startpass",
+                "endpass",
+                "passinterval",
                 "group"
             ]
         },
@@ -5798,14 +6384,19 @@
                 "n_kicks",
                 "synch_rad",
                 "systematic_multipoles",
+                "edge_multipoles",
                 "random_multipoles",
                 "steering_multipoles",
+                "systematic_multipole_factor",
+                "random_multipole_factor",
+                "steering_multipole_factor",
                 "integration_order",
                 "sqrt_order",
                 "isr",
                 "isr1part",
                 "edge1_effects",
                 "edge2_effects",
+                "leffective",
                 "i0p",
                 "i1p",
                 "i2p",
@@ -5816,6 +6407,10 @@
                 "i2m",
                 "i3m",
                 "lambda2m",
+                "edge1_linear",
+                "edge2_linear",
+                "edge1_nonlinear_factor",
+                "edge2_nonlinear_factor",
                 "radial",
                 "group"
             ]
@@ -5888,6 +6483,7 @@
                 "name",
                 "l",
                 "k2",
+                "j1",
                 "tilt",
                 "bore",
                 "b",
@@ -5895,10 +6491,21 @@
                 "dy",
                 "dz",
                 "fse",
+                "hkick",
+                "vkick",
+                "hcalibration",
+                "vcalibration",
+                "hsteering",
+                "vsteering",
                 "n_kicks",
                 "synch_rad",
                 "systematic_multipoles",
+                "edge_multipoles",
                 "random_multipoles",
+                "steering_multipoles",
+                "systematic_multipole_factor",
+                "random_multipole_factor",
+                "steering_multipole_factor",
                 "integration_order",
                 "sqrt_order",
                 "isr",
@@ -5935,10 +6542,14 @@
                 "wxcolumn",
                 "wycolumn",
                 "wzcolumn",
+                "qxcolumn",
+                "qycolumn",
                 "factor",
                 "xfactor",
                 "yfactor",
                 "zfactor",
+                "qxfactor",
+                "qyfactor",
                 "turns_to_keep",
                 "ramp_passes",
                 "group"
@@ -5994,6 +6605,7 @@
                 "laser_n",
                 "synch_rad",
                 "isr",
+                "helical",
                 "time_profile",
                 "time_offset",
                 "group"
@@ -6125,6 +6737,8 @@
                 "tilt",
                 "center",
                 "n_slots",
+                "start_pass",
+                "end_pass",
                 "group"
             ]
         },
@@ -6407,6 +7021,7 @@
                 "edge2_effects",
                 "fringe_type",
                 "ffringe",
+                "leffective",
                 "i0p",
                 "i1p",
                 "i2p",
@@ -6707,8 +7322,18 @@
                 "update_interval",
                 "amplitude_filter",
                 "phase_filter",
+                "in_phase_filter",
+                "quadrature_filter",
                 "feedback_record",
                 "mute_generator",
+                "noise_alpha_gen",
+                "noise_phi_genY",
+                "noise_alpha_v",
+                "noise_phi_v",
+                "noise_i_gen",
+                "noise_q_gen",
+                "noise_i_v",
+                "noise_q_v",
                 "group"
             ]
         },
@@ -6946,6 +7571,18 @@
                 "np4",
                 "np5",
                 "np6",
+                "np7",
+                "np8",
+                "np9",
+                "sp0",
+                "sp1",
+                "sp2",
+                "sp3",
+                "sp4",
+                "sp5",
+                "sp6",
+                "sp7",
+                "sp8",
                 "sp9",
                 "group"
             ]
@@ -6958,6 +7595,7 @@
                 "name",
                 "l",
                 "k2",
+                "j1",
                 "tilt",
                 "dx",
                 "dy",
@@ -6965,6 +7603,27 @@
                 "fse",
                 "ffringe",
                 "order",
+                "group"
+            ]
+        },
+        "SLICE": {
+            "title": "SLICE",
+            "description": "Performs slice-by-slice analysis of the beam for output to a file.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "n_slices",
+                "start_pid",
+                "end_pid",
+                "interval",
+                "start_pass",
+                "end_pass",
+                "filename",
+                "label",
+                "index_offset",
+                "reference_frequency",
+                "disable",
+                "use_disconnect",
                 "group"
             ]
         },
@@ -6984,6 +7643,24 @@
                 "group"
             ]
         },
+        "SPEEDBUMP": {
+            "title": "SPEEDBUMP",
+            "description": "Simulates a semi-circular protuberance from one or both walls of the chamber.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "chord",
+                "dzcenter",
+                "height",
+                "position",
+                "dx",
+                "dy",
+                "insert_from",
+	        "group"
+            ]
+        },
+        
         "SREFFECTS": {
             "title": "SREFFECTS",
             "description": "Lumped simulation of synchrotron radiation effects (damping andquantum excitation) for rings.",
@@ -7033,6 +7710,8 @@
                 "id",
                 "strength",
                 "kick_limit",
+                "frequency",
+                "phase",
                 "delay",
                 "longitudinal",
                 "output_file",
@@ -7051,7 +7730,18 @@
                 "a12",
                 "a13",
                 "a14",
+                "a15",
+                "a16",
+                "a17",
+                "a18",
+                "a19",
+                "a20",
+                "a21",
+                "a22",
+                "a23",
                 "bunched_beam_mode",
+                "start_pass",
+                "end_pass",
                 "update_interval",
                 "output_interval",
                 "group"
@@ -7081,9 +7771,28 @@
                 "a12",
                 "a13",
                 "a14",
+                "a15",
+                "a16",
+                "a17",
+                "a18",
+                "a19",
+                "a20",
+                "a21",
+                "a22",
+                "a23",
+                "a24",
+                "a25",
+                "a26",
+                "a27",
+                "a28",
+                "a29",
                 "bunched_beam_mode",
                 "update_interval",
+                "start_pass",
+                "end_pass",
                 "reference_frequency",
+                "dx",
+                "dy",
                 "group"
             ]
         },
@@ -7138,6 +7847,7 @@
                 "beta",
                 "bin_size",
                 "n_bins",
+                "interpolate",
                 "plane",
                 "sample_interval",
                 "per_particle_output",
@@ -7337,12 +8047,14 @@
                 "dz",
                 "field_factor",
                 "xy_factor",
+                "yaw",
                 "input_file",
                 "n_kicks",
                 "periods",
                 "kref",
                 "synch_rad",
                 "isr",
+                "yaw_end",
                 "group"
             ]
         },
@@ -7431,6 +8143,7 @@
                 "disable",
                 "use_disconnect",
                 "index_offset",
+                "reference_frequency",
                 "group"
             ]
         },
@@ -7486,6 +8199,7 @@
                 "high_frequency_cutoff0",
                 "high_frequency_cutoff1",
                 "bunched_beam_mode",
+                "allow_long_beam",
                 "group"
             ]
         },
@@ -7531,6 +8245,7 @@
                 "x_probe_exponent",
                 "y_probe_exponent",
                 "bunched_beam_mode",
+                "allow_long_beam",
                 "group"
             ]
         }

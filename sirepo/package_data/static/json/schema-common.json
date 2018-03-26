@@ -1,5 +1,5 @@
 {
-    "version": "20180119.000000",
+    "version": "20180323.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -9,13 +9,13 @@
             "longName": "elegant",
             "shortName": "Elegant"
         },
-        "warpvnd": {
-            "longName": "Warp VND",
-            "shortName": "Warp VND"
-        },
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"
+        },
+        "jspec": {
+            "longName": "JSPEC",
+            "shortName": "JSPEC"
         },
         "rs4pi": {
             "longName": "RS4PI",
@@ -32,6 +32,10 @@
         "warppba": {
             "longName": "Warp PBA",
             "shortName": "Warp PBA"
+        },
+        "warpvnd": {
+            "longName": "Warp VND",
+            "shortName": "Warp VND"
         }
     },
     "productInfo": {
@@ -59,7 +63,7 @@
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "oauthLogin": "/login/<simulation_type>/<oauth_type>",
         "oauthLogout": "/logout/<simulation_type>",
-        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
         "runCancel": "/run-cancel",
@@ -94,7 +98,7 @@
             "name": ["Folder Name", "SafePath"]
         },
         "simulation": {
-            "name": ["Name", "SafePath"],
+            "name": ["Name", "SimulationName"],
             "folder": ["Folder", "String"],
             "documentationUrl": ["Documentation URL", "OptionalString", ""]
         }
@@ -110,6 +114,7 @@
     },
     "customErrors": {
         "404": "not-found.html",
+        "422": "srw-magnet-file-error.html",
         "500": "server-error.html"
     }
 }

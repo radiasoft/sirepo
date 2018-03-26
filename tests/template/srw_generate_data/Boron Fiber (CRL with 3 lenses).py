@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -15,21 +15,26 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
+    # CRL: crl 36.0m
     el.append(srwlib.srwl_opt_setup_CRL(2, 4.716943e-06, 0.00625735, 1, 0.001, 0.001, 0.0005, 3, 8e-05, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(34.1915))
+    # Watchpoint: watch 70.1915m
 
+    # Fiber: fiber 70.1915m
     el.append(srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=2, _delta_ext=6.228746e-06, _delta_core=4.129923e-05, _atten_len_ext=0.00241229, _atten_len_core=3.63751e-06, _diam_ext=0.0001, _diam_core=1e-05, _xc=0.0, _yc=0.0))
     el.append(srwlib.SRWLOptD(0.6585))
+    # Watchpoint: watch 70.85m
 
     pp = []
+    # CRL
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Watchpoint
+    # Fiber
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Watchpoint
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 0, 0.7, 2.0, 0.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

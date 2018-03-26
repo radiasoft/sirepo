@@ -9,6 +9,9 @@ SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
 //TODO(pjm): provide API for this, keyed by field type
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
       '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
@@ -322,7 +325,6 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
 
     // keep source page items in sync with the associated control command
     $rootScope.$on('modelChanged', function(e, name) {
-        var cmd, bunch;
         if (name == 'bunchSource') {
             bunchSourceChanged();
         }
@@ -338,11 +340,11 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         else if (name == 'commands') {
             commandsChanged();
         }
-        else if (name == 'WATCH') {
-            // elegant will crash if the watch has no output filename
-            var watch = appState.models.WATCH;
-            if (watch && ! watch.filename) {
-                watch.filename = '1';
+        else if (name == 'WATCH' || name == 'HISTOGRAM' || name == 'SLICE') {
+            // elegant will crash if these element's have no output filename
+            var el = appState.models[name];
+            if (el && ! el.filename) {
+                el.filename = '1';
             }
         }
     });
@@ -370,8 +372,9 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             },
             function(data) {
                 if (! data.error) {
-                    if (appState.isLoaded())
+                    if (appState.isLoaded()) {
                         appState.models.rpnCache[value] = data.result;
+                    }
                 }
                 callback(data.result, data.error);
             });
@@ -400,21 +403,25 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     };
 
     this.getRpnValue = function(v) {
-        if (angular.isUndefined(v))
+        if (angular.isUndefined(v)) {
             return v;
-        if (v in appState.models.rpnCache)
+        }
+        if (v in appState.models.rpnCache) {
             return appState.models.rpnCache[v];
+        }
         var value = parseFloat(v);
-        if (isNaN(value))
+        if (isNaN(value)) {
             return undefined;
+        }
         return value;
     };
 
     this.getRpnValueForField = function(model, field) {
         if (appState.isLoaded() && model && field) {
             var v = model[field];
-            if (SIREPO.NUMBER_REGEXP.test(v))
+            if (SIREPO.NUMBER_REGEXP.test(v)) {
                 return '';
+            }
             return this.getRpnValue(v);
         }
         return '';
@@ -424,13 +431,16 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         var recomputeRequired = false;
         var re = new RegExp("\\b" + varName + "\\b");
         for (var k in appState.models.rpnCache) {
-            if (k == varName)
+            if (k == varName) {
                 appState.models.rpnCache[k] = value;
-            else if (k.match(re))
+            }
+            else if (k.match(re)) {
                 recomputeRequired = true;
+            }
         }
-        if (! recomputeRequired)
+        if (! recomputeRequired) {
             return;
+        }
         requestSender.getApplicationData(
             {
                 method: 'recompute_rpn_cache_values',
@@ -438,8 +448,9 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
                 variables: appState.models.rpnVariables,
             },
             function(data) {
-                if (appState.isLoaded() && data.cache)
+                if (appState.isLoaded() && data.cache) {
                     appState.models.rpnCache = data.cache;
+                }
             });
     };
 
@@ -461,8 +472,9 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     self.advancedNames = [
         'amplification_factors', 'analyze_map', 'aperture_data', 'change_particle',
         'closed_orbit', 'correct', 'correct_tunes', 'correction_matrix_output',
-        'coupled_twiss_output', 'divide_elements', 'find_aperture', 'floor_coordinates',
-        'frequency_map', 'global_settings', 'insert_elements', 'insert_sceffects',
+        'coupled_twiss_output', 'divide_elements', 'elastic_scattering', 'find_aperture',
+        'floor_coordinates', 'frequency_map', 'global_settings', 'ignore_elements',
+        'inelastic_scattering', 'insert_elements', 'insert_sceffects', 'ion_effects',
         'linear_chromatic_tracking_setup', 'link_control', 'link_elements', 'modulate_elements',
         'moments_output', 'momentum_aperture', 'optimization_constraint', 'optimization_covariable',
         'parallel_optimization_setup', 'print_dictionary', 'ramp_elements', 'replace_elements',
@@ -605,7 +617,7 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, panelState, rpnService, $rootScope, $scope, $window) {
+SIREPO.app.controller('LatticeController', function(appState, elegantService, validationService, utilities, panelState, rpnService, $rootScope, $scope) {
     var self = this;
     var emptyElements = [];
 
@@ -621,13 +633,13 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
     ];
 
     self.advancedNames = [
-        'ALPH', 'BMAPXY', 'BUMPER', 'CENTER',
+        'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
         'CWIGGLER', 'DSCATTER', 'EDRIFT', 'ELSE',
         'EMATRIX', 'EMITTANCE', 'ENERGY', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
         'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
-        'IBSCATTER', 'ILMATRIX', 'KOCT', 'KPOLY',
+        'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
         'LMIRROR', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
         'MAGNIFY', 'MALIGN', 'MAPSOLENOID', 'MATR',
@@ -640,7 +652,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         'RFMODE', 'RFTM110', 'RFTMEZ0', 'RIMULT',
         'RMDF', 'ROTATE', 'SAMPLE', 'SBEN',
         'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT',
-        'SOLE', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
+        'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
         'TFBPICKUP', 'TMCF', 'TRCOUNT', 'TRFMODE',
         'TRWAKE', 'TUBEND', 'TWISS', 'TWLA',
         'TWMTA', 'TWPL', 'UKICKMAP', 'VKICK',
@@ -651,7 +663,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.elementPic = {
         alpha: ['ALPH'],
-        bend: ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
         drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
         aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
         lens: ['LTHINLENS'],
@@ -661,7 +673,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         solenoid: ['MAPSOLENOID', 'SOLE'],
         undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
         watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
         rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
     };
 
@@ -677,8 +689,8 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         QUFRINGE: 'salmon',
         SEXT: 'lightgreen',
         VKICK: 'blue',
-        'LMIRROR': 'lightblue',
-        'REFLECT': 'blue',
+        LMIRROR: 'lightblue',
+        REFLECT: 'blue',
     };
 
     function elementsByName() {
@@ -686,8 +698,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         var containerNames = ['elements', 'beamlines'];
         for (var i = 0; i < containerNames.length; i++) {
             var containerName = containerNames[i];
-            for (var j = 0; j < appState.models[containerName].length; j++)
+            for (var j = 0; j < (appState.models[containerName] || []).length; j++) {
                 res[appState.models[containerName][j].name] = 1;
+            }
         }
         return res;
     }
@@ -751,8 +764,9 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         var names = elementsByName();
         var name = prefix;
         var index = 1;
-        while (names[name + index])
+        while (names[name + index]) {
             index++;
+        }
         return name + index;
     }
 
@@ -809,6 +823,10 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         for (var i = 0; i < appState.models[type].length; i++) {
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
+                if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
+                    appState.models.simulation.visualizationBeamlineId = null;
+                    appState.saveQuietly('simulation');
+                }
                 appState.models[type].splice(i, 1);
                 appState.saveChanges(type);
                 $rootScope.$broadcast('elementDeleted', type);
@@ -833,7 +851,23 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
 
     self.editElement = function(type, item) {
         appState.models[type] = item;
+        validationService.setFieldValidator(utilities.modelFieldID(type, 'name'), self.elementNameValidator(item.name), self.elementNameInvalidMsg);
         panelState.showModalEditor(type);
+    };
+
+    self.elementNameValidator = function(currentName) {
+        // make a copy of the keys as of creation of the function and exclude the starting value
+        var names = Object.keys(elementsByName()).slice();
+        return function(newNameV, newNameM) {
+            var cnIndex = names.indexOf(currentName);
+            if(cnIndex >= 0) {
+                names.splice(cnIndex, 1);
+            }
+            return names.indexOf(newNameV) < 0;
+        };
+    };
+    self.elementNameInvalidMsg = function(newName) {
+        return newName == '' ? '' : newName + ' already exists';
     };
 
     self.elementForId = function(id) {
@@ -874,6 +908,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             count: 0,
             items: [],
         };
+        validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), self.elementNameValidator(appState.models.beamline.name), self.elementNameInvalidMsg);
         panelState.showModalEditor('beamline');
     };
 
@@ -917,12 +952,6 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
         self.activeTab = name;
     };
 
-    self.splitPaneHeight = function() {
-        var w = $($window);
-        var el = $('.sr-split-pane-frame');
-        return Math.round(w.height() - el.offset().top - 15) + 'px';
-    };
-
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
@@ -950,6 +979,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, pa
             updateModels(name, '_id', 'elements', sortElements);
         }
     });
+
     appState.whenModelsLoaded($scope, function() {
         self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
         //TODO(pjm): only required for when viewing after import
@@ -1021,7 +1051,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         var animationArgs = {};
         var similarRowCounts = {};
 
-        outputInfo.forEach(function (info, i) {
+        outputInfo.forEach(function (info) {
             if (info.isAuxFile) {
                 self.auxFiles.push({
                     filename: info.filename,
@@ -1115,6 +1145,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
     function reportTypeForColumns(columns) {
+        if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
+            return '2d';
+        }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
@@ -1203,14 +1236,14 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState) {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav" data-app-url="/#/elegant"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -1270,13 +1303,14 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document, $timeout, $window) {
+SIREPO.app.directive('beamlineEditor', function(appState, panelState, validationService, utilities, $document, $timeout, $window) {
     return {
         restrict: 'A',
         scope: {
             lattice: '=controller',
         },
         template: [
+            '<div data-drag-and-drop-support=""></div>',
             '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
                 '<div class="sr-panel-options pull-right">',
@@ -1443,6 +1477,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
             $scope.showBeamlineNameModal = function() {
                 if (activeBeamline) {
                     appState.models.beamline = activeBeamline;
+                    validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), $scope.lattice.elementNameValidator(activeBeamline.name), $scope.lattice.elementNameInvalidMsg);
                     panelState.showModalEditor('beamline');
                 }
             };
@@ -1471,7 +1506,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, $document,
                 return true;
             };
         },
-        link: function(scope, element, attrs) {
+        link: function(scope) {
             $document.on('keydown', scope.onKeyDown);
             scope.$on('$destroy', function() {
                 $document.off('keydown', scope.onKeyDown);
@@ -1487,7 +1522,7 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
             lattice: '=controller',
         },
         template: [
-            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+            '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
@@ -1533,8 +1568,9 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
 
             function itemsToString(items) {
                 var res = '(';
-                if (! items.length)
+                if (! items.length) {
                     res += ' ';
+                }
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
                     res += $scope.lattice.nameForId(id);
@@ -1554,11 +1590,12 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                 if(! blItems) {
                     blItems = beamline.items || [];
                 }
-                if(blItems.includes(activeBeamline.id)) {
+                if(blItems.indexOf(activeBeamline.id) >= 0) {
                     return true;
                 }
                 for(var i = 0; i < blItems.length; i++) {
-                    if($scope.wouldBeamlineSelfNest(beamline, $scope.lattice.elementForId(blItems[i]).items)) {
+                    var nextItems = $scope.lattice.elementForId(blItems[i]).items;
+                    if(nextItems && $scope.wouldBeamlineSelfNest(beamline, nextItems)) {
                         return true;
                     }
                 }
@@ -1724,8 +1761,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
 
             function saveCommands() {
                 var commands = [];
-                for (var i = 0; i < $scope.commands.length; i++)
+                for (var i = 0; i < $scope.commands.length; i++) {
                     commands.push(commandForId($scope.commands[i]._id));
+                }
                 appState.models.commands = commands;
                 appState.saveChanges('commands');
             }
@@ -1834,8 +1872,9 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                     }
                     if (! foundIt) {
                         var index = selectedItemIndex();
-                        if (index >= 0)
+                        if (index >= 0) {
                             appState.models.commands.splice(index + 1, 0, appState.models[name]);
+                        }
                         else {
                             appState.models.commands.push(appState.models[name]);
                         }
@@ -1870,8 +1909,9 @@ SIREPO.app.directive('elegantBeamlineList', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.beamlineList = function() {
-                if (! appState.isLoaded() || ! $scope.model)
+                if (! appState.isLoaded() || ! $scope.model) {
                     return null;
+                }
                 if (! $scope.model[$scope.field]
                     && appState.models.beamlines
                     && appState.models.beamlines.length) {
@@ -1895,23 +1935,27 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.elegantLatticeList = function() {
-                if (! appState.isLoaded() || ! $scope.model)
+                if (! appState.isLoaded() || ! $scope.model) {
                     return null;
+                }
                 var runSetupId = $scope.model._id;
                 var res = ['Lattice'];
                 var index = 0;
                 for (var i = 0; i < appState.models.commands.length; i++) {
                     var cmd = appState.models.commands[i];
-                    if (cmd._id == runSetupId)
+                    if (cmd._id == runSetupId) {
                         break;
+                    }
                     if (cmd._type == 'save_lattice') {
                         index++;
-                        if (cmd.filename)
+                        if (cmd.filename) {
                             res.push('save_lattice' + (index > 1 ? index : ''));
+                        }
                     }
                 }
-                if (! $scope.model[$scope.field])
+                if (! $scope.model[$scope.field]) {
                     $scope.model[$scope.field] = res[0];
+                }
                 return res;
             };
         },
@@ -1977,14 +2021,14 @@ SIREPO.app.directive('elementPicker', function() {
     };
 });
 
-SIREPO.app.directive('elementTable', function(appState) {
+SIREPO.app.directive('elementTable', function(appState, $rootScope) {
     return {
         restrict: 'A',
         scope: {
             lattice: '=controller',
         },
         template: [
-            '<table style="width: 100%; table-layout: fixed" class="table table-hover">',
+            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
                 '<col>',
@@ -2585,8 +2629,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                     var item = items[i];
                     var picType = $scope.getPicType(item.type);
                     var length = rpnValue(item.l || item.xmax || 0);
-                    if (picType == 'zeroLength')
+                    if (picType == 'zeroLength') {
                         length = 0;
+                    }
                     var elRadius = rpnValue(item.rx || item.x_max || 0);
                     pos.length += length;
                     if (length < 0) {
@@ -2678,8 +2723,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                         else if (picType == 'alpha') {
                             var alphaAngle = 40.71;
                             newAngle = 180 - 2 * alphaAngle;
-                            if (length < 0.3)
+                            if (length < 0.3) {
                                 groupItem.width = 0.3;
+                            }
                             groupItem.angle = alphaAngle;
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
@@ -2695,8 +2741,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = $scope.getPicColor(item.type, 'gray');
                             var periods = Math.round(rpnValue(item.periods || item.poles || 0));
-                            if (periods <= 0)
+                            if (periods <= 0) {
                                 periods = Math.round(5 * length);
+                            }
                             groupItem.blockWidth = groupItem.width / (2 * periods);
                             groupItem.blocks = [];
                             groupItem.blockHeight = 0.03;
@@ -2793,31 +2840,38 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                     //var item = $scope.latticeController.elementForId($scope.items[i]);
                     var item = explodedItems[i];
                     var picType = $scope.getPicType(item.type);
-                    if (picType != 'drift')
+                    if (picType != 'drift') {
                         pos.count++;
-                    if (picType == 'bend' || picType == 'alpha')
+                    }
+                    if (picType == 'bend' || picType == 'alpha') {
                         groupDone = true;
+                    }
                     group.push(item);
                 }
-                if (group.length)
+                if (group.length) {
                     applyGroup(group, pos);
+                }
                 $scope.svgBounds = pos.bounds;
-                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1])
+                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1]) {
                     pos.x += pos.radius;
+                }
                 return pos;
             }
 
             //TODO(pjm): will infinitely recurse if beamlines are self-referential
             function explodeItems(items, res, reversed) {
-                if (! res)
+                if (! res) {
                     res = [];
-                if (reversed)
+                }
+                if (reversed) {
                     items = items.slice().reverse();
+                }
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
                     var item = $scope.latticeController.elementForId(id);
-                    if (item.type)
+                    if (item.type) {
                         res.push(item);
+                    }
                     else {
                         explodeItems(item.items, res, id < 0);
                     }
@@ -2892,14 +2946,18 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             }
 
             function updateBounds(bounds, x, y, buffer) {
-                if (x - buffer < bounds[0])
+                if (x - buffer < bounds[0]) {
                     bounds[0] = x - buffer;
-                if (y - buffer < bounds[1])
+                }
+                if (y - buffer < bounds[1]) {
                     bounds[1] = y - buffer;
-                if (x + buffer > bounds[2])
+                }
+                if (x + buffer > bounds[2]) {
                     bounds[2] = x + buffer;
-                if (y + buffer > bounds[3])
+                }
+                if (y + buffer > bounds[3]) {
                     bounds[3] = y + buffer;
+                }
             }
 
             function updateZoomAndPan() {
@@ -2932,8 +2990,9 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                     var elementPic = $scope.latticeController.elementPic;
                     for (var picType in elementPic) {
                         var types = elementPic[picType];
-                        for (var i = 0; i < types.length; i++)
+                        for (var i = 0; i < types.length; i++) {
                             picTypeCache[types[i]] = picType;
+                        }
                     }
                 }
                 return picTypeCache[type];
@@ -2948,19 +3007,22 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
                     return;
                 }
                 var width = parseInt(select().style('width'));
-                if (isNaN(width))
+                if (isNaN(width)) {
                     return;
+                }
                 $scope.width = width;
                 $scope.height = $scope.width;
                 var windowHeight = $($window).height();
-                if ($scope.height > windowHeight / 2.5)
+                if ($scope.height > windowHeight / 2.5) {
                     $scope.height = windowHeight / 2.5;
+                }
 
                 if ($scope.svgBounds) {
                     var w = $scope.svgBounds[2] - $scope.svgBounds[0];
                     var h = $scope.svgBounds[3] - $scope.svgBounds[1];
-                    if (w === 0 || h === 0)
+                    if (w === 0 || h === 0) {
                         return;
+                    }
                     var scaleWidth = $scope.width / w;
                     var scaleHeight = $scope.height / h;
                     var scale = 1;
@@ -2993,24 +3055,29 @@ SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnServ
             };
 
             $scope.destroy = function() {
-                if ($scope.zoom)
+                if ($scope.zoom) {
                     $scope.zoom.on('zoom', null);
+                }
             };
 
             $scope.$on('modelChanged', function(e, name) {
-                if (name == 'beamlines')
+                if (name == 'beamlines') {
                     loadItemsFromBeamline();
-                if (name == 'rpnVariables')
+                }
+                if (name == 'rpnVariables') {
                     loadItemsFromBeamline(true);
+                }
                 if (appState.models[name] && appState.models[name]._id) {
-                    if ($scope.items.indexOf(appState.models[name]._id) >= 0)
+                    if ($scope.items.indexOf(appState.models[name]._id) >= 0) {
                         loadItemsFromBeamline(true);
+                    }
                 }
             });
 
             $scope.$on('cancelChanges', function(e, name) {
-                if (name == 'elements')
+                if (name == 'elements') {
                     loadItemsFromBeamline(true);
+                }
             });
 
             $scope.$on('activeBeamlineChanged', function() {
@@ -3072,8 +3139,9 @@ SIREPO.app.directive('outputFileField', function(appState, elegantService) {
             var filename = '';
 
             $scope.items = function() {
-                if (! $scope.model)
+                if (! $scope.model) {
                     return items;
+                }
                 var prefix = $scope.model.name;
                 if ($scope.model._type) {
                     var index = 0;
@@ -3081,8 +3149,9 @@ SIREPO.app.directive('outputFileField', function(appState, elegantService) {
                         var m = appState.models.commands[i];
                         if (m._type == $scope.model._type) {
                             index++;
-                            if (m == $scope.model)
+                            if (m == $scope.model) {
                                 break;
+                            }
                         }
                     }
                     prefix = $scope.model._type + (index > 1 ? index : '');
@@ -3169,7 +3238,7 @@ SIREPO.app.directive('rpnEditor', function(appState) {
                       '</div>',
 
                       '<div data-ng-hide="showAddNewFields" class="col-sm-6 pull-right">',
-                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-class="{\'disabled\': ! form.$valid}">Save Changes</button> ',
+                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
                         '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
                       '</div>',
 
@@ -3284,28 +3353,33 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
             ngModel.$parsers.push(function(value) {
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return null;
+                }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
                     ngModel.$setValidity('', true);
                     var v = parseFloat(value);
-                    if (rpnVariableName)
+                    if (rpnVariableName) {
                         rpnService.recomputeCache(rpnVariableName, v);
+                    }
                     return v;
                 }
                 rpnService.computeRpnValue(value, function(v, err) {
                     // check for a stale request
-                    if (requestIndex != currentRequestIndex)
+                    if (requestIndex != currentRequestIndex) {
                         return;
+                    }
                     ngModel.$setValidity('', err ? false : true);
-                    if (rpnVariableName && ! err)
+                    if (rpnVariableName && ! err) {
                         rpnService.recomputeCache(rpnVariableName, v);
+                    }
                 });
                 return value;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return value;
+                }
                 return value.toString();
             });
         }
@@ -3328,6 +3402,62 @@ SIREPO.app.directive('runSimulationFields', function() {
     };
 });
 
+SIREPO.app.directive('splitPanels', function($window) {
+    var GUTTER_SIZE = 20;
+    var MAX_TOP_PERCENT = 85;
+    var MIN_TOP_PERCENT = 15;
+    var TOP_PAD = 12;
+    return {
+        controller: function($scope) {
+
+            function totalHeight() {
+                return $($window).height() - $scope.el.offset().top;
+            }
+
+            function childHeight(panel) {
+                return panel.children().first().height();
+            }
+
+            $scope.constrainTopPanelHeight = function() {
+                var topPanel = $('#sr-top-panel');
+                var topHeight = topPanel.height();
+                var maxHeight = childHeight(topPanel);
+                var bottomPanel = $('#sr-bottom-panel');
+                var bothFit = maxHeight + TOP_PAD + GUTTER_SIZE + childHeight(bottomPanel) < totalHeight();
+                // if topPanel is sized too large or both panels fit in the page height
+                if (topHeight > maxHeight || bothFit) {
+                    // set split sizes to exactly fit the top panel
+                    var splitterHeight = $scope.el.height();
+                    var x = Math.min(Math.max((maxHeight + TOP_PAD) * 100 / splitterHeight, MIN_TOP_PERCENT), MAX_TOP_PERCENT);
+                    $scope.split.setSizes([x, 100 - x]);
+                }
+                $scope.el.find('.gutter').css('visibility', bothFit ? 'hidden' : 'visible');
+            };
+            $scope.panelHeight = function() {
+                if (! $scope.el) {
+                    return '0';
+                }
+                // the DOM is not yet in the state to be measured, check sizes in next cycle
+                // can't use $timeout() here because it causes an endless digest loop
+                setTimeout($scope.constrainTopPanelHeight, 0);
+                return totalHeight() + 'px';
+            };
+        },
+        link: function(scope, element) {
+            scope.el = $(element);
+            scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
+                direction: 'vertical',
+                gutterSize: GUTTER_SIZE,
+                snapOffset: 0,
+                sizes: [25, 75],
+                onDrag: scope.constrainTopPanelHeight,
+            });
+            scope.$on('$destroy', function() {
+                scope.split.destroy();
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
     return {

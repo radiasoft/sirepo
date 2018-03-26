@@ -310,14 +310,14 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function() {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav" data-app-url="/#/shadow"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -347,8 +347,9 @@ SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return null;
+                }
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
                 requestSender.getApplicationData(
@@ -358,16 +359,18 @@ SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
                     },
                     function(data) {
                         // check for a stale request
-                        if (requestIndex != currentRequestIndex)
+                        if (requestIndex != currentRequestIndex) {
                             return;
+                        }
                         var err = data.error;
                         ngModel.$setValidity('', err ? false : true);
                     });
                 return value;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value))
+                if (ngModel.$isEmpty(value)) {
                     return value;
+                }
                 return value.toString();
             });
         }

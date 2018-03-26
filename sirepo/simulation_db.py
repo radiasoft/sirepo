@@ -526,14 +526,16 @@ def prepare_simulation(data):
 
 
 def process_simulation_list(res, path, data):
+    sim = data['models']['simulation']
     res.append({
         'simulationId': _sid_from_path(path),
-        'name': data['models']['simulation']['name'],
-        'folder': data['models']['simulation']['folder'],
+        'name': sim['name'],
+        'folder': sim['folder'],
         'last_modified': datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
-        'simulation': data['models']['simulation'],
+        'isExample': sim['isExample'] if 'isExample' in sim else False,
+        'simulation': sim,
     })
 
 
@@ -880,6 +882,11 @@ def write_result(result, run_dir=None):
     result.setdefault('state', 'completed')
     write_json(fn, result)
     write_status(result['state'], run_dir)
+    input_file = json_filename(template_common.INPUT_BASE_NAME, run_dir)
+    if input_file.exists():
+        template = sirepo.template.import_module(read_json(input_file))
+        if hasattr(template, 'clean_run_dir'):
+            template.clean_run_dir(run_dir)
 
 
 def write_status(status, run_dir):
@@ -1028,9 +1035,9 @@ def _validate_name(data):
         {'simulation.folder': s.folder},
     ):
         n2 = d.models.simulation.name
-        if n2.startswith(n):
+        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
             starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with and starts_with[n] != s.simulationId:
+    if n in starts_with:
         _validate_name_uniquify(data, starts_with)
 
 

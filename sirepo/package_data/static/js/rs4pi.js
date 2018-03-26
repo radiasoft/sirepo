@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.dose = '/dose/:simulationId';
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ROI" class="col-sm-7">',
@@ -196,7 +199,7 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
                 simulationId: appState.models.simulation.simulationId,
                 editedContours: editedContours,
             },
-            function(data) {});
+            function() {});
     };
 
     return self;
@@ -404,7 +407,7 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
     };
 });
 
-SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piService) {
+SIREPO.app.directive('computeDoseForm', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
@@ -422,10 +425,6 @@ SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piServ
         controller: function($scope) {
             $scope.appState = appState;
             $scope.doseController = panelState.findParentAttribute($scope, 'dose');
-
-            function loadROIPoints() {
-                $scope.roiList = rs4piService.getSortedList();
-            }
 
             $scope.updatePTV = function() {
                 $scope.doseController.simState.saveAndRunSimulation('doseCalculation');
@@ -464,7 +463,7 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUp
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
                             '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-class="{\'disabled\': ! dicomFile }">Import File</button>',
+                              '<button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-disabled="! dicomFile">Import File</button>',
                               ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
                             '</div>',
                           '</div>',
@@ -586,7 +585,7 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
                     return;
                 }
                 var b = brush.extent();
-                svg.selectAll('.bar rect').style('opacity', function(d, i) {
+                svg.selectAll('.bar rect').style('opacity', function(d) {
                     return d.x + d.dx/2.0 > b[0] && d.x + d.dx/2.0 < b[1] ? "1" : ".4";
                 });
             }

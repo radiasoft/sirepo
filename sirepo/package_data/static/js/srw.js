@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
@@ -27,7 +28,7 @@ SIREPO.appFieldEditors = [
 SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="x"></li>',
     '<li data-lineout-csv-link="y"></li>',
-    '<li data-export-python-link=""></li>',
+    '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
 ].join('');
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
@@ -78,8 +79,9 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         self.originalCharacteristicEnum = SIREPO.APP_SCHEMA.enum.Characteristic;
         var characteristic = appState.clone(SIREPO.APP_SCHEMA.enum.Characteristic);
         characteristic.splice(1, 1);
-        for (var i = 0; i < characteristic.length; i++)
+        for (var i = 0; i < characteristic.length; i++) {
             characteristic[i][1] = characteristic[i][1].replace(/Single-Electron /g, '');
+        }
         self.singleElectronCharacteristicEnum = characteristic;
     }
 
@@ -123,6 +125,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     self.isTabulatedUndulatorWithMagenticFile = function() {
         return self.isTabulatedUndulator() && appState.models.tabulatedUndulator.undulatorType == 'u_t';
+    };
+
+    self.showBrillianceReport = function() {
+        return self.isIdealizedUndulator() && SIREPO.APP_SCHEMA.feature_config.brilliance_report;
     };
 
     self.updateSimulationGridFields = function() {
@@ -291,10 +297,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         else {
             item[f] = item[f].toFixed(6);
         }
-    }
-
-    function isPropagationModelName(name) {
-        return name.toLowerCase().indexOf('propagation') >= 0;
     }
 
     function isUserDefined(v) {
@@ -614,20 +616,18 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         // ["-1", "Use Approximate Method"]
         var approxMethodKey = -1;
         var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
-        var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo('fluxAnimation').method[SIREPO.INFO_INDEX_TYPE]];
-        var approxMethodOptionIndex = eType.indexOf(
-            eType.find(function(etArr) {
-                return etArr[0] == approxMethodKey;
-            })
-        );
-
         panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
-        if (! srwService.isTabulatedUndulatorWithMagenticFile()) {
-            appState.models.fluxAnimation.magneticField = 1;
+        if (srwService.isTabulatedUndulatorWithMagenticFile()) {
+            if (appState.models.fluxAnimation.magneticField == '2' && isApproximateMethod) {
+                appState.models.fluxAnimation.method = '1';
+            }
+        }
+        else {
+            appState.models.fluxAnimation.magneticField = '1';
         }
 
         // No approximate flux method with accurate magnetic field
-        panelState.showEnum('fluxAnimation', 'method', approxMethodOptionIndex, appState.models.fluxAnimation.magneticField == 1);
+        panelState.showEnum('fluxAnimation', 'method', approxMethodKey, appState.models.fluxAnimation.magneticField == 1);
 
        ['initialHarmonic', 'finalHarmonic', 'longitudinalPrecision', 'azimuthalPrecision'].forEach(function(f) {
             panelState.showField('fluxAnimation', f, isApproximateMethod);
@@ -680,7 +680,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     function processTrajectoryAxis() {
         // change enum list for plotAxisY2 depending on the selected plotAxisY value
         var selected = appState.models.trajectoryReport.plotAxisY;
-        var res = [];
         var group;
         [
             ['X', 'Y', 'Z'],
@@ -691,23 +690,18 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 group = g;
             }
         });
-        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
-            if (group && group.indexOf(row[0]) >= 0 && selected != row[0]) {
-                res.push(row);
-            }
-        });
-        res.push(['None', 'None']);
         var y2 = appState.models.trajectoryReport.plotAxisY2;
         var validY2 = false;
-        res.forEach(function(row) {
-            if (y2 == row[0]) {
+        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis.forEach(function(row) {
+            var isValid = group && group.indexOf(row[0]) >= 0 && selected != row[0];
+            panelState.showEnum('trajectoryReport', 'plotAxisY2', row[0], isValid);
+            if (isValid && y2 == row[0]) {
                 validY2 = true;
             }
         });
         if (! validY2) {
             appState.models.trajectoryReport.plotAxisY2 = 'None';
         }
-        SIREPO.APP_SCHEMA.enum.TrajectoryPlotAxis2 = res;
     }
 
     function processTrajectoryReport() {
@@ -847,7 +841,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
     function changeFluxReportName(modelName) {
         var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
-        // var distance = tag.text().split(',')[1];
         var distance = appState.models[modelName].distanceFromSource + 'm';
         var fluxType = SIREPO.APP_SCHEMA.enum.Flux[appState.models[modelName].fluxType-1][1];
         var title = SIREPO.APP_SCHEMA.view[modelName].title;
@@ -871,6 +864,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         disableBasicEditorBeamName();
         processUndulator();
         processGaussianBeamSize();
+        processIntensityReport('sourceIntensityReport');
+        processIntensityReport('intensityReport');
 
         appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamFields);
 
@@ -973,7 +968,7 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService, $location, $window) {
+SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, srwService) {
 
     var rightNav = [
         '<div data-app-header-right="nav">',
@@ -994,11 +989,11 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
         '</div>',
     ].join('');
 
-    function navHeader(mode, modeTitle, $window) {
+    function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -1041,7 +1036,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav" data-app-url="/srw"></div>',
+              '<div data-app-header-brand="nav" data-app-url="/#/srw"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
@@ -1064,7 +1059,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
 SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            reportTitle: '@',
+        },
         template: [
             '<a href data-ng-click="exportPython()">Export Python Code</a>',
         ].join(''),
@@ -1072,7 +1069,8 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
             $scope.exportPython = function() {
                 panelState.pythonSource(
                     appState.models.simulation.simulationId,
-                    panelState.findParentAttribute($scope, 'modelKey'));
+                    panelState.findParentAttribute($scope, 'modelKey'),
+                    $scope.reportTitle);
             };
         },
     };
@@ -1101,7 +1099,7 @@ SIREPO.app.directive('headerTooltip', function() {
 });
 
 //TODO(pjm): refactor and generalize with mirrorUpload
-SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender) {
+SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender, simulationQueue) {
     return {
         restrict: 'A',
         scope: {},
@@ -1128,8 +1126,8 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
                         '<div class="clearfix"></div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary" data-ng-class="{\'disabled\': isUploading}">Import File</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-class="{\'disabled\': isUploading}">Cancel</button>',
+                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary" data-ng-disabled="isUploading || ! pythonFile">Import File</button>',
+                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
                         '</div>',
                       '</form>',
                     '</div>',
@@ -1142,23 +1140,36 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = 'Import Python or JSON Simulation File';
-            var import_args = $('.srw-python-file-import-args');
-            import_args.hide();
-            $scope.fileType = function(pythonFile) {
-                if (typeof(pythonFile) === 'undefined') {
-                    return;
+
+            function handleStatus(data) {
+                $scope.isUploading = false;
+                if (data.error) {
+                    $scope.fileUploadError = data.error;
+                    appState.deleteSimulation(appState.models.simulation.simulationId, function() {});
                 }
-                if (pythonFile.name.search('.py') >= 0) {
-                    import_args.show();
+                appState.clearModels();
+                if (data.simulationId) {
+                    hideAndRedirect(data.simulationId);
+                }
+            }
+
+            function hideAndRedirect(simId) {
+                $('#srw-simulation-import').modal('hide');
+                requestSender.localRedirect('source', {
+                    ':simulationId': simId,
+                });
+            }
+
+            $scope.fileType = function(pythonFile) {
+                var importArgs = $('.srw-python-file-import-args');
+                if (pythonFile && pythonFile.name.indexOf('.py') >= 0) {
+                    importArgs.show();
                 }
                 else {
-                    import_args.hide();
+                    importArgs.hide();
                 }
             };
             $scope.importPythonFile = function(pythonFile, importArgs) {
-                if (typeof(importArgs) === 'undefined') {
-                    importArgs = '';
-                }
                 if (! pythonFile) {
                     return;
                 }
@@ -1167,7 +1178,7 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                     pythonFile,
                     {
                         folder: fileManager.getActiveFolderPath(),
-                        arguments: importArgs,
+                        arguments: importArgs || '',
                     },
                     requestSender.formatUrl(
                         'importFile',
@@ -1179,11 +1190,17 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                         }
-                        else {
-                            $('#srw-simulation-import').modal('hide');
-                            requestSender.localRedirect('source', {
-                                ':simulationId': data.models.simulation.simulationId,
+                        else if (data.models.backgroundImport) {
+                            $scope.isUploading = true;
+                            appState.loadModels(data.models.simulation.simulationId, function() {
+                                simulationQueue.addTransientItem(
+                                    'backgroundImport',
+                                    appState.applicationState(),
+                                    handleStatus);
                             });
+                        }
+                        else {
+                            hideAndRedirect(data.models.simulation.simulationId);
                         }
                     });
             };
@@ -1191,6 +1208,7 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
                 $('#srw-python-file-import').val(null);
+                delete scope.pythonFile;
                 scope.fileUploadError = '';
             });
             scope.$on('$destroy', function() {
@@ -1336,7 +1354,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 }
             };
         },
-        link: function link(scope, element) {
+        link: function link(scope) {
             scope.loadModelList();
             scope.$on('modelChanged', function(e, name) {
                 if (name != scope.modelName) {
@@ -1372,12 +1390,13 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         scope: {
             param: '=',
             paramInfo: '=',
+            disabled: '=',
         },
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
-              '<input data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-model="param[paramInfo.fieldIndex]">',
-              '<input data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
+              '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
+              '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1386,7 +1405,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
     };
 });
 
-SIREPO.app.directive('propagationParametersModal', function() {
+SIREPO.app.directive('propagationParametersModal', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -1407,10 +1426,10 @@ SIREPO.app.directive('propagationParametersModal', function() {
                       '<div class="row">',
                         '<ul class="nav nav-tabs">',
                           '<li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">',
-                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }}</a>',
+                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"></span></a>',
                           '</li>',
                         '</ul>',
-                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
+                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-sections="propagationSections"  data-section-params="parametersBySection[$index]" data-prop-type-index="propTypeIndex" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
                       '</div>',
                       '<div class="row">',
                         '<div class="col-sm-offset-6 col-sm-3">',
@@ -1426,6 +1445,12 @@ SIREPO.app.directive('propagationParametersModal', function() {
         controller: function($scope) {
             var activePropagationSection = 0;
             $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
+            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null];
+            $scope.parametersBySection = [
+                [3, 4, 5, 6, 7, 8],
+                [0, 1, 2],
+                [12, 13, 14, 15, 16],
+            ];
 
             $scope.isPropagationSectionActive = function(index) {
                 return index == activePropagationSection;
@@ -1434,6 +1459,15 @@ SIREPO.app.directive('propagationParametersModal', function() {
             $scope.setPropagationSection = function(index) {
                 activePropagationSection = index;
             };
+
+            var info = appState.modelInfo('propagationParameters');
+            $scope.propTypeIndex = -1;
+            for( var s in info ) {
+                 if( info[s][SIREPO.INFO_INDEX_LABEL] === 'Propagator' ) {
+                    $scope.propTypeIndex = parseInt(s);
+                    break;
+                }
+            }
         },
     };
 });
@@ -1443,6 +1477,9 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
         restrict: 'A',
         scope: {
             sectionIndex: '@',
+            sections: '=',
+            sectionParams: '=',
+            propTypeIndex: '=',
             propagations: '=',
             postPropagation: '=',
         },
@@ -1456,16 +1493,16 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                   '</tr>',
                 '</thead>',
                 '<tbody>',
-                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop)}">',
+                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop)}" >',
                     '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo" data-disabled="isControlDisabledForProp(prop)"></div>',
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
                     '<td class="input-sm">Final post-propagation (resize)</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -1476,18 +1513,14 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
 
             function initParameters() {
                 var info = appState.modelInfo('propagationParameters');
-                var parametersBySection = [
-                    [3, 4, 5, 6, 7, 8],
-                    [0, 1, 2],
-                    [12, 13, 14, 15, 16],
-                ];
+                $scope.resizeSectionIndex = $scope.sections.indexOf('Auto-Resize');
                 $scope.parameterInfo = [];
-                parametersBySection[$scope.sectionIndex].forEach(function(i) {
+                $scope.sectionParams.forEach(function(i) {
                     var field = i.toString();
                     $scope.parameterInfo.push({
-                        headingText: info[field][0],
+                        headingText: info[field][SIREPO.INFO_INDEX_LABEL],
                         headingTooltip: info[field][3],
-                        fieldType: info[field][1],
+                        fieldType: info[field][SIREPO.INFO_INDEX_TYPE],
                         fieldIndex: i,
                     });
                 });
@@ -1504,6 +1537,17 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                     return prop.item.isDisabled;
                 }
                 return false;
+            };
+
+            $scope.isControlDisabledForProp = function(prop) {
+                var p = prop ? (prop.params || []) : [];
+                return $scope.isControlDisabledForParams(p);
+            };
+            $scope.isControlDisabledForParams = function(params) {
+                if(params[$scope.propTypeIndex] == 0) {
+                    return false;
+                }
+                return $scope.sectionIndex == $scope.resizeSectionIndex;
             };
 
             initParameters();
@@ -1610,12 +1654,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return true;
             }
 
-            function methodForMethodNum(methodNum) {
-                return SIREPO.APP_SCHEMA.enum.FluxMethod.filter(function (fm) {
-                    return fm[0] == methodNum;
-                })[0];
-            }
-
             $scope.cancelPersistentSimulation = function () {
                 $scope.simState.cancelSimulation(function() {
                     if ($scope.hasFluxCompMethod() && $scope.isApproximateMethod()) {
@@ -1644,7 +1682,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
                         frameCache.setFrameCount(0);
-                        frameCache.clearFrames($scope.model);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;
                     }

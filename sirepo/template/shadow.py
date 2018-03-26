@@ -8,7 +8,6 @@ u"""shadow execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -577,8 +576,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
             v['wigglerTrajectoryInput'] = _wiggler_file(data['models']['wiggler']['trajFile'])
-    b = template_common.resource_dir(SIM_TYPE).join(template_common.PARAMETERS_PYTHON_FILE)
-    return pkjinja.render_file(b + '.jinja', v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_screen(item):

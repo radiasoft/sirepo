@@ -58,24 +58,3 @@ def test_importer():
             )
             actual['version'] = 'IGNORE-VALUE'
             pkunit.assert_object_with_json(b, actual)
-
-
-def test_importer_in_flask():
-    from pykern import pkio
-    from pykern import pkunit
-    from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq
-    from sirepo import sr_unit
-    import re
-
-    fc = sr_unit.flask_client()
-    for f in [pkunit.data_dir().join('lcls_sxr.py')]:
-        res = fc.sr_post_form(
-            'importFile',
-            {
-                'file': (open(str(f), 'r'), f.basename),
-                'folder': '/srw_import_test',
-            },
-            {'simulation_type': 'srw'},
-        )
-        pkeq(f.purebasename, res.models.simulation.name)

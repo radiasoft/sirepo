@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 try:
     __IPYTHON__
     import sys
@@ -15,53 +15,67 @@ import srwlpy
 
 def set_optics(v=None):
     el = []
-
+    # M1: mirror 34.366m
     ifnMirror1 = "mirror_1d.dat"
     if ifnMirror1:
+        assert os.path.isfile(ifnMirror1), "Missing input file mirror_1d.dat, required by M1 beamline element"
         hProfDataMirror1 = srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
         el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="x", _ang=0.0436332, _amp_coef=1.0, _size_x=0.001, _size_y=0.001))
     el.append(srwlib.SRWLOptD(20.634))
+    # Grating: grating 55.0m
     el.append(srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang=0.2, _size_sag=0.015, _nvx=0.0, _nvy=0.99991607766, _nvz=-0.0129552165771, _tvx=0.0, _tvy=0.0129552165771, _x=0.0, _y=0.0), _m=1.0, _grDen=1800.0, _grDen1=0.08997, _grDen2=3.004e-06, _grDen3=9.73e-11, _grDen4=0.0))
+    # GA: aperture 55.0m
     el.append(srwlib.SRWLOptA("r", "a", 0.015, 0.00259104331543, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(34.63))
+    # M3A: aperture 89.63m
     el.append(srwlib.SRWLOptA("r", "a", 0.01832012956, 0.02, 0.0, 0.0))
+    # M3: ellipsoidMirror 89.63m
     el.append(srwlib.SRWLOptMirEl(_p=89.63, _q=8.006, _ang_graz=0.0436332, _size_tang=0.42, _size_sag=0.02, _nvx=0.999048222947, _nvy=0.0, _nvz=-0.0436193560953, _tvx=-0.0436193560953, _tvy=0.0, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(8.006))
+    # SSA: aperture 97.636m
     el.append(srwlib.SRWLOptA("r", "a", 0.0015, 0.0015, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(6.01))
+    # KBAperture: aperture 103.646m
     el.append(srwlib.SRWLOptA("r", "a", 0.0130858068286, 0.003, 0.0, 0.0))
+    # KBh: ellipsoidMirror 103.646m
     el.append(srwlib.SRWLOptMirEl(_p=6.01, _q=0.911, _ang_graz=0.0872665, _size_tang=0.3, _size_sag=0.05, _nvx=0.996194694832, _nvy=0.0, _nvz=-0.0871557800056, _tvx=-0.0871557800056, _tvy=0.0, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(0.5))
+    # KBv: ellipsoidMirror 104.146m
     el.append(srwlib.SRWLOptMirEl(_p=6.51, _q=0.411, _ang_graz=0.0872665, _size_tang=0.3, _size_sag=0.05, _nvx=0.0, _nvy=0.996194694832, _nvz=-0.0871557800056, _tvx=0.0, _tvy=-0.0871557800056, _x=0.0, _y=0.0))
+
     el.append(srwlib.SRWLOptD(0.411))
+    # Sample: watch 104.557m
 
     pp = []
+    # M1
     if ifnMirror1:
         pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.2, 3.5, 1.2, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # Grating
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # GA
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # M3A
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # M3
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 3.0, 1.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # SSA
     pp.append([0, 0, 1.0, 0, 0, 0.4, 1.0, 0.4, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # KBAperture
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # KBh
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 2.0, 1.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # KBv
     pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
     pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    # Sample
+    # final post-propagation
     pp.append([0, 0, 1.0, 0, 1, 0.07, 1.5, 0.07, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     return srwlib.SRWLOptC(el, pp)
 

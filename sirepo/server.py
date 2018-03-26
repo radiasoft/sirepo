@@ -53,7 +53,7 @@ _RUN_STATES = ('pending', 'running')
 _SESSION_KEY_USER = 'uid'
 
 #: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+)', flags=re.IGNORECASE)
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
@@ -184,8 +184,14 @@ app_download_data_file = api_downloadDataFile
 
 def api_downloadFile(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
-    p = lib.join(werkzeug.secure_filename(filename))
-    return flask.send_file(str(p), as_attachment=True, attachment_filename=filename)
+    filename = werkzeug.secure_filename(filename)
+    p = lib.join(filename)
+    if simulation_type == 'srw':
+        attachment_name = filename
+    else:
+        # strip file_type prefix from attachment filename
+        attachment_name = re.sub(r'^.*?-.*?\.', '', filename)
+    return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
 app_download_file = api_downloadFile
 
 
@@ -204,7 +210,7 @@ def api_errorLogging():
             e,
             flask.request.data.decode('unicode-escape'),
         )
-    return _json_response_ok();
+    return _json_response_ok()
 app_error_logging = api_errorLogging
 
 
@@ -268,6 +274,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
         'simulation.name': simulation_name,
+        'simulation.isExample': True,
     })
     if len(rows) == 0:
         for s in simulation_db.examples(simulation_type):
@@ -362,6 +369,8 @@ def api_importFile(simulation_type=None):
         else:
             assert simulation_type, \
                 'simulation_type is required param for non-zip|json imports'
+            assert hasattr(template, 'import_file'), \
+                ValueError('Only zip files are supported')
             data = template.import_file(
                 flask.request,
                 simulation_db.simulation_lib_dir(simulation_type),
@@ -372,7 +381,7 @@ def api_importFile(simulation_type=None):
         return _save_new_and_reply(data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
-        error = e.message if hasattr(e, 'message') else str(e)
+        error = str(e.message) if hasattr(e, 'message') else str(e)
     return _json_response({'error': error})
 
 app_import_file = api_importFile
@@ -380,7 +389,7 @@ app_import_file = api_importFile
 
 
 def api_homePage():
-    return _render_root_page('sr-landing-page', pkcollections.Dict());
+    return _render_root_page('sr-landing-page', pkcollections.Dict())
 light_landing_page = api_homePage
 
 
@@ -421,13 +430,19 @@ def api_oauthLogout(simulation_type):
 app_oauth_logout = api_oauthLogout
 
 
-def api_pythonSource(simulation_type, simulation_id, model=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+    import string
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     template = sirepo.template.import_module(data)
+    sim_name = data.models.simulation.name.lower()
+    report_rider = '' if report is None else '-' + report.lower()
+    py_name = sim_name + report_rider
+    py_name = re.sub(r'[\"&\'()+,/:<>?\[\]\\`{}|]', '', py_name)
+    py_name = re.sub(r'\s', '-', py_name)
     return _as_attachment(
         flask.make_response(template.python_source_for_model(data, model)),
         'text/x-python',
-        '{}.py'.format(data.models.simulation.name),
+        '{}.py'.format(py_name),
     )
 app_python_source = api_pythonSource
 
@@ -560,8 +575,9 @@ def api_simulationFrame(frame_id):
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    response = _json_response(template.get_simulation_frame(run_dir, data, model_data))
-    if template.WANT_BROWSER_FRAME_CACHE:
+    frame = template.get_simulation_frame(run_dir, data, model_data)
+    response = _json_response(frame)
+    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(365)
         response.headers['Cache-Control'] = 'public, max-age=31536000'

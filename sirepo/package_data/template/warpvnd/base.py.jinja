@@ -165,7 +165,8 @@ if USER_INJECT == 1:
     beam.b0     = SOURCE_RADIUS_2
 
     #sources.constant_current(beam, CHANNEL_WIDTH, Z_PART_MIN, ptcl_per_step)
-    myInjector = injectors.injectorUserDefined(beam, CATHODE_TEMP, CHANNEL_WIDTH, Z_PART_MIN, PTCL_PER_STEP)
+    dz = (w3d.zmmax - w3d.zmmin) / w3d.nz
+    myInjector = injectors.UserInjectors(beam, w3d, None, CATHODE_TEMP, CHANNEL_WIDTH, PTCL_PER_STEP, zmin_scale=dz/Z_PART_MIN)
     installuserinjection(myInjector.inject_constant)
 
 if USER_INJECT == 2:
@@ -192,7 +193,8 @@ elif USER_INJECT == 3:
     beam.a0     = SOURCE_RADIUS_1
     beam.b0     = SOURCE_RADIUS_2
 
-    myInjector = injectors.injectorUserDefined(beam, CATHODE_TEMP, CHANNEL_WIDTH, Z_PART_MIN, PTCL_PER_STEP)
+    dz = (w3d.zmmax - w3d.zmmin) / w3d.nz
+    myInjector = injectors.UserInjectors(beam, w3d, None, CATHODE_TEMP, CHANNEL_WIDTH, PTCL_PER_STEP, zmin_scale=dz/Z_PART_MIN)
     installuserinjection(myInjector.inject_thermionic)
 
     # These must be set for user injection

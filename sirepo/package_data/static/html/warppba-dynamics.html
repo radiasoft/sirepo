@@ -4,53 +4,19 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
         <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.simState.isProcessing()">
-            <div data-ng-show="dynamics.simState.isStatePending()">
-              <div class="col-sm-12">
-                 {{ dynamics.simState.stateAsText() }} {{ dynamics.simState.dots }}
-              </div>
-            </div>
-            <div data-ng-show="dynamics.simState.isStateRunning()">
-              <div class="col-sm-12">
-                <div data-ng-show="dynamics.simState.isInitializing()">
-                  Initializing Laser Pulse and Plasma {{ dynamics.simState.dots }}
-                </div>
-                <div data-ng-show="dynamics.simState.getFrameCount() > 0">
-                  Completed frame: {{ dynamics.simState.getFrameCount() }}
-                </div>
-                <div class="progress">
-                  <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': dynamics.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ dynamics.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ dynamics.simState.getPercentComplete() }}%">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="dynamics.simState.cancelSimulation()">End Simulation</button>
-            </div>
-          </form>
-          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="dynamics.simState.isStopped()">
-            <div class="col-sm-12" data-ng-show="dynamics.simState.getFrameCount() >= 1">
-              Simulation
-              <span>{{ dynamics.simState.stateAsText() }}</span><span>:
-                {{ dynamics.simState.getFrameCount() }} animation frames
-              </span>
-              <br><br>
-            </div>
-            <div class="col-sm-6 pull-right">
-              <button class="btn btn-default" data-ng-click="dynamics.simState.runSimulation()">Start New Simulation</button>
-            </div>
-          </form>
+          <div data-sim-status-panel="dynamics.simState" data-init-message="Initializing Laser Pulse and Plasma"></div>
         </div>
       </div>
     </div>
     <div class="clearfix"></div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="dynamics.simState.hasFrames()">
       <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4" data-ng-if="dynamics.simState.hasFrames()">
       <div data-report-panel="heatmap" data-model-name="particleAnimation"></div>
     </div>
-    <div data-ng-if="dynamics.isElectronBeam()" class="col-md-6 col-xl-4">
+    <div class="clearfix hidden-xl"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="dynamics.isElectronBeam() && dynamics.simState.hasFrames()">
       <div data-report-panel="heatmap" data-model-name="beamAnimation"></div>
     </div>
   </div>

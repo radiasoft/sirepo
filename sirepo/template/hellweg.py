@@ -8,7 +8,6 @@ u"""Hellweg execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common, hellweg_dump_reader
@@ -387,7 +386,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['latticeCommands'] = _generate_lattice(data['models'])
     else:
         v['latticeCommands'] = _DEFAULT_DRIFT_ELEMENT
-    return pkjinja.render_resource('hellweg.py', v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_solenoid(models):

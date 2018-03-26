@@ -8,7 +8,6 @@ u"""Warp VND/WARP execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from rswarp.cathode import sources
 from rswarp.utilities.file_utils import readparticles
@@ -558,11 +557,6 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v = None
-
-    def render(bn):
-        b = template_common.resource_dir(SIM_TYPE).join(bn + '.py')
-        return pkjinja.render_file(b + '.jinja', v)
-
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
@@ -582,7 +576,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
             template_name = 'visualization'
     else:
         template_name = 'source-field'
-    return render('base') + render('generate-{}'.format(template_name))
+    return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
+        + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
 
 
 def _h5_file_list(run_dir, model_name):

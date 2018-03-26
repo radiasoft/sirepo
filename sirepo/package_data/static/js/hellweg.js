@@ -255,7 +255,7 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
         panelState.showField('solenoid', 'solenoidFile', solenoid.sourceDefinition == 'file');
     }
 
-    self.handleModalShown = function(name) {
+    self.handleModalShown = function() {
         updateAllFields();
     };
 
@@ -305,14 +305,14 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState) {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav" data-app-url="/#/rslinac"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -346,7 +346,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('summaryTable', function(appState, panelState, $interval) {
+SIREPO.app.directive('summaryTable', function() {
     return {
         restrict: 'A',
         scope: {
