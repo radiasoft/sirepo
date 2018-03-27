@@ -7,13 +7,13 @@
 //   npm install karma-chrome-launcher
 //   npm install jasmine-core --save-dev
 // then:
-//   ./node_modules/karma/bin/karma start karma-conf.js
+//   ./node_modules/karma/bin/karma start etc/karma-conf.js
 
 module.exports = function(config) {
   config.set({
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
-    basePath: '',
+    basePath: '..',
 
 
     // frameworks to use
