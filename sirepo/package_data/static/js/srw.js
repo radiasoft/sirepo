@@ -491,6 +491,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         $('#srw-propagation-parameters').modal('show');
     };
 
+    self.showSimulationGrid = function() {
+        panelState.showModalEditor('simulationGrid');
+    };
+
     self.showTabs = function() {
         if (beamlineService.getWatchItems().length === 0) {
             return false;
@@ -979,7 +983,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
-              '<div data-ng-if="! srwService.isApplicationMode(\'calculator\') && nav.isActive(\'beamline\')"><a href data-ng-click="showSimulationGrid()"><span class="glyphicon glyphicon-th"></span> Initial Wavefront Simulation Grid</a></div>',
+            //  '<div>App-specific setting item</div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1047,10 +1051,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
 
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
-            };
-
-            $scope.showSimulationGrid = function() {
-                panelState.showModalEditor('simulationGrid');
             };
         },
     };

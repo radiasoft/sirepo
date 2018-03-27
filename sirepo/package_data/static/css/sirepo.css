@@ -671,6 +671,10 @@ svg.srw-beamline-item-icon {
   position: absolute;
   right: 21px;
 }
+.srw-wavefront-button {
+  position: absolute;
+  left: 21px;
+}
 
 a:focus, a.srw-tab:focus {
   outline: none;
