@@ -378,6 +378,7 @@ def api_importFile(simulation_type=None):
             )
         #TODO(robnagler) need to validate folder
         data.models.simulation.folder = flask.request.form['folder']
+        data.models.simulation.isExample = False
         return _save_new_and_reply(data)
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
