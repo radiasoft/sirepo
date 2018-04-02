@@ -1700,7 +1700,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
-                      '<a href><span class="glyphicon glyphicon-chevron-left"></span> Related Simulations</a>',
+                      '<a href><span class="glyphicon glyphicon-menu-left"></span> Related Simulations</a>',
                       '<ul class="dropdown-menu">',
                         '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
                       '</ul>',

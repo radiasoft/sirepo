@@ -1383,10 +1383,10 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                     roiFeature.draw();
                     var doseDomain = appState.models.dicomDose.domain;
                     if (doseDomain && doseFeature) {
-                        var colorRange = plotting.colorRangeFromModel($scope.modelName);
+                        var colorMap = plotting.colorMapFromModel($scope.modelName);
                         var colorScale = d3.scale.linear()
-                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.6, colorRange.length))
-                            .range(colorRange)
+                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.6, colorMap.length))
+                            .range(colorMap)
                             .clamp(true);
                         doseFeature.setColorScale(colorScale, appState.models[$scope.modelName].doseTransparency);
                         doseFeature.draw(canvas, [doseDomain[0][0], doseDomain[1][0]], [$scope.flipud(doseDomain[0][1]), $scope.flipud(doseDomain[1][1])]);

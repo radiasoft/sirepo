@@ -28,6 +28,8 @@ SIM_TYPE = 'warppba'
 
 WANT_BROWSER_FRAME_CACHE = True
 
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir)
     if len(files) < 2:
@@ -221,10 +223,12 @@ def fixup_old_data(data):
         beam['beamBunchLengthMethod'] = 's'
     if 'folder' not in data['models']['simulation']:
         data['models']['simulation']['folder'] = '/'
+    for m in ('beamAnimation', 'fieldAnimation', 'particleAnimation'):
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
 def generate_parameters_file(data, run_dir=None, is_parallel=False):
-    template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
+    template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = is_parallel

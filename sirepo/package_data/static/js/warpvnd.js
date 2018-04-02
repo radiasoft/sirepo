@@ -1260,10 +1260,10 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                 select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
 
-                var colorRange = plotting.colorRangeFromModel($scope.modelName);
+                var colorMap = plotting.colorMapFromModel($scope.modelName);
                 var colorScale = d3.scale.linear()
-                    .domain(plotting.linspace(json.v_min, json.v_max, colorRange.length))
-                    .range(colorRange);
+                    .domain(plotting.linspace(json.v_min, json.v_max, colorMap.length))
+                    .range(colorMap);
                 colorbar = Colorbar()
                     .scale(colorScale)
                     .thickness(30)

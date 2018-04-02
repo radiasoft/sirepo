@@ -37,7 +37,7 @@ describe('plotting: plotAxis', function() {
 
         values = tickValues('t [s]', [1.2281523024139837e-7, 1.2281730720114474e-7], {width: 468, height: 468}, 'x', 'bottom');
         expect(values).toEqual(['-0.8', '-0.6', '-0.4', '-0.2', '0', '0.2', '0.4', '0.6', '0.8', '1.0']);
-        expect(formattedBase).toEqual('< t > = 1.228162e+2ns');
+        expect(formattedBase).toEqual('< t > = 122.8162ns');
 
         values = tickValues('', [-0.0005, -0], {width: 497, height: 284}, 'y', 'left');
         expect(values).toEqual(['-5e-4', '-4e-4', '-3e-4', '-2e-4', '-1e-4', '0']);
