@@ -1502,7 +1502,9 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 );
             };
             $scope.copySimulationLink = function() {
-                var linkInput = document.getElementById('sr-simulation-link-input').select();
+                var linkInput = document.getElementById('sr-simulation-link-input');
+                linkInput.focus();
+                linkInput.setSelectionRange(0, 9999);
                 document.execCommand('copy');
                 return false;
             };
