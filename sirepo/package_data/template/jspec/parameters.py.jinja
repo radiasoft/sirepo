@@ -69,7 +69,7 @@ section_simulation
         time = {{ simulationSettings_time }}
         step_number = {{ simulationSettings_step_number }}
 {% if simulationSettings_model == 'particle' %}
-{% if not simulationSettings_e_cool %}
+{% if simulationSettings_e_cool == 'off' %}
         sample_number = {{ simulationSettings_sample_number }}
 {% endif %}
         save_particle_interval = {{ simulationSettings_save_particle_interval }}
