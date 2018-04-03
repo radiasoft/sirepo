@@ -9,7 +9,7 @@ Develop, run and share your HPC simulations.
 
 Sirepo brings Clickable Physics(TM) to your desktop and mobile devices.
 
-Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.com.
+[Try our public Sirepo server](http://sirepo.com).
 
 No signup is required and Sirepo is completely free.
 
