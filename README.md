@@ -111,6 +111,6 @@ on this URL:
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2015-2016 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
+Copyright (c) 2015-2018 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
 
 ![RadiaSoft](https://github.com/radiasoft/images/blob/master/corporate/RadiaSoftLogoTransparent.png)
