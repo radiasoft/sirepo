@@ -81,6 +81,8 @@ _INFIX_TO_RPN = {
     ast.USub: '+',
 }
 
+_REPORT_STYLE_FIELDS = ['colorMap']
+
 def background_percent_complete(report, run_dir, is_running, schema):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     errors, last_element = parse_elegant_log(run_dir)
@@ -407,7 +409,7 @@ def models_related_to_report(data):
     r = data['report']
     if 'bunchReport' not in r:
         return []
-    res = [r, 'bunch', 'bunchSource', 'bunchFile']
+    res = [template_common.report_fields(data, r, _REPORT_STYLE_FIELDS), 'bunch', 'bunchSource', 'bunchFile']
     for f in template_common.lib_files(data):
         if f.exists():
             res.append(f.mtime())

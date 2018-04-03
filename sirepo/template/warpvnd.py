@@ -33,6 +33,7 @@ _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
 
+_REPORT_STYLE_FIELDS = ['colorMap']
 
 def background_percent_complete(report, run_dir, is_running, schema):
     files = _h5_file_list(run_dir, 'currentAnimation')
@@ -225,7 +226,7 @@ def models_related_to_report(data):
         return []
     res = ['beam', 'simulationGrid', 'conductors', 'conductorTypes']
     if data['report'] != 'fieldComparisonReport':
-        res.append(data['report'])
+        res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
 
 

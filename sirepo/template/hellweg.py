@@ -35,6 +35,7 @@ _DEFAULT_DRIFT_ELEMENT = 'DRIFT 1e-16 1e+16 2' + "\n"
 
 _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
+_REPORT_STYLE_FIELDS = ['colorMap']
 
 def background_percent_complete(report, run_dir, is_running, schema):
     if is_running:
@@ -209,7 +210,7 @@ def models_related_to_report(data):
     if r == 'animation':
         return []
     res = [
-        r,
+        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
         'beam',
         'ellipticalDistribution',
         'energyPhaseDistribution',
