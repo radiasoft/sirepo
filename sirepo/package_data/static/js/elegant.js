@@ -3,6 +3,8 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
+SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
