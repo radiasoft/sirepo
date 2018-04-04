@@ -403,15 +403,15 @@
             "sourceFile": ["Beam File", "InputFile"]
         },
         "bunchReport": {
-            "x": ["X Value", "PhaseSpaceCoordinate"],
-            "y": ["Y Value", "PhaseSpaceCoordinate"],
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "elementAnimation": {
-            "x": ["X Value", "ValueList", ""],
+            "x": ["Value to Plot", "ValueList", ""],
             "yFile": ["Y File", "ValueList", ""],
-            "y": ["Y Value", "ValueList", ""],
+            "y": ["Value to Plot", "ValueList", ""],
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "fileId": ["File ID", "String", ""],
@@ -3932,8 +3932,14 @@
         "bunchReport": {
             "title": "Bunch Report",
             "advanced": [
-                "x",
-                "y",
+                [
+                    ["Horizontal",
+                        ["x"]
+                    ],
+                    ["Vertical",
+                        ["y"]
+                    ]
+                ],
                 "histogramBins",
                 "colorMap"
             ]
@@ -3947,9 +3953,15 @@
         "elementAnimation": {
             "title": "Output Report",
             "advanced": [
-                "x",
+                [
+                    ["Horizontal", [
+                     "x"
+                    ]],
+                    ["Vertical", [
+                     "y"
+                    ]]
+                ],
                 "yFile",
-                "y",
                 "histogramBins",
                 "framesPerSecond",
                 "colorMap"
