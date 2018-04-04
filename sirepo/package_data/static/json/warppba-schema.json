@@ -8,6 +8,11 @@
             ["a", "Absolute"],
             ["s", "Scale to Electron Plasma"]
         ],
+        "ColorRangeType": [
+            ["none", "None"],
+            ["smooth", "Smooth"],
+            ["fixed", "Fixed"]
+        ],
         "Field": [
             ["E", "E - Electron field [V/m]"],
             ["B", "B - Magnetic field [T]"],
@@ -115,7 +120,9 @@
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"],
             "histogramBins": ["Histogram Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
         },
         "beamPreviewReport": {
             "x": ["X Value", "XValue"],
@@ -187,14 +194,16 @@
             "uyMax": ["Maximum UY [mc]", "Float"],
             "uzMin": ["Minimum UZ [mc]", "Float"],
             "uzMax": ["Maximum UZ [mc]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
         },
         "laserPreviewReport": {
             "field": ["Field", "Field"],
@@ -211,7 +220,8 @@
                 "x",
                 "y",
                 "histogramBins",
-                "framesPerSecond"
+                "framesPerSecond",
+                "colorMap"
             ]
         },
         "beamPreviewReport": {

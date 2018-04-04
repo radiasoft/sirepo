@@ -18,6 +18,27 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     };
 
     var isPlottingReady = false;
+    var ColorRange = function() {
+        this.resetEMA = function() {
+            this.minEMA = new EMA();
+            this.maxEMA = new EMA();
+        };
+        this.setRange = function(min, max) {
+            this.min = min;
+            this.max = max;
+        };
+        this.resetEMA();
+    };
+    var EMA = function() {
+        var avg = null;
+        var length = 3;
+        var alpha = 2.0 / (length + 1.0);
+        this.compute = function(value) {
+            return avg += avg !== null
+                ? alpha * (value - avg)
+                : value;
+        };
+    };
 
     d3Service.d3().then(function() {
         isPlottingReady = true;
@@ -80,7 +101,10 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
             });
         };
-        scope.advanceFrame = function(increment) {
+        scope.advanceFrame = function(increment, stopPlaying) {
+            if (stopPlaying) {
+                scope.isPlaying = false;
+            }
             var next = frameCache.getCurrentFrame(scope.modelName) + increment;
             if (next < 0 || next > frameCache.getFrameCount(scope.modelName) - 1) {
                 scope.isPlaying = false;
@@ -129,7 +153,13 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         scope.togglePlay = function() {
             scope.isPlaying = ! scope.isPlaying;
             if (scope.isPlaying) {
-                scope.advanceFrame(1);
+                if (scope.isLastFrame()) {
+                    frameCache.setCurrentFrame(scope.modelName, 0);
+                    requestData();
+                }
+                else {
+                    scope.advanceFrame(1);
+                }
             }
         };
         scope.$on('framesCleared', function() {
@@ -245,6 +275,10 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         createAxis: createAxis,
 
+        createColorRange: function() {
+            return new ColorRange();
+        },
+
         createExponentialAxis: function(scale, orient) {
             return createAxis(scale, orient)
             // this causes a 'number of fractional digits' error in MSIE
@@ -318,7 +352,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        colorRangeFromModel: function(modelName) {
+        colorMapFromModel: function(modelName) {
 
             var model = appState.models[modelName];
             var modelMap = model ? model.colorMap : null;
@@ -341,11 +375,23 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
-        initImage: function(zMin, zMax, heatmap, cacheCanvas, imageData, modelName) {
-            var colorRange = this.colorRangeFromModel(modelName);
+        initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
+            var m = appState.models[modelName];
+            var zMin = plotRange.min;
+            var zMax = plotRange.max;
+            if (m.colorRangeType == 'smooth') {
+                zMin = plotRange.minEMA.compute(zMin);
+                zMax = plotRange.maxEMA.compute(zMax);
+            }
+            else if (m.colorRangeType == 'fixed') {
+                zMin = m.colorMin;
+                zMax = m.colorMax;
+            }
+            var colorMap = this.colorMapFromModel(modelName);
             var colorScale = d3.scale.linear()
-                .domain(linspace(zMin, zMax, colorRange.length))
-                .range(colorRange);
+                .domain(linspace(zMin, zMax, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
             var xSize = heatmap[0].length;
             var ySize = heatmap.length;
             var img = imageData;
@@ -514,9 +560,9 @@ SIREPO.app.directive('animationButtons', function() {
         template: [
             '<div data-ng-if="isAnimation && hasManyFrames()" style="width: 100%;" class="text-center">',
               '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1)"><span class="glyphicon glyphicon-step-backward"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? \'pause\' : \'play\' }}"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1)"><span class="glyphicon glyphicon-step-forward"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1, true)"><span class="glyphicon glyphicon-step-backward"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? \'pause\' : \'play\' }}"></span></button>',
+              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1, true)"><span class="glyphicon glyphicon-step-forward"></span></button>',
               '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>',
             '</div>',
         ].join(''),
@@ -544,7 +590,7 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         return unit ? unit.scale(v) : v;
     }
 
-    function calcFormat(count, unit, base) {
+    function calcFormat(count, unit, base, isBaseFormat) {
         var code = 'e';
         var tickValues = self.scale.ticks(count);
         var v0 = applyUnit(tickValues[0] - (base || 0), unit);
@@ -552,7 +598,7 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         var p0 = valuePrecision(v0);
         var p1 = valuePrecision(v1);
         var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-        if (useFloatFormat(decimals)) {
+        if (isBaseFormat || useFloatFormat(decimals)) {
             if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
                 code = 'f';
             }
@@ -600,11 +646,11 @@ function plotAxis(margin, dimension, orientation, refresh, utilities) {
         var tickCount = calcTickCount(formatInfo.format, canvasSize, unit);
         formatInfo = calcFormat(tickCount, unit);
         if (formatInfo.decimals > 2) {
+            var baseFormat = calcFormat(tickCount, unit, null, true).format;
             var base = midPoint(formatInfo, d);
             if (unit) {
                 unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
             }
-            var baseFormat = formatInfo.format;
             formatInfo = calcFormat(tickCount, unit, base);
             tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base);
             var f2 = calcFormat(tickCount, unit);
@@ -1216,6 +1262,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
                 bottomY: plotAxis($scope.margin, 'y', 'left', refresh, utilities),
                 rightX: plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
             };
+            var colorRange = plotting.createColorRange();
 
             var cursorShape = {
                 '11': 'mouse-move-ew',
@@ -1547,7 +1594,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities) {
                 }
                 axes.bottomY.scale.domain([zmin, zmax]).nice();
                 axes.rightX.scale.domain([zmax, zmin]).nice();
-                plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, $scope.modelName);
+                colorRange.setRange(zmin, zmax);
+                plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
                 $scope.resize();
                 $scope.resize();
             };
@@ -1604,20 +1652,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 x: plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
                 y: plotAxis($scope.margin, 'y', 'left', refresh, utilities),
             };
-
-            var EMA = function() {
-                var avg = null;
-                var length = 3;
-                var alpha = 2.0 / (length + 1.0);
-                this.compute = function(value) {
-                    return avg += avg !== null
-                    ? alpha * (value - avg)
-                    : value;
-                };
-            };
-
-            var allFrameMin = new EMA();
-            var allFrameMax = new EMA();
+            var colorRange = plotting.createColorRange();
 
             function colorbarSize() {
                 var maxLength = colorbar.scale().ticks().reduce(function(size, v) {
@@ -1631,11 +1666,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
 
             function getRange(values) {
                 return [values[0], values[values.length - 1]];
-            }
-
-            function initDraw(zmin, zmax) {
-                var colorScale = plotting.initImage(zmin, zmax, heatmap, cacheCanvas, imageData, $scope.modelName);
-                colorbar.scale(colorScale);
             }
 
             var mouseMove = utilities.debounce(function() {
@@ -1695,6 +1725,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 return selector ? e.select(selector) : e;
             }
 
+            function setColorScale() {
+                colorRange.setRange(plotting.min2d(heatmap), plotting.max2d(heatmap));
+                var colorScale = plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
+                colorbar.scale(colorScale);
+            }
+
             $scope.clearData = function() {
                 $scope.dataCleared = true;
                 $scope.prevFrameIndex = -1;
@@ -1743,17 +1779,13 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities) {
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
-                initDraw(
-                    allFrameMin.compute(plotting.min2d(heatmap)),
-                    allFrameMax.compute(plotting.max2d(heatmap)));
-                // call resize twice to allow margins to adjust
+                setColorScale();
                 $scope.resize();
                 $scope.resize();
             };
 
             $scope.modelChanged = function() {
-                allFrameMin = new EMA();
-                allFrameMax = new EMA();
+                colorRange.resetEMA();
             };
 
             $scope.resize = function() {

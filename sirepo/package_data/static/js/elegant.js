@@ -3,6 +3,8 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
+SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
@@ -33,7 +35,7 @@ SIREPO.appFieldEditors = [
     '</div>',
     '<div data-ng-switch-when="RPNValue">',
       '<div data-ng-class="fieldClass">',
-        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
+        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />',
       '</div>',
       //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
       '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
@@ -41,7 +43,7 @@ SIREPO.appFieldEditors = [
       '</div>',
     '</div>',
     '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
-      '<input data-ng-model="model[field]" class="form-control" required />',
+      '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
     '</div>',
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
@@ -1691,7 +1693,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
                 '<tr data-ng-repeat="cmd in commands">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-triangle-top\': isExpanded(cmd), \'glyphicon-triangle-bottom\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="elegant-cmd-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
                       '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge elegant-icon" data-ng-class="{\'elegant-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
                     '</div>',

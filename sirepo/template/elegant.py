@@ -122,19 +122,22 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     yfield = data['y']
     bins = data['histogramBins']
 
-    x, column_names, x_def, err = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
-    if err:
-        return err
-    y, _, y_def, err = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
-    if err:
-        return err
-    if _is_2d_plot(column_names):
+    # x, column_names, x_def, err
+    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
+    if y_col['err']:
+        return y_col['err']
+    y = y_col['values']
+    if _is_2d_plot(x_col['column_names']):
         # 2d plot
         return {
             'title': _plot_title(xfield, yfield, page_index),
             'x_range': [np.min(x), np.max(x)],
-            'x_label': _field_label(xfield, x_def[1]),
-            'y_label': _field_label(yfield, y_def[1]),
+            'x_label': _field_label(xfield, x_col['column_def'][1]),
+            'y_label': _field_label(yfield, y_col['column_def'][1]),
             'points': y,
             'x_points': x,
         }
@@ -142,8 +145,8 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _field_label(xfield, x_def[1]),
-        'y_label': _field_label(yfield, y_def[1]),
+        'x_label': _field_label(xfield, x_col['column_def'][1]),
+        'y_label': _field_label(yfield, y_col['column_def'][1]),
         'title': _plot_title(xfield, yfield, page_index),
         'z_matrix': hist.T.tolist(),
     }

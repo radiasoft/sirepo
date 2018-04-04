@@ -7,6 +7,36 @@ u"""?
 from __future__ import absolute_import, division, print_function
 
 
+def create_examples():
+    """Adds missing app examples to all users.
+    """
+    from pykern import pkio
+    from sirepo import feature_config
+    from sirepo import server
+    from sirepo import simulation_db
+    import flask
+
+    server.init()
+
+    for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+        uid = simulation_db.uid_from_dir_name(d)
+        # create a mock session
+        flask.session = {
+            server._ENVIRON_KEY_BEAKER: {},
+        }
+        server.session_user(uid)
+        for sim_type in feature_config.cfg.sim_types:
+            simulation_db.verify_app_directory(sim_type)
+            names = map(
+                lambda x: x['name'],
+                simulation_db.iterate_simulation_datafiles(sim_type, simulation_db.process_simulation_list, {
+                    'simulation.isExample': True,
+                }))
+            for s in simulation_db.examples(sim_type):
+                if s.models.simulation.name not in names:
+                    simulation_db.save_new_example(s)
+
+
 def purge_users(days=180, confirm=False):
     """Remove old users from db which have not registered.
 

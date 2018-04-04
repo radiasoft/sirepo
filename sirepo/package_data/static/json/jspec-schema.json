@@ -44,6 +44,10 @@
             ["ryecool", "ry_ecool"],
             ["rsecool", "rs_ecool"]
         ],
+        "ColorRangeType": [
+            ["none", "None"],
+            ["fixed", "Fixed"]
+        ],
         "CoolingRatesOptionalColumn": [
             ["rx", "rx"],
             ["ry", "ry"],
@@ -83,6 +87,11 @@
             ["yp", "yp"],
             ["ds", "ds"],
             ["dpp", "dp/p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
         ],
         "SimulationModel": [
             ["rms", "RMS"],
@@ -157,7 +166,15 @@
             "y": ["Y Value", "ParticleColumn"],
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
+            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
+            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorRangeType": ["Range", "ColorRangeType", "none"],
+            "colorMin": ["Minimum Histogram Value", "Float", 0],
+            "colorMax": ["Maximum Histogram Value", "Float", 10]
         },
         "rateCalculationReport": {
         },
@@ -272,11 +289,31 @@
         "particleAnimation": {
             "title": "Ion Particle Animation",
             "advanced": [
-                "x",
-                "y",
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap"
+                ["Main", [
+                    "x",
+                    "y",
+                    "histogramBins",
+                    "framesPerSecond"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Color", [
+                    "colorMap",
+                    "colorRangeType",
+                    "colorMin",
+                    "colorMax"
+                ]]
             ]
         },
         "rateCalculationReport": {
