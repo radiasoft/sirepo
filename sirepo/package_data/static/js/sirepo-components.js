@@ -8,6 +8,9 @@ SIREPO.NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
 SIREPO.INFO_INDEX_LABEL = 0;
 SIREPO.INFO_INDEX_TYPE = 1;
 SIREPO.INFO_INDEX_DEFAULT_VALUE = 2;
+SIREPO.INFO_INDEX_TOOL_TIP = 3;
+SIREPO.INFO_INDEX_MIN = 4;
+SIREPO.INFO_INDEX_MAX = 5;
 
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
@@ -374,7 +377,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
             '<div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>',
             '<div data-ng-switch="info[1]">',
               '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
-                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
+                '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" required />',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
                 '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />',
@@ -423,7 +426,6 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -1491,11 +1493,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                     'simulationLink',
                     [
                         '<div data-confirmation-modal="" data-id="sr-simulationLink-editor" data-title="Share link for {{ nav.sectionTitle() }}" data-ok-text="Copy" data-ok-clicked="copySimulationLink()" data-cancel-text="Done">',
-                            '<input id="sr-simulation-link-input" type="text" readonly="true"',
-                                'value="',
-                                    $window.location.href,
-                                '"',
-                                'class="form-control input-lg" onfocus="this.select();" autofocus="true"/>',
+                            '<input id="sr-simulation-link-input" type="text" readonly="true" value="{{ nav.getLocation() }}" class="form-control input-lg" onfocus="this.select();" autofocus="true"/>',
                         '</div>',
                     ].join(''),
                     $scope
@@ -1890,6 +1888,8 @@ SIREPO.app.directive('stringToNumber', function() {
         require: 'ngModel',
         scope: {
             numberType: '@stringToNumber',
+            min: '<',
+            max: '<',
         },
         link: function(scope, element, attrs, ngModel) {
             ngModel.$parsers.push(function(value) {
@@ -1900,6 +1900,9 @@ SIREPO.app.directive('stringToNumber', function() {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
+                        if(v < scope.min || v > scope.max) {
+                            return undefined;
+                        }
                         if (v != value) {
                             ngModel.$setViewValue(v);
                             ngModel.$render();
