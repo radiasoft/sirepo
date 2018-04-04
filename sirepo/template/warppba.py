@@ -28,6 +28,7 @@ SIM_TYPE = 'warppba'
 
 WANT_BROWSER_FRAME_CACHE = True
 
+_REPORT_STYLE_FIELDS = ['colorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running, schema):
@@ -306,7 +307,7 @@ def models_related_to_report(data):
     if r not in ('beamPreviewReport', 'laserPreviewReport'):
         return []
     return [
-        r,
+        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
         'simulation.sourceType',
         'electronBeam',
         'electronPlasma',

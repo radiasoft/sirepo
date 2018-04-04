@@ -435,7 +435,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon glyphicon-off" title="Disable Element"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon"  data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="", data-item="item"></span>',
             '</div>',
@@ -492,6 +492,9 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
                 el.popover('toggle');
                 scope.$apply();
             }
+            scope.enableItemToggleTitle = function () {
+                return (scope.item.isDisabled ? 'Enable' : 'Disable') + ' Element';
+            };
             if (beamlineService.isTouchscreen()) {
                 var hasTouchMove = false;
                 $(element).bind('touchstart', function() {

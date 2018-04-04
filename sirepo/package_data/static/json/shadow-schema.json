@@ -507,8 +507,8 @@
             "histogramBins": ["Number of Bins", "Integer"]
         },
         "initialIntensityReport": {
-            "x": ["X Column", "ColumnValue"],
-            "y": ["Y Column", "ColumnValue"],
+            "x": ["Value to Plot", "ColumnValue"],
+            "y": ["Value to Plot", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
@@ -582,8 +582,8 @@
         },
         "plotXYReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
-            "x": ["X Column", "ColumnValue"],
-            "y": ["Y Column", "ColumnValue"],
+            "x": ["Value to Plot", "ColumnValue"],
+            "y": ["Value to Plot", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
@@ -611,8 +611,8 @@
             "position": ["Nominal Position [m]", "Float"]
         },
         "watchpointReport": {
-            "x": ["X Column", "ColumnValue"],
-            "y": ["Y Column", "ColumnValue"],
+            "x": ["Value to Plot", "ColumnValue"],
+            "y": ["Value to Plot", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
@@ -982,8 +982,14 @@
             "title": "Initial Intensity Report",
             "basic": [],
             "advanced": [
-                "x",
-                "y",
+                [
+                    ["Horizontal", [
+                     "x"
+                    ]],
+                    ["Vertical", [
+                     "y"
+                    ]]
+                ],
                 "weight",
                 "histogramBins",
                 "overrideSize",
@@ -1095,8 +1101,14 @@
             "basic": [],
             "advanced": [
                 "distanceFromSource",
-                "x",
-                "y",
+                [
+                    ["Horizontal", [
+                     "x"
+                    ]],
+                    ["Vertical", [
+                     "y"
+                    ]]
+                ],
                 "weight",
                 "histogramBins",
                 "overrideSize",
@@ -1131,8 +1143,14 @@
             "title": "Watchpoint Report",
             "basic": [],
             "advanced": [
-                "x",
-                "y",
+                [
+                    ["Horizontal", [
+                     "x"
+                    ]],
+                    ["Vertical", [
+                     "y"
+                    ]]
+                ],
                 "weight",
                 "histogramBins",
                 "overrideSize",

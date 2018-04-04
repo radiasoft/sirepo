@@ -35,7 +35,7 @@ SIREPO.appLocalRoutes = {
     source: '/source/:simulationId',
     loggedOut: '/logged-out',
     notFound: '/not-found',
-    notFoundCopy: '/copy-session/:simulationIds',
+    notFoundCopy: '/copy-session/:simulationIds/:section',
 };
 
 SIREPO.appDefaultSimulationValues = {
@@ -118,7 +118,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 
     $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
-            appState.loadModels($route.current.params.simulationId);
+            appState.loadModels($route.current.params.simulationId, null, self.getActiveSection());
         }
     });
 
@@ -362,18 +362,22 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
-    self.loadModels = function(simulationId, callback) {
+    self.loadModels = function(simulationId, callback, section) {
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
         self.clearModels();
+        var routeObj = {
+            routeName: 'simulationData',
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<pretty>': false
+        };
+        if(section) {
+            routeObj['<section>'] = section;
+        }
         requestSender.sendRequest(
-            {
-                routeName: 'simulationData',
-                '<simulation_id>': simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<pretty>': false
-            },
+            routeObj,
             function(data) {
                 if (data.redirect) {
                     requestSender.localRedirect('notFoundCopy', {
@@ -381,6 +385,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                             + (data.redirect.userCopySimulationId
                                ? ('-' + data.redirect.userCopySimulationId)
                                : ''),
+                        ':section': data.redirect.section,
                     });
                     return;
                 }
@@ -2172,6 +2177,9 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+    self.getLocation = function() {
+        return $window.location.href;
+    }
 
     $scope.$on('$locationChangeStart', function () {
         SIREPO.setPageLoaderVisible(true);
@@ -2197,7 +2205,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
         requestSender.sendRequest(
             'copyNonSessionSimulation',
             function(data) {
-                requestSender.localRedirect('source', {
+                requestSender.localRedirect($route.current.params.section || 'source', {
                     ':simulationId': data.models.simulation.simulationId,
                 });
             },
@@ -2205,6 +2213,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
                 simulationId: self.simulationId,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
+
     };
 
     self.hasUserCopy = function() {
@@ -2212,7 +2221,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.openButton = function() {
-        requestSender.localRedirect('source', {
+        requestSender.localRedirect($route.current.params.section || 'source', {
             ':simulationId': self.userCopySimulationId,
         });
     };

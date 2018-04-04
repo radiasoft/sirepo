@@ -614,7 +614,7 @@
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image counterclockwise, negative - clockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "0", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "cutoffBackgroundNoise": ["Cutoff Background Noise Ratio", "Float", 0.5, "The ratio for cutoff the background noise (between 0 and 1)"],
-            "backgroundColor": ["Background Color", "Integer", 0, "The background color code to use instead of the background noise (0=black, 255=white)"],
+            "backgroundColor": ["Background Color", "Integer", 0, "The background color code to use instead of the background noise (0=black, 255=white)", 0, 255],
             "tileImage": ["Tile Sample?", "Boolean", "0", "Tile the cut area of the image with the provided number of rows and columns"],
             "tileRows": ["Number of Rows", "Integer", 1],
             "tileColumns": ["Number of Columns", "Integer", 1],

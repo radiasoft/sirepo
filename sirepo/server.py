@@ -543,7 +543,7 @@ def api_saveSimulationData():
 app_save_simulation_data = api_saveSimulationData
 
 
-def api_simulationData(simulation_type, simulation_id, pretty):
+def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
@@ -562,6 +562,8 @@ def api_simulationData(simulation_type, simulation_id, pretty):
                 '{}.json'.format(data['models']['simulation']['name']),
             )
     except simulation_db.CopyRedirect as e:
+        if e.sr_response['redirect'] and section:
+            e.sr_response['redirect']['section'] = section
         response = _json_response(e.sr_response)
     _no_cache(response)
     return response

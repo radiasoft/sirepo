@@ -714,7 +714,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
         return;
     }
 
-    function getBeamlinesWhichContainId(id) {
+    self.getBeamlinesWhichContainId = function(id) {
         var res = [];
         for (var i = 0; i < appState.models.beamlines.length; i++) {
             var b = appState.models.beamlines[i];
@@ -808,13 +808,16 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
 
     self.createElement = function(type) {
         $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
-        var model = {
+        var model = self.getNextElement(type);
+        appState.setModelDefaults(model, type);
+        self.editElement(type, model);
+    };
+    self.getNextElement = function(type) {
+        return {
             _id: elegantService.nextId(),
             type: type,
             name: uniqueNameForType(type.charAt(0)),
         };
-        appState.setModelDefaults(model, type);
-        self.editElement(type, model);
     };
 
     self.deleteElement = function() {
@@ -840,7 +843,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
 
     self.deleteElementPrompt = function(type, element) {
         var idField = type == 'elements' ? '_id' : 'id';
-        var beamlines = getBeamlinesWhichContainId(element[idField]);
+        var beamlines = self.getBeamlinesWhichContainId(element[idField]);
         showDeleteWarning(type, element, beamlines);
     };
 
@@ -903,15 +906,19 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
     };
 
     self.newBeamline = function() {
-        appState.models.beamline = {
+        appState.models.beamline = self.getNextBeamline();
+        panelState.showModalEditor('beamline');
+    };
+    self.getNextBeamline = function() {
+        var beamlime = {
             name: uniqueNameForType('BL'),
             id: elegantService.nextId(),
             l: 0,
             count: 0,
             items: [],
         };
-        validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), self.elementNameValidator(appState.models.beamline.name), self.elementNameInvalidMsg);
-        panelState.showModalEditor('beamline');
+        validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), self.elementNameValidator(beamlime.name), self.elementNameInvalidMsg);
+        return beamlime;
     };
 
     self.newElement = function() {
@@ -1517,7 +1524,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, validation
     };
 });
 
-SIREPO.app.directive('beamlineTable', function(appState, $window) {
+SIREPO.app.directive('beamlineTable', function(appState, panelState, elegantService, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1552,11 +1559,14 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
                   '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
                   '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
                     '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
-                    '<div data-ng-show="! isActiveBeamline(beamline)" class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar">',
-                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
+                    '<div class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar" data-ng-class="{\'sr-button-bar-active\': isActiveBeamline(beamline)}" >',
+                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>',
+                            '<span data-ng-show="! isActiveBeamline(beamline)" >',
+                            ' <button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
                             ' <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                            ' <button data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                            '</span>',
                         '</div>',
                     '<div>',
                   '</td>',
@@ -1606,6 +1616,17 @@ SIREPO.app.directive('beamlineTable', function(appState, $window) {
 
             $scope.addToBeamline = function(beamline) {
                 $scope.lattice.addToBeamline(beamline);
+            };
+            $scope.copyBeamline = function(beamline) {
+                var newBeamline = $scope.lattice.getNextBeamline();
+                for(var prop in beamline) {
+                    if(prop != 'id' && prop != 'name' && prop != 'items') {
+                        newBeamline[prop] = beamline[prop];
+                    }
+                }
+                newBeamline.items = beamline.items.slice();
+                appState.models.beamline = newBeamline;
+                panelState.showModalEditor('beamline');
             };
 
             $scope.beamlineBend = function(beamline, defaultValue) {
@@ -1668,11 +1689,11 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
               '<div class="pull-right">',
                 '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
               '</div>',
-              '<p class="lead text-center"><small><em>drag and drop commands to reorder the list</em></small></p>',
+              '<p class="lead text-center"><small><em>drag and drop commands or use arrows to reorder the list</em></small></p>',
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
                 '<tr data-ng-repeat="cmd in commands">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="elegant-cmd-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
                       '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge elegant-icon" data-ng-class="{\'elegant-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
                     '</div>',
@@ -1810,6 +1831,19 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                 $scope.commands.splice(index, 0, data);
                 saveCommands();
             };
+            // expects a negative number to move up, positive to move down
+            $scope.moveItem = function(direction, command) {
+                var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
+                var currentIndex = commandIndex(command);
+                var newIndex = currentIndex + d;
+                if(newIndex >= 0 && newIndex < $scope.commands.length) {
+                    var tmp = $scope.commands[newIndex];
+                    $scope.commands[newIndex] = command;
+                    $scope.commands[currentIndex] = tmp;
+                    saveCommands();
+                }
+            }
+
 
             $scope.dropLast = function(data) {
                 if (! data) {
@@ -2023,7 +2057,7 @@ SIREPO.app.directive('elementPicker', function() {
     };
 });
 
-SIREPO.app.directive('elementTable', function(appState, $rootScope) {
+SIREPO.app.directive('elementTable', function(appState, elegantService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2053,7 +2087,7 @@ SIREPO.app.directive('elementTable', function(appState, $rootScope) {
                   '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
                   '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-disabled="elementInUse(element)" data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -2085,6 +2119,9 @@ SIREPO.app.directive('elementTable', function(appState, $rootScope) {
                 $scope.lattice.addToBeamline(element);
             };
 
+            $scope.elementInUse = function(element) {
+                return $scope.lattice.getBeamlinesWhichContainId(element._id).length > 0;
+            };
             $scope.deleteElement = function(element) {
                 $scope.lattice.deleteElementPrompt('elements', element);
             };
@@ -2092,6 +2129,16 @@ SIREPO.app.directive('elementTable', function(appState, $rootScope) {
             $scope.editElement = function(type, item) {
                 var el = $scope.lattice.elementForId(item._id);
                 return $scope.lattice.editElement(type, el);
+            };
+            $scope.copyElement = function(element) {
+                var elementCopy = $scope.lattice.getNextElement(element.type);
+                for(var prop in element) {
+                    if(prop != '_id' && prop != 'name') {
+                        elementCopy[prop] = element[prop];
+                    }
+                }
+                // element does not exist yet so cannot use local edit
+                $scope.lattice.editElement(elementCopy.type, elementCopy);
             };
 
             $scope.elementBend = function(element, defaultValue) {

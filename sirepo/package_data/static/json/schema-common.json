@@ -66,7 +66,7 @@
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveSimulationData": "/save-simulation",
-        "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>",
+        "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
         "srLandingPage": "/sr",

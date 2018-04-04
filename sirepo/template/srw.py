@@ -667,7 +667,7 @@ def models_related_to_report(data):
             'mirrorReport.grazingAngle',
             'mirrorReport.heightAmplification',
         ]
-    res = _report_fields(data, r) + [
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]

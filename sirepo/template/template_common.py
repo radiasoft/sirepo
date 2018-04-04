@@ -218,6 +218,21 @@ def report_parameters_hash(data):
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 
+def report_fields(data, report_name, style_fields):
+    # if the model has "style" fields, then return the full list of non-style fields
+    # otherwise returns the report name (which implies all model fields)
+    m = data.models[report_name]
+    for style_field in style_fields:
+        if style_field not in m:
+            continue
+        res = []
+        for f in m:
+            if f in style_fields:
+                continue
+            res.append('{}.{}'.format(report_name, f))
+        return res
+    return [report_name]
+
 
 def resource_dir(sim_type):
     """Where to get library files from
