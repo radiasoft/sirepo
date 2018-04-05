@@ -406,7 +406,7 @@ def fixup_old_data(data):
         if 'sampleFactor' not in data['models']['simulation']:
             data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
         for k in data['models']:
-            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
+            if k == 'initialIntensityReport' or template_common.is_watchpoint(k):
                 if 'sampleFactor' in data['models'][k]:
                     del data['models'][k]['sampleFactor']
     # default intensityReport.method based on source type
