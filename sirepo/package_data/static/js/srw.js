@@ -49,7 +49,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         });
 });
 
-SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location) {
     var self = {};
     self.applicationMode = 'default';
     appDataService.applicationMode = null;
@@ -150,7 +150,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         if(search) {
             self.applicationMode = search.application_mode || 'default';
             appDataService.applicationMode = self.applicationMode;
-            beamlineService.setEditable(self.applicationMode == 'default');
+            beamlineService.setEditable(self.applicationMode == 'default' || self.applicationMode == 'coherent');
+            if(activeSection.getActiveSection() === 'beamline') {
+                beamlineService.coherence = search.coherence || 'full';
+            }
         }
     });
 
@@ -175,7 +178,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     return self;
 });
 
-SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue) {
+SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location) {
     var self = this;
     var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
     self.appState = appState;
@@ -467,6 +470,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             simulationQueue.cancelAllItems();
         }
         self.singleElectron = value;
+        $location.search('coherence', value ? 'full' : 'partial');
     };
 
     self.showFileReport = function(type, model) {
@@ -509,6 +513,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     appState.whenModelsLoaded($scope, function() {
+
+        if(beamlineService.coherence) {
+            self.setSingleElectron(beamlineService.coherence !== 'partial');
+        }
+
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
 

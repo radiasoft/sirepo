@@ -10,6 +10,7 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
     // consider moving to "constant" section of schema
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
+    self.coherence = 'full';
 
     // Try to detect mobile/tablet devices using Mozilla recommendation below
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
