@@ -1903,6 +1903,13 @@ SIREPO.app.directive('stringToNumber', function() {
             max: '<',
         },
         link: function(scope, element, attrs, ngModel) {
+            function isValid(v) {
+                if (v < scope.min || v > scope.max) {
+                    return false;
+                }
+                return true;
+            }
+
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))  {
                     return null;
@@ -1911,6 +1918,9 @@ SIREPO.app.directive('stringToNumber', function() {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
+                        if (! isValid(v)) {
+                            return undefined;
+                        }
                         if (v != value) {
                             ngModel.$setViewValue(v);
                             ngModel.$render();
@@ -1918,7 +1928,7 @@ SIREPO.app.directive('stringToNumber', function() {
                         return v;
                     }
                     v = parseFloat(value);
-                    if(v < scope.min || v > scope.max) {
+                    if (! isValid(v)) {
                         return undefined;
                     }
                     if (isFinite(v)) {
