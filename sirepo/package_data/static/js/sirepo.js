@@ -2179,7 +2179,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
     self.getLocation = function() {
         return $window.location.href;
-    }
+    };
 
     $scope.$on('$locationChangeStart', function () {
         SIREPO.setPageLoaderVisible(true);
