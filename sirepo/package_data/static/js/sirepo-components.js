@@ -380,7 +380,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
                 '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+                '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
@@ -1911,9 +1911,6 @@ SIREPO.app.directive('stringToNumber', function() {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
-                        if(v < scope.min || v > scope.max) {
-                            return undefined;
-                        }
                         if (v != value) {
                             ngModel.$setViewValue(v);
                             ngModel.$render();
@@ -1921,6 +1918,9 @@ SIREPO.app.directive('stringToNumber', function() {
                         return v;
                     }
                     v = parseFloat(value);
+                    if(v < scope.min || v > scope.max) {
+                        return undefined;
+                    }
                     if (isFinite(v)) {
                         return v;
                     }
