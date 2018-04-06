@@ -394,7 +394,7 @@ def find_height_profile_dimension(dat_file):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -501,15 +501,6 @@ def fixup_old_data(data):
             for row in data['models']['propagation'][item_id]:
                 row += [0, 0, 0, 0, 0, 0, 0, 0]
 
-    if 'brillianceReport' not in data['models']:
-        data['models']['brillianceReport'] = {
-            "minDeflection": 0.2,
-            "initialHarmonic": 1,
-            "finalHarmonic": 5,
-            "detuning": 0,
-            "energyPointCount": 100,
-            "reportType": "0",
-        }
 
 def get_animation_name(data):
     return data['modelName']
