@@ -1514,6 +1514,15 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
 });
 
 SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
+
+    function helpLink(url, text, icon) {
+        return url
+            ? ('<li><a href="' + url + '" target="_blank"><span class="glyphicon glyphicon-'
+               + icon + '"></span> '
+               + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName + ' '
+               + text + '</a></li>')
+            : '';
+    }
     return {
         restrict: 'A',
         transclude: {
@@ -1544,10 +1553,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                   '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
                     '<ul class="dropdown-menu">',
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      SIREPO.USER_MANUAL_URL
-                          ? ('<li><a href="' + SIREPO.USER_MANUAL_URL + '" target="_blank"><span class="glyphicon glyphicon-list-alt"></span> ' + SIREPO.APP_NAME + ' User Manaul</a></li>') : '',
-                      SIREPO.USER_FORUM_URL
-                          ? ('<li><a href="' + SIREPO.USER_FORUM_URL + '" target="_blank"><span class="glyphicon glyphicon-globe"></span> ' + SIREPO.APP_NAME + ' User Forum</a></li>') : '',
+                      helpLink(SIREPO.USER_MANUAL_URL, 'User Manual', 'list-alt'),
+                      helpLink(SIREPO.USER_FORUM_URL, 'User Forum', 'globe'),
                     '</ul>',
                   '</li>',
                 '</ul>',
