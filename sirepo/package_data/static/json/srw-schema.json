@@ -742,6 +742,22 @@
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"]
+        },
+        "zonePlate": {
+            "title": ["Element Name", "String", "Zone Plate"],
+            "position": ["Nominal Position [m]", "Float"],
+            "numberOfZones": ["Number of Zones", "Integer", 100],
+            "outerRadius": ["Outer Zone Radius [m]", "Float", 0.1e-3],
+            "thickness": ["Thickness [m]", "Float", 10e-6],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
+            "mainMaterial": ["Main Material", "CRLMaterial", "User-defined"],
+            "mainRefractiveIndex": ["Main Refractive Index Decrement", "Float", 1e-6, "Tooltip"],
+            "mainAttenuationLength": ["Main Attenuation Length [m]", "Float", 0.1, "Tooltip"],
+            "complementaryMaterial": ["Complementary Material", "CRLMaterial", "User-defined", "Tooltip"],
+            "complementaryRefractiveIndex": ["Complementary Refractive Index Decrement", "Float", 0, "Tooltip"],
+            "complementaryAttenuationLength": ["Complementary Attenuation Length [m]", "Float", 1e-6],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         }
     },
     "view": {
@@ -1641,6 +1657,42 @@
                 ]],
                 ["Other", [
                     "colorMap"
+                ]]
+            ]
+        },
+        "zonePlate": {
+            "title": "Zone Plate",
+            "basic": [],
+            "advanced": [
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "numberOfZones",
+                    "outerRadius",
+                    "thickness",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "method",
+                    [
+                        ["Main", [
+                            "mainMaterial",
+                            "mainRefractiveIndex",
+                            "mainAttenuationLength"
+                        ]],
+                        ["Complementary", [
+                            "complementaryMaterial",
+                            "complementaryRefractiveIndex",
+                            "complementaryAttenuationLength"
+                        ]]
+                    ]
                 ]]
             ]
         }

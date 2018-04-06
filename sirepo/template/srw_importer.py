@@ -293,6 +293,20 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['tangentialVectorX'] = obj.tvx
         data['tangentialVectorY'] = obj.tvy
 
+    elif elem_type == 'zonePlate':
+        data['numberOfZones'] = obj.nZones
+        data['outerRadius'] = obj.rn
+        data['thickness'] = obj.thick
+        data['method'] = 'server'
+        data['mainMaterial'] = 'User-defined'
+        data['mainRefractiveIndex'] = obj.delta1
+        data['mainAttenuationLength'] = obj.atLen1
+        data['complementaryMaterial'] = 'User-defined'
+        data['complementaryRefractiveIndex'] = obj.delta2
+        data['complementaryAttenuationLength'] = obj.atLen2
+        data['horizontalOffset'] = obj.x
+        data['verticalOffset'] = obj.y
+
     elif elem_type == 'watch':
         pass
 
@@ -325,6 +339,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         'AUX': 0,
         'M': 0,  # mirror
         'G': 0,  # grating
+        'ZP': 0, # zone plate
         'Crystal': 0,
         'Fiber': 0,
         'Watch': '',
@@ -407,6 +422,10 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
 
                 elif elem_type == 'sample':
                     key = 'Sample'
+
+            elif name == 'SRWLOptZP':
+                key = 'ZP'
+                elem_type = 'zonePlate'
 
             # Last element is Sample:
             if name == 'SRWLOptD' and (i + 1) == num_elements:

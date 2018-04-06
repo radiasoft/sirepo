@@ -136,6 +136,10 @@ _ITEM_DEF = {
         'TorMirror',
         True,
     ],
+    'zonePlate': [
+        'srwlib.SRWLOptZP(_nZones={}, _rn={}, _thick={}, _delta1={}, _atLen1={}, _delta2={}, _atLen2={}, _x={}, _y={})',
+        ['numberOfZones', 'outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset'],
+    ],
 }
 
 _LOG_DIR = '__srwl_logs__'
@@ -525,15 +529,15 @@ def get_application_data(data):
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return _compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
-    elif data['method'] == 'compute_fiber_characteristics':
+    elif data['method'] == 'compute_dual_characteristics':
         return _compute_material_characteristics(
             _compute_material_characteristics(
                 data['optical_element'],
                 data['photon_energy'],
-                prefix='external',
+                prefix=data['prefix1'],
             ),
             data['photon_energy'],
-            prefix='core',
+            prefix=data['prefix2'],
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
