@@ -380,7 +380,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
                 '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '</div>',
               '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+                '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '</div>',
               //TODO(pjm): need a way to specify whether a field is option/required
               '<div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">',
@@ -1514,6 +1514,15 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
 });
 
 SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
+
+    function helpLink(url, text, icon) {
+        return url
+            ? ('<li><a href="' + url + '" target="_blank"><span class="glyphicon glyphicon-'
+               + icon + '"></span> '
+               + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName + ' '
+               + text + '</a></li>')
+            : '';
+    }
     return {
         restrict: 'A',
         transclude: {
@@ -1544,10 +1553,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                   '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
                     '<ul class="dropdown-menu">',
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      SIREPO.USER_MANUAL_URL
-                          ? ('<li><a href="' + SIREPO.USER_MANUAL_URL + '" target="_blank"><span class="glyphicon glyphicon-list-alt"></span> ' + SIREPO.APP_NAME + ' User Manaul</a></li>') : '',
-                      SIREPO.USER_FORUM_URL
-                          ? ('<li><a href="' + SIREPO.USER_FORUM_URL + '" target="_blank"><span class="glyphicon glyphicon-globe"></span> ' + SIREPO.APP_NAME + ' User Forum</a></li>') : '',
+                      helpLink(SIREPO.USER_MANUAL_URL, 'User Manual', 'list-alt'),
+                      helpLink(SIREPO.USER_FORUM_URL, 'User Forum', 'globe'),
                     '</ul>',
                   '</li>',
                 '</ul>',
@@ -1903,6 +1910,13 @@ SIREPO.app.directive('stringToNumber', function() {
             max: '<',
         },
         link: function(scope, element, attrs, ngModel) {
+            function isValid(v) {
+                if (v < scope.min || v > scope.max) {
+                    return false;
+                }
+                return true;
+            }
+
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))  {
                     return null;
@@ -1911,7 +1925,7 @@ SIREPO.app.directive('stringToNumber', function() {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
-                        if(v < scope.min || v > scope.max) {
+                        if (! isValid(v)) {
                             return undefined;
                         }
                         if (v != value) {
@@ -1921,6 +1935,9 @@ SIREPO.app.directive('stringToNumber', function() {
                         return v;
                     }
                     v = parseFloat(value);
+                    if (! isValid(v)) {
+                        return undefined;
+                    }
                     if (isFinite(v)) {
                         return v;
                     }

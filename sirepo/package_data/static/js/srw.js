@@ -198,11 +198,17 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     self.singleElectron = true;
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
     self.toolbarItemNames = [
-        ['Refractive optics and transmission objects', ['lens', 'crl', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
+        ['Refractive/Diffractive optics and transmission objects', ['lens', 'crl', 'zonePlate', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
         ['Mirrors', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
+
+    function attenuationPrefixes(item) {
+        return item.type == 'fiber'
+            ? ['external', 'core']
+            : ['main', 'complementary'];
+    }
 
     function computeCRLCharacteristics(item) {
         updateCRLFields(item);
@@ -247,16 +253,20 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             });
     }
 
-    function computeFiberCharacteristics(item) {
-        updateFiberFields(item);
+    function computeDualAttenCharacteristics(item) {
+        // fiber or zonePlate items
+        var prefixes = attenuationPrefixes(item);
+        updateDualFields(item);
         requestSender.getApplicationData(
             {
-                method: 'compute_fiber_characteristics',
+                method: 'compute_dual_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
+                prefix1: prefixes[0],
+                prefix2: prefixes[1],
             },
             function(data) {
-                ['externalRefractiveIndex', 'externalAttenuationLength', 'coreRefractiveIndex', 'coreAttenuationLength'].forEach(function(f) {
+                [prefixes[0] + 'RefractiveIndex', prefixes[0] + 'AttenuationLength', prefixes[1] + 'RefractiveIndex', prefixes[1] + 'AttenuationLength'].forEach(function(f) {
                     formatMaterialOutput(item, data, f);
                 });
             });
@@ -300,7 +310,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     function formatMaterialOutput(item, data, f) {
         item[f] = parseFloat(data[f]);
-        if (item[f] < 1e-3) {
+        if (item[f] === 0) {
+            // pass
+        }
+        else if (item[f] < 1e-3) {
             item[f] = item[f].toExponential(6);
         }
         else if (item[f] === 1) {
@@ -345,9 +358,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         updateMaterialFields(item);
     }
 
-    function updateFiberFields(item) {
-        panelState.showField('fiber', 'method', ! isUserDefined(item.externalMaterial) || ! isUserDefined(item.coreMaterial));
-        ['external', 'core'].forEach(function(prefix) {
+    function updateDualFields(item) {
+        var prefixes = attenuationPrefixes(item);
+        panelState.showField(item.type, 'method', ! isUserDefined(item[prefixes[0] + 'Material']) || ! isUserDefined(item[prefixes[1] + 'Material']));
+        prefixes.forEach(function(prefix) {
             panelState.enableField(item.type, prefix + 'RefractiveIndex', isUserDefined(item[prefix + 'Material']));
             panelState.enableField(item.type, prefix + 'AttenuationLength', isUserDefined(item[prefix + 'Material']) || item.method === 'calculation');
 
@@ -363,16 +377,24 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     function updatePhotonEnergyHelpText() {
         if (appState.isLoaded()) {
             var msg = 'The photon energy is: ' + appState.models.simulation.photonEnergy + ' eV';
-            SIREPO.APP_SCHEMA.model.crl.refractiveIndex[3] = msg;
-            SIREPO.APP_SCHEMA.model.crl.attenuationLength[3] = msg;
-            SIREPO.APP_SCHEMA.model.mask.refractiveIndex[3] = msg;
-            SIREPO.APP_SCHEMA.model.mask.attenuationLength[3] = msg;
-            SIREPO.APP_SCHEMA.model.fiber.externalRefractiveIndex[3] = msg;
-            SIREPO.APP_SCHEMA.model.fiber.externalAttenuationLength[3] = msg;
-            SIREPO.APP_SCHEMA.model.fiber.coreRefractiveIndex[3] = msg;
-            SIREPO.APP_SCHEMA.model.fiber.coreAttenuationLength[3] = msg;
-            SIREPO.APP_SCHEMA.model.sample.refractiveIndex[3] = msg;
-            SIREPO.APP_SCHEMA.model.sample.attenuationLength[3] = msg;
+            [
+                ['crl'],
+                ['mask'],
+                ['fiber', 'external'],
+                ['fiber', 'core'],
+                ['sample'],
+                ['zonePlate', 'main'],
+                ['zonePlate', 'complementary'],
+            ].forEach(function(model) {
+                var name = model[0];
+                var prefix = model[1] || '';
+                ['refractiveIndex', 'attenuationLength'].forEach(function(f) {
+                    if (prefix) {
+                        f = prefix + f.charAt(0).toUpperCase() + f.slice(1);
+                    }
+                    SIREPO.APP_SCHEMA.model[name][f][3] = msg;
+                });
+            });
         }
     }
 
@@ -398,8 +420,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             if (name === 'crl') {
                 updateCRLFields(item);
             }
-            else if (name === 'fiber') {
-                updateFiberFields(item);
+            else if (name === 'fiber' || name === 'zonePlate') {
+                updateDualFields(item);
             }
             if (name === 'mask' || name === 'sample') {
                 updateMaterialFields(item);
@@ -530,24 +552,18 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
-
         grazingAngleElements.forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['grazingAngle', 'autocomputeVectors'], computeVectors);
         });
         beamlineService.watchBeamlineField($scope, 'crl', ['material', 'method', 'numberOfLenses', 'position', 'tipRadius', 'refractiveIndex'], computeCRLCharacteristics);
-
-        beamlineService.watchBeamlineField($scope, 'fiber', ['method', 'externalMaterial', 'coreMaterial'], computeFiberCharacteristics);
-
+        beamlineService.watchBeamlineField($scope, 'fiber', ['method', 'externalMaterial', 'coreMaterial'], computeDualAttenCharacteristics);
+        beamlineService.watchBeamlineField($scope, 'zonePlate', ['method', 'mainMaterial', 'complementaryMaterial'], computeDualAttenCharacteristics);
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
-
         beamlineService.watchBeamlineField($scope, 'crystal', ['grazingAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
-
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
-
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
             updatePhotonEnergyHelpText();

@@ -268,8 +268,8 @@
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Nominal Position [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
-            "verticalSize": ["Vertical Size [mm]", "Float", 1],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 1, "", 1e-99],
+            "verticalSize": ["Vertical Size [mm]", "Float", 1, "", 1e-99],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
@@ -292,8 +292,8 @@
             "focalDistance": ["CRL Focal Distance [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "shape": ["Shape", "CRLShape", "1"],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1, "", 1e-99],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1, "", 1e-99],
             "radius": ["Radius on Tip of Parabola [m]", "Float", 1.5e-3],
             "tipRadius": ["Radius on Tip of Parabola [µm]", "Float", 1.5e3],
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
@@ -406,9 +406,9 @@
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1, "", 1e-99],
             "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1, "", 1e-99],
             "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
@@ -426,9 +426,9 @@
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1, "Number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float", 0],
-            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1],
+            "horizontalApertureSize": ["Horizontal Aperture Size [mm]", "Float", 1, "", 1e-99],
             "verticalPosition": ["Vertical Center Position [mm]", "Float", 0],
-            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1],
+            "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1, "", 1e-99],
             "initialHarmonic": ["Initial UR Spectral Harmonic", "Integer", 1],
             "finalHarmonic": ["Final UR Spectral Harmonic", "Integer", 15],
             "longitudinalPrecision": ["Longitudinal Integration Precision", "Float", 1],
@@ -559,8 +559,8 @@
             "title": ["Element Name", "String", "Obstacle"],
             "position": ["Nominal Position [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5],
-            "verticalSize": ["Vertical Size [mm]", "Float", 0.5],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5, "", 1e-99],
+            "verticalSize": ["Vertical Size [mm]", "Float", 0.5, "", 1e-99],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
@@ -711,15 +711,15 @@
             "initialTimeMoment": ["Initial Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
             "finalTimeMoment": ["Final Time Moment (c*t) for Electron Trajectory Calculation [m]", "Float", 0.0],
             "numberOfPoints": ["Number of Points for Trajectory Calculation", "Integer", 10000],
-            "plotAxisX": ["Horizontal Axis to Plot", "TrajectoryPlotAxis", "Z"],
-            "plotAxisY": ["Vertical Axis to Plot", "TrajectoryPlotAxis", "X"],
-            "plotAxisY2": ["Vertical Axis to Plot", "TrajectoryPlotAxis2", "None"],
+            "plotAxisX": ["Horizontal Value to Plot", "TrajectoryPlotAxis", "Z"],
+            "plotAxisY": ["Vertical Value to Plot", "TrajectoryPlotAxis", "X"],
+            "plotAxisY2": ["Vertical Value to Plot", "TrajectoryPlotAxis2", "None"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"]
         },
         "undulator": {
             "undulatorParameter": ["Deflecting Parameter (K)", "Float", 0],
-            "period": ["Period [mm]", "Float"],
-            "length": ["Length [m]", "Float"],
+            "period": ["Period [mm]", "Float", 20, "", 1e-99],
+            "length": ["Length [m]", "Float", 3, "", 1e-99],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float"],
             "horizontalAmplitude": ["Horizontal Magnetic Field [T]", "Float"],
             "horizontalSymmetry": ["Horizontal Symmetry", "Symmetry"],
@@ -742,6 +742,22 @@
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"]
+        },
+        "zonePlate": {
+            "title": ["Element Name", "String", "Zone Plate"],
+            "position": ["Nominal Position [m]", "Float"],
+            "numberOfZones": ["Number of Zones", "Integer", 100],
+            "outerRadius": ["Outer Zone Radius [mm]", "Float", 0.1],
+            "thickness": ["Thickness [µm]", "Float", 10],
+            "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
+            "mainMaterial": ["Main Material", "CRLMaterial", "User-defined"],
+            "mainRefractiveIndex": ["Main Refractive Index Decrement", "Float", 1e-6, "Tooltip"],
+            "mainAttenuationLength": ["Main Attenuation Length [m]", "Float", 0.1, "Tooltip"],
+            "complementaryMaterial": ["Complementary Material", "CRLMaterial", "User-defined", "Tooltip"],
+            "complementaryRefractiveIndex": ["Complementary Refractive Index Decrement", "Float", 0, "Tooltip"],
+            "complementaryAttenuationLength": ["Complementary Attenuation Length [m]", "Float", 1e-6],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         }
     },
     "view": {
@@ -785,17 +801,17 @@
                     "position",
                     "focalPlane",
                     "shape",
-                    "horizontalApertureSize",
-                    "verticalApertureSize",
                     "tipRadius",
                     "numberOfLenses",
                     "tipWallThickness",
                     "focalDistance",
                     [
                         ["Horizontal", [
+                            "horizontalApertureSize",
                             "horizontalOffset"
                         ]],
                         ["Vertical", [
+                            "verticalApertureSize",
                             "verticalOffset"
                         ]]
                     ]
@@ -1010,12 +1026,12 @@
                     "photonEnergyPointCount",
                     [
                         ["Horizontal", [
-                            "horizontalPosition",
-                            "horizontalApertureSize"
+                            "horizontalApertureSize",
+                            "horizontalPosition"
                         ]],
                         ["Vertical", [
-                            "verticalPosition",
-                            "verticalApertureSize"
+                            "verticalApertureSize",
+                            "verticalPosition"
                         ]]
                     ],
                     "fluxType",
@@ -1044,12 +1060,12 @@
                     "photonEnergyPointCount",
                     [
                         ["Horizontal", [
-                            "horizontalPosition",
-                            "horizontalApertureSize"
+                            "horizontalApertureSize",
+                            "horizontalPosition"
                         ]],
                         ["Vertical", [
-                            "verticalPosition",
-                            "verticalApertureSize"
+                            "verticalApertureSize",
+                            "verticalPosition"
                         ]]
                     ],
                     "fluxType",
@@ -1641,6 +1657,42 @@
                 ]],
                 ["Other", [
                     "colorMap"
+                ]]
+            ]
+        },
+        "zonePlate": {
+            "title": "Zone Plate",
+            "basic": [],
+            "advanced": [
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "numberOfZones",
+                    "outerRadius",
+                    "thickness",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
+                    "method",
+                    [
+                        ["Main", [
+                            "mainMaterial",
+                            "mainRefractiveIndex",
+                            "mainAttenuationLength"
+                        ]],
+                        ["Complementary", [
+                            "complementaryMaterial",
+                            "complementaryRefractiveIndex",
+                            "complementaryAttenuationLength"
+                        ]]
+                    ]
                 ]]
             ]
         }

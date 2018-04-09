@@ -725,7 +725,7 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
             }
         }
         return res;
-    }
+    };
 
     function showDeleteWarning(type, element, beamlines) {
         var names = {};
@@ -1842,7 +1842,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                     $scope.commands[currentIndex] = tmp;
                     saveCommands();
                 }
-            }
+            };
 
 
             $scope.dropLast = function(data) {
