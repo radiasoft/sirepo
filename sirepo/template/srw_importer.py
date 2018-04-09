@@ -295,8 +295,8 @@ def _beamline_element(obj, idx, title, elem_type, position):
 
     elif elem_type == 'zonePlate':
         data['numberOfZones'] = obj.nZones
-        data['outerRadius'] = obj.rn
-        data['thickness'] = obj.thick
+        data['outerRadius'] = obj.rn * 1e3
+        data['thickness'] = obj.thick * 1e6
         data['method'] = 'server'
         data['mainMaterial'] = 'User-defined'
         data['mainRefractiveIndex'] = obj.delta1
