@@ -62,7 +62,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _X_FIELD = 't'
 
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     if is_running:
         count, settings, has_rates = _background_task_info(run_dir)
         if settings.model == 'particle' and settings.save_particle_interval > 0:
@@ -228,7 +228,7 @@ def remove_last_frame(run_dir):
     pass
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     _prepare_twiss_file(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),

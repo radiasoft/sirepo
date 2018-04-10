@@ -1056,7 +1056,6 @@ def _simulation_run_status(data, quiet=False):
                 rep.model_name,
                 rep.run_dir,
                 is_running,
-                simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)

@@ -31,7 +31,7 @@ WANT_BROWSER_FRAME_CACHE = True
 _REPORT_STYLE_FIELDS = ['colorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
     if len(files) < 2:
         return {
@@ -394,12 +394,11 @@ def validate_file(file_type, path):
     return None
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
