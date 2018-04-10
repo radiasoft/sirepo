@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
@@ -114,6 +115,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     };
 
     appState.whenModelsLoaded($scope, function() {
+        processIonBeamType();
         processElectronBeamType();
         processElectronBeamShape();
         processLatticeSource();
@@ -127,8 +129,10 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     var self = this;
+    var isComputingRanges = false;
+    var fieldRange;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.hasParticles = false;
@@ -136,6 +140,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
+            if (self.simState.isStateRunning()) {
+                appState.models.particleAnimation.isRunning = 1;
+            }
             ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
@@ -143,8 +150,31 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 self.hasRates = data.hasRates;
                 frameCache.setFrameCount(data.frameCount, m);
             });
+            if (data.percentComplete == 100 && ! isComputingRanges) {
+                fieldRange = null;
+                isComputingRanges = true;
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_particle_ranges',
+                        simulationId: appState.models.simulation.simulationId,
+                    },
+                    function(data) {
+                        isComputingRanges = false;
+                        if (appState.isLoaded() && data.fieldRange) {
+                            appState.models.particleAnimation.isRunning = 0;
+                            appState.saveQuietly('particleAnimation');
+                            fieldRange = data.fieldRange;
+                        }
+                    });
+            }
         }
         frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    function processColorRange() {
+        ['colorMin', 'colorMax'].forEach(function(f) {
+            panelState.showField('particleAnimation', f, appState.models.particleAnimation.colorRangeType == 'fixed');
+        });
     }
 
     function processModel() {
@@ -153,6 +183,36 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('simulationSettings', 'sample_number', settings.model == 'particle' && settings.e_cool == '0');
         panelState.showRow('simulationSettings', 'ref_bet_x', settings.model == 'particle' && settings.e_cool == '0');
     }
+
+    function processPlotRange() {
+        var particleAnimation = appState.models.particleAnimation;
+        panelState.showEnum('particleAnimation', 'plotRangeType', 'fit', fieldRange);
+        panelState.showRow('particleAnimation', 'horizontalSize', particleAnimation.plotRangeType != 'none');
+        ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
+            panelState.enableField('particleAnimation', f, particleAnimation.plotRangeType == 'fixed');
+        });
+        if (particleAnimation.plotRangeType == 'fit' && fieldRange) {
+            setFieldRange('horizontal', particleAnimation, 'x');
+            setFieldRange('vertical', particleAnimation, 'y');
+        }
+    }
+
+    function setFieldRange(prefix, particleAnimation, field) {
+        var f = particleAnimation[field];
+        if (f == 'dpp') {
+            f = 'dp/p';
+        }
+        var range = fieldRange[f];
+        particleAnimation[prefix + 'Size'] = range[1] - range[0];
+        particleAnimation[prefix + 'Offset'] = (range[0] + range[1]) / 2;
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'particleAnimation') {
+            processColorRange();
+            processPlotRange();
+        }
+    };
 
     self.notRunningMessage = function() {
         if (self.hasParticles) {
@@ -171,12 +231,14 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], processPlotRange);
+        appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
     });
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
         coolingRatesAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
 });
 
@@ -200,7 +262,7 @@ SIREPO.app.directive('appHeader', function() {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="nav"  data-app-url="/#/jspec"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',

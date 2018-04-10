@@ -1,5 +1,5 @@
 {
-    "version": "20180323.000000",
+    "version": "20180409.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -70,7 +70,7 @@
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveSimulationData": "/save-simulation",
-        "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>",
+        "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
         "srLandingPage": "/sr",

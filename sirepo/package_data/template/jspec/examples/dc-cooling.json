@@ -1,0 +1,122 @@
+{
+    "models": {
+        "beamEvolutionAnimation": {
+            "startTime": 1522782913,
+            "y1": "emitx",
+            "y2": "emity",
+            "y3": "none"
+        },
+        "cooler": {
+            "alpha_x": 0,
+            "alpha_y": 0,
+            "bet_x": 10,
+            "bet_y": 10,
+            "disp_dx": 0,
+            "disp_dy": 0,
+            "disp_x": 0,
+            "disp_y": 0,
+            "length": 10,
+            "magnetic_field": 1,
+            "section_number": 1
+        },
+        "coolingRatesAnimation": {
+            "startTime": 1522782913,
+            "y1": "rx",
+            "y2": "ry",
+            "y3": "rs"
+        },
+        "electronBeam": {
+            "beam_type": "continuous",
+            "current": 2,
+            "e_number": 0,
+            "gamma": "3.131578",
+            "length": 0,
+            "radius": 0.009,
+            "rh": 0.004,
+            "rv": 0.004,
+            "shape": "dc_uniform",
+            "sigma_x": 0,
+            "sigma_y": 0,
+            "sigma_z": 0,
+            "tmp_l": 0.1,
+            "tmp_tr": 0.1
+        },
+        "electronCoolingRate": {
+            "force_formula": "parkhomchuk",
+            "sample_number": 10000
+        },
+        "intrabeamScatteringRate": {
+            "coupling": 0,
+            "log_c": 20.6,
+            "longitudinalMethod": "log_c",
+            "nu": 100,
+            "nv": 100,
+            "nz": 40
+        },
+        "ionBeam": {
+            "beam_type": "continuous",
+            "charge_number": 1,
+            "kinetic_energy": 2000,
+            "mass": 938.272,
+            "momentum_spread": 0.001,
+            "norm_emit_x": 2.15e-06,
+            "norm_emit_y": 2.15e-06,
+            "particle_number": 2800000000000,
+            "rms_bunch_length": 0
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "particleAnimation": {
+            "colorMap": "viridis",
+            "colorMax": 10,
+            "colorMin": 0,
+            "colorRangeType": "none",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0.1,
+            "isRunning": 0,
+            "plotRangeType": "fit",
+            "startTime": 1522782913,
+            "verticalOffset": 0,
+            "verticalSize": 0.1,
+            "x": "x",
+            "y": "dpp"
+        },
+        "rateCalculationReport": {},
+        "ring": {
+            "lattice": "Booster.tfs",
+            "latticeSource": "madx"
+        },
+        "runSettings": {},
+        "simulation": {
+            "folder": "/",
+            "name": "DC Cooling Example",
+            "outOfSessionSimulationId": "5UxiPC1v",
+            "simulationId": "Tkn0vO0x",
+            "simulationSerial": 1522729906832166
+        },
+        "simulationSettings": {
+            "e_cool": "1",
+            "ibs": "1",
+            "model": "rms",
+            "output_interval": 1,
+            "ref_alf_x": 0,
+            "ref_alf_y": 0,
+            "ref_bet_x": 10,
+            "ref_bet_y": 10,
+            "ref_disp_dx": 0,
+            "ref_disp_dy": 0,
+            "ref_disp_x": 0,
+            "ref_disp_y": 0,
+            "sample_number": 40000,
+            "save_particle_interval": 30,
+            "step_number": 180,
+            "time": 180
+        },
+        "simulationStatus": {}
+    },
+    "simulationType": "jspec",
+    "version": "20180402.000000"
+}

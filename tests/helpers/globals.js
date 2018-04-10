@@ -4,7 +4,6 @@ var SIREPO = {
     APP_VERSION: '1',
     APP_NAME: 'srw',
 };
-var KARMA_TEST_MODE = true;
 
 // disable initial schema request
 $.ajax = function() {};

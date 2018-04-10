@@ -31,6 +31,7 @@ describe('Controller: NavController', function() {
     }));
 
     it('should have default section/title', inject(function() {
+        isLoaded = false;
         var controller = createController();
         expect(controller.sectionTitle()).toBe(null);
         expect(controller.pageTitle()).toBe('SRW - Radiasoft');

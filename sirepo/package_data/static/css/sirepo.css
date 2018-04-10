@@ -250,8 +250,10 @@
 
     @media (max-width: 767px) {
         .sr-navbar-right {
-            margin-left: 5px;
-            margin-right: 5px;
+            margin: 0;
+        }
+        .navbar-nav {
+            margin: 0;
         }
     }
     @media (min-width: 768px) {
@@ -505,6 +507,10 @@
       font-size: 14px;
       fill: steelblue;
     }
+    .sr-plot .focus-text-popup {
+      font-size: 14px;
+      fill: steelblue;
+    }
     .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
     }
@@ -545,6 +551,24 @@
     }
     .sr-plot .x-base, .sr-plot .y-base {
       font-size: 13px;
+    }
+    .sr-plot .popup-report {
+        display: none;
+    }
+    .sr-plot .popup-group {
+        fill: white;
+    }
+   .sr-plot .popup-group .report-window {
+        fill: rgba(255, 255, 255, 0.90);
+        stroke: blue;
+    }
+    .sr-plot .popup-group .report-window-title-bar {
+        fill: rgba(221, 237, 246, 0.9);
+        stroke: none;
+    }
+    .sr-plot .popup-group .report-window-close {
+        fill: #222;
+        cursor: pointer;
     }
 
     @media (max-width: 767px) {
@@ -671,6 +695,10 @@ svg.srw-beamline-item-icon {
   position: absolute;
   right: 21px;
 }
+.srw-wavefront-button {
+  position: absolute;
+  left: 21px;
+}
 
 a:focus, a.srw-tab:focus {
   outline: none;
@@ -701,6 +729,9 @@ tr:hover .sr-button-bar-parent {
   white-space: nowrap;
   background-color: #f5f5f5;
   padding-left: 15px;
+}
+.sr-button-bar-active {
+    background-color: #d0e9c6;
 }
 .sr-hover-button {
   display: inline-block;

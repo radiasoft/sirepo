@@ -23,6 +23,8 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
+_REPORT_STYLE_FIELDS = ['colorMap']
+
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
@@ -113,7 +115,7 @@ def models_related_to_report(data):
     """
     r = data['report']
     res = [
-        r,
+        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
         'bendingMagnet',
         'electronBeam',
         'geometricSource',

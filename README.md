@@ -9,7 +9,7 @@ Develop, run and share your HPC simulations.
 
 Sirepo brings Clickable Physics(TM) to your desktop and mobile devices.
 
-Run Sirepo directly from [our beta site](https://beta.sirepo.com): beta.sirepo.com.
+[Try our public Sirepo server](http://sirepo.com).
 
 No signup is required and Sirepo is completely free.
 
@@ -111,6 +111,6 @@ on this URL:
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2015-2016 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
+Copyright (c) 2015-2018 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
 
 ![RadiaSoft](https://github.com/radiasoft/images/blob/master/corporate/RadiaSoftLogoTransparent.png)

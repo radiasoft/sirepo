@@ -106,6 +106,20 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
         }
     };
 
+    // expects a negative number to move up, positive to move down
+    $scope.moveItem = function(direction, item) {
+        var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
+        var currentIndex = itemIndex(item);
+        var beamline = appState.models.beamline;
+        var newIndex = currentIndex + d;
+        if(newIndex >= 0 && newIndex < beamline.length) {
+            var tmp = beamline[newIndex];
+            beamline[newIndex] = item;
+            beamline[currentIndex] = tmp;
+            appState.saveChanges('beamline');
+        }
+    };
+
     self.dropLast = function(item) {
         self.dropItem(appState.models.beamline.length, item);
     };

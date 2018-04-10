@@ -13,10 +13,12 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common, sdds_util
 import glob
+import math
 import numpy as np
 import os.path
 import py.path
 import re
+import sdds
 
 ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
 
@@ -104,7 +106,8 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def fixup_old_data(data):
-    template_common.update_model_defaults(data['models']['ring'], 'ring', _SCHEMA)
+    for m in ('ring', 'particleAnimation'):
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'coolingRatesAnimation' not in data['models']:
         for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
             data['models'][m] = {}
@@ -148,6 +151,16 @@ def get_application_data(data):
         return {
             'simList': res,
         }
+    elif data['method'] == 'compute_particle_ranges':
+        run_dir = simulation_db.simulation_run_dir({
+            'simulationType': SIM_TYPE,
+            'simulationId': data['simulationId'],
+            'report': 'animation',
+        })
+        return {
+            'fieldRange': _compute_range_across_files(run_dir),
+        }
+
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -174,7 +187,8 @@ def get_simulation_frame(run_dir, data, model_data):
         args = template_common.parse_animation_args(
             data,
             {
-                '': ['x', 'y', 'histogramBins', 'startTime'],
+                '1': ['x', 'y', 'histogramBins', 'startTime'],
+                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
             },
         )
         return _extract_particle_plot(args, run_dir, frame_index)
@@ -233,8 +247,8 @@ def _background_task_info(run_dir):
 def _beam_evolution_status(run_dir, settings, has_rates):
     try:
         filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-        t, _, _, _ = sdds_util.extract_sdds_column(filename, 't', 0)
-        t_max = max(t)
+        col = sdds_util.extract_sdds_column(filename, 't', 0)
+        t_max = max(col['values'])
         if t_max and settings.time > 0:
             return {
                 # use current time as frameCount for uniqueness until simulation is completed
@@ -250,6 +264,32 @@ def _beam_evolution_status(run_dir, settings, has_rates):
     }
 
 
+def _compute_range_across_files(run_dir):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if 'fieldRange' in data.models.particleAnimation:
+        return data.models.particleAnimation.fieldRange
+    res = {}
+    for v in _SCHEMA.enum.ParticleColumn:
+        res[_map_field_name(v[0])] = []
+    for filename in _ion_files(run_dir):
+        sdds_util.process_sdds_page(filename, 0, _compute_sdds_range, res)
+    data.models.particleAnimation.fieldRange = res
+    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    return res
+
+
+def _compute_sdds_range(res):
+    sdds_index = 0
+    column_names = sdds.sddsdata.GetColumnNames(sdds_index)
+    for field in res:
+        values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
+        if len(res[field]):
+            res[field][0] = _safe_sdds_value(min(min(values), res[field][0]))
+            res[field][1] = _safe_sdds_value(max(max(values), res[field][0]))
+        else:
+            res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
+
+
 def _elegant_dir():
     return simulation_db.simulation_dir(SIM_TYPE).join('../elegant')
 
@@ -257,18 +297,20 @@ def _elegant_dir():
 def _extract_evolution_plot(report, run_dir):
     filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    x, _, x_def, err = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
-    if err:
-        return err
+    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
     plots = []
     y_range = None
     for f in ('y1', 'y2', 'y3'):
         if report[f] == 'none':
             continue
         yfield = _map_field_name(report[f])
-        y, _, y_def, err = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if err:
-            return err
+        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+        if y_col['err']:
+            return y_col['err']
+        y = y_col['values']
         if y_range:
             y_range[0] = min(y_range[0], min(y))
             y_range[1] = max(y_range[1], max(y))
@@ -276,18 +318,24 @@ def _extract_evolution_plot(report, run_dir):
             y_range = [min(y), max(y)]
         plots.append({
             'points': y,
-            'label': '{}{}'.format(_field_label(yfield, y_def), _field_description(yfield, data)),
+            'label': '{}{}'.format(_field_label(yfield, y_col['column_def']), _field_description(yfield, data)),
             'color': _PLOT_LINE_COLOR[f],
         })
     return {
         'title': '',
         'x_range': [min(x), max(x)],
         'y_label': '',
-        'x_label': _field_label(_X_FIELD, x_def),
+        'x_label': _field_label(_X_FIELD, x_col['column_def']),
         'x_points': x,
         'plots': plots,
         'y_range': y_range,
     }
+
+
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]
 
 
 def _extract_particle_plot(report, run_dir, page_index):
@@ -300,18 +348,26 @@ def _extract_particle_plot(report, run_dir, page_index):
     time = settings.time / settings.step_number * settings.save_particle_interval * page_index
     if time > settings.time:
         time = settings.time
-    x, _, x_def, err = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if err:
-        return err
-    y, _, y_def, err = sdds_util.extract_sdds_column(filename, yfield, 0)
-    if err:
-        return err
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
+    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+    if y_col['err']:
+        return y_col['err']
+    y = y_col['values']
+    particle_animation = data.models.particleAnimation
+    range = None
+    if report['plotRangeType'] == 'fixed':
+        range = [_plot_range(report, 'horizontal'), _plot_range(report, 'vertical')]
+    elif report['plotRangeType'] == 'fit' and 'fieldRange' in particle_animation:
+        range = [particle_animation.fieldRange[xfield], particle_animation.fieldRange[yfield]]
+    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins), range=range)
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _field_label(xfield, x_def),
-        'y_label': _field_label(yfield, y_def),
+        'x_label': _field_label(xfield, x_col['column_def']),
+        'y_label': _field_label(yfield, y_col['column_def']),
         'title': 'Ions at time {:.2f} [s]'.format(time),
         'z_matrix': hist.T.tolist(),
     }
@@ -397,3 +453,9 @@ def _prepare_twiss_file(data, run_dir):
         if not f.exists():
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
         f.copy(run_dir)
+
+
+def _safe_sdds_value(v):
+    if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+        return 0
+    return v

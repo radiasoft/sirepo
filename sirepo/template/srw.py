@@ -136,6 +136,10 @@ _ITEM_DEF = {
         'TorMirror',
         True,
     ],
+    'zonePlate': [
+        'srwlib.SRWLOptZP(_nZones={}, _rn={}, _thick={}, _delta1={}, _atLen1={}, _delta2={}, _atLen2={}, _x={}, _y={})',
+        ['numberOfZones', 'outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset'],
+    ],
 }
 
 _LOG_DIR = '__srwl_logs__'
@@ -394,7 +398,7 @@ def find_height_profile_dimension(dat_file):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -406,7 +410,7 @@ def fixup_old_data(data):
         if 'sampleFactor' not in data['models']['simulation']:
             data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
         for k in data['models']:
-            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
+            if k == 'initialIntensityReport' or template_common.is_watchpoint(k):
                 if 'sampleFactor' in data['models'][k]:
                     del data['models'][k]['sampleFactor']
     # default intensityReport.method based on source type
@@ -501,15 +505,6 @@ def fixup_old_data(data):
             for row in data['models']['propagation'][item_id]:
                 row += [0, 0, 0, 0, 0, 0, 0, 0]
 
-    if 'brillianceReport' not in data['models']:
-        data['models']['brillianceReport'] = {
-            "minDeflection": 0.2,
-            "initialHarmonic": 1,
-            "finalHarmonic": 5,
-            "detuning": 0,
-            "energyPointCount": 100,
-            "reportType": "0",
-        }
 
 def get_animation_name(data):
     return data['modelName']
@@ -534,15 +529,15 @@ def get_application_data(data):
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return _compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
-    elif data['method'] == 'compute_fiber_characteristics':
+    elif data['method'] == 'compute_dual_characteristics':
         return _compute_material_characteristics(
             _compute_material_characteristics(
                 data['optical_element'],
                 data['photon_energy'],
-                prefix='external',
+                prefix=data['prefix1'],
             ),
             data['photon_energy'],
-            prefix='core',
+            prefix=data['prefix2'],
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
@@ -667,7 +662,7 @@ def models_related_to_report(data):
             'mirrorReport.grazingAngle',
             'mirrorReport.heightAmplification',
         ]
-    res = _report_fields(data, r) + [
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
     ]
