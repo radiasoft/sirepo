@@ -46,7 +46,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
-            reloadOnSearch: false,
+            reloadOnSearch: true,
         });
 });
 
@@ -146,6 +146,12 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
+    $rootScope.$on('$locationChangeSuccess', function (event) {
+        // reset reloadOnSearch so that back/next browser buttons will trigger a page load
+        if($route.current) {
+            $route.current.$$route.reloadOnSearch = true;
+        }
+    });
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if(search) {
@@ -188,7 +194,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     return self;
 });
 
-SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location, activeSection) {
+SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location, activeSection, $route) {
     var self = this;
     var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
     self.appState = appState;
@@ -496,6 +502,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         appState.models.propagation = newPropagations;
     };
 
+    self.setReloadOnSearch = function(value) {
+        if($route.current) {
+            $route.current.$$route.reloadOnSearch = value;
+        }
+    };
     self.setSingleElectron = function(value) {
         value = !!value;
         if (value != self.singleElectron) {
