@@ -27,6 +27,10 @@ import time
 import werkzeug
 import werkzeug.exceptions
 
+#TODO(pjm): this import is required to work-around template loading in listSimulations
+# it may not be required with the latest h5py
+import h5py
+
 
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
