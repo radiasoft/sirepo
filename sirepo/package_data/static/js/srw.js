@@ -46,10 +46,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
+            reloadOnSearch: false,
         });
 });
 
-SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location, $route) {
     var self = {};
     self.applicationMode = 'default';
     appDataService.applicationMode = null;
@@ -501,6 +502,8 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             simulationQueue.cancelAllItems();
         }
         self.singleElectron = value;
+
+        // store the coherence
         beamlineService.coherence = value ? 'full' : 'partial';
         $location.search('coherence', beamlineService.coherence);
     };
@@ -546,6 +549,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     appState.whenModelsLoaded($scope, function() {
 
+        // set the single electron state based on the stored coherence value
         if(beamlineService.coherence) {
             self.setSingleElectron(beamlineService.coherence !== 'partial');
         }

@@ -2096,7 +2096,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window, $route) {
 
     var self = this;
 
@@ -2182,7 +2182,13 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
 
     $scope.$on('$locationChangeStart', function () {
-        SIREPO.setPageLoaderVisible(true);
+        // changing the search triggers a location change, but if we don't want to
+        // reload the entire page, do not show the page loader
+        var showPageLoader = true;
+        if($route.current) {
+            showPageLoader = $route.current.reloadOnSearch;
+        }
+        SIREPO.setPageLoaderVisible(showPageLoader);
     });
     $scope.$on('$viewContentLoaded', function () {
         SIREPO.setPageLoaderVisible(false);
