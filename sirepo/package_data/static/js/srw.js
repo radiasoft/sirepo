@@ -148,7 +148,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
         // reset reloadOnSearch so that back/next browser buttons will trigger a page load
-        if($route.current) {
+        if($route.current && $route.current.$$route) {
             $route.current.$$route.reloadOnSearch = true;
         }
     });
@@ -503,7 +503,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     self.setReloadOnSearch = function(value) {
-        if($route.current) {
+        if($route.current && $route.current.$$route) {
             $route.current.$$route.reloadOnSearch = value;
         }
     };
