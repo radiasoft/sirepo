@@ -83,7 +83,7 @@ _INFIX_TO_RPN = {
 
 _REPORT_STYLE_FIELDS = ['colorMap']
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     errors, last_element = parse_elegant_log(run_dir)
     res = {
@@ -98,7 +98,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    output_info = _output_info(run_dir, data, schema)
+    output_info = _output_info(run_dir, data)
     return {
         'percentComplete': 100,
         'frameCount': 1,
@@ -522,12 +522,11 @@ def validate_file(file_type, path):
     return err
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
@@ -1011,7 +1010,7 @@ def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
-def _output_info(run_dir, data, schema):
+def _output_info(run_dir, data):
     res = []
     filename_map = _build_filename_map(data)
     for k in filename_map['keys_in_order']:

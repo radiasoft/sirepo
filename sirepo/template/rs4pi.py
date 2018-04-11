@@ -63,7 +63,7 @@ _TMP_ZIP_DIR = 'tmp-dicom-files'
 _ZIP_FILE_NAME = 'input.zip'
 
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     data_path = run_dir.join(template_common.INPUT_BASE_NAME)
     if not os.path.exists(str(simulation_db.json_filename(data_path))):
         return {
@@ -269,7 +269,7 @@ def resource_files():
     return pkio.sorted_glob(RESOURCE_DIR.join('beamlist*.txt'))
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     rtfile = py.path.local(_parent_file(run_dir, RTSTRUCT_EXPORT_FILENAME))
     if data['report'] == 'dvhReport' and rtfile.exists():
         return

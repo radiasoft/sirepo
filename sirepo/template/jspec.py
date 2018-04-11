@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common, sdds_util
 import glob
+import math
 import numpy as np
 import os.path
 import py.path
@@ -61,7 +62,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _X_FIELD = 't'
 
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     if is_running:
         count, settings, has_rates = _background_task_info(run_dir)
         if settings.model == 'particle' and settings.save_particle_interval > 0:
@@ -227,7 +228,7 @@ def remove_last_frame(run_dir):
     pass
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     _prepare_twiss_file(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -283,10 +284,10 @@ def _compute_sdds_range(res):
     for field in res:
         values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
         if len(res[field]):
-            res[field][0] = min(min(values), res[field][0])
-            res[field][1] = max(max(values), res[field][0])
+            res[field][0] = _safe_sdds_value(min(min(values), res[field][0]))
+            res[field][1] = _safe_sdds_value(max(max(values), res[field][0]))
         else:
-            res[field] = [min(values), max(values)]
+            res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
 
 
 def _elegant_dir():
@@ -452,3 +453,9 @@ def _prepare_twiss_file(data, run_dir):
         if not f.exists():
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
         f.copy(run_dir)
+
+
+def _safe_sdds_value(v):
+    if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+        return 0
+    return v

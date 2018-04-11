@@ -226,7 +226,7 @@ class MagnMeasZip:
         return content
 
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     res = pkcollections.Dict({
         'percentComplete': 0,
         'frameCount': 0,
@@ -878,12 +878,11 @@ def validate_file(file_type, path):
     return None
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """

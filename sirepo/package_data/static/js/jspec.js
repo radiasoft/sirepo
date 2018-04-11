@@ -115,6 +115,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     };
 
     appState.whenModelsLoaded($scope, function() {
+        processIonBeamType();
         processElectronBeamType();
         processElectronBeamShape();
         processLatticeSource();

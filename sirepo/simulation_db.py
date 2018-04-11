@@ -512,7 +512,6 @@ def prepare_simulation(data):
     is_p = is_parallel(data)
     template.write_parameters(
         data,
-        get_schema(sim_type),
         run_dir=run_dir,
         is_parallel=is_p,
     )

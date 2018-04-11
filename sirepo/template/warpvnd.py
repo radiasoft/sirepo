@@ -35,7 +35,7 @@ _PARTICLE_FILE = 'particles.npy'
 
 _REPORT_STYLE_FIELDS = ['colorMap']
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
@@ -269,12 +269,11 @@ def remove_last_frame(run_dir):
             pkio.unchecked_remove(files[-1])
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
