@@ -149,7 +149,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
                 '<a href data-toggle="dropdown">Supported Codes <span class="caret"></span></a>',
                 '<ul class="rs-light-green-background dropdown-menu dropdown-menu-left">',
                     '<li data-ng-repeat="route in codeRoutes" class="sr-model-list-item">',
-                        '<a href="{{ route.codeURL }}" target="_blank" data-ng-click="">{{ route.codeTitle }}</a>',
+                        '<a href="{{ route.codeURL }}" data-ng-click="">{{ route.codeTitle }}</a>',
                     '</li>',
                 '</ul>',
             '</div>',
@@ -429,7 +429,7 @@ app.directive('launchButton', function() {
             url: '<',
         },
         template: [
-            '<a target="_blank" class="btn btn-default" data-ng-href="{{ url }}"><h4>{{ label }}</h4></a>',
+            '<a class="btn btn-default" data-ng-href="{{ url }}"><h4>{{ label }}</h4></a>',
         ].join(''),
     };
 });
