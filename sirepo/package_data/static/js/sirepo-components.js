@@ -36,15 +36,16 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
               '<br data-ng-if="pages" />',
               '<div class="lead text-center" style="white-space: pre-wrap;" data-ng-if="activePage.pageDescription">{{ activePage.pageDescription }}</div>',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
-                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-model-name="modelName" data-model-data="modelData"></div>',
+                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
               '<div class="col-sm-6 pull-right" data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
+            $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
@@ -371,6 +372,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
             customLabel: '=',
             labelSize: "@",
             fieldSize: "@",
+            form: '=',
         },
         template: [
             '<div data-ng-class="utilities.modelFieldID(modelName, field)">',
@@ -405,7 +407,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
                 '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
               '</div>',
               '<div data-ng-switch-when="InputFile" class="col-sm-7">',
-                '<div data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
+                '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected"></div>',
               '</div>',
                '<div data-ng-switch-when="Boolean" class="col-sm-7">',
                  // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
@@ -413,6 +415,9 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
                '</div>',
               '<div data-ng-switch-when="ColorMap" class="col-sm-7">',
                 '<div data-color-map-menu="" class="dropdown"></div>',
+              '</div>',
+              '<div data-ng-switch-when="Text" data-ng-class="fieldClass">',
+                '<div data-collapsable-notes=""></div>',
               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
@@ -567,10 +572,11 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             fileType: '@',
             wantFileReport: '=',
             wantImageFile: '=',
+            form: '=',
         },
         template: [
           '<div class="btn-group" role="group">',
-            '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>',
+            '<button type="button" class="btn btn-default dropdown-toggle" data-ng-class="{\'btn-invalid\': selectionRequired && ! hasValidFileSelected()}" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>',
             '<ul class="dropdown-menu">',
               '<li data-ng-repeat="item in itemList()" class="sr-model-list-item"><a href data-ng-click="selectItem(item)">{{ item }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="confirmDeleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a></li>',
               '<li class="divider"></li>',
@@ -584,6 +590,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
             '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></a>',
           '</div>',
+          '<div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>',
         ].join(''),
         controller: function($scope) {
             var modalId = null;
@@ -697,10 +704,16 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             };
 
             $scope.hasValidFileSelected = function() {
+                if($scope.form) {
+                    $scope.form.$valid = false;
+                }
                 if ($scope.fileType && $scope.model) {
                     var f = $scope.model[$scope.fileField];
                     var list = requestSender.getAuxiliaryData($scope.fileType);
                     if (f && list && list.indexOf(f) >= 0) {
+                        if($scope.form) {
+                            $scope.form.$valid = true;
+                        }
                         return true;
                     }
                 }
@@ -1098,9 +1111,10 @@ SIREPO.app.directive('modelField', function(appState) {
             fieldSize: "@",
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
+            form: '=',
         },
         template: [
-            '<div data-field-editor="fieldName()" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
+            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
             var modelName = $scope.modelName;
@@ -1266,6 +1280,35 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
                 };
 
             };
+        },
+    };
+});
+
+SIREPO.app.directive('collapsableNotes', function(appState) {
+
+    return {
+        restrict: 'A',
+        template: [
+            '<div>',
+            '<a href data-ng-click="toggleNotes()" style="text-decoration: none;">',
+            '<span class="glyphicon" data-ng-class="{\'glyphicon-chevron-down\': ! showNotes, \'glyphicon-chevron-up\': showNotes}" style="font-size:16px;"></span>',
+            ' <span data-ng-show="! showNotes && model[field]">...</span>',
+            ' <span data-ng-show="! showNotes && ! model[field]" style="font-style: italic; font-size: small">click to enter notes</span>',
+            '</a>',
+
+            '<textarea data-ng-show="showNotes" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.showNotes = false;
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
+            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+
+            $scope.toggleNotes = function () {
+                $scope.showNotes = ! $scope.showNotes;
+            };
+
         },
     };
 });
@@ -1513,7 +1556,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, $window) {
+SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, fileManager, $window) {
 
     function helpLink(url, text, icon) {
         return url
@@ -1569,6 +1612,8 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
            scope.nav.modeIsDefault = scope.modeIsDefault;
            scope.nav.showSimulationModal = scope.showSimulationModal;
            scope.nav.showImportModal = scope.showImportModal;
+
+           scope.fileManager = fileManager;
         },
         controller: function($scope) {
 

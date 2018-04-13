@@ -1381,6 +1381,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             if (! data.state) {
                 data.state = 'error';
             }
+            msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
             if (! data.error) {
                 if (msg) {
                     data.error = msg;
@@ -1939,6 +1940,40 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         activeFolder = item;
     };
 
+    // consider a folder an example if any of the simulations under it is
+    self.isFolderExample = function (item) {
+        if(! item || ! item.isFolder) {
+            return false;
+        }
+        // root folder contains everything so exclude it
+        if(item.name === '/') {
+            return false;
+        }
+        for(var cIndex = 0; cIndex < item.children.length; ++ cIndex) {
+            var child = item.children[cIndex];
+            if(! child.isFolder) {
+                if (child.isExample) {
+                    return true;
+                }
+            }
+            else {
+                if(self.isFolderExample(child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    self.isActiveFolderExample = function () {
+        return self.isFolderExample(self.getActiveFolder());
+    };
+    self.isItemExample = function(item) {
+        if(! item.isFolder) {
+            return item.isExample;
+        }
+        return self.isFolderExample(item);
+    }
+
     function findSimInTree(simId) {
         var sim = flatTree.filter(function (item) {
             return item.simulationId === simId;
@@ -2275,6 +2310,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     self.selectedItem = null;
     self.sortField = 'name';
     self.isWaitingForSim = false;
+
+    self.fileManager = fileManager;
 
     function clearModels() {
         appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));

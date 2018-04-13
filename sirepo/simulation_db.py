@@ -248,6 +248,25 @@ def get_schema(sim_type):
         if enum_Name not in app_enums:
             app_enums[enum_Name] = common_enums[enum_Name]
 
+    # merge common views into app views - since these can be deeply nested, for now merge only
+    # the title, basic fields, and top level of advanced fields
+    common_views = schema['commonViews']
+    app_views = schema['view']
+    for view_Name in common_views:
+        if view_Name not in app_views:
+            app_views[view_Name] = common_views[view_Name]
+        if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
+            app_views[view_Name]['title'] = common_views[view_Name]['title']
+        if 'basic' not in app_views[view_Name] and 'basic' in common_views[view_Name]:
+            for basic_field in common_views[view_Name]['basic']:
+                if basic_field not in app_views[view_Name]['basic']:
+                    app_views[view_Name]['basic'][basic_field] = basic_field
+        if 'advanced' in common_views[view_Name]:
+            for advanced_field in common_views[view_Name]['advanced']:
+                # ignore arrays
+                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
+                    app_views[view_Name]['advanced'].append(advanced_field)
+
     return schema
 
 

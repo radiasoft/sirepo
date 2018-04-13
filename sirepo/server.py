@@ -86,7 +86,7 @@ def handle_error(error):
     if isinstance(error, werkzeug.exceptions.HTTPException):
         status_code = error.code
     try:
-        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]['url']
     except:
         error_file = DEFAULT_ERROR_FILE
     f = flask.send_from_directory(static_dir('html'), error_file)

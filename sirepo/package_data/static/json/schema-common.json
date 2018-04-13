@@ -87,6 +87,13 @@
             "advanced": [
                 "name"
             ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "notes"
+            ]
         }
     },
     "commonModels": {
@@ -96,7 +103,8 @@
         "simulation": {
             "name": ["Name", "SimulationName"],
             "folder": ["Folder", "String"],
-            "documentationUrl": ["Documentation URL", "OptionalString", ""]
+            "documentationUrl": ["Documentation URL", "OptionalString", ""],
+            "notes": ["Notes", "Text", ""]
         }
     },
     "commonEnums": {
@@ -109,8 +117,9 @@
         ]
     },
     "customErrors": {
-        "404": "not-found.html",
-        "422": "srw-magnet-file-error.html",
-        "500": "server-error.html"
+        "404": {"url": "not-found.html", "msg": "File Not Found"},
+        "422": {"url": "srw-magnet-file-error.html", "msg": "Invalid Magnet File"},
+        "500": {"url": "server-error.html", "msg": "Server Error"},
+        "502": {"url": "server-error.html", "msg": "Proxy Error"}
     }
 }
