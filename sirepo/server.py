@@ -91,7 +91,26 @@ def handle_error(error):
         error_file = DEFAULT_ERROR_FILE
     f = flask.send_from_directory(static_dir('html'), error_file)
 
-    return f, status_code
+def api_blueskyAuth():
+    if not cfg.enable_bluesky:
+        return _json_response({
+            'status': 'error',
+            'error': 'bluesky auth is not enabled',
+        })
+    req = _json_input()
+    sim_id = req.simulationId
+    sim_type = req.simulationType
+    global_path = simulation_db.find_global_simulation(sim_type, sim_id)
+    if global_path:
+        m = re.search('/user/(.+)/{}/{}$'.format(sim_type, sim_id), global_path)
+        assert m, 'global_path user parse failed: {}'.format(global_path)
+        session_user(m.group(1))
+        return _json_response({
+            'status': 'OK',
+            'data': simulation_db.open_json_file(sim_type, sid=sim_id),
+        })
+    werkzeug.exceptions.abort(404)
+
 
 def api_copyNonSessionSimulation():
     req = _json_input()
@@ -712,7 +731,7 @@ def init(db_dir=None, uwsgi=None):
     simulation_db.init_by_server(app, sys.modules[__name__])
 
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(err), handle_error)
+        app.register_error_handler(int(err), _handle_error)
 
     return app
 
@@ -869,6 +888,19 @@ def _cfg_time_limit(value):
     v = int(value)
     assert v > 0
     return v
+
+
+def _handle_error(error):
+    status_code = 500
+    if isinstance(error, werkzeug.exceptions.HTTPException):
+        status_code = error.code
+    try:
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
+    except:
+        error_file = DEFAULT_ERROR_FILE
+    f = flask.send_from_directory(static_dir('html'), error_file)
+
+    return f, status_code
 
 
 def _json_input(assert_sim_type=True):
@@ -1165,4 +1197,5 @@ cfg = pkconfig.init(
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    enable_bluesky=(False, bool, 'Enable calling simulations directly from NSLS-II/bluesky'),
 )

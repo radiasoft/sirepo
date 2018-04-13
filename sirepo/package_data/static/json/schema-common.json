@@ -1,5 +1,5 @@
 {
-    "version": "20180410.000000",
+    "version": "20180412.000000",
     "appInfo": {
         "elegant": {
             "longName": "elegant",
@@ -39,6 +39,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "blueskyAuth": "/bluesky-auth",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
