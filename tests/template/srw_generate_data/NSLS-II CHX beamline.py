@@ -32,9 +32,9 @@ def set_optics(v=None):
     el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.001, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(1.1))
     # CRL1: crl 35.4m
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0.0, 0.0))
+    el.append(srwlib.srwl_opt_setup_CRL(2, 4.207568e-06, 0.007313, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0.0, 0.0))
     # CRL2: crl 35.4m
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0.0, 0.0))
+    el.append(srwlib.srwl_opt_setup_CRL(2, 4.207568e-06, 0.007313, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(9.1))
     # KLA: aperture 44.5m
     el.append(srwlib.SRWLOptA("r", "a", 0.0014, 0.0002, 0.0, 0.0))

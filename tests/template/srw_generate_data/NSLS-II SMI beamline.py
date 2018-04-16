@@ -64,7 +64,7 @@ def set_optics(v=None):
 
     el.append(srwlib.SRWLOptD(6.435))
     # CRL: crl 57.335m
-    el.append(srwlib.srwl_opt_setup_CRL(3, 8.211821e-07, 0.0285408, 1, 0.001, 0.001, 5e-05, 23, 3.24e-05, 0.0, 0.0))
+    el.append(srwlib.srwl_opt_setup_CRL(3, 8.211821e-07, 0.028541, 1, 0.001, 0.001, 5e-05, 23, 3.24e-05, 0.0, 0.0))
     el.append(srwlib.SRWLOptD(1.665))
     # ES2: watch 59.0m
 
