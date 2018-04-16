@@ -692,6 +692,9 @@
             "magneticField": 2,
             "numberOfPoints": 10000,
             "plotAxis": "x",
+            "plotAxisX": "Z",
+            "plotAxisY": "X",
+            "plotAxisY2": "Y",
             "timeMomentEstimation": "auto"
         },
         "undulator": {

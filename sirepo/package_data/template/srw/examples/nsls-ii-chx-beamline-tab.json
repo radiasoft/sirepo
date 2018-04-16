@@ -620,6 +620,17 @@
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
+        "trajectoryReport": {
+            "finalTimeMoment": 0,
+            "initialTimeMoment": 0,
+            "magneticField": "2",
+            "numberOfPoints": 10000,
+            "plotAxis": "x",
+            "plotAxisX": "Z",
+            "plotAxisY": "X",
+            "plotAxisY2": "Y",
+            "timeMomentEstimation": "manual"
+        },
         "watchpointReport11": {
             "characteristic": 0,
             "fieldUnits": 1,
