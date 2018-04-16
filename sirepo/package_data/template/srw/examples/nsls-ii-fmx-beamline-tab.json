@@ -13,19 +13,20 @@
                 "verticalSize": 1.5
             },
             {
+                "autocomputeVectors": "horizontal",
                 "grazingAngle": 13.962599999998195,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
                 "id": 13,
                 "normalVectorX": 0.9999025244842406,
                 "normalVectorY": 0,
-                "normalVectorZ": -0.013962146326506367,
+                "normalVectorZ": -0.013962146326504561,
                 "orientation": "x",
                 "position": 42,
                 "radius": 1410,
                 "sagittalSize": 0.11,
                 "tangentialSize": 0.5,
-                "tangentialVectorX": 0.013962146326506367,
+                "tangentialVectorX": 0.013962146326504561,
                 "tangentialVectorY": 0,
                 "title": "HFM",
                 "type": "sphericalMirror"

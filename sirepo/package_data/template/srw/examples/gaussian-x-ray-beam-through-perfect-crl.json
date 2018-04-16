@@ -19,9 +19,9 @@
                 "verticalSize": 1
             },
             {
-                "absoluteFocusPosition": 0.0,
-                "attenuationLength": 0.0154537,
-                "focalDistance": 0.0,
+                "absoluteFocusPosition": "309.7075",
+                "attenuationLength": "0.015454",
+                "focalDistance": "9.4032",
                 "focalPlane": "3",
                 "horizontalApertureSize": 1,
                 "id": 2,
@@ -30,7 +30,7 @@
                 "numberOfLenses": 6,
                 "position": 300,
                 "radius": 0.00025,
-                "refractiveIndex": 2.21555115e-06,
+                "refractiveIndex": "2.215551e-6",
                 "shape": 1,
                 "title": "CRL",
                 "type": "crl",

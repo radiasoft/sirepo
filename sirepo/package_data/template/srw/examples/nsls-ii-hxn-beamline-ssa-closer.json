@@ -116,7 +116,7 @@
             },
             {
                 "absoluteFocusPosition": "109.1741",
-                "attenuationLength": "5.276310e-3",
+                "attenuationLength": "0.005276",
                 "focalDistance": "23.4678",
                 "focalPlane": "2",
                 "horizontalApertureSize": 3,
@@ -137,7 +137,7 @@
             },
             {
                 "absoluteFocusPosition": "-91.2141",
-                "attenuationLength": "5.276310e-3",
+                "attenuationLength": "0.005276",
                 "focalDistance": "46.9355",
                 "focalPlane": "2",
                 "horizontalApertureSize": 3,

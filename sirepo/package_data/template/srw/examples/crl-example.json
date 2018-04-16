@@ -3,7 +3,7 @@
         "beamline": [
             {
                 "absoluteFocusPosition": "36.0767",
-                "attenuationLength": "7.312960e-3",
+                "attenuationLength": "0.007313",
                 "focalDistance": "8.9125",
                 "focalPlane": "3",
                 "horizontalApertureSize": 1,

@@ -48,9 +48,9 @@
                 "verticalSize": 1
             },
             {
-                "absoluteFocusPosition": 0,
-                "attenuationLength": "7.31294e-03",
-                "focalDistance": 0,
+                "absoluteFocusPosition": "-8.7725",
+                "attenuationLength": "0.007313",
+                "focalDistance": "178.2502",
                 "focalPlane": 2,
                 "horizontalApertureSize": "1",
                 "id": 6,
@@ -59,7 +59,7 @@
                 "numberOfLenses": "1",
                 "position": "35.4",
                 "radius": "1.5e-03",
-                "refractiveIndex": "4.20756805e-06",
+                "refractiveIndex": "4.207568e-6",
                 "shape": 1,
                 "tipRadius": 1500,
                 "tipWallThickness": 80,
@@ -69,9 +69,9 @@
                 "wallThickness": "80.e-06"
             },
             {
-                "absoluteFocusPosition": 0,
-                "attenuationLength": "7.31294e-03",
-                "focalDistance": 0,
+                "absoluteFocusPosition": "49.1489",
+                "attenuationLength": "0.007313",
+                "focalDistance": "9.9028",
                 "focalPlane": 2,
                 "horizontalApertureSize": "1",
                 "id": 7,
@@ -80,7 +80,7 @@
                 "numberOfLenses": "6",
                 "position": "35.4",
                 "radius": "0.5e-03",
-                "refractiveIndex": "4.20756805e-06",
+                "refractiveIndex": "4.207568e-6",
                 "shape": 1,
                 "tipRadius": 500,
                 "tipWallThickness": 80,
