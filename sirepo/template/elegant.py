@@ -354,8 +354,10 @@ def get_data_file(run_dir, model, frame, options=None):
         return _sdds(_get_filename_for_element_id(i, data))
 
     if model == 'animation':
-        path = str(run_dir.join(ELEGANT_LOG_FILE))
-        with open(path) as f:
+        path = run_dir.join(ELEGANT_LOG_FILE)
+        if not path.exists():
+            return 'elegant-output.txt', '', 'text/plain'
+        with open(str(path)) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
 
     if model == 'beamlineReport':
