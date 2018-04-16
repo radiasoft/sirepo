@@ -545,6 +545,7 @@
         "multiElectronAnimation": {
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
+            "integrationMethod": ["Use Numerical Integration Method", "Boolean", "0", "If selected, integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance. Otherwise use no approximation (standard 5D integration method)"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
@@ -1286,6 +1287,7 @@
                     "simulation.photonEnergy",
                     "stokesParameter",
                     "numberOfMacroElectrons",
+                    "integrationMethod",
                     "photonEnergyBandWidth"
                 ]],
                 ["Scale", [
