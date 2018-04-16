@@ -208,13 +208,14 @@ def report_parameters_hash(data):
         models = sirepo.template.import_module(data).models_related_to_report(data)
         res = hashlib.md5()
         dm = data['models']
+        from six import string_types
         for m in models:
-            if isinstance(m, basestring):
+            if isinstance(m, str):
                 name, field = m.split('.') if '.' in m else (m, None)
                 value = dm[name][field] if field else dm[name]
             else:
                 value = m
-            res.update(json.dumps(value, sort_keys=True, allow_nan=False))
+            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode('utf-8'))
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 
