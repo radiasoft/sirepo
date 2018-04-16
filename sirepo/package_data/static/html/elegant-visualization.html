@@ -47,7 +47,7 @@
               </span>
               <br><br>
               <div data-ng-if="visualization.simulationErrors" class="well well-lg">
-                <div class="text-warning"><strong>elegant Errors:</strong></div>
+                <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
                   <p class="elegant-error-box">{{ visualization.simulationErrors }}</p>
                   <br>
                   <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>

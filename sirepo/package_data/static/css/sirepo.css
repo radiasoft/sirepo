@@ -507,10 +507,20 @@
       font-size: 14px;
       fill: steelblue;
     }
+    .sr-plot .focus-text-close {
+        display: none;
+    }
     .sr-plot .focus-text-popup {
       font-size: 14px;
       fill: steelblue;
     }
+    .plot-0 {
+        stroke: steelblue;
+    }
+    .plot-1 {
+        stroke: green;
+    }
+
     .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
     }
@@ -565,6 +575,7 @@
     .sr-plot .popup-group .report-window-title-bar {
         fill: rgba(221, 237, 246, 0.9);
         stroke: none;
+        cursor: move;
     }
     .sr-plot .popup-group .report-window-close {
         fill: #222;
@@ -614,6 +625,9 @@ ul.navbar-nav > li.sr-logged-in-menu > a {
 }
 
 input.ng-invalid.ng-dirty {
+  background-color: #fad8de;
+}
+.btn-invalid {
   background-color: #fad8de;
 }
 
@@ -909,6 +923,19 @@ li.sr-model-list-item > a {
   line-height: 3em;
   text-align: center;
 }
+.elegant-beamline-close-icon {
+    font-size: 16px;
+    cursor: pointer;
+    color: #aaa;
+    visibility: hidden;
+}
+.elegant-hover:hover .elegant-beamline-close-icon {
+      visibility: visible;
+}
+.elegant-hover .elegant-beamline-close-icon:hover {
+    color: #000;
+}
+
 .sr-count {
   font-size: 10px;
   font-weight: bold;

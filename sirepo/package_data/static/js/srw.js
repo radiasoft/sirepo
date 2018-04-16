@@ -46,10 +46,11 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.beamline, {
             controller: 'SRWBeamlineController as beamline',
             templateUrl: '/static/html/srw-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
+            reloadOnSearch: true,
         });
 });
 
-SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, $rootScope, $location) {
+SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location, $route) {
     var self = {};
     self.applicationMode = 'default';
     appDataService.applicationMode = null;
@@ -145,12 +146,30 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
+    $rootScope.$on('$locationChangeSuccess', function (event) {
+        // reset reloadOnSearch so that back/next browser buttons will trigger a page load
+        if($route.current && $route.current.$$route) {
+            $route.current.$$route.reloadOnSearch = true;
+        }
+    });
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if(search) {
             self.applicationMode = search.application_mode || 'default';
             appDataService.applicationMode = self.applicationMode;
             beamlineService.setEditable(self.applicationMode == 'default');
+            if(activeSection.getActiveSection() === 'beamline') {
+                // use the coherence from the url query if it exists
+                if(search.coherence) {
+                    beamlineService.coherence = search.coherence;
+                }
+                // if coherence was not previously set, set it to full.  Otherwise keep the stored value
+                else {
+                    if(! beamlineService.coherence) {
+                        beamlineService.coherence = 'full';
+                    }
+                }
+            }
         }
     });
 
@@ -175,7 +194,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     return self;
 });
 
-SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue) {
+SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location, activeSection, $route) {
     var self = this;
     var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
     self.appState = appState;
@@ -483,12 +502,21 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         appState.models.propagation = newPropagations;
     };
 
+    self.setReloadOnSearch = function(value) {
+        if($route.current && $route.current.$$route) {
+            $route.current.$$route.reloadOnSearch = value;
+        }
+    };
     self.setSingleElectron = function(value) {
         value = !!value;
         if (value != self.singleElectron) {
             simulationQueue.cancelAllItems();
         }
         self.singleElectron = value;
+
+        // store the coherence
+        beamlineService.coherence = value ? 'full' : 'partial';
+        $location.search('coherence', beamlineService.coherence);
     };
 
     self.showFileReport = function(type, model) {
@@ -531,6 +559,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     appState.whenModelsLoaded($scope, function() {
+
+        // set the single electron state based on the stored coherence value
+        if(beamlineService.coherence) {
+            self.setSingleElectron(beamlineService.coherence !== 'partial');
+        }
+
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
         grazingAngleElements.forEach(function(m) {
@@ -551,6 +585,16 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             syncDistanceFromSourceToFirstElementPosition();
         });
     });
+
+
+    $scope.$on('$destroy', function() {
+        // clear the coherence if we went away from the beamline tab
+        // but remember it in the service
+        if(activeSection.getActiveSection() !== 'beamline') {
+            $location.search('coherence', null);
+        }
+    });
+
 });
 
 SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $scope) {

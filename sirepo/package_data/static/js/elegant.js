@@ -1048,6 +1048,12 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
         }
     }
+    self.errorHeader = function() {
+        if(! self.simulationErrors || self.simulationErrors == '') {
+            return '';
+        }
+        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
+    };
 
     function hideField(modelName, field) {
         $('.model-' + modelName + '-' + field).closest('.form-group').hide();
@@ -1331,7 +1337,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, validation
                 '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div class="sr-drop-left">&nbsp;</div>',
                   '<span data-ng-if="item.repeatCount" class="sr-count">{{ item.repeatCount }}</span>',
-                  '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
+                  '<span class="elegant-hover">',
+                    '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
+                    ' <span class="elegant-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem($index)"></span>',
+                  '</span>',
                 '</div>',
                 '<div class="elegant-beamline-element sr-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="sr-drop-left">&nbsp;</div></div>',
               '</div>',
@@ -1399,7 +1408,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, panelState, validation
                 $scope.beamlineItems.splice(index, 0, data);
                 updateBeamline();
             };
-
+            $scope.deleteItem = function(index) {
+                $scope.beamlineItems.splice(index, 1);
+                updateBeamline();
+            };
             $scope.dropLast = function(data) {
                 if (! data || ! data.itemId) {
                     return;

@@ -1,4 +1,5 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+    <div data-drag-and-drop-support=""></div>
     <div><svg class="sr-plot">
       <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
@@ -16,9 +17,8 @@
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
         <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
         <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-        <g class="focus" style="display: none;">
-          <circle r="6"></circle>
-        </g>
+          <g class="focus" style="display: none;" data-focus-circle="" data-focus-point="focusPoint" data-plot-info-delegate="focusCircleDelegate">
+          </g>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
           <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
           <path class="line line-0"></path>
@@ -33,7 +33,9 @@
           <path class="line line-9"></path>
           <path class="line line-10"></path>
         </svg>
-        <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
+        <rect class="overlay mouse-zoom" data-interactive-overlay="" data-focus-point="focusPoint" data-hide-focus-points="hideFocusPoints()" data-plot-info-delegates="plotInfoDelegates" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
+        <svg data-popup-report="" class="popup-report" data-ng-if="focusPoint" data-focus-point="focusPoint" data-plot-info-delegate="popupDelegate" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
+        </svg>
       </g>
       <g data-ng-if="wantLegend" class="sr-plot-legend" ng-attr-transform="translate(0, {{ margin.top + height + 45 }})">
       </g>
