@@ -45,10 +45,10 @@ app.value('appRoutes', {
     'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
     'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', placeholder: '/static/img/WarpVND.png', url:''}},
-    'genesis': {url: '/static/html/landing-page-genesis.html', codeURL: '/#/genesis', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
+    'genesis': {url: '/static/html/landing-page-genesis.html', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
     'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
     'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
-    'comsol': {url: '/static/html/landing-page-comsol.html', codeURL: '/comsol', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'Vacuum Chamber Design for 4th-Generation Electron Synchrotrons', mediaConfig: {title: 'JSPEC on Sirepo', placeholder: '/static/img/MultipactorMeshRotation1.gif', url:''}},
+    'comsol': {url: '/static/html/landing-page-comsol.html', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'COMSOL Multiphysics', mediaConfig: {title: 'JSPEC on Sirepo', placeholder: '/static/img/MultipactorMeshRotation1.gif', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
