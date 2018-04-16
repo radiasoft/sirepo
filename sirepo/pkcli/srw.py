@@ -69,7 +69,7 @@ def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    main()
+    locals()['main']()
     # special case for importing python code
     if data['report'] == 'backgroundImport':
         sim_id = data['models']['simulation']['simulationId']
