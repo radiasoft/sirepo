@@ -364,11 +364,11 @@ def validate_safe_zip(zip_file_name, target_dir='.', *args):
     def file_attrs_ok(attrs):
 
         # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
-        if attrs < 2 << 16L:
+        if attrs < 2 << 16:
             return True
 
         # UNIX file attributes live in the top two bytes
-        mask = attrs >> 16L
+        mask = attrs >> 16
         is_file_or_dir = mask & (0o0100000 | 0o0040000) != 0
         no_exec = mask & (0o0000100 | 0o0000010 | 0o0000001) == 0
 
