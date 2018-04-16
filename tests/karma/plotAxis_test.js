@@ -2,7 +2,7 @@
 beforeEach(module('SirepoApp'));
 
 describe('plotting: plotAxis', function() {
-    it('should format ticks', function() {
+    it('should format ticks', inject(function(layoutService) {
         var formattedBase = '';
         var margin = { top: 50, right: 10, bottom: 50, left: 75 };
         var utilitiesStub = {
@@ -19,7 +19,7 @@ describe('plotting: plotAxis', function() {
         }
 
         function tickValues(label, domain, canvasSize, dimension, orientation) {
-            var axis = plotAxis(margin, dimension, orientation, refreshStub, utilitiesStub);
+            var axis = layoutService.plotAxis(margin, dimension, orientation, refreshStub, utilitiesStub);
             axis.parseLabelAndUnits(label);
             axis.init();
             axis.scale.domain(domain);
@@ -41,5 +41,5 @@ describe('plotting: plotAxis', function() {
 
         values = tickValues('', [-0.0005, -0], {width: 497, height: 284}, 'y', 'left');
         expect(values).toEqual(['-5e-4', '-4e-4', '-3e-4', '-2e-4', '-1e-4', '0']);
-    });
+    }));
 });

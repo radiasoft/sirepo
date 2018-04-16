@@ -4,7 +4,6 @@
 //   npm install karma --save-dev
 //   npm install karma-jasmine --save-dev
 //   npm install karma-phantomjs-launcher
-//   npm install karma-chrome-launcher
 //   npm install jasmine-core --save-dev
 // then:
 //   ./node_modules/karma/bin/karma start etc/karma-conf.js

@@ -888,11 +888,9 @@ SIREPO.app.service('layoutService', function(plotting) {
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
         // global value, don't allow margin updates during zoom/pad handling
-        //self.plotAxis.allowUpdates = true;
-
-        var self = {};
         svc.plotAxis.allowUpdates = true;
 
+        var self = {};
         var debouncedRefresh = utilities.debounce(function() {
             var sum = margin.left + margin.right;
             refresh();
@@ -905,52 +903,106 @@ SIREPO.app.service('layoutService', function(plotting) {
             return unit ? unit.scale(v) : v;
         }
 
-        function calcFormat(count, unit) {
+        function calcFormat(count, unit, base, isBaseFormat) {
             var code = 'e';
             var tickValues = self.scale.ticks(count);
-            var v0 = applyUnit(tickValues[0], unit);
-            var v1 = applyUnit(tickValues[tickValues.length - 1], unit);
+            var v0 = applyUnit(tickValues[0] - (base || 0), unit);
+            var v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
             var p0 = valuePrecision(v0);
             var p1 = valuePrecision(v1);
             var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-            if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
-                code = 'f';
+            if (isBaseFormat || useFloatFormat(decimals)) {
+                if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
+                    code = 'f';
+                }
             }
             else {
-                decimals -= (decimals < 0 ? Math.min(p0, p1) : Math.max(p0, p1));
+                if (p0 == 0) {
+                    decimals -= p1;
+                }
+                else if (p1 == 0) {
+                    decimals -= p0;
+                }
+                else {
+                    decimals -= Math.max(p0, p1);
+                }
             }
-            return "." + (decimals < 0 ? Math.abs(decimals) : 0) + code;
+            decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            return {
+                decimals: decimals,
+                code: code,
+                unit: unit,
+                tickValues: tickValues,
+                format: d3.format('.' + decimals + code),
+            };
         }
 
-        function calcTicks(format, canvasSize, unit) {
+        function calcTickCount(format, canvasSize, unit, base) {
             var d = self.scale.domain();
             var width = Math.max(
                 4,
-                Math.max(format(applyUnit(d[0], unit)).length, format(applyUnit(d[1], unit)).length)
+                Math.max(format(applyUnit(d[0] - (base || 0), unit)).length, format(applyUnit(d[1] - (base || 0), unit)).length)
             );
             var tickCount;
-
             if (dimension == 'x') {
                 tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * FONT_SIZE)));
             }
             else {
                 tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.height / (5 * FONT_SIZE)));
             }
-            format = d3.format(calcFormat(tickCount > 2 ? tickCount : 2, unit));
-            if ((orientation == 'left' || orientation == 'right') && svc.plotAxis.allowUpdates) {
-                var w = Math.max(format(applyUnit(d[0], unit)).length, format(applyUnit(d[1], unit)).length);
+            return Math.max(2, tickCount);
+        }
+
+        //TODO(pjm): this could be refactored, moving the base recalc out
+        function calcTicks(formatInfo, canvasSize, unit) {
+            var d = self.scale.domain();
+            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit);
+            formatInfo = calcFormat(tickCount, unit);
+            if (formatInfo.decimals > 2) {
+                var baseFormat = calcFormat(tickCount, unit, null, true).format;
+                var base = midPoint(formatInfo, d);
+                if (unit) {
+                    unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+                }
+                formatInfo = calcFormat(tickCount, unit, base);
+                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base);
+                var f2 = calcFormat(tickCount, unit);
+                base = midPoint(f2, d);
+                if (unit) {
+                    unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+                }
+                formatInfo = calcFormat(tickCount, unit, base);
+                formatInfo.base = base;
+                formatInfo.baseFormat = baseFormat;
+            }
+            if ((orientation == 'left' || orientation == 'right')) {
+                var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
                 margin[orientation] = (w + 6) * (FONT_SIZE / 2);
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;
             self.svgAxis.tickFormat(function(v) {
-                var res = format(applyUnit(v, unit));
+                var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
                 // format zero values as '0'
                 if (ZERO_REGEX.test(res)) {
                     return '0';
                 }
                 return res;
             });
+            return formatInfo;
+        }
+
+        function midPoint(formatInfo, domain) {
+            // find the tickValue which is closest to the domain midpoint
+            var mid = domain[0] + (domain[1] - domain[0]) / 2;
+            var values = formatInfo.tickValues;
+            var v = (values.length - 1) / 2;
+            var i1 = Math.floor(v);
+            var i2 = Math.ceil(v);
+            if (Math.abs(values[i1] - mid) > Math.abs(values[i2] - mid)) {
+                return values[i2];
+            }
+            return values[i1];
         }
 
         function useFloatFormat(logV) {
@@ -989,7 +1041,7 @@ SIREPO.app.service('layoutService', function(plotting) {
             var match = label.match(/\[(.*?)\]/);
             if (match) {
                 self.units = match[1];
-                label = label.replace(/\[.*?\]/, '');
+                label = label.replace(/\s*\[.*?\]/, '');
             }
             else {
                 self.units = '';
@@ -997,17 +1049,49 @@ SIREPO.app.service('layoutService', function(plotting) {
             self.label = label;
         };
 
+        function baseLabel() {
+            // remove any parenthesis first, ex. "p (mec)" --> "p"
+            var label = self.label.replace(/\s\(.*/, '');
+            var res = label.length > 4 ? dimension : label;
+            // padding is unicode thin-space
+            return res ? ('< ' + res + ' >') : '';
+        }
+
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
             if (svc.plotAxis.allowUpdates) {
+                var formatInfo, unit;
                 if (self.units) {
                     var d = self.scale.domain();
-                    var unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
-                    calcTicks(d3.format(calcFormat(MAX_TICKS, unit)), canvasSize, unit);
-                    select('.' + dimension + '-axis-label').text(self.label + '[' + unit.symbol + self.units + ']');
+                    unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit);
+                    select('.' + dimension + '-axis-label').text(
+                        self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
+                        + ' [' + formatInfo.unit.symbol + self.units + ']');
                 }
                 else {
-                    calcTicks(d3.format(calcFormat(MAX_TICKS)), canvasSize);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize);
+                    if (self.label) {
+                        select('.' + dimension + '-axis-label').text(
+                            self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
+                    }
                 }
+                var formattedBase = '';
+                if (formatInfo.base) {
+                    var label = baseLabel();
+                    if (label) {
+                        label += ' = ';
+                    }
+                    else {
+                        if (formatInfo.base > 0) {
+                            label = '+';
+                        }
+                    }
+                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
+                    if (unit) {
+                        formattedBase += unit.symbol + self.units;
+                    }
+                }
+                select('.' + dimension + '-base').text(formattedBase);
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
         };

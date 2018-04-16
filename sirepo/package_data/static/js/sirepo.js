@@ -1972,7 +1972,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             return item.isExample;
         }
         return self.isFolderExample(item);
-    }
+    };
 
     function findSimInTree(simId) {
         var sim = flatTree.filter(function (item) {
