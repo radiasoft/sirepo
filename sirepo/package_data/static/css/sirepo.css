@@ -956,7 +956,7 @@ li.sr-model-list-item > a {
   display: inline-block;
 }
 .elegant-beamline-element.drag-enter .sr-drop-left {
-  width: 4em;
+  width: 5.5em;
 }
 .elegant-beamline-element.dragging {
   display: none;
