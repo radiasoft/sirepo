@@ -1381,7 +1381,12 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             if (! data.state) {
                 data.state = 'error';
             }
-            msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+            if (status == -1) {
+                msg = 'Server unavailable';
+            }
+            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
+                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+            }
             if (! data.error) {
                 if (msg) {
                     data.error = msg;
