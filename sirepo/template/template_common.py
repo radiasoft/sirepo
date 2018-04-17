@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
@@ -208,14 +209,13 @@ def report_parameters_hash(data):
         models = sirepo.template.import_module(data).models_related_to_report(data)
         res = hashlib.md5()
         dm = data['models']
-        from six import string_types
         for m in models:
-            if isinstance(m, str):
+            if pkcompat.isinstance_str(m):
                 name, field = m.split('.') if '.' in m else (m, None)
                 value = dm[name][field] if field else dm[name]
             else:
                 value = m
-            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode('utf-8'))
+            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode())
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 
