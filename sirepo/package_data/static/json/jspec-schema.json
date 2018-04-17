@@ -187,7 +187,6 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float"],
             "step_number": ["Total Number of Steps", "Integer", null, "The time interval of each step is time/step_number."],
-            "sample_number": ["Number of Macroparticles", "Float", 10000, "Number of the sample ions. This is only used when using the Particle model to simulate the IBS expansion process without cooling."],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "model_beam"],
@@ -358,9 +357,9 @@
                 "step_number",
                 "model",
                 "save_particle_interval",
+                "electronCoolingRate.sample_number",
                 "ibs",
                 "e_cool",
-                "sample_number",
                 [
                     ["Horizontal", [
                         "ref_bet_x",

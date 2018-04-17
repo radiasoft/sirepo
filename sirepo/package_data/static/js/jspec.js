@@ -180,8 +180,8 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     function processModel() {
         var settings = appState.models.simulationSettings;
         panelState.showField('simulationSettings', 'save_particle_interval', settings.model == 'particle');
-        panelState.showField('simulationSettings', 'sample_number', settings.model == 'particle' && settings.e_cool == '0');
         panelState.showRow('simulationSettings', 'ref_bet_x', settings.model == 'particle' && settings.e_cool == '0');
+        panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
     function processPlotRange() {

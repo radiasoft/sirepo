@@ -70,7 +70,7 @@ section_simulation
         step_number = {{ simulationSettings_step_number }}
 {% if simulationSettings_model == 'particle' %}
 {% if simulationSettings_e_cool == 'off' %}
-        sample_number = {{ simulationSettings_sample_number }}
+        sample_number = {{ electronCoolingRate_sample_number }}
 {% endif %}
         save_particle_interval = {{ simulationSettings_save_particle_interval }}
 {% endif %}
