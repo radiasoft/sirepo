@@ -221,7 +221,7 @@ class MagnMeasZip:
             return self._normalize_eol(f)
 
     def _normalize_eol(self, file_desc):
-        s = file_desc.read().decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+        s = file_desc.read().decode().replace('\r\n', '\n').replace('\r', '\n')
         content = s.split('\n')
         return content
 
@@ -1506,7 +1506,7 @@ def validate_magnet_data_file(zf):
         cols = line.split()
         if len(cols) <= file_name_column:
             return False, 'Index file {} has bad format'.format(index_file_name())
-        file_names_in_index.append(cols[file_name_column].decode('utf-8'))
+        file_names_in_index.append(cols[file_name_column].decode())
 
     # Compare index and zip contents
     # Does not include the index itself, nor any directories
