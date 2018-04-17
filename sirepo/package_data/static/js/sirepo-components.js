@@ -704,7 +704,7 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             };
 
             $scope.hasValidFileSelected = function() {
-                if($scope.form) {
+                if ($scope.selectionRequired && $scope.form) {
                     $scope.form.$valid = false;
                 }
                 if ($scope.fileType && $scope.model) {
