@@ -5,7 +5,10 @@ u"""Simple API test for app.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import StringIO
+try:
+    import StringIO
+except:
+    from io import StringIO
 import csv
 import pytest
 import re
