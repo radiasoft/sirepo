@@ -1086,7 +1086,9 @@ SIREPO.app.service('layoutService', function(plotting) {
                             label = '+';
                         }
                     }
-                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit)).replace(/0+$/, '');
+                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit));
+                    formattedBase = formattedBase.replace(/0+$/, '');
+                    formattedBase = formattedBase.replace(/0+e/, 'e');
                     if (unit) {
                         formattedBase += unit.symbol + self.units;
                     }
