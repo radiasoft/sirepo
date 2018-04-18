@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -27,10 +28,9 @@ import time
 import werkzeug
 import werkzeug.exceptions
 
-#TODO(pjm): this import is required to work-around template loading in listSimulations
-# it may not be required with the latest h5py
-import h5py
-
+#TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
+if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
+    import h5py
 
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
