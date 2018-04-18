@@ -417,7 +417,7 @@ def zip_path_for_file(zf, file_to_find):
     import os
 
     # Get the base file names from the zip (directories have a basename of '')
-    file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
+    file_names_in_zip = list(map(lambda path: os.path.basename(path),  zf.namelist()))
     return zf.namelist()[file_names_in_zip.index(file_to_find)]
 
 
