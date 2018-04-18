@@ -203,15 +203,20 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
-
 def lib_files(data, source_lib):
     res = []
-    lattice_source = data['models']['ring']['latticeSource']
+    ring = data['models']['ring']
+    lattice_source = ring['latticeSource']
     if lattice_source == 'madx':
-        res.append(template_common.lib_file_name('ring', 'lattice', data['models']['ring']['lattice']))
+        res.append(template_common.lib_file_name('ring', 'lattice', ring['lattice']))
     elif lattice_source == 'elegant':
-        res.append(template_common.lib_file_name('ring', 'elegantTwiss', data['models']['ring']['elegantTwiss']))
-    return template_common.filename_to_path(res, source_lib)
+        res.append(template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
+    res = template_common.filename_to_path(res, source_lib)
+    if lattice_source == 'elegant-sirepo' and 'elegantSirepo' in ring:
+        f = _elegant_dir().join(ring['elegantSirepo'], _ELEGANT_TWISS_PATH)
+        if f.exists():
+            res.append(f)
+    return res
 
 
 def models_related_to_report(data):
@@ -221,15 +226,29 @@ def models_related_to_report(data):
 
 
 def python_source_for_model(data, model):
+    ring = data['models']['ring']
+    elegant_twiss_file = None
+    if ring['latticeSource'] == 'elegant':
+        elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+    elif  ring['latticeSource'] == 'elegant-sirepo':
+        elegant_twiss_file = ELEGANT_TWISS_FILENAME
+    convert_twiss_to_tfs = ''
+    if elegant_twiss_file:
+        convert_twiss_to_tfs = '''
+from pykern import pkconfig
+pkconfig.append_load_path('sirepo')
+from sirepo.template import sdds_util
+sdds_util.twiss_to_madx('{}', '{}')
+        '''.format(elegant_twiss_file, JSPEC_TWISS_FILENAME)
     return '''
 {}
 
 with open('{}', 'w') as f:
     f.write(jspec_file)
-
+{}
 import os
 os.system('jspec {}')
-    '''.format(_generate_parameters_file(data), JSPEC_INPUT_FILENAME, JSPEC_INPUT_FILENAME)
+    '''.format(_generate_parameters_file(data), JSPEC_INPUT_FILENAME, convert_twiss_to_tfs, JSPEC_INPUT_FILENAME)
 
 
 def remove_last_frame(run_dir):
@@ -237,7 +256,6 @@ def remove_last_frame(run_dir):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    _prepare_twiss_file(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data)
@@ -450,17 +468,6 @@ def _map_field_name(f):
     if f in _FIELD_MAP:
         return _FIELD_MAP[f]
     return f
-
-
-def _prepare_twiss_file(data, run_dir):
-    if data['models']['ring']['latticeSource'] == 'elegant-sirepo':
-        sim_id = data['models']['ring']['elegantSirepo']
-        if not sim_id:
-            raise RuntimeError('elegant simulation not selected')
-        f = _elegant_dir().join(sim_id, _ELEGANT_TWISS_PATH)
-        if not f.exists():
-            raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
-        f.copy(run_dir)
 
 
 def _safe_sdds_value(v):

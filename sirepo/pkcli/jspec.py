@@ -6,32 +6,13 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
-from sirepo.template import elegant_common
-from sirepo.template import template_common
+from sirepo.template import sdds_util, template_common
+import os.path
 import re
 import sirepo.template.jspec as template
-
-# elegant mux and muy are computed in sddsprocess below
-_ELEGANT_TO_MADX_COLUMNS = [
-    ['ElementName', 'NAME'],
-    ['ElementType', 'TYPE'],
-    ['s', 'S'],
-    ['betax', 'BETX'],
-    ['alphax', 'ALFX'],
-    ['mux', 'MUX'],
-    ['etax', 'DX'],
-    ['etaxp', 'DPX'],
-    ['betay', 'BETY'],
-    ['alphay', 'ALFY'],
-    ['muy', 'MUY'],
-    ['etay', 'DY'],
-    ['etayp', 'DPY'],
-    ['ElementOccurence', 'COUNT'],
-]
 
 
 def run(cfg_dir):
@@ -60,29 +41,12 @@ def _elegant_to_madx(ring):
     if ring['latticeSource'] == 'elegant':
         elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
     else: # elegant-sirepo
+        if 'elegantSirepo' not in ring or not ring['elegantSirepo']:
+            raise RuntimeError('elegant simulation not selected')
         elegant_twiss_file = template.ELEGANT_TWISS_FILENAME
-    outfile = 'sdds_output.txt'
-    twiss_file = 'twiss-with-mu.sdds'
-    # convert elegant psix to mad-x MU, rad --> rad / 2pi
-    pksubprocess.check_call_with_signals([
-        'sddsprocess',
-        elegant_twiss_file,
-        '-define=column,mux,psix 2 pi * /',
-        '-define=column,muy,psiy 2 pi * /',
-        twiss_file,
-    ], msg=pkdp, output=outfile, env=elegant_common.subprocess_env())
-    pksubprocess.check_call_with_signals([
-        'sdds2stream',
-        twiss_file,
-        '-columns={}'.format(','.join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))),
-    ], msg=pkdp, output=outfile, env=elegant_common.subprocess_env())
-    lines = pkio.read_text(outfile).split('\n')
-    if not lines[-1]:
-        del lines[-1]
-    lines[0] = re.sub(r'(\s+)(\S+)', r'\1\2$START', lines[0], count=1)
-    lines[-1] = re.sub(r'(\s+)(\S+)', r'\1\2$END', lines[-1], count=1)
-    header = '* {}\n'.format(' '.join(map(lambda x: x[1], _ELEGANT_TO_MADX_COLUMNS)))
-    pkio.write_text(template.JSPEC_TWISS_FILENAME, header + '\n'.join(lines) + '\n')
+        if not os.path.exists(elegant_twiss_file):
+            raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
+    sdds_util.twiss_to_madx(elegant_twiss_file, template.JSPEC_TWISS_FILENAME)
 
 
 def _run_jspec(run_dir):
