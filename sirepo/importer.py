@@ -20,7 +20,10 @@ def do_form(form):
     from sirepo import uri_router
     from sirepo import simulation_db
     import base64
-    import StringIO
+    try:
+        import StringIO
+    except:
+        from io import StringIO
 
     if not 'zip' in form:
         raise uri_router.NotFound('missing zip in form')
