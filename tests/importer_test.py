@@ -11,7 +11,10 @@ pytest.importorskip('srwl_bl')
 
 
 def test_import_json():
-    import StringIO
+    try:
+        import StringIO
+    except:
+        from io import StringIO
 
     def _parse(fn):
         json = fn.read(mode='rb')
