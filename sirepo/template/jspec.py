@@ -129,6 +129,14 @@ def fixup_old_data(data):
         settings['ref_bet_x'] = settings['ref_bet_y'] = 10
         for f in ('ref_alf_x', 'ref_disp_x', 'ref_disp_dx', 'ref_alf_y', 'ref_disp_y', 'ref_disp_dy'):
             settings[f] = 0
+    # if model field value is less than min, set to default value
+    for m in data['models']:
+        model = data['models'][m]
+        if m in _SCHEMA['model']:
+            for f in _SCHEMA['model'][m]:
+                field_def = _SCHEMA['model'][m][f]
+                if len(field_def) > 4 and model[f] < field_def[4]:
+                    model[f] = field_def[2]
 
 
 def get_animation_name(data):
