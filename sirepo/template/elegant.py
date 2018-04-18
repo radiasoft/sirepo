@@ -5,6 +5,7 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -181,9 +182,9 @@ def fixup_old_data(data):
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
         for f in ('emit_x', 'emit_y', 'emit_z'):
-            if bunch[f] and not isinstance(bunch[f], basestring):
+            if bunch[f] and not pkcompat.isinstance_str(bunch[f]):
                 bunch[f] /= 1e9
-        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
+        if bunch['sigma_s'] and not pkcompat.isinstance_str(bunch['sigma_s']):
             bunch['sigma_s'] /= 1e6
         first_bunch_command = _find_first_bunch_command(data)
         # first_bunch_command may not exist if the elegant sim has no bunched_beam command

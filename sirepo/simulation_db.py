@@ -6,6 +6,7 @@ u"""Simulation database
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
@@ -264,7 +265,7 @@ def get_schema(sim_type):
         if 'advanced' in common_views[view_Name]:
             for advanced_field in common_views[view_Name]['advanced']:
                 # ignore arrays
-                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
+                if pkcompat.isinstance_str(advanced_field) and advanced_field not in app_views[view_Name]['advanced']:
                     app_views[view_Name]['advanced'].append(advanced_field)
 
     return schema
