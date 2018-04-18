@@ -5,7 +5,7 @@
 
 import math
 from scipy import special
-from boazextra import *
+from sirepo.template.boazextra import interp
 import numpy as np
 from pykern import pkresource
 
