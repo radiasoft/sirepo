@@ -149,7 +149,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic']
 
 _RUN_ALL_MODEL = 'simulation'
 
