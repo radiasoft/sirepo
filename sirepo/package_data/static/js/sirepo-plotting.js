@@ -1329,12 +1329,12 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
         },
         template: [
             '<g class="popup-group">',
-                '<g data-allow-transform="true" data-ng-drag="true" data-ng-drag-data="focusPoint" data-ng-drag-success="dragDone($data, $event)">',
+                '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoint" data-ng-drag-success="dragDone($data, $event)">',
                     '<g>',
                         '<rect class="report-window" rx="4px" ry="4px" data-ng-attr-width="{{ popupWindowSize().width }}" data-ng-attr-height="{{ popupWindowSize().height }}" x="0" y="0"></rect>',
                         '<g>',
                             '<rect class="report-window-title-bar" data-ng-attr-width="{{ popupTitleSize().width }}" data-ng-attr-height="{{ popupTitleSize().height }}" x="1" y="1"></rect>',
-                            '<text class="report-window-close close" x="150" y="0" dy="1em" dx="-1em">&times;</text>',
+                            '<text class="report-window-close close" x="150" y="0" dy="1em" dx="-1em">×</text>',
                         '</g>',
                     '</g>',
                     '<text id="x-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="1em" dx="0.5em"></text>',
@@ -1356,7 +1356,6 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
 
             var moveEventDetected = false;
             var didDragToNewPositon = false;
-            var identity_matrix = 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)';
 
             if( $scope.plotInfoDelegate) {
                 $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
@@ -1415,12 +1414,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
             $scope.dragDone = function($data, $event) {
                 didDragToNewPositon = true;
                 var xf = currentXform();
-
-                // ngDraggable uses css transform to move objects around, but leaves it place just a moment afterwards, which can
-                // double the offset in some browsers.  Reset it here (if we actually moved the popup)
-                var dg = angular.element(group.select('g').node());
                 if(moveEventDetected) {
-                    dgElement.css('transform', identity_matrix);
                     showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty});
                 }
                 moveEventDetected = false;
@@ -1493,8 +1487,9 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                     if (xlateIndex >= 0) {
                         var tmp = reportTransform.substring('translate('.length);
                         var coords = tmp.substring(0, tmp.indexOf(')'));
-                        xform.tx = parseFloat(coords.substring(0, coords.indexOf(',')));
-                        xform.ty = parseFloat(coords.substring(coords.indexOf(',') + 1));
+                        var delimiter = coords.indexOf(',') >= 0 ? ',' : ' ';
+                        xform.tx = parseFloat(coords.substring(0, coords.indexOf(delimiter)));
+                        xform.ty = parseFloat(coords.substring(coords.indexOf(delimiter) + 1));
                     }
                 }
                 return xform;
