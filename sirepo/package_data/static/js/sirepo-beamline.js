@@ -74,6 +74,14 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         }
         return [];
     };
+    self.getWatchReports = function() {
+        var items = self.getWatchItems();
+        var rpts = [];
+        for(var iIndex = 0; iIndex < items.length;  ++iIndex) {
+            rpts.push(self.watchpointReportName(items[iIndex].id));
+        }
+        return rpts;
+    };
 
     self.isActiveItemValid = function() {
         return self.isItemValid(self.activeItem);

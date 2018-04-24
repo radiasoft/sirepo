@@ -479,6 +479,7 @@
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
@@ -1158,6 +1159,7 @@
                     "simulation.photonEnergy",
                     "polarization",
                     "characteristic",
+                    "copyCharacteristic",
                     "fieldUnits"
                 ]],
                 ["Scale", [
