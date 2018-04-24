@@ -1156,6 +1156,10 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                         }
                    })
                     .on('click', function() {
+                        if (d3.event.defaultPrevented) {
+                            // ignore event if drag is occurring
+                            return;
+                        }
 
                         // This is to hide the info across all "sibling" plots that this overlay does not know about
                         // Must be defined in the parent directive (plot2d, etc.)
@@ -1337,9 +1341,9 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                             '<text class="report-window-close close" x="150" y="0" dy="1em" dx="-1em">×</text>',
                         '</g>',
                     '</g>',
-                    '<text id="x-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="1em" dx="0.5em"></text>',
-                    '<text id="y-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="2em" dx="0.5em"></text>',
-                    '<text id="fwhm-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="3em" dx="0.5em"></text>',
+                    '<text id="x-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="1.1em" dx="0.5em"></text>',
+                    '<text id="y-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="2.2em" dx="0.5em"></text>',
+                    '<text id="fwhm-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="3.3em" dx="0.5em"></text>',
                 '</g>',
             '</g>',
         ].join(''),
@@ -1379,9 +1383,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 dgElement = angular.element(group.select('g').node());
 
                 d3self.select('.popup-group .report-window-close')
-                    .on('click', function() {
-                        hidePopup();
-                    });
+                    .on('click', closePopup);
             }
 
             $scope.overlaySize = function() {
@@ -1415,15 +1417,19 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 didDragToNewPositon = true;
                 var xf = currentXform();
                 if(moveEventDetected) {
-                    showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty});
+                    showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty}, true);
                 }
                 moveEventDetected = false;
             };
 
 
-            function showPopup(geometry) {
-
+            function showPopup(geometry, isReposition) {
                 if(! geometry) {
+                    return true;
+                }
+                refreshText();
+                d3self.style('display', 'block');
+                if (didDragToNewPositon && ! isReposition) {
                     return true;
                 }
                 var x = geometry.mouseX;
@@ -1444,11 +1450,6 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 newY = Math.min(reportHeight - tbh - popupMargin, newY);
                 group.attr('transform', 'translate(' + newX + ',' + newY + ')');
                 group.select('.report-window-title-bar').attr('width', tbw - 2 * borderWidth);
-
-                refreshText();
-
-                d3self.style('display', 'block');
-
                 return true;
             }
             function refreshText() {
@@ -1466,7 +1467,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                     var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoint);
                     var xf = currentXform();
                     if(! isNaN(xf.tx) && ! isNaN(xf.ty)) {
-                        showPopup({mouseX: mouseCoords.x, mouseY: xf.ty});
+                        showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
                     }
                 }
                 else {
@@ -1494,14 +1495,17 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 }
                 return xform;
             }
-            function hidePopup() {
+
+            function closePopup() {
                 didDragToNewPositon = false;
+                hidePopup();
+            }
+
+            function hidePopup() {
                 d3self.style('display', 'none');
                 $scope.focusPoint.unset();
                 $scope.plotInfoDelegate.hideFocusPointInfoComplete();
             }
-
-
         },
     };
 });
