@@ -1945,6 +1945,63 @@ SIREPO.app.directive('simulationStatusTimer', function() {
     };
 });
 
+SIREPO.app.directive('splitPanels', function($window) {
+    var GUTTER_SIZE = 20;
+    var MAX_TOP_PERCENT = 85;
+    var MIN_TOP_PERCENT = 15;
+    var TOP_PAD = 12;
+    return {
+        controller: function($scope) {
+
+            function totalHeight() {
+                return $($window).height() - $scope.el.offset().top;
+            }
+
+            function childHeight(panel) {
+                return panel.children().first().height();
+            }
+
+            $scope.constrainTopPanelHeight = function() {
+                var topPanel = $('#sr-top-panel');
+                var topHeight = topPanel.height();
+                var maxHeight = childHeight(topPanel);
+                var bottomPanel = $('#sr-bottom-panel');
+                var bothFit = maxHeight + TOP_PAD + GUTTER_SIZE + childHeight(bottomPanel) < totalHeight();
+                // if topPanel is sized too large or both panels fit in the page height
+                if (topHeight > maxHeight || bothFit) {
+                    // set split sizes to exactly fit the top panel
+                    var splitterHeight = $scope.el.height();
+                    var x = Math.min(Math.max((maxHeight + TOP_PAD) * 100 / splitterHeight, MIN_TOP_PERCENT), MAX_TOP_PERCENT);
+                    $scope.split.setSizes([x, 100 - x]);
+                }
+                $scope.el.find('.gutter').css('visibility', bothFit ? 'hidden' : 'visible');
+            };
+            $scope.panelHeight = function() {
+                if (! $scope.el) {
+                    return '0';
+                }
+                // the DOM is not yet in the state to be measured, check sizes in next cycle
+                // can't use $timeout() here because it causes an endless digest loop
+                setTimeout($scope.constrainTopPanelHeight, 0);
+                return totalHeight() + 'px';
+            };
+        },
+        link: function(scope, element) {
+            scope.el = $(element);
+            scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
+                direction: 'vertical',
+                gutterSize: GUTTER_SIZE,
+                snapOffset: 0,
+                sizes: [25, 75],
+                onDrag: scope.constrainTopPanelHeight,
+            });
+            scope.$on('$destroy', function() {
+                scope.split.destroy();
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('stringToNumber', function() {
     return {
         restrict: 'A',
