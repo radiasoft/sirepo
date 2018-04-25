@@ -1,0 +1,34 @@
+{
+    "models": {
+        "beamlines": [],
+        "bunch": {
+            "particle": "proton",
+            "mass": 1,
+            "charge": 1,
+            "energy": 1,
+            "momentum": 1,
+            "gamma": 1,
+            "beta": 1,
+            "emit_x": 1,
+            "emit_y": 1,
+            "rms_z": 1,
+            "dpop": 1,
+            "num_real_particles": 1,
+            "num_macro_particles": 1,
+            "seed": 1,
+            "z_period_length": 1
+        },
+        "bunchReport": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "x": "x",
+            "y": "y"
+        },
+        "elements": [],
+        "simulation": {
+            "name": "test"
+        }
+    },
+    "simulationType": "synergia",
+    "version": "20170720.000000"
+}

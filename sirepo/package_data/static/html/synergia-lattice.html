@@ -1,0 +1,17 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-12 col-md-6 col-xl-7">
+      <div class="row">
+        <div data-ng-if="lattice.latticeService.activeBeamlineId" class="col-sm-12">
+          <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Beamline Report - {{ lattice.latticeService.getActiveBeamline().name }}"></div>
+        </div>
+        <div class="col-sm-12">
+          <div data-beamline-editor=""></div>
+        </div>
+      </div>
+    </div>
+    <div lattice-element-panels=""></div>
+  </div> <!-- /row -->
+</div> <!-- /container -->
+
+<div lattice-extras="" controller="lattice"></div>
