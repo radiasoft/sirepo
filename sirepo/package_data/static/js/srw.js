@@ -586,6 +586,25 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         });
     });
 
+    $scope.$on('modelChanged', function(e, name) {
+        if(name !== 'initialIntensityReport') {
+            return;
+        }
+        var rpt = appState.models.initialIntensityReport;
+        if(! rpt || ! parseInt(rpt.copyCharacteristic)) {
+            return;
+        }
+        var watchRpts = beamlineService.getWatchReports();
+        for(var wIndex = 0; wIndex < watchRpts.length; ++wIndex) {
+            var watchRptName = watchRpts[wIndex];
+            var watchRpt = appState.models[watchRptName];
+            if(watchRpt.characteristic !== rpt.characteristic) {
+                watchRpt.characteristic = rpt.characteristic;
+                appState.saveChanges(watchRptName);
+            }
+        }
+
+    });
 
     $scope.$on('$destroy', function() {
         // clear the coherence if we went away from the beamline tab

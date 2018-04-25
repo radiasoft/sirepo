@@ -1156,6 +1156,10 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                         }
                    })
                     .on('click', function() {
+                        if (d3.event.defaultPrevented) {
+                            // ignore event if drag is occurring
+                            return;
+                        }
 
                         // This is to hide the info across all "sibling" plots that this overlay does not know about
                         // Must be defined in the parent directive (plot2d, etc.)
@@ -1329,17 +1333,17 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
         },
         template: [
             '<g class="popup-group">',
-                '<g data-ng-drag="true" data-allow-transform="true" data-ng-drag-success="onDragComplete()">',
+                '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoint" data-ng-drag-success="dragDone($data, $event)">',
                     '<g>',
                         '<rect class="report-window" rx="4px" ry="4px" data-ng-attr-width="{{ popupWindowSize().width }}" data-ng-attr-height="{{ popupWindowSize().height }}" x="0" y="0"></rect>',
                         '<g>',
                             '<rect class="report-window-title-bar" data-ng-attr-width="{{ popupTitleSize().width }}" data-ng-attr-height="{{ popupTitleSize().height }}" x="1" y="1"></rect>',
-                            '<text class="report-window-close close" x="150" y="0" dy="1em" dx="-1em">&times;</text>',
+                            '<text class="report-window-close close" x="150" y="0" dy="1em" dx="-1em">×</text>',
                         '</g>',
                     '</g>',
-                    '<text id="x-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="1em" dx="0.5em"></text>',
-                    '<text id="y-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="2em" dx="0.5em"></text>',
-                    '<text id="fwhm-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="3em" dx="0.5em"></text>',
+                    '<text id="x-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="1.1em" dx="0.5em"></text>',
+                    '<text id="y-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="2.2em" dx="0.5em"></text>',
+                    '<text id="fwhm-text-0" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dy="3.3em" dx="0.5em"></text>',
                 '</g>',
             '</g>',
         ].join(''),
@@ -1349,14 +1353,19 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
 
             var d3self;
             var group;
+            var rptWindow;
+            var dgElement;
+
             var popupMargin = 4;
+
+            var moveEventDetected = false;
             var didDragToNewPositon = false;
 
             if( $scope.plotInfoDelegate) {
                 $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
                 $scope.plotInfoDelegate.hideFocusPointInfo = hidePopup;
                 $scope.plotInfoDelegate.moveFocusPointInfo = movePopup;
-           }
+            }
 
             var axisIndex = $scope.invertAxis ? 1 : 0;
             $scope.plotting = plotting;
@@ -1370,11 +1379,11 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
 
                 d3self = d3.selectAll($element);
                 group = d3self.select('.popup-group');
+                rptWindow = group.select('.report-window');
+                dgElement = angular.element(group.select('g').node());
 
                 d3self.select('.popup-group .report-window-close')
-                    .on('click', function() {
-                        hidePopup();
-                    });
+                    .on('click', closePopup);
             }
 
             $scope.overlaySize = function() {
@@ -1395,18 +1404,33 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                     height: 24
                 };
             };
-            $scope.onDragComplete = function() {
-                var newBox = d3self.node().getBBox();
-                showPopup({mouseX: newBox.x, mouseY: newBox.y});
-            };
-            $scope.$on('draggable:start', function (event) {
-                didDragToNewPositon = true;
+
+            // ngDraggable interprets even clicks as starting a drag event - we don't want to do transforms later
+            // unless we really moved it
+            $scope.$on('draggable:move', function(event, obj) {
+                // all popups will hear this event, so confine logic to this one
+                if(obj.element[0] == dgElement[0]) {
+                    moveEventDetected = true;
+                }
             });
+            $scope.dragDone = function($data, $event) {
+                didDragToNewPositon = true;
+                var xf = currentXform();
+                if(moveEventDetected) {
+                    showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty}, true);
+                }
+                moveEventDetected = false;
+            };
 
-            function showPopup(geometry) {
 
+            function showPopup(geometry, isReposition) {
                 if(! geometry) {
-                    geometry = $scope.plotInfoDelegate.interface.geometry;
+                    return true;
+                }
+                refreshText();
+                d3self.style('display', 'block');
+                if (didDragToNewPositon && ! isReposition) {
+                    return true;
                 }
                 var x = geometry.mouseX;
                 var y = geometry.mouseY;
@@ -1417,20 +1441,15 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
 
                 var reportWidth = parseFloat(d3self.attr('width'));
                 var reportHeight = parseFloat(d3self.attr('height'));
-                var tbw = parseFloat(d3self.select('.popup-group .report-window').attr('width'));
-                var tbh = parseFloat(d3self.select('.popup-group .report-window').attr('height'));
-                var bw = d3self.select('.popup-group .report-window').style('stroke-width');
+                var tbw = parseFloat(rptWindow.attr('width'));
+                var tbh = parseFloat(rptWindow.attr('height'));
+                var bw = rptWindow.style('stroke-width');
                 var borderWidth = parseFloat(bw.substring(0, bw.indexOf('px')));
 
                 newX = Math.min(reportWidth - tbw - popupMargin, newX);
                 newY = Math.min(reportHeight - tbh - popupMargin, newY);
-                d3self.select('.popup-group').attr('transform', 'translate(' + newX + ',' + newY + ')');
-                d3self.select('.popup-group .report-window-title-bar').attr('width', tbw - 2 * borderWidth);
-
-                refreshText();
-
-                d3self.style('display', 'block');
-
+                group.attr('transform', 'translate(' + newX + ',' + newY + ')');
+                group.select('.report-window-title-bar').attr('width', tbw - 2 * borderWidth);
                 return true;
             }
             function refreshText() {
@@ -1446,31 +1465,47 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
             function movePopup() {
                 if(! didDragToNewPositon) {
                     var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoint);
-                    var reportTransForm = d3self.select('.popup-group').attr('transform');
-                    if (reportTransForm) {
-                        var xlateIndex = reportTransForm.indexOf('translate(');
-                        if (xlateIndex >= 0) {
-                            var tmp = reportTransForm.substring('translate('.length);
-                            var coords = tmp.substring(0, tmp.indexOf(')'));
-
-                            var x = parseFloat(coords.substring(0, coords.indexOf(',')));
-                            var y = parseFloat(coords.substring(coords.indexOf(',') + 1));
-                            showPopup({mouseX: mouseCoords.x, mouseY: y});
-                        }
+                    var xf = currentXform();
+                    if(! isNaN(xf.tx) && ! isNaN(xf.ty)) {
+                        showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
                     }
                 }
                 else {
                     refreshText();
                 }
             }
-            function hidePopup() {
+            function currentXform(d3Element) {
+                if(! d3Element) {
+                    d3Element = group;
+                }
+                var xform = {
+                    tx: NaN,
+                    ty: NaN
+                };
+                var reportTransform = d3Element.attr('transform');
+                if (reportTransform) {
+                    var xlateIndex = reportTransform.indexOf('translate(');
+                    if (xlateIndex >= 0) {
+                        var tmp = reportTransform.substring('translate('.length);
+                        var coords = tmp.substring(0, tmp.indexOf(')'));
+                        var delimiter = coords.indexOf(',') >= 0 ? ',' : ' ';
+                        xform.tx = parseFloat(coords.substring(0, coords.indexOf(delimiter)));
+                        xform.ty = parseFloat(coords.substring(coords.indexOf(delimiter) + 1));
+                    }
+                }
+                return xform;
+            }
+
+            function closePopup() {
                 didDragToNewPositon = false;
+                hidePopup();
+            }
+
+            function hidePopup() {
                 d3self.style('display', 'none');
                 $scope.focusPoint.unset();
                 $scope.plotInfoDelegate.hideFocusPointInfoComplete();
             }
-
-
         },
     };
 });

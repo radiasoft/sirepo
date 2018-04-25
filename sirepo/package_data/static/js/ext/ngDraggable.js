@@ -36,6 +36,7 @@ angular.module("ngDraggable", [])
 
                     var onDragSuccessCallback = $parse(attrs.ngDragSuccess) || null;
                     var allowTransform = angular.isDefined(attrs.allowTransform) ? scope.$eval(attrs.allowTransform) : true;
+                    var isSvg = angular.isDefined(attrs.isSvg) ? scope.$eval(attrs.isSvg) : false;
 
                     var getDragData = $parse(attrs.ngDragData);
 
@@ -209,14 +210,20 @@ angular.module("ngDraggable", [])
                     };
 
                     var reset = function() {
-                        if(allowTransform)
+                        if (isSvg) {
+                            element.attr('transform', '');
+                        }
+                        else if(allowTransform)
                         element.css({transform:'', 'z-index':'', '-webkit-transform':'', '-ms-transform':''});
                         else
                         element.css({'position':'',top:'',left:''});
                     };
 
                     var moveElement = function (x, y) {
-                        if(allowTransform) {
+                        if (isSvg) {
+                            element.attr('transform', 'translate('+x+', '+y+')');
+                        }
+                        else if(allowTransform) {
                             element.css({
                                 transform: 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ' + x + ', ' + y + ', 0, 1)',
                                 'z-index': 99999,
