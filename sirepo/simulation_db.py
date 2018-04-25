@@ -333,7 +333,6 @@ def hack_nfs_write_status(status, run_dir):
 def iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
     sim_dir = simulation_dir(simulation_type)
-    simulation_type = simulation_type_from_dir_name(sim_dir)
     for path in glob.glob(
         str(sim_dir.join('*', SIMULATION_DATA_FILE)),
     ):
@@ -788,14 +787,6 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
-def simulation_type_from_dir_name(d):
-    """Extract simulation_type from simulation_dir"""
-    res = d.basename
-    if _ID_RE.search(res) or res == _LIB_DIR:
-        res = py.path.local(d.dirname).basename
-    return sirepo.template.assert_sim_type(res)
-
-
 def tmp_dir():
     """Generates new, temporary directory
 
@@ -870,7 +861,7 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example_and_lib_files(simulation_type_from_dir_name(d))
+    _create_example_and_lib_files(simulation_type)
 
 
 def write_json(filename, data):
@@ -919,7 +910,6 @@ def write_status(status, run_dir):
 
 def _create_example_and_lib_files(simulation_type):
     d = simulation_dir(simulation_type)
-    simulation_type = simulation_type_from_dir_name(d)
     pkio.mkdir_parent(d)
     for s in examples(simulation_type):
         save_new_example(s)
