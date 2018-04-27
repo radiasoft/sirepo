@@ -487,7 +487,6 @@ SIREPO.app.controller('ElegantSourceController', function(appState, panelState, 
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
-    self.activeTab = 'basic';
 
     self.advancedNames = [
         'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
@@ -522,8 +521,6 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'MARK', 'QUAD', 'SEXT',
         'WATCH', 'WIGGLER',
     ];
-
-    self.createElement = latticeService.createElement;
 
     self.elementColor = {
         BMAPXY: 'magenta',
