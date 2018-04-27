@@ -426,6 +426,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 name: model.name,
                 folder: model.folder,
                 sourceType: model.sourceType,
+                notes: model.notes,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
