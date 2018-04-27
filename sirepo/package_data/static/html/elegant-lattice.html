@@ -2,50 +2,16 @@
   <div class="row">
     <div class="col-sm-12 col-md-6 col-xl-7">
       <div class="row">
-        <div data-ng-if="lattice.activeBeamlineId" class="col-sm-12">
-          <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Beamline Report - {{ lattice.getActiveBeamline().name }}"></div>
+        <div data-ng-if="lattice.latticeService.activeBeamlineId" class="col-sm-12">
+          <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Beamline Report - {{ lattice.latticeService.getActiveBeamline().name }}"></div>
         </div>
         <div class="col-sm-12">
-          <div data-beamline-editor="" data-controller="lattice"></div>
+          <div data-beamline-editor=""></div>
         </div>
       </div>
     </div>
-    <div class="col-sm-12 col-md-6 col-xl-5" data-ng-attr-style="height: {{ lattice.splitPaneHeight() }}px;">
-      <div data-split-panels="" style="height: {{ panelHeight() }}">
-        <div id="sr-top-panel" class="split split-vertical">
-          <div class="panel panel-info" style="margin-bottom: 0">
-            <div class="panel-heading"><span class="sr-panel-heading">Beamlines</span></div>
-            <div class="panel-body" style="padding-bottom: 0">
-              <button class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="lattice.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
-              <div data-beamline-table="" data-controller="lattice"></div>
-            </div>
-          </div>
-        </div>
-        <div id="sr-bottom-panel" class="split split-vertical">
-          <div class="panel panel-info" style="margin-bottom: 10px">
-            <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
-            <div class="panel-body">
-              <div class="pull-right">
-                <button class="btn btn-info btn-xs" data-ng-click="lattice.showRpnVariables()">RPN Variables</button>
-                <button class="btn btn-info btn-xs" data-ng-click="lattice.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
-              </div>
-              <div data-element-table="" data-controller="lattice"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div lattice-element-panels="" want-rpn-variables="true"></div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
-<div data-ng-drag-clone=""><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>
-
-<div data-element-picker="" data-controller="lattice" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>
-
-<div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong> is used by the <strong>{{ lattice.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>
-
-<div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ lattice.deleteWarning.typeName }} {{ lattice.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="lattice.deleteElement()">Delete {{ lattice.deleteWarning.typeName }} <strong>{{ lattice.deleteWarning.name }}</strong>?</div>
-
-<div data-modal-editor="" view-name="beamline" data-parent-controller="lattice"></div>
-
-<div data-rpn-editor=""></div>
+<div lattice-extras="" controller="lattice"></div>
