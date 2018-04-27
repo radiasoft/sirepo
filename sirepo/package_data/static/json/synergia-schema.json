@@ -57,6 +57,45 @@
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", 0, "The drift length."]
         },
+        "MONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", 0, "length"]
+        },
+        "QUAD": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", 0, "length"],
+            "k1": ["K1 [1/m²]", "Float", 0, "geometric strength"],
+            "tilt": ["TILT [rad]", "Float", 0, "rotation about longitudinal axis"],
+            "k1s": ["K1S [1/m²]", "Float", 0, "The skew quadrupole coefficient K1s. A positive skew quadrupole strength implies defocusing, irrespective of the charge of the particles, in the (x,s) plane rotated by 45° around s (particles in this plane have x = y > 0)."],
+            "hoffset": ["HOFFSET [m]", "Float", 0],
+            "voffset": ["VOFFSET [m]", "Float", 0],
+            "kl": ["KL", "Float", 0, "base strength/B-rho"],
+            "a1": ["A1", "Float", 0, "skew quad"],
+            "a2": ["A2", "Float", 0, "skew sextupole"],
+            "a3": ["A3", "Float", 0, "skew octupole"],
+            "a4": ["A4", "Float", 0, "skew decapole"],
+            "a5": ["A5", "Float", 0, "skew dodecapole"],
+            "a6": ["A6", "Float", 0, "skew tetradecapole"],
+            "a7": ["A7", "Float", 0, "skew hexdecapole"],
+            "b1": ["B1", "Float", 0, "quad"],
+            "b2": ["B2", "Float", 0, "sextupole"],
+            "b3": ["B3", "Float", 0, "octopole"],
+            "b4": ["B4", "Float", 0, "decapole"],
+            "b5": ["B5", "Float", 0, "dodecapole"],
+            "b6": ["B6", "Float", 0, "tetradecapole"],
+            "b7": ["B7", "Float", 0, "hexdecapole"],
+            "propagator_type": ["PROPAGATOR", "Propagator", "yoshida"],
+            "yoshida_order": ["YOSHIDA ORDER", "Integer", 2],
+            "yoshida_steps": ["YOSHIDA STEPS", "Integer", 4],
+            "basic_kicks": ["BASIC KICKS", "Integer", 40]
+        },
+        "RFCAVITY": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", 0, "length"],
+            "volt": ["VOLT [MV]", "Float", 0, "The peak electrical RF voltage"],
+            "lag": ["LAG [2π]", "Float", 0],
+            "harmon": ["HARMON", "Integer", 0, "The harmonic number h"]
+        },
         "SBEN": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", 0, "The length of the magnet. For sector bends the declared length is the arc length of the reference orbit."],
@@ -88,7 +127,8 @@
             "b6": ["B6", "Float", 0, "tetradecapole"],
             "b7": ["B7", "Float", 0, "hexdecapole"],
             "entry_edge_kick": ["ENTRY EDGE KICK", "Float", 1.0],
-            "exit_edge_kick": ["EXIT EDGE KICK", "Float", 1.0]
+            "exit_edge_kick": ["EXIT EDGE KICK", "Float", 1.0],
+            "propagator_type": ["PROPAGATOR", "Propagator", "basic"]
         }
     },
     "view": {
@@ -147,6 +187,58 @@
                 "l"
             ]
         },
+        "MONITOR": {
+            "title": "MONITOR",
+            "description": "A beam monitor has no specific effect on the beam and behaves like a drift space. In addition it serves to record the beam position for closed orbit correction.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l"
+            ]
+        },
+        "QUAD": {
+            "title": "QUAD",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k1",
+                "tilt",
+                "k1s",
+                "hoffset",
+                "voffset",
+                "kl",
+                "a1",
+                "a2",
+                "a3",
+                "a4",
+                "a5",
+                "a6",
+                "a7",
+                "b1",
+                "b2",
+                "b3",
+                "b4",
+                "b5",
+                "b6",
+                "b7",
+                "propagator_type",
+                "yoshida_order",
+                "yoshida_steps",
+                "basic_kicks"
+            ]
+        },
+        "RFCAVITY": {
+            "title": "RFCAVITY",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "lag",
+                "harmon"
+            ]
+        },
         "SBEN": {
             "title": "SBEN",
             "description": "A sector bending magnet.",
@@ -182,7 +274,8 @@
                 "b6",
                 "b7",
                 "entry_edge_kick",
-                "exit_edge_kick"
+                "exit_edge_kick",
+                "propagator"
             ]
         }
     }

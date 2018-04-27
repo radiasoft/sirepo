@@ -24,21 +24,23 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
-    self.activeTab = 'basic';
 
-    self.advancedNames = [];
+    self.advancedNames = ['MONITOR', 'RFCAVITY'];
 
     self.basicNames = [
-        'DRIFT', 'SBEN',
+        'DRIFT', 'SBEN', 'QUAD',
     ];
 
-    self.createElement = latticeService.createElement;
-
-    self.elementColor = {};
+    self.elementColor = {
+        QUAD: 'red',
+    };
 
     self.elementPic = {
         bend: ['SBEN'],
         drift: ['DRIFT'],
+        magnet: ['QUAD'],
+        rf: ['RFCAVITY'],
+        watch: ['MONITOR'],
     };
 
     self.titleForName = function(name) {
