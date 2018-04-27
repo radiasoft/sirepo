@@ -36,7 +36,7 @@ app.value('srwAppRoutes', {
 });
 app.value('appRoutes', {
     'xray': {url: '/static/html/landing-page-x-ray.html', infoPanelTitle: 'X-Ray Optics', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', modeMap:[{name: 'Demo', value: 'demo', text: 'Experiment with pre-built examples and existing beamlines', url: '/light', default: true}, {name: 'Expert', value:'full', text: 'Jump right in and build your own beamline from scratch', url:'/srw'}], mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/1hhivULQwOM'}},
+    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', modeMap:[{name: 'Demo', value: 'demo', text: 'Experiment with pre-built examples and existing beamlines', url: '/light', default: true}, {name: 'Expert', value:'full', text: 'Jump right in and build your own beamline from scratch', url:'/srw'}], mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/MrebAjbxQVk'}},
     'shadow': {url: '/static/html/landing-page-shadow.html', codeURL: '/shadow', codeTitle: 'Shadow 3', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
     'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
     'elegant': {url: '/static/html/landing-page-elegant.html', codeURL: '/elegant', codeTitle: 'elegant', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
@@ -48,7 +48,7 @@ app.value('appRoutes', {
     'genesis': {url: '/static/html/landing-page-genesis.html', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
     'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
     'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
-    'comsol': {url: '/static/html/landing-page-comsol.html', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'COMSOL Multiphysics', mediaConfig: {title: 'JSPEC on Sirepo', placeholder: '/static/img/MultipactorMeshRotation1.gif', url:''}},
+    'comsol': {url: '/static/html/landing-page-comsol.html', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'Vacuum Chamber Design', mediaConfig: {title: 'JSPEC on Sirepo', placeholder: '/static/img/MultipactorMeshRotation1.gif', url:''}},
 });
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
@@ -70,6 +70,7 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
                         '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-',
                         (key == 'light-sources' ? 'button-list' : 'big-button'),
                         '="item"></div>',
+                        '<div>MMM</div>',
                     '</div>',
                 ].join('')
             });
