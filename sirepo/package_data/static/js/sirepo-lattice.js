@@ -292,7 +292,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     //TODO(pjm): listeners should only be added for apps which have an "elegant" style beamline, need a better test
     if (SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
-        console.log('enabling lattice listeners');
         appState.whenModelsLoaded($rootScope, function() {
             self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
             //TODO(pjm): only required for when viewing after import
