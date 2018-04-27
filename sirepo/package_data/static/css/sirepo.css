@@ -74,6 +74,27 @@
     .sr-disabled-text {
         color: #aaa;
     }
+    .navbar-default .navbar-nav>li>a.sr-disabled-link {
+        color:#aaa;
+        cursor: not-allowed;
+    }
+    .sr-user-item {
+        color: #008a00;
+    }
+    .sr-example-item {
+        font-size: 14px;
+        position: absolute;
+    }
+    .sr-example-sim {
+        left: 4.4em;
+        top: 2em;
+    }
+    .sr-example-folder {
+        color: white;
+        left: 4.5em;
+        top: 2em;
+    }
+
 
     /* app styles */
     .srw-toolbar-button {
@@ -514,12 +535,6 @@
       font-size: 14px;
       fill: steelblue;
     }
-    .plot-0 {
-        stroke: steelblue;
-    }
-    .plot-1 {
-        stroke: green;
-    }
 
     .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
@@ -580,6 +595,10 @@
     .sr-plot .popup-group .report-window-close {
         fill: #222;
         cursor: pointer;
+    }
+    .sr-plot .plot-visibility {
+        cursor: pointer;
+        font-size: 16px;
     }
 
     @media (max-width: 767px) {
@@ -851,7 +870,11 @@ ul.sr-nav-sidebar-root {
 .sr-transparent-icon:hover {
   text-shadow: 1px 0px 0 #23527c, -1px 0px 0 #23527c, 0px 1px 0 #23527c, 0px -1px 0 #23527c;
 }
-.sr-item-text {
+.sr-transparent-icon-user {
+  color: #f8f8f8;
+  text-shadow: 1px 0px 0 #008a00, -1px 0px 0 #008a00, 0px 1px 0 #008a00, 0px -1px 0 #008a00;
+}
+    .sr-item-text {
   display: inline-block;
   max-height: 60px;
   overflow: hidden;
