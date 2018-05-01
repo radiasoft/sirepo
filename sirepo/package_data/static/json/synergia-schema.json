@@ -1,5 +1,104 @@
 {
     "enum": {
+        "BeamColumn": [
+            ["xemit", "x emittance"],
+            ["xmean", "x mean"],
+            ["xstd", "x standard deviation"],
+            ["xxpcorr", "x xp correlation coefficient"],
+            ["xxpmom2", "x xp second moments"],
+            ["xycorr", "x y correlation coefficient"],
+            ["xymom2", "x y second moments"],
+            ["xypcorr", "x yp correlation coefficient"],
+            ["xypmom2", "x yp second moments"],
+            ["xzcorr", "x z correlation coefficient"],
+            ["xzmom2", "x z second moments"],
+            ["xzpcorr", "x zp correlation coefficient"],
+            ["xzpmom2", "x zp second moments"],
+            ["xpmean", "xp mean"],
+            ["xpstd", "xp standard deviation"],
+            ["xpycorr", "xp y correlation coefficient"],
+            ["xpymom2", "xp y second moments"],
+            ["xpypcorr", "xp yp correlation coefficient"],
+            ["xpypmom2", "xp yp second moments"],
+            ["xpzcorr", "xp z correlation coefficient"],
+            ["xpzmom2", "xp z second moments"],
+            ["xpzpcorr", "xp zp correlation coefficient"],
+            ["xpzpmom2", "xp zp second moments"],
+            ["xyemit", "xy emittance"],
+            ["xyzemit", "xyz emittance"],
+            ["yemit", "y emittance"],
+            ["ymean", "y mean"],
+            ["ystd", "y standard deviation"],
+            ["yypcorr", "y yp correlation coefficient"],
+            ["yypmom2", "y yp second moments"],
+            ["yzcorr", "y z correlation coefficient"],
+            ["yzmom2", "y z second moments"],
+            ["yzpcorr", "y zp correlation coefficient"],
+            ["yzpmom2", "y zp second moments"],
+            ["ypmean", "yp mean"],
+            ["ypstd", "yp standard deviation"],
+            ["ypzcorr", "yp z correlation coefficient"],
+            ["ypzmom2", "yp z second moments"],
+            ["ypzpcorr", "yp zp correlation coefficient"],
+            ["ypzpmom2", "yp zp second moments"],
+            ["zemit", "z emittance"],
+            ["zmean", "z mean"],
+            ["zstd", "z standard deviation"],
+            ["zzpcorr", "z zp correlation coefficient"],
+            ["zzpmom2", "z zp second moments"],
+            ["zpmean", "zp mean"],
+            ["zpstd", "zp standard deviation"]
+        ],
+        "BeamOptionalColumn": [
+            ["xemit", "x emittance"],
+            ["xmean", "x mean"],
+            ["xstd", "x standard deviation"],
+            ["xxpcorr", "x xp correlation coefficient"],
+            ["xxpmom2", "x xp second moments"],
+            ["xycorr", "x y correlation coefficient"],
+            ["xymom2", "x y second moments"],
+            ["xypcorr", "x yp correlation coefficient"],
+            ["xypmom2", "x yp second moments"],
+            ["xzcorr", "x z correlation coefficient"],
+            ["xzmom2", "x z second moments"],
+            ["xzpcorr", "x zp correlation coefficient"],
+            ["xzpmom2", "x zp second moments"],
+            ["xpmean", "xp mean"],
+            ["xpstd", "xp standard deviation"],
+            ["xpycorr", "xp y correlation coefficient"],
+            ["xpymom2", "xp y second moments"],
+            ["xpypcorr", "xp yp correlation coefficient"],
+            ["xpypmom2", "xp yp second moments"],
+            ["xpzcorr", "xp z correlation coefficient"],
+            ["xpzmom2", "xp z second moments"],
+            ["xpzpcorr", "xp zp correlation coefficient"],
+            ["xpzpmom2", "xp zp second moments"],
+            ["xyemit", "xy emittance"],
+            ["xyzemit", "xyz emittance"],
+            ["yemit", "y emittance"],
+            ["ymean", "y mean"],
+            ["ystd", "y standard deviation"],
+            ["yypcorr", "y yp correlation coefficient"],
+            ["yypmom2", "y yp second moments"],
+            ["yzcorr", "y z correlation coefficient"],
+            ["yzmom2", "y z second moments"],
+            ["yzpcorr", "y zp correlation coefficient"],
+            ["yzpmom2", "y zp second moments"],
+            ["ypmean", "yp mean"],
+            ["ypstd", "yp standard deviation"],
+            ["ypzcorr", "yp z correlation coefficient"],
+            ["ypzmom2", "yp z second moments"],
+            ["ypzpcorr", "yp zp correlation coefficient"],
+            ["ypzpmom2", "yp zp second moments"],
+            ["zemit", "z emittance"],
+            ["zmean", "z mean"],
+            ["zstd", "z standard deviation"],
+            ["zzpcorr", "z zp correlation coefficient"],
+            ["zzpmom2", "z zp second moments"],
+            ["zpmean", "zp mean"],
+            ["zpstd", "zp standard deviation"],
+            ["none", "None"]
+        ],
         "Particle": [
             ["proton", "Proton"],
             ["antiproton", "Antiproton"],
@@ -25,6 +124,11 @@
         ]
     },
     "model": {
+        "beamEvolutionAnimation": {
+            "y1": ["Y1 Value", "BeamColumn", "xemit"],
+            "y2": ["Y2 Value", "BeamOptionalColumn", "yemit"],
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
+        },
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
@@ -53,85 +157,94 @@
             "histogramBins": ["Histogram Bins", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
+        "simulationStatus": {},
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", 0, "The drift length."]
+            "l": ["L [m]", "Float", "0.0", "The drift length."]
         },
         "MONITOR": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", 0, "length"]
+            "l": ["L [m]", "Float", "0.0", "length"]
         },
-        "QUAD": {
+        "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", 0, "length"],
-            "k1": ["K1 [1/m²]", "Float", 0, "geometric strength"],
-            "tilt": ["TILT [rad]", "Float", 0, "rotation about longitudinal axis"],
-            "k1s": ["K1S [1/m²]", "Float", 0, "The skew quadrupole coefficient K1s. A positive skew quadrupole strength implies defocusing, irrespective of the charge of the particles, in the (x,s) plane rotated by 45° around s (particles in this plane have x = y > 0)."],
-            "hoffset": ["HOFFSET [m]", "Float", 0],
-            "voffset": ["VOFFSET [m]", "Float", 0],
-            "kl": ["KL", "Float", 0, "base strength/B-rho"],
-            "a1": ["A1", "Float", 0, "skew quad"],
-            "a2": ["A2", "Float", 0, "skew sextupole"],
-            "a3": ["A3", "Float", 0, "skew octupole"],
-            "a4": ["A4", "Float", 0, "skew decapole"],
-            "a5": ["A5", "Float", 0, "skew dodecapole"],
-            "a6": ["A6", "Float", 0, "skew tetradecapole"],
-            "a7": ["A7", "Float", 0, "skew hexdecapole"],
-            "b1": ["B1", "Float", 0, "quad"],
-            "b2": ["B2", "Float", 0, "sextupole"],
-            "b3": ["B3", "Float", 0, "octopole"],
-            "b4": ["B4", "Float", 0, "decapole"],
-            "b5": ["B5", "Float", 0, "dodecapole"],
-            "b6": ["B6", "Float", 0, "tetradecapole"],
-            "b7": ["B7", "Float", 0, "hexdecapole"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "k1": ["K1 [1/m²]", "Float", "0.0", "geometric strength"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
+            "k1s": ["K1S [1/m²]", "Float", "0.0", "The skew quadrupole coefficient K1s. A positive skew quadrupole strength implies defocusing, irrespective of the charge of the particles, in the (x,s) plane rotated by 45° around s (particles in this plane have x = y > 0)."],
+            "hoffset": ["HOFFSET [m]", "Float", "0.0"],
+            "voffset": ["VOFFSET [m]", "Float", "0.0"],
+            "kl": ["KL", "Float", "0.0", "base strength/B-rho"],
+            "a1": ["A1", "Float", "0.0", "skew quad"],
+            "a2": ["A2", "Float", "0.0", "skew sextupole"],
+            "a3": ["A3", "Float", "0.0", "skew octupole"],
+            "a4": ["A4", "Float", "0.0", "skew decapole"],
+            "a5": ["A5", "Float", "0.0", "skew dodecapole"],
+            "a6": ["A6", "Float", "0.0", "skew tetradecapole"],
+            "a7": ["A7", "Float", "0.0", "skew hexdecapole"],
+            "b1": ["B1", "Float", "0.0", "quad"],
+            "b2": ["B2", "Float", "0.0", "sextupole"],
+            "b3": ["B3", "Float", "0.0", "octopole"],
+            "b4": ["B4", "Float", "0.0", "decapole"],
+            "b5": ["B5", "Float", "0.0", "dodecapole"],
+            "b6": ["B6", "Float", "0.0", "tetradecapole"],
+            "b7": ["B7", "Float", "0.0", "hexdecapole"],
             "propagator_type": ["PROPAGATOR", "Propagator", "yoshida"],
-            "yoshida_order": ["YOSHIDA ORDER", "Integer", 2],
-            "yoshida_steps": ["YOSHIDA STEPS", "Integer", 4],
-            "basic_kicks": ["BASIC KICKS", "Integer", 40]
+            "yoshida_order": ["YOSHIDA ORDER", "Integer", "2"],
+            "yoshida_steps": ["YOSHIDA STEPS", "Integer", "4"],
+            "basic_kicks": ["BASIC KICKS", "Integer", "40"]
         },
         "RFCAVITY": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", 0, "length"],
-            "volt": ["VOLT [MV]", "Float", 0, "The peak electrical RF voltage"],
-            "lag": ["LAG [2π]", "Float", 0],
-            "harmon": ["HARMON", "Integer", 0, "The harmonic number h"]
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "volt": ["VOLT [MV]", "Float", "0.0", "The peak electrical RF voltage"],
+            "lag": ["LAG [2π]", "Float", "0.0"],
+            "harmon": ["HARMON", "Integer", "0.0", "The harmonic number h"]
         },
-        "SBEN": {
+        "SBEND": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", 0, "The length of the magnet. For sector bends the declared length is the arc length of the reference orbit."],
-            "angle": ["ANGLE [rad]", "Float", 0, "The bend angle. A positive bend angle represents a bend to the right, i.e. towards negative x values. Please notice that ANGLE is used to definne bend strength, K0. To define the roll angle use TILT."],
-            "tilt": ["TILT [rad]", "Float", 0, "The roll angle about the longitudinal axis (default: 0 rad, i.e. a horizontal bend). A positive angle represents a clockwise rotation. An attribute TILT=pi/2 turns a horizontal into a vertical bend, and a positive ANGLE then denotes a downwards deflection."],
-            "k1": ["K1 [1/m²]", "Float", 0, "A positive quadrupole strength implies horizontal focussing of particles, irrespective of their charge. K1 is taken into account in thick bend transfer map."],
-            "e1": ["E1 [rad]", "Float", 0, "The rotation angle for the entrance pole face."],
-            "e2": ["E2 [rad]", "Float", 0, "The rotation angle for the exit pole face"],
-            "fint": ["FINT", "Float", 0, "The fringe field integral at entrance and exit of the bend."],
-            "fintx": ["FINTX", "Float", 0, "If positive, the fringe field integral at the exit of the element, overriding FINT for the exit."],
-            "hgap": ["HGAP [m]", "Float", 0, "The half gap of the magnet."],
-            "k2": ["K2 [1/m³]", "Float", 0, "The sextupole coecient."],
-            "h1": ["H1 [1/m]", "Float", 0, "The curvature of the entrance pole face."],
-            "h2": ["H2 [1/m]", "Float", 0, "The curvature of the exit pole face."],
-            "kicks": ["KICKS", "Float", 40.0],
-            "kl": ["KL", "Float", 0, "base strength/B-rho"],
-            "a1": ["A1", "Float", 0, "skew quad"],
-            "a2": ["A2", "Float", 0, "skew sextupole"],
-            "a3": ["A3", "Float", 0, "skew octupole"],
-            "a4": ["A4", "Float", 0, "skew decapole"],
-            "a5": ["A5", "Float", 0, "skew dodecapole"],
-            "a6": ["A6", "Float", 0, "skew tetradecapole"],
-            "a7": ["A7", "Float", 0, "skew hexdecapole"],
-            "b1": ["B1", "Float", 0, "quad"],
-            "b2": ["B2", "Float", 0, "sextupole"],
-            "b3": ["B3", "Float", 0, "octopole"],
-            "b4": ["B4", "Float", 0, "decapole"],
-            "b5": ["B5", "Float", 0, "dodecapole"],
-            "b6": ["B6", "Float", 0, "tetradecapole"],
-            "b7": ["B7", "Float", 0, "hexdecapole"],
-            "entry_edge_kick": ["ENTRY EDGE KICK", "Float", 1.0],
-            "exit_edge_kick": ["EXIT EDGE KICK", "Float", 1.0],
+            "l": ["L [m]", "Float", "0.0", "The length of the magnet. For sector bends the declared length is the arc length of the reference orbit."],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The bend angle. A positive bend angle represents a bend to the right, i.e. towards negative x values. Please notice that ANGLE is used to definne bend strength, K0. To define the roll angle use TILT."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a horizontal bend). A positive angle represents a clockwise rotation. An attribute TILT=pi/2 turns a horizontal into a vertical bend, and a positive ANGLE then denotes a downwards deflection."],
+            "k1": ["K1 [1/m²]", "Float", "0.0", "A positive quadrupole strength implies horizontal focussing of particles, irrespective of their charge. K1 is taken into account in thick bend transfer map."],
+            "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the entrance pole face."],
+            "e2": ["E2 [rad]", "Float", "0.0", "The rotation angle for the exit pole face"],
+            "fint": ["FINT", "Float", "0.0", "The fringe field integral at entrance and exit of the bend."],
+            "fintx": ["FINTX", "Float", "0.0", "If positive, the fringe field integral at the exit of the element, overriding FINT for the exit."],
+            "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the magnet."],
+            "k2": ["K2 [1/m³]", "Float", "0.0", "The sextupole coecient."],
+            "h1": ["H1 [1/m]", "Float", "0.0", "The curvature of the entrance pole face."],
+            "h2": ["H2 [1/m]", "Float", "0.0", "The curvature of the exit pole face."],
+            "kicks": ["KICKS", "Float", "40.0"],
+            "kl": ["KL", "Float", "0.0", "base strength/B-rho"],
+            "a1": ["A1", "Float", "0.0", "skew quad"],
+            "a2": ["A2", "Float", "0.0", "skew sextupole"],
+            "a3": ["A3", "Float", "0.0", "skew octupole"],
+            "a4": ["A4", "Float", "0.0", "skew decapole"],
+            "a5": ["A5", "Float", "0.0", "skew dodecapole"],
+            "a6": ["A6", "Float", "0.0", "skew tetradecapole"],
+            "a7": ["A7", "Float", "0.0", "skew hexdecapole"],
+            "b1": ["B1", "Float", "0.0", "quad"],
+            "b2": ["B2", "Float", "0.0", "sextupole"],
+            "b3": ["B3", "Float", "0.0", "octopole"],
+            "b4": ["B4", "Float", "0.0", "decapole"],
+            "b5": ["B5", "Float", "0.0", "dodecapole"],
+            "b6": ["B6", "Float", "0.0", "tetradecapole"],
+            "b7": ["B7", "Float", "0.0", "hexdecapole"],
+            "entry_edge_kick": ["ENTRY EDGE KICK", "Float", "1.0"],
+            "exit_edge_kick": ["EXIT EDGE KICK", "Float", "1.0"],
             "propagator_type": ["PROPAGATOR", "Propagator", "basic"]
         }
     },
     "view": {
+        "beamEvolutionAnimation": {
+            "title": "Beam Evolution",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
         "beamline": {
             "title": "Beamline",
             "advanced": [
@@ -178,6 +291,10 @@
                 "colorMap"
             ]
         },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
         "DRIFT": {
             "title": "DRIFT",
             "description": "Drift Space",
@@ -196,8 +313,8 @@
                 "l"
             ]
         },
-        "QUAD": {
-            "title": "QUAD",
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -239,8 +356,8 @@
                 "harmon"
             ]
         },
-        "SBEN": {
-            "title": "SBEN",
+        "SBEND": {
+            "title": "SBEND",
             "description": "A sector bending magnet.",
             "fieldsPerTab": 8,
             "advanced": [
@@ -275,7 +392,7 @@
                 "b7",
                 "entry_edge_kick",
                 "exit_edge_kick",
-                "propagator"
+                "propagator_type"
             ]
         }
     }

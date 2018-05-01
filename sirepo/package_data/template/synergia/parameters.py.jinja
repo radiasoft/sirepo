@@ -1,0 +1,52 @@
+# {{simulation_name}}
+
+lattice_file = """
+beam, particle={{ bunch_particle }}, pc={{ bunch_momentum }};
+
+{{lattice}}
+"""
+
+with open('lattice.madx', 'w') as f:
+    f.write(lattice_file)
+
+
+from synergia.bunch import Diagnostics_full2, Diagnostics_particles
+from synergia.collective import Space_charge_2d_open_hockney
+from synergia.simulation import Bunch_simulator, Propagator, Split_operator_stepper_elements
+from synergia.utils import Commxx
+import synergia
+
+stepper = Split_operator_stepper_elements(
+    synergia.lattice.MadX_reader().get_lattice('machine', 'lattice.madx'),
+    1, # map_order
+    Space_charge_2d_open_hockney(
+        Commxx(True),
+        [32, 32, 32] # grid
+    ),
+    1 # num_steps
+)
+
+bunch_simulator = Bunch_simulator(
+    synergia.optics.generate_matched_bunch_transverse(
+        stepper.get_lattice_simulator(),
+        emit_x=3.9e-6, # m-rad, RMS
+        emit_y=3.9e-6, # m-rad, RMS
+        rms_z=2*.0018, # z bunch size
+        dpop=1e-3, # unitless, RMS \frac{\delta p}{p_{tot}}
+        num_real_particles=1.5e8, # real particles, used for space charge, impedance, etc
+        num_macro_particles=50000, # Used for PIC calculations
+        seed=1415926,
+        z_period_length=6.73E-02 # space between bunches
+    )
+)
+bunch_simulator.add_per_step(Diagnostics_full2("diagnostics.h5"))
+bunch_simulator.add_per_turn(Diagnostics_particles("particles.h5"), 10)
+
+Propagator(stepper).propagate(
+    bunch_simulator,
+    30, # number of turns
+    # 10, # number of turns
+    0, # max_turns, Number of turns to run before writing checkpoint and stopping
+       # When max_turns is 0, the simulation continues until the end.
+    2, # verbosity
+)

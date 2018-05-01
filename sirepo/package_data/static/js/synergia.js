@@ -4,6 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
+SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -18,6 +20,10 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
             templateUrl: '/static/html/synergia-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+        })
+        .when(localRoutes.visualization, {
+            controller: 'VisualizationController as visualization',
+            templateUrl: '/static/html/synergia-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
         });
 });
 
@@ -25,20 +31,20 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = ['MONITOR', 'RFCAVITY'];
+    self.advancedNames = [];
 
     self.basicNames = [
-        'DRIFT', 'SBEN', 'QUAD',
+        'DRIFT', 'MONITOR', 'QUADRUPOLE', 'RFCAVITY', 'SBEND',
     ];
 
     self.elementColor = {
-        QUAD: 'red',
+        QUADRUPOLE: 'red',
     };
 
     self.elementPic = {
-        bend: ['SBEN'],
+        bend: ['SBEND'],
         drift: ['DRIFT'],
-        magnet: ['QUAD'],
+        magnet: ['QUADRUPOLE'],
         rf: ['RFCAVITY'],
         watch: ['MONITOR'],
     };
@@ -50,6 +56,27 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('SynergiaSourceController', function () {
     var self = this;
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
+    var self = this;
+    self.settingsModel = 'simulationStatus';
+    self.panelState = panelState;
+
+    function handleStatus(data) {
+        if (data.startTime && ! data.error) {
+            ['beamEvolutionAnimation'].forEach(function(m) {
+                appState.models[m].startTime = data.startTime;
+                appState.saveQuietly(m);
+                frameCache.setFrameCount(data.frameCount, m);
+            });
+        }
+        frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
+        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
+    });
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
@@ -66,6 +93,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 		'<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -75,5 +103,19 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
+        controller: function($scope) {
+            $scope.hasBeamlines = function() {
+                if (! $scope.nav.isLoaded()) {
+                    return false;
+                }
+                for (var i = 0; i < appState.models.beamlines.length; i++) {
+                    var beamline = appState.models.beamlines[i];
+                    if (beamline.items.length > 0) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+        },
     };
 });

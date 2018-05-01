@@ -26,6 +26,12 @@ def run(cfg_dir):
     simulation_db.write_result(res)
 
 
+def run_background(cfg_dir):
+    with pkio.save_chdir(cfg_dir):
+        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        simulation_db.write_result({})
+
+
 def _run_bunch_report(data):
     report = data.models[data['report']]
     from synergia.bunch import Bunch, populate_6d
