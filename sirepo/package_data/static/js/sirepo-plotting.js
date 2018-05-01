@@ -843,17 +843,17 @@ SIREPO.app.service('focusPointService', function(plotting) {
             focusPoints: [],
             interface: null,
             showFocusPointInfo: function() {
-                srlog('Override showFocusPointInfo in directive for', name);
+                //srlog('Override showFocusPointInfo in directive for', name);
                 return false;
             },
             showFocusPointInfoComplete: showCompletion ? showCompletion : function() {
             },
             moveFocusPointInfo: function() {
-                srlog('Override moveFocusPointInfo in directive for', name);
+                //srlog('Override moveFocusPointInfo in directive for', name);
                 return false;
             },
             hideFocusPointInfo: function() {
-                srlog('Override hideFocusPointInfo in directive for', name);
+                //srlog('Override hideFocusPointInfo in directive for', name);
                 return false;
             },
             hideFocusPointInfoComplete: hideCompletion ? hideCompletion : function() {
@@ -1404,9 +1404,9 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                         '</g>',
                     '</g>',
                     '<g class="text-group" data-ng-repeat="fp in focusPoints">',
-                        '<text data-ng-attr-id="x-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" data-ng-attr-dy="{{ textPosition($index, 1) }}em" dx="0.5em"></text>',
-                        '<text id="y-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" data-ng-attr-dy="{{ textPosition($index, 2) }}em" dx="0.5em"></text>',
-                        '<text id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" data-ng-attr-dy="{{ textPosition($index, 3) }}em" dx="0.5em"></text>',
+                        '<text data-ng-attr-id="x-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"></text>',
+                        '<text id="y-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"></text>',
+                        '<text id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"></text>',
                     '</g>',
                 '</g>',
             '</g>',
@@ -1460,7 +1460,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
             $scope.popupWindowSize = function() {
                 return {
                     width: 175,
-                    height: 100 + 32 * ($scope.focusPoints.length - 1)
+                    height: 24 + 56 * $scope.focusPoints.length
                 };
             };
             $scope.popupTitleSize = function () {
@@ -2565,6 +2565,10 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
             }
+            function selectAll(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.selectAll(selector) : e;
+            }
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
@@ -2720,10 +2724,10 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 };
             }
             function plotPath(pIndex) {
-                return d3.select(d3.selectAll('.plot-viewport path')[0][pIndex]);
+                return d3.select(selectAll('.plot-viewport path')[0][pIndex]);
             }
             function vIcon(pIndex) {
-                return d3.select(d3.selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
+                return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
             }
             function togglePlot(pIndex) {
                 var path = plotPath(pIndex);
