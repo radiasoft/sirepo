@@ -413,7 +413,8 @@ def api_newSimulation():
     data = simulation_db.default_data(sim_type)
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
-    data['models']['simulation']['notes'] = new_simulation_data['notes']
+    if 'notes' in new_simulation_data:
+        data['models']['simulation']['notes'] = new_simulation_data['notes']
     template = sirepo.template.import_module(sim_type)
     if hasattr(template, 'new_simulation'):
         template.new_simulation(data, new_simulation_data)
