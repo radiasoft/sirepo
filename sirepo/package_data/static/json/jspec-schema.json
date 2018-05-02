@@ -105,7 +105,7 @@
             "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
         },
         "cooler": {
-            "length": ["Length [m]", "Float", 3.4, "", 1e-99],
+            "length": ["Length (lab frame) [m]", "Float", 3.4, "", 1e-99],
             "section_number": ["Number of Coolers", "Integer", 1],
             "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
             "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function", 1e-99],
