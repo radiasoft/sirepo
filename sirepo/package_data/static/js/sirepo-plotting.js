@@ -646,12 +646,13 @@ SIREPO.app.service('focusPointService', function(plotting) {
         };
     };
 
-    this.updateFocus = function(focusPoint, mouseX, mouseY) {
+    this.updateFocus = function(focusPoint, mouseX, mouseY, strategy) {
 
         // lastClickX determines if the user is panning or clicking on a point
         if (! focusPoint.config.points || Math.abs(focusPoint.data.lastClickX - d3.event[focusPoint.config.invertAxis ? 'clientY' : 'clientX']) > 10) {
             return false;
         }
+        var x = focusPoint.config.xAxisScale.invert(mouseX);
         var xMin = focusPoint.config.xAxisScale.invert(mouseX - 10);
         var xMax = focusPoint.config.xAxisScale.invert(mouseX + 10);
         if (xMin > xMax) {
@@ -668,19 +669,31 @@ SIREPO.app.service('focusPointService', function(plotting) {
         }
 
         focusPoint.data.focusIndex = -1;
-        var maxPoint;
+        var selectedPoint;
         for (var i = 0; i < focusPoint.config.points.length; i++) {
             var p = focusPoint.config.points[i];
             if (p[0] > xMax || p[0] < xMin) {
                 continue;
             }
-            if (! maxPoint || p[1] > maxPoint[1]) {
-                maxPoint = p;
-                focusPoint.data.focusIndex = i;
-                focusPoint.data.isActive = true;
+            if (! strategy || strategy == 'maximum') {
+                if (! selectedPoint || p[1] > selectedPoint[1]) {
+                    selectedPoint = p;
+                    focusPoint.data.focusIndex = i;
+                    focusPoint.data.isActive = true;
+                }
+            }
+            else if (strategy == 'closest') {
+                if (! selectedPoint || (Math.abs(p[0] - x) < Math.abs(selectedPoint[0] - x))) {
+                    selectedPoint = p;
+                    focusPoint.data.focusIndex = i;
+                    focusPoint.data.isActive = true;
+                }
+            }
+            else {
+                throw 'invalid focus point strategy: ' + strategy;
             }
         }
-        if(maxPoint) {
+        if(selectedPoint) {
             return this.updateFocusData(focusPoint);
         }
         return false;
@@ -1121,6 +1134,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
             focusPoints: '=',
             hideFocusPoints: '&',
             plotInfoDelegates: '=',
+            focusStrategy: '=',
         },
         template: [
         ].join(''),
@@ -1211,7 +1225,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                                 geometry.isMainFocus = true;
                                 geometry.mouseX = d3.mouse(this)[axisIndex];
                                 geometry.mouseY = d3.mouse(this)[1 - axisIndex];
-                                if (focusPointService.updateFocus(fp, geometry.mouseX, geometry.mouseY)) {
+                                if (focusPointService.updateFocus(fp, geometry.mouseX, geometry.mouseY, $scope.focusStrategy)) {
                                     focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, fp, 'showFocusPointInfo', [geometry]);
                                 }
                             }
@@ -1395,12 +1409,12 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
         },
         template: [
             '<g class="popup-group">',
-                '<g data-allow-transform="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
+                '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
                     '<g>',
                         '<rect class="report-window" rx="4px" ry="4px" data-ng-attr-width="{{ popupWindowSize().width }}" data-ng-attr-height="{{ popupWindowSize().height }}" x="0" y="0"></rect>',
                         '<g>',
                             '<rect class="report-window-title-bar" data-ng-attr-width="{{ popupTitleSize().width }}" data-ng-attr-height="{{ popupTitleSize().height }}" x="1" y="1"></rect>',
-                            '<text class="report-window-close close" data-ng-attr-x="{{ popupWindowSize().width }}" y="0" dy="1em" dx="-1em">&times;</text>',
+                            '<text class="report-window-close close" data-ng-attr-x="{{ popupWindowSize().width }}" y="0" dy="1em" dx="-1em">&#215;</text>',
                         '</g>',
                     '</g>',
                     '<g class="text-group" data-ng-repeat="fp in focusPoints">',
@@ -2450,6 +2464,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var ASPECT_RATIO = 4.0 / 7;
+            $scope.focusStrategy = 'closest';
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
             $scope.wantLegend = true;
             $scope.width = $scope.height = 0;
