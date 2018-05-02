@@ -193,6 +193,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.getActiveBeamline = function() {
+        if (! appState.isLoaded()) {
+            return null;
+        }
         var res = null;
         appState.models.beamlines.forEach(function(b) {
             if (b.id == self.activeBeamlineId) {
@@ -1218,6 +1221,32 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('latticeBeamlineList', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.beamlineList = function() {
+                if (! appState.isLoaded() || ! $scope.model) {
+                    return null;
+                }
+                if (! $scope.model[$scope.field]
+                    && appState.models.beamlines
+                    && appState.models.beamlines.length) {
+                    $scope.model[$scope.field] = appState.models.beamlines[0].id;
+                }
+                return appState.models.beamlines;
+            };
         },
     };
 });

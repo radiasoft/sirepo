@@ -192,7 +192,7 @@ def _generate_lattice(data, beamline_map, v):
     for bl in data['models']['beamlines']:
         if 'visualizationBeamlineId' in data['models']['simulation']:
             if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
-                v['use_beamline'] = bl['name']
+                v['use_beamline'] = bl['name'].lower()
         beamlines[bl['id']] = bl
 
     ordered_beamlines = []

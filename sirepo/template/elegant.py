@@ -925,7 +925,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                         value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif element_schema[1] == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
-                    elif element_schema[1] == 'ElegantBeamlineList':
+                    elif element_schema[1] == 'LatticeBeamlineList':
                         value = state['beamline_map'][int(value)]
                     elif element_schema[1] == 'ElegantLatticeList':
                         if value and value == 'Lattice':

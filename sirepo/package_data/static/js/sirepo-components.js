@@ -1718,9 +1718,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                         else {
                             $('#simulation-import').modal('hide');
                             $scope.zipFile = null;
-                            requestSender.localRedirect('source', {
-                                ':simulationId': data.models.simulation.simulationId,
-                            });
+                            requestSender.localRedirectHome(data.models.simulation.simulationId);
                         }
                     });
             };
@@ -1795,9 +1793,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                 appState.copySimulation(
                     simulationId(),
                     function(data) {
-                        requestSender.localRedirect('source', {
-                            ':simulationId': data.models.simulation.simulationId,
-                        });
+                        requestSender.localRedirectHome(data.models.simulation.simulationId);
                     });
             };
 
@@ -1837,15 +1833,14 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
             };
 
             $scope.openRelatedSimulation = function(item) {
+                //TODO(pjm): make this more generalized - could be an app-specific tab
                 if ($scope.nav.isActive('beamline')) {
                     requestSender.localRedirect('beamline', {
                         ':simulationId': item.simulationId,
                     });
                     return;
                 }
-                requestSender.localRedirect('source', {
-                    ':simulationId': item.simulationId,
-                });
+                requestSender.localRedirectHome(item.simulationId);
             };
 
             $scope.exportArchive = function(extension) {

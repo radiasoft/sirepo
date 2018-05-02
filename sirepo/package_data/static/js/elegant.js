@@ -15,8 +15,8 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
       '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
     '</div>',
-    '<div data-ng-switch-when="ElegantBeamlineList" data-ng-class="fieldClass">',
-      '<div data-elegant-beamline-list="" data-model="model" data-field="field"></div>',
+    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
+      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
     '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
       '<div data-elegant-lattice-list="" data-model="model" data-field="field"></div>',
@@ -929,7 +929,7 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, latticeS
                                     + (commandIndex > 1 ? commandIndex : '')
                                     + '.' + f + elegantService.commandFileExtension(model);
                             }
-                            else if (schema[f][1] == 'ElegantBeamlineList') {
+                            else if (schema[f][1] == 'LatticeBeamlineList') {
                                 var el = latticeService.elementForId(model[f]);
                                 if (el) {
                                     res += el.name;
@@ -1128,32 +1128,6 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, latticeS
             });
 
             appState.whenModelsLoaded($scope, loadCommands);
-        },
-    };
-});
-
-SIREPO.app.directive('elegantBeamlineList', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.beamlineList = function() {
-                if (! appState.isLoaded() || ! $scope.model) {
-                    return null;
-                }
-                if (! $scope.model[$scope.field]
-                    && appState.models.beamlines
-                    && appState.models.beamlines.length) {
-                    $scope.model[$scope.field] = appState.models.beamlines[0].id;
-                }
-                return appState.models.beamlines;
-            };
         },
     };
 });

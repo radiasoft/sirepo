@@ -43,6 +43,8 @@ SIREPO.appDefaultSimulationValues = {
     simFolder: {},
 };
 
+SIREPO.appHomeTab = 'source';
+
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
@@ -1321,6 +1323,12 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         $location.path(self.formatUrlLocal(routeName, params));
     };
 
+    self.localRedirectHome = function(simulationId) {
+        self.localRedirect(SIREPO.appHomeTab, {
+            ':simulationId': simulationId,
+        });
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback) {
             errorCallback = logError;
@@ -2213,7 +2221,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
 
     self.sectionURL = function(name) {
         if (! name) {
-            name = 'source';
+            name = SIREPO.appHomeTab;
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
@@ -2251,7 +2259,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
         requestSender.sendRequest(
             'copyNonSessionSimulation',
             function(data) {
-                requestSender.localRedirect($route.current.params.section || 'source', {
+                requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
                     ':simulationId': data.models.simulation.simulationId,
                 });
             },
@@ -2267,7 +2275,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.openButton = function() {
-        requestSender.localRedirect($route.current.params.section || 'source', {
+        requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
             ':simulationId': self.userCopySimulationId,
         });
     };
@@ -2490,9 +2498,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             }
         }
         else {
-            requestSender.localRedirect('source', {
-                ':simulationId': item.simulationId,
-            });
+            requestSender.localRedirectHome(item.simulationId);
         }
     };
 

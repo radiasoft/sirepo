@@ -121,6 +121,13 @@
         "Propagator": [
             ["basic", "basic"],
             ["yoshida", "yoshida"]
+        ],
+        "SpaceCharge": [
+            ["2d-bassetti_erskine", "2D Bassetti-Erskine"],
+            ["2d-open-hockney", "2D Open Hockney"],
+            ["2d-kv", "2D kv"],
+            ["3d-open-hockney", "3D Open Hockney"],
+            ["none", "None"]
         ]
     },
     "model": {
@@ -156,6 +163,14 @@
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
+        },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "simulationSettings": {
+            "steps_per_element": ["Steps Per Element", "Integer", 1, "", 1],
+            "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
+            "turn_count": ["Turn Count", "Integer", 30, "", 1]
         },
         "simulationStatus": {},
         "DRIFT": {
@@ -291,8 +306,18 @@
                 "colorMap"
             ]
         },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "space_charge",
+                "steps_per_element",
+                "turn_count"
+            ],
+            "advanced": []
+        },
         "simulationStatus": {
-            "title": "Simulation Status",
+            "title": "SimulationStatus",
             "advanced": []
         },
         "DRIFT": {
