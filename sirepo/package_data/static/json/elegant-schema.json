@@ -419,7 +419,7 @@
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "parameterTable": {
-            "file": ["File", "ValueList", ""],
+            "file": ["File", "FileValueList", ""],
             "page": ["Page", "ValueList", ""]
         },
         "rpnVariable": {

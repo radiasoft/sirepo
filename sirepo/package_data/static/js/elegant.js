@@ -48,6 +48,14 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
       '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
     '</div>',
+    '<div data-ng-switch-when="FileValueList">',
+      '<div data-ng-class="fieldClass">',
+        '<div class="input-group">',
+          '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
+            '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+        '</div>',
+      '</div>',
+    '</div>',
     '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
         '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
     '</div>',
@@ -273,6 +281,19 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
             }
         }
         return '.sdds';
+    };
+
+    self.dataFileURL = function(model, index) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': model,
+            '<frame>': index,
+        });
+
     };
 
     self.findFirstCommand = function(types, commands) {
@@ -562,13 +583,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
     self.outputFileMap = {};
-    self.auxFiles = [];
+    self.statusModel = 'simulationStatus';
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
@@ -582,18 +603,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             }
         }
         return columns[1];
-    }
-
-    function fileURL(index, model) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model || self.simState.model,
-            '<frame>': index,
-        });
     }
 
     function handleStatus(data) {
@@ -627,30 +636,25 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     function loadElementReports(outputInfo, startTime) {
         self.outputFiles = [];
         self.outputFileMap = {};
-        self.auxFiles = [];
         var animationArgs = {};
         var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
+            info.modelKey = 'elementAnimation' + info.id;
             if (info.isAuxFile) {
-                self.auxFiles.push({
-                    filename: info.filename,
-                    id: info.id,
-                });
                 return;
             }
             if (! info.columns) {
                 return;
             }
-            var modelKey = 'elementAnimation' + info.id;
-            panelState.setError(modelKey, null);
+            panelState.setError(info.modelKey, null);
             var outputFile = {
                 info: info,
                 reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
-                    modelKey: modelKey,
+                    modelKey: info.modelKey,
                 },
             };
             self.outputFiles.push(outputFile);
@@ -740,11 +744,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         $('.model-' + modelName + '-' + field).closest('.form-group').show();
     }
 
-    self.downloadFileUrl = function(item) {
-        var modelKey = 'elementAnimation' + item.id;
-        return fileURL(1, modelKey);
-    };
-
     self.handleModalShown = function(name, modelKey) {
         self.outputFiles.forEach(function(info) {
             if (info.modelAccess.modelKey == modelKey) {
@@ -768,7 +767,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     };
 
     self.logFileURL = function() {
-        return fileURL(-1);
+        return elegantService.dataFileURL(self.simState.model, -1);
     };
 
     self.startSimulation = function() {
@@ -1544,6 +1543,26 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
     };
 });
 
+SIREPO.app.directive('fileValueButton', function(elegantService) {
+    return {
+        controller: function($scope) {
+            $scope.fileDownloadURL = function(model) {
+                var search = model.file;
+                var modelKey;
+                model.valueList.file.forEach(function(filename, index) {
+                    if (search == filename) {
+                        modelKey = model.valueList.modelKey[index];
+                    }
+                });
+                if (modelKey) {
+                    return elegantService.dataFileURL(modelKey, 0);
+                }
+                return '';
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('inputFileXY', function() {
     return {
         restrict: 'A',
@@ -1974,10 +1993,13 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     return;
                 }
                 var files = [];
+                var modelKeys = [];
                 $scope.outputInfo.forEach(function (v) {
                     files.push(v.filename);
+                    modelKeys.push(v.modelKey);
                 });
                 appState.models.parameterTable.valueList.file = files;
+                appState.models.parameterTable.valueList.modelKey = modelKeys;
                 fileChanged();
             }
 
@@ -2032,7 +2054,6 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             }
 
             $scope.outputInfo = null;
-            $scope.appState = appState;
             appState.whenModelsLoaded($scope, modelsLoaded);
             $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
             appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
