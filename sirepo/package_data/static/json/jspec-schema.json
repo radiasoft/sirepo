@@ -199,7 +199,8 @@
             "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
             "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
             "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
-        }
+        },
+        "simulationStatus": {}
     },
     "view": {
         "beamEvolutionAnimation": {
@@ -377,6 +378,10 @@
             ],
             "advanced": [
             ]
+        },
+        "simulationStatus": {
+            "title": "SimulationStatus",
+            "advanced": []
         }
     }
 }
