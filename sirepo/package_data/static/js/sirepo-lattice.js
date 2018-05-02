@@ -3,10 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
-
 SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, utilities, validationService, $rootScope) {
     var self = {};
     self.activeBeamlineId = null;
@@ -297,36 +293,39 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         $('#elegant-rpn-variables').modal('show');
     };
 
-    appState.whenModelsLoaded($rootScope, function() {
-        self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-        //TODO(pjm): only required for when viewing after import
-        // force update to bunch from command.bunched_beam
-        appState.saveChanges('commands');
-    });
+    //TODO(pjm): listeners should only be added for apps which have an "elegant" style beamline, need a better test
+    if (SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
+        appState.whenModelsLoaded($rootScope, function() {
+            self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
+            //TODO(pjm): only required for when viewing after import
+            // force update to bunch from command.bunched_beam
+            appState.saveChanges('commands');
+        });
 
-    $rootScope.$on('modelChanged', function(e, name) {
-        if (name == 'beamline') {
-            fixModelName(name);
-            var id = appState.models.beamline.id;
-            updateModels('beamline', 'id', 'beamlines', sortBeamlines);
-            self.editBeamline({ id: id });
-        }
-        if (isElementModel(name)) {
-            fixModelName(name);
-            updateModels(name, '_id', 'elements', sortElements);
-        }
-    });
+        $rootScope.$on('modelChanged', function(e, name) {
+            if (name == 'beamline') {
+                fixModelName(name);
+                var id = appState.models.beamline.id;
+                updateModels('beamline', 'id', 'beamlines', sortBeamlines);
+                self.editBeamline({ id: id });
+            }
+            if (isElementModel(name)) {
+                fixModelName(name);
+                updateModels(name, '_id', 'elements', sortElements);
+            }
+        });
 
-    $rootScope.$on('cancelChanges', function(e, name) {
-        if (name == 'beamline') {
-            appState.removeModel(name);
-            appState.cancelChanges('beamlines');
-        }
-        else if (isElementModel(name)) {
-            appState.removeModel(name);
-            appState.cancelChanges('elements');
-        }
-    });
+        $rootScope.$on('cancelChanges', function(e, name) {
+            if (name == 'beamline') {
+                appState.removeModel(name);
+                appState.cancelChanges('beamlines');
+            }
+            else if (isElementModel(name)) {
+                appState.removeModel(name);
+                appState.cancelChanges('elements');
+            }
+        });
+    }
 
     return self;
 });

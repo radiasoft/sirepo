@@ -8,6 +8,9 @@ SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
 SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
 SIREPO.appLocalRoutes.control = '/control/:simulationId';
 SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+].join('');
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
 //TODO(pjm): provide API for this, keyed by field type

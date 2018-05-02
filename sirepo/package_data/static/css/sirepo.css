@@ -74,6 +74,27 @@
     .sr-disabled-text {
         color: #aaa;
     }
+    .navbar-default .navbar-nav>li>a.sr-disabled-link {
+        color:#aaa;
+        cursor: not-allowed;
+    }
+    .sr-user-item {
+        color: #008a00;
+    }
+    .sr-example-item {
+        font-size: 14px;
+        position: absolute;
+    }
+    .sr-example-sim {
+        left: 4.4em;
+        top: 2em;
+    }
+    .sr-example-folder {
+        color: white;
+        left: 4.5em;
+        top: 2em;
+    }
+
 
     /* app styles */
     .srw-toolbar-button {
@@ -81,11 +102,13 @@
         display: inline-block;
         border: 1px solid #ccc;
         border-radius: 4px;
-        padding: 6px 12px;
+        padding: 6px 3px;
         margin: 2px;
     }
     .srw-toolbar-button.dragging {
-      opacity: 0.7;
+      opacity: 0.8;
+      /* required for chrome and safari to show element on top */
+      position: relative;
     }
     .srw-toolbar-button, .srw-beamline-element {
         -moz-user-select: -moz-none;
@@ -130,7 +153,7 @@
       display: inline-block;
       background-color: #fff;
       position: relative;
-      padding: 5px;
+      padding-bottom: 5px;
       padding-top: 10px;
       border: 1px solid #fff;
       margin-bottom: 5px;
@@ -145,7 +168,7 @@
       margin-left: 2px;
     }
     .srw-beamline-element.dragging {
-      opacity: 0.7;
+      opacity: 0.8;
     }
     .srw-beamline-image {
       min-width: 80px;
@@ -158,8 +181,8 @@
     .srw-beamline-badge {
       position: absolute;
       top: -24px;
-      left: 0;
-      right: 0;
+      left: -5px;
+      right: -5px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -222,18 +245,18 @@
     }
     .srw-drop-between-zone {
       display: inline-block;
-      padding: 5px;
       width: 20px;
       height: 107px;
-      margin:0;
+      margin: 0;
       background-color: #fff;
       vertical-align: top;
+      transition: width 0.5s ease 0s;
     }
     .srw-drop-between-zone.drag-enter {
       opacity: 1;
       background: blue;
-      width: 40px;
-      transition: all 0.5s ease 0s;
+      width: 40px !important;
+      transition: width 0.5s ease 0s;
     }
 
 
@@ -514,12 +537,6 @@
       font-size: 14px;
       fill: steelblue;
     }
-    .plot-0 {
-        stroke: steelblue;
-    }
-    .plot-1 {
-        stroke: green;
-    }
 
     .sr-plot rect.mouse-zoom, .sr-plot svg.mouse-zoom {
       cursor: zoom-in;
@@ -580,6 +597,10 @@
     .sr-plot .popup-group .report-window-close {
         fill: #222;
         cursor: pointer;
+    }
+    .sr-plot .plot-visibility {
+        cursor: pointer;
+        font-size: 16px;
     }
 
     @media (max-width: 767px) {
@@ -851,7 +872,11 @@ ul.sr-nav-sidebar-root {
 .sr-transparent-icon:hover {
   text-shadow: 1px 0px 0 #23527c, -1px 0px 0 #23527c, 0px 1px 0 #23527c, 0px -1px 0 #23527c;
 }
-.sr-item-text {
+.sr-transparent-icon-user {
+  color: #f8f8f8;
+  text-shadow: 1px 0px 0 #008a00, -1px 0px 0 #008a00, 0px 1px 0 #008a00, 0px -1px 0 #008a00;
+}
+    .sr-item-text {
   display: inline-block;
   max-height: 60px;
   overflow: hidden;
