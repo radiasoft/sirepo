@@ -25,7 +25,10 @@ def run(cfg_dir):
     for line in text.split("\n"):
         m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
         if m:
-            res['rate'].append([m.group(1), [m.group(2), m.group(3), m.group(4)]])
+            row = [m.group(1), [m.group(2), m.group(3), m.group(4)]]
+            row[0] = re.sub('\(', '[', row[0]);
+            row[0] = re.sub('\)', ']', row[0]);
+            res['rate'].append(row)
     simulation_db.write_result(res)
 
 
