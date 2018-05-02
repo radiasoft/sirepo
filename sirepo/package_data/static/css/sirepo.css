@@ -960,6 +960,9 @@ li.sr-model-list-item > a {
 .elegant-hover .elegant-beamline-close-icon:hover {
     color: #000;
 }
+.elegant-download-button {
+  background-color: white;
+}
 
 .sr-count {
   font-size: 10px;

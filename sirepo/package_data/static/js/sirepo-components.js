@@ -1335,6 +1335,28 @@ SIREPO.app.directive('numberToString', function() {
     };
 });
 
+SIREPO.app.directive('simpleHeading', function(panelState) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            simpleHeading: '@',
+            modelKey: '=',
+        },
+        template: [
+            '<span class="sr-panel-heading">{{ simpleHeading }}</span>',
+            '<div class="sr-panel-options pull-right">',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a> ',
+              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>',
+            '</div>',
+            '<div class="sr-panel-options pull-right" data-ng-transclude="" ></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.panelState = panelState;
+        },
+    };
+});
+
 SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
     return {
         restrict: 'A',
@@ -1344,8 +1366,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             allowFullScreen: '@',
         },
         template: [
-            '<span class="sr-panel-heading">{{ panelHeading }}</span>',
-            '<div class="sr-panel-options pull-right">',
+            '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
               '<a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
               '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
@@ -1360,15 +1381,12 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 '</ul>',
               '</div>',
               //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="sr-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a> ',
-              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             // modelKey may not exist in viewInfo, assume it has an editor in that case
             $scope.hasEditor = appState.viewInfo($scope.modelKey)
                 && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
-            $scope.panelState = panelState;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {

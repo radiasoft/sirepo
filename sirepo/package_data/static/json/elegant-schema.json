@@ -419,7 +419,7 @@
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "parameterTable": {
-            "file": ["File", "ValueList", ""],
+            "file": ["File", "FileValueList", ""],
             "page": ["Page", "ValueList", ""]
         },
         "rpnVariable": {
@@ -670,7 +670,7 @@
             "s_end": ["S End", "RPNValue", "1.7976931348623158e+308", ""],
             "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element names in selecting scattering sites."],
             "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element types in selecting scattering sites."],
-            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]  
+            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]
         },
         "command_error_control": {
             "clear_error_settings": ["Clear Error Settings", "RPNBoolean", "1", "Clear all previous error settings."],
@@ -776,7 +776,7 @@
             "s_end": ["S End", "RPNValue", "1.7976931348623158e+308", ""],
             "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element names in selecting scattering sites."],
             "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "Wildcard-containing string to match to element types in selecting scattering sites."],
-            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]  
+            "verbosity": ["Verbosity", "Integer", "1", "Higher values may result in more verbose informational output."]
         },
         "command_insert_elements": {
             "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
@@ -813,7 +813,7 @@
             "beam_output_all_locations": ["Beam Output All Locations", "RPNBoolean", "0", "If nonzero, beam_output includes data at the location of all IONEFFECTS elements."],
             "ion_density_output": ["Ion Density Output", "OutputFile", "", "Possibly incomplete name of an SDDS file to which ion density data will be written."],
             "ion_output_all_locations": ["Ion Output All Locations", "RPNBoolean", "1", "If nonzero, ion_density_output includes data at the location of all IONEFFECTS elements."],
-            "ion_species_output": ["Ion Species Output", "RPNBoolean", "0", ""], 
+            "ion_species_output": ["Ion Species Output", "RPNBoolean", "0", ""],
             "macro_ions": ["Macro Ions", "Integer", "0", "The number of macro ions to generate per bunch on each turn for which generation is done. The macro ion charge is adjusted according to the cross section and bunch charge. May be overriden by the MACRO_IONS parameter on individual IONEFFECTS elements."],
             "generation_interval": ["Generation Interval", "Integer", "1", "The number of bunches between generation of ions. The macro ion charge is adjusted to account for this, so the effective ion charge after many turns is the same. May be overridden with the GENERATION_INTERVAL parameter on individual IONEFFECTS elements. The actual condition for generation of ions is such that the generating bunches vary on each turn. This can be used to effectively reduce macro_ions below 1, to prevent generation of too many macro ions."],
             "x_span": ["X Span", "RPNValue", "0", "The transverse half-extent, in meters, of the region within which ions are modeled. Ions moving outside this region are considered lost. May be overriden by the X_SPAN and Y_SPAN parameters on individual IONEFFECTS elements."],
@@ -2016,7 +2016,7 @@
             "lerad": ["LERAD", "RPNValue", "0.0", "if L=0, use this length for radiation computations"],
             "steering_multipoles": ["STEERING MULTIPOLES", "InputFile", "", "input file for systematic multipole content of steering kicks"],
             "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multipoles content of steering kicks"],
-            
+
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "FLOOR": {
@@ -7672,7 +7672,7 @@
 	        "group"
             ]
         },
-        
+
         "SREFFECTS": {
             "title": "SREFFECTS",
             "description": "Lumped simulation of synchrotron radiation effects (damping andquantum excitation) for rings.",
