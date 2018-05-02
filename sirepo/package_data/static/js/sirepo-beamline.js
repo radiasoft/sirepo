@@ -204,7 +204,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                   '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
                     'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
-                  '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
+                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
                 '</div>',
             '</div>',
             '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
@@ -220,6 +220,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
+            $scope.dropBetweenWidth = 20;
 
             function addItem(item) {
                 var newItem = appState.clone(item);
@@ -257,6 +258,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 }
             };
             $scope.getBeamline = function() {
+                if (appState.models.beamline) {
+                    $scope.dropBetweenWidth = appState.models.beamline.length > 8 ? 10 : 20;
+                }
                 return appState.models.beamline;
             };
             $scope.dropBetween = function(index, data) {
