@@ -16,14 +16,20 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data['report'] == 'bunchReport':
-        res = _run_bunch_report(data)
+        try:
+            with pkio.save_chdir(cfg_dir):
+                exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+                # bunch variable comes from parameter file exec() above
+            res = _run_bunch_report(data, bunch)
+        except Exception as e:
+            res = {
+                'error': str(e),
+            }
+        simulation_db.write_result(res)
     else:
         raise RuntimeError('unknown report: {}'.format(data['report']))
-    simulation_db.write_result(res)
 
 
 def run_background(cfg_dir):
@@ -32,30 +38,8 @@ def run_background(cfg_dir):
         simulation_db.write_result({})
 
 
-def _run_bunch_report(data):
+def _run_bunch_report(data, bunch):
     report = data.models[data['report']]
-    from synergia.bunch import Bunch, populate_6d
-    from synergia.foundation import Four_momentum, Reference_particle, Random_distribution, pconstants
-    from synergia.utils import Commxx
-    import numpy as np
-
-    fm = Four_momentum(pconstants.mp)
-    fm.set_momentum(0.0685)
-    ref = Reference_particle(pconstants.proton_charge, fm)
-    comm = Commxx()
-    bunch = Bunch(ref, 50000, 1.5e+8, comm)
-    bunch.set_z_period_length(0.0673)
-    means = np.array([0, 0, 0, 0, 0, 0])
-    covariance_matrix = np.array([
-        [3.33389840e-06, 1.98159549e-19, 0, 0, 0, 0],
-        [1.98159549e-19, 4.56222662e-06, 0, 0, 0, 0],
-        [0, 0, 4.33096069e-06, -6.34828466e-20, 0, 0],
-        [0, 0, -6.34828466e-20, 3.51192289e-06, 0, 0],
-        [0, 0, 0, 0, 2.44449997e-03, 0],
-        [0, 0, 0, 0, 0, 1.00000000e-06],
-    ])
-    dist = Random_distribution(1415926, comm)
-    populate_6d(dist, bunch, means, covariance_matrix)
     particles = bunch.get_local_particles()
     x = particles[:, getattr(bunch, report['x'])]
     y = particles[:, getattr(bunch, report['y'])]

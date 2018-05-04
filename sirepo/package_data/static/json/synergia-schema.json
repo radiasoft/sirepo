@@ -1,5 +1,9 @@
 {
     "enum": {
+        "BeamCharge": [
+            ["1", "1"],
+            ["-1", "-1"]
+        ],
         "BeamColumn": [
             ["xemit", "x emittance"],
             ["xmean", "x mean"],
@@ -48,6 +52,11 @@
             ["zzpmom2", "z zp second moments"],
             ["zpmean", "zp mean"],
             ["zpstd", "zp standard deviation"]
+        ],
+        "BeamDefinition": [
+            ["energy", "From Energy"],
+            ["momentum", "From Momentum"],
+            ["gamma", "From Gamma"]
         ],
         "BeamOptionalColumn": [
             ["xemit", "x emittance"],
@@ -144,18 +153,19 @@
         "bunch": {
             "particle": ["Particle", "Particle", "proton"],
             "mass": ["Mass [GeV]", "Float"],
-            "charge": ["Charge [C]", "Integer", 1],
-            "energy": ["Energy [GeV]", "Float", 1.0],
-            "momentum": ["Momentum [GeV]", "Float"],
+            "charge": ["Charge [C]", "BeamCharge", 1],
+            "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
+            "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
+            "momentum": ["Momentum [GeV]", "Float", 0.0, "", 0.0000001],
             "gamma": ["Gamma", "Float", 1.0, "", 1.0],
             "beta": ["Beta", "Float", 0.0, "", 0.0, 1.0],
-            "emit_x": ["Horizontal Emittance [m-rad]", "Float"],
-            "emit_y": ["Vertical Emittance [m-rad]", "Float"],
-            "rms_z": ["Longitudinal Bunch Size [m]", "Float"],
+            "emit_x": ["Horizontal Emittance [mm-mrad]", "Float"],
+            "emit_y": ["Vertical Emittance [mm-mrad]", "Float"],
+            "rms_z": ["Longitudinal Bunch Size [mm]", "Float"],
             "dpop": ["Delta-p/p spread", "Float"],
-            "num_real_particles": ["Number of Real Particles", "Float"],
-            "num_macro_particles": ["Number of Macro Particles", "Float"],
-            "seed": ["Pseudorandom Number Generator Seed", "Float"],
+            "num_real_particles": ["Number of Real Particles", "Float", 1.5e8, "Real particles, used for space charge, impedance, etc."],
+            "num_macro_particles": ["Number of Macro Particles", "Float", 5e5, "Used for PIC calculations"],
+            "seed": ["Pseudorandom Number Generator Seed", "Float", 1, "", 0],
             "z_period_length": ["Space Between Bunches", "Float", 0.0]
         },
         "bunchReport": {
@@ -273,21 +283,29 @@
         "bunch": {
             "title": "Bunch",
             "basic": [
-                "particle",
-                "mass",
-                "charge",
-                "energy",
-                "momentum",
-                "gamma",
-                "beta",
-                "emit_x",
-                "emit_y",
-                "rms_z",
-                "dpop",
-                "num_real_particles",
-                "num_macro_particles",
-                "seed",
-                "z_period_length"
+                ["Main", [
+                    "simulation.visualizationBeamlineId",
+                    "particle",
+                    "mass",
+                    "charge",
+                    "beam_definition",
+                    "energy",
+                    "momentum",
+                    "gamma",
+                    "beta",
+                    "z_period_length"
+                ]],
+                ["Emittance", [
+                    "emit_x",
+                    "emit_y",
+                    "rms_z",
+                    "dpop"
+                ]],
+                ["Particle Count", [
+                    "num_real_particles",
+                    "num_macro_particles",
+                    "seed"
+                ]]
             ],
             "advanced": []
         },

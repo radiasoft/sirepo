@@ -53,13 +53,79 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation']:
-        data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    for m in ['beamEvolutionAnimation', 'simulationSettings']:
+        if m not in data['models']:
+            data['models'][m] = {}
+            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_application_data(data):
+    if data['method'] == 'get_particle_info':
+        return _calc_particle_info(data['particle'])
+    if data['method'] == 'calculate_bunch_parameters':
+        return _calc_bunch_parameters(data['bunch'])
+
+
+def _calc_bunch_parameters(bunch):
+    from synergia.foundation import Four_momentum
+    bunch_def = bunch['beam_definition']
+    mom = Four_momentum(bunch['mass'])
+    try:
+        if bunch_def == 'energy':
+            mom.set_total_energy(bunch['energy'])
+        elif bunch_def == 'momentum':
+            mom.set_momentum(bunch['momentum'])
+        elif bunch_def == 'gamma':
+            mom.set_gamma(bunch['gamma'])
+        else:
+            assert False, 'invalid bunch def: {}'.format(bunch_def)
+        bunch['gamma'] = _format_float(mom.get_gamma())
+        bunch['energy'] = _format_float(mom.get_total_energy())
+        bunch['momentum'] = _format_float(mom.get_momentum())
+        bunch['beta'] = _format_float(mom.get_beta())
+    except Exception as e:
+        bunch[bunch_def] = ''
+    return {
+        'bunch': bunch,
+    }
+
+
+def _format_float(v):
+    return float(format(v, '.10f'))
+
+
+def _calc_particle_info(particle):
+    from synergia.foundation import pconstants
+    mass = 0
+    charge = 0
+    if particle == 'proton':
+        mass = pconstants.mp
+        charge = pconstants.proton_charge
+    elif particle == 'antiproton':
+        mass = pconstants.mp
+        charge = pconstants.antiproton_charge
+    elif particle == 'electron':
+        mass = pconstants.me
+        charge = pconstants.electron_charge
+    elif particle == 'positron':
+        mass = pconstants.me
+        charge = pconstants.positron_charge
+    elif particle == 'negmuon':
+        mass = pconstants.mmu
+        charge = pconstants.muon_charge
+    elif particle == 'posmuon':
+        mass = pconstants.mmu
+        charge = pconstants.antimuon_charge
+    else:
+        assert False, 'unknown particle: {}'.format(particle)
+    return {
+        'mass': mass,
+        'charge': str(charge),
+    }
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -86,6 +152,7 @@ def models_related_to_report(data):
     if r == 'animation':
         return []
     return [
+        'simulation.visualizationBeamlineId',
         'bunch',
         r,
     ]
@@ -227,7 +294,11 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
-    return template_common.render_jinja(SIM_TYPE, v)
+    template_name = 'parameters'
+    if 'report' in data and data['report'] == 'bunchReport':
+        template_name = 'bunch'
+    return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
+        + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
 
 
 #TODO(pjm): from template.elegant

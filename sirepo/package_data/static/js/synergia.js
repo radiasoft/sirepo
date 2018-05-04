@@ -62,8 +62,70 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('SynergiaSourceController', function () {
+SIREPO.app.controller('SynergiaSourceController', function (appState, panelState, requestSender, $scope) {
     var self = this;
+
+    function processBunchFields() {
+        var bunch = appState.models.bunch;
+        panelState.enableField('bunch', 'beta', false);
+        var def = bunch.beam_definition;
+        panelState.enableField('bunch', 'energy', def == 'energy');
+        panelState.enableField('bunch', 'momentum', def == 'momentum');
+        panelState.enableField('bunch', 'gamma', def == 'gamma');
+        ['mass', 'charge'].forEach(function(f) {
+            panelState.enableField('bunch', f, bunch.particle == 'other');
+        });
+    }
+
+    function processBeamDefinition() {
+        processBunchFields();
+        processBeamParameter();
+    }
+
+    function processBeamParameter() {
+        requestSender.getApplicationData(
+            {
+                method: 'calculate_bunch_parameters',
+                bunch: appState.clone(appState.models.bunch),
+            },
+            function(data) {
+                if (data.bunch && appState.isLoaded()) {
+                    appState.models.bunch = data.bunch;
+                }
+            });
+    }
+
+    function processParticle() {
+        var bunch = appState.models.bunch;
+        processBunchFields();
+        if (bunch.particle != 'other') {
+            requestSender.getApplicationData(
+                {
+                    method: 'get_particle_info',
+                    particle: bunch.particle,
+                },
+                function(data) {
+                    if (appState.isLoaded()) {
+                        bunch.mass = data.mass;
+                        bunch.charge = data.charge;
+                    }
+                });
+        }
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'bunch') {
+            processBeamDefinition();
+        }
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        processBeamDefinition();
+        processParticle();
+        appState.watchModelFields($scope, ['bunch.beam_definition'], processBeamDefinition);
+        appState.watchModelFields($scope, ['bunch.particle'], processParticle);
+        appState.watchModelFields($scope, ['bunch.mass', 'bunch.energy', 'bunch.momentum', 'bunch.gamma'], processBeamParameter);
+    });
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {

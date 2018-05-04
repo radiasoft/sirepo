@@ -325,6 +325,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
                 appState.cancelChanges('elements');
             }
         });
+
+        $rootScope.$on('modelsUnloaded', function() {
+            self.activeBeamlineId = null;
+        });
     }
 
     return self;
@@ -1145,7 +1149,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 //TODO(pjm): call stopPropagation() on item double-click instead, would allow double-click zoom on empty space
                 select('svg').call(zoom)
                     .on('dblclick.zoom', null);
-                loadItemsFromBeamline();
+                $scope.resize();
             };
 
             $scope.itemClicked = function(item) {
@@ -1193,29 +1197,33 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
             };
 
-            $scope.$on('modelChanged', function(e, name) {
-                if (name == 'beamlines') {
-                    loadItemsFromBeamline();
-                }
-                if (name == 'rpnVariables') {
-                    loadItemsFromBeamline(true);
-                }
-                if (appState.models[name] && appState.models[name]._id) {
-                    if (beamlineItems.indexOf(appState.models[name]._id) >= 0) {
+            appState.whenModelsLoaded($scope, function() {
+                loadItemsFromBeamline();
+
+                $scope.$on('modelChanged', function(e, name) {
+                    if (name == 'beamlines') {
+                        loadItemsFromBeamline();
+                    }
+                    if (name == 'rpnVariables') {
                         loadItemsFromBeamline(true);
                     }
-                }
-            });
+                    if (appState.models[name] && appState.models[name]._id) {
+                        if (beamlineItems.indexOf(appState.models[name]._id) >= 0) {
+                            loadItemsFromBeamline(true);
+                        }
+                    }
+                });
 
-            $scope.$on('cancelChanges', function(e, name) {
-                if (name == 'elements') {
-                    loadItemsFromBeamline(true);
-                }
-            });
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (name == 'elements') {
+                        loadItemsFromBeamline(true);
+                    }
+                });
 
-            $scope.$on('activeBeamlineChanged', function() {
-                loadItemsFromBeamline();
-                resetZoomAndPan();
+                $scope.$on('activeBeamlineChanged', function() {
+                    loadItemsFromBeamline();
+                    resetZoomAndPan();
+                });
             });
         },
         link: function link(scope, element) {
