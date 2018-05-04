@@ -1914,22 +1914,6 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     })
 
 
-def _report_fields(data, report_name):
-    # if the model has "style" fields, then return the full list of non-style fields
-    # otherwise returns the report name (which implies all model fields)
-    m = data.models[report_name]
-    for style_field in _REPORT_STYLE_FIELDS:
-        if style_field not in m:
-            continue
-        res = []
-        for f in m:
-            if f in _REPORT_STYLE_FIELDS:
-                continue
-            res.append('{}.{}'.format(report_name, f))
-        return res
-    return [report_name]
-
-
 def _save_user_model_list(model_name, beam_list):
     pkdc('saving {} list', model_name)
     filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
