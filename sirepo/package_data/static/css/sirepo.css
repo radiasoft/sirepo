@@ -601,7 +601,13 @@
     .sr-plot .popup-group .report-window-close {
         fill: #222;
         cursor: pointer;
+        user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -webkit-user-select: none;
     }
+
+
     .sr-plot .plot-visibility {
         cursor: pointer;
         font-size: 16px;
