@@ -2333,7 +2333,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 var y0 = axes.y.scale.invert(point[1] - 1);
                 var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
-                pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                try {
+                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                }
+                catch (err) {
+                    // ignore range errors due to mouse move after heatmap is reset
+                }
             }, 100);
 
             function refresh() {
