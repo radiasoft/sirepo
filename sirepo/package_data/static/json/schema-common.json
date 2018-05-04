@@ -86,24 +86,27 @@
         "simFolder": {
             "title": "New Folder",
             "advanced": [
-                "name"
+                "name",
+                "parent"
             ]
         },
         "simulation": {
             "title": "Simulation",
             "advanced": [
                 "name",
+                "folder",
                 "notes"
             ]
         }
     },
     "commonModels": {
         "simFolder": {
-            "name": ["Folder Name", "SafePath"]
+            "name": ["Folder Name", "SafePath"],
+            "parent": ["Parent Folder", "UserFolder"]
         },
         "simulation": {
             "name": ["Name", "SimulationName"],
-            "folder": ["Folder", "String"],
+            "folder": ["Folder", "UserFolder"],
             "documentationUrl": ["Documentation URL", "OptionalString", ""],
             "notes": ["Notes", "Text", ""]
         }

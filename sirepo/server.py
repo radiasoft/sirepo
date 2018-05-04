@@ -133,6 +133,7 @@ def api_copySimulation():
     req = _json_input()
     sim_type = req['simulationType']
     name = req['name'] if 'name' in req else None
+    folder = req['folder'] if 'folder' in req else '/'
     data = simulation_db.read_simulation_json(sim_type, sid=req['simulationId'])
     if not name:
         base_name = data['models']['simulation']['name']
@@ -145,6 +146,7 @@ def api_copySimulation():
                 continue
             break
     data['models']['simulation']['name'] = name
+    data['models']['simulation']['folder'] = folder
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(data)
