@@ -114,8 +114,7 @@ def models_related_to_report(data):
         list: Named models, model fields or values (dict, list) that affect report
     """
     r = data['report']
-    res = [
-        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'bendingMagnet',
         'electronBeam',
         'geometricSource',

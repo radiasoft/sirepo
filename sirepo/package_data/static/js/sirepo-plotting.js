@@ -2300,7 +2300,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             var aspectRatio = 1.0;
             var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
             var cacheCanvas, imageData;
-            var colorbar, colorbarFormat;
+            var colorbar;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
@@ -2308,8 +2308,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             var colorRange = plotting.createColorRange();
 
             function colorbarSize() {
+                var tickFormat = colorbar.tickFormat();
+                if (! tickFormat) {
+                    return 0;
+                }
                 var maxLength = colorbar.scale().ticks().reduce(function(size, v) {
-                    return Math.max(size, colorbarFormat(v).length);
+                    return Math.max(size, tickFormat(v).length);
                 }, 0);
                 var textSize = Math.max(25, maxLength * 12);
                 var res = textSize + colorbar.thickness() + colorbar.margin().left;
@@ -2333,7 +2337,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 var y0 = axes.y.scale.invert(point[1] - 1);
                 var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
-                pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                try {
+                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                }
+                catch (err) {
+                    // ignore range errors due to mouse move after heatmap is reset
+                }
             }, 100);
 
             function refresh() {
@@ -2346,7 +2355,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                     $scope.canvasSize.height = width * aspectRatio;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
-                    $scope.margin.right = colorbarSize();
                 }
                 if (plotting.trimDomain(axes.x.scale, getRange(axes.x.values))
                     + plotting.trimDomain(axes.y.scale, getRange(axes.y.values))) {
@@ -2366,6 +2374,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                     // must remove the element to reset the margins
                     select('svg.colorbar').remove();
                     pointer = select('.colorbar').call(colorbar);
+                    $scope.margin.right = colorbarSize();
                 }
             }
 
@@ -2379,6 +2388,8 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }
 
             function setColorScale() {
+                //TODO(pjm): ema disabled - need a better way to handle range changes between animation frames
+                colorRange.resetEMA();
                 colorRange.setRange(plotting.min2d(heatmap), plotting.max2d(heatmap));
                 var colorScale = plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
@@ -2408,7 +2419,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 });
                 ctx = canvas.getContext('2d');
                 cacheCanvas = document.createElement('canvas');
-                colorbarFormat = d3.format('s');
                 colorbar = Colorbar()
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
                     .thickness(30)

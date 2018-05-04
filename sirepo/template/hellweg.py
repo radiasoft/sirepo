@@ -211,8 +211,7 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    res = [
-        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'beam',
         'ellipticalDistribution',
         'energyPhaseDistribution',
