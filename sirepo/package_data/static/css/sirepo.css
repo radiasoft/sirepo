@@ -420,6 +420,10 @@
     .sr-hide-report {
       opacity: 0;
     }
+    .sr-panel-active {
+        border-width: 2px;
+        border-color: green;
+    }
 
     /* plot styles */
     .sr-plot .axis text {
