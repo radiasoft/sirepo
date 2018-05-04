@@ -112,16 +112,6 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
             main.apply_selection(f, data_list, select, particle_type, ())
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
-    if len(data_list[0]) < 2:
-        return {
-            'x_range': [0, 1e-6, 2],
-            'y_range': [0, 1e-6, 2],
-            'x_label': '{}{}'.format(xarg, xunits),
-            'y_label': '{}{}'.format(yarg, yunits),
-            'title': 't = {}'.format(_iteration_title(opmd, data_file)),
-            'z_matrix': [[0, 0], [0, 0]],
-            'frameCount': data_file.num_frames,
-        }
     if len(xarg) == 1:
         data_list[0] /= 1e6
     if len(yarg) == 1:
@@ -130,7 +120,12 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
     if xarg == 'z':
         data_list = _adjust_z_width(data_list, data_file)
 
-    hist, edges = numpy.histogramdd([data_list[0], data_list[1]], template_common.histogram_bins(nbins), weights=data_list[2])
+    hist, edges = numpy.histogramdd(
+        [data_list[0], data_list[1]],
+        template_common.histogram_bins(nbins),
+        weights=data_list[2],
+        range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
+    )
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -469,3 +464,11 @@ def _particle_selection_args(args):
                 continue
             res[field] = [min, max]
     return res if len(res.keys()) else None
+
+
+def _select_range(values, arg, select):
+    if select and arg in select:
+        if arg in ('x', 'y', 'z'):
+            return [select[arg][0] / 1e6, select[arg][1] / 1e6]
+        return select[arg]
+    return [min(values), max(values)]

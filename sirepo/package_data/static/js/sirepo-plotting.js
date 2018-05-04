@@ -2379,6 +2379,8 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }
 
             function setColorScale() {
+                //TODO(pjm): ema disabled - need a better way to handle range changes between animation frames
+                colorRange.resetEMA();
                 colorRange.setRange(plotting.min2d(heatmap), plotting.max2d(heatmap));
                 var colorScale = plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
