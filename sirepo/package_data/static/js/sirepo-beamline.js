@@ -201,11 +201,11 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)"> </div>',
                   '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
                     'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
-                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
+                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)"> </div>',
                 '</div>',
             '</div>',
             '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
@@ -257,7 +257,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 var container = $('.srw-beamline-container');
                 // adds special class which formats beamline for printing
                 container.addClass('srw-beamline-container-png');
-                domtoimage.toBlob($('.srw-beamline-container')[0])
+                domtoimage.toBlob(container[0])
                     .then(function(blob) {
                         container.removeClass('srw-beamline-container-png');
                         window.saveAs(blob, panelState.fileNameFromText(appState.models.simulation.name, 'png'));
