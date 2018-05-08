@@ -990,6 +990,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.fileNameFromText = function(text, extension) {
+        return text.replace(/(\_|\W|\s)+/g, '-') + '.' + extension;
+    };
+
     self.findParentAttribute = function(scope, name) {
         while (scope && ! scope[name]) {
             scope = scope.$parent;

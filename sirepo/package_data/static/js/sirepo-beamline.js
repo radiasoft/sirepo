@@ -185,7 +185,7 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
     return self;
 });
 
-SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
+SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, panelState) {
     return {
         restrict: 'A',
         transclude: true,
@@ -196,8 +196,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
         template: [
             '<div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">',
               '<div data-ng-transclude=""></div>',
-              '<p class="lead text-center">beamline definition area<br>',
-              '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
+              '<p class="lead text-center">beamline definition area ',
+                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="hasBeamlineElements()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-picture"></span></button><br>',
+                '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
                   '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
@@ -252,6 +253,20 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 beamlineService.dismissPopup();
                 appState.cancelChanges($scope.beamlineModels);
             };
+            $scope.createBeamlinePNG = function() {
+                var container = $('.srw-beamline-container');
+                // adds special class which formats beamline for printing
+                container.addClass('srw-beamline-container-png');
+                domtoimage.toBlob($('.srw-beamline-container')[0])
+                    .then(function(blob) {
+                        container.removeClass('srw-beamline-container-png');
+                        window.saveAs(blob, panelState.fileNameFromText(appState.models.simulation.name, 'png'));
+                    })
+                    .catch(function(error) {
+                        container.removeClass('srw-beamline-container-png');
+                        srlog('ERR:', error);
+                    });
+            };
             $scope.dropComplete = function(data) {
                 if (data && ! data.id) {
                     addItem(data);
@@ -262,6 +277,12 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                     $scope.dropBetweenWidth = appState.models.beamline.length > 8 ? 10 : 20;
                 }
                 return appState.models.beamline;
+            };
+            $scope.hasBeamlineElements = function() {
+                if (appState.models.beamline) {
+                    return appState.models.beamline.length > 0;
+                }
+                return false;
             };
             $scope.dropBetween = function(index, data) {
                 if (! data) {
@@ -353,8 +374,8 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
               '</g>',
               '<g data-ng-switch-when="aperture">',
-                '<rect x="23", y="0", width="5", height="24" class="srw-aperture" />',
-                '<rect x="23", y="36", width="5", height="24" class="srw-aperture" />',
+                '<rect x="23" y="0" width="5" height="24" class="srw-aperture" />',
+                '<rect x="23" y="36" width="5" height="24" class="srw-aperture" />',
               '</g>',
               '<g data-ng-switch-when="ellipsoidMirror">',
                 '<path d="M30 2 C40 10 40 50 30 58 L43 58 L43 2 L30 2" class="srw-mirror" />',
@@ -364,17 +385,17 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<polygon points="24,0 20,15, 24,17 20,30 24,32 20,45 24,47 20,60 24,60 28,60 28,0" class="srw-mirror" />',
               '</g>',
               '<g data-ng-switch-when="mirror">',
-                '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
+                '<rect x="23" y="0" width="5" height="60" class="srw-mirror" />',
               '</g>',
               '<g data-ng-switch-when="sphericalMirror">',
                 '<path d="M28 6 C54 10 54 50 28 54 L49 54 L49 6 L28 6" class="srw-mirror" />',
                 '<ellipse cx="24" cy="30" rx="23" ry="23" class="srw-curvature" />',
               '</g>',
               '<g data-ng-switch-when="obstacle">',
-                '<rect x="15" y="20" width="20", height="20" class="srw-obstacle" />',
+                '<rect x="15" y="20" width="20" height="20" class="srw-obstacle" />',
               '</g>',
               '<g data-ng-switch-when="crl">',
-                '<rect x="15", y="0", width="20", height="60" class="srw-crl" />',
+                '<rect x="15" y="0" width="20" height="60" class="srw-crl" />',
                 '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
                 '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
                 '<path d="M15 0 C20 10 20 50 15 60" class="srw-lens" />',
@@ -383,7 +404,7 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M35 60 C30 50 30 10 35 0" class="srw-lens" />',
               '</g>',
               '<g data-ng-switch-when="crystal">',
-                '<rect x="8" y="25" width="50", height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
+                '<rect x="8" y="25" width="50" height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
               '</g>',
               '<g data-ng-switch-when="fiber" transform="translate(0) rotate(20 20 40)">',
                 '<path d="M-10,35 L10,35" class="srw-fiber"/>',
@@ -393,7 +414,7 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M40,35 L60,35" class="srw-fiber"/>',
               '</g>',
               '<g data-ng-switch-when="mask">',
-                '<rect x="0" y="10" width="50", height="50" />',
+                '<rect x="0" y="10" width="50" height="50" />',
                 '<circle cx="10" cy="20" r="2" class="srw-mask" />',
                 '<circle cx="20" cy="20" r="2" class="srw-mask" />',
                 '<circle cx="30" cy="20" r="2" class="srw-mask" />',
@@ -469,7 +490,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon"  data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
             '<div class="srw-beamline-image">',
-              '<span data-beamline-icon="", data-item="item"></span>',
+              '<span data-beamline-icon="" data-item="item"></span>',
             '</div>',
             '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>',
         ].join(''),

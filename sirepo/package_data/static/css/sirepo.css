@@ -149,6 +149,12 @@
       overflow: auto;
       white-space: nowrap;
     }
+    .srw-beamline-container-png {
+      overflow: visible;
+    }
+    .srw-beamline-container-png .caret {
+      display: none;
+    }
     .srw-beamline-element {
       display: inline-block;
       background-color: #fff;

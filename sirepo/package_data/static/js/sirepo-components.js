@@ -1415,7 +1415,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 if (! svg) {
                     return;
                 }
-                var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
+                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
                 var plot3dCanvas = $scope.panel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
