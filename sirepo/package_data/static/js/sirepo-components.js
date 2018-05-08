@@ -2380,7 +2380,7 @@ SIREPO.app.service('keypressService', function(d3Service) {
     };
     this.hasListener = function(listenerId) {
         return activeListeners.indexOf(listenerId) >= 0;
-    }
+    };
     this.removeListener = function(listenerId) {
         var lIndex = activeListeners.indexOf(listenerId);
         if(lIndex >= 0) {
