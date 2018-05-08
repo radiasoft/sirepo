@@ -46,7 +46,7 @@ angular.module("ngDraggable", [])
                     var initialize = function () {
                         element.attr('draggable', 'false'); // prevent native drag
                         // check to see if drag handle(s) was specified
-                        var dragHandles = element.find('[ng-drag-handle]');
+                        var dragHandles = $(element).find('[ng-drag-handle]');
                         if (dragHandles.length) {
                             _dragHandle = dragHandles;
                         }
