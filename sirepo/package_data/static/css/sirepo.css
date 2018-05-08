@@ -427,7 +427,7 @@
       opacity: 0;
     }
     .sr-panel-active {
-        border-width: 2px;
+        border-width: 1px;
         border-color: green;
     }
 
