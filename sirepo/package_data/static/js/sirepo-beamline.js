@@ -11,10 +11,25 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
     self.coherence = 'full';
+    var browserSupportsSVGForeignObject = false;
 
     // Try to detect mobile/tablet devices using Mozilla recommendation below
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
     var isTouchscreen = /Mobi|Silk/i.test($window.navigator.userAgent);
+
+    function testSVGForeignObject() {
+        var image = new Image();
+        image.onload = function () {
+            browserSupportsSVGForeignObject = true;
+        }
+        // MS Edge will have an error unless the % is replaced with &#37;
+        // there are other SVG rendering issues with MS Edge, so it will be disabled for now
+        image.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect></rect></svg>';
+    }
+
+    self.browserSupportsSVGForeignObject = function() {
+        return browserSupportsSVGForeignObject;
+    };
 
     self.dismissPopup = function() {
         $('.srw-beamline-element-label').popover('hide');
@@ -182,6 +197,8 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         return 'watchpointReport' + id;
     };
 
+    testSVGForeignObject();
+
     return self;
 });
 
@@ -197,7 +214,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             '<div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">',
               '<div data-ng-transclude=""></div>',
               '<p class="lead text-center">beamline definition area ',
-                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="hasBeamlineElements()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-picture"></span></button><br>',
+                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-picture"></span></button><br>',
                 '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
@@ -264,7 +281,6 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                     })
                     .catch(function(error) {
                         container.removeClass('srw-beamline-container-png');
-                        srlog('ERR:', error);
                     });
             };
             $scope.dropComplete = function(data) {
@@ -327,6 +343,10 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                     });
                 }
                 return isDirty;
+            };
+            $scope.showPNGDownloadLink = function() {
+                return appState.isLoaded() && appState.models.beamline.length
+                    && beamlineService.browserSupportsSVGForeignObject();
             };
 
             $scope.saveBeamlineChanges = function() {
