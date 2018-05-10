@@ -21,7 +21,7 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         var image = new Image();
         image.onload = function () {
             browserSupportsSVGForeignObject = true;
-        }
+        };
         // MS Edge will have an error unless the % is replaced with &#37;
         // there are other SVG rendering issues with MS Edge, so it will be disabled for now
         image.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect></rect></svg>';
@@ -58,7 +58,9 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
             distance = ', ' + model.distanceFromSource + 'm';
         }
         else if (appState.isAnimationModelName(modelName)) {
-            distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
+            if (savedModelValues.beamline.length) {
+                distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
+            }
         }
         else if (modelName == 'initialIntensityReport') {
             if (savedModelValues.beamline && savedModelValues.beamline.length) {
