@@ -33,9 +33,15 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-        simulation_db.write_result({})
+    res = {}
+    try:
+        with pkio.save_chdir(cfg_dir):
+            exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+    except Exception as e:
+        res = {
+            'error': str(e),
+        }
+    simulation_db.write_result(res)
 
 
 def _run_bunch_report(data, bunch):
