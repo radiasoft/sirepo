@@ -562,7 +562,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
         // set the single electron state based on the stored coherence value
         if(beamlineService.coherence) {
-            self.setSingleElectron(beamlineService.coherence !== 'partial');
+            if (appState.models.beamline.length == 0) {
+                self.setSingleElectron(true);
+            }
+            else {
+                self.setSingleElectron(beamlineService.coherence !== 'partial');
+            }
         }
 
         updatePhotonEnergyHelpText();

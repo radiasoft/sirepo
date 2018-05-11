@@ -362,7 +362,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, utilities, validationService) {
+SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -419,6 +419,9 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
               '<div data-ng-switch-when="Text" data-ng-class="fieldClass">',
                 '<div data-collapsable-notes=""></div>',
               '</div>',
+              '<div data-ng-switch-when="UserFolder" data-ng-class="fieldClass">',
+                '<div data-user-folder-list="" data-model="model" data-field="field"></div>',
+              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -431,7 +434,8 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
             '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -472,6 +476,23 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
+
+            // wait until the switch gets fully evaluated, then set event handlers for input fields
+            // to disable keypress listener set by plots
+            $timeout(function () {
+                var inputElement =  $($element).find('input');
+                if(inputElement.length > 0) {
+                    inputElement
+                        .on('focus', function () {
+                        keypressService.enableListener(false);
+                    })
+                        .on('blur', function () {
+                        keypressService.enableListener(true);
+                    });
+                }
+            },
+                100);
+
             $scope.fieldDelegate = {};
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
             $scope.wantEnumButtons = wantEnumButtons($scope.info[1], $scope.labelSize);
@@ -490,6 +511,10 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, validationServ
                 model.$setViewValue('');
                 model.$render();
             };
+
+            $scope.$on('destroy', function (event) {
+                $($element).find('input').off('focus').off('blur');
+            });
         },
     };
 });
@@ -1314,6 +1339,25 @@ SIREPO.app.directive('collapsableNotes', function(appState) {
     };
 });
 
+SIREPO.app.directive('userFolderList', function(appState, fileManager) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-if="! model.isExample" data-ng-options="item for item in fileManager.getUserFolderPaths()"></select>',
+            '<div class="form-control" data-ng-if="model.isExample" readonly>{{ model.folder }}</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileManager = fileManager;
+        },
+    };
+});
+
+
 //TODO(pjm): this directive is only needed for old data which might have enum values as a number rather than string
 SIREPO.app.directive('numberToString', function() {
     return {
@@ -1416,7 +1460,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 if (! svg) {
                     return;
                 }
-                var fileName = $scope.panelHeading.replace(/(\_|\W|\s)+/g, '-') + '.png';
+                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
                 var plot3dCanvas = $scope.panel.find('canvas')[0];
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
@@ -1450,6 +1494,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         restrict: 'A',
         transclude: true,
         scope: {
+            reportId: '<',
             reportContent: '@',
             modelKey: '@',
         },
@@ -1458,11 +1503,11 @@ SIREPO.app.directive('reportContent', function(panelState) {
               '<div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>',
               '<div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
-                '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -1487,12 +1532,16 @@ SIREPO.app.directive('reportPanel', function(appState) {
             requestPriority: '@',
         },
         template: [
-            '<div class="panel panel-info">',
+            '<div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-allow-full-screen="1"></div>',
-              '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>',
+              '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+
+            // random id for the keypress service to track
+            $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+
             $scope.modelKey = $scope.modelName;
             if ($scope.modelData) {
                 $scope.modelKey = $scope.modelData.modelKey;
@@ -1652,9 +1701,11 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                 return '';
             };
             $scope.showNewFolderModal = function() {
+                appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();
                 panelState.showModalEditor('simFolder');
             };
             $scope.showSimulationModal = function() {
+                appState.models.simulation.folder = fileManager.defaultCreationFolderPath();
                 panelState.showModalEditor('simulation');
             };
 
@@ -2295,6 +2346,130 @@ SIREPO.app.service('fileUpload', function($http) {
                 srlog('file upload failed');
             });
     };
+});
+
+SIREPO.app.service('keypressService', function(d3Service) {
+
+    var listeners = {};
+    var reports = {};
+    var activeListeners = [];
+    var activeListenerId = null;
+
+    this.addListener = function(listenerId, listener, reportId) {
+        if(! reportId) {
+            return;
+        }
+        listeners[listenerId] = listener;
+        if (! reports[reportId]) {
+                reports[reportId] = [];
+        }
+        reports[reportId].push(listenerId);
+        if(activeListeners.indexOf(listenerId) < 0) {
+            activeListeners.push(listenerId);
+        }
+
+        // turn off highlighting for active report panel, if any
+        showPanelActive(reportForListener(activeListenerId), false);
+
+        activeListenerId = listenerId;
+        this.enableListener(true);
+    };
+    this.hasListener = function(listenerId) {
+        return activeListeners.indexOf(listenerId) >= 0;
+    };
+    this.removeListener = function(listenerId) {
+        var lIndex = activeListeners.indexOf(listenerId);
+        if(lIndex >= 0) {
+            activeListeners.splice(lIndex, 1);
+        }
+        delete listeners[listenerId];
+
+        var reportId = reportForListener(listenerId);
+        showPanelActive(reportId, false);
+        if(reportId) {
+            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
+        }
+
+        // activate the last one added, if any remain
+        if(activeListeners.length > 0) {
+            activeListenerId = activeListeners[activeListeners.length - 1];
+            this.enableListener(true);
+        }
+        else {
+            activeListenerId = null;
+            this.enableListener(false);
+        }
+    };
+
+    this.removeListenersForReport = function(reportId) {
+        if(! reportId || ! reports[reportId]) {
+            return;
+        }
+        var rlArr = reports[reportId];
+        for(var rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
+            this.removeListener(rlArr[rlIndex]);
+        }
+    };
+    this.removeReport = function(reportId) {
+        if(! reportId) {
+            return;
+        }
+        this.removeListenersForReport(reportId);
+        delete reports[reportId];
+    };
+
+
+    // set the active listener, or
+    // remove keydown listener from body element leaving the keys in place
+    this.enableListener = function(doListen, listenerId) {
+        if(! listenerId)  {
+            listenerId = activeListenerId;
+        }
+        activeListenerId = listenerId;
+        var reportId = reportForListener(activeListenerId);
+        if(doListen && activeListenerId) {
+            d3.select('body').on('keydown', listeners[activeListenerId]);
+            showPanelActive(reportId, true);
+            return;
+        }
+        d3.select('body').on('keydown', null);
+        showPanelActive(reportId, false);
+    };
+    this.enableNextListener = function(direction) {
+        var lIndex = activeListeners.indexOf(activeListenerId);
+        if(lIndex < 0) {
+            return;
+        }
+        this.enableListener(false);
+        var d = direction < 0 ? -1 : 1;
+        var newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
+        this.enableListener(true, activeListeners[newIndex]);
+    };
+
+    function reportForListener(listenerId) {
+        if(! listenerId) {
+            return null;
+        }
+        for(var reportId in reports) {
+            var rlIndex = reports[reportId].indexOf(listenerId);
+            if(rlIndex < 0) {
+                continue;
+            }
+            return reportId;
+        }
+    }
+
+    function showPanelActive(reportId, isActive) {
+        if(! reportId) {
+            return;
+        }
+        if(isActive) {
+            $('#' + reportId).addClass('sr-panel-active');
+            return;
+        }
+        $('#' + reportId).removeClass('sr-panel-active');
+    }
+
 });
 
 SIREPO.app.service('utilities', function($window, $interval) {

@@ -39,7 +39,9 @@ SIREPO.appLocalRoutes = {
 };
 
 SIREPO.appDefaultSimulationValues = {
-    simulation: {},
+    simulation: {
+        folder: '/'
+    },
     simFolder: {},
 };
 
@@ -276,7 +278,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return self.clone(val);
     };
 
-    self.copySimulation = function(simulationId, op, name) {
+    self.copySimulation = function(simulationId, op, name, folder) {
         requestSender.sendRequest(
             'copySimulation',
             op,
@@ -284,6 +286,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 simulationId: simulationId,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 name: name,
+                folder: folder || '/',
             });
     };
 
@@ -990,6 +993,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+    };
+
+    self.fileNameFromText = function(text, extension) {
+        return text.replace(/(\_|\W|\s)+/g, '-') + '.' + extension;
     };
 
     self.findParentAttribute = function(scope, name) {
@@ -1934,6 +1941,44 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return compoundPathToPath(decodeURIComponent(path));
     };
 
+    self.pathName = function(folder) {
+        if (folder == self.rootFolder()) {
+            return '/';
+        }
+        var path = '/' + folder.name;
+        while (folder.parent != self.rootFolder()) {
+            folder = folder.parent;
+            path = '/' + folder.name + path;
+        }
+        return path;
+    };
+    self.getFolderWithPath = function(pathName) {
+        if(pathName === '/') {
+            return self.rootFolder();
+        }
+        var pathArr = pathName.split('/').filter(function (value) {
+            return value !== "";
+        });
+        var folder = self.rootFolder();
+        for(var pIndex = 0; pIndex < pathArr.length; ++pIndex) {
+            var child = null;
+            for(var cIndex = 0; cIndex < folder.children.length; ++cIndex) {
+                child = folder.children[cIndex];
+                if(child.isFolder && child.name === pathArr[pIndex]) {
+                    break;
+                }
+            }
+            if(child == null) {
+                return null;
+            }
+            if(pIndex == pathArr.length - 1) {
+                return child;
+            }
+            folder = child;
+        }
+        return null;
+    };
+
     self.rootFolder = function() {
         return self.fileTree[0];
     };
@@ -1986,6 +2031,23 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             return item.isExample;
         }
         return self.isFolderExample(item);
+    };
+    self.getUserFolders = function(excludeFolder) {
+        return self.flattenTree().filter(function(item) {
+            return item != excludeFolder && item.isFolder && ! self.isFolderExample(item);
+        });
+    };
+    self.getUserFolderPaths = function() {
+        return self.getUserFolders().map(function (item) {
+            return self.pathName(item);
+        });
+    };
+    self.defaultCreationFolder = function() {
+        var cf = self.getUserFolderPaths().indexOf(self.getActiveFolderPath()) >= 0 ? self.getActiveFolder() : self.rootFolder();
+        return cf;
+    };
+    self.defaultCreationFolderPath = function() {
+        return self.pathName(self.defaultCreationFolder());
     };
 
     function findSimInTree(simId) {
@@ -2125,6 +2187,20 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             parent.children.splice(parent.children.indexOf(item), 1);
             self.updateFlatTree();
         }
+    };
+    self.doesFolderContainFolder = function(f1, f2) {
+        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
+            return true;
+        }
+        if(f2 == self.rootFolder() || ! f1.children) {
+            return false;
+        }
+        for(var cIndex = 0; cIndex < f1.children.length; ++cIndex) {
+            if(self.doesFolderContainFolder(f1.children[cIndex], f2)) {
+                return true;
+            }
+        }
+        return false;
     };
 
     self.redirectToPath = function(path) {
@@ -2420,6 +2496,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             count++;
         }
         self.copyName = name + ' ' + count;
+        self.copyFolder = fileManager.defaultCreationFolderPath();
         $('#sr-copy-confirmation').modal('show');
     };
 
@@ -2429,7 +2506,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             function(data) {
                 self.openItem(data.models.simulation);
             },
-            self.copyName);
+            self.copyName,
+            self.copyFolder);
     };
 
     self.deleteItem = function(item) {
@@ -2466,7 +2544,12 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     self.moveItem = function(item) {
         self.selectedItem = item;
         self.targetFolder = item.parent;
-        self.moveFolderList = fileManager.folderList(item);
+        self.moveFolderList =  fileManager.getUserFolders(item);
+        if(item.isFolder) {
+            self.moveFolderList = self.moveFolderList.filter(function (userFolder) {
+                return ! fileManager.doesFolderContainFolder(item, userFolder);
+            });
+        }
         $('#sr-move-confirmation').modal('show');
     };
 
@@ -2504,15 +2587,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     };
 
     self.pathName = function(folder) {
-        if (self.isRootFolder(folder)) {
-            return '/';
-        }
-        var path = '/' + folder.name;
-        while (folder.parent != rootFolder()) {
-            folder = folder.parent;
-            path = '/' + folder.name + path;
-        }
-        return path;
+        return fileManager.pathName(folder);
     };
 
     self.pythonSource = function(item) {
@@ -2590,7 +2665,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     $scope.$on('simulation.changed', function() {
         self.isWaitingForSim = true;
         self.newSimName = appState.models.simulation.name;
-        appState.models.simulation.folder = self.pathName(self.activeFolder);
         appState.newSimulation(
             appState.models.simulation,
             function(data) {
@@ -2605,7 +2679,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         name = name.replace(/[\/]/g, '');
         fileManager.addToTree({
             name: name,
-            parent: self.activeFolder,
+            parent: fileManager.getFolderWithPath(appState.models.simFolder.parent) || self.activeFolder,
             isFolder: true,
             children: [],
         });

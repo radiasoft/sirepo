@@ -149,6 +149,12 @@
       overflow: auto;
       white-space: nowrap;
     }
+    .srw-beamline-container-png {
+      overflow: visible;
+    }
+    .srw-beamline-container-png .caret {
+      display: none;
+    }
     .srw-beamline-element {
       display: inline-block;
       background-color: #fff;
@@ -420,6 +426,10 @@
     .sr-hide-report {
       opacity: 0;
     }
+    .sr-panel-active {
+        border-width: 1px;
+        border-color: green;
+    }
 
     /* plot styles */
     .sr-plot .axis text {
@@ -597,7 +607,13 @@
     .sr-plot .popup-group .report-window-close {
         fill: #222;
         cursor: pointer;
+        user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -webkit-user-select: none;
     }
+
+
     .sr-plot .plot-visibility {
         cursor: pointer;
         font-size: 16px;

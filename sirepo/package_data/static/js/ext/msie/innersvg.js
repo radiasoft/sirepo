@@ -13,6 +13,7 @@
 
 (function() {
 
+// only needed for MSIE 11
 var isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
 if (! isIE11) {
     return;
@@ -74,8 +75,7 @@ Object.defineProperty(SVGElement.prototype, 'innerHTML', {
       // Parse the markup into valid nodes.
       var dXML = new DOMParser();
       dXML.async = false;
-        // Wrap the markup into a SVG node to ensure parsing works.
-        console.log('markupText:', markupText);
+      // Wrap the markup into a SVG node to ensure parsing works.
       sXML = '<svg xmlns=\'http://www.w3.org/2000/svg\'>' + markupText + '</svg>';
       var svgDocElement = dXML.parseFromString(sXML, 'text/xml').documentElement;
 
