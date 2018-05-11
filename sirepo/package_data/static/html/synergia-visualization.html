@@ -7,9 +7,9 @@
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
         <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationSettings')">
-          <div data-sim-status-panel="visualization.simState"></div>
+          <div data-sim-status-panel="visualization.simState" data-not-running-message="visualization.notRunningMessage()" data-running-message="visualization.runningMessage()"></div>
           <div class="clearfix"></div>
-          <div data-summary-table="animation"></div>
+          <div data-ng-if="visualization.errorMessage"><div class="text-danger"><strong>Synergia Error:</strong></div><pre>{{ visualization.errorMessage }}</pre></div>
         </div>
       </div>
     </div>

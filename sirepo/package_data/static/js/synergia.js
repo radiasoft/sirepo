@@ -132,8 +132,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     var self = this;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
+    self.errorMessage = '';
 
     function handleStatus(data) {
+        self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
             ['beamEvolutionAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
@@ -143,6 +145,15 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
+
+    self.notRunningMessage = function() {
+        return 'Simulation ' + self.simState.stateAsText();
+    };
+
+    self.runningMessage = function() {
+        return 'Simulation running';
+    };
+
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
