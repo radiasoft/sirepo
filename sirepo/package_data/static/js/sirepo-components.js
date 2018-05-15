@@ -1729,7 +1729,11 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            title: '@',
+            description: '@',
+            fileFormats: '@',
+        },
         template: [
             '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
@@ -1743,8 +1747,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                     '<div class="container-fluid">',
                       '<form name="importForm">',
                         '<div class="form-group">',
-                          '<label>Select File</label>',
-                          '<input id="file-import" type="file" data-file-model="zipFile">',
+                          '<label>{{ description }}</label>',
+                          '<input id="file-import" type="file" data-file-model="zipFile" data-ng-attr-accept="{{ fileFormats }}">',
                           '<br />',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
@@ -1764,7 +1768,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = 'Import ZIP File';
+            $scope.title = $scope.title || 'Import ZIP File';
+            $scope.description = $scope.description || 'Select File';
             $scope.importZIPFile = function(zipFile) {
                 if (! zipFile) {
                     return;
