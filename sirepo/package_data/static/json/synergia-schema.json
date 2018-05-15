@@ -183,13 +183,31 @@
             "turn_count": ["Turn Count", "Integer", 30, "", 1]
         },
         "simulationStatus": {},
+        "DIPEDGE": {
+            "name": ["Name", "ValidatedString"],
+            "h": ["H [1/m]", "Float", "0.0", "The angle/length or 1/rho."],
+            "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the pole face."],
+            "fint": ["FINT", "Float", "0.0", "The field integral as for SBEND sector bend."],
+            "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the associated SBEND bending magnet."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis. A positive angle represents a clockwise rotation."]
+        },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The drift length."]
         },
+        "MARKER": {
+            "name": ["Name", "ValidatedString"]
+        },
         "MONITOR": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"]
+        },
+        "NLLENS": {
+            "name": ["Name", "ValidatedString"],
+            "knll": ["KNLL [m]", "Float", "0.0", "The integrated strength of lens. The strength is parametrized so that the quadrupole term of the multipole expansion is k1=2*KNLL/CNLL²."],
+            "cnll": ["CNLL [m]", "Float", "0.0", "The dimensional parameter of lens. The singularities of the potential are located at X=-CNLL,+CNLL and Y=0."],
+            "bcoeff": ["BCOEFF", "Float", "0.0"],
+            "dcoeff": ["DCOEFF", "Float", "0.0"]
         },
         "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
@@ -259,6 +277,19 @@
             "entry_edge_kick": ["ENTRY EDGE KICK", "Float", "1.0"],
             "exit_edge_kick": ["EXIT EDGE KICK", "Float", "1.0"],
             "propagator_type": ["PROPAGATOR", "Propagator", "basic"]
+        },
+        "SEXTUPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The sextupole length."],
+            "k2": ["K2 [1/m³]", "Float", "0.0", "The normal sextupole coecient."],
+            "k2s": ["K2S [1/m³]", "Float", "0.0", "The skew sextupole coefficient."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a normal sextupole). A positive angle represents a clockwise rotation. An attribute TILT=pi/6 turns a positive normal sextupole into a negative skew sextupole."]
+        },
+        "SOLENOID": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The length of the solenoid."],
+            "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
+            "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"]
         }
     },
     "view": {
@@ -338,6 +369,18 @@
             "title": "SimulationStatus",
             "advanced": []
         },
+        "DIPEDGE": {
+            "title": "DIPEDGE",
+            "description": "A thin element describing the edge focusing of a dipole has been introduced in order to make it possible to track trajectories in the presence of dipoles with pole face angles. Only linear terms are considered since the higher order terms would make the tracking non-symplectic. The transformation of the machine elements into thin lenses leaves dipole edge (DIPEDGE) elements untouched and splits correctly the SBENDs.",
+            "advanced": [
+                "name",
+                "h",
+                "e1",
+                "fint",
+                "hgap",
+                "tilt"
+            ]
+        },
         "DRIFT": {
             "title": "DRIFT",
             "description": "Drift Space",
@@ -347,6 +390,14 @@
                 "l"
             ]
         },
+        "MARKER": {
+            "title": "MARKER",
+            "description": "The simplest element which can occur in a beam line is a MARKER. It has zero length and has no effect on the beam, but it allows one to identify a position in the beam line.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name"
+            ]
+        },
         "MONITOR": {
             "title": "MONITOR",
             "description": "A beam monitor has no specific effect on the beam and behaves like a drift space. In addition it serves to record the beam position for closed orbit correction.",
@@ -354,6 +405,18 @@
             "advanced": [
                 "name",
                 "l"
+            ]
+        },
+        "NLLENS": {
+            "title": "NLLENS",
+            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "knll",
+                "cnll",
+                "bcoeff",
+                "dcoeff"
             ]
         },
         "QUADRUPOLE": {
@@ -436,6 +499,27 @@
                 "entry_edge_kick",
                 "exit_edge_kick",
                 "propagator_type"
+            ]
+        },
+        "SEXTUPOLE": {
+            "title": "SEXTUPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k2",
+                "k2s",
+                "tilt"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "ks",
+                "ksi"
             ]
         }
     }

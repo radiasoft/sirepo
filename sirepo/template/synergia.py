@@ -7,11 +7,12 @@ u"""JSPEC execution template.
 
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
 import re
+import werkzeug
 
 SIM_TYPE = 'synergia'
 
@@ -70,62 +71,15 @@ def get_application_data(data):
         return _calc_bunch_parameters(data['bunch'])
 
 
-def _calc_bunch_parameters(bunch):
-    from synergia.foundation import Four_momentum
-    bunch_def = bunch['beam_definition']
-    mom = Four_momentum(bunch['mass'])
-    try:
-        if bunch_def == 'energy':
-            mom.set_total_energy(bunch['energy'])
-        elif bunch_def == 'momentum':
-            mom.set_momentum(bunch['momentum'])
-        elif bunch_def == 'gamma':
-            mom.set_gamma(bunch['gamma'])
-        else:
-            assert False, 'invalid bunch def: {}'.format(bunch_def)
-        bunch['gamma'] = _format_float(mom.get_gamma())
-        bunch['energy'] = _format_float(mom.get_total_energy())
-        bunch['momentum'] = _format_float(mom.get_momentum())
-        bunch['beta'] = _format_float(mom.get_beta())
-    except Exception as e:
-        bunch[bunch_def] = ''
-    return {
-        'bunch': bunch,
-    }
-
-
-def _format_float(v):
-    return float(format(v, '.10f'))
-
-
-def _calc_particle_info(particle):
-    from synergia.foundation import pconstants
-    mass = 0
-    charge = 0
-    if particle == 'proton':
-        mass = pconstants.mp
-        charge = pconstants.proton_charge
-    elif particle == 'antiproton':
-        mass = pconstants.mp
-        charge = pconstants.antiproton_charge
-    elif particle == 'electron':
-        mass = pconstants.me
-        charge = pconstants.electron_charge
-    elif particle == 'positron':
-        mass = pconstants.me
-        charge = pconstants.positron_charge
-    elif particle == 'negmuon':
-        mass = pconstants.mmu
-        charge = pconstants.muon_charge
-    elif particle == 'posmuon':
-        mass = pconstants.mmu
-        charge = pconstants.antimuon_charge
+def import_file(request, lib_dir=None, tmp_dir=None):
+    f = request.files['file']
+    filename = werkzeug.secure_filename(f.filename)
+    if re.search(r'.madx$', filename, re.IGNORECASE):
+        data = _import_madx_file(f.read())
     else:
-        assert False, 'unknown particle: {}'.format(particle)
-    return {
-        'mass': mass,
-        'charge': str(charge),
-    }
+        raise IOError('invalid file extension, expecting .madx')
+    data['models']['simulation']['name'] = re.sub(r'\.madx$', '', filename, re.IGNORECASE)
+    return data
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -154,6 +108,8 @@ def models_related_to_report(data):
     return [
         'simulation.visualizationBeamlineId',
         'bunch',
+        'beamlines',
+        'elements',
         r,
     ]
 
@@ -192,36 +148,58 @@ def _build_beamline_map(data):
     return res
 
 
-def _plot_field(field):
-    m = re.match('(\w+)emit', field)
-    if m:
-        return 'emit{}'.format(m.group(1)), m.group(1), None
-    m = re.match('(\w+)(mean|std)', field)
-    if m:
-        return m.group(2), m.group(1), None
-    m = re.match('^(\wp?)(\wp?)(corr|mom2)', field)
-    if m:
-        return m.group(3), m.group(1), m.group(2)
-    assert False, field
+def _calc_bunch_parameters(bunch):
+    from synergia.foundation import Four_momentum
+    bunch_def = bunch['beam_definition']
+    mom = Four_momentum(bunch['mass'])
+    try:
+        if bunch_def == 'energy':
+            mom.set_total_energy(bunch['energy'])
+        elif bunch_def == 'momentum':
+            mom.set_momentum(bunch['momentum'])
+        elif bunch_def == 'gamma':
+            mom.set_gamma(bunch['gamma'])
+        else:
+            assert False, 'invalid bunch def: {}'.format(bunch_def)
+        bunch['gamma'] = _format_float(mom.get_gamma())
+        bunch['energy'] = _format_float(mom.get_total_energy())
+        bunch['momentum'] = _format_float(mom.get_momentum())
+        bunch['beta'] = _format_float(mom.get_beta())
+    except Exception as e:
+        bunch[bunch_def] = ''
+    return {
+        'bunch': bunch,
+    }
 
 
-def _plot_label(field, labels):
-    for values in labels:
-        if field == values[0]:
-            return values[1]
-    return field
-
-
-def _plot_values(h5file, field):
-    name, coord1, coord2 = _plot_field(field)
-    dimension = len(h5file[name].shape)
-    if dimension == 1:
-        return h5file[name][:].tolist()
-    if dimension == 2:
-        return h5file[name][_COORD6.index(coord1), :].tolist()
-    if dimension == 3:
-        return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
-    assert False, dimension
+def _calc_particle_info(particle):
+    from synergia.foundation import pconstants
+    mass = 0
+    charge = 0
+    if particle == 'proton':
+        mass = pconstants.mp
+        charge = pconstants.proton_charge
+    elif particle == 'antiproton':
+        mass = pconstants.mp
+        charge = pconstants.antiproton_charge
+    elif particle == 'electron':
+        mass = pconstants.me
+        charge = pconstants.electron_charge
+    elif particle == 'positron':
+        mass = pconstants.me
+        charge = pconstants.positron_charge
+    elif particle == 'negmuon':
+        mass = pconstants.mmu
+        charge = pconstants.muon_charge
+    elif particle == 'posmuon':
+        mass = pconstants.mmu
+        charge = pconstants.antimuon_charge
+    else:
+        assert False, 'unknown particle: {}'.format(particle)
+    return {
+        'mass': mass,
+        'charge': str(charge),
+    }
 
 
 def _extract_evolution_plot(report, run_dir):
@@ -251,6 +229,10 @@ def _extract_evolution_plot(report, run_dir):
             'plots': plots,
             'y_range': y_range,
         }
+
+
+def _format_float(v):
+    return float(format(v, '.10f'))
 
 
 def _generate_lattice(data, beamline_map, v):
@@ -299,6 +281,78 @@ def _generate_parameters_file(data):
         template_name = 'bunch'
     return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
         + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
+
+
+def _sort_beamlines_by_length(lines):
+    res = []
+    for name in lines:
+        res.append([name, len(lines[name])])
+    return list(reversed(sorted(res, key=lambda v: v[1])))
+
+
+def _import_madx_file(text):
+    import synergia
+    data = simulation_db.default_data(SIM_TYPE)
+    reader = synergia.lattice.MadX_reader()
+    lattice = reader.parse(text)
+    lines = {}
+    for name in reader.get_line_names() + reader.get_sequence_names():
+        lattice = reader.get_lattice(name)
+        res = []
+        for el in lattice.get_elements():
+            res.append(el.get_name())
+        lines[name] = res
+
+    beamline_name = _sort_beamlines_by_length(lines)[0][0]
+    lattice = reader.get_lattice(beamline_name)
+    beamline = []
+    elements = []
+    name_to_id = {}
+    count = 0
+
+    for el in lattice.get_elements():
+        attrs = {}
+        for attr in el.get_double_attributes():
+            attrs[attr] = el.get_double_attribute(attr)
+        for attr in el.get_string_attributes():
+            attrs[attr] = el.get_string_attribute(attr)
+        for attr in el.get_vector_attributes():
+            attrs[attr] = el.get_vector_attribute(attr)
+        model_name = el.get_type().upper()
+        m = template_common.model_defaults(model_name, _SCHEMA)
+        if 'l' in attrs:
+            attrs['l'] = float(str(attrs['l']))
+        if model_name == 'DRIFT' and re.search(r'^auto_drift', el.get_name()):
+            drift_name = 'D{}'.format(attrs['l']).replace('.', '_')
+            m['name'] = drift_name
+        else:
+            m['name'] = el.get_name().upper()
+        if m['name'] in name_to_id:
+            beamline.append(name_to_id[m['name']])
+            continue
+        m['type'] = model_name
+        count += 1
+        beamline.append(count)
+        m['_id'] = count
+        name_to_id[m['name']] = m['_id']
+        info = _SCHEMA['model'][model_name]
+        for f in info.keys():
+            if f in attrs:
+                m[f] = attrs[f]
+        for attr in attrs:
+            if attr not in m:
+                pkdlog('unknown attr: {}: {}'.format(model_name, attr))
+        data['models']['elements'].append(m)
+    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
+    count += 1
+    data['models']['beamlines'].append({
+        'id': count,
+        'items': beamline,
+        'name': beamline_name.upper(),
+    })
+    data['models']['simulation']['activeBeamlineId'] = count
+    data['models']['simulation']['visualizationBeamlineId'] = count
+    return data
 
 
 #TODO(pjm): from template.elegant
@@ -360,6 +414,38 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 #TODO(pjm): from template.elegant
 def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
+
+
+def _plot_field(field):
+    m = re.match('(\w+)emit', field)
+    if m:
+        return 'emit{}'.format(m.group(1)), m.group(1), None
+    m = re.match('(\w+)(mean|std)', field)
+    if m:
+        return m.group(2), m.group(1), None
+    m = re.match('^(\wp?)(\wp?)(corr|mom2)', field)
+    if m:
+        return m.group(3), m.group(1), m.group(2)
+    assert False, field
+
+
+def _plot_label(field, labels):
+    for values in labels:
+        if field == values[0]:
+            return values[1]
+    return field
+
+
+def _plot_values(h5file, field):
+    name, coord1, coord2 = _plot_field(field)
+    dimension = len(h5file[name].shape)
+    if dimension == 1:
+        return h5file[name][:].tolist()
+    if dimension == 2:
+        return h5file[name][_COORD6.index(coord1), :].tolist()
+    if dimension == 3:
+        return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
+    assert False, dimension
 
 
 def _validate_data(data, schema):

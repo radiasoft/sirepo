@@ -42,19 +42,22 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.advancedNames = [];
 
     self.basicNames = [
-        'DRIFT', 'MONITOR', 'QUADRUPOLE', 'RFCAVITY', 'SBEND',
+        'DIPEDGE', 'DRIFT', 'MARKER', 'MONITOR', 'NLLENS', 'QUADRUPOLE', 'RFCAVITY', 'SBEND', 'SEXTUPOLE', 'SOLENOID',
     ];
 
     self.elementColor = {
         QUADRUPOLE: 'red',
+        SEXTUPOLE: 'lightgreen',
     };
 
     self.elementPic = {
         bend: ['SBEND'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPOLE'],
+        magnet: ['QUADRUPOLE', 'SEXTUPOLE'],
         rf: ['RFCAVITY'],
-        watch: ['MONITOR'],
+        solenoid: ['SOLENOID'],
+        watch: ['MARKER', 'MONITOR'],
+        zeroLength: ['DIPEDGE', 'NLLENS'],
     };
 
     self.titleForName = function(name) {
@@ -160,6 +163,19 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     });
 });
 
+SIREPO.app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select MAD-X(.madx) or Sirepo Export (.zip)" data-file-formats=".madx,.zip"></div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -181,6 +197,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 		//  '<div>App-specific setting item</div>',
 	      '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
