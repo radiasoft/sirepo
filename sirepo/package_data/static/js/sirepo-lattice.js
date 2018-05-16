@@ -166,6 +166,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     self.editBeamline = function(beamline) {
         self.activeBeamlineId = beamline.id;
         appState.models.simulation.activeBeamlineId = beamline.id;
+        if (! appState.models.simulation.visualizationBeamlineId) {
+            appState.models.simulation.visualizationBeamlineId = beamline.id;
+        }
         appState.saveChanges('simulation');
         $rootScope.$broadcast('activeBeamlineChanged');
     };
