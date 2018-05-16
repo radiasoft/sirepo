@@ -15,4 +15,6 @@ bunch = synergia.optics.generate_matched_bunch_transverse(
     num_macro_particles=int({{ bunch_num_macro_particles }}), # Used for PIC calculations
     seed=int({{ bunch_seed }})
 )
+{% if bunch_z_period_length %}
 bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
+{% endif %}

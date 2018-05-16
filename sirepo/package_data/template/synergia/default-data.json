@@ -17,7 +17,7 @@
             "particle": "proton",
             "rms_z": 3.6,
             "seed": 1415926,
-            "z_period_length": 0.0673
+            "z_period_length": 0
         },
         "bunchReport": {
             "colorMap": "afmhot",
