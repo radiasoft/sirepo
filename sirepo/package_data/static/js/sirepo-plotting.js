@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, utilities, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -185,17 +185,14 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     }
 
     function initPlot(scope) {
-        var priority = 0;
-        var current = scope.$parent;
-        while (current) {
-            if (current.requestPriority) {
-                priority = current.requestPriority;
-                break;
-            }
-            current = current.$parent;
-        }
         var interval = null;
         var requestData = function(forceRunCount) {
+            // Don't request data if saving sim (data will be requested again when the save is complete)
+            var qi = requestQueue.getCurrentQI('requestQueue');
+            if(qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
+                return;
+            }
+            var priority = getCurrentPriority();
             interval = $interval(function() {
                 if (interval) {
                     $interval.cancel(interval);
@@ -228,6 +225,20 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }, forceRunCount ? true : false);
             }, 50 + priority * 10, 1);
         };
+        function getCurrentPriority() {
+            var current = scope.$parent;
+            while (current) {
+                if (current.getRequestPriority) {
+                    return current.getRequestPriority();
+                }
+                if(current.requestPriority) {
+                    return current.requestPriority;
+                }
+                current = current.$parent;
+            }
+            return 0;
+        }
+
         return requestData;
     }
 
@@ -871,8 +882,14 @@ SIREPO.app.service('focusPointService', function(plotting) {
             },
             hideFocusPointInfoComplete: hideCompletion ? hideCompletion : function() {
             },
-            setInfoVisible: function () {
+            setInfoVisible: function() {
             },
+            isInfoVisible: function() {
+                return false;
+            },
+            doScreenChanges: function () {
+            },
+
         };
     };
 
@@ -1415,7 +1432,7 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Serv
     };
 });
 
-SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointService) {
+SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1460,6 +1477,8 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 $scope.plotInfoDelegate.hideFocusPointInfo = hidePopup;
                 $scope.plotInfoDelegate.moveFocusPointInfo = movePopup;
                 $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
+                $scope.plotInfoDelegate.isInfoVisible = isInfoVisible;
+                $scope.plotInfoDelegate.doScreenChanges = doScreenChanges;
             }
 
             var axisIndex = $scope.invertAxis ? 1 : 0;
@@ -1526,6 +1545,36 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 moveEventDetected = false;
             };
 
+            // listen for going to/from fullscreen so we can reposition the popup - otherwise it can get
+            // stuck offscreen until the user interacts with the plot again
+            var fullscreenElement = null;
+            var fullscreenChangesPending = false;
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            function fullscreenChangehandler(evt) {
+                if(isInfoVisible()) {
+                    if(! utilities.isFullscreen()) {
+                        if(fullscreenElement) {
+                            fullscreenChangesPending = true;
+                            fullscreenElement = null;
+                        }
+                    }
+                    else {
+                        var fsel = utilities.getFullScreenElement();
+                        if(fsel && fsel.contains($element[0])) {
+                            fullscreenChangesPending = true;
+                            fullscreenElement = fsel;
+                        }
+                    }
+                }
+            }
+            function doScreenChanges() {
+                if(! fullscreenChangesPending) {
+                    return;
+                }
+                didDragToNewPositon = false;
+                movePopup();
+                fullscreenChangesPending = false;
+            }
 
             function showPopup(geometry, isReposition) {
                 if(! geometry) {
@@ -1634,16 +1683,20 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 d3self.select('.popup-group #y-text-' + pIndex).style('opacity', textAlpha);
                 d3self.select('.popup-group #fwhm-text-' + pIndex).style('opacity', textAlpha);
             }
+            function isInfoVisible() {
+                return d3self.style('display') === 'block';
+            }
 
             $scope.destroy = function () {
                 d3self.select('.popup-group .report-window-close')
                     .on('click', null);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
             };
         },
     };
 });
 
-SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, layoutService) {
+SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, layoutService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -1718,6 +1771,13 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                     axis.grid.ticks(axis.tickCount);
                     select('.' + dim + '.axis.grid').call(axis.grid);
                 });
+
+                // need to wait until the grids have been refreshed to reposition the
+                // popup report
+                $timeout(function() {
+                    $scope.popupDelegate.doScreenChanges();
+                }, 100);
+
             }
 
             function resetZoom() {

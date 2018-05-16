@@ -1587,6 +1587,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
 SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     var self = {};
     var queueMap = {};
+    self.currentQI = null;
 
     function getQueue(name) {
         if (! queueMap[name] ) {
@@ -1601,12 +1602,14 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
             return;
         }
         var qi = q[0];
+        self.currentQI = qi;
         if ( qi.requestSent ) {
             return;
         }
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
+            self.currentQI = null;
             if (qi.canceled) {
                 sendNextItem(name);
                 return;
@@ -1630,6 +1633,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         var q = getQueue(queueName);
         q.forEach(function(qi) {qi.canceled = true;});
         q.length = 0;
+        self.currentQI = null;
     };
 
     self.addItem = function(queueName, paramsCallback) {
@@ -1639,6 +1643,9 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         });
         sendNextItem(queueName);
     };
+    self.getCurrentQI = function(queueName) {
+        return self.currentQI;
+    }
     return self;
 });
 

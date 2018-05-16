@@ -1379,7 +1379,7 @@ SIREPO.app.directive('numberToString', function() {
     };
 });
 
-SIREPO.app.directive('simpleHeading', function(panelState) {
+SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
     return {
         restrict: 'A',
         transclude: true,
@@ -1390,18 +1390,24 @@ SIREPO.app.directive('simpleHeading', function(panelState) {
         template: [
             '<span class="sr-panel-heading">{{ simpleHeading }}</span>',
             '<div class="sr-panel-options pull-right">',
-              '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey)" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a> ',
+              '<a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a> ',
               '<a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>',
             '</div>',
             '<div class="sr-panel-options pull-right" data-ng-transclude="" ></div>',
         ].join(''),
         controller: function($scope) {
             $scope.panelState = panelState;
+            $scope.utilities = utilities;
+            $scope.toggleHidden = function() {
+                if(! utilities.isFullscreen()) {
+                    panelState.toggleHidden($scope.modelKey);
+                }
+            };
         },
     };
 });
 
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1411,8 +1417,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
-              '<a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
-              '<div data-ng-if="allowFullScreen" data-ng-show="hasData()" class="dropdown" style="display: inline-block">',
+              '<a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+              '<div data-ng-if="allowFullScreen" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
@@ -1424,10 +1430,13 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
-              //'<a href data-ng-show="allowFullScreen" title="Full screen"><span class="sr-panel-heading glyphicon glyphicon-fullscreen"></span></a> ',
+              '<a href data-ng-class="{\'sr-disabled-link\': panelState.isHidden(modelKey)}" data-ng-show="allowFullScreen" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+            $scope.panelState = panelState;
+            $scope.utilities = utilities;
+
             // modelKey may not exist in viewInfo, assume it has an editor in that case
             $scope.hasEditor = appState.viewInfo($scope.modelKey)
                 && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
@@ -1481,6 +1490,41 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             $scope.showEditor = function() {
                 panelState.showModalEditor($scope.modelKey);
             };
+
+            $scope.fullscreenIconTitle = function() {
+                if(! utilities.isFullscreen()) {
+                    return 'Full Screen';
+                }
+                return 'Exit Full Screen';
+            };
+
+            function getFullScreenElement() {
+                return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            }
+            $scope.toggleFullScreen = function() {
+                if(panelState.isHidden($scope.modelKey)) {
+                    return;
+                }
+
+                var svg = $scope.panel.find('svg')[0];
+                var el = $($element).closest('div[data-report-panel] > .panel')[0];
+                var fullscreenEnabled = document.fullscreenEnabled || document.mozFullScreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled;
+
+                if(! utilities.isFullscreen()) {
+                    // Firefox does its own thing
+                    if(utilities.requestFullscreenFn(el) == el.mozRequestFullScreen) {
+                        el.parentElement.mozRequestFullScreen();
+                    }
+                    else {
+                        utilities.requestFullscreenFn(el).call(el);
+                    }
+                }
+                else {
+                    utilities.exitFullscreenFn().call(document);
+                }
+            };
+
+
         },
         link: function(scope, element) {
             scope.panel = element.next();
@@ -1498,7 +1542,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey)}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
+            '<div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
               '<div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>',
               '<div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
@@ -1512,8 +1556,12 @@ SIREPO.app.directive('reportContent', function(panelState) {
               '<div data-ng-transclude=""></div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
             $scope.panelState = panelState;
+            $scope.hasTransclude = function() {
+                return $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)').length > 0;
+            };
+
         },
     };
 });
@@ -2381,6 +2429,10 @@ SIREPO.app.service('keypressService', function(d3Service) {
     this.hasListener = function(listenerId) {
         return activeListeners.indexOf(listenerId) >= 0;
     };
+    this.hasReport = function(reportId) {
+        return ! ! reports[reportId];
+    };
+
     this.removeListener = function(listenerId) {
         var lIndex = activeListeners.indexOf(listenerId);
         if(lIndex >= 0) {
@@ -2478,12 +2530,55 @@ SIREPO.app.service('keypressService', function(d3Service) {
 
 SIREPO.app.service('utilities', function($window, $interval) {
 
+    var self = this;
+
     this.modelFieldID = function (modelName, fieldName) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
     this.isWide = function() {
         return $window.innerWidth > 767;
+    };
+
+    // fullscreen utilities
+    this.getFullScreenElement = function() {
+        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    };
+    this.isFullscreen = function () {
+        return ! ! this.getFullScreenElement();
+    };
+    this.isFullscreenElement = function(el) {
+        return el == this.getFullScreenElement();
+    };
+    this.requestFullscreenFn = function(el) {
+        return el.requestFullscreen ||
+            el.mozRequestFullScreen ||
+            el.webkitRequestFullscreen ||
+            el.msRequestFullscreen ||
+            function() {
+                srlog('This browser does not support full screen');
+            };
+        };
+    this.exitFullscreenFn = function() {
+        return document.exitFullscreen ||
+            document.mozCancelFullScreen ||
+            document.webkitExitFullscreen ||
+            document.msExitFullscreen ||
+            function() {
+                srlog('This browser does not support full screen');
+            };
+    };
+    this.fullscreenListenerEvent = function() {
+        if(this.exitFullscreenFn() == document.mozCancelFullScreen) {
+            return "mozfullscreenchange";
+        }
+        if(this.exitFullscreenFn() == document.webkitExitFullscreen) {
+            return "webkitfullscreenchange";
+        }
+        if(this.exitFullscreenFn() == document.msExitFullscreen) {
+            return "MSFullscreenChange";
+        }
+        return "fullscreenchange";
     };
 
     // Returns a function, that, as long as it continues to be invoked, will not
