@@ -13,6 +13,6 @@ bunch = synergia.optics.generate_matched_bunch_transverse(
     dpop={{ bunch_dpop }}, # unitless, RMS \frac{\delta p}{p_{tot}}
     num_real_particles=int({{ bunch_num_real_particles }}), # real particles, used for space charge, impedance, etc
     num_macro_particles=int({{ bunch_num_macro_particles }}), # Used for PIC calculations
-    seed=int({{ bunch_seed }}),
-    z_period_length={{ bunch_z_period_length }} # space between bunches
+    seed=int({{ bunch_seed }})
 )
+bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
