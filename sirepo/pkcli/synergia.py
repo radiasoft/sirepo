@@ -59,6 +59,13 @@ def _run_bunch_report(data, bunch):
         'z_matrix': hist.T.tolist(),
     }
 
+_UNITS = {
+    'x': 'm',
+    'y': 'm',
+    'cdt': 'm',
+}
 
 def _label(v):
-    return '{} [m]'.format(v)
+    if v not in _UNITS:
+        return v
+    return '{} [{}]'.format(v, _UNITS[v])

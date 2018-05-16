@@ -108,6 +108,12 @@
             ["zpstd", "zp standard deviation"],
             ["none", "None"]
         ],
+        "ExtractorType": [
+            ["default", "default"],
+            ["chef_map", "chef_map"],
+            ["chef_propagate", "chef_propagate"],
+            ["chef_mixed", "chef_mixed"]
+        ],
         "Particle": [
             ["proton", "Proton"],
             ["antiproton", "Antiproton"],
@@ -189,25 +195,30 @@
             "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the pole face."],
             "fint": ["FINT", "Float", "0.0", "The field integral as for SBEND sector bend."],
             "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the associated SBEND bending magnet."],
-            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis. A positive angle represents a clockwise rotation."]
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis. A positive angle represents a clockwise rotation."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", "0.0", "The drift length."]
+            "l": ["L [m]", "Float", "0.0", "The drift length."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "MARKER": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "MONITOR": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L [m]", "Float", "0.0", "length"]
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "NLLENS": {
             "name": ["Name", "ValidatedString"],
             "knll": ["KNLL [m]", "Float", "0.0", "The integrated strength of lens. The strength is parametrized so that the quadrupole term of the multipole expansion is k1=2*KNLL/CNLL²."],
             "cnll": ["CNLL [m]", "Float", "0.0", "The dimensional parameter of lens. The singularities of the potential are located at X=-CNLL,+CNLL and Y=0."],
             "bcoeff": ["BCOEFF", "Float", "0.0"],
-            "dcoeff": ["DCOEFF", "Float", "0.0"]
+            "dcoeff": ["DCOEFF", "Float", "0.0"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
@@ -235,14 +246,16 @@
             "propagator_type": ["PROPAGATOR", "Propagator", "yoshida"],
             "yoshida_order": ["YOSHIDA ORDER", "Integer", "2"],
             "yoshida_steps": ["YOSHIDA STEPS", "Integer", "4"],
-            "basic_kicks": ["BASIC KICKS", "Integer", "40"]
+            "basic_kicks": ["BASIC KICKS", "Integer", "40"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "RFCAVITY": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
             "volt": ["VOLT [MV]", "Float", "0.0", "The peak electrical RF voltage"],
             "lag": ["LAG [2π]", "Float", "0.0"],
-            "harmon": ["HARMON", "Integer", "0.0", "The harmonic number h"]
+            "harmon": ["HARMON", "Integer", "0.0", "The harmonic number h"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "SBEND": {
             "name": ["Name", "ValidatedString"],
@@ -276,20 +289,23 @@
             "b7": ["B7", "Float", "0.0", "hexdecapole"],
             "entry_edge_kick": ["ENTRY EDGE KICK", "Float", "1.0"],
             "exit_edge_kick": ["EXIT EDGE KICK", "Float", "1.0"],
-            "propagator_type": ["PROPAGATOR", "Propagator", "basic"]
+            "propagator_type": ["PROPAGATOR", "Propagator", "basic"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "SEXTUPOLE": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The sextupole length."],
             "k2": ["K2 [1/m³]", "Float", "0.0", "The normal sextupole coecient."],
             "k2s": ["K2S [1/m³]", "Float", "0.0", "The skew sextupole coefficient."],
-            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a normal sextupole). A positive angle represents a clockwise rotation. An attribute TILT=pi/6 turns a positive normal sextupole into a negative skew sextupole."]
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a normal sextupole). A positive angle represents a clockwise rotation. An attribute TILT=pi/6 turns a positive normal sextupole into a negative skew sextupole."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "SOLENOID": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The length of the solenoid."],
             "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
-            "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"]
+            "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         }
     },
     "view": {
@@ -378,7 +394,8 @@
                 "e1",
                 "fint",
                 "hgap",
-                "tilt"
+                "tilt",
+                "extractor_type"
             ]
         },
         "DRIFT": {
@@ -387,7 +404,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l"
+                "l",
+                "extractor_type"
             ]
         },
         "MARKER": {
@@ -395,7 +413,8 @@
             "description": "The simplest element which can occur in a beam line is a MARKER. It has zero length and has no effect on the beam, but it allows one to identify a position in the beam line.",
             "fieldsPerTab": 8,
             "advanced": [
-                "name"
+                "name",
+                "extractor_type"
             ]
         },
         "MONITOR": {
@@ -404,7 +423,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l"
+                "l",
+                "extractor_type"
             ]
         },
         "NLLENS": {
@@ -416,7 +436,8 @@
                 "knll",
                 "cnll",
                 "bcoeff",
-                "dcoeff"
+                "dcoeff",
+                "extractor_type"
             ]
         },
         "QUADRUPOLE": {
@@ -448,7 +469,8 @@
                 "propagator_type",
                 "yoshida_order",
                 "yoshida_steps",
-                "basic_kicks"
+                "basic_kicks",
+                "extractor_type"
             ]
         },
         "RFCAVITY": {
@@ -459,7 +481,8 @@
                 "l",
                 "volt",
                 "lag",
-                "harmon"
+                "harmon",
+                "extractor_type"
             ]
         },
         "SBEND": {
@@ -498,7 +521,8 @@
                 "b7",
                 "entry_edge_kick",
                 "exit_edge_kick",
-                "propagator_type"
+                "propagator_type",
+                "extractor_type"
             ]
         },
         "SEXTUPOLE": {
@@ -509,7 +533,8 @@
                 "l",
                 "k2",
                 "k2s",
-                "tilt"
+                "tilt",
+                "extractor_type"
             ]
         },
         "SOLENOID": {
@@ -519,7 +544,8 @@
                 "name",
                 "l",
                 "ks",
-                "ksi"
+                "ksi",
+                "extractor_type"
             ]
         }
     }
