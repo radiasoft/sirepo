@@ -283,32 +283,33 @@ def _generate_parameters_file(data):
         + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
 
 
-def _sort_beamlines_by_length(lines):
-    res = []
-    for name in lines:
-        res.append([name, len(lines[name])])
-    return list(reversed(sorted(res, key=lambda v: v[1])))
+def _import_bunch(lattice, data):
+    from synergia.foundation import pconstants
+    ref = lattice.get_reference_particle()
+    bunch = data['models']['bunch']
+    bunch['beam_definition'] = 'gamma'
+    bunch['charge'] = ref.get_charge()
+    four_momentum = ref.get_four_momentum()
+    bunch['gamma'] = _format_float(four_momentum.get_gamma())
+    bunch['energy'] = _format_float(four_momentum.get_total_energy())
+    bunch['momentum'] = _format_float(four_momentum.get_momentum())
+    bunch['beta'] = _format_float(four_momentum.get_beta())
+    bunch['mass'] = _format_float(four_momentum.get_mass())
+    bunch['particle'] = 'other'
+    if bunch['mass'] == pconstants.mp:
+        if bunch['charge'] == pconstants.proton_charge:
+            bunch['particle'] = 'proton'
+        #TODO(pjm): antiproton (anti-proton) not working with synergia
+    elif bunch['mass'] == pconstants.me:
+        bunch['particle'] = 'positron' if bunch['charge'] == pconstants.positron_charge else 'electron'
+    elif bunch['mass'] == pconstants.mmu:
+        bunch['particle'] = 'posmuon' if bunch['charge'] == pconstants.antimuon_charge else 'negmuon'
 
 
-def _import_madx_file(text):
-    import synergia
-    data = simulation_db.default_data(SIM_TYPE)
-    reader = synergia.lattice.MadX_reader()
-    lattice = reader.parse(text)
-    lines = {}
-    for name in reader.get_line_names() + reader.get_sequence_names():
-        lattice = reader.get_lattice(name)
-        res = []
-        for el in lattice.get_elements():
-            res.append(el.get_name())
-        lines[name] = res
-
-    beamline_name = _sort_beamlines_by_length(lines)[0][0]
-    lattice = reader.get_lattice(beamline_name)
-    beamline = []
-    elements = []
+def _import_elements(lattice, data):
     name_to_id = {}
-    count = 0
+    beamline = data['models']['beamlines'][0]
+    current_id = beamline['id']
 
     for el in lattice.get_elements():
         attrs = {}
@@ -328,12 +329,12 @@ def _import_madx_file(text):
         else:
             m['name'] = el.get_name().upper()
         if m['name'] in name_to_id:
-            beamline.append(name_to_id[m['name']])
+            beamline['items'].append(name_to_id[m['name']])
             continue
         m['type'] = model_name
-        count += 1
-        beamline.append(count)
-        m['_id'] = count
+        current_id += 1
+        beamline['items'].append(current_id)
+        m['_id'] = current_id
         name_to_id[m['name']] = m['_id']
         info = _SCHEMA['model'][model_name]
         for f in info.keys():
@@ -344,15 +345,38 @@ def _import_madx_file(text):
                 pkdlog('unknown attr: {}: {}'.format(model_name, attr))
         data['models']['elements'].append(m)
     data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
-    count += 1
-    data['models']['beamlines'].append({
-        'id': count,
-        'items': beamline,
-        'name': beamline_name.upper(),
-    })
-    data['models']['simulation']['activeBeamlineId'] = count
-    data['models']['simulation']['visualizationBeamlineId'] = count
+
+
+def _import_madx_file(text):
+    import synergia
+    data = simulation_db.default_data(SIM_TYPE)
+    reader = synergia.lattice.MadX_reader()
+    reader.parse(text)
+    lattice = _import_main_beamline(reader, data)
+    _import_elements(lattice, data)
+    _import_bunch(lattice, data)
     return data
+
+
+def _import_main_beamline(reader, data):
+    lines = {}
+    for name in reader.get_line_names() + reader.get_sequence_names():
+        names = []
+        for el in reader.get_lattice(name).get_elements():
+            names.append(el.get_name())
+        lines[name] = names
+    #TODO(pjm): assumes longest sequence is it target beamline
+    beamline_name = _sort_beamlines_by_length(lines)[0][0]
+    res = reader.get_lattice(beamline_name)
+    current_id = 1
+    data['models']['beamlines'].append({
+        'id': current_id,
+        'items': [],
+        'name': beamline_name,
+    })
+    data['models']['simulation']['activeBeamlineId'] = current_id
+    data['models']['simulation']['visualizationBeamlineId'] = current_id
+    return res
 
 
 #TODO(pjm): from template.elegant
@@ -446,6 +470,13 @@ def _plot_values(h5file, field):
     if dimension == 3:
         return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
     assert False, dimension
+
+
+def _sort_beamlines_by_length(lines):
+    res = []
+    for name in lines:
+        res.append([name, len(lines[name])])
+    return list(reversed(sorted(res, key=lambda v: v[1])))
 
 
 def _validate_data(data, schema):
