@@ -1,0 +1,25 @@
+# {{simulation_name}}
+
+import synergia
+
+lattice_file = """
+beam,
+{% if bunch_particle == 'other' %}
+  mass={{ bunch_mass }}, charge={{ bunch_charge }},
+{% else %}
+  particle={{ bunch_particle }},
+{% endif %}
+{% if bunch_beam_definition == 'energy' %}
+  energy={{ bunch_energy }};
+{% elif bunch_beam_definition == 'momentum' %}
+  pc={{ bunch_momentum }};
+{% elif bunch_beam_definition == 'gamma' %}
+  gamma={{ bunch_gamma }};
+{% endif %}
+
+{{lattice}}
+"""
+
+LATTICE_FILE = 'lattice.madx'
+with open(LATTICE_FILE, 'w') as f:
+    f.write(lattice_file)

@@ -426,7 +426,8 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
-                  '<a href class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</a>',
+                  // must be a <button>, not an <a> so panelState.enableField() can disable it
+                  '<button class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
                 '</div>',
                 '<select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
               '</div>',
@@ -1776,7 +1777,11 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            title: '@',
+            description: '@',
+            fileFormats: '@',
+        },
         template: [
             '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
@@ -1790,8 +1795,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                     '<div class="container-fluid">',
                       '<form name="importForm">',
                         '<div class="form-group">',
-                          '<label>Select File</label>',
-                          '<input id="file-import" type="file" data-file-model="zipFile">',
+                          '<label>{{ description }}</label>',
+                          '<input id="file-import" type="file" data-file-model="zipFile" data-ng-attr-accept="{{ fileFormats }}">',
                           '<br />',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
@@ -1811,7 +1816,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = 'Import ZIP File';
+            $scope.title = $scope.title || 'Import ZIP File';
+            $scope.description = $scope.description || 'Select File';
             $scope.importZIPFile = function(zipFile) {
                 if (! zipFile) {
                     return;
@@ -1835,9 +1841,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                         else {
                             $('#simulation-import').modal('hide');
                             $scope.zipFile = null;
-                            requestSender.localRedirect('source', {
-                                ':simulationId': data.models.simulation.simulationId,
-                            });
+                            requestSender.localRedirectHome(data.models.simulation.simulationId);
                         }
                     });
             };
@@ -1912,9 +1916,7 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
                 appState.copySimulation(
                     simulationId(),
                     function(data) {
-                        requestSender.localRedirect('source', {
-                            ':simulationId': data.models.simulation.simulationId,
-                        });
+                        requestSender.localRedirectHome(data.models.simulation.simulationId);
                     });
             };
 
@@ -1954,15 +1956,14 @@ SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelSta
             };
 
             $scope.openRelatedSimulation = function(item) {
+                //TODO(pjm): make this more generalized - could be an app-specific tab
                 if ($scope.nav.isActive('beamline')) {
                     requestSender.localRedirect('beamline', {
                         ':simulationId': item.simulationId,
                     });
                     return;
                 }
-                requestSender.localRedirect('source', {
-                    ':simulationId': item.simulationId,
-                });
+                requestSender.localRedirectHome(item.simulationId);
             };
 
             $scope.exportArchive = function(extension) {

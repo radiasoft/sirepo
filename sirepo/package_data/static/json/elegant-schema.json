@@ -427,7 +427,7 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
-            "visualizationBeamlineId": ["Beamline", "ElegantBeamlineList", ""],
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "simulationMode": ["Execution", "SimulationMode", "serial"]
         },
         "simulationStatus": {},
@@ -1099,7 +1099,7 @@
         },
         "command_run_setup": {
             "lattice": ["Lattice", "ElegantLatticeList", "", "Name of the lattice definition file."],
-            "use_beamline": ["Use Beamline", "ElegantBeamlineList", "", "Name of the beamline to use."],
+            "use_beamline": ["Use Beamline", "LatticeBeamlineList", "", "Name of the beamline to use."],
             "output": ["Output", "OutputFile", "", "The name of an SDDS file into which final phase-space coordinates will be written."],
             "centroid": ["Centroid", "OutputFile", "", "The name of an SDDS file into which beam centroids as a function of s will be written."],
             "sigma": ["Sigma", "OutputFile", "", "The name of an SDDS file into which the beam sigma matrix as a function of z will be written."],

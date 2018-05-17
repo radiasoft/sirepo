@@ -2800,7 +2800,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     setPlotVisible(i, true);
                 }
                 axes.y.plots = plots;
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                for(var fpIndex = 0; fpIndex < Math.min($scope.focusPoints.length, plots.length); ++fpIndex) {
                     $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
                     focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), true, $scope.plotInfoDelegates);
                 }

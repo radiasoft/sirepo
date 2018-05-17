@@ -283,7 +283,7 @@ def validate_model(model_data, model_schema, enum_info):
             elif re.search('\[ps]', label):
                 v /= 1e12
             #TODO(pjm): need to handle unicode in label better (mu)
-            elif re.search('\[\xb5(m|rad)\]', label):
+            elif re.search('\[\xb5(m|rad)\]', label) or re.search('\[mm-mrad\]', label):
                 v /= 1e6
             model_data[k] = float(v)
         elif field_type == 'Integer':
