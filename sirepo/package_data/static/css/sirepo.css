@@ -705,6 +705,9 @@
     div[data-report-panel] > .panel:-webkit-full-screen .sr-plot text.z-axis-label {
         font-size: 18px;
     }
+    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot .axis text {
+        font-size: 16px;
+    }
 
     div[data-report-panel]:-moz-full-screen > .panel > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
         font-weight: bold;
@@ -719,6 +722,9 @@
     div[data-report-panel]:-moz-full-screen > .panel .sr-plot text.y-axis-label,
     div[data-report-panel]:-moz-full-screen > .panel .sr-plot text.z-axis-label {
         font-size: 18px;
+    }
+    div[data-report-panel]:-moz-full-screen > .panel .sr-plot .axis text {
+        font-size: 16px;
     }
 
     div[data-report-panel] > .panel:-ms-fullscreen > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
@@ -735,6 +741,9 @@
     div[data-report-panel] > .panel:-ms-fullscreen .sr-plot text.z-axis-label {
         font-size: 18px;
     }
+    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot .axis text {
+        font-size: 16px;
+    }
 
     div[data-report-panel] > .panel:fullscreen > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
         font-weight: bold;
@@ -749,6 +758,9 @@
     div[data-report-panel] > .panel:fullscreen .sr-plot text.y-axis-label,
     div[data-report-panel] > .panel:fullscreen .sr-plot text.y-axis-label {
         font-size: 18px;
+    }
+    div[data-report-panel] > .panel:fullscreen .sr-plot .axis text {
+        font-size: 16px;
     }
 
 table td.sr-center {

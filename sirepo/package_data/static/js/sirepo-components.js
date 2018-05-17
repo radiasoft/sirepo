@@ -2540,6 +2540,14 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return $window.innerWidth > 767;
     };
 
+    // font utilities
+    this.fontSizeFromString = function(fsString) {
+        if(! fsString) {
+            return 0;
+        }
+        return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+    }
+
     // fullscreen utilities
     this.getFullScreenElement = function() {
         return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;

@@ -921,12 +921,12 @@ SIREPO.app.service('focusPointService', function(plotting) {
 
 });
 
-SIREPO.app.service('layoutService', function(plotting) {
+SIREPO.app.service('layoutService', function(plotting, utilities) {
 
     var svc = this;
 
+    this.tickFontSize = 12;
     this.plotAxis = function(margin, dimension, orientation, refresh, utilities) {
-        var FONT_SIZE = 12;
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
         // global value, don't allow margin updates during zoom/pad handling
@@ -979,7 +979,7 @@ SIREPO.app.service('layoutService', function(plotting) {
             };
         }
 
-        function calcTickCount(format, canvasSize, unit, base) {
+        function calcTickCount(format, canvasSize, unit, base, fontSize) {
             var d = self.scale.domain();
             var width = Math.max(
                 4,
@@ -987,18 +987,18 @@ SIREPO.app.service('layoutService', function(plotting) {
             );
             var tickCount;
             if (dimension == 'x') {
-                tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * FONT_SIZE)));
+                tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * fontSize)));
             }
             else {
-                tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.height / (5 * FONT_SIZE)));
+                tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.height / (5 * fontSize)));
             }
             return Math.max(2, tickCount);
         }
 
         //TODO(pjm): this could be refactored, moving the base recalc out
-        function calcTicks(formatInfo, canvasSize, unit) {
+        function calcTicks(formatInfo, canvasSize, unit, fontSize) {
             var d = self.scale.domain();
-            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit);
+            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
             formatInfo = calcFormat(tickCount, unit);
             if (formatInfo.decimals > 2) {
                 var baseFormat = calcFormat(tickCount, unit, null, true).format;
@@ -1007,7 +1007,7 @@ SIREPO.app.service('layoutService', function(plotting) {
                     unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
                 }
                 formatInfo = calcFormat(tickCount, unit, base);
-                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base);
+                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
                 var f2 = calcFormat(tickCount, unit);
                 base = midPoint(f2, d);
                 if (unit) {
@@ -1019,7 +1019,7 @@ SIREPO.app.service('layoutService', function(plotting) {
             }
             if ((orientation == 'left' || orientation == 'right')) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
-                margin[orientation] = (w + 6) * (FONT_SIZE / 2);
+                margin[orientation] = (w + 6) * (fontSize / 2);
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;
@@ -1101,17 +1101,20 @@ SIREPO.app.service('layoutService', function(plotting) {
 
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
             if (svc.plotAxis.allowUpdates) {
+                // update the axis to get the tick font size from the css
+                select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
+                var fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || svc.tickFontSize;
                 var formatInfo, unit;
                 if (self.units) {
                     var d = self.scale.domain();
                     unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
                         + ' [' + formatInfo.unit.symbol + self.units + ']');
                 }
                 else {
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, null, fontSize);
                     if (self.label) {
                         select('.' + dimension + '-axis-label').text(
                             self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
@@ -1139,6 +1142,7 @@ SIREPO.app.service('layoutService', function(plotting) {
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
         };
+
         return self;
     };
 
@@ -1597,7 +1601,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 var tbw = parseFloat(rptWindow.attr('width'));
                 var tbh = parseFloat(rptWindow.attr('height'));
                 var bw = rptWindow.style('stroke-width');
-                var borderWidth = parseFloat(bw.substring(0, bw.indexOf('px')));
+                var borderWidth = utilities.fontSizeFromString(bw);
 
                 newX = Math.min(reportWidth - tbw - popupMargin, newX);
                 newY = Math.min(reportHeight - tbh - popupMargin, newY);
@@ -2201,7 +2205,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 var focusText = select('.focus-text');
                 var fs = focusText.style('font-size');
 
-                var currentFontSize = parseFloat(fs.substring(0, fs.indexOf('px')));
+                var currentFontSize = utilities.fontSizeFromString(fs);
                 var newFontSize = currentFontSize;
 
                 var textWidth = focusText.node().getComputedTextLength();
@@ -2862,7 +2866,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 });
 
 //TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('particle', function(plotting) {
+SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2904,6 +2908,17 @@ SIREPO.app.directive('particle', function(plotting) {
                 select('.y.axis').call(yAxis);
                 select('.y.axis.grid').call(yAxisGrid);
                 select('.plot-viewport').selectAll('.line').attr('d', graphLine);
+
+                // do the margin adjustment that other plots do inside layoutService.plotAxis
+                var fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || layoutService.tickFontSize;
+                var w = select('.y.axis').selectAll('text')[0]
+                    .map(function (txt) {
+                    return txt.textContent.length;
+                })
+                    .reduce(function(currentMax, next) {
+                        return next > currentMax ? next : currentMax;
+                    }, 0);
+                $scope.margin.left = Math.max(75, (w + 6) * (fontSize / 2));
             }
 
             function resetZoom() {
