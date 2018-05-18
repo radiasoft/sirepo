@@ -2353,7 +2353,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('keypressService', function(d3Service) {
+SIREPO.app.service('keypressService', function() {
 
     var listeners = {};
     var reports = {};
