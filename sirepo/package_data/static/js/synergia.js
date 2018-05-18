@@ -42,16 +42,17 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.advancedNames = [];
 
     self.basicNames = [
-        'DIPEDGE', 'DRIFT', 'MARKER', 'MONITOR', 'NLLENS', 'QUADRUPOLE', 'RFCAVITY', 'SBEND', 'SEXTUPOLE', 'SOLENOID',
+        'DIPEDGE', 'DRIFT', 'MARKER', 'MONITOR', 'MULTIPOLE', 'NLLENS', 'QUADRUPOLE', 'RFCAVITY', 'SBEND', 'SEXTUPOLE', 'SOLENOID', 'VKICKER',
     ];
 
     self.elementColor = {
         QUADRUPOLE: 'red',
         SEXTUPOLE: 'lightgreen',
+        VKICKER: 'blue',
     };
 
     self.elementPic = {
-        bend: ['SBEND'],
+        bend: ['MULTIPOLE', 'SBEND', 'VKICKER'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE'],
         rf: ['RFCAVITY'],
@@ -133,13 +134,16 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
     var self = this;
+    var turnCount = 0;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
 
     function handleStatus(data) {
+        turnCount = 0;
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
+            turnCount = data.turnCount;
             ['beamEvolutionAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
@@ -154,9 +158,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.runningMessage = function() {
+        if (appState.isLoaded() && turnCount) {
+            return 'Simulating turn: ' + turnCount + ' / ' + appState.models.simulationSettings.turn_count;
+        }
         return 'Simulation running';
     };
-
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],

@@ -211,6 +211,12 @@
             "l": ["L [m]", "Float", "0.0", "length"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "MULTIPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
+            "knl": ["KNL", "String", "", "An array of the integrated normal multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
+            "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."]
+        },
         "NLLENS": {
             "name": ["Name", "ValidatedString"],
             "knll": ["KNLL [m]", "Float", "0.0", "The integrated strength of lens. The strength is parametrized so that the quadrupole term of the multipole expansion is k1=2*KNLL/CNLL²."],
@@ -305,6 +311,12 @@
             "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
             "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "VKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
         }
     },
     "view": {
@@ -426,6 +438,17 @@
                 "extractor_type"
             ]
         },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "description": "A thin-lens magnet of arbitrary order, including a dipole component.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "tilt",
+                "knl",
+                "ksl"
+            ]
+        },
         "NLLENS": {
             "title": "NLLENS",
             "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type",
@@ -545,6 +568,17 @@
                 "ks",
                 "ksi",
                 "extractor_type"
+            ]
+        },
+        "VKICKER": {
+            "title": "VKICKER",
+            "description": "A magnetic closed orbit corrector for the vertical plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt"
             ]
         }
     }
