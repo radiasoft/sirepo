@@ -1158,10 +1158,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 delegates[dIndex].interface = this;
             }
 
-            d3Service.d3().then(init)
-                .catch(function (reason) {
-                    angular.noop();
-                });
+            d3Service.d3().then(init);
 
             function setupGeometry(isMainFocus) {
                 return {
@@ -1356,10 +1353,7 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Serv
                 $scope.plotInfoDelegate.hideFocusPointInfo = hideFocusCircle;
                 $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
             }
-            d3Service.d3().then(init)
-                .catch(function (reason) {
-                    angular.noop();
-                });
+            d3Service.d3().then(init);
 
             var defaultCircleSize;
 
@@ -1465,13 +1459,9 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
             var axisIndex = $scope.invertAxis ? 1 : 0;
             $scope.plotting = plotting;
 
-            d3Service.d3().then(init)
-                .catch(function (reason) {
-                    angular.noop();
-                });
+            d3Service.d3().then(init);
 
             function init() {
-
                 d3self = d3.selectAll($element);
                 group = d3self.select('.popup-group');
                 rptWindow = group.select('.report-window');
