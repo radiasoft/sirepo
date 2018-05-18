@@ -1653,7 +1653,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     };
     self.getCurrentQI = function(queueName) {
         return self.currentQI;
-    }
+    };
     return self;
 });
 

@@ -1103,7 +1103,13 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             if (svc.plotAxis.allowUpdates) {
                 // update the axis to get the tick font size from the css
                 select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
-                var fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || svc.tickFontSize;
+                var fontSize;
+                if (select('.sr-plot .axis text').style) {
+                    fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || svc.tickFontSize;
+                }
+                else {
+                    fontSize = svc.tickFontSize;
+                }
                 var formatInfo, unit;
                 if (self.units) {
                     var d = self.scale.domain();
