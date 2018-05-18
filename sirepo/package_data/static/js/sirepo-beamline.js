@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, validationService, $window) {
+SIREPO.app.factory('beamlineService', function(appState, validationService, $window, $rootScope) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
@@ -99,6 +99,49 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         }
         return rpts;
     };
+
+    self.watchpointPriorityMap = {};
+    self.addPriority = function(name, initialPriority) {
+        if(! name) {
+            return NaN;
+        }
+        // this priority has already been assigned to this watchpoint, ignore
+        if(self.watchpointPriorityMap[name] === initialPriority) {
+            return initialPriority;
+        }
+        // new priority
+        var newPriority = initialPriority;
+        if(! self.watchpointPriorityMap[name]) {
+            self.watchpointPriorityMap[name] = newPriority;
+            return newPriority;
+        }
+        // this priority already in use, change it to the first unused number
+        var priorities = Object.values(self.watchpointPriorityMap);
+        var pIndex = priorities.indexOf(initialPriority) + 1;
+        for(var i = pIndex; i < priorities.length; ++i) {
+            if(priorities[i] != newPriority) {
+                self.watchpointPriorityMap[name] = newPriority;
+                return newPriority;
+            }
+            ++newPriority;
+        }
+        self.watchpointPriorityMap[name] = newPriority;
+        return newPriority;
+    };
+    function cleanPriorityMap() {
+        var rpts = self.getWatchReports();
+        var rptsToClean = [];
+        var prioritizedReports = Object.keys(self.watchpointPriorityMap);
+        for(var prIndex = 0; prIndex < prioritizedReports.length; ++prIndex) {
+            var prName = prioritizedReports[prIndex];
+            if(rpts.indexOf(prName) < 0) {
+                rptsToClean.push(prName);
+            }
+        }
+        for(var cIndex = 0; cIndex < rptsToClean.length; ++cIndex) {
+            delete self.watchpointPriorityMap[rptsToClean[cIndex]];
+        }
+    }
 
     self.isActiveItemValid = function() {
         return self.isItemValid(self.activeItem);
@@ -200,6 +243,10 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
     };
 
     testSVGForeignObject();
+
+    $rootScope.$on('beamline.changed', function (event) {
+        cleanPriorityMap();
+    });
 
     return self;
 });
@@ -680,11 +727,14 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
               '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
             '</div>',
             '<div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
-              '<div data-watchpoint-report="" data-request-priority="{{ $index + 2 }}" data-item-id="item.id"></div>',
+              '<div data-watchpoint-report="" data-get-request-priority="getPriorityForItem(item, $index)" data-item-id="item.id"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
+            $scope.getPriorityForItem = function(item, index) {
+                return beamlineService.addPriority(beamlineService.watchpointReportName(item.id), index + 2);
+            };
         },
     };
 });
@@ -781,7 +831,7 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
     return {
         scope: {
             itemId: '=',
-            requestPriority: '@',
+            getRequestPriority: '&',
         },
         template: [
             '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
