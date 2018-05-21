@@ -202,6 +202,19 @@
             "l": ["L [m]", "Float", "0.0", "The drift length."],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "HKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The horizontal momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+        },
+        "KICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "hkick": ["HKICK", "Float", "0.0", "The horizontal momentum change"],
+            "vkick": ["VKICK", "Float", "0.0", "The vertical momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+        },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
@@ -315,7 +328,7 @@
         "VKICKER": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
-            "kick": ["KICK", "Float", "0.0", "The momentum change"],
+            "kick": ["KICK", "Float", "0.0", "The vertical momentum change"],
             "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
         }
     },
@@ -335,7 +348,7 @@
             ]
         },
         "beamlineReport": {
-            "title": "Beamline Report",
+            "title": "Lattice",
             "advanced": []
         },
         "bunch": {
@@ -417,6 +430,29 @@
                 "name",
                 "l",
                 "extractor_type"
+            ]
+        },
+        "HKICKER": {
+            "title": "HKICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt"
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal and vertical planes",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "hkick",
+                "vkick",
+                "tilt"
             ]
         },
         "MARKER": {
