@@ -44,7 +44,7 @@ app.value('appRoutes', {
     'rslinac': {url: '/static/html/landing-page-rslinac.html', codeURL: '/hellweg', codeTitle: 'RsLinac', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
     'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
-    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', placeholder: '/static/img/WarpVND.png', url:''}},
+    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', placeholder: '/static/img/WarpVND.png', url:'https://www.youtube.com/embed/9tihDyl0600'}},
     'genesis': {url: '/static/html/landing-page-genesis.html', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
     'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
     'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
