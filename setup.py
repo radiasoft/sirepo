@@ -1,23 +1,39 @@
 # -*- coding: utf-8 -*-
 u"""Sirepo setup script
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-try:
-    import pykern.pksetup
-except ImportError:
-    import pip
-    pip.main(['install', 'pykern'])
-    import pykern.pksetup
+import pykern.pksetup
 
 pykern.pksetup.setup(
-    name='sirepo',
-    description='accelerator code gui',
     author='RadiaSoft LLC.',
     author_email='pip@sirepo.com',
-    url='http://sirepo.com',
+    description='accelerator code gui',
+    install_requires=[
+        # some "concrete" dependencies in requirements.txt
+        'beaker',
+        'bnlcrl',
+        'celery==3.1.23',
+        'dicompyler-core',
+        'Flask_SQLAlchemy',
+        'Flask-OAuthlib',
+        'flower==0.8.4',
+        'kombu==3.0.35',
+        'numconv',
+        'numpy',
+        'pillow',
+        'pyIsEmail',
+        'pykern',
+        'pytz==2015.7',
+        'scipy',
+        'SQLAlchemy',
+        'srxraylib',
+        'uwsgi',
+    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
+    name='sirepo',
+    url='http://sirepo.com',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

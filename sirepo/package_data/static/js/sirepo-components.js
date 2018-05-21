@@ -1431,7 +1431,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
-              '<a href data-ng-class="{\'sr-disabled-link\': panelState.isHidden(modelKey)}" data-ng-show="allowFullScreen" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              '<a href data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -2401,7 +2401,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('keypressService', function(d3Service) {
+SIREPO.app.service('keypressService', function() {
 
     var listeners = {};
     var reports = {};
@@ -2547,7 +2547,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
             return 0;
         }
         return parseFloat(fsString.substring(0, fsString.indexOf('px')));
-    }
+    };
 
     // fullscreen utilities
     this.getFullScreenElement = function() {

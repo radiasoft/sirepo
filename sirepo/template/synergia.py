@@ -38,11 +38,14 @@ def background_percent_complete(report, run_dir, is_running):
     diag_file = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     if diag_file.exists():
         try:
+            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             with h5py.File(str(diag_file), 'r') as f:
                 size = f['emitx'].shape[0]
+                turn = int(f['repetition'][-1]) + 1
                 return {
-                    'percentComplete': 0,
+                    'percentComplete': 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count'],
                     'frameCount': size,
+                    'turnCount': turn,
                 }
         except Exception as e:
             # file present but not hdf formatted
@@ -305,6 +308,7 @@ def _import_bunch(lattice, data):
     elif bunch['mass'] == pconstants.mmu:
         bunch['particle'] = 'posmuon' if bunch['charge'] == pconstants.antimuon_charge else 'negmuon'
 
+_IGNORE_ATTRIBUTES = ['lrad']
 
 def _import_elements(lattice, data):
     name_to_id = {}
@@ -318,7 +322,7 @@ def _import_elements(lattice, data):
         for attr in el.get_string_attributes():
             attrs[attr] = el.get_string_attribute(attr)
         for attr in el.get_vector_attributes():
-            attrs[attr] = el.get_vector_attribute(attr)
+            attrs[attr] = '{' + ','.join(map(str, el.get_vector_attribute(attr))) + '}'
         model_name = el.get_type().upper()
         m = template_common.model_defaults(model_name, _SCHEMA)
         if 'l' in attrs:
@@ -342,7 +346,8 @@ def _import_elements(lattice, data):
                 m[f] = attrs[f]
         for attr in attrs:
             if attr not in m:
-                pkdlog('unknown attr: {}: {}'.format(model_name, attr))
+                if attr not in _IGNORE_ATTRIBUTES:
+                    pkdlog('unknown attr: {}: {}'.format(model_name, attr))
         data['models']['elements'].append(m)
     data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 

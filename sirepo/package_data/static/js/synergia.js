@@ -39,21 +39,20 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = [];
+    self.advancedNames = ['DIPEDGE', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'SEXTUPOLE', 'SOLENOID', 'VKICKER'];
 
-    self.basicNames = [
-        'DIPEDGE', 'DRIFT', 'MARKER', 'MONITOR', 'NLLENS', 'QUADRUPOLE', 'RFCAVITY', 'SBEND', 'SEXTUPOLE', 'SOLENOID',
-    ];
+    self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
 
     self.elementColor = {
         QUADRUPOLE: 'red',
         SEXTUPOLE: 'lightgreen',
+        VKICKER: 'blue',
     };
 
     self.elementPic = {
-        bend: ['SBEND'],
+        bend: ['HKICKER', 'KICKER', 'MULTIPOLE', 'SBEND'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPOLE', 'SEXTUPOLE'],
+        magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['MARKER', 'MONITOR'],
@@ -133,13 +132,16 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
     var self = this;
+    var turnCount = 0;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
 
     function handleStatus(data) {
+        turnCount = 0;
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
+            turnCount = data.turnCount;
             ['beamEvolutionAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
@@ -154,9 +156,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.runningMessage = function() {
+        if (appState.isLoaded() && turnCount) {
+            return 'Simulating turn: ' + turnCount + ' / ' + appState.models.simulationSettings.turn_count;
+        }
         return 'Simulation running';
     };
-
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],

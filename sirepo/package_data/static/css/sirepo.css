@@ -1085,83 +1085,82 @@ li.sr-model-list-item > a {
     margin-top: calc(23px + 0.75em);
 }
 
-.elegant-beamline-element {
-  float: left;
-  min-width: 4em;
-  line-height: 3em;
-  text-align: center;
+.sr-lattice-item {
+  user-select: none;
+  cursor: move;
+  border: solid 2px #777;
 }
-.elegant-beamline-close-icon {
+.sr-lattice-item:hover, .sr-lattice-item.drag-over {
+  border-color: black;
+}
+.sr-lattice-item-holder.drag-enter .sr-lattice-item {
+  opacity: 0.5;
+}
+.sr-lattice-item-holder .sr-lattice-item.drag-over {
+  opacity: 1.0;
+}
+.sr-lattice-item-holder {
+  text-align: center;
+  padding: 5px 0;
+  display: inline-block;
+  border: solid 5px white;
+  border-radius: 10px;
+}
+.sr-lattice-item-holder.drag-enter {
+  border: solid 5px lightgray;
+}
+
+.sr-lattice-close-icon {
     font-size: 16px;
     cursor: pointer;
     color: #aaa;
     visibility: hidden;
 }
-.elegant-hover:hover .elegant-beamline-close-icon {
+.elegant-hover:hover .sr-lattice-close-icon {
       visibility: visible;
 }
-.elegant-hover .elegant-beamline-close-icon:hover {
+.elegant-hover .sr-lattice-close-icon:hover {
     color: #000;
 }
 .elegant-download-button {
   background-color: white;
 }
 
-.sr-count {
-  font-size: 10px;
-  font-weight: bold;
-  vertical-align: top;
-  margin-top: -10px;
-  display: inline-block;
-  padding-left: 4px;
-}
-.elegant-beamline-element-with-count {
-  margin-left: 1em;
-}
-.elegant-beamline-element-group {
-  background-color: lightcyan;
-}
 .sr-drop-left {
   background-color: #d9edf7;
   width: 0;
   display: inline-block;
 }
-.elegant-beamline-element.drag-enter .sr-drop-left {
-  width: 5.5em;
-}
-.elegant-beamline-element.dragging {
-  display: none;
-}
-.elegant-beamline-element.drag-enter.dragging .sr-drop-left {
-  width: 0;
-}
-.elegant-beamline-icon {
+.sr-lattice-icon {
   background-color: #222;
+  border-color: #222;
 }
-.elegant-beamline-icon-disabled {
+.sr-lattice-icon-disabled {
   background-color: #aaa;
+  border-color: #aaa;
 }
-div.elegant-beamline-icon-disabled span {
+div.sr-lattice-icon-disabled span {
     cursor: not-allowed;
 }
 .elegant-item-selected {
   background-color: blue;
-  box-shadow: 0 0 25px gray;
+  box-shadow: 0 0 10px gray;
   cursor: move;
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
+  border-color: blue;
 }
 .elegant-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
-  min-width: 4em;
+  min-width: 5em;
 }
 .elegant-icon span {
   cursor: move;
 }
-.elegant-beamline-editor-panel {
+.sr-lattice-editor-panel {
   overflow: auto;
 }
 .elegant-cmd-table table tr td.drag-enter {

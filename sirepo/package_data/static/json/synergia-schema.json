@@ -202,6 +202,19 @@
             "l": ["L [m]", "Float", "0.0", "The drift length."],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "HKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The horizontal momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+        },
+        "KICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "hkick": ["HKICK", "Float", "0.0", "The horizontal momentum change"],
+            "vkick": ["VKICK", "Float", "0.0", "The vertical momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+        },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
@@ -210,6 +223,12 @@
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "MULTIPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
+            "knl": ["KNL", "String", "", "An array of the integrated normal multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
+            "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."]
         },
         "NLLENS": {
             "name": ["Name", "ValidatedString"],
@@ -305,6 +324,12 @@
             "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
             "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "VKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The vertical momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
         }
     },
     "view": {
@@ -323,7 +348,7 @@
             ]
         },
         "beamlineReport": {
-            "title": "Beamline Report",
+            "title": "Lattice",
             "advanced": []
         },
         "bunch": {
@@ -407,6 +432,29 @@
                 "extractor_type"
             ]
         },
+        "HKICKER": {
+            "title": "HKICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt"
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal and vertical planes",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "hkick",
+                "vkick",
+                "tilt"
+            ]
+        },
         "MARKER": {
             "title": "MARKER",
             "description": "The simplest element which can occur in a beam line is a MARKER. It has zero length and has no effect on the beam, but it allows one to identify a position in the beam line.",
@@ -424,6 +472,17 @@
                 "name",
                 "l",
                 "extractor_type"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "description": "A thin-lens magnet of arbitrary order, including a dipole component.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "tilt",
+                "knl",
+                "ksl"
             ]
         },
         "NLLENS": {
@@ -545,6 +604,17 @@
                 "ks",
                 "ksi",
                 "extractor_type"
+            ]
+        },
+        "VKICKER": {
+            "title": "VKICKER",
+            "description": "A magnetic closed orbit corrector for the vertical plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt"
             ]
         }
     }
