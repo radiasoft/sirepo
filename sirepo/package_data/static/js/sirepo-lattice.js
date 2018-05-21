@@ -571,10 +571,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             $scope.editorHeight = function() {
                 var w = $($window);
                 var el = $('.sr-lattice-editor-panel');
-                // need to re-evaluate outside of current digest cycle
-                // in case the beamline lattice has been minimized
-                // but the DOM has not yet been updated
-                $scope.$applyAsync();
                 return (w.height() - el.offset().top - 15) + 'px';
             };
 
