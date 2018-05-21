@@ -31,6 +31,8 @@ _PLOT_LINE_COLOR = {
     'y3': '#2ca02c',
 }
 
+_REPORT_STYLE_FIELDS = ['colorMap']
+
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 
@@ -108,12 +110,11 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    return [
+    return template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'simulation.visualizationBeamlineId',
         'bunch',
         'beamlines',
         'elements',
-        r,
     ]
 
 
