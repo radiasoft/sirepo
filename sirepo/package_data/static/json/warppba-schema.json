@@ -122,12 +122,14 @@
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamPreviewReport": {
             "x": ["X Value", "XValue"],
             "y": ["Y Value", "YValue"],
-            "histogramBins": ["Histogram Bins", "Integer"]
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "notes": ["Notes", "Text", ""]
         },
         "electronBeam": {
             "charge": ["Charge [C]", "Float"],
@@ -195,7 +197,8 @@
             "uzMin": ["Minimum UZ [mc]", "Float"],
             "uzMax": ["Maximum UZ [mc]", "Float"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
+            "notes": ["Notes", "Text", ""]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
@@ -203,13 +206,15 @@
             "mode": ["Mode", "FieldMode"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"]
+            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
+            "notes": ["Notes", "Text", ""]
         },
         "laserPreviewReport": {
             "field": ["Field", "Field"],
             "coordinate": ["Coordinate", "FieldCoordinate"],
             "mode": ["Mode", "FieldMode"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "simulationStatus": {}
     },
@@ -221,7 +226,8 @@
                 "y",
                 "histogramBins",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "beamPreviewReport": {
@@ -229,7 +235,8 @@
             "advanced": [
                 "x",
                 "y",
-                "histogramBins"
+                "histogramBins",
+                "notes"
             ]
         },
         "electronBeam": {
@@ -351,7 +358,8 @@
                         "uzMax"
                     ]]
                 ],
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "fieldAnimation": {
@@ -361,7 +369,8 @@
                 "coordinate",
                 "mode",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "laserPreviewReport": {
@@ -370,7 +379,8 @@
                 "field",
                 "coordinate",
                 "mode",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         }
     }

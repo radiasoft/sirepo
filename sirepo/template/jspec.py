@@ -61,6 +61,8 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _X_FIELD = 't'
 
+_REPORT_STYLE_FIELDS = ['notes']
+
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:

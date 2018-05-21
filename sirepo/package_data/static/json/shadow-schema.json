@@ -504,7 +504,8 @@
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "column": ["Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "notes": ["Notes", "Text", ""]
         },
         "initialIntensityReport": {
             "x": ["Value to Plot", "ColumnValue"],
@@ -516,7 +517,8 @@
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
             "verticalOffset": ["Vertical Offset [mm]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "mirror": {
             "title": ["Element Name", "String", "Mirror"],
@@ -591,7 +593,8 @@
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
             "verticalOffset": ["Vertical Offset [mm]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "rayFilter": {
             "f_bound_sour": ["Optimize Source", "BoundSource", "0"],
@@ -620,7 +623,8 @@
             "verticalSize": ["Vertical Size [mm]", "Float"],
             "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
             "verticalOffset": ["Vertical Offset [mm]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "wiggler": {
             "ph1": ["Minimum Energy [eV]", "Float", 20000.0],
@@ -975,7 +979,8 @@
                 "distanceFromSource",
                 "column",
                 "weight",
-                "histogramBins"
+                "histogramBins",
+                "notes"
             ]
         },
         "initialIntensityReport": {
@@ -1003,7 +1008,8 @@
                         "verticalOffset"
                     ]]
                 ],
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "mirror": {
@@ -1122,7 +1128,8 @@
                         "verticalOffset"
                     ]]
                 ],
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "simulation": {
@@ -1164,7 +1171,8 @@
                         "verticalOffset"
                     ]]
                 ],
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "wiggler": {

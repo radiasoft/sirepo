@@ -102,7 +102,8 @@
         "beamEvolutionAnimation": {
             "y1": ["Y1 Value", "BeamColumn", "emitx"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
-            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "notes": ["Notes", "Text", ""]
         },
         "cooler": {
             "length": ["Length (lab frame) [m]", "Float", 3.4, "", 1e-99],
@@ -120,7 +121,8 @@
         "coolingRatesAnimation": {
             "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
             "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
-            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"]
+            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
+            "notes": ["Notes", "Text", ""]
         },
         "electronBeam": {
             "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
@@ -208,7 +210,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "cooler": {
@@ -240,7 +243,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "electronBeam": {
