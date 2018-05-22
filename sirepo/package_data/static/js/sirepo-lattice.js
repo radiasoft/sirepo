@@ -504,6 +504,23 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 dragCanceled = false;
                 dropSuccess = false;
                 $scope.selectItem(data);
+                var idx;
+                if (data._id) {
+                    // dragging in a new element
+                    idx = $scope.beamlineItems.length;
+                }
+                else {
+                    // dragging an existing element
+                    idx = $scope.beamlineItems.indexOf(data);
+                }
+                if (idx >= 0) {
+                    var count = 0;
+                    $('.sr-lattice-editor-panel').find('.sr-lattice-item').each(function() {
+                        $(this).removeClass('sr-move-left');
+                        $(this).removeClass('sr-move-right');
+                        $(this).addClass(count++ > idx ? 'sr-move-left' : 'sr-move-right');
+                    });
+                }
             };
 
             $scope.dragStop = function(data) {
@@ -866,6 +883,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
                         }
+                        else if (picType == 'mirror') {
+                            var thetaAngle = - rpnValue(item.theta) * 180 / Math.PI;
+                            newAngle = 180 - 2 * thetaAngle;
+                            groupItem.angle = thetaAngle;
+                            groupItem.color = getPicColor(item.type, 'black');
+                            groupItem.height = elRadius || 0.2;
+                            groupItem.width = groupItem.height / 10;
+                            groupItem.y = pos.y - groupItem.height / 2;
+                            length = 0;
+                        }
                         else if (picType == 'magnet') {
                             groupItem.height = 0.5;
                             groupItem.y = pos.y - groupItem.height / 2;
@@ -891,7 +918,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 ]);
                             }
                         }
-                        else if (picType == 'zeroLength' || picType == 'mirror' || (picType == 'rf' && length < 0.005)) {
+                        else if (picType == 'zeroLength' || (picType == 'rf' && length < 0.005)) {
                             groupItem.color = getPicColor(item.type, 'black');
                             groupItem.picType = 'zeroLength';
                             groupItem.height = 0.5;
@@ -976,7 +1003,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (picType != 'drift') {
                         pos.count++;
                     }
-                    if (picType == 'bend' || picType == 'alpha') {
+                    if (picType == 'bend' || picType == 'alpha' || picType == 'mirror') {
                         groupDone = true;
                     }
                     group.push(item);

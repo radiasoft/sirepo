@@ -7,7 +7,7 @@
             <!-- render drifts first, lowest z index -->
             <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
               <g ng-repeat="item in ::group.items" ng-dblclick="itemClicked(item.element)">
-                <rect ng-if="::item.picType == 'drift' || item.picType == 'aperture'" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
+                <rect ng-if="::item.picType == 'drift' || item.picType == 'aperture'" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
               </g>
             </g>
             <!-- render apertures and zeroLength in middle layer -->
@@ -46,6 +46,9 @@
                 <g ng-switch-when="alpha" ng-attr-transform="rotate({{ ::- item.angle }}, {{ ::item.x }}, {{ ::item.y + item.height / 2 }})">
                   <rect ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" style="fill: red"><title>{{ ::item.element.name }}</title></rect>
                   <path ng-attr-d="M{{ ::item.x }},{{ ::item.y + item.height / 2 }} C{{ ::item.x + item.width * 6 / 5 }},{{ ::item.y - item.height * 3 / 4 }} {{ ::item.x + item.width * 6 / 5 }},{{ ::item.y + item.height * 7 / 4}} {{ ::item.x }},{{ ::item.y + item.height / 2 }}" style="stroke: blue; fill: none; stroke-width: 0.005" />
+                </g>
+                <g ng-switch-when="mirror" ng-attr-transform="rotate({{ ::- item.angle }}, {{ ::item.x }}, {{ ::item.y + item.height / 2 }})">
+                  <rect ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.element.name }}</title></rect>
                 </g>
                 <g ng-switch-when="drift"></g>
                 <g ng-switch-when="aperture"></g>
