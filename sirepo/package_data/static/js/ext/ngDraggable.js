@@ -74,6 +74,9 @@ angular.module("ngDraggable", [])
                     };
                     var onDestroy = function (enable) {
                         toggleListeners(false);
+                        if (_dragHandle) {
+                            _dragHandle.off();
+                        }
                     };
                     var onEnableChange = function (newVal, oldVal) {
                         _dragEnabled = (newVal);
