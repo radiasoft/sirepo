@@ -197,6 +197,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location, activeSection, $route) {
     var self = this;
     var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
+    self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     self.appState = appState;
     self.beamlineService = beamlineService;
     self.srwService = srwService;
@@ -520,13 +521,14 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     self.showFileReport = function(type, model) {
-        self.mirrorReportShown = true;
         appState.models.mirrorReport = model;
         appState.saveQuietly('mirrorReport');
         var el = $('#srw-mirror-plot');
         el.modal('show');
         el.on('shown.bs.modal', function() {
             // this forces the plot to reload
+            self.mirrorReportShown = true;
+            $scope.$digest();
             appState.saveChanges('mirrorReport');
         });
         el.on('hidden.bs.modal', function() {
