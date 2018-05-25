@@ -1,0 +1,155 @@
+{
+    "models": {
+        "beamEvolutionAnimation": {
+            "startTime": 1527283405,
+            "y1": "xstd",
+            "y2": "ystd",
+            "y3": "none"
+        },
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 2,
+                "distance": 20,
+                "id": 2,
+                "items": [
+                    4,
+                    3,
+                    5,
+                    3
+                ],
+                "l": 0,
+                "length": 20,
+                "name": "FODO"
+            }
+        ],
+        "bunch": {
+            "beam_definition": "energy",
+            "beta": 0.7802123835,
+            "charge": "1",
+            "dpop": 0.0001,
+            "emit_x": 1,
+            "emit_y": 1,
+            "energy": 1.5,
+            "gamma": 1.598683459,
+            "mass": 0.938272046,
+            "momentum": 1.1703185753,
+            "num_macro_particles": 50000,
+            "num_real_particles": 1200000000000,
+            "particle": "proton",
+            "rms_z": 0.01,
+            "seed": 1415926,
+            "z_period_length": 0
+        },
+        "bunchReport": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "x": "x",
+            "y": "y"
+        },
+        "elements": [
+            {
+                "_id": 3,
+                "extractor_type": "default",
+                "l": 8,
+                "name": "O",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 5,
+                "a1": "0.0",
+                "a2": "0.0",
+                "a3": "0.0",
+                "a4": "0.0",
+                "a5": "0.0",
+                "a6": "0.0",
+                "a7": "0.0",
+                "b1": "0.0",
+                "b2": "0.0",
+                "b3": "0.0",
+                "b4": "0.0",
+                "b5": "0.0",
+                "b6": "0.0",
+                "b7": "0.0",
+                "basic_kicks": "40",
+                "extractor_type": "default",
+                "hoffset": "0.0",
+                "k1": -0.07142857142,
+                "k1s": "0.0",
+                "kl": "0.0",
+                "l": 2,
+                "name": "D",
+                "propagator_type": "yoshida",
+                "tilt": "0.0",
+                "type": "QUADRUPOLE",
+                "voffset": "0.0",
+                "yoshida_order": "2",
+                "yoshida_steps": "4"
+            },
+            {
+                "_id": 4,
+                "a1": "0.0",
+                "a2": "0.0",
+                "a3": "0.0",
+                "a4": "0.0",
+                "a5": "0.0",
+                "a6": "0.0",
+                "a7": "0.0",
+                "b1": "0.0",
+                "b2": "0.0",
+                "b3": "0.0",
+                "b4": "0.0",
+                "b5": "0.0",
+                "b6": "0.0",
+                "b7": "0.0",
+                "basic_kicks": "40",
+                "extractor_type": "default",
+                "hoffset": "0.0",
+                "k1": 0.07142857142,
+                "k1s": "0.0",
+                "kl": "0.0",
+                "l": 2,
+                "name": "F",
+                "propagator_type": "yoshida",
+                "tilt": "0.0",
+                "type": "QUADRUPOLE",
+                "voffset": "0.0",
+                "yoshida_order": "2",
+                "yoshida_steps": "4"
+            }
+        ],
+        "simulation": {
+            "activeBeamlineId": 2,
+            "folder": "/",
+            "name": "Simple FODO",
+            "simulationId": "jB27IzJ9",
+            "simulationSerial": 1527283477606687,
+            "visualizationBeamlineId": 2
+        },
+        "simulationSettings": {
+            "space_charge": "none",
+            "steps_per_element": 2,
+            "turn_count": 1
+        },
+        "simulationStatus": {
+            "animation": {
+                "elapsedTime": 3,
+                "frameCount": 9,
+                "lastUpdateTime": 1527283408,
+                "parametersChanged": false,
+                "percentComplete": 50,
+                "report": "animation",
+                "startTime": 1527283405,
+                "state": "completed",
+                "turnCount": 1
+            }
+        },
+        "twissReport": {
+            "y1": "beta_x",
+            "y2": "beta_y",
+            "y3": "D_x"
+        }
+    },
+    "simulationType": "synergia",
+    "version": "20180525.000001"
+}
