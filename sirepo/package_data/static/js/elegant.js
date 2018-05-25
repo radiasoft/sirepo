@@ -91,7 +91,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+            template: '<div data-lattice-tab="" data-controller="lattice" data-want-rpn-variables="true"></div>',
         })
         .when(localRoutes.control, {
             controller: 'CommandController as control',
@@ -2043,6 +2043,12 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                 }
                 if (units == 'm$a2$n') {
                     return $sce.trustAsHtml(' m<sup>2</sup>');
+                }
+                if (units == '1/m$a2$n') {
+                    return $sce.trustAsHtml(' 1/(m<sup>2</sup>)');
+                }
+                if (units == '1/(2$gp$r)') {
+                    return $sce.trustAsHtml(' 1/(2𝜋)');
                 }
                 if (/^[\w/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);

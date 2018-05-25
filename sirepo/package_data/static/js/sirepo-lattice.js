@@ -1609,21 +1609,88 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
     };
 });
 
-SIREPO.app.directive('latticeExtras', function(latticeService) {
+SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window) {
     return {
         restrict: 'A',
         scope: {
             controller: '=',
+            wantRpnVariables: '@',
         },
         template: [
+            '<div class="container-fluid">',
+              '<div class="row">',
+                '<div class="col-sm-12 col-md-6 col-xl-7">',
+                  '<div class="row">',
+                    '<div data-ng-if="latticeService.activeBeamlineId" class="col-sm-12">',
+                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="beamlineHasElements()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>Twiss Graph</a></div>',
+                    '</div>',
+                    '<div class="col-sm-12">',
+                      '<div data-beamline-editor=""></div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+                '<div lattice-element-panels="" want-rpn-variables="true"></div>',
+              '</div>',
+            '</div>',
             '<div data-ng-drag-clone=""><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>',
             '<div data-element-picker="" data-controller="controller" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>',
             '<div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong> is used by the <strong>{{ latticeService.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>',
             '<div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="latticeService.deleteElement()">Delete {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong>?</div>',
             '<div data-rpn-editor=""></div>',
+            '<div class="modal fade" id="sr-lattice-twiss-plot" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">{{ twissReportTitle() }}</span>',
+                    '<div class="sr-panel-options pull-right">',
+                      '<a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
+                    '</div>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<div class="col-sm-12" data-ng-if="twissReportShown">',
+                          '<div data-report-content="parameter" data-model-key="twissReport" data-report-id="reportId"></div>',
+                        '</div>',
+                      '</div>',
+                      '<br />',
+                      '<div class="row">',
+                        '<div class="col-sm-offset-6 col-sm-3">',
+                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
+                        '</div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             $scope.latticeService = latticeService;
+            $scope.beamlineHasElements = function() {
+                var beamline = latticeService.getActiveBeamline();
+                return beamline && beamline.length > 0;
+            };
+            $scope.showTwissReport = function() {
+                var el = $('#sr-lattice-twiss-plot');
+                el.modal('show');
+                el.on('shown.bs.modal', function() {
+                    $scope.twissReportShown = true;
+                    $scope.$digest();
+                });
+                el.on('hidden.bs.modal', function() {
+                    $scope.twissReportShown = false;
+                    el.off();
+                });
+            };
+            $scope.twissReportTitle = function() {
+                return 'Twiss Graph';
+            };
+            $scope.showTwissEditor = function() {
+                panelState.showModalEditor('twissReport');
+            };
         },
     };
 });

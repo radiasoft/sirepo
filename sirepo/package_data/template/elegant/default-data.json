@@ -110,10 +110,10 @@
             {
                 "_id": 4,
                 "_type": "twiss_output",
-                "alpha_x": 1,
-                "alpha_y": 1,
-                "beta_x": 10,
-                "beta_y": 10,
+                "alpha_x": "0.0",
+                "alpha_y": "0.0",
+                "beta_x": "1",
+                "beta_y": "1",
                 "cavities_are_drifts_if_matched": "1",
                 "chromatic_tune_spread_half_range": "0.0",
                 "compute_driving_terms": "0",
@@ -129,8 +129,8 @@
                 "higher_order_chromaticity_range": "4e-4",
                 "leading_order_driving_terms_only": "0",
                 "local_dispersion": "1",
-                "matched": "0",
-                "output_at_each_step": "1",
+                "matched": "1",
+                "output_at_each_step": "0",
                 "output_before_tune_correction": "0",
                 "quick_higher_order_chromaticity": "0",
                 "radiation_integrals": "0",
@@ -139,7 +139,7 @@
                 "reference_file": "",
                 "reflect_reference_values": "0",
                 "s_dependent_driving_terms_file": "",
-                "statistics": "1"
+                "statistics": "0"
             },
             {
                 "Po": "0.0",

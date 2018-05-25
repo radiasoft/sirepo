@@ -316,6 +316,21 @@
             ["non-adaptive runge-kutta", "Non-adaptive Runge-Kutta"],
             ["modified-midpoint", "Modified Midpoint"]
         ],
+        "TwissParameter": [
+            ["betax", "betax"],
+            ["alphax", "alphax"],
+            ["psix", "psix"],
+            ["etax", "etax"],
+            ["etaxp", "etaxp"],
+            ["xAperture", "xAperture"],
+            ["betay", "betay"],
+            ["alphay", "alphay"],
+            ["psiy", "psiy"],
+            ["etay", "etay"],
+            ["etayp", "etayp"],
+            ["yAperture", "yAperture"],
+            ["none", "None"]
+        ],
         "TwlaMethod": [
             ["runge-kutta", "Runge-Kutta"],
             ["bulirsch-stoer", "Bulirsch-Stoer"],
@@ -431,6 +446,11 @@
             "simulationMode": ["Execution", "SimulationMode", "serial"]
         },
         "simulationStatus": {},
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "betax"],
+            "y2": ["Y2 Value", "TwissParameter", "betay"],
+            "y3": ["Y3 Value", "TwissParameter", "etax"]
+        },
         "command_alter_elements": {
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to alter. If not specified, then one must specify type."],
             "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to alter."],
@@ -3859,7 +3879,7 @@
     },
     "view": {
         "beamlineReport": {
-            "title": "Beamline Report",
+            "title": "Lattice",
             "advanced": []
         },
         "bunch": {
@@ -3984,6 +4004,14 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
+        },
+        "twissReport": {
+            "title": "Twiss Graph",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
         },
         "command_alter_elements": {
             "title": "alter_elements",
