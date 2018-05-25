@@ -59,7 +59,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'simulationSettings']:
+    for m in ['beamEvolutionAnimation', 'simulationSettings', 'twissReport']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -110,12 +110,15 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    return template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'simulation.visualizationBeamlineId',
-        'bunch',
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'beamlines',
         'elements',
     ]
+    if r == 'bunchReport':
+        res += ['bunch', 'simulation.visualizationBeamlineId']
+    elif r == 'twissReport':
+        res += ['simulation.activeBeamlineId']
+    return res
 
 
 def python_source_for_model(data, model):
@@ -281,8 +284,11 @@ def _generate_parameters_file(data):
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
     template_name = 'parameters'
-    if 'report' in data and data['report'] == 'bunchReport':
-        template_name = 'bunch'
+    if 'report' in data:
+        if data['report'] == 'bunchReport':
+            template_name = 'bunch'
+        elif 'report' in data and data['report'] == 'twissReport':
+            template_name = 'twiss'
     return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
         + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
 

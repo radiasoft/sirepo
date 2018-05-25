@@ -142,6 +142,19 @@
             ["2d-kv", "2D kv"],
             ["3d-open-hockney", "3D Open Hockney"],
             ["none", "None"]
+        ],
+        "TwissParameter": [
+            ["beta_x", "beta_x"],
+            ["alpha_x", "alpha_x"],
+            ["D_x", "D_x"],
+            ["Dprime_x", "Dprime_x"],
+            ["D_y", "D_y"],
+            ["psi_x", "psi_x"],
+            ["beta_y", "beta_y"],
+            ["alpha_y", "alpha_y"],
+            ["Dprime_y", "Dprime_y"],
+            ["psi_y", "psi_y"],
+            ["none", "None"]
         ]
     },
     "model": {
@@ -188,6 +201,11 @@
             "turn_count": ["Turn Count", "Integer", 5, "", 1]
         },
         "simulationStatus": {},
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
+            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
+            "y3": ["Y3 Value", "TwissParameter", "D_x"]
+        },
         "DIPEDGE": {
             "name": ["Name", "ValidatedString"],
             "h": ["H [1/m]", "Float", "0.0", "The angle/length or 1/rho."],
@@ -408,6 +426,14 @@
         "simulationStatus": {
             "title": "SimulationStatus",
             "advanced": []
+        },
+        "twissReport": {
+            "title": "Twiss Graph",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
         },
         "DIPEDGE": {
             "title": "DIPEDGE",

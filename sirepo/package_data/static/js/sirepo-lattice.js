@@ -1694,3 +1694,13 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
         },
     };
 });
+
+//TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
+// from http://stackoverflow.com/questions/19305821/multiple-modals-overlay
+$(document).on('show.bs.modal', '.modal', function () {
+    var zIndex = 1040 + (10 * $('.modal:visible').length);
+    $(this).css('z-index', zIndex);
+    setTimeout(function() {
+        $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+    }, 0);
+});

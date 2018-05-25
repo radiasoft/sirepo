@@ -12,24 +12,35 @@ from sirepo.template import template_common
 import numpy as np
 import sirepo.template.synergia as template
 
+#TODO(pjm): combine from template/synergia and template/elegant and put in template_common
+_PLOT_LINE_COLOR = {
+    'y1': '#1f77b4',
+    'y2': '#ff7f0e',
+    'y3': '#2ca02c',
+}
+
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data['report'] == 'bunchReport':
+    report = data['report']
+    if report == 'bunchReport' or report == 'twissReport':
         try:
             with pkio.save_chdir(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-                # bunch variable comes from parameter file exec() above
-            res = _run_bunch_report(data, bunch)
+            # bunch or twiss variable comes from parameter file exec() above
+            if report == 'bunchReport':
+                res = _run_bunch_report(data, bunch)
+            else:
+                res = _run_twiss_report(data, twiss)
         except Exception as e:
             res = {
                 'error': str(e),
             }
         simulation_db.write_result(res)
     else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
+        raise RuntimeError('unknown report: {}'.format(report))
 
 
 def run_background(cfg_dir):
@@ -58,6 +69,44 @@ def _run_bunch_report(data, bunch):
         'title': '{}-{}'.format(report['x'], report['y']),
         'z_matrix': hist.T.tolist(),
     }
+
+
+def _run_twiss_report(data, twiss):
+    plots = []
+    report = data['models']['twissReport']
+    x = []
+    plots = []
+    y_range = None
+    for yfield in ('y1', 'y2', 'y3'):
+        if report[yfield] != 'none':
+            plots.append({
+                'name': report[yfield],
+                'points': [],
+                'label': report[yfield],
+                'color': _PLOT_LINE_COLOR[yfield],
+            })
+    for row in twiss:
+        x.append(row['s'])
+        for plot in plots:
+            v = row[plot['name']]
+            plot['points'].append(v)
+            if y_range:
+                if v < y_range[0]:
+                    y_range[0] = v
+                if v > y_range[1]:
+                    y_range[1] = v
+            else:
+                y_range = [v, v]
+    return {
+        'title': '',
+        'x_range': [min(x), max(x)],
+        'y_label': '',
+        'x_label': 's [m]',
+        'x_points': x,
+        'plots': plots,
+        'y_range': y_range,
+    }
+
 
 _UNITS = {
     'x': 'm',
