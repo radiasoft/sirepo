@@ -65,8 +65,8 @@ def _run_bunch_report(data, bunch, twiss):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _label(report['x']),
-        'y_label': _label(report['y']),
+        'x_label': template.label(report['x']),
+        'y_label': template.label(report['y']),
         'title': '{}-{}'.format(report['x'], report['y']),
         'z_matrix': hist.T.tolist(),
         'summaryData': {
@@ -91,7 +91,7 @@ def _run_twiss_report(data, twiss):
             plots.append({
                 'name': report[yfield],
                 'points': [],
-                'label': report[yfield],
+                'label': template.label(report[yfield]),
                 'color': _PLOT_LINE_COLOR[yfield],
             })
     for row in twiss:
@@ -115,15 +115,3 @@ def _run_twiss_report(data, twiss):
         'plots': plots,
         'y_range': y_range,
     }
-
-
-_UNITS = {
-    'x': 'm',
-    'y': 'm',
-    'cdt': 'm',
-}
-
-def _label(v):
-    if v not in _UNITS:
-        return v
-    return '{} [{}]'.format(v, _UNITS[v])

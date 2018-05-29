@@ -144,16 +144,16 @@
             ["none", "None"]
         ],
         "TwissParameter": [
-            ["beta_x", "beta_x"],
-            ["alpha_x", "alpha_x"],
-            ["D_x", "D_x"],
-            ["Dprime_x", "Dprime_x"],
-            ["D_y", "D_y"],
-            ["psi_x", "psi_x"],
-            ["beta_y", "beta_y"],
-            ["alpha_y", "alpha_y"],
-            ["Dprime_y", "Dprime_y"],
-            ["psi_y", "psi_y"],
+            ["beta_x", "Horizontal beta"],
+            ["alpha_x", "Horizontal alpha"],
+            ["D_x", "Horizontal dispersion"],
+            ["Dprime_x", "Horizontal dispersion derivative"],
+            ["psi_x", "Horizontal PSI"],
+            ["beta_y", "Vertical beta"],
+            ["alpha_y", "Vertical alpha"],
+            ["D_y", "Vertical dispersion"],
+            ["Dprime_y", "Vertical dispersion derivative"],
+            ["psi_y", "Vertical PSI"],
             ["none", "None"]
         ]
     },

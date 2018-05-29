@@ -35,6 +35,28 @@ _REPORT_STYLE_FIELDS = ['colorMap']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_UNITS = {
+    'x': 'm',
+    'y': 'm',
+    'cdt': 'm',
+    'xstd': 'm',
+    'ystd': 'm',
+    'zstd': 'm',
+    'xmean': 'm',
+    'ymean': 'm',
+    'zmean': 'm',
+    'beta_x': 'm',
+    'beta_y': 'm',
+    'psi_x': 'rad',
+    'psi_y': 'rad',
+    'alpha_x': 'rad',
+    'alpha_y': 'rad',
+    'D_x': 'm',
+    'D_y': 'm',
+    'Dprime_x': 'rad',
+    'Dprime_y': 'rad',
+}
+
 
 def background_percent_complete(report, run_dir, is_running):
     diag_file = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
@@ -104,6 +126,17 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_evolution_plot(args, run_dir)
 
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
+
+
+def label(field, enum_labels=None):
+    res = field
+    if enum_labels:
+        for values in enum_labels:
+            if field == values[0]:
+                res = values[1]
+    if field not in _UNITS:
+        return res
+    return '{} [{}]'.format(res, _UNITS[field])
 
 
 def lib_files(data, source_lib):
@@ -228,7 +261,7 @@ def _extract_evolution_plot(report, run_dir):
                 y_range = [min(points), max(points)]
             plots.append({
                 'points': points,
-                'label': _plot_label(report[yfield], _SCHEMA['enum']['BeamColumn']),
+                'label': label(report[yfield], _SCHEMA['enum']['BeamColumn']),
                 'color': _PLOT_LINE_COLOR[yfield],
             })
         return {
@@ -464,13 +497,6 @@ def _plot_field(field):
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, field
-
-
-def _plot_label(field, labels):
-    for values in labels:
-        if field == values[0]:
-            return values[1]
-    return field
 
 
 def _plot_values(h5file, field):
