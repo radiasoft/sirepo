@@ -415,7 +415,7 @@
             "advanced": []
         },
         "bunchReport": {
-            "title": "Bunch Report",
+            "title": "Beam Phase Space",
             "advanced": [
                 [
                     ["Horizontal",
