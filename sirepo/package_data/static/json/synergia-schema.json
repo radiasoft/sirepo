@@ -171,7 +171,7 @@
         "bunch": {
             "particle": ["Particle", "Particle", "proton"],
             "mass": ["Mass [GeV]", "Float"],
-            "charge": ["Charge [C]", "BeamCharge", 1],
+            "charge": ["Charge #", "BeamCharge", 1],
             "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
             "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
             "momentum": ["Momentum [GeV]", "Float", 0.0, "", 0.0000001],
