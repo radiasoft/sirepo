@@ -1171,10 +1171,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 var requestFunction = pendingRequests[name];
                 requestFunction();
             }
-            // needed to resize a hidden report
-            if (appState.isReportModelName(name)) {
-                $($window).trigger('resize');
-            }
         }
         else {
             state.panelState.hidden.push(name);
@@ -1182,6 +1178,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 simulationQueue.cancelItem(queueItems[name]);
                 delete queueItems[name];
             }
+        }
+        // needed to resize a hidden report and other panels
+        if (appState.isReportModelName(name)) {
+            $($window).trigger('resize');
         }
     };
 

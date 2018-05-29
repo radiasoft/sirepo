@@ -664,8 +664,10 @@ SIREPO.app.service('focusPointService', function(plotting) {
             return false;
         }
         var x = focusPoint.config.xAxisScale.invert(mouseX);
-        var xMin = focusPoint.config.xAxisScale.invert(mouseX - 10);
-        var xMax = focusPoint.config.xAxisScale.invert(mouseX + 10);
+        strategy = strategy || 'maximum';
+        var spread = strategy == 'maximum' ? 10 : 100;
+        var xMin = focusPoint.config.xAxisScale.invert(mouseX - spread);
+        var xMax = focusPoint.config.xAxisScale.invert(mouseX + spread);
         if (xMin > xMax) {
             var swap = xMin;
             xMin = xMax;
@@ -686,7 +688,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
             if (p[0] > xMax || p[0] < xMin) {
                 continue;
             }
-            if (! strategy || strategy == 'maximum') {
+            if (strategy == 'maximum') {
                 if (! selectedPoint || p[1] > selectedPoint[1]) {
                     selectedPoint = p;
                     focusPoint.data.focusIndex = i;
@@ -717,7 +719,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
 
         var p = focusPoint.config.points[focusPoint.data.focusIndex];
         var domain = focusPoint.config.xAxisScale.domain();
-        if (p[0] < domain[0] || p[0] > domain[1]) {
+        if (!p || p[0] < domain[0] || p[0] > domain[1]) {
             return false;
         }
 
@@ -1475,6 +1477,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
 
             var moveEventDetected = false;
             var didDragToNewPositon = false;
+            $scope.focusPoints.allowClone = false;
 
             if($scope.plotInfoDelegate) {
                 $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
@@ -1495,7 +1498,6 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 group = d3self.select('.popup-group');
                 rptWindow = group.select('.report-window');
                 dgElement = angular.element(group.select('g').node());
-
                 d3self.select('.popup-group .report-window-close')
                     .on('click', closePopup);
             }
@@ -1687,11 +1689,11 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
                 return d3self.style('display') === 'block';
             }
 
-            $scope.destroy = function () {
+            $scope.$on('$destroy', function() {
                 d3self.select('.popup-group .report-window-close')
                     .on('click', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            };
+            });
         },
     };
 });
@@ -2682,7 +2684,8 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
             $scope.destroy = function() {
                 zoom.on('zoom', null);
-                $('.overlay').off();
+                $($scope.element).find('.overlay').off();
+                $($scope.element).find('.sr-plot-legend-item text').off();
             };
 
             $scope.init = function() {

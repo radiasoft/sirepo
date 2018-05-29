@@ -91,7 +91,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+            template: '<div data-lattice-tab="" data-controller="lattice" data-want-rpn-variables="true"></div>',
         })
         .when(localRoutes.control, {
             controller: 'CommandController as control',
@@ -2044,6 +2044,12 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                 if (units == 'm$a2$n') {
                     return $sce.trustAsHtml(' m<sup>2</sup>');
                 }
+                if (units == '1/m$a2$n') {
+                    return $sce.trustAsHtml(' 1/(m<sup>2</sup>)');
+                }
+                if (units == '1/(2$gp$r)') {
+                    return $sce.trustAsHtml(' 1/(2𝜋)');
+                }
                 if (/^[\w/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);
                 }
@@ -2060,14 +2066,4 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
         }
     };
-});
-
-//TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
-// from http://stackoverflow.com/questions/19305821/multiple-modals-overlay
-$(document).on('show.bs.modal', '.modal', function () {
-    var zIndex = 1040 + (10 * $('.modal:visible').length);
-    $(this).css('z-index', zIndex);
-    setTimeout(function() {
-        $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
-    }, 0);
 });

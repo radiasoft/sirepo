@@ -52,23 +52,6 @@ _FIELD_LABEL = {
 #
 _FILE_ID_SEP = '-'
 
-_PLOT_TITLE = {
-    'x-xp': 'Horizontal',
-    'y-yp': 'Vertical',
-    'x-y': 'Cross-section',
-    't-p': 'Longitudinal',
-}
-
-_SDDS_INDEX = 0
-
-_SDDS_DOUBLE_TYPE = 1
-
-_SDDS_STRING_TYPE = 7
-
-_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
-
-_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
-
 _INFIX_TO_RPN = {
     ast.Add: '+',
     ast.Div: '/',
@@ -81,7 +64,33 @@ _INFIX_TO_RPN = {
     ast.USub: '+',
 }
 
+_PLOT_LINE_COLOR = {
+    'y1': '#1f77b4',
+    'y2': '#ff7f0e',
+    'y3': '#2ca02c',
+}
+
+_PLOT_TITLE = {
+    'x-xp': 'Horizontal',
+    'y-yp': 'Vertical',
+    'x-y': 'Cross-section',
+    't-p': 'Longitudinal',
+}
+
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+
+_SDDS_INDEX = 0
+
+_SDDS_DOUBLE_TYPE = 1
+
+_SDDS_STRING_TYPE = 7
+
+_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
+
+_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
+
+_X_FIELD = 's'
+
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
@@ -117,16 +126,46 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
 
 
-def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
-    xfield = data['x']
-    yfield = data['y']
-    bins = data['histogramBins']
+def extract_report_data(xFilename, yFilename, data, page_index):
+    xfield = data['x'] if 'x' in data else data[_X_FIELD]
 
     # x, column_names, x_def, err
     x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
+    if 'y1' in data:
+        # parameter plot
+        y_range = None
+        plots = []
+        for f in ('y1', 'y2', 'y3'):
+            if data[f] == 'none':
+                continue
+            yfield = data[f]
+            y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
+            if y_col['err']:
+                return y_col['err']
+            y = y_col['values']
+            if y_range:
+                y_range[0] = min(y_range[0], min(y))
+                y_range[1] = max(y_range[1], max(y))
+            else:
+                y_range = [min(y), max(y)]
+            plots.append({
+                'points': y,
+                'label': _field_label(yfield, y_col['column_def'][1]),
+                'color': _PLOT_LINE_COLOR[f],
+            })
+        return {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_label': '',
+            'x_label': _field_label(_X_FIELD, x_col['column_def'][1]),
+            'x_points': x,
+            'plots': plots,
+            'y_range': y_range,
+        }
+    yfield = data['y']
     y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
@@ -141,6 +180,7 @@ def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
             'points': y,
             'x_points': x,
         }
+    bins = data['histogramBins']
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
@@ -196,6 +236,9 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
+    if 'twissReport' not in data['models']:
+        m = data['models']['twissReport'] = {}
+        template_common.update_model_defaults(m, 'twissReport', _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -241,45 +284,12 @@ def generate_parameters_file(data, is_parallel=False):
     v['rpn_variables'] = _generate_variables(data)
 
     if is_parallel:
-        filename_map = _build_filename_map(data)
-        beamline_map = _build_beamline_map(data)
-        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
-        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
-        v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return template_common.render_jinja(SIM_TYPE, v)
+        return _generate_full_simulation(data, v)
 
-    for f in _SCHEMA['model']['bunch']:
-        info = _SCHEMA['model']['bunch'][f]
-        if info[1] == 'RPNValue':
-            field = 'bunch_{}'.format(f)
-            v[field] = _format_rpn_value(v[field], is_command=True)
+    if 'report' in data and data['report'] == 'twissReport':
+        return _generate_twiss_simulation(data, v)
 
-    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
-    # sigma s, sigma dp, dp s coupling
-    if longitudinal_method == 1:
-        v['bunch_emit_z'] = 0
-        v['bunch_beta_z'] = 0
-        v['bunch_alpha_z'] = 0
-    # sigma s, sigma dp, alpha z
-    elif longitudinal_method == 2:
-        v['bunch_emit_z'] = 0
-        v['bunch_beta_z'] = 0
-        v['bunch_dp_s_coupling'] = 0
-    # emit z, beta z, alpha z
-    elif longitudinal_method == 3:
-        v['bunch_sigma_dp'] = 0
-        v['bunch_sigma_s'] = 0
-        v['bunch_dp_s_coupling'] = 0
-    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
-        v['bunch_beta_x'] = 5
-        v['bunch_beta_y'] = 5
-        v['bunch_alpha_x'] = 0
-        v['bunch_alpha_x'] = 0
-        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
-            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
-            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
-    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
-    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+    return _generate_bunch_simulation(data, v)
 
 
 def get_animation_name(data):
@@ -327,7 +337,6 @@ def get_simulation_frame(run_dir, data, model_data):
         str(run_dir.join(xFilename)),
         str(run_dir.join(yFilename)),
         frame_data,
-        model_data['models']['bunch']['p_central_mev'],
         frame_index,
     )
 
@@ -412,12 +421,14 @@ def models_related_to_report(data):
         list: Named models, model fields or values (dict, list) that affect report
     """
     r = data['report']
-    if 'bunchReport' not in r:
-        return []
-    res = [template_common.report_fields(data, r, _REPORT_STYLE_FIELDS), 'bunch', 'bunchSource', 'bunchFile']
-    for f in template_common.lib_files(data):
-        if f.exists():
-            res.append(f.mtime())
+    res = []
+    if r == 'twissReport' or 'bunchReport' in r:
+        res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + ['bunch', 'bunchSource', 'bunchFile']
+        for f in template_common.lib_files(data):
+            if f.exists():
+                res.append(f.mtime())
+    if r == 'twissReport':
+        res += ['elements', 'beamlines', 'simulation.activeBeamlineId']
     return res
 
 
@@ -712,14 +723,7 @@ def _create_default_commands(data):
         _create_command('command_twiss_output', {
             "_id": max_id + 3,
             "_type": "twiss_output",
-            "alpha_x": bunch['alpha_x'],
-            "alpha_y": bunch['alpha_y'],
-            "beta_x": bunch['beta_x'],
-            "beta_y": bunch['beta_y'],
             "filename": "1",
-            "matched": "0",
-            "output_at_each_step": "1",
-            "statistics": "1"
         }),
         _create_command('command_bunched_beam', {
             "_id": max_id + 4,
@@ -810,11 +814,15 @@ def _file_info(filename, run_dir, id, output_index):
             pass
 
 
-def _find_first_bunch_command(data):
+def _find_first_command(data, command_type):
     for m in data['models']['commands']:
-        if m['_type'] == 'bunched_beam':
+        if m['_type'] == command_type:
             return m
     return None
+
+
+def _find_first_bunch_command(data):
+    return _find_first_command(data, 'bunched_beam')
 
 
 def _format_rpn_value(value, is_command=False):
@@ -823,6 +831,40 @@ def _format_rpn_value(value, is_command=False):
         if is_command:
             return '({})'.format(value)
     return value
+
+
+def _generate_bunch_simulation(data, v):
+    for f in _SCHEMA['model']['bunch']:
+        info = _SCHEMA['model']['bunch'][f]
+        if info[1] == 'RPNValue':
+            field = 'bunch_{}'.format(f)
+            v[field] = _format_rpn_value(v[field], is_command=True)
+    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
+    # sigma s, sigma dp, dp s coupling
+    if longitudinal_method == 1:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_alpha_z'] = 0
+    # sigma s, sigma dp, alpha z
+    elif longitudinal_method == 2:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_dp_s_coupling'] = 0
+    # emit z, beta z, alpha z
+    elif longitudinal_method == 3:
+        v['bunch_sigma_dp'] = 0
+        v['bunch_sigma_s'] = 0
+        v['bunch_dp_s_coupling'] = 0
+    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
+        v['bunch_beta_x'] = 5
+        v['bunch_beta_y'] = 5
+        v['bunch_alpha_x'] = 0
+        v['bunch_alpha_x'] = 0
+        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
+            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
+    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
+    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
 def _generate_commands(data, filename_map, beamline_map, v):
@@ -834,6 +876,43 @@ def _generate_commands(data, filename_map, beamline_map, v):
     _iterate_model_fields(data, state, _iterator_commands)
     state['commands'] += '&end' + "\n"
     return state['commands']
+
+
+def _generate_full_simulation(data, v):
+    filename_map = _build_filename_map(data)
+    beamline_map = _build_beamline_map(data)
+    v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+    v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+    v['simulationMode'] = data['models']['simulation']['simulationMode']
+    return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _generate_twiss_simulation(data, v):
+    max_id = elegant_lattice_importer.max_id(data)
+    sim = data['models']['simulation']
+    sim['simulationMode'] = 'serial'
+    run_setup = _find_first_command(data, 'run_setup') or {
+        '_id': max_id + 1,
+        '_type': 'run_setup',
+        'lattice': 'Lattice',
+        'p_central_mev': data['models']['bunch']['p_central_mev'],
+    }
+    run_setup['use_beamline'] = sim['activeBeamlineId']
+    twiss_output = _find_first_command(data, 'twiss_output') or {
+        '_id': max_id + 2,
+        '_type': 'twiss_output',
+        'filename': '1',
+    }
+    twiss_output['output_at_each_step'] = "0"
+    data['models']['commands'] = [
+        run_setup,
+        twiss_output,
+    ]
+    filename_map = _build_filename_map(data)
+    beamline_map = _build_beamline_map(data)
+    v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+    v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_variable(name, variables, visited):

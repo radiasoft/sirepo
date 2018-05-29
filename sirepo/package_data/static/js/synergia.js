@@ -27,7 +27,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/synergia-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
+            template: '<div data-lattice-tab="" data-controller="lattice"></div>',
         })
         .when(localRoutes.visualization, {
             controller: 'VisualizationController as visualization',

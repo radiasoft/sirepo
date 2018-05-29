@@ -48,7 +48,7 @@ bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles("particles.h5"
 
 synergia.simulation.Propagator(stepper).propagate(
     bunch_simulator,
-    {{ simulationSettings_turn_count }}, # number of turns plus my text
+    {{ simulationSettings_turn_count }}, # number of turns
     0, # max_turns, Number of turns to run before writing checkpoint and stopping
        # When max_turns is 0, the simulation continues until the end.
     2, # verbosity

@@ -70,7 +70,6 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
                         '<div data-ng-repeat="item in landingPage.itemsForCategory()" data-',
                         (key == 'light-sources' ? 'button-list' : 'big-button'),
                         '="item"></div>',
-                        '<div>MMM</div>',
                     '</div>',
                 ].join('')
             });

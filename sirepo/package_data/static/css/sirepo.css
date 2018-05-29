@@ -1094,10 +1094,21 @@ li.sr-model-list-item > a {
   border-color: black;
 }
 .sr-lattice-item-holder.drag-enter .sr-lattice-item {
-  opacity: 0.5;
+  opacity: 0.7;
+  transition: margin 0.5s ease 0s;
+}
+.sr-lattice-item-holder.drag-enter .sr-move-left {
+  margin-left: -4em;
+  margin-right: 4em;
+}
+.sr-lattice-item-holder.drag-enter .sr-move-right {
+  margin-left: 4em;
+  margin-right: -4em;
 }
 .sr-lattice-item-holder .sr-lattice-item.drag-over {
   opacity: 1.0;
+  margin-left: 0;
+  margin-right: 0;
 }
 .sr-lattice-item-holder {
   text-align: center;
