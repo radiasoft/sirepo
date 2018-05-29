@@ -31,7 +31,7 @@ def run(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
             # bunch or twiss variable comes from parameter file exec() above
             if report == 'bunchReport':
-                res = _run_bunch_report(data, bunch)
+                res = _run_bunch_report(data, bunch, twiss)
             else:
                 res = _run_twiss_report(data, twiss)
         except Exception as e:
@@ -55,7 +55,8 @@ def run_background(cfg_dir):
     simulation_db.write_result(res)
 
 
-def _run_bunch_report(data, bunch):
+def _run_bunch_report(data, bunch, twiss):
+    twiss0 = twiss[0]
     report = data.models[data['report']]
     particles = bunch.get_local_particles()
     x = particles[:, getattr(bunch, report['x'])]
@@ -68,6 +69,14 @@ def _run_bunch_report(data, bunch):
         'y_label': _label(report['y']),
         'title': '{}-{}'.format(report['x'], report['y']),
         'z_matrix': hist.T.tolist(),
+        'summaryData': {
+            'bunchTwiss': {
+                'alpha_x': template.format_float(twiss0['alpha_x']),
+                'alpha_y': template.format_float(twiss0['alpha_y']),
+                'beta_x': template.format_float(twiss0['beta_x']),
+                'beta_y': template.format_float(twiss0['beta_y']),
+            },
+        },
     }
 
 

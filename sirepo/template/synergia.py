@@ -59,10 +59,14 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'simulationSettings', 'twissReport']:
+    for m in ['beamEvolutionAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+
+
+def format_float(v):
+    return float(format(v, '.10f'))
 
 
 def get_animation_name(data):
@@ -168,10 +172,10 @@ def _calc_bunch_parameters(bunch):
             mom.set_gamma(bunch['gamma'])
         else:
             assert False, 'invalid bunch def: {}'.format(bunch_def)
-        bunch['gamma'] = _format_float(mom.get_gamma())
-        bunch['energy'] = _format_float(mom.get_total_energy())
-        bunch['momentum'] = _format_float(mom.get_momentum())
-        bunch['beta'] = _format_float(mom.get_beta())
+        bunch['gamma'] = format_float(mom.get_gamma())
+        bunch['energy'] = format_float(mom.get_total_energy())
+        bunch['momentum'] = format_float(mom.get_momentum())
+        bunch['beta'] = format_float(mom.get_beta())
     except Exception as e:
         bunch[bunch_def] = ''
     return {
@@ -238,10 +242,6 @@ def _extract_evolution_plot(report, run_dir):
         }
 
 
-def _format_float(v):
-    return float(format(v, '.10f'))
-
-
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
 
@@ -283,14 +283,15 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
-    template_name = 'parameters'
-    if 'report' in data:
-        if data['report'] == 'bunchReport':
-            template_name = 'bunch'
-        elif 'report' in data and data['report'] == 'twissReport':
-            template_name = 'twiss'
-    return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
-        + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
+    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
+    report = data['report'] if 'report' in data else ''
+    if report == 'bunchReport' or report == 'twissReport':
+        res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
+        if report == 'bunchReport':
+            res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+    else:
+        res += template_common.render_jinja(SIM_TYPE, v, 'parameters.py')
+    return res
 
 
 def _import_bunch(lattice, data):
@@ -300,11 +301,11 @@ def _import_bunch(lattice, data):
     bunch['beam_definition'] = 'gamma'
     bunch['charge'] = ref.get_charge()
     four_momentum = ref.get_four_momentum()
-    bunch['gamma'] = _format_float(four_momentum.get_gamma())
-    bunch['energy'] = _format_float(four_momentum.get_total_energy())
-    bunch['momentum'] = _format_float(four_momentum.get_momentum())
-    bunch['beta'] = _format_float(four_momentum.get_beta())
-    bunch['mass'] = _format_float(four_momentum.get_mass())
+    bunch['gamma'] = format_float(four_momentum.get_gamma())
+    bunch['energy'] = format_float(four_momentum.get_total_energy())
+    bunch['momentum'] = format_float(four_momentum.get_momentum())
+    bunch['beta'] = format_float(four_momentum.get_beta())
+    bunch['mass'] = format_float(four_momentum.get_mass())
     bunch['particle'] = 'other'
     if bunch['mass'] == pconstants.mp:
         if bunch['charge'] == pconstants.proton_charge:

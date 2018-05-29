@@ -2,10 +2,10 @@
 from rssynergia.base_diagnostics import lfplot
 
 lattice = synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE)
-
 stepper = synergia.simulation.Independent_stepper_elements(
     lattice,
     1, # map_order
     5 # num_steps_per_element
 )
-twiss = lfplot.get_sliced_lf_fns(lattice, stepper.get_lattice_simulator())
+lattice_simulator = stepper.get_lattice_simulator()
+twiss = lfplot.get_sliced_lf_fns(lattice, lattice_simulator)

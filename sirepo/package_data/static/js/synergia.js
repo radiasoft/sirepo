@@ -67,21 +67,12 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 SIREPO.app.controller('SynergiaSourceController', function (appState, panelState, requestSender, $scope) {
     var self = this;
 
-    function processBunchFields() {
-        var bunch = appState.models.bunch;
-        panelState.enableField('bunch', 'beta', false);
-        var def = bunch.beam_definition;
-        panelState.enableField('bunch', 'energy', def == 'energy');
-        panelState.enableField('bunch', 'momentum', def == 'momentum');
-        panelState.enableField('bunch', 'gamma', def == 'gamma');
-        ['mass', 'charge'].forEach(function(f) {
-            panelState.enableField('bunch', f, bunch.particle == 'other');
-        });
-    }
-
     function processBeamDefinition() {
         processBunchFields();
         processBeamParameter();
+        ['beta_x', 'beta_y', 'alpha_x', 'alpha_y'].forEach(function(f) {
+            panelState.enableField('bunchTwiss', f, false);
+        });
     }
 
     function processBeamParameter() {
@@ -95,6 +86,18 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
                     appState.models.bunch = data.bunch;
                 }
             });
+    }
+
+    function processBunchFields() {
+        var bunch = appState.models.bunch;
+        panelState.enableField('bunch', 'beta', false);
+        var def = bunch.beam_definition;
+        panelState.enableField('bunch', 'energy', def == 'energy');
+        panelState.enableField('bunch', 'momentum', def == 'momentum');
+        panelState.enableField('bunch', 'gamma', def == 'gamma');
+        ['mass', 'charge'].forEach(function(f) {
+            panelState.enableField('bunch', f, bunch.particle == 'other');
+        });
     }
 
     function processParticle() {
@@ -128,6 +131,14 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
         appState.watchModelFields($scope, ['bunch.particle'], processParticle);
         appState.watchModelFields($scope, ['bunch.mass', 'bunch.energy', 'bunch.momentum', 'bunch.gamma'], processBeamParameter);
     });
+
+    $scope.$on('bunchReport.summaryData', function(e, info) {
+        if (appState.isLoaded() && info.bunchTwiss) {
+            appState.models.bunchTwiss = info.bunchTwiss;
+            appState.saveChanges('bunchTwiss');
+        }
+    });
+
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
