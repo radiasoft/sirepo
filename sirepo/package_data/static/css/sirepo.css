@@ -643,6 +643,9 @@
         cursor: pointer;
         font-size: 16px;
     }
+    .sr-download-png .plot-visibility {
+      visibility: hidden;
+    }
 
     @media (max-width: 767px) {
       div.sr-plot .z-axis-label,

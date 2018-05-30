@@ -2727,7 +2727,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                             .attr('class', 'focus-text-popup glyphicon plot-visibility')
                             .attr('x', itemWidth + 12)
                             .attr('y', 16 + i * 20)
-                            .text('\ue105')
+                            .text(vIconText(true))
                             .on('click', getVToggleFn(i));
                     }
                 }
