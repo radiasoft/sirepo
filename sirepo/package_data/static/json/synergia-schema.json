@@ -444,7 +444,7 @@
             "advanced": []
         },
         "twissReport": {
-            "title": "Twiss Graph",
+            "title": "Twiss Parameters",
             "advanced": [
                 "y1",
                 "y2",
