@@ -35,7 +35,7 @@ _DEFAULT_DRIFT_ELEMENT = 'DRIFT 1e-16 1e+16 2' + "\n"
 
 _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 

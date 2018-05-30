@@ -77,7 +77,7 @@ _PLOT_TITLE = {
     't-p': 'Longitudinal',
 }
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SDDS_INDEX = 0
 

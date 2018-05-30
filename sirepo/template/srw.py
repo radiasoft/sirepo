@@ -149,7 +149,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -1398,6 +1398,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     last_id = None
     if template_common.is_watchpoint(report):
         last_id = template_common.watchpoint_id(report)
+    if report == 'multiElectronAnimation':
+        last_id = data['models']['multiElectronAnimation']['watchpointId']
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())

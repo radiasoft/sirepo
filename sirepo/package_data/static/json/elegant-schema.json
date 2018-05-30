@@ -375,6 +375,7 @@
             "name": ["Name", "ValidatedString"]
         },
         "beamlineReport": {
+            "notes": ["Notes", "Text", ""]
         },
         "bunchSource": {
             "inputSource": ["Bunch Source", "BunchInputSource"]
@@ -421,7 +422,8 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "notes": ["Notes", "Text", ""]
         },
         "elementAnimation": {
             "x": ["Value to Plot", "ValueList", ""],
@@ -431,7 +433,8 @@
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "fileId": ["File ID", "String", ""],
             "values": ["Values", "Array", []],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "notes": ["Notes", "Text", ""]
         },
         "parameterTable": {
             "file": ["File", "FileValueList", ""],
@@ -3880,7 +3883,7 @@
     "view": {
         "beamlineReport": {
             "title": "Lattice",
-            "advanced": []
+            "advanced": ["notes"]
         },
         "bunch": {
             "title": "Bunch",
@@ -3961,7 +3964,8 @@
                     ]
                 ],
                 "histogramBins",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "beamline": {
@@ -3984,7 +3988,8 @@
                 "yFile",
                 "histogramBins",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "parameterTable": {

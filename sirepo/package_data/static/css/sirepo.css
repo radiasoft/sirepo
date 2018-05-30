@@ -210,6 +210,10 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
+    .srw-beamline-item-active {
+      border-radius: 5px;
+      border: 1px solid #4897da;
+    }
     .srw-beamline-invalid {
       border-radius: 5px;
       border: 1.5px dashed #ff0000;
@@ -229,6 +233,24 @@
       cursor: default;
       color: #aaa;
     }
+
+    .srw-beamline-report-icon {
+      font-size: 18px;
+      position: absolute;
+      top: 1px;
+      left: 32px;
+      cursor: pointer;
+      color: #aaa;
+      visibility: hidden;
+    }
+   .srw-beamline-report-icon-active {
+       color: #4897da;
+       visibility: visible;
+    }
+    .srw-hover:hover .srw-beamline-report-icon {
+      visibility: visible;
+    }
+
     .srw-disabled-item {
       background-color: gray;
     }

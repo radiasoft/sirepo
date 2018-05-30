@@ -28,7 +28,7 @@ SIM_TYPE = 'warppba'
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):

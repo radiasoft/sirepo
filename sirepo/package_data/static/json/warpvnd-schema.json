@@ -69,7 +69,8 @@
         "fieldAnimation": {
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "fieldComparisonReport": {
             "dimension": ["Dimension", "Dimension"],
@@ -78,13 +79,16 @@
             "xCell3": ["X Position 3", "XCell"],
             "zCell1": ["Z Position 1", "ZCell"],
             "zCell2": ["Z Position 2", "ZCell"],
-            "zCell3": ["Z Position 3", "ZCell"]
+            "zCell3": ["Z Position 3", "ZCell"],
+            "notes": ["Notes", "Text", ""]
         },
         "fieldReport": {
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "impactDensityAnimation": {
-            "colorMap": ["Color Map", "ColorMap", "coolwarm"]
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "notes": ["Notes", "Text", ""]
         },
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
@@ -175,7 +179,7 @@
             "advanced": [
                 "field",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap", "notes"
             ]
         },
         "fieldComparisonReport": {
@@ -187,19 +191,22 @@
                 "xCell3",
                 "zCell1",
                 "zCell2",
-                "zCell3"
+                "zCell3",
+                "notes"
             ]
         },
         "fieldReport": {
             "title": "Field Report",
             "advanced": [
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "impactDensityAnimation": {
             "title": "Impact Density",
             "advanced": [
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "particleAnimation": {

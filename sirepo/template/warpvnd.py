@@ -33,7 +33,7 @@ _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
