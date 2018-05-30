@@ -91,7 +91,7 @@ def _run_twiss_report(data, twiss):
             plots.append({
                 'name': report[yfield],
                 'points': [],
-                'label': template.label(report[yfield]),
+                'label': template.label(report[yfield], _SCHEMA['enum']['TwissParameter']),
                 'color': _PLOT_LINE_COLOR[yfield],
             })
     for row in twiss:
