@@ -2563,21 +2563,17 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             $scope.dataCleared = true;
 
             $scope.focusPoints = [];
-
-            $scope.popupDelegate = focusPointService.setupInfoDelegate(null, function() {
-                for(var fcIndex = 0; fcIndex < $scope.focusCircleDelegates.length; ++fcIndex) {
-                    $scope.focusCircleDelegates[fcIndex].hideFocusPointInfo();
-                }
-            },
+            $scope.focusCircleDelegates = [];
+            $scope.popupDelegate = focusPointService.setupInfoDelegate(
+                null,
+                function() {
+                    for(var fcIndex = 0; fcIndex < $scope.focusCircleDelegates.length; ++fcIndex) {
+                        $scope.focusCircleDelegates[fcIndex].hideFocusPointInfo();
+                    }
+                },
                 $scope.modelName + '-popup-delegate'
             );
-            // set these up in init() and load() below
-            $scope.focusCircleDelegates = [];
-
-            if(! $scope.plotInfoDelegates) {
-                $scope.plotInfoDelegates = [];
-            }
-            $scope.plotInfoDelegates.push($scope.popupDelegate);
+            $scope.plotInfoDelegates = [$scope.popupDelegate];
 
             var graphLine, zoom;
             var axes = {
@@ -2659,6 +2655,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     axis.grid.ticks(axis.tickCount);
                     select('.' + dim + '.axis.grid').call(axis.grid);
                 });
+                
                 for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope.plotInfoDelegates);
                 }
@@ -2701,20 +2698,39 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     .y(function(d) {
                         return axes.y.scale(d);
                     });
-
-                // assume there is at least one plot
-                var fp = focusPointService.setupFocusPoint(axes.x.scale, axes.y.scale, false, axes.x, $scope.modelName + '-fp-0');
-                $scope.focusPoints.push(fp);
-                $scope.popupDelegate.focusPoints.push(fp);
-
-                var fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-0');
-                fcd.focusPoints.push(fp);
-                $scope.focusCircleDelegates.push(fcd);
-                $scope.plotInfoDelegates.push(fcd);
-                $scope.$broadcast('delegate.added', fcd);
-
                 resetZoom();
             };
+
+            function createLegend(plots) {
+                var legend = select('.sr-plot-legend');
+                legend.selectAll('.sr-plot-legend-item').remove();
+                for (var i = 0; i < plots.length; i++) {
+                    var plot = plots[i];
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    item.append('circle')
+                        .attr('r', 5)
+                        .attr('cx', 8)
+                        .attr('cy', 10 + i * 20)
+                        .style('stroke', plot.color)
+                        .style('fill', plot.color);
+                    item.append('text')
+                        .attr('class', 'focus-text')
+                        .attr('x', 16)
+                        .attr('y', 16 + i * 20)
+                        .text(plot.label);
+
+                    // no option to toggle plot if only 1
+                    if(plots.length > 1) {
+                        var itemWidth = item.node().getBBox().width;
+                        item.append('text')
+                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
+                            .attr('x', itemWidth + 12)
+                            .attr('y', 16 + i * 20)
+                            .text('\ue105')
+                            .on('click', getVToggleFn(i));
+                    }
+                }
+            }
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
@@ -2748,46 +2764,19 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 ];
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                var legend = select('.sr-plot-legend');
-                legend.selectAll('.sr-plot-legend-item').remove();
+                createLegend(plots);
                 for (var i = 0; i < plots.length; i++) {
                     var plot = plots[i];
                     viewport.append('path')
                         .attr('class', 'line line-color')
                         .style('stroke', plot.color)
                         .datum(plot.points);
-                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
-                    item.append('circle')
-                        .attr('r', 5)
-                        .attr('cx', 8)
-                        .attr('cy', 10 + i * 20)
-                        .style('stroke', plot.color)
-                        .style('fill', plot.color);
-                    item.append('text')
-                        .attr('class', 'focus-text')
-                        .attr('x', 16)
-                        .attr('y', 16 + i * 20)
-                        .text(plot.label);
-
-                    // no option to toggle plot if only 1
-                    if(plots.length > 1) {
-                        var itemWidth = item.node().getBBox().width;
-                        item.append('text')
-                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
-                            .attr('x', itemWidth + 12)
-                            .attr('y', 16 + i * 20)
-                            .text('\ue105')
-                            .on('click', getVToggleFn(i));
-                    }
-
                     // must create extra focus points here since we don't know how many to make
                     // until load() is invoked.  Also broadcast them so the overlay can set them up
                     var name = $scope.modelName + '-fp-' + i;
-                    var fcd;
                     if(! $scope.focusPoints[i]) {
                         $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x.scale, axes.y.scale, false, axes.x, name);
-
-                        fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-' + i);
+                        var fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-' + i);
                         fcd.focusPoints.push($scope.focusPoints[i]);
                         $scope.popupDelegate.focusPoints.push($scope.focusPoints[i]);
                         $scope.focusCircleDelegates.push(fcd);
@@ -2799,9 +2788,14 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     setPlotVisible(i, true);
                 }
                 axes.y.plots = plots;
-                for(var fpIndex = 0; fpIndex < Math.min($scope.focusPoints.length, plots.length); ++fpIndex) {
-                    $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
-                    focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), true, $scope.plotInfoDelegates);
+                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                    if (fpIndex < plots.length) {
+                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope.plotInfoDelegates);
+                    }
+                    else {
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope.plotInfoDelegates);
+                    }
                 }
                 $scope.margin.top = json.title ? 50 : 20;
                 $scope.margin.bottom = 50 + 20 * plots.length;
@@ -2838,7 +2832,6 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
             }
             function togglePlot(pIndex) {
-                var path = plotPath(pIndex);
                 setPlotVisible(pIndex, isPlotVisible(pIndex));
             }
             function isPlotVisible(pIndex) {
