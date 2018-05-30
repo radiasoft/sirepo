@@ -300,9 +300,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     if (SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
         appState.whenModelsLoaded($rootScope, function() {
             self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-            //TODO(pjm): only required for when viewing after import
-            // force update to bunch from command.bunched_beam
-            appState.saveChanges('commands');
         });
 
         $rootScope.$on('modelChanged', function(e, name) {
@@ -1622,7 +1619,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
                 '<div class="col-sm-12 col-md-6 col-xl-7">',
                   '<div class="row">',
                     '<div data-ng-if="latticeService.activeBeamlineId" class="col-sm-12">',
-                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="beamlineHasElements()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>Twiss Graph</a></div>',
+                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="beamlineHasElements()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>{{ twissReportTitle() }}</a></div>',
                     '</div>',
                     '<div class="col-sm-12">',
                       '<div data-beamline-editor=""></div>',
@@ -1686,7 +1683,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
                 });
             };
             $scope.twissReportTitle = function() {
-                return 'Twiss Graph';
+                return SIREPO.APP_SCHEMA.view.twissReport.title;
             };
             $scope.showTwissEditor = function() {
                 panelState.showModalEditor('twissReport');

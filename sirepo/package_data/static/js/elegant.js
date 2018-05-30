@@ -321,6 +321,12 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         return name.indexOf(SIREPO.ELEGANT_COMMAND_PREFIX) === 0;
     };
 
+    appState.whenModelsLoaded($rootScope, function() {
+        //TODO(pjm): only required for when viewing after import
+        // force update to bunch from command.bunched_beam
+        appState.saveChanges('commands');
+    });
+
     // keep source page items in sync with the associated control command
     $rootScope.$on('modelChanged', function(e, name) {
         if (name == 'bunchSource') {
