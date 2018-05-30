@@ -883,7 +883,7 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
     };
 });
 
-SIREPO.app.directive('watchPointList', function(appState, panelState, beamlineService) {
+SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
     return {
         restrict: 'A',
         scope: {
@@ -891,44 +891,19 @@ SIREPO.app.directive('watchPointList', function(appState, panelState, beamlineSe
             field: '=',
         },
         template: [
-            '<select data-ng-show="isModelLoaded()" class="form-control" data-ng-model="model[field]" data-ng-options="item.id as wpOptionTitle(item) for item in beamlineService.getWatchItems() track by item.id"></select>',
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as wpOptionTitle(item) for item in watchItems"></select>',
         ].join(''),
         controller: function($scope, $element) {
-            var lastWpId = 0;
-            var select = $($element).find('select').eq(0);
-            $scope.beamlineService = beamlineService;
-
-            $scope.isModelLoaded = function() {
-                if(! $scope.model) {
-                    return false;
-                }
-                selectOption();
-                return true;
-            };
+            $scope.watchItems = null;
             $scope.wpOptionTitle = function(item) {
                 return item.title + ' (' + item.position + 'm)';
             };
-            function selectOption() {
-                if(!$scope.model) {
-                    return;
-                }
-                if(beamlineService.getWatchItems().length == 0) {
-                    return;
-                }
-
-                var wpId = $scope.model[$scope.field];
-                if(! wpId) {
-                    wpId = lastWpId;
-                }
-                var activeItem = beamlineService.getItemById(wpId);
-                var wpIdArr = beamlineService.getWatchIds();
-                if(! activeItem || wpIdArr.indexOf(wpId) < 0) {
-                    wpId = wpIdArr[wpIdArr.length - 1];
-                }
-                lastWpId = wpId;
-                select.val(wpId);
-                $scope.model[$scope.field] = wpId;
+            function updateWatchItems() {
+                // need a clone of the items because the ngOptions modifies the values
+                $scope.watchItems = appState.clone(beamlineService.getWatchItems());
             }
+            appState.whenModelsLoaded($scope, updateWatchItems);
+            $scope.$on('modelChanged', updateWatchItems);
         },
     };
 });

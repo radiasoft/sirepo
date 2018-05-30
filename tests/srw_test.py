@@ -40,6 +40,7 @@ def test_model_defaults():
     from sirepo import simulation_db
     res = template_common.model_defaults('trajectoryReport', simulation_db.get_schema('srw'))
     assert res == {
+        'notes': '',
         'plotAxisY2': 'None',
         'timeMomentEstimation': 'auto',
         'magneticField': '2',

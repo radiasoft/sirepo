@@ -1320,7 +1320,7 @@ def _generate_beamline_optics(report, models, last_id):
                 if not has_item:
                     res['el'] += '    el.append(srwlib.SRWLOptD({}))'.format(1.0e-16)
                     res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
-                if last_id and last_id == int(item['id']):
+                if last_id and int(last_id) == int(item['id']):
                     last_element = True
             else:
                 _generate_item(res, item)
