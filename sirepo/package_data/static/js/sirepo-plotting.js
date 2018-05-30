@@ -187,11 +187,12 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     function initPlot(scope) {
         var interval = null;
         var requestData = function(forceRunCount) {
+            //TODO(pjm): see #1155
             // Don't request data if saving sim (data will be requested again when the save is complete)
-            var qi = requestQueue.getCurrentQI('requestQueue');
-            if(qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
-                return;
-            }
+            // var qi = requestQueue.getCurrentQI('requestQueue');
+            // if(qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
+            //     return;
+            // }
             var priority = getCurrentPriority();
             interval = $interval(function() {
                 if (interval) {
@@ -2655,7 +2656,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     axis.grid.ticks(axis.tickCount);
                     select('.' + dim + '.axis.grid').call(axis.grid);
                 });
-                
+
                 for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope.plotInfoDelegates);
                 }
