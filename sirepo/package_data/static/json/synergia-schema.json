@@ -144,16 +144,16 @@
             ["none", "None"]
         ],
         "TwissParameter": [
-            ["beta_x", "beta_x"],
-            ["alpha_x", "alpha_x"],
-            ["D_x", "D_x"],
-            ["Dprime_x", "Dprime_x"],
-            ["D_y", "D_y"],
-            ["psi_x", "psi_x"],
-            ["beta_y", "beta_y"],
-            ["alpha_y", "alpha_y"],
-            ["Dprime_y", "Dprime_y"],
-            ["psi_y", "psi_y"],
+            ["beta_x", "Horizontal beta"],
+            ["alpha_x", "Horizontal alpha"],
+            ["D_x", "Horizontal dispersion"],
+            ["Dprime_x", "Horizontal dispersion derivative"],
+            ["psi_x", "Horizontal PSI"],
+            ["beta_y", "Vertical beta"],
+            ["alpha_y", "Vertical alpha"],
+            ["D_y", "Vertical dispersion"],
+            ["Dprime_y", "Vertical dispersion derivative"],
+            ["psi_y", "Vertical PSI"],
             ["none", "None"]
         ]
     },
@@ -171,7 +171,7 @@
         "bunch": {
             "particle": ["Particle", "Particle", "proton"],
             "mass": ["Mass [GeV]", "Float"],
-            "charge": ["Charge [C]", "BeamCharge", 1],
+            "charge": ["Charge #", "BeamCharge", 1],
             "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
             "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
             "momentum": ["Momentum [GeV]", "Float", 0.0, "", 0.0000001],
@@ -191,6 +191,12 @@
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
+        },
+        "bunchTwiss": {
+            "beta_x": ["Horizontal Beta [m]", "Float", 0],
+            "beta_y": ["Vertical Beta [m]", "Float", 0],
+            "alpha_x": ["Horizontal Alpha [rad]", "Float", 0],
+            "alpha_y": ["Vertical Alpha [rad]", "Float", 0]
         },
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList"]
@@ -385,8 +391,18 @@
                     "z_period_length"
                 ]],
                 ["Emittance", [
-                    "emit_x",
-                    "emit_y",
+                    [
+                        ["Horizontal", [
+                            "emit_x",
+                            "bunchTwiss.beta_x",
+                            "bunchTwiss.alpha_x"
+                        ]],
+                        ["Vertical", [
+                            "emit_y",
+                            "bunchTwiss.beta_y",
+                            "bunchTwiss.alpha_y"
+                        ]]
+                    ],
                     "rms_z",
                     "dpop"
                 ]],

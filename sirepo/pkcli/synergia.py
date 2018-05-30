@@ -31,7 +31,7 @@ def run(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
             # bunch or twiss variable comes from parameter file exec() above
             if report == 'bunchReport':
-                res = _run_bunch_report(data, bunch)
+                res = _run_bunch_report(data, bunch, twiss)
             else:
                 res = _run_twiss_report(data, twiss)
         except Exception as e:
@@ -55,7 +55,8 @@ def run_background(cfg_dir):
     simulation_db.write_result(res)
 
 
-def _run_bunch_report(data, bunch):
+def _run_bunch_report(data, bunch, twiss):
+    twiss0 = twiss[0]
     report = data.models[data['report']]
     particles = bunch.get_local_particles()
     x = particles[:, getattr(bunch, report['x'])]
@@ -64,10 +65,18 @@ def _run_bunch_report(data, bunch):
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': _label(report['x']),
-        'y_label': _label(report['y']),
+        'x_label': template.label(report['x']),
+        'y_label': template.label(report['y']),
         'title': '{}-{}'.format(report['x'], report['y']),
         'z_matrix': hist.T.tolist(),
+        'summaryData': {
+            'bunchTwiss': {
+                'alpha_x': template.format_float(twiss0['alpha_x']),
+                'alpha_y': template.format_float(twiss0['alpha_y']),
+                'beta_x': template.format_float(twiss0['beta_x']),
+                'beta_y': template.format_float(twiss0['beta_y']),
+            },
+        },
     }
 
 
@@ -82,7 +91,7 @@ def _run_twiss_report(data, twiss):
             plots.append({
                 'name': report[yfield],
                 'points': [],
-                'label': report[yfield],
+                'label': template.label(report[yfield]),
                 'color': _PLOT_LINE_COLOR[yfield],
             })
     for row in twiss:
@@ -106,15 +115,3 @@ def _run_twiss_report(data, twiss):
         'plots': plots,
         'y_range': y_range,
     }
-
-
-_UNITS = {
-    'x': 'm',
-    'y': 'm',
-    'cdt': 'm',
-}
-
-def _label(v):
-    if v not in _UNITS:
-        return v
-    return '{} [{}]'.format(v, _UNITS[v])
