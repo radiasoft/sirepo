@@ -1398,6 +1398,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     last_id = None
     if template_common.is_watchpoint(report):
         last_id = template_common.watchpoint_id(report)
+    if report == 'multiElectronAnimation':
+        last_id = data['models']['multiElectronAnimation']['watchpointId']
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())

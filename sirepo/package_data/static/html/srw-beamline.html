@@ -1,7 +1,7 @@
 <div class="container-fluid">
   <div data-mobile-app-title="nav"></div>
   <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamline.beamlineService.isEditable()" data-parent-controller="beamline"></div>
-  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels">
+  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels" data-show-active-watchpoints="beamline.isMultiElectron()" data-active-watchpoint-title="Watchpoint for Partially Coherent Report">
       <div class="btn btn-default srw-propagation-button" data-ng-show="beamline.appState.models.beamline.length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small class="hidden-xs">Propagation</small></div>
       <div class="btn btn-default srw-wavefront-button" data-ng-click="beamline.showSimulationGrid()" title="Initial Wavefront Simulation Grid"><span class="glyphicon glyphicon-th"></span> <small class="hidden-xs">Initial Wavefront</small></div>
   </div>

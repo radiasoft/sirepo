@@ -561,7 +561,8 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -1306,6 +1307,7 @@
             "basic": [],
             "advanced": [
                 ["Main", [
+                    "watchpointId",
                     "simulation.photonEnergy",
                     "stokesParameter",
                     "numberOfMacroElectrons",

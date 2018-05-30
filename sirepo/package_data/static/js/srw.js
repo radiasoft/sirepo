@@ -24,6 +24,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
       '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
     '</div>',
+    '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
+        '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+    '</div>',
 ].join('');
 SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="x"></li>',
@@ -549,6 +552,9 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     self.showTabs = function() {
         if (beamlineService.getWatchItems().length === 0) {
+            if(self.isMultiElectron()) {
+                self.setSingleElectron(true);
+            }
             return false;
         }
         if (srwService.isApplicationMode('wavefront')) {
@@ -559,6 +565,42 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         }
         return true;
     };
+
+    self.setWatchpointActive = function(item) {
+        if(! self.isWatchpointActive(item)) {
+            self.setWatchpointForPartiallyCoherentReport(item.id);
+        }
+    };
+    self.isWatchpointActive = function(item) {
+        return ! item.isDisabled && self.getWatchpointForPartiallyCoherentReport() == item.id;
+    };
+    self.setWatchpointForPartiallyCoherentReport = function(wpId) {
+         appState.models.multiElectronAnimation.watchpointId = wpId;
+         appState.saveChanges('multiElectronAnimation');
+    };
+    self.getWatchpointForPartiallyCoherentReport = function() {
+         return appState.models.multiElectronAnimation.watchpointId;
+    };
+    $scope.$on('multiElectronAnimation.changed', function(event) {
+        var wpIdArr = beamlineService.getWatchIds();
+        if(wpIdArr.length == 0) {
+            return;
+        }
+
+        var doSave = false;
+        var wpId = appState.models.multiElectronAnimation.watchpointId;
+        var activeItem = beamlineService.getItemById(wpId);
+        // if previous watchpoint for the multiElectronAnimation report is now gone,
+        // use the last watchpoint in the beamline
+        if(! activeItem || wpIdArr.indexOf(wpId) < 0) {
+            wpId = wpIdArr[wpIdArr.length - 1];
+            doSave = true;
+        }
+        if(doSave) {
+            self.setWatchpointForPartiallyCoherentReport(wpId);
+        }
+
+    });
 
     appState.whenModelsLoaded($scope, function() {
 
