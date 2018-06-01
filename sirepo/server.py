@@ -1074,6 +1074,10 @@ def _simulation_run_status(data, quiet=False):
                         # allow parallel jobs to use template to parse errors below
                         res['state'] = 'error'
                     else:
+                        if hasattr(template, 'parse_error_log'):
+                            res = template.parse_error_log(rep.run_dir)
+                            if res:
+                                return res
                         return _simulation_error(err, 'error in read_result', rep.run_dir)
                 else:
                     res = res2
