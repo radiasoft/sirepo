@@ -161,7 +161,8 @@
         "beamEvolutionAnimation": {
             "y1": ["Y1 Value", "BeamColumn", "xemit"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "yemit"],
-            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamline": {
             "name": ["Name", "ValidatedString"]
@@ -186,11 +187,20 @@
             "seed": ["Pseudorandom Number Generator Seed", "Float", 1, "", 0],
             "z_period_length": ["Space Between Bunches", "Float", 0.0]
         },
+        "bunchAnimation": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "notes": ["Notes", "Text", ""]
+        },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "histogramBins": ["Histogram Bins", "Integer"],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchTwiss": {
             "beta_x": ["Horizontal Beta [m]", "Float", 0],
@@ -210,7 +220,14 @@
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
-            "y3": ["Y3 Value", "TwissParameter", "D_x"]
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissReport2": {
+            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
+            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
         },
         "DIPEDGE": {
             "name": ["Name", "ValidatedString"],
@@ -362,7 +379,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "beamline": {
@@ -414,19 +432,37 @@
             ],
             "advanced": []
         },
+        "bunchAnimation": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "FramesPerSecond",
+                "notes"
+            ]
+        },
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
                 [
-                    ["Horizontal",
-                        ["x"]
-                    ],
-                    ["Vertical",
-                        ["y"]
-                    ]
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
                 ],
                 "histogramBins",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "simulationSettings": {
@@ -448,7 +484,17 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
+            ]
+        },
+        "twissReport2": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "notes"
             ]
         },
         "DIPEDGE": {

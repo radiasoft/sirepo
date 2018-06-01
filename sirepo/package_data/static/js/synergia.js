@@ -15,6 +15,7 @@ SIREPO.appFieldEditors = [
       '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.appImportText = 'Import a MAD-X Lattice';
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
         return;

@@ -13,6 +13,7 @@ SIREPO.appReportTypes = [
 ].join('');
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
@@ -882,7 +883,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             };
 
             $scope.showImportModal = function() {
-                $('#elegant-import').modal('show');
+                $('#simulation-import').modal('show');
             };
         },
     };
@@ -1205,7 +1206,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="modal fade" data-backdrop="static" id="elegant-import" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -1298,7 +1299,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
             }
 
             function hideAndRedirect() {
-                $('#elegant-import').modal('hide');
+                $('#simulation-import').modal('hide');
                 requestSender.localRedirect('lattice', {
                     ':simulationId': $scope.id,
                 });

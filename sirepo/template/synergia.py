@@ -31,7 +31,7 @@ _PLOT_LINE_COLOR = {
     'y3': '#2ca02c',
 }
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
@@ -81,7 +81,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport']:
+    for m in ['beamEvolutionAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport', 'twissReport2']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -153,9 +153,36 @@ def models_related_to_report(data):
     ]
     if r == 'bunchReport':
         res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif r == 'twissReport':
-        res += ['simulation.activeBeamlineId']
+    elif r == 'twissReport' or r == 'twissReport2':
+        res += ['simulation.{}'.format(_beamline_id_for_report(r))]
     return res
+
+
+def parse_error_log(run_dir):
+    text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+    errors = []
+    current = ''
+    for line in text.split("\n"):
+        if not line:
+            if current:
+                errors.append(current)
+                current = ''
+            continue
+        m = re.match('\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
+        if m:
+            if not current:
+                error_type = m.group(1)
+                if error_type == 'WARRNING':
+                    error_type = 'WARNING'
+                current = '{}: '.format(error_type)
+            extra = m.group(2)
+            if re.search(r'\S', extra) and not re.search(r'File:|Line:|line \d+', extra):
+                current += '\n' + extra
+        elif current:
+            current += '\n' + line
+    if len(errors):
+        return {'state': 'error', 'error': '\n\n'.join(errors)}
+    return None
 
 
 def python_source_for_model(data, model):
@@ -182,6 +209,10 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
         if id in beamlines:
             _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
     ordered_beamlines.append(beamline)
+
+
+def _beamline_id_for_report(r):
+    return 'activeBeamlineId' if r == 'twissReport' else 'visualizationBeamlineId'
 
 
 #TODO(pjm): from template.elegant
@@ -277,10 +308,12 @@ def _extract_evolution_plot(report, run_dir):
 
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
+    report = data['report'] if 'report' in data else ''
+    beamline_id_field = _beamline_id_for_report(report)
 
     for bl in data['models']['beamlines']:
-        if 'visualizationBeamlineId' in data['models']['simulation']:
-            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
+        if beamline_id_field in data['models']['simulation']:
+            if int(data['models']['simulation'][beamline_id_field]) == int(bl['id']):
                 v['use_beamline'] = bl['name'].lower()
         beamlines[bl['id']] = bl
 
@@ -318,7 +351,7 @@ def _generate_parameters_file(data):
     v['lattice'] = _generate_lattice(data, beamline_map, v)
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
-    if report == 'bunchReport' or report == 'twissReport':
+    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
         if report == 'bunchReport':
             res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')

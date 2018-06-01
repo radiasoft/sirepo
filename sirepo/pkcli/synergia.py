@@ -25,7 +25,7 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     report = data['report']
-    if report == 'bunchReport' or report == 'twissReport':
+    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         try:
             with pkio.save_chdir(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
@@ -33,9 +33,9 @@ def run(cfg_dir):
             if report == 'bunchReport':
                 res = _run_bunch_report(data, bunch, twiss)
             else:
-                res = _run_twiss_report(data, twiss)
+                res = _run_twiss_report(data, report, twiss)
         except Exception as e:
-            res = {
+            res = template.parse_error_log(cfg_dir) or {
                 'error': str(e),
             }
         simulation_db.write_result(res)
@@ -80,9 +80,9 @@ def _run_bunch_report(data, bunch, twiss):
     }
 
 
-def _run_twiss_report(data, twiss):
+def _run_twiss_report(data, report, twiss):
     plots = []
-    report = data['models']['twissReport']
+    report = data['models'][report]
     x = []
     plots = []
     y_range = None
