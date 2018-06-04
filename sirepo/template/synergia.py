@@ -91,8 +91,10 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'diagnostics_per_turn' not in data['models']['simulationSettings']:
+    if 'diagnostics_per_turn' not in data['models']['simulationSettings'] or 'map_order' not in data['models']['simulationSettings']:
         template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
+    if 'histogramBins' not in data['models']['bunchAnimation']:
+        template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
 
 
 def format_float(v):
@@ -510,7 +512,10 @@ def _iterate_model_fields(data, state, callback):
                 callback(state, m, element_schema, k)
 
 
-#TODO(pjm): from template.elegant
+_QUOTED_MADX_FIELD = ['ExtractorType', 'Propagator']
+
+
+#TODO(pjm): derived from template.elegant
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
     # only interested in elements, not commands
     if '_type' in model:
@@ -523,22 +528,8 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if model['type'] == 'SCRIPT' and field_name == 'command':
-                    for f in ('commandFile', 'commandInputFile'):
-                        if f in model and model[f]:
-                            fn = template_common.lib_file_name(model['type'], f, model[f])
-                            value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
-                    if model['commandFile']:
-                        value = './' + value
-                if element_schema[1] == 'RPNValue':
-                    value = _format_rpn_value(value)
-                if element_schema[1].startswith('InputFile'):
-                    value = template_common.lib_file_name(model['type'], field_name, value)
-                    if element_schema[1] == 'InputFileXY':
-                        value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
-                elif element_schema[1] == 'OutputFile':
-                    value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
-                #TODO(pjm): don't quote numeric constants
+                if element_schema[1] in _QUOTED_MADX_FIELD:
+                    value = '"{}"'.format(value)
                 state['lattice'] += '{}={},'.format(field_name, value)
     else:
         state['field_index'] = 0

@@ -22,7 +22,7 @@ collective = synergia.simulation.Dummy_collective_operator("stub")
 
 stepper = synergia.simulation.Split_operator_stepper_elements(
     synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE),
-    1, # map_order
+    {{ simulationSettings_map_order }}, # map_order
     collective,
     {{ simulationSettings_steps_per_element }} # num_steps
 )

@@ -231,6 +231,7 @@
             "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
             "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
             "turn_count": ["Turn Count", "Integer", 5, "", 1],
+            "map_order": ["Stepper Map Order", "Integer", 1, "", 1, 4],
             "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1]
         },
         "simulationStatus": {},
@@ -489,6 +490,7 @@
                 "space_charge",
                 "steps_per_element",
                 "turn_count",
+                "map_order",
                 "diagnostics_per_turn"
             ],
             "advanced": []

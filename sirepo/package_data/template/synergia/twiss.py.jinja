@@ -4,7 +4,7 @@ from rssynergia.base_diagnostics import lfplot
 lattice = synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE)
 stepper = synergia.simulation.Independent_stepper_elements(
     lattice,
-    1, # map_order
+    {{ simulationSettings_map_order }}, # map_order
     5 # num_steps_per_element
 )
 lattice_simulator = stepper.get_lattice_simulator()
