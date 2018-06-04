@@ -681,6 +681,20 @@
         width: 75vw;
     }
 
+    div[data-report-panel='lattice'] > .panel:-webkit-full-screen {
+        height: 90vh;
+    }
+    div[data-report-panel='lattice']:-moz-full-screen > .panel {
+        height: 90vh;
+        margin: auto;
+    }
+    div[data-report-panel='lattice'] > .panel:-ms-fullscreen {
+        height: 90vh;
+    }
+    div[data-report-panel='lattice'] > .panel:fullscreen {
+        height: 90vh;
+    }
+
 
     /* 3d reports */
     /* empty class to signify non-empty transclude - used to change layouts for some fullscreen reports */

@@ -1727,6 +1727,11 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
             $scope.plotInfoDelegates.push($scope.popupDelegate);
             $scope.plotInfoDelegates.push($scope.focusCircleDelegate);
 
+            function fullscreenChangehandler(evt) {
+                refresh();
+            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+
             var graphLine, points, zoom;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
@@ -1872,6 +1877,10 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 }
             };
 
+            $scope.$on('$destroy', function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1920,6 +1929,10 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
             $scope.plotInfoDelegatesBottom.push($scope.focusCircleDelegateBottom);
             $scope.plotInfoDelegatesRight.push($scope.focusCircleDelegateRight);
 
+            function fullscreenChangehandler(evt) {
+                refresh();
+            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
             var cacheCanvas, imageData;
@@ -2356,6 +2369,11 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
                     points);
             });
+
+            $scope.$on('$destroy', function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2378,6 +2396,11 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             };
             $scope.dataCleared = true;
             $scope.margin = {top: 40, left: 70, right: 100, bottom: 50};
+
+            function fullscreenChangehandler(evt) {
+                refresh();
+            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
 
             var aspectRatio = 1.0;
             var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
@@ -2539,6 +2562,11 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 }
                 refresh();
             };
+
+            $scope.$on('$destroy', function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2575,6 +2603,11 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 $scope.modelName + '-popup-delegate'
             );
             $scope.plotInfoDelegates = [$scope.popupDelegate];
+
+            function fullscreenChangehandler(evt) {
+                refresh();
+            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
 
             var graphLine, zoom;
             var axes = {
@@ -2851,6 +2884,10 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 return isVisible ? '\ue105' : '\ue106';
             }
 
+            $scope.$on('$destroy', function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2871,6 +2908,12 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
+
+            function fullscreenChangehandler(evt) {
+                refresh();
+            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+
             var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
 
             function refresh() {
@@ -3008,8 +3051,10 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 }
                 $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
+                // Some browsers omit the last vertical grid line in fullscreen, so add a bit of width to
+                // cover it.  Other browsers don't seem to mind the extra space
                 select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right + 4)
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
                 plotting.ticks(xAxis, $scope.width, true);
                 plotting.ticks(xAxisGrid, $scope.width, true);
@@ -3021,6 +3066,11 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 yAxisGrid.tickSize(-$scope.width);
                 refresh();
             };
+
+            $scope.$on('$destroy', function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
