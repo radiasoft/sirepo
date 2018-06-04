@@ -61,7 +61,7 @@ def _run_bunch_report(data, bunch, twiss):
     particles = bunch.get_local_particles()
     x = particles[:, getattr(bunch, report['x'])]
     y = particles[:, getattr(bunch, report['y'])]
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(200))
+    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],

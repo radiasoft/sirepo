@@ -44,7 +44,7 @@ bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
 
 bunch_simulator = synergia.simulation.Bunch_simulator(bunch)
 bunch_simulator.add_per_step(synergia.bunch.Diagnostics_full2("diagnostics.h5"))
-bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles("particles.h5"), 10)
+bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles("particles.h5"), {{ simulationSettings_diagnostics_per_turn }})
 
 synergia.simulation.Propagator(stepper).propagate(
     bunch_simulator,

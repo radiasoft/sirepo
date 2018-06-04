@@ -177,7 +177,10 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 scope.firstFrame();
             }
             // go to the next last frame, if the current frame was the previous last frame
-            else if (frameCache.getCurrentFrame(scope.modelName) >= oldFrameCount - 1) {
+            else if (
+                frameCache.getCurrentFrame(scope.modelName) >= oldFrameCount - 1
+                || frameCache.getCurrentFrame(scope.modelName) == frameCache.getFrameCount(scope.modelName) - 2
+            ) {
                 scope.defaultFrame();
             }
         });

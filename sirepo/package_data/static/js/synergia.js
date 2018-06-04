@@ -154,10 +154,14 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
             turnCount = data.turnCount;
-            ['beamEvolutionAnimation'].forEach(function(m) {
+            ['beamEvolutionAnimation', 'bunchAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
-                frameCache.setFrameCount(data.frameCount, m);
+                var key = m + '.frameCount';
+                if (!(key in data)) {
+                    key = 'frameCount';
+                }
+                frameCache.setFrameCount(data[key], m);
             });
         }
         frameCache.setFrameCount(data.frameCount || 0);
@@ -176,6 +180,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
+        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
     });
 });
 

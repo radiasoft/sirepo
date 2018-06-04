@@ -114,6 +114,14 @@
             ["chef_propagate", "chef_propagate"],
             ["chef_mixed", "chef_mixed"]
         ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
         "Particle": [
             ["proton", "Proton"],
             ["electron", "Electron"],
@@ -122,7 +130,15 @@
             ["posmuon", "Posmuon"],
             ["other", "Other"]
         ],
-        "PhaseSpaceCoordinate": [
+        "PhaseSpaceCoordinate6": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["z", "z"],
+            ["zp", "zp"]
+        ],
+        "PhaseSpaceCoordinate8": [
             ["x", "x"],
             ["xp", "xp"],
             ["y", "y"],
@@ -188,17 +204,17 @@
             "z_period_length": ["Space Between Bunches", "Float", 0.0]
         },
         "bunchAnimation": {
-            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"],
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
-            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"],
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
             "notes": ["Notes", "Text", ""]
         },
@@ -214,7 +230,8 @@
         "simulationSettings": {
             "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
             "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
-            "turn_count": ["Turn Count", "Integer", 5, "", 1]
+            "turn_count": ["Turn Count", "Integer", 5, "", 1],
+            "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1]
         },
         "simulationStatus": {},
         "twissReport": {
@@ -445,7 +462,7 @@
                 ],
                 "histogramBins",
                 "colorMap",
-                "FramesPerSecond",
+                "framesPerSecond",
                 "notes"
             ]
         },
@@ -471,7 +488,8 @@
                 "simulation.visualizationBeamlineId",
                 "space_charge",
                 "steps_per_element",
-                "turn_count"
+                "turn_count",
+                "diagnostics_per_turn"
             ],
             "advanced": []
         },

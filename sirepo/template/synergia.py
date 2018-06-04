@@ -10,14 +10,15 @@ from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import glob
 import h5py
+import numpy as np
 import re
 import werkzeug
 
 SIM_TYPE = 'synergia'
 
-#TODO(pjm): change to True
-WANT_BROWSER_FRAME_CACHE = False
+WANT_BROWSER_FRAME_CACHE = True
 
 _BEAM_EVOLUTION_OUTPUT_FILENAME = 'diagnostics.h5'
 
@@ -38,6 +39,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _UNITS = {
     'x': 'm',
     'y': 'm',
+    'z': 'm',
     'cdt': 'm',
     'xstd': 'm',
     'ystd': 'm',
@@ -61,6 +63,9 @@ _UNITS = {
 def background_percent_complete(report, run_dir, is_running):
     diag_file = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     if diag_file.exists():
+        particle_file_count = len(_particle_file_list(run_dir))
+        # if is_running:
+        #     particle_file_count -= 1
         try:
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             with h5py.File(str(diag_file), 'r') as f:
@@ -70,6 +75,7 @@ def background_percent_complete(report, run_dir, is_running):
                     'percentComplete': 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count'],
                     'frameCount': size,
                     'turnCount': turn,
+                    'bunchAnimation.frameCount': particle_file_count,
                 }
         except Exception as e:
             # file present but not hdf formatted
@@ -81,10 +87,12 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport', 'twissReport2']:
+    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport', 'twissReport2']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    if 'diagnostics_per_turn' not in data['models']['simulationSettings']:
+        template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
 
 
 def format_float(v):
@@ -124,7 +132,14 @@ def get_simulation_frame(run_dir, data, model_data):
             },
         )
         return _extract_evolution_plot(args, run_dir)
-
+    if data['modelName'] == 'bunchAnimation':
+        args = template_common.parse_animation_args(
+            data,
+            {
+                '': ['x', 'y', 'histogramBins'],
+            },
+        )
+        return _extract_bunch_plot(args, frame_index, run_dir)
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
@@ -277,9 +292,29 @@ def _calc_particle_info(particle):
     }
 
 
+def _extract_bunch_plot(report, frame_index, run_dir):
+    filename = _particle_file_list(run_dir)[frame_index]
+    with h5py.File(str(filename), 'r') as f:
+        x = f['particles'][:, _COORD6.index(report['x'])].tolist()
+        y = f['particles'][:, _COORD6.index(report['y'])].tolist()
+        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
+        tlen = f['tlen'][()]
+        #rep = f['rep'][()]
+        s_n = f['s_n'][()]
+        rep = 0 if s_n == 0 else int(tlen / s_n)
+        return {
+            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+            'x_label': label(report['x']),
+            'y_label': label(report['y']),
+            'title': '{}-{} at {:.1f}m, turn {}'.format(report['x'], report['y'], tlen, rep),
+            'z_matrix': hist.T.tolist(),
+        }
+
+
 def _extract_evolution_plot(report, run_dir):
     plots = []
-    with h5py.File(str(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))), 'r') as f:
+    with h5py.File(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 'r') as f:
         x = f['s'][:].tolist()
         y_range = None
         for yfield in ('y1', 'y2', 'y3'):
@@ -530,6 +565,10 @@ def _plot_field(field):
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, field
+
+
+def _particle_file_list(run_dir):
+    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
 
 
 def _plot_values(h5file, field):
