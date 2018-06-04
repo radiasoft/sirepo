@@ -1442,9 +1442,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
 SIREPO.app.directive('latticeElementPanels', function(latticeService) {
     return {
         restrict: 'A',
-        scope: {
-            wantRpnVariables: '@',
-        },
+        scope: {},
         template: [
             '<div class="col-sm-12 col-md-6 col-xl-5">',
               '<div data-split-panels="" style="height: {{ panelHeight() }}">',
@@ -1474,6 +1472,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
         ].join(''),
         controller: function($scope) {
             $scope.latticeService = latticeService;
+            $scope.wantRpnVariables = SIREPO.APP_SCHEMA.model.rpnVariable ? true : false;
         },
     };
 });
@@ -1621,7 +1620,6 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
         restrict: 'A',
         scope: {
             controller: '=',
-            wantRpnVariables: '@',
         },
         template: [
             '<div class="container-fluid">',
@@ -1636,7 +1634,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
                     '</div>',
                   '</div>',
                 '</div>',
-                '<div lattice-element-panels="" want-rpn-variables="true"></div>',
+                '<div lattice-element-panels=""></div>',
               '</div>',
             '</div>',
             '<div data-ng-drag-clone=""><div class="badge elegant-icon elegant-item-selected"><span>{{ clonedData.name }}</span></div></div>',

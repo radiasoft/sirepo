@@ -92,7 +92,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
         })
         .when(localRoutes.lattice, {
             controller: 'LatticeController as lattice',
-            template: '<div data-lattice-tab="" data-controller="lattice" data-want-rpn-variables="true"></div>',
+            template: '<div data-lattice-tab="" data-controller="lattice"></div>',
         })
         .when(localRoutes.control, {
             controller: 'CommandController as control',
