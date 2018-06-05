@@ -542,6 +542,14 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             }
         },
 
+        tickFontSize: function(node) {
+            var defaultSize = 12;
+            if (node.style) {
+                return utilities.fontSizeFromString(node.style('font-size')) || defaultSize;
+            }
+            return defaultSize;
+        },
+
         ticks: function(axis, width, isHorizontalAxis) {
             var spacing = isHorizontalAxis ? 80 : 50;
             var n = Math.max(Math.round(width / spacing), 2);
@@ -931,7 +939,6 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
 
     var svc = this;
 
-    this.tickFontSize = 12;
     this.plotAxis = function(margin, dimension, orientation, refresh, utilities) {
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
@@ -1109,13 +1116,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             if (svc.plotAxis.allowUpdates) {
                 // update the axis to get the tick font size from the css
                 select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
-                var fontSize;
-                if (select('.sr-plot .axis text').style) {
-                    fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || svc.tickFontSize;
-                }
-                else {
-                    fontSize = svc.tickFontSize;
-                }
+                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
                 var formatInfo, unit;
                 if (self.units) {
                     var d = self.scale.domain();
@@ -1730,10 +1731,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
             $scope.plotInfoDelegates.push($scope.popupDelegate);
             $scope.plotInfoDelegates.push($scope.focusCircleDelegate);
 
-            function fullscreenChangehandler(evt) {
-                refresh();
-            }
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var graphLine, points, zoom;
             var axes = {
@@ -1807,6 +1805,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
             $scope.destroy = function () {
                 zoom.on('zoom', null);
                 $('.overlay').off();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function () {
@@ -1879,11 +1878,6 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                     focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, $scope.focusPoints[fpIndex], 'hideFocusPointInfo');
                 }
             };
-
-            $scope.$on('$destroy', function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1932,10 +1926,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
             $scope.plotInfoDelegatesBottom.push($scope.focusCircleDelegateBottom);
             $scope.plotInfoDelegatesRight.push($scope.focusCircleDelegateRight);
 
-            function fullscreenChangehandler(evt) {
-                refresh();
-            }
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
             var cacheCanvas, imageData;
@@ -2255,6 +2247,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 xyZoom.on('zoom', null);
                 axes.x.zoom.on('zoom', null);
                 axes.y.zoom.on('zoom', null);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
@@ -2372,11 +2365,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
                     points);
             });
-
-            $scope.$on('$destroy', function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2400,10 +2388,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             $scope.dataCleared = true;
             $scope.margin = {top: 40, left: 70, right: 100, bottom: 50};
 
-            function fullscreenChangehandler(evt) {
-                refresh();
-            }
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var aspectRatio = 1.0;
             var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
@@ -2423,7 +2408,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 var maxLength = colorbar.scale().ticks().reduce(function(size, v) {
                     return Math.max(size, tickFormat(v).length);
                 }, 0);
-                var textSize = Math.max(25, maxLength * 12);
+                var textSize = Math.max(25, maxLength * plotting.tickFontSize(select('.sr-plot .axis text')));
                 var res = textSize + colorbar.thickness() + colorbar.margin().left;
                 colorbar.margin().right = res;
                 return res;
@@ -2511,6 +2496,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             $scope.destroy = function() {
                 $('.mouse-rect').off();
                 zoom.on('zoom', null);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
@@ -2565,11 +2551,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 }
                 refresh();
             };
-
-            $scope.$on('$destroy', function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2607,10 +2588,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             );
             $scope.plotInfoDelegates = [$scope.popupDelegate];
 
-            function fullscreenChangehandler(evt) {
-                refresh();
-            }
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var graphLine, zoom;
             var axes = {
@@ -2720,6 +2698,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 zoom.on('zoom', null);
                 $($scope.element).find('.overlay').off();
                 $($scope.element).find('.sr-plot-legend-item text').off();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
@@ -2886,11 +2865,6 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 // e105 == open eye, e106 == closed eye
                 return isVisible ? '\ue105' : '\ue106';
             }
-
-            $scope.$on('$destroy', function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2912,10 +2886,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
 
-            function fullscreenChangehandler(evt) {
-                refresh();
-            }
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
 
@@ -2949,7 +2920,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 select('.plot-viewport').selectAll('.line').attr('d', graphLine);
 
                 // do the margin adjustment that other plots do inside layoutService.plotAxis
-                var fontSize = utilities.fontSizeFromString(select('.sr-plot .axis text').style('font-size')) || layoutService.tickFontSize;
+                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
                 var w = select('.y.axis').selectAll('text')[0]
                     .map(function (txt) {
                     return txt.textContent.length;
@@ -2979,6 +2950,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
             $scope.destroy = function() {
                 zoom.on('zoom', null);
                 $('.overlay').off();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
@@ -3069,11 +3041,6 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 yAxisGrid.tickSize(-$scope.width);
                 refresh();
             };
-
-            $scope.$on('$destroy', function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
