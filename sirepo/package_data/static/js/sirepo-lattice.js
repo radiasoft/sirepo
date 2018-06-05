@@ -733,7 +733,7 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
     };
 });
 
-SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, $window) {
+SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1200,8 +1200,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 $scope.width = width;
                 $scope.height = $scope.width;
                 var windowHeight = $($window).height();
-                if ($scope.height > windowHeight / 2.5) {
-                    $scope.height = windowHeight / 2.5;
+                var maxHeightFactor = utilities.isFullscreen() ? 1.5 : 2.5;
+                if ($scope.height > windowHeight / maxHeightFactor) {
+                        $scope.height = windowHeight / maxHeightFactor;
                 }
 
                 if (svgBounds) {

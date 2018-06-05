@@ -848,9 +848,11 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Main", [
                     "title",
-                    "position",
+                    "position"
+                ]],
+                ["Material", [
                     [
                         ["Material of the crystal", [
                             "material"
@@ -860,25 +862,15 @@
                             "k",
                             "l"
                         ]]
-                    ],
+                    ]
+                ]],
+                ["Geometry", [
                     "energy",
                     "grazingAngle",
                     "asymmetryAngle",
                     "rotationAngle",
                     "crystalThickness",
                     "dSpacing",
-                    [
-                        ["Real part of crystal polarizability", [
-                            "psi0r",
-                            "psiHr",
-                            "psiHBr"
-                        ]],
-                        ["Imaginary part of crystal polarizability", [
-                            "psi0i",
-                            "psiHi",
-                            "psiHBi"
-                        ]]
-                    ],
                     [
                         ["Outward normal vector", [
                             "nvx",
@@ -888,6 +880,20 @@
                         ["Central tangential vector", [
                             "tvx",
                             "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Polarizability", [
+                    [
+                        ["Real part", [
+                            "psi0r",
+                            "psiHr",
+                            "psiHBr"
+                        ]],
+                        ["Imaginary part", [
+                            "psi0i",
+                            "psiHi",
+                            "psiHBi"
                         ]]
                     ]
                 ]],
