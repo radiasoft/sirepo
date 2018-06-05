@@ -148,6 +148,11 @@
             ["cdt", "cdt"],
             ["dpop", "dp/p"]
         ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
+        ],
         "Propagator": [
             ["basic", "basic"],
             ["yoshida", "yoshida"]
@@ -207,15 +212,20 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
+            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
+            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchTwiss": {
@@ -231,8 +241,9 @@
             "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
             "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
             "turn_count": ["Turn Count", "Integer", 5, "", 1],
-            "map_order": ["Stepper Map Order", "Integer", 1, "", 1, 4],
-            "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1]
+            "map_order": ["Stepper Map Order", "Integer", 1, "Applies to elements using the chef_map or chef_mixed extractor type.", 1, 4],
+            "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1],
+            "default_extractor_type": ["Default Extractor Type", "ExtractorType", "chef_propagate", "Sets the element extractor type for lattice elements which have no extractor_type specified."]
         },
         "simulationStatus": {},
         "twissReport": {
@@ -453,18 +464,33 @@
         "bunchAnimation": {
             "title": "Beam Phase Space",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y"
-                    ]]
-                ],
-                "histogramBins",
-                "colorMap",
-                "framesPerSecond",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "bunchReport": {
@@ -490,8 +516,9 @@
                 "space_charge",
                 "steps_per_element",
                 "turn_count",
+                "diagnostics_per_turn",
                 "map_order",
-                "diagnostics_per_turn"
+                "default_extractor_type"
             ],
             "advanced": []
         },
