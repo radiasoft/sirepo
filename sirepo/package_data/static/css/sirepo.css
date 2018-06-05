@@ -667,6 +667,7 @@
     /* Full-screen styles */
     div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
         width: 75vw;
+        height: 100%;
     }
     /* Firefox does its own thing */
     div:not([data-report-panel='3d']):-moz-full-screen > .panel {
@@ -705,6 +706,7 @@
     }
     div[data-report-panel="3d"] > .panel:-webkit-full-screen, div[data-report-panel="heatmap"] > .panel:-webkit-full-screen {
         width: 60vw;
+        height: 100%;
     }
     div[data-report-panel="3d"] > .panel:-webkit-full-screen .has-transclude {
         display: flex;
