@@ -71,8 +71,9 @@ def background_percent_complete(report, run_dir, is_running):
             with h5py.File(str(diag_file), 'r') as f:
                 size = f['emitx'].shape[0]
                 turn = int(f['repetition'][-1]) + 1
+                complete = 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count']
                 return {
-                    'percentComplete': 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count'],
+                    'percentComplete': complete if is_running else 100,
                     'frameCount': size,
                     'turnCount': turn,
                     'bunchAnimation.frameCount': particle_file_count,
@@ -91,10 +92,8 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'diagnostics_per_turn' not in data['models']['simulationSettings'] or 'map_order' not in data['models']['simulationSettings']:
-        template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
-    if 'histogramBins' not in data['models']['bunchAnimation']:
-        template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
+    template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
+    template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
 
 
 def format_float(v):
@@ -110,6 +109,16 @@ def get_application_data(data):
         return _calc_particle_info(data['particle'])
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
+    if data['method'] == 'compute_particle_ranges':
+        run_dir = simulation_db.simulation_run_dir({
+            'simulationType': SIM_TYPE,
+            'simulationId': data['simulationId'],
+            'report': 'animation',
+        })
+        return {
+            'fieldRange': _compute_range_across_files(run_dir),
+        }
+    assert False, 'unknown application data method: {}'.format(data['method'])
 
 
 def import_file(request, lib_dir=None, tmp_dir=None):
@@ -138,7 +147,8 @@ def get_simulation_frame(run_dir, data, model_data):
         args = template_common.parse_animation_args(
             data,
             {
-                '': ['x', 'y', 'histogramBins'],
+                '1': ['x', 'y', 'histogramBins', 'startTime'],
+                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
             },
         )
         return _extract_bunch_plot(args, frame_index, run_dir)
@@ -294,14 +304,54 @@ def _calc_particle_info(particle):
     }
 
 
+def _compute_range_across_files(run_dir):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if 'bunchAnimation' not in data.models:
+        return None
+    if 'fieldRange' in data.models.bunchAnimation:
+        return data.models.bunchAnimation.fieldRange
+    res = {}
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
+        res[v[0]] = []
+    for filename in _particle_file_list(run_dir):
+        with h5py.File(str(filename), 'r') as f:
+            for field in res:
+                values = f['particles'][:, _COORD6.index(field)].tolist()
+                if len(res[field]):
+                    res[field][0] = min(min(values), res[field][0])
+                    res[field][1] = max(max(values), res[field][1])
+                else:
+                    res[field] = [min(values), max(values)]
+    data.models.bunchAnimation.fieldRange = res
+    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    return res
+
+
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]
+
+
 def _extract_bunch_plot(report, frame_index, run_dir):
     filename = _particle_file_list(run_dir)[frame_index]
     with h5py.File(str(filename), 'r') as f:
         x = f['particles'][:, _COORD6.index(report['x'])].tolist()
         y = f['particles'][:, _COORD6.index(report['y'])].tolist()
-        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        if 'bunchAnimation' not in data.models:
+            # In case the simulation was run before the bunchAnimation was added
+            return {
+                'error': 'Report not generated',
+            }
+        bunch_animation = data.models.bunchAnimation
+        range = None
+        if report['plotRangeType'] == 'fixed':
+            range = [_plot_range(report, 'horizontal'), _plot_range(report, 'vertical')]
+        elif report['plotRangeType'] == 'fit' and 'fieldRange' in bunch_animation:
+            range = [bunch_animation.fieldRange[report['x']], bunch_animation.fieldRange[report['y']]]
+        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
         tlen = f['tlen'][()]
-        #rep = f['rep'][()]
         s_n = f['s_n'][()]
         rep = 0 if s_n == 0 else int(tlen / s_n)
         return {
@@ -386,6 +436,7 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
+    v['diagnosticFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
     if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':

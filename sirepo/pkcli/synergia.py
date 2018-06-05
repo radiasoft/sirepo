@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import numpy as np
+import py.path
 import sirepo.template.synergia as template
 
 #TODO(pjm): combine from template/synergia and template/elegant and put in template_common
@@ -35,7 +36,7 @@ def run(cfg_dir):
             else:
                 res = _run_twiss_report(data, report, twiss)
         except Exception as e:
-            res = template.parse_error_log(cfg_dir) or {
+            res = template.parse_error_log(py.path.local(cfg_dir)) or {
                 'error': str(e),
             }
         simulation_db.write_result(res)
