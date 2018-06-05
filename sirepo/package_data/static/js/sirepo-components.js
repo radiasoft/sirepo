@@ -1436,7 +1436,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         ].join(''),
         controller: function($scope, $element) {
             //TODO(pjm): enable when full screen doesn't cut off reports
-            $scope.fullScreenEnabled = false;
+            $scope.fullScreenEnabled = true;
             $scope.panelState = panelState;
             $scope.utilities = utilities;
 
