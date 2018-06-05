@@ -313,7 +313,7 @@ def _compute_sdds_range(res):
         values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
         if len(res[field]):
             res[field][0] = _safe_sdds_value(min(min(values), res[field][0]))
-            res[field][1] = _safe_sdds_value(max(max(values), res[field][0]))
+            res[field][1] = _safe_sdds_value(max(max(values), res[field][1]))
         else:
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
 
