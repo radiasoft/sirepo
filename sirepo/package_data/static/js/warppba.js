@@ -7,7 +7,7 @@ SIREPO.appLocalRoutes.dynamics = '/dynamics/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
-    if (SIREPO.IS_LOGGED_OUT) { 
+    if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
     var localRoutes = localRoutesProvider.$get();
@@ -370,7 +370,7 @@ SIREPO.app.directive('appHeader', function() {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav" data-app-url="/#/warppba"></div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
