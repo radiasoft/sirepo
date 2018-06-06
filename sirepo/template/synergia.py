@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import glob
 import h5py
+import math
 import numpy as np
 import re
 import werkzeug
@@ -207,6 +208,10 @@ def parse_error_log(run_dir):
                 current += '\n' + extra
         elif current:
             current += '\n' + line
+        else:
+            m = re.match('Propagator:*(.*?)Exiting', line)
+            if m:
+                errors.append(m.group(1))
     if len(errors):
         return {'state': 'error', 'error': '\n\n'.join(errors)}
     return None
@@ -373,6 +378,11 @@ def _extract_evolution_plot(report, run_dir):
             if report[yfield] == 'none':
                 continue
             points = _plot_values(f, report[yfield])
+            for v in points:
+                if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+                    return parse_error_log(run_dir) or {
+                        'error': 'Invalid data computed',
+                    }
             if y_range:
                 y_range = [min(y_range[0], min(points)), max(y_range[1], max(points))]
             else:
