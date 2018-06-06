@@ -288,12 +288,16 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return pointsList;
         },
 
-        constrainFullscreenSize: function(plotWidth, aspectRatio, margin) {
+        constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
             if (utilities.isFullscreen()) {
                 // rough size of the panel heading, panel margins and rounded corners
                 var panelTitleSize = 50 + 2 * 15 + 2 * 4;
+                if (scope.isAnimation && scope.hasFrames()) {
+                    // animation buttons
+                    panelTitleSize += 34;
+                }
                 var fsel = $(utilities.getFullScreenElement());
-                var height = fsel.height() - margin.top - margin.bottom - panelTitleSize;
+                var height = fsel.height() - scope.margin.top - scope.margin.bottom - panelTitleSize;
                 if (height < plotWidth * aspectRatio) {
                     return height / aspectRatio;
                 }
@@ -1761,7 +1765,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                     if (! points || isNaN(width)) {
                         return;
                     }
-                    $scope.width = plotting.constrainFullscreenSize(width, ASPECT_RATIO, $scope.margin);
+                    $scope.width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
                     $scope.height = ASPECT_RATIO * $scope.width;
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
@@ -2125,7 +2129,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     if (! heatmap || isNaN(width)){
                         return;
                     }
-                    width = plotting.constrainFullscreenSize(width, 1, $scope.margin);
+                    width = plotting.constrainFullscreenSize($scope, width, 1);
                     var canvasSize = 2 * width / 3;
                     $scope.canvasSize = canvasSize;
                     $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.pad + $scope.margin.bottom;
@@ -2458,7 +2462,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                     if (! heatmap || isNaN(width)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize(width, aspectRatio, $scope.margin);
+                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
                     $scope.canvasSize.width = width;
                     $scope.canvasSize.height = width * aspectRatio;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
@@ -2653,7 +2657,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     if (! axes.x.points || isNaN(width)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize(width, ASPECT_RATIO, $scope.margin);
+                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
                     $scope.width = width;
                     $scope.height = ASPECT_RATIO * $scope.width;
                     select('svg')
@@ -3040,7 +3044,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 if (! xDomain || isNaN(width)) {
                     return;
                 }
-                width = plotting.constrainFullscreenSize(width, ASPECT_RATIO, $scope.margin);
+                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
                 $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
                 // Some browsers omit the last vertical grid line in fullscreen, so add a bit of width to

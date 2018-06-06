@@ -1431,12 +1431,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
-              '<a href data-ng-if="fullScreenEnabled" data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              '<a href data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
             //TODO(pjm): enable when full screen doesn't cut off reports
-            $scope.fullScreenEnabled = true;
             $scope.panelState = panelState;
             $scope.utilities = utilities;
 
@@ -1511,7 +1510,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
                 var svg = $scope.panel.find('svg')[0];
                 var el = $($element).closest('div[data-report-panel] > .panel')[0];
-                var fullscreenEnabled = document.fullscreenEnabled || document.mozFullScreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled;
 
                 if(! utilities.isFullscreen()) {
                     // Firefox does its own thing

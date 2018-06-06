@@ -672,33 +672,22 @@
     /* Firefox does its own thing */
     div:not([data-report-panel='3d']):-moz-full-screen > .panel {
         width: 75vw;
+        height: 100%;
         margin: auto;
     }
     div:not([data-report-panel='3d']):-moz-full-screen > .panel .has-transclude {
-        height: 90vh;
+        width: 75vw;
+        height: 100%;
         margin: auto;
     }
     div:not([data-report-panel='3d']) > .panel:-ms-fullscreen {
         width: 75vw;
+        height: 100%;
     }
     div:not([data-report-panel='3d']) > .panel:fullscreen {
         width: 75vw;
+        height: 100%;
     }
-
-    div[data-report-panel='lattice'] > .panel:-webkit-full-screen {
-        height: 90vh;
-    }
-    div[data-report-panel='lattice']:-moz-full-screen > .panel {
-        height: 90vh;
-        margin: auto;
-    }
-    div[data-report-panel='lattice'] > .panel:-ms-fullscreen {
-        height: 90vh;
-    }
-    div[data-report-panel='lattice'] > .panel:fullscreen {
-        height: 90vh;
-    }
-
 
     /* 3d reports */
     /* empty class to signify non-empty transclude - used to change layouts for some fullscreen reports */
@@ -713,6 +702,7 @@
     }
     div[data-report-panel="3d"]:-moz-full-screen > .panel, div[data-report-panel="heatmap"]:-moz-full-screen > .panel {
         width: 60vw;
+        height: 100%;
         margin: auto;
     }
     div[data-report-panel="3d"]:-moz-full-screen > .panel .has-transclude {
@@ -720,12 +710,14 @@
     }
     div[data-report-panel="3d"] > .panel:-ms-fullscreen, div[data-report-panel="heatmap"] > .panel:-ms-fullscreen  {
         height: 60vh;
+        height: 100%;
     }
     div[data-report-panel="3d"] > .panel:-ms-fullscreen .has-transclude  {
         display: flex;
     }
     div[data-report-panel="3d"] > .panel:fullscreen, div[data-report-panel="heatmap"] > .panel:fullscreen  {
         height: 60vh;
+        height: 100%;
     }
     div[data-report-panel="3d"] > .panel:fullscreen .has-transclude {
         display: flex;

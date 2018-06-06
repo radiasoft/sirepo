@@ -1616,7 +1616,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
     };
 });
 
-SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window) {
+SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilities, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1680,6 +1680,9 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, $window)
                 return beamline && beamline.length > 0;
             };
             $scope.showTwissReport = function() {
+                if (utilities.isFullscreen()) {
+                    utilities.exitFullscreenFn().call(document);
+                }
                 var el = $('#sr-lattice-twiss-plot');
                 el.modal('show');
                 el.on('shown.bs.modal', function() {
