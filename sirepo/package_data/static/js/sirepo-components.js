@@ -2403,7 +2403,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('keypressService', function() {
+SIREPO.app.service('keypressService', function(d3Service) {
 
     var listeners = {};
     var reports = {};

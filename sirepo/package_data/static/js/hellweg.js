@@ -119,6 +119,17 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
             appState.saveChanges('beamline');
         }
     };
+    self.copyItem= function(item) {
+        var itemCopy = newItem(item.type);
+        var iIndex = itemIndex(item);
+        for(var prop in item) {
+            if(prop != 'id' && prop != '$$hashKey') {
+                itemCopy[prop] = item[prop];
+            }
+        }
+        self.selectedIndex = iIndex + 1;
+        self.editItem(itemCopy);
+    };
 
     self.dropLast = function(item) {
         self.dropItem(appState.models.beamline.length, item);
