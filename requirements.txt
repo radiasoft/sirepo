@@ -1,20 +1,7 @@
-Flask-OAuthlib
-SQLAlchemy
-beaker
-bnlcrl
-celery==3.1.23
-git+git://github.com/dicompyler/dicompyler-core.git@1d52ea9322c6c889e6f1e3319a331d6a22d7a8c4#egg=dicompyler-core
-flask
-flask_sqlalchemy
-flower==0.8.4
-kombu==3.0.35
-numconv
-numpy
-pillow
-pyIsEmail
-pydicom
+# other dependencies in setup.py
+# has to be installed before setup.py is run
 pykern
-pytz==2015.7
-scipy
-srxraylib
-uwsgi
+# needs to be here for Flask-OAuthlib, see https://github.com/radiasoft/sirepo/issues/1197
+flask
+# install_requires does not support git
+git+git://github.com/dicompyler/dicompyler-core.git@1d52ea9322c6c889e6f1e3319a331d6a22d7a8c4#egg=dicompyler-core
