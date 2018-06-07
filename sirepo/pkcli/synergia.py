@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import numpy as np
+import py.path
 import sirepo.template.synergia as template
 
 #TODO(pjm): combine from template/synergia and template/elegant and put in template_common
@@ -25,7 +26,7 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     report = data['report']
-    if report == 'bunchReport' or report == 'twissReport':
+    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         try:
             with pkio.save_chdir(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
@@ -33,9 +34,9 @@ def run(cfg_dir):
             if report == 'bunchReport':
                 res = _run_bunch_report(data, bunch, twiss)
             else:
-                res = _run_twiss_report(data, twiss)
+                res = _run_twiss_report(data, report, twiss)
         except Exception as e:
-            res = {
+            res = template.parse_error_log(py.path.local(cfg_dir)) or {
                 'error': str(e),
             }
         simulation_db.write_result(res)
@@ -61,7 +62,7 @@ def _run_bunch_report(data, bunch, twiss):
     particles = bunch.get_local_particles()
     x = particles[:, getattr(bunch, report['x'])]
     y = particles[:, getattr(bunch, report['y'])]
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(200))
+    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -80,9 +81,9 @@ def _run_bunch_report(data, bunch, twiss):
     }
 
 
-def _run_twiss_report(data, twiss):
+def _run_twiss_report(data, report, twiss):
     plots = []
-    report = data['models']['twissReport']
+    report = data['models'][report]
     x = []
     plots = []
     y_range = None

@@ -370,8 +370,8 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
             field: '=fieldEditor',
             model: '=',
             customLabel: '=',
-            labelSize: "@",
-            fieldSize: "@",
+            labelSize: '@',
+            fieldSize: '@',
             form: '=',
         },
         template: [
@@ -1133,8 +1133,8 @@ SIREPO.app.directive('modelField', function(appState) {
             field: '=modelField',
             modelName: '=',
             customLabel: '=',
-            labelSize: "@",
-            fieldSize: "@",
+            labelSize: '@',
+            fieldSize: '@',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
             form: '=',
@@ -1431,12 +1431,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
-              '<a href data-ng-if="fullScreenEnabled" data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              '<a href data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
             //TODO(pjm): enable when full screen doesn't cut off reports
-            $scope.fullScreenEnabled = true;
             $scope.panelState = panelState;
             $scope.utilities = utilities;
 
@@ -1511,7 +1510,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
                 var svg = $scope.panel.find('svg')[0];
                 var el = $($element).closest('div[data-report-panel] > .panel')[0];
-                var fullscreenEnabled = document.fullscreenEnabled || document.mozFullScreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled;
 
                 if(! utilities.isFullscreen()) {
                     // Firefox does its own thing
@@ -2351,11 +2349,13 @@ SIREPO.app.service('plotToPNG', function($http) {
                 plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
                 pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
         }
+        d3.select(svg).classed('sr-download-png', true);
         var svgString = svg.parentNode.innerHTML;
         context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(function(blob) {
             saveAs(blob, fileName);
         });
+        d3.select(svg).classed('sr-download-png', false);
     }
 
     function pxToInteger(value) {
@@ -2581,15 +2581,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
     };
     this.fullscreenListenerEvent = function() {
         if(this.exitFullscreenFn() == document.mozCancelFullScreen) {
-            return "mozfullscreenchange";
+            return 'mozfullscreenchange';
         }
         if(this.exitFullscreenFn() == document.webkitExitFullscreen) {
-            return "webkitfullscreenchange";
+            return 'webkitfullscreenchange';
         }
         if(this.exitFullscreenFn() == document.msExitFullscreen) {
-            return "MSFullscreenChange";
+            return 'MSFullscreenChange';
         }
-        return "fullscreenchange";
+        return 'fullscreenchange';
     };
 
     // Returns a function, that, as long as it continues to be invoked, will not

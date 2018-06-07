@@ -6,7 +6,7 @@
     <div class="col-md-6 col-xl-4">
       <div class="panel panel-info">
         <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationSettings')">
+        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
           <div data-sim-status-panel="visualization.simState" data-not-running-message="visualization.notRunningMessage()" data-running-message="visualization.runningMessage()"></div>
           <div class="clearfix"></div>
           <div data-ng-if="visualization.errorMessage"><div class="text-danger"><strong>Synergia Error:</strong></div><pre>{{ visualization.errorMessage }}</pre></div>
@@ -18,8 +18,16 @@
       <div data-report-panel="parameter" data-model-name="beamEvolutionAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="twissReport"></div>
+      <div data-report-panel="heatmap" data-model-name="bunchAnimation">
+        <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="parameter" data-model-name="twissReport2"></div>
     </div>
 
   </div> <!-- /row -->
 </div> <!-- /container -->
+
+<!-- modal dialogs -->
+<div data-modal-editor="" view-name="bunchAnimation" data-parent-controller="visualization"></div>

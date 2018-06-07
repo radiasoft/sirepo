@@ -10,14 +10,16 @@ from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import glob
 import h5py
+import math
+import numpy as np
 import re
 import werkzeug
 
 SIM_TYPE = 'synergia'
 
-#TODO(pjm): change to True
-WANT_BROWSER_FRAME_CACHE = False
+WANT_BROWSER_FRAME_CACHE = True
 
 _BEAM_EVOLUTION_OUTPUT_FILENAME = 'diagnostics.h5'
 
@@ -31,13 +33,14 @@ _PLOT_LINE_COLOR = {
     'y3': '#2ca02c',
 }
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _UNITS = {
     'x': 'm',
     'y': 'm',
+    'z': 'm',
     'cdt': 'm',
     'xstd': 'm',
     'ystd': 'm',
@@ -61,15 +64,20 @@ _UNITS = {
 def background_percent_complete(report, run_dir, is_running):
     diag_file = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     if diag_file.exists():
+        particle_file_count = len(_particle_file_list(run_dir))
+        # if is_running:
+        #     particle_file_count -= 1
         try:
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             with h5py.File(str(diag_file), 'r') as f:
                 size = f['emitx'].shape[0]
                 turn = int(f['repetition'][-1]) + 1
+                complete = 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count']
                 return {
-                    'percentComplete': 100 * (turn - 0.5) / data['models']['simulationSettings']['turn_count'],
+                    'percentComplete': complete if is_running else 100,
                     'frameCount': size,
                     'turnCount': turn,
+                    'bunchAnimation.frameCount': particle_file_count,
                 }
         except Exception as e:
             # file present but not hdf formatted
@@ -81,10 +89,12 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport']:
+    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport', 'twissReport2']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
+    template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
 
 
 def format_float(v):
@@ -100,6 +110,16 @@ def get_application_data(data):
         return _calc_particle_info(data['particle'])
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
+    if data['method'] == 'compute_particle_ranges':
+        run_dir = simulation_db.simulation_run_dir({
+            'simulationType': SIM_TYPE,
+            'simulationId': data['simulationId'],
+            'report': 'animation',
+        })
+        return {
+            'fieldRange': _compute_range_across_files(run_dir),
+        }
+    assert False, 'unknown application data method: {}'.format(data['method'])
 
 
 def import_file(request, lib_dir=None, tmp_dir=None):
@@ -124,7 +144,15 @@ def get_simulation_frame(run_dir, data, model_data):
             },
         )
         return _extract_evolution_plot(args, run_dir)
-
+    if data['modelName'] == 'bunchAnimation':
+        args = template_common.parse_animation_args(
+            data,
+            {
+                '1': ['x', 'y', 'histogramBins', 'startTime'],
+                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            },
+        )
+        return _extract_bunch_plot(args, frame_index, run_dir)
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
@@ -153,9 +181,40 @@ def models_related_to_report(data):
     ]
     if r == 'bunchReport':
         res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif r == 'twissReport':
-        res += ['simulation.activeBeamlineId']
+    elif r == 'twissReport' or r == 'twissReport2':
+        res += ['simulation.{}'.format(_beamline_id_for_report(r))]
     return res
+
+
+def parse_error_log(run_dir):
+    text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+    errors = []
+    current = ''
+    for line in text.split("\n"):
+        if not line:
+            if current:
+                errors.append(current)
+                current = ''
+            continue
+        m = re.match('\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
+        if m:
+            if not current:
+                error_type = m.group(1)
+                if error_type == 'WARRNING':
+                    error_type = 'WARNING'
+                current = '{}: '.format(error_type)
+            extra = m.group(2)
+            if re.search(r'\S', extra) and not re.search(r'File:|Line:|line \d+', extra):
+                current += '\n' + extra
+        elif current:
+            current += '\n' + line
+        else:
+            m = re.match('Propagator:*(.*?)Exiting', line)
+            if m:
+                errors.append(m.group(1))
+    if len(errors):
+        return {'state': 'error', 'error': '\n\n'.join(errors)}
+    return None
 
 
 def python_source_for_model(data, model):
@@ -182,6 +241,10 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
         if id in beamlines:
             _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
     ordered_beamlines.append(beamline)
+
+
+def _beamline_id_for_report(r):
+    return 'activeBeamlineId' if r == 'twissReport' else 'visualizationBeamlineId'
 
 
 #TODO(pjm): from template.elegant
@@ -246,15 +309,80 @@ def _calc_particle_info(particle):
     }
 
 
+def _compute_range_across_files(run_dir):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if 'bunchAnimation' not in data.models:
+        return None
+    if 'fieldRange' in data.models.bunchAnimation:
+        return data.models.bunchAnimation.fieldRange
+    res = {}
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
+        res[v[0]] = []
+    for filename in _particle_file_list(run_dir):
+        with h5py.File(str(filename), 'r') as f:
+            for field in res:
+                values = f['particles'][:, _COORD6.index(field)].tolist()
+                if len(res[field]):
+                    res[field][0] = min(min(values), res[field][0])
+                    res[field][1] = max(max(values), res[field][1])
+                else:
+                    res[field] = [min(values), max(values)]
+    data.models.bunchAnimation.fieldRange = res
+    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    return res
+
+
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]
+
+
+def _extract_bunch_plot(report, frame_index, run_dir):
+    filename = _particle_file_list(run_dir)[frame_index]
+    with h5py.File(str(filename), 'r') as f:
+        x = f['particles'][:, _COORD6.index(report['x'])].tolist()
+        y = f['particles'][:, _COORD6.index(report['y'])].tolist()
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        if 'bunchAnimation' not in data.models:
+            # In case the simulation was run before the bunchAnimation was added
+            return {
+                'error': 'Report not generated',
+            }
+        bunch_animation = data.models.bunchAnimation
+        range = None
+        if report['plotRangeType'] == 'fixed':
+            range = [_plot_range(report, 'horizontal'), _plot_range(report, 'vertical')]
+        elif report['plotRangeType'] == 'fit' and 'fieldRange' in bunch_animation:
+            range = [bunch_animation.fieldRange[report['x']], bunch_animation.fieldRange[report['y']]]
+        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
+        tlen = f['tlen'][()]
+        s_n = f['s_n'][()]
+        rep = 0 if s_n == 0 else int(tlen / s_n)
+        return {
+            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+            'x_label': label(report['x']),
+            'y_label': label(report['y']),
+            'title': '{}-{} at {:.1f}m, turn {}'.format(report['x'], report['y'], tlen, rep),
+            'z_matrix': hist.T.tolist(),
+        }
+
+
 def _extract_evolution_plot(report, run_dir):
     plots = []
-    with h5py.File(str(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))), 'r') as f:
+    with h5py.File(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 'r') as f:
         x = f['s'][:].tolist()
         y_range = None
         for yfield in ('y1', 'y2', 'y3'):
             if report[yfield] == 'none':
                 continue
             points = _plot_values(f, report[yfield])
+            for v in points:
+                if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+                    return parse_error_log(run_dir) or {
+                        'error': 'Invalid data computed',
+                    }
             if y_range:
                 y_range = [min(y_range[0], min(points)), max(y_range[1], max(points))]
             else:
@@ -277,10 +405,12 @@ def _extract_evolution_plot(report, run_dir):
 
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
+    report = data['report'] if 'report' in data else ''
+    beamline_id_field = _beamline_id_for_report(report)
 
     for bl in data['models']['beamlines']:
-        if 'visualizationBeamlineId' in data['models']['simulation']:
-            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
+        if beamline_id_field in data['models']['simulation']:
+            if int(data['models']['simulation'][beamline_id_field]) == int(bl['id']):
                 v['use_beamline'] = bl['name'].lower()
         beamlines[bl['id']] = bl
 
@@ -316,9 +446,10 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
+    v['diagnosticFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
-    if report == 'bunchReport' or report == 'twissReport':
+    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
         if report == 'bunchReport':
             res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
@@ -442,7 +573,10 @@ def _iterate_model_fields(data, state, callback):
                 callback(state, m, element_schema, k)
 
 
-#TODO(pjm): from template.elegant
+_QUOTED_MADX_FIELD = ['ExtractorType', 'Propagator']
+
+
+#TODO(pjm): derived from template.elegant
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
     # only interested in elements, not commands
     if '_type' in model:
@@ -455,22 +589,8 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if model['type'] == 'SCRIPT' and field_name == 'command':
-                    for f in ('commandFile', 'commandInputFile'):
-                        if f in model and model[f]:
-                            fn = template_common.lib_file_name(model['type'], f, model[f])
-                            value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
-                    if model['commandFile']:
-                        value = './' + value
-                if element_schema[1] == 'RPNValue':
-                    value = _format_rpn_value(value)
-                if element_schema[1].startswith('InputFile'):
-                    value = template_common.lib_file_name(model['type'], field_name, value)
-                    if element_schema[1] == 'InputFileXY':
-                        value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
-                elif element_schema[1] == 'OutputFile':
-                    value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
-                #TODO(pjm): don't quote numeric constants
+                if element_schema[1] in _QUOTED_MADX_FIELD:
+                    value = '"{}"'.format(value)
                 state['lattice'] += '{}={},'.format(field_name, value)
     else:
         state['field_index'] = 0
@@ -497,6 +617,10 @@ def _plot_field(field):
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, field
+
+
+def _particle_file_list(run_dir):
+    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
 
 
 def _plot_values(h5file, field):

@@ -15,6 +15,7 @@ SIREPO.appFieldEditors = [
       '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.appImportText = 'Import a MAD-X Lattice';
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
@@ -141,26 +142,78 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
 
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     var self = this;
+    var fieldRange;
     var turnCount = 0;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
+    self.isComputingRanges = false;
 
     function handleStatus(data) {
         turnCount = 0;
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
+            if (self.simState.isStateRunning()) {
+                appState.models.bunchAnimation.isRunning = 1;
+            }
             turnCount = data.turnCount;
-            ['beamEvolutionAnimation'].forEach(function(m) {
+            ['beamEvolutionAnimation', 'bunchAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
-                frameCache.setFrameCount(data.frameCount, m);
+                var key = m + '.frameCount';
+                if (!(key in data)) {
+                    key = 'frameCount';
+                }
+                frameCache.setFrameCount(data[key], m);
             });
+            if (data.percentComplete == 100 && ! self.isComputingRanges) {
+                fieldRange = null;
+                self.isComputingRanges = true;
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_particle_ranges',
+                        simulationId: appState.models.simulation.simulationId,
+                    },
+                    function(data) {
+                        self.isComputingRanges = false;
+                        if (appState.isLoaded() && data.fieldRange) {
+                            appState.models.bunchAnimation.isRunning = 0;
+                            appState.saveQuietly('bunchAnimation');
+                            fieldRange = data.fieldRange;
+                        }
+                    });
+            }
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
+
+    function processPlotRange() {
+        var bunchAnimation = appState.models.bunchAnimation;
+        panelState.showEnum('bunchAnimation', 'plotRangeType', 'fit', fieldRange);
+        panelState.showRow('bunchAnimation', 'horizontalSize', bunchAnimation.plotRangeType != 'none');
+        ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
+            panelState.enableField('bunchAnimation', f, bunchAnimation.plotRangeType == 'fixed');
+        });
+        if (bunchAnimation.plotRangeType == 'fit' && fieldRange) {
+            setFieldRange('horizontal', bunchAnimation, 'x');
+            setFieldRange('vertical', bunchAnimation, 'y');
+        }
+    }
+
+    function setFieldRange(prefix, bunchAnimation, field) {
+        var f = bunchAnimation[field];
+        var range = fieldRange[f];
+        bunchAnimation[prefix + 'Size'] = range[1] - range[0];
+        bunchAnimation[prefix + 'Offset'] = (range[0] + range[1]) / 2;
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'bunchAnimation') {
+            processPlotRange();
+        }
+    };
 
     self.notRunningMessage = function() {
         return 'Simulation ' + self.simState.stateAsText();
@@ -173,8 +226,13 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return 'Simulation running';
     };
 
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], processPlotRange);
+    });
+
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
+        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
+        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
 });
 

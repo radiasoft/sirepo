@@ -594,8 +594,13 @@ def api_simulationFrame(frame_id):
     template = sirepo.template.import_module(data)
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    frame = template.get_simulation_frame(run_dir, data, model_data)
+    try:
+        model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        frame = template.get_simulation_frame(run_dir, data, model_data)
+    except:
+        frame = {
+            'error': 'Simulation data is not yet available',
+        }
     response = _json_response(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
@@ -1074,6 +1079,10 @@ def _simulation_run_status(data, quiet=False):
                         # allow parallel jobs to use template to parse errors below
                         res['state'] = 'error'
                     else:
+                        if hasattr(template, 'parse_error_log'):
+                            res = template.parse_error_log(rep.run_dir)
+                            if res:
+                                return res
                         return _simulation_error(err, 'error in read_result', rep.run_dir)
                 else:
                     res = res2

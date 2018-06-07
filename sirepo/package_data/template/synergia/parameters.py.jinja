@@ -16,13 +16,17 @@ collective = synergia.collective.Space_charge_3d_open_hockney(
     [32, 32, 32] # grid
 )
 {% else %}
-collective = synergia.simulation.Dummy_collective_operator("stub")
+collective = synergia.simulation.Dummy_collective_operator('stub')
 {% endif %}
 
+lattice = synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE)
+for el in lattice.get_elements():
+    if not el.has_string_attribute('extractor_type'):
+        el.set_string_attribute('extractor_type', '{{ simulationSettings_default_extractor_type }}')
 
 stepper = synergia.simulation.Split_operator_stepper_elements(
-    synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE),
-    1, # map_order
+    lattice,
+    {{ simulationSettings_map_order }}, # map_order
     collective,
     {{ simulationSettings_steps_per_element }} # num_steps
 )
@@ -43,8 +47,8 @@ bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
 {% endif %}
 
 bunch_simulator = synergia.simulation.Bunch_simulator(bunch)
-bunch_simulator.add_per_step(synergia.bunch.Diagnostics_full2("diagnostics.h5"))
-bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles("particles.h5"), 10)
+bunch_simulator.add_per_step(synergia.bunch.Diagnostics_full2('{{ diagnosticFilename }}'))
+bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles('particles.h5'), {{ simulationSettings_diagnostics_per_turn }})
 
 synergia.simulation.Propagator(stepper).propagate(
     bunch_simulator,

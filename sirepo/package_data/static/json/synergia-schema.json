@@ -114,6 +114,14 @@
             ["chef_propagate", "chef_propagate"],
             ["chef_mixed", "chef_mixed"]
         ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
         "Particle": [
             ["proton", "Proton"],
             ["electron", "Electron"],
@@ -122,7 +130,15 @@
             ["posmuon", "Posmuon"],
             ["other", "Other"]
         ],
-        "PhaseSpaceCoordinate": [
+        "PhaseSpaceCoordinate6": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["z", "z"],
+            ["zp", "zp"]
+        ],
+        "PhaseSpaceCoordinate8": [
             ["x", "x"],
             ["xp", "xp"],
             ["y", "y"],
@@ -131,6 +147,11 @@
             ["zp", "zp"],
             ["cdt", "cdt"],
             ["dpop", "dp/p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
         ],
         "Propagator": [
             ["basic", "basic"],
@@ -161,7 +182,8 @@
         "beamEvolutionAnimation": {
             "y1": ["Y1 Value", "BeamColumn", "xemit"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "yemit"],
-            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamline": {
             "name": ["Name", "ValidatedString"]
@@ -186,11 +208,25 @@
             "seed": ["Pseudorandom Number Generator Seed", "Float", 1, "", 0],
             "z_period_length": ["Space Between Bunches", "Float", 0.0]
         },
+        "bunchAnimation": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
+            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
+            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
         "bunchReport": {
-            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchTwiss": {
             "beta_x": ["Horizontal Beta [m]", "Float", 0],
@@ -204,13 +240,23 @@
         "simulationSettings": {
             "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
             "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
-            "turn_count": ["Turn Count", "Integer", 5, "", 1]
+            "turn_count": ["Turn Count", "Integer", 5, "", 1],
+            "map_order": ["Stepper Map Order", "Integer", 1, "Applies to elements using the chef_map or chef_mixed extractor type.", 1, 4],
+            "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1],
+            "default_extractor_type": ["Default Extractor Type", "ExtractorType", "chef_propagate", "Sets the element extractor type for lattice elements which have no extractor_type specified."]
         },
         "simulationStatus": {},
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
-            "y3": ["Y3 Value", "TwissParameter", "D_x"]
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissReport2": {
+            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
+            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
         },
         "DIPEDGE": {
             "name": ["Name", "ValidatedString"],
@@ -362,7 +408,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "beamline": {
@@ -414,19 +461,52 @@
             ],
             "advanced": []
         },
+        "bunchAnimation": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
                 [
-                    ["Horizontal",
-                        ["x"]
-                    ],
-                    ["Vertical",
-                        ["y"]
-                    ]
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
                 ],
                 "histogramBins",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "simulationSettings": {
@@ -435,7 +515,10 @@
                 "simulation.visualizationBeamlineId",
                 "space_charge",
                 "steps_per_element",
-                "turn_count"
+                "turn_count",
+                "diagnostics_per_turn",
+                "map_order",
+                "default_extractor_type"
             ],
             "advanced": []
         },
@@ -448,7 +531,17 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
+            ]
+        },
+        "twissReport2": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "notes"
             ]
         },
         "DIPEDGE": {

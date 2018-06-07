@@ -42,7 +42,7 @@ app.value('appRoutes', {
     'elegant': {url: '/static/html/landing-page-elegant.html', codeURL: '/elegant', codeTitle: 'elegant', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
     'warppba': {url: '/static/html/landing-page-warp.html', codeURL: '/warppba', codeTitle: 'Warp PBA', infoPanelTitle: 'Plasma-Based Accelerators', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
     'rslinac': {url: '/static/html/landing-page-rslinac.html', codeURL: '/hellweg', codeTitle: 'RsLinac', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
-    'synergia': {url: '/static/html/landing-page-synergia.html', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
+    'synergia': {url: '/static/html/landing-page-synergia.html', codeURL: '/synergia', codeTitle: 'Synergia', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
     'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
     'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', placeholder: '/static/img/WarpVND.png', url:'https://www.youtube.com/embed/9tihDyl0600'}},
     'genesis': {url: '/static/html/landing-page-genesis.html', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},

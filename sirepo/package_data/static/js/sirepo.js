@@ -2391,6 +2391,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         recurs: false,
     });
 
+    self.importText = SIREPO.appImportText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
     self.activeFolder = fileManager.getActiveFolder();

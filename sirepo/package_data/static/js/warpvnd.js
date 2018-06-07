@@ -1019,6 +1019,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 if (! xDomain || isNaN(width)) {
                     return;
                 }
+                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
                 $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
                 select('svg')
@@ -1310,6 +1311,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                 if (! xDomain || isNaN(width)) {
                     return;
                 }
+                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
                 $scope.width = width;
                 $scope.height = ASPECT_RATIO * $scope.width;
                 select('svg')
