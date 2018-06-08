@@ -5,6 +5,7 @@
             ["-1", "-1"]
         ],
         "BeamColumn": [
+            ["numparticles", "particle count"],
             ["xemit", "x emittance"],
             ["xmean", "x mean"],
             ["xstd", "x standard deviation"],
@@ -59,6 +60,7 @@
             ["gamma", "From Gamma"]
         ],
         "BeamOptionalColumn": [
+            ["numparticles", "particle count"],
             ["xemit", "x emittance"],
             ["xmean", "x mean"],
             ["xstd", "x standard deviation"],
@@ -246,6 +248,12 @@
             "default_extractor_type": ["Default Extractor Type", "ExtractorType", "chef_propagate", "Sets the element extractor type for lattice elements which have no extractor_type specified."]
         },
         "simulationStatus": {},
+        "turnComparisonAnimation": {
+            "y": ["Y Value", "BeamColumn", "xstd"],
+            "turn1": ["Turn", "TurnCount", "1"],
+            "turn2": ["Turn", "TurnCount", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
@@ -525,6 +533,15 @@
         "simulationStatus": {
             "title": "SimulationStatus",
             "advanced": []
+        },
+        "turnComparisonAnimation": {
+            "title": "Turn Comparison",
+            "advanced": [
+                "y",
+                "turn1",
+                "turn2",
+                "notes"
+            ]
         },
         "twissReport": {
             "title": "Twiss Parameters",
