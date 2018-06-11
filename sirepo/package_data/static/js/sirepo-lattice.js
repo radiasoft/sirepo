@@ -789,6 +789,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (picType == 'zeroLength') {
                         length = 0;
                     }
+                    if (item.type == 'RBEN' && length > 0) {
+                        var angle = rpnValue(item.angle || 0);
+                        if (item.angle != 0) {
+                            length = angle * length / (2 * Math.sin(angle / 2));
+                        }
+                    }
                     var elRadius = rpnValue(item.rx || item.x_max || 0);
                     pos.length += length;
                     if (length < 0) {
@@ -803,11 +809,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         maxHeight = Math.max(maxHeight, length);
                         var height = 0.75;
                         var enter = [pos.radius + pos.x + x, pos.y];
-                        //TODO(pjm): if angle is arc length, need to convert it to a rendered length
-                        // if (length > 0 && angle != 0) {
-                        //     var noArcLength = Math.abs(2 * Math.sin(angle / 2) * length / angle);
-                        //     length = noArcLength;
-                        // }
                         if (length === 0) {
                             length = 0.1;
                             enter[0] -= 0.05;
