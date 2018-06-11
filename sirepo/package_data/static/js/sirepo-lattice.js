@@ -700,17 +700,17 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
                       '<br />',
                       '<div data-ng-if="activeTab == \'basic\'" class="row">',
                         '<div data-ng-repeat="name in controller.basicNames" class="col-sm-4">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="latticeService.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
                         '</div>',
                       '</div>',
                       '<div data-ng-if="activeTab == \'advanced\'" class="row">',
                         '<div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="latticeService.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
                         '</div>',
                       '</div>',
                       '<div data-ng-if="activeTab == \'all\'" class="row">',
                         '<div data-ng-repeat="name in allNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="latticeService.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
+                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
                         '</div>',
                       '</div>',
                       '<br />',
@@ -726,9 +726,17 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.latticeService = latticeService;
             $scope.activeTab = 'basic';
             $scope.allNames = $scope.controller.basicNames.concat($scope.controller.advancedNames).sort();
+
+            $scope.createElement = function(name) {
+                if ($scope.controller.createElement) {
+                    $scope.controller.createElement(name);
+                }
+                else {
+                    latticeService.createElement(name);
+                }
+            };
         },
     };
 });
