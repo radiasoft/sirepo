@@ -280,6 +280,12 @@
             "l": ["L [m]", "Float", "0.0", "The drift length."],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "ECOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
+        },
         "HKICKER": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
@@ -345,6 +351,12 @@
             "basic_kicks": ["BASIC KICKS", "Integer", "40"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "RCOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
+        },
         "RFCAVITY": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
@@ -402,6 +414,10 @@
             "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
             "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SROTATION": {
+            "name": ["Name", "ValidatedString"],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The rotation angle about the longitudinal axis."]
         },
         "VKICKER": {
             "name": ["Name", "ValidatedString"],
@@ -584,6 +600,17 @@
                 "extractor_type"
             ]
         },
+        "ECOLLIMATOR": {
+            "title": "ECOLLIMATOR",
+            "description": "Elliptic aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize"
+            ]
+        },
         "HKICKER": {
             "title": "HKICKER",
             "description": "A magnetic closed orbit corrector for the horizontal plane",
@@ -683,6 +710,17 @@
                 "extractor_type"
             ]
         },
+        "RCOLLIMATOR": {
+            "title": "RCOLLIMATOR",
+            "description": "Rectangular aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize"
+            ]
+        },
         "RFCAVITY": {
             "title": "RFCAVITY",
             "fieldsPerTab": 8,
@@ -756,6 +794,15 @@
                 "ks",
                 "ksi",
                 "extractor_type"
+            ]
+        },
+        "SROTATION": {
+            "title": "SROTATION",
+            "description": "Rotates the straight reference system about the longitudinal (s) axis",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle"
             ]
         },
         "VKICKER": {

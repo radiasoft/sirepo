@@ -43,7 +43,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = ['DIPEDGE', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'SEXTUPOLE', 'SOLENOID', 'VKICKER'];
+    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER'];
 
     self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
 
@@ -54,13 +54,14 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 
     self.elementPic = {
+        aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
         bend: ['HKICKER', 'KICKER', 'MULTIPOLE', 'SBEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['MARKER', 'MONITOR'],
-        zeroLength: ['DIPEDGE', 'NLLENS'],
+        zeroLength: ['DIPEDGE', 'NLLENS', 'SROTATION'],
     };
 
     self.titleForName = function(name) {
