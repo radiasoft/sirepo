@@ -132,7 +132,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.showBrillianceReport = function() {
-        return self.isIdealizedUndulator() && SIREPO.APP_SCHEMA.feature_config.brilliance_report;
+        return self.isIdealizedUndulator();
     };
 
     self.updateSimulationGridFields = function() {
