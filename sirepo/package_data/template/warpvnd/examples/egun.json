@@ -89,6 +89,11 @@
             "renderCount": "10",
             "startTime": 1512001962
         },
+        "particle3d": {
+            "particleLimit": "100",
+            "renderCount": "10",
+            "startTime": 1512001962
+        },
         "simulation": {
             "egun_mode": "1",
             "folder": "/",
@@ -109,5 +114,5 @@
         }
     },
     "simulationType": "warpvnd",
-    "version": "20171117.000002"
+    "version": "20180613.000000"
 }

@@ -93,6 +93,10 @@
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
+        "particle3d": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount", 100],
+            "joinEvery": ["Join Every N Points", "Integer", 1, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
+        },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
@@ -213,6 +217,13 @@
             "title": "Particle Trace",
             "advanced": [
                 "renderCount"
+            ]
+        },
+        "particle3d": {
+            "title": "Particle Trace 3D",
+            "advanced": [
+                "renderCount",
+                "joinEvery"
             ]
         },
         "simulationGrid": {

@@ -19,6 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import random
 
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
@@ -95,6 +96,11 @@ def fixup_old_data(data):
         data['models']['egunCurrentAnimation'] = {
             'framesPerSecond': '2',
         }
+    if 'particle3d' not in data['models']:
+        data['models']['particle3d'] = {
+            'renderCount': 100,
+            'joinEvery': 1
+        }
     if 'impactDensityAnimation' not in data['models']:
         data['models']['impactDensityAnimation'] = {}
     for c in data['models']['conductorTypes']:
@@ -156,8 +162,8 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    if model == 'particleAnimation' or model == 'egunCurrentAnimation':
-        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' else _EGUN_CURRENT_FILE))
+    if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
+        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
     #TODO(pjm): consolidate with template/warp.py
@@ -199,7 +205,7 @@ def get_simulation_frame(run_dir, data, model_data):
         args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
-    if data['modelName'] == 'particleAnimation':
+    if data['modelName'] == 'particleAnimation' or data['modelName'] == 'particle3d':
         args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
         return _extract_particle(run_dir, model_data, int(args.renderCount))
     if data['modelName'] == 'egunCurrentAnimation':
@@ -287,20 +293,26 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _add_particle_paths(electrons, x_points, y_points, limit):
+def _add_particle_paths(electrons, x_points, y_points, z_points, limit):
     # adds paths for the particleAnimation report
     # culls adjacent path points with similar slope
+    # TODO: include z value when available
     count = 0
     cull_count = 0
+    random.seed()
     for i in range(min(len(electrons[1]), limit)):
         xres = []
         yres = []
+        zres = []
         num_points = len(electrons[1][i])
         prev_x = None
         prev_y = None
+        # prev_z = None
+        z = random.random()
         for j in range(num_points):
             x = electrons[1][i][j]
             y = electrons[0][i][j]
+            # z = electrons[2][i][j]
             if j > 0 and j < num_points - 1:
                 next_x = electrons[1][i][j+1]
                 next_y = electrons[0][i][j+1]
@@ -309,11 +321,14 @@ def _add_particle_paths(electrons, x_points, y_points, limit):
                     continue
             xres.append(x)
             yres.append(y)
+            zres.append(z)
             prev_x = x
             prev_y = y
+            # prev_z = z
         count += len(xres)
         x_points.append(xres)
         y_points.append(yres)
+        z_points.append(zres)
     pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
@@ -488,10 +503,12 @@ def _extract_particle(run_dir, data, limit):
     radius = grid['channel_width'] / 2. * 1e-6
     x_points = []
     y_points = []
-    _add_particle_paths(kept_electrons, x_points, y_points, limit)
+    z_points = []
+    _add_particle_paths(kept_electrons, x_points, y_points, z_points, limit)
     lost_x = []
     lost_y = []
-    _add_particle_paths(lost_electrons, lost_x, lost_y, limit)
+    lost_z = []
+    _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, limit)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -499,9 +516,11 @@ def _extract_particle(run_dir, data, limit):
         'x_label': 'z [m]',
         'points': y_points,
         'x_points': x_points,
+        'z_points': z_points,
         'y_range': [-radius, radius],
         'lost_x': lost_x,
         'lost_y': lost_y,
+        'lost_z': lost_x
     }
 
 
