@@ -132,7 +132,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.showBrillianceReport = function() {
-        return self.isIdealizedUndulator() && SIREPO.APP_SCHEMA.feature_config.brilliance_report;
+        return self.isIdealizedUndulator();
     };
 
     self.updateSimulationGridFields = function() {
@@ -1168,7 +1168,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav" data-app-url="/#/srw"></div>',
+              '<div data-app-header-brand="nav"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',

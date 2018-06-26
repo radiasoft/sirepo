@@ -1,13 +1,17 @@
 {
     "models": {
         "beamEvolutionAnimation": {
-            "startTime": 1527285281,
-            "y1": "xstd",
-            "y2": "ystd",
+            "notes": "",
+            "startTime": 1528473345,
+            "y1": "xemit",
+            "y2": "yemit",
             "y3": "none"
         },
         "beamlines": [
             {
+                "angle": 6.2831853064,
+                "count": 120,
+                "distance": 3.948643537541458e-09,
                 "id": 1,
                 "items": [
                     2,
@@ -235,13 +239,14 @@
                     122,
                     3
                 ],
+                "length": 39.968229715800085,
                 "name": "iota"
             }
         ],
         "bunch": {
             "beam_definition": "gamma",
             "beta": 0.0728540816,
-            "charge": 1,
+            "charge": "1",
             "dpop": 0,
             "emit_x": 2.5,
             "emit_y": 2.5,
@@ -256,16 +261,37 @@
             "seed": 349250524,
             "z_period_length": 0
         },
+        "bunchAnimation": {
+            "colorMap": "viridis",
+            "framesPerSecond": "5",
+            "histogramBins": 200,
+            "horizontalOffset": 0.00018194851333548949,
+            "horizontalSize": 0.010966307284584042,
+            "isRunning": 0,
+            "notes": "",
+            "plotRangeType": "fit",
+            "startTime": 1528473345,
+            "verticalOffset": -0.0001876645851909501,
+            "verticalSize": 0.01936536597967303,
+            "x": "x",
+            "y": "xp"
+        },
         "bunchReport": {
             "colorMap": "afmhot",
             "histogramBins": 200,
             "x": "x",
             "y": "y"
         },
+        "bunchTwiss": {
+            "alpha_x": 1.62911e-05,
+            "alpha_y": -8.6465e-06,
+            "beta_x": 0.4866456856,
+            "beta_y": 1.4626116248
+        },
         "elements": [
             {
                 "_id": 23,
-                "e1": 0,
+                "e1": "0.0",
                 "extractor_type": "default",
                 "fint": 0.5,
                 "h": 1.428571428,
@@ -621,7 +647,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01331110247,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.03176955e-06,
                 "name": "N.1",
                 "type": "NLLENS"
@@ -631,7 +657,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008105461952,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 5.479576037e-06,
                 "name": "N.10",
                 "type": "NLLENS"
@@ -641,7 +667,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008105461952,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 5.479576037e-06,
                 "name": "N.11",
                 "type": "NLLENS"
@@ -651,7 +677,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008256875978,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 5.280450528e-06,
                 "name": "N.12",
                 "type": "NLLENS"
@@ -661,7 +687,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008551665091,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 4.922674639e-06,
                 "name": "N.13",
                 "type": "NLLENS"
@@ -671,7 +697,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008975713799,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 4.468528256e-06,
                 "name": "N.14",
                 "type": "NLLENS"
@@ -681,7 +707,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.009511749998,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.979070618e-06,
                 "name": "N.15",
                 "type": "NLLENS"
@@ -691,7 +717,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.0101420326,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.499874699e-06,
                 "name": "N.16",
                 "type": "NLLENS"
@@ -701,7 +727,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01085014977,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.057954609e-06,
                 "name": "N.17",
                 "type": "NLLENS"
@@ -711,7 +737,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.0116218829,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.665320931e-06,
                 "name": "N.18",
                 "type": "NLLENS"
@@ -721,7 +747,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01244540324,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.324259182e-06,
                 "name": "N.19",
                 "type": "NLLENS"
@@ -731,7 +757,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01244540324,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.324259182e-06,
                 "name": "N.2",
                 "type": "NLLENS"
@@ -741,7 +767,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01331110247,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.03176955e-06,
                 "name": "N.20",
                 "type": "NLLENS"
@@ -751,7 +777,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.0116218829,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 2.665320931e-06,
                 "name": "N.3",
                 "type": "NLLENS"
@@ -761,7 +787,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.01085014977,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.057954609e-06,
                 "name": "N.4",
                 "type": "NLLENS"
@@ -771,7 +797,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.0101420326,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.499874699e-06,
                 "name": "N.5",
                 "type": "NLLENS"
@@ -781,7 +807,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.009511749998,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 3.979070618e-06,
                 "name": "N.6",
                 "type": "NLLENS"
@@ -791,7 +817,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008975713799,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 4.468528256e-06,
                 "name": "N.7",
                 "type": "NLLENS"
@@ -801,7 +827,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008551665091,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 4.922674639e-06,
                 "name": "N.8",
                 "type": "NLLENS"
@@ -811,7 +837,7 @@
                 "bcoeff": "0.0",
                 "cnll": 0.008256875978,
                 "dcoeff": "0.0",
-                "extractor_type": "default",
+                "extractor_type": "chef_propagate",
                 "knll": 5.280450528e-06,
                 "name": "N.9",
                 "type": "NLLENS"
@@ -2102,7 +2128,7 @@
             {
                 "_id": 78,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SC1L",
@@ -2112,7 +2138,7 @@
             {
                 "_id": 29,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SC1R",
@@ -2122,7 +2148,7 @@
             {
                 "_id": 76,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SC2L",
@@ -2132,7 +2158,7 @@
             {
                 "_id": 32,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SC2R",
@@ -2142,7 +2168,7 @@
             {
                 "_id": 71,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.095,
                 "name": "SD1L",
@@ -2152,7 +2178,7 @@
             {
                 "_id": 39,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.095,
                 "name": "SD1R",
@@ -2162,7 +2188,7 @@
             {
                 "_id": 60,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SE1L",
@@ -2172,7 +2198,7 @@
             {
                 "_id": 57,
                 "extractor_type": "default",
-                "k2": 0,
+                "k2": "0.0",
                 "k2s": "0.0",
                 "l": 0.1,
                 "name": "SE1R",
@@ -2182,7 +2208,7 @@
             {
                 "_id": 43,
                 "extractor_type": "default",
-                "ks": 0,
+                "ks": "0.0",
                 "ksi": "0.0",
                 "l": 0.7,
                 "name": "CEL",
@@ -2192,23 +2218,41 @@
         "simulation": {
             "activeBeamlineId": 1,
             "folder": "/",
+            "isExample": true,
             "name": "IOTA 6-6 with NL Element",
-            "simulationId": "PMvSXeZD",
-            "simulationSerial": 1527285369994009,
+            "simulationId": "NX1Phutv",
+            "simulationSerial": 1528473475205308,
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
+            "default_extractor_type": "chef_map",
+            "diagnostics_per_turn": 5,
+            "map_order": 1,
             "space_charge": "none",
             "steps_per_element": 5,
-            "turn_count": 1
+            "turn_count": 50
         },
         "simulationStatus": {},
+        "turnComparisonAnimation": {
+            "notes": "",
+            "startTime": 1528473345,
+            "turn1": "1",
+            "turn2": "50",
+            "y": "xstd"
+        },
         "twissReport": {
+            "notes": "",
+            "y1": "beta_x",
+            "y2": "beta_y",
+            "y3": "D_x"
+        },
+        "twissReport2": {
+            "notes": "",
             "y1": "beta_x",
             "y2": "beta_y",
             "y3": "D_x"
         }
     },
     "simulationType": "synergia",
-    "version": "20180525.000001"
+    "version": "20180605.000001"
 }

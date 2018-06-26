@@ -31,6 +31,8 @@ _PLOT_LINE_COLOR = {
     'y1': '#1f77b4',
     'y2': '#ff7f0e',
     'y3': '#2ca02c',
+    'turn1': '#1f77b4',
+    'turn2': '#ff7f0e',
 }
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
@@ -89,7 +91,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'twissReport', 'twissReport2']:
+    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'turnComparisonAnimation', 'twissReport', 'twissReport2']:
         if m not in data['models']:
             data['models'][m] = {}
             template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -153,6 +155,14 @@ def get_simulation_frame(run_dir, data, model_data):
             },
         )
         return _extract_bunch_plot(args, frame_index, run_dir)
+    if data['modelName'] == 'turnComparisonAnimation':
+        args = template_common.parse_animation_args(
+            data,
+            {
+                '': ['y', 'turn1', 'turn2', 'startTime'],
+            },
+        )
+        return _extract_turn_comparison_plot(args, run_dir, model_data.models.simulationSettings.turn_count)
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
@@ -403,6 +413,50 @@ def _extract_evolution_plot(report, run_dir):
         }
 
 
+def _extract_turn_comparison_plot(report, run_dir, turn_count):
+    plots = []
+    with h5py.File(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 'r') as f:
+        x = f['s'][:].tolist()
+        y_range = None
+        points = _plot_values(f, report['y'])
+        for v in points:
+            if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+                return parse_error_log(run_dir) or {
+                    'error': 'Invalid data computed',
+                }
+        steps = (len(points) - 1) / turn_count
+        x = x[0:int(steps + 1)]
+        if not report['turn1'] or int(report['turn1']) > turn_count:
+            report['turn1'] = 1
+        if not report['turn2'] or int(report['turn2']) > turn_count or int(report['turn1']) == int(report['turn2']):
+            report['turn2'] = turn_count
+        for yfield in ('turn1', 'turn2'):
+            turn = int(report[yfield])
+            p = points[int((turn - 1) * steps):int((turn - 1) * steps + steps + 1)]
+            if not len(p):
+                return {
+                    'error': 'Simulation data is not yet available',
+                }
+            if y_range:
+                y_range = [min(y_range[0], min(p)), max(y_range[1], max(p))]
+            else:
+                y_range = [min(p), max(p)]
+            plots.append({
+                'points': p,
+                'label': '{} turn {}'.format(label(report['y'], _SCHEMA['enum']['BeamColumn']), turn),
+                'color': _PLOT_LINE_COLOR[yfield],
+            })
+        return {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_label': '',
+            'x_label': 's [m]',
+            'x_points': x,
+            'plots': plots,
+            'y_range': y_range,
+        }
+
+
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
     report = data['report'] if 'report' in data else ''
@@ -607,6 +661,8 @@ def _model_name_for_data(model):
 
 
 def _plot_field(field):
+    if field == 'numparticles':
+        return 'num_particles', None, None
     m = re.match('(\w+)emit', field)
     if m:
         return 'emit{}'.format(m.group(1)), m.group(1), None
@@ -616,7 +672,7 @@ def _plot_field(field):
     m = re.match('^(\wp?)(\wp?)(corr|mom2)', field)
     if m:
         return m.group(3), m.group(1), m.group(2)
-    assert False, field
+    assert False, 'unknown field: {}'.format(field)
 
 
 def _particle_file_list(run_dir):

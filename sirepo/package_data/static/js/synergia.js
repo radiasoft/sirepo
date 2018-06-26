@@ -14,6 +14,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
       '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="TurnCount" data-ng-class="fieldClass">',
+      '<div data-turn-count-field="" field="field" data-model="model"></div>',
+    '</div>',
 ].join('');
 SIREPO.appImportText = 'Import a MAD-X Lattice';
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -40,7 +43,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = ['DIPEDGE', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'SEXTUPOLE', 'SOLENOID', 'VKICKER'];
+    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER'];
 
     self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
 
@@ -51,13 +54,14 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 
     self.elementPic = {
+        aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
         bend: ['HKICKER', 'KICKER', 'MULTIPOLE', 'SBEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['MARKER', 'MONITOR'],
-        zeroLength: ['DIPEDGE', 'NLLENS'],
+        zeroLength: ['DIPEDGE', 'NLLENS', 'SROTATION'],
     };
 
     self.titleForName = function(name) {
@@ -152,6 +156,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.isComputingRanges = false;
 
     function handleStatus(data) {
+        frameCache.setFrameCount(0, 'turnComparisonAnimation');
         turnCount = 0;
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
@@ -159,16 +164,19 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 appState.models.bunchAnimation.isRunning = 1;
             }
             turnCount = data.turnCount;
-            ['beamEvolutionAnimation', 'bunchAnimation'].forEach(function(m) {
+            ['beamEvolutionAnimation', 'bunchAnimation', 'turnComparisonAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 var key = m + '.frameCount';
                 if (!(key in data)) {
                     key = 'frameCount';
                 }
-                frameCache.setFrameCount(data[key], m);
+                if (m != 'turnComparisonAnimation') {
+                    frameCache.setFrameCount(data[key], m);
+                }
             });
             if (data.percentComplete == 100 && ! self.isComputingRanges) {
+                frameCache.setFrameCount(1, 'turnComparisonAnimation');
                 fieldRange = null;
                 self.isComputingRanges = true;
                 requestSender.getApplicationData(
@@ -215,6 +223,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         }
     };
 
+    self.hasTurnComparisonResults = function() {
+        return frameCache.getFrameCount('turnComparisonAnimation') > 0;
+    };
+
     self.notRunningMessage = function() {
         return 'Simulation ' + self.simState.stateAsText();
     };
@@ -233,6 +245,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
         bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+        turnComparisonAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y', 'turn1', 'turn2', 'startTime'],
     });
 });
 
@@ -288,6 +301,36 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                     }
                 }
                 return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('turnCountField', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in turnCountList()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            var turnCountList = [];
+            $scope.turnCountList = function() {
+                if (! appState.isLoaded() || ! $scope.model) {
+                    return null;
+                }
+                var turnCount = appState.applicationState().simulationSettings.turn_count;
+                if (turnCount == turnCount.length - 1) {
+                    return turnCountList;
+                }
+                turnCountList.length = 0;
+                for (var i = 1; i <= turnCount; i++) {
+                    turnCountList.push('' + i);
+                }
+                return turnCountList;
             };
         },
     };

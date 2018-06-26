@@ -5,6 +5,7 @@
             ["-1", "-1"]
         ],
         "BeamColumn": [
+            ["numparticles", "particle count"],
             ["xemit", "x emittance"],
             ["xmean", "x mean"],
             ["xstd", "x standard deviation"],
@@ -59,6 +60,7 @@
             ["gamma", "From Gamma"]
         ],
         "BeamOptionalColumn": [
+            ["numparticles", "particle count"],
             ["xemit", "x emittance"],
             ["xmean", "x mean"],
             ["xstd", "x standard deviation"],
@@ -246,6 +248,12 @@
             "default_extractor_type": ["Default Extractor Type", "ExtractorType", "chef_propagate", "Sets the element extractor type for lattice elements which have no extractor_type specified."]
         },
         "simulationStatus": {},
+        "turnComparisonAnimation": {
+            "y": ["Y Value", "BeamColumn", "xstd"],
+            "turn1": ["Turn", "TurnCount", "1"],
+            "turn2": ["Turn", "TurnCount", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
@@ -271,6 +279,12 @@
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The drift length."],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "ECOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
         },
         "HKICKER": {
             "name": ["Name", "ValidatedString"],
@@ -337,6 +351,12 @@
             "basic_kicks": ["BASIC KICKS", "Integer", "40"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "RCOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
+        },
         "RFCAVITY": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
@@ -394,6 +414,10 @@
             "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
             "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SROTATION": {
+            "name": ["Name", "ValidatedString"],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The rotation angle about the longitudinal axis."]
         },
         "VKICKER": {
             "name": ["Name", "ValidatedString"],
@@ -526,6 +550,15 @@
             "title": "SimulationStatus",
             "advanced": []
         },
+        "turnComparisonAnimation": {
+            "title": "Turn Comparison",
+            "advanced": [
+                "y",
+                "turn1",
+                "turn2",
+                "notes"
+            ]
+        },
         "twissReport": {
             "title": "Twiss Parameters",
             "advanced": [
@@ -565,6 +598,17 @@
                 "name",
                 "l",
                 "extractor_type"
+            ]
+        },
+        "ECOLLIMATOR": {
+            "title": "ECOLLIMATOR",
+            "description": "Elliptic aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize"
             ]
         },
         "HKICKER": {
@@ -666,6 +710,17 @@
                 "extractor_type"
             ]
         },
+        "RCOLLIMATOR": {
+            "title": "RCOLLIMATOR",
+            "description": "Rectangular aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize"
+            ]
+        },
         "RFCAVITY": {
             "title": "RFCAVITY",
             "fieldsPerTab": 8,
@@ -739,6 +794,15 @@
                 "ks",
                 "ksi",
                 "extractor_type"
+            ]
+        },
+        "SROTATION": {
+            "title": "SROTATION",
+            "description": "Rotates the straight reference system about the longitudinal (s) axis",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle"
             ]
         },
         "VKICKER": {

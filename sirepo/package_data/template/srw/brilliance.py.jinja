@@ -51,7 +51,7 @@ def main():
             )
 {% elif brillianceReport_reportType == '2' %}
             header.append('f{} [Ph/s/.1/mr2/mm2], e{} [eV]'.format(harmNum, harmNum))
-            # Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts
+            # Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts
             (x, y) = srwl_und_bright_en(
                 {{ electronBeam_current }}, # electronBeam.current
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
@@ -62,6 +62,7 @@ def main():
                 {{ electronBeam_energy }}, # electronBeam.energy
                 lam_u, # undulator period in cm
                 nPer,
+                0, # epeak not used
                 {{ brillianceReport_detuning }}, # brillianceReport.detuning
                 {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
                 {{ undulator_length }}, # undulator.length

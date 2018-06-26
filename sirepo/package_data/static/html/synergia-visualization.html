@@ -17,6 +17,10 @@
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="beamEvolutionAnimation"></div>
     </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.hasTurnComparisonResults()">
+      <div data-report-panel="parameter" data-model-name="turnComparisonAnimation"></div>
+    </div>
+    <div data-ng-if="visualization.hasTurnComparisonResults()" class="clearfix hidden-xl"></div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="heatmap" data-model-name="bunchAnimation">
         <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>

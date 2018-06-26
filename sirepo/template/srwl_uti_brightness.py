@@ -5,21 +5,45 @@
 
 import math
 from scipy import special
-from sirepo.template.boazextra import interp
 import numpy as np
 from pykern import pkresource
 
-# fluxcorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivFlux.txt")
-# divcorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivDiv.txt")
-# sizecorrectionarray = np.loadtxt("IgorFiles/IGOR_wave_data/gwSrwBrilUndHarmUnivSize.txt")
-#TODO(pjm): need a way to initialize this module with a set of static datafiles
+#General constants
+_ElMass_kg=9.10938e-31
+_Elch=1.60217662e-19
+_LightSp=299792458
+_ElMass_MeV=0.5109989
+_Planck_eVs=4.135667662e-15
+
+
+#Load numerical arrays for universal functions
+#fluxcorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivFlux.txt")
+#divcorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivDiv.txt")
+#sizecorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivSize.txt")
 fluxcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivFlux.txt"))
 divcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivDiv.txt"))
 sizecorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivSize.txt"))
-
 #srwlib.srwl_uti_read_data_cols
 #np.array(srwlib.srwl_uti_read_data_cols('gwSrwBrilUndHarmUnivFlux.txt', '\t'))
 #srwl_uti_interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0)
+
+#Undulator K and E functions
+def getK(By,lam_u):
+    """Return K value
+    :param By: vertical magnetic field [T]
+    :param lam_u: undulator period [m]
+    """
+    return (_Elch/2/math.pi/_ElMass_kg/_LightSp)*By*lam_u
+
+def getE(nHarm, Ebeam, K, lam_u):
+    """Return energy [eV] of nth harmonic
+    :param nHarm: harmonic number
+    :param Ebeam: electron beam energy [GeV]
+    :param K: deflection parameter
+    :param lam_u: undulator period [m]
+    """
+    gamma=1957*Ebeam
+    return ((_Planck_eVs*_LightSp*nHarm*2*gamma*gamma)/(lam_u*(1+.5*K**2)))
 
 def KtoE(K,E_elec,lam_u,n):
     #compute photon Energy (in KeV) from a given K value
@@ -81,7 +105,7 @@ def CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
     JJbs=JJbsfun(k12,k22,n)
     #now get additional factors from energy spread and detuning
     #factDetunAndEnSpr = math.pi/2 #assumes zero detuning and energy spread, needs to be replaced with interpolation of external correction array
-    factDetunAndEnSpr = interp(normDetun,normEnSpr,fluxcorrectionarray,-10,0,0.033389,0.02512565,600,200)
+    factDetunAndEnSpr = interpBright(normDetun,normEnSpr,fluxcorrectionarray,-10,0,0.033389,0.02512565,600,200)
     GG=srwBrilUndPhotEnDetunCor(relEnSpr, enDetPar, k12, k22, n)
 
     return C0*N*Ib*(n*k12/(1+ke2/2))*JJbs*factDetunAndEnSpr*GG
@@ -127,7 +151,7 @@ def CalcSizeUnd(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     convConstSize = 0.5*1.239842e-06*L
     energy = 1000*KtoE(K,E_elec,lam_u,n)
     invSqrt2=1/math.sqrt(2)
-    factAngDivDetunAndEnSpr = interp(normDetun,normEnSpr,sizecorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
+    factAngDivDetunAndEnSpr = interpBright(normDetun,normEnSpr,sizecorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
     return math.sqrt(sigsq + (convConstSize/energy)*factAngDivDetunAndEnSpr**2)
 
 def srwl_und_size_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigsq):
@@ -163,7 +187,7 @@ def CalcDivergenceUnd(sigpsq,L,K,E_elec,lam_u,n,nPer,enDetPar,relEnSpr):
     convConstDiv = 2*1.239842e-06/L
     energy = 1000*KtoE(K,E_elec,lam_u,n)
     invSqrt2=1/math.sqrt(2)
-    factAngDivDetunAndEnSpr = interp(normDetun,normEnSpr,divcorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
+    factAngDivDetunAndEnSpr = interpBright(normDetun,normEnSpr,divcorrectionarray,-10,0,0.033389,0.02512565,600,200)*invSqrt2
     return math.sqrt(sigpsq + (convConstDiv/energy)*factAngDivDetunAndEnSpr**2)
 
 def srwl_und_div_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq):
@@ -253,7 +277,7 @@ def CalcBrightnessUnd(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L
 
     return flux/(cst*Sigmax*Sigmaxp*Sigmaz*Sigmazp)
 
-def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts):
+def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts):
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
@@ -271,3 +295,108 @@ def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,
     for j in range(len(kvals)):
            brightnessvals.append(CalcBrightnessUnd(Ib,kxvals[j],kzvals[j],phix,phiz,n,E_elec,lam_u,nPer,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq))
     return (Evals,brightnessvals)
+
+#*********************************************************************
+
+
+#Analytic formula for calculation of beam size with detuning
+def srwl_und_size_en_fixedK(sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numepts, relEnSpr):
+    #compute evals and detuned size vals
+
+    evals = np.arange(emin,emax,(emax-emin)/numepts)
+    enDetPars = (evals-epeak)/epeak
+
+    print(enDetPars)
+     #compute size for each E value
+    sizedet = []
+    for j in range(len(enDetPars)):
+        sizedet.append(CalcSizeUnd(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPars[j],relEnSpr))
+
+    return (evals,sizedet)
+
+
+#Analytic formula for calculation of beam divergence with detuning
+def srwl_und_div_en_fixedK(sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numepts, relEnSpr):
+    #compute evals and detuned div vals
+
+    evals = np.arange(emin,emax,(emax-emin)/numepts)
+    enDetPars = (evals-epeak)/epeak
+
+    print(enDetPars)
+     #compute div for each E value
+    divdet = []
+    for j in range(len(enDetPars)):
+        divdet.append(CalcDivergenceUnd(sigsq,L,K,E_elec,lam_u,n,nPer,enDetPars[j],relEnSpr))
+
+    return (evals,divdet)
+
+
+#Analytic formula for calculation of flux with detuning
+def srwl_und_flux_en_fixedK(Ib,kx,kz,E_elec,lam_u,phix,phiz,n,nPer,epeak,emin,emax,numepts, relEnSpr):
+    #compute evals and flux vals
+
+    evals = np.arange(emin,emax,(emax-emin)/numepts)
+    enDetPars = (evals-epeak)/epeak
+
+     #compute flux for each E value
+    fluxvals = []
+    for j in range(len(enDetPars)):
+        fluxvals.append(CalcFluxUnd(Ib,kx,kz,0,0,n,nPer,enDetPars[j],relEnSpr))
+
+    return (evals,fluxvals)
+
+#Analytic formula for calculation of brightness with detuning
+def srwl_und_bright_en_fixedK(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,emin,emax,numepts,relEnSpr,L,sigxsq,sigysq,sigxpsq,sigypsq):
+    #compute evals and bright vals
+
+    brightevals = np.arange(emin,emax,(emax-emin)/numepts)
+    enDetPars = (brightevals-epeak)/epeak
+
+    print(enDetPars)
+    #compute brightness for each E value
+    brightdet = []
+
+    for j in range(len(enDetPars)):
+        brightdet.append(CalcBrightnessUnd(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,enDetPars[j],relEnSpr,L,sigxsq,sigysq,sigxpsq,sigypsq))
+
+    return (brightevals,brightdet)
+
+
+
+#Interpolation function for universal functions
+def interpBright(x,y,W,xmin,ymin,xstep,ystep,nx,ny):
+    #interpolate the function in the array W.
+    #x and y are the coordinates to evaluate it.
+    #W is a 2-D array.  We need the minimum x and y, xmin and ymin,
+    #and also the spacing xstep and ystep to find the correct values in W.
+    #With nx and ny, we can quickly check if the requested value is out
+    #of bounds, in which case we find the closest boundary value.
+
+    xmax = xmin + (nx - 1)*xstep
+    ymax = ymin + (ny - 1)*ystep
+
+    #if target point is outside of range put it on boundary
+    if(x<xmin):
+        x=xmin
+    if(y<ymin):
+        y=ymin
+    if(x>=xmax):
+        x = xmax - xstep
+    if(y>=ymax):
+        y = ymax - ystep
+
+    #now find surrounding integers for (x,y)
+
+    [djx,jx0]=np.modf((x-xmin)/xstep)
+    [djy,jy0]=np.modf((y-ymin)/ystep)
+    jx0=int(jx0)
+    jy0=int(jy0)
+
+    #now get values
+
+    W00 = W[jx0,jy0]
+    W01 = W[jx0,jy0+1]
+    W10 = W[jx0+1,jy0]
+    #W11 = W[jx0+1,jy0+1]
+
+    return W00 +  djx*(W01-W00) + djy*(W10-W00) #+ djx*djy*W11

@@ -2457,7 +2457,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }, 100);
 
             function refresh() {
-                if (layoutService.plotAxis.allowUpdates) {
+                if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
                     if (! heatmap || isNaN(width)) {
                         return;
@@ -2776,6 +2776,11 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 var xdom = [json.x_range[0], json.x_range[1]];
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
+                if (json.y_range[0] == json.y_range[1]) {
+                    // y has no range, expand it so axis can be computed
+                    json.y_range[0] -= (json.y_range[0] || 1);
+                    json.y_range[1] += (json.y_range[1] || 1);
+                }
                 axes.y.domain = [json.y_range[0], json.y_range[1]];
                 axes.y.scale.domain(axes.y.domain).nice();
                 $.each(axes, function(dim, axis) {

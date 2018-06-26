@@ -1585,7 +1585,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
               '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope) {
 
             // random id for the keypress service to track
             $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -1618,6 +1618,9 @@ SIREPO.app.directive('appHeaderBrand', function() {
               '</div>',
             '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.appUrl = $scope.appUrl || '/#/' + SIREPO.APP_NAME;
+        },
     };
 });
 
