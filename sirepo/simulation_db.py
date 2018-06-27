@@ -500,7 +500,7 @@ def poll_seconds(data):
     Returns:
         int: number of seconds to poll
     """
-    return 2 if _IS_PARALLEL_RE.search(_report_name(data)) else 1
+    return 2 if is_parallel(data) else 1
 
 
 def prepare_simulation(data):
