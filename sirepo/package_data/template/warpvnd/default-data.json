@@ -28,6 +28,10 @@
         "particleAnimation": {
             "startTime": 1494013105
         },
+        "particle3d": {
+            "renderCount": 100,
+            "joinEvery": 1
+        },
         "simulation": {
             "folder": "/",
             "isExample": false,
@@ -38,6 +42,7 @@
         },
         "simulationGrid": {
             "channel_width": 0.11,
+            "channel_height": 5,
             "num_steps": 4000,
             "num_x": 11,
             "num_z": 512,
