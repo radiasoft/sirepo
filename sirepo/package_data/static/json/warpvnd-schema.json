@@ -103,6 +103,7 @@
         "simulationGrid": {
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
+            "channel_height": ["Channel Height [µm]", "Float", 5.0],
             "num_x": ["X Grid Points", "Integer"],
             "num_z": ["Z Grid Points", "Integer"],
             "particles_per_step": ["Particles Per Step", "Integer"],
@@ -230,11 +231,13 @@
             "title": "Simulation Grid",
             "basic": [
                 "plate_spacing",
-                "channel_width"
+                "channel_width",
+                "channel_height"
             ],
             "advanced": [
                 "plate_spacing",
                 "channel_width",
+                "channel_height",
                 "num_x",
                 "num_z",
                 "z_particle_min"
