@@ -502,13 +502,13 @@ def api_runCancel():
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
     #TODO(robnagler) mutex required
-    if cfg.job_queue.is_processing(jid):
+    if runner.job_is_processing(jid):
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
         # will happen as a result of the kill.
         simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        cfg.job_queue.kill(jid)
+        runner.job_kill(jid)
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
         t = sirepo.template.import_module(data)
@@ -723,10 +723,9 @@ def init(db_dir=None, uwsgi=None):
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
-
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
-
+    runner.init(app, uwsgi)
     return app
 
 
@@ -1041,7 +1040,7 @@ def _simulation_run_status(data, quiet=False):
     try:
         #TODO(robnagler): Lock
         rep = simulation_db.report_info(data)
-        is_processing = cfg.job_queue.is_processing(rep.job_id)
+        is_processing = runner.job_is_processing(rep.job_id)
         is_running = rep.job_status in _RUN_STATES
         res = {'state': rep.job_status}
         pkdc(
@@ -1053,7 +1052,7 @@ def _simulation_run_status(data, quiet=False):
             bool(rep.cached_data),
         )
         if is_processing and not is_running:
-            cfg.job_queue.race_condition_reap(rep.job_id)
+            runner.job_race_condition_reap(rep.job_id)
             pkdc('{}: is_processing and not is_running', rep.job_id)
             is_processing = False
         template = sirepo.template.import_module(data)
@@ -1159,7 +1158,7 @@ def _start_simulation(data):
         'startTime': int(time.time()),
         'state': 'pending',
     }
-    cfg.job_queue(data)
+    runner.job_start(data)
 
 
 def _validate_serial(data):
@@ -1191,7 +1190,7 @@ cfg = pkconfig.init(
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
-    job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
+    job_queue=(None, runner.cfg_job_class, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),

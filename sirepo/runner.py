@@ -3,10 +3,21 @@ u"""Run jobs
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
+
+
+decouple so can start any type of job
+add is_background_import to simulation_db
+select docker for that if configured and not background
+need to have hard constraints on the docker container
+
+runner.init_job() does the dispatch
+
+
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern import pkconfig
+from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -18,33 +29,91 @@ import threading
 import time
 import uuid
 
+#: Configuration
+cfg = None
+
+# Map of jid to instance
+_job_map = pkcollections.Dict()
+
+_job_map_lock = threading.RLock()
+
+
+@pkconfig.parse_none
+def cfg_job_class(value):
+    """Return job queue class based on name
+
+    Args:
+        value (object): May be class or str.
+
+    Returns:
+        object: `Background` or `Celery` class.
+
+    """
+    if isinstance(value, type) and issubclass(value, (Celery, Background)):
+        # Already initialized but may call initializer with original object
+        return value
+    if value == 'Celery':
+        if pkconfig.channel_in('dev'):
+            _assert_celery()
+        return Celery
+    elif value == 'Background':
+        signal.signal(signal.SIGCHLD, Background.sigchld_handler)
+        return Background
+    elif value is None:
+        return None
+    else:
+        raise AssertionError('{}: unknown job_class'.format(value))
+
+
+def init(app, uwsgi):
+    """Initialize module"""
+    if cfg.job_class is None:
+        from sirepo import server
+        d = 'Background'
+        if server.cfg.job_queue:
+            # Handle deprecated case
+            d = server.cfg.job_queue
+        cfg.job_class = cfg_job_class(d)
+        assert not uwsgi or not issubclass(cfg.job_class, Background), \
+            'uwsgi does not work if sirepo.runner.cfg.job_class=Background'
+
+
+def job_is_processing(jid):
+    return cfg.job_class.is_processing(jid)
+
+
+def job_kill(jid):
+    return cfg.job_class.kill(jid)
+
+
+def job_race_condition_reap(jid):
+    return cfg.job_class.race_condition_reap(jid)
+
+
+def job_start(data):
+    return cfg.job_class(data)
+
 
 class Background(object):
     """Run as subprocess"""
 
-    # Map of jid to instance
-    _job = {}
-
-    # mutex for _job
-    _lock = threading.RLock()
-
     def __init__(self, data):
-        with self._lock:
+        with _job_map_lock:
             self.jid = simulation_db.job_id(data)
-            if self.jid in self._job:
+            if self.jid in _job_map:
                 raise Collision(self.jid)
             self.in_kill = None
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            self._job[self.jid] = self
+            _job_map[self.jid] = self
             self.pid = None
             # This command may blow up
             self.pid = self._start_job()
 
     @classmethod
     def is_processing(cls, jid):
-        with cls._lock:
+        with _job_map_lock:
             try:
-                self = cls._job[jid]
+                self = _job_map[jid]
             except KeyError:
                 pkdc('{}: not found', jid)
                 return False
@@ -57,7 +126,7 @@ class Background(object):
                 os.kill(self.pid, 0)
             except OSError:
                 # Has to exist so no need to protect
-                del self._job[jid]
+                del _job_map[jid]
                 pkdlog('{}: pid={} does not exist, removing job', jid, self.pid)
                 return False
         return True
@@ -65,9 +134,9 @@ class Background(object):
     @classmethod
     def kill(cls, jid):
         self = None
-        with cls._lock:
+        with _job_map_lock:
             try:
-                self = cls._job[jid]
+                self = _job_map[jid]
             except KeyError:
                 return
             if self.in_kill:
@@ -92,12 +161,12 @@ class Background(object):
             except OSError:
                 pkdlog('{}: already reaped; job={}', self.pid, self.jid)
                 return
-        with cls._lock:
+        with _job_map_lock:
             try:
-                self = cls._job[jid]
+                self = _job_map[jid]
                 if self.in_kill and self.in_kill == nonce:
                     self.in_kill = None
-                    del self._job[self.jid]
+                    del _job_map[self.jid]
                     pkdlog('{}: delete successful; pid=', self.jid, self.pid)
                     return
                 pkdlog('{}: job restarted by another thread', jid)
@@ -117,8 +186,8 @@ class Background(object):
     @classmethod
     def sigchld_handler(cls, signum=None, frame=None):
         try:
-            with cls._lock:
-                if not cls._job:
+            with _job_map_lock:
+                if not _job_map:
                     # Can't be our job so don't waitpid.
                     # Only important at startup, when other modules
                     # are doing popens, which does a waitpid.
@@ -126,9 +195,9 @@ class Background(object):
                     return
                 pid, status = os.waitpid(-1, os.WNOHANG)
                 pkdlog('{}: waitpid: status={}', pid, status)
-                for self in cls._job.values():
+                for self in _job_map.values():
                     if self.pid == pid:
-                        del self._job[self.jid]
+                        del _job_map[self.jid]
                         pkdlog('{}: delete successful', self.jid)
                         return
         except OSError as e:
@@ -186,18 +255,12 @@ class Background(object):
 class Celery(object):
     """Run job in Celery (prod)"""
 
-    # Map of jid to instance
-    _job = {}
-
-    # mutex for _job
-    _lock = threading.RLock()
-
     def __init__(self, data):
-        with self._lock:
+        with _job_map_lock:
             self.jid = simulation_db.job_id(data)
             pkdc('{}: created', self.jid)
-            if self.jid in self._job:
-                self = self._job[self.jid]
+            if self.jid in _job_map:
+                self = _job_map[self.jid]
                 pkdlog(
                     '{}: Collision tid={} celery_state={}',
                     self.jid,
@@ -206,9 +269,9 @@ class Celery(object):
                 )
                 raise Collision(self.jid)
             self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            self._job[self.jid] = self
+            _job_map[self.jid] = self
             self.data = data
-            self._job[self.jid] = self
+            _job_map[self.jid] = self
             self.async_result = self._start_job()
             pkdc(
                 '{}: started tid={} dir={} queue={} len_jobs={}',
@@ -216,19 +279,19 @@ class Celery(object):
                 self.async_result.task_id,
                 self.run_dir,
                 self.celery_queue,
-                len(self._job),
+                len(_job_map),
             )
 
     @classmethod
     def is_processing(cls, jid):
         """Job is either in the queue or running"""
-        with cls._lock:
+        with _job_map_lock:
             return bool(cls._find_job(jid))
 
     @classmethod
     def kill(cls, jid):
         from celery.exceptions import TimeoutError
-        with cls._lock:
+        with _job_map_lock:
             self = cls._find_job(jid)
             if not self:
                 return
@@ -240,12 +303,12 @@ class Celery(object):
         except TimeoutError as e:
             pkdlog('{}: sending a SIGKILL tid={}', jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
-        with cls._lock:
+        with _job_map_lock:
             self = cls._find_job(jid)
             if not self:
                 return
             if self.async_result.task_id == tid:
-                del self._job[self.jid]
+                del _job_map[self.jid]
                 pkdlog('{}: deleted (killed) job; tid={} celery_state={}', jid, tid, self.async_result.state)
                 return
             pkdlog(
@@ -259,7 +322,7 @@ class Celery(object):
     def race_condition_reap(cls, jid):
         """Race condition due to lack of mutex and reliable results.
         """
-        with cls._lock:
+        with _job_map_lock:
             self = cls._find_job(jid)
             if self:
                 res = self.async_result
@@ -269,7 +332,7 @@ class Celery(object):
                     res,
                     res and res.state,
                 )
-                del self._job[self.jid]
+                del _job_map[self.jid]
                 res.revoke(terminate=True, signal='SIGKILL')
             else:
                 pkdlog('{}: job finished finally', jid)
@@ -277,9 +340,9 @@ class Celery(object):
     @classmethod
     def _find_job(cls, jid):
         try:
-            self = cls._job[jid]
+            self = _job_map[jid]
         except KeyError:
-            pkdlog('{}: job not found; len_jobs={}', jid, len(cls._job))
+            pkdlog('{}: job not found; len_jobs={}', jid, len(_job_map))
             return None
         res = self.async_result
         pkdc(
@@ -287,10 +350,10 @@ class Celery(object):
             jid,
             res,
             res and res.state,
-            len(cls._job),
+            len(_job_map),
         )
         if not res or res.ready():
-            del self._job[jid]
+            del _job_map[jid]
             pkdlog(
                 '{}: deleted errant or ready job; tid={} ready={}',
                 jid,
@@ -317,30 +380,6 @@ class Collision(Exception):
     pass
 
 
-def cfg_job_queue(value):
-    """Return job queue class based on name
-
-    Args:
-        value (object): May be class or str.
-
-    Returns:
-        object: `Background` or `Celery` class.
-
-    """
-    if isinstance(value, type) and issubclass(value, (Celery, Background)):
-        # Already initialized but may call initializer with original object
-        return value
-    if value == 'Celery':
-        if pkconfig.channel_in('dev'):
-            _assert_celery()
-        return Celery
-    elif value == 'Background':
-        signal.signal(signal.SIGCHLD, Background.sigchld_handler)
-        return Background
-    else:
-        pkcli.command_error('{}: unknown job_queue', value)
-
-
 def _assert_celery():
     """Verify celery & rabbit are running"""
     from sirepo import celery_tasks
@@ -361,3 +400,9 @@ def _assert_celery():
     #TODO(robnagler) really should be pkconfig.Error() or something else
     # but this prints a nice message. Don't call sys.exit, not nice
     pkcli.command_error(err)
+
+
+cfg = pkconfig.init(
+    # default is set in init()
+    job_class=(None, cfg_job_class, 'how to run jobs: Celery or Background'),
+)
