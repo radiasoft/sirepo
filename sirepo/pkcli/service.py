@@ -106,7 +106,11 @@ def rabbitmq():
             '--volume={}:/var/lib/rabbitmq'.format(run_dir),
             'rabbitmq:management',
         ]
-        pksubprocess.check_call_with_signals(cmd)
+        try:
+            pksubprocess.check_call_with_signals(cmd)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                pkcli.command_error('docker is not installed')
 
 
 def uwsgi():
