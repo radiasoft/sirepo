@@ -83,7 +83,36 @@ def job_is_processing(jid):
 
 
 def job_kill(jid):
-    return cfg.job_class.kill(jid)
+    """Terminate job
+
+    Args:
+        jid (str): see `simulation_db.job_id`
+    """
+    with _job_map_lock:
+        try:
+            job = _job_map[jid]
+        except KeyError:
+            return
+        lock = getattr(job, 'kill_lock', None)
+        if lock:
+            return
+        lock = threading.RLock()
+        job.kill_lock = lock
+#TODO(robnagler) need a garbage collector in the event that the thread dies in
+#   job.kill(). Need to terminate the job with the strongest kill signal
+    with lock:
+        job.kill()
+    with _job_map_lock:
+        try:
+            job = _job_map[jid]
+            if getattr(job, 'kill_lock', None) != lock:
+                pkdlog('{}: job restarted by another thread', jid)
+                return
+            del _job_map[job.jid]
+            pkdlog('{}: killed and deleted', job.jid)
+        except KeyError:
+            # job reaped by sigchld_handler
+            pass
 
 
 def job_race_condition_reap(jid):
@@ -131,47 +160,31 @@ class Background(object):
                 return False
         return True
 
-    @classmethod
-    def kill(cls, jid):
-        self = None
-        with _job_map_lock:
-            try:
-                self = _job_map[jid]
-            except KeyError:
-                return
-            if self.in_kill:
-                pkdlog('{}: kill in progress in another thread', jid)
-                return
-            nonce = uuid.uuid4()
-            self.in_kill = nonce
-
+    def kill(self):
         pkdlog('{}: stopping: pid={}', self.jid, self.pid)
         sig = signal.SIGTERM
         for i in range(3):
             try:
                 os.kill(self.pid, sig)
-                time.sleep(1)
-                pid, status = os.waitpid(self.pid, os.WNOHANG)
+                for j in range(3):
+                    time.sleep(1)
+                    pid, status = os.waitpid(self.pid, os.WNOHANG)
+                    if pid != 0:
+                        break
+                else:
+                    continue
                 if pid == self.pid:
                     pkdlog('{}: waitpid: status={}', pid, status)
                     break
                 else:
-                    pkdlog('{}: unexpected waitpid result; job={} pid={}', pid, self.jid, self.pid)
+                    pkdlog('pid={} status={}: unexpected waitpid result; job={} pid={}', pid, status, self.jid, self.pid)
                 sig = signal.SIGKILL
-            except OSError:
-                pkdlog('{}: already reaped; job={}', self.pid, self.jid)
-                return
-        with _job_map_lock:
-            try:
-                self = _job_map[jid]
-                if self.in_kill and self.in_kill == nonce:
-                    self.in_kill = None
-                    del _job_map[self.jid]
-                    pkdlog('{}: delete successful; pid=', self.jid, self.pid)
+            except OSError as e:
+                if e.errno in (errno.ESRCH, errno.ECHILD):
+                    # reaped by sigchld_handler()
                     return
-                pkdlog('{}: job restarted by another thread', jid)
-            except KeyError:
-                pkdlog('{}: job reaped by another thread', jid)
+                raise
+
 
     @classmethod
     def race_condition_reap(cls, jid):
@@ -194,11 +207,13 @@ class Background(object):
                     # see radiasoft/sirepo#681
                     return
                 pid, status = os.waitpid(-1, os.WNOHANG)
-                pkdlog('{}: waitpid: status={}', pid, status)
+                if pid == 0:
+                    # a process that was reaped before sigchld called
+                    return
                 for self in _job_map.values():
                     if self.pid == pid:
                         del _job_map[self.jid]
-                        pkdlog('{}: delete successful', self.jid)
+                        pkdlog('{}: delete successful jid={}', self.pid, self.jid)
                         return
         except OSError as e:
             if e.errno != errno.ECHILD:
@@ -288,35 +303,17 @@ class Celery(object):
         with _job_map_lock:
             return bool(cls._find_job(jid))
 
-    @classmethod
-    def kill(cls, jid):
+    def kill(self):
         from celery.exceptions import TimeoutError
-        with _job_map_lock:
-            self = cls._find_job(jid)
-            if not self:
-                return
-            res = self.async_result
-            tid = res.task_id
-            pkdlog('{}: killing: tid={}', jid, tid)
+        res = self.async_result
+        tid = res.task_id
+        pkdlog('{}: killing: tid={}', self.jid, tid)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
-            pkdlog('{}: sending a SIGKILL tid={}', jid, tid)
+            pkdlog('{}: sending a SIGKILL tid={}', self.jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
-        with _job_map_lock:
-            self = cls._find_job(jid)
-            if not self:
-                return
-            if self.async_result.task_id == tid:
-                del _job_map[self.jid]
-                pkdlog('{}: deleted (killed) job; tid={} celery_state={}', jid, tid, self.async_result.state)
-                return
-            pkdlog(
-                '{}: job reaped by another thread; old_tid={}, new_tid={}',
-                jid,
-                tid,
-                self.async_result,
-            )
+
 
     @classmethod
     def race_condition_reap(cls, jid):
