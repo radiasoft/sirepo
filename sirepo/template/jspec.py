@@ -108,7 +108,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ('ring', 'particleAnimation'):
+    for m in ('ring', 'particleAnimation', 'twissReport'):
+        if m not in data['models']:
+            data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'coolingRatesAnimation' not in data['models']:
         for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
@@ -224,6 +226,8 @@ def lib_files(data, source_lib):
 def models_related_to_report(data):
     if data['report'] == 'rateCalculationReport':
         return ['cooler', 'electronBeam', 'electronCoolingRate', 'intrabeamScatteringRate', 'ionBeam', 'ring']
+    if data['report'] == 'twissReport':
+        return ['twissReport', 'ring']
     return []
 
 
@@ -255,6 +259,25 @@ os.system('jspec {}')
 
 def remove_last_frame(run_dir):
     pass
+
+
+def validate_file(file_type, path):
+    if file_type == 'ring-elegantTwiss':
+        return None
+    assert file_type == 'ring-lattice'
+    for line in pkio.read_text(str(path)).split("\n"):
+        # mad-x twiss column header starts with '*'
+        match = re.search('^\*\s+(.*)\s+$', line)
+        if match:
+            columns = re.split(r'\s+', match.group(1))
+            is_ok = True
+            for col in sdds_util.MADX_TWISS_COLUMS:
+                if col not in columns:
+                    is_ok = False
+                    break
+            if is_ok:
+                return None
+    return 'TFS file must contain columns: {}'.format(', '.join(sdds_util.MADX_TWISS_COLUMS))
 
 
 def write_parameters(data, run_dir, is_parallel):
