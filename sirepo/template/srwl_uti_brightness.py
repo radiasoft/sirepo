@@ -83,7 +83,8 @@ def CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
         auxMult = n*n*(K1e2 + K2e2)/(1 + (K1e2 + K2e2)/2)/(fit_width*fit_width)
         a_sig = auxMult*2*relEnSpr
         a_sigE2d2 = a_sig*a_sig/2
-        genFact = 0.5 + 0.5*math.exp(a_sigE2d2)*(1 - special.erf(math.sqrt(a_sigE2d2)))
+        v = 1 - special.erf(math.sqrt(a_sigE2d2))
+        genFact = 0.0 if v == 0.0 else 0.5 + 0.5*v*math.exp(a_sigE2d2)
         if dEperE >= 0:
             res = genFact
         else:
@@ -306,7 +307,7 @@ def srwl_und_size_en_fixedK(sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numept
     evals = np.arange(emin,emax,(emax-emin)/numepts)
     enDetPars = (evals-epeak)/epeak
 
-    print(enDetPars)
+    #print(enDetPars)
      #compute size for each E value
     sizedet = []
     for j in range(len(enDetPars)):
@@ -322,7 +323,7 @@ def srwl_und_div_en_fixedK(sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numepts
     evals = np.arange(emin,emax,(emax-emin)/numepts)
     enDetPars = (evals-epeak)/epeak
 
-    print(enDetPars)
+    #print(enDetPars)
      #compute div for each E value
     divdet = []
     for j in range(len(enDetPars)):
@@ -352,7 +353,7 @@ def srwl_und_bright_en_fixedK(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,emin,
     brightevals = np.arange(emin,emax,(emax-emin)/numepts)
     enDetPars = (brightevals-epeak)/epeak
 
-    print(enDetPars)
+    #print(enDetPars)
     #compute brightness for each E value
     brightdet = []
 
