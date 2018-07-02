@@ -34,6 +34,10 @@
             ["0", "No"],
             ["1", "Yes"]
         ],
+        "BrightnessComponent": [
+            ["k-tuning", "K Tuning"],
+            ["spectral-detuning", "Spectral Detuning"]
+        ],
         "BrillianceReportType": [
             ["0", "Flux (Ph/s/.1%)"],
             ["1", "Angular Flux (Ph/s/.1%/mr²)"],
@@ -284,6 +288,8 @@
             "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
             "reportType": ["Report Type", "BrillianceReportType", "0"],
+            "brightnessComponent": ["Brightness Component", "BrightnessComponent", "k-tuning"],
+            "energyDelta": ["Energy Delta [eV]", "Float", 1000, "", 1, 1000],
             "notes": ["Notes", "Text", ""]
         },
         "crl": {
@@ -802,10 +808,12 @@
             "title": "Brightness Report",
             "basic": [],
             "advanced": [
+                "brightnessComponent",
                 "minDeflection",
                 "initialHarmonic",
                 "finalHarmonic",
                 "detuning",
+                "energyDelta",
                 "energyPointCount",
                 "reportType",
                 "notes"

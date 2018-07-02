@@ -11,8 +11,31 @@ def main():
 
     for harmNum in range({{ brillianceReport_initialHarmonic }}, {{ brillianceReport_finalHarmonic }} + 1):
         if harmNum % 2:
+{% if brillianceReport_brightnessComponent == 'spectral-detuning' %}
+            k = math.sqrt({{ undulator_horizontalDeflectingParameter }} ** 2 + {{ undulator_verticalDeflectingParameter }} ** 2)
+            peak = getE(harmNum, {{ electronBeam_energy }}, k, lam_u / 100)
+{% endif %}
 {% if brillianceReport_reportType == '0' %}
             header.append('f{} [Ph/s/.1%], e{} [eV]'.format(harmNum, harmNum))
+    {% if brillianceReport_brightnessComponent == 'spectral-detuning' %}
+            # Ib,kx,kz,E_elec,lam_u,phix,phiz,n,nPer,epeak,emin,emax,numepts, relEnSpr
+            (x, y) = srwl_und_flux_en_fixedK(
+                {{ electronBeam_current }}, # electronBeam.current
+                {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
+                {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
+                {{ electronBeam_energy }}, # electronBeam.energy
+                lam_u, # undulator period in cm
+                {{ undulator_horizontalInitialPhase }}, # undulator.horizontalInitialPhase
+                {{ undulator_verticalInitialPhase }}, # undulator.verticalInitialPhase
+                harmNum,
+                nPer,
+                peak,
+                peak - {{ brillianceReport_energyDelta }},
+                peak + {{ brillianceReport_energyDelta }},
+                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
+                {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
+            )
+    {% else %}
             # Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr
             (x, y) = srwl_und_flux_en(
                 {{ electronBeam_current }}, # electronBeam.current
@@ -29,6 +52,7 @@ def main():
                 {{ brillianceReport_detuning }}, # brillianceReport.detuning
                 {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
             )
+    {% endif %}
 {% elif brillianceReport_reportType == '1' %}
             header.append('f{} [Ph/s/.1%bw/mrad2], e{} [eV]'.format(harmNum, harmNum))
             # Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpxsq,sigpzsq
@@ -51,6 +75,30 @@ def main():
             )
 {% elif brillianceReport_reportType == '2' %}
             header.append('f{} [Ph/s/.1/mr2/mm2], e{} [eV]'.format(harmNum, harmNum))
+    {% if brillianceReport_brightnessComponent == 'spectral-detuning' %}
+            # Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,emin,emax,numepts,relEnSpr,L,sigxsq,sigysq,sigxpsq,sigypsq
+            (x, y) = srwl_und_bright_en_fixedK(
+                {{ electronBeam_current }}, # electronBeam.current
+                {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
+                {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
+                {{ undulator_horizontalInitialPhase }}, # undulator.horizontalInitialPhase
+                {{ undulator_verticalInitialPhase }}, # undulator.verticalInitialPhase
+                harmNum,
+                {{ electronBeam_energy }}, # electronBeam.energy
+                lam_u, # undulator period in cm
+                nPer,
+                peak,
+                peak - {{ brillianceReport_energyDelta }},
+                peak + {{ brillianceReport_energyDelta }},
+                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
+                {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
+                {{ undulator_length }}, # undulator.length
+                {{ electronBeam_rmsSizeX }} ** 2, # electronBeam.rmsSizeX
+                {{ electronBeam_rmsSizeY }} ** 2, # electronBeam.rmsSizeY
+                {{ electronBeam_rmsDivergX }} ** 2, # electronBeam.rmsDivergX
+                {{ electronBeam_rmsDivergY }} ** 2, # electronBeam.rmsDivergY
+            )
+    {% else %}
             # Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,relEnSpr,L,sigxsq,sigzsq,sigxpsq,sigzpsq,kxmax,kzmax,kmin,numkpts
             (x, y) = srwl_und_bright_en(
                 {{ electronBeam_current }}, # electronBeam.current
@@ -75,8 +123,36 @@ def main():
                 {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
                 {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
             )
-{% elif brillianceReport_reportType == '3' %}
+    {% endif %}
+{% elif brillianceReport_reportType == '3' or brillianceReport_reportType == '4' %}
             header.append('f{} [rad], e{} [eV]'.format(harmNum, harmNum))
+    {% if brillianceReport_brightnessComponent == 'spectral-detuning' %}
+            # sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numepts,relEnSpr
+        {% if brillianceReport_reportType == '3' %}
+            sigsq = {{ electronBeam_rmsSizeX }} ** 2, # electronBeam.rmsSizeX
+        {% else %}
+            sigsq = {{ electronBeam_rmsSizeY }} ** 2, # electronBeam.rmsSizeY
+        {% endif %}
+            (x, y) = srwl_und_div_en_fixedK(
+                sigsq,
+                {{ undulator_length }}, # undulator.length
+                k,
+                {{ electronBeam_energy }},  # electronBeam.energy
+                lam_u, # undulator period in cm
+                harmNum,
+                nPer,
+                peak,
+                peak - {{ brillianceReport_energyDelta }},
+                peak + {{ brillianceReport_energyDelta }},
+                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
+                {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
+            )
+    {% else %}
+        {% if brillianceReport_reportType == '3' %}
+            sigpsq = {{ electronBeam_rmsDivergX }} ** 2, # electronBeam.rmsDivergX
+        {% else %}
+            sigpsq = {{ electronBeam_rmsDivergY }} ** 2, # electronBeam.rmsDivergY
+        {% endif %}
             # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq
             (x, y) = srwl_und_div_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
@@ -91,28 +167,38 @@ def main():
                 nPer,
                 {{ brillianceReport_detuning }}, # brillianceReport.detuning
                 {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
-                {{ electronBeam_rmsDivergX }} ** 2, # electronBeam.rmsDivergX
+                sigpsq,
             )
-{% elif brillianceReport_reportType == '4' %}
-            header.append('f{} [rad], e{} [eV]'.format(harmNum, harmNum))
-            # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigpsq
-            (x, y) = srwl_und_div_en(
-                {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
-                {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
-                {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
-                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
-                {{ electronBeam_energy }}, # electronBeam.energy
+    {% endif %}
+{% elif brillianceReport_reportType == '5' or brillianceReport_reportType == '6' %}
+            header.append('f{} [m], e{} [eV]'.format(harmNum, harmNum))
+    {% if brillianceReport_brightnessComponent == 'spectral-detuning' %}
+            # sigsq,L,K,E_elec,lam_u,n,nPer,epeak,emin,emax,numepts,relEnSpr
+        {% if brillianceReport_reportType == '5' %}
+            sigsq = {{ electronBeam_rmsSizeX }} ** 2, # electronBeam.rmsSizeX
+        {% else %}
+            sigsq = {{ electronBeam_rmsSizeY }} ** 2, # electronBeam.rmsSizeY
+        {% endif %}
+            (x, y) = srwl_und_size_en_fixedK(
+                sigsq,
+                {{ undulator_length }}, # undulator.length
+                k,
+                {{ electronBeam_energy }},  # electronBeam.energy
                 lam_u, # undulator period in cm
-                {{ undulator_horizontalInitialPhase }}, # undulator.horizontalInitialPhase
-                {{ undulator_verticalInitialPhase }}, # undulator.verticalInitialPhase
                 harmNum,
                 nPer,
-                {{ brillianceReport_detuning }}, # brillianceReport.detuning
+                peak,
+                peak - {{ brillianceReport_energyDelta }},
+                peak + {{ brillianceReport_energyDelta }},
+                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
                 {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
-                {{ electronBeam_rmsDivergY }} ** 2, # electronBeam.rmsDivergY
             )
-{% elif brillianceReport_reportType == '5' %}
-            header.append('f{} [m], e{} [eV]'.format(harmNum, harmNum))
+    {% else %}
+        {% if brillianceReport_reportType == '5' %}
+            sigxsq = {{ electronBeam_rmsSizeX }} ** 2, # electronBeam.rmsSizeX
+        {% else %}
+            sigxsq = {{ electronBeam_rmsSizeY }} ** 2, # electronBeam.rmsSizeX
+        {% endif %}
             # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq
             (x, y) = srwl_und_size_en(
                 {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
@@ -127,26 +213,9 @@ def main():
                 nPer,
                 {{ brillianceReport_detuning }}, # brillianceReport.detuning
                 {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
-                {{ electronBeam_rmsSizeX }} ** 2, # electronBeam.rmsSizeX
+                sigxsq,
             )
-{% elif brillianceReport_reportType == '6' %}
-            header.append('f{} [m], e{} [eV]'.format(harmNum, harmNum))
-            # kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDetPar,relEnSpr,sigxsq
-            (x, y) = srwl_und_size_en(
-                {{ undulator_horizontalDeflectingParameter }}, # undulator.horizontalDeflectingParameter
-                {{ undulator_verticalDeflectingParameter }}, # undulator.verticalDeflectingParameter
-                {{ brillianceReport_minDeflection }}, # brillianceReport.minDeflection
-                {{ brillianceReport_energyPointCount }}, # brillianceReport.energyPointCount
-                {{ electronBeam_energy }}, # electronBeam.energy
-                lam_u, # undulator period in cm
-                {{ undulator_horizontalInitialPhase }}, # undulator.horizontalInitialPhase
-                {{ undulator_verticalInitialPhase }}, # undulator.verticalInitialPhase
-                harmNum,
-                nPer,
-                {{ brillianceReport_detuning }}, # brillianceReport.detuning
-                {{ electronBeam_rmsSpread }}, # electronBeam.rmsSpread
-                {{ electronBeam_rmsSizeY }} ** 2, # electronBeam.rmsSizeX
-            )
+    {% endif %}
 {% else %}
             assert False, 'invalid Brilliance Report Type: {}'.format({{ brillianceReport_reportType }})
 {% endif %}
