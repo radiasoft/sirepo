@@ -284,20 +284,28 @@
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The collimator length."],
             "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
-            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "HKICKER": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
             "kick": ["KICK", "Float", "0.0", "The horizontal momentum change"],
-            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "HMONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "KICKER": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
             "hkick": ["HKICK", "Float", "0.0", "The horizontal momentum change"],
             "vkick": ["VKICK", "Float", "0.0", "The vertical momentum change"],
-            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
@@ -312,7 +320,8 @@
             "name": ["Name", "ValidatedString"],
             "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
             "knl": ["KNL", "String", "", "An array of the integrated normal multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
-            "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."]
+            "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "NLLENS": {
             "name": ["Name", "ValidatedString"],
@@ -355,7 +364,8 @@
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "The collimator length."],
             "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
-            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."]
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "RFCAVITY": {
             "name": ["Name", "ValidatedString"],
@@ -417,13 +427,20 @@
         },
         "SROTATION": {
             "name": ["Name", "ValidatedString"],
-            "angle": ["ANGLE [rad]", "Float", "0.0", "The rotation angle about the longitudinal axis."]
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The rotation angle about the longitudinal axis."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
         "VKICKER": {
             "name": ["Name", "ValidatedString"],
             "l": ["L [m]", "Float", "0.0", "length"],
             "kick": ["KICK", "Float", "0.0", "The vertical momentum change"],
-            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"]
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "VMONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         }
     },
     "view": {
@@ -608,7 +625,8 @@
                 "name",
                 "l",
                 "xsize",
-                "ysize"
+                "ysize",
+                "extractor_type"
             ]
         },
         "HKICKER": {
@@ -619,7 +637,18 @@
                 "name",
                 "l",
                 "kick",
-                "tilt"
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "HMONITOR": {
+            "title": "HMONITOR",
+            "description": "A monitor for the horizontal beam position.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
             ]
         },
         "KICKER": {
@@ -631,7 +660,8 @@
                 "l",
                 "hkick",
                 "vkick",
-                "tilt"
+                "tilt",
+                "extractor_type"
             ]
         },
         "MARKER": {
@@ -661,7 +691,8 @@
                 "name",
                 "tilt",
                 "knl",
-                "ksl"
+                "ksl",
+                "extractor_type"
             ]
         },
         "NLLENS": {
@@ -718,7 +749,8 @@
                 "name",
                 "l",
                 "xsize",
-                "ysize"
+                "ysize",
+                "extractor_type"
             ]
         },
         "RFCAVITY": {
@@ -802,7 +834,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "angle"
+                "angle",
+                "extractor_type"
             ]
         },
         "VKICKER": {
@@ -813,7 +846,18 @@
                 "name",
                 "l",
                 "kick",
-                "tilt"
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "VMONITOR": {
+            "title": "VMONITOR",
+            "description": "A monitor for the vertical beam position.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
             ]
         }
     }

@@ -43,7 +43,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'MARKER', 'MULTIPOLE', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER'];
+    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'HMONITOR', 'MARKER', 'MULTIPOLE', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER', 'VMONITOR'];
 
     self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
 
@@ -60,7 +60,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
-        watch: ['MARKER', 'MONITOR'],
+        watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
         zeroLength: ['DIPEDGE', 'NLLENS', 'SROTATION'],
     };
 
