@@ -28,3 +28,31 @@
 
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="rateCalculationReport" data-parent-controller="source"></div>
+<div class="modal fade" id="jspec-twiss-plot" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <span class="lead modal-title text-info">Twiss Parameters</span>
+        <div class="sr-panel-options pull-right">
+          <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="source.showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <div data-ng-if="source.twissReportShown" class="col-sm-12">
+              <div data-report-content="parameter" data-model-key="twissReport" data-report-id="source.twissReportId"></div>
+            </div>
+          </div>
+          <br />
+          <div class="row">
+            <div class="col-sm-offset-6 col-sm-3">
+              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

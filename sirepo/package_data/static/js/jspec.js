@@ -17,6 +17,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
       '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
+      '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
@@ -37,6 +40,7 @@ SIREPO.app.config(function($routeProvider, localRoutesProvider) {
 
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
+    self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 
     function processElectronBeamShape() {
         var shape = appState.models.electronBeam.shape;
@@ -112,6 +116,10 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         if (name == 'rateCalculationReport') {
             processIntrabeamScatteringMethod();
         }
+    };
+
+    self.showTwissEditor = function() {
+        panelState.showModalEditor('twissReport');
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -361,6 +369,39 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
         link: function link(scope, element) {
             scope.modelName = 'rateCalculationReport';
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('twissFileField', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div data-file-field="field" data-model="model" data-model-name="modelName" data-selection-required="true">',
+              '<button type="button" title="View Twiss Parameters" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showFileReport = function() {
+                appState.saveChanges('ring');
+                var source = panelState.findParentAttribute($scope, 'source');
+                var el = $('#jspec-twiss-plot');
+                el.modal('show');
+                el.on('shown.bs.modal', function() {
+                    // this forces the plot to reload
+                    source.twissReportShown = true;
+                    $scope.$apply();
+                });
+                el.on('hidden.bs.modal', function() {
+                    source.twissReportShown = false;
+                    el.off();
+                });
+            };
         },
     };
 });

@@ -96,6 +96,19 @@
         "SimulationModel": [
             ["rms", "RMS"],
             ["particle", "Particle"]
+        ],
+        "TwissParameter": [
+            ["betx", "betax"],
+            ["alfx", "alphax"],
+            ["mux", "mux"],
+            ["dx", "dx"],
+            ["dpx", "dpx"],
+            ["bety", "betay"],
+            ["alfy", "alphay"],
+            ["muy", "muy"],
+            ["dy", "dy"],
+            ["dpy", "dpy"],
+            ["none", "None"]
         ]
     },
     "model": {
@@ -182,8 +195,8 @@
         },
         "ring": {
             "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
-            "lattice": ["Ring Lattice File", "InputFile", null, "This file should be in the MAD-X output format (*.tfs)."],
-            "elegantTwiss": ["Elegant twiss_output", "InputFile", null, "This file should be the SDDS output from the twiss_output command."],
+            "lattice": ["Ring Lattice File", "TwissFile", null, "This file should be in the MAD-X output format (*.tfs)."],
+            "elegantTwiss": ["Elegant twiss_output", "TwissFile", null, "This file should be the SDDS output from the twiss_output command."],
             "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
         },
         "simulationSettings": {
@@ -202,7 +215,12 @@
             "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
             "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
         },
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "betx"],
+            "y2": ["Y2 Value", "TwissParameter", "bety"],
+            "y3": ["Y3 Value", "TwissParameter", "dx"]
+        }
     },
     "view": {
         "beamEvolutionAnimation": {
@@ -386,6 +404,14 @@
         "simulationStatus": {
             "title": "SimulationStatus",
             "advanced": []
+        },
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
         }
     }
 }

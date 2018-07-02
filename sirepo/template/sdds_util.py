@@ -31,6 +31,8 @@ _ELEGANT_TO_MADX_COLUMNS = [
     ['ElementOccurence', 'COUNT'],
 ]
 
+MADX_TWISS_COLUMS = map(lambda row: row[1], _ELEGANT_TO_MADX_COLUMNS)
+
 _SDDS_INDEX = 0
 
 
